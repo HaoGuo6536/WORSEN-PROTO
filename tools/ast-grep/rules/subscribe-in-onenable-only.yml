@@ -1,0 +1,16 @@
+id: subscribe-in-onenable-only
+language: csharp
+severity: error
+message: "Subscribe in OnEnable and unsubscribe in OnDisable — same method group, no exceptions (§9)."
+files:
+  - "Assets/Scripts/**/*.cs"
+rule:
+  kind: method_declaration
+  all:
+    - has:
+        field: name
+        regex: '^(Awake|Start)$'
+    - has:
+        kind: assignment_expression
+        regex: '\+='
+        stopBy: end

@@ -1,0 +1,4422 @@
+{
+  "summary": {
+    "changed_count": 530,
+    "affected_count": 28,
+    "changed_files": 227,
+    "risk_level": "critical"
+  },
+  "changed_symbols": [
+    {
+      "id": "Section:AGENTS.md:L1:WORSEN project agent guide",
+      "name": "WORSEN project agent guide",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L5:Read the right authority",
+      "name": "Read the right authority",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L19:Compose the documentation skills",
+      "name": "Compose the documentation skills",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L40:Parallel work and Unity testing admission",
+      "name": "Parallel work and Unity testing admission",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L50:Apply the architecture before implementation",
+      "name": "Apply the architecture before implementation",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L60:Select tools by the evidence needed",
+      "name": "Select tools by the evidence needed",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L72:GitNexus workflow",
+      "name": "GitNexus workflow",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L91:ast-grep workflow",
+      "name": "ast-grep workflow",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L104:Synaptic Unity MCP workflow",
+      "name": "Synaptic Unity MCP workflow",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L114:Unity CLI workflow",
+      "name": "Unity CLI workflow",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L138:Finish with evidence",
+      "name": "Finish with evidence",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L144:Generated GitNexus context",
+      "name": "Generated GitNexus context",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L149:GitNexus — Code Intelligence",
+      "name": "GitNexus — Code Intelligence",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L155:Always Do",
+      "name": "Always Do",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L165:Never Do",
+      "name": "Never Do",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L172:Resources",
+      "name": "Resources",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:AGENTS.md:L181:CLI",
+      "name": "CLI",
+      "type": "Section",
+      "filePath": "AGENTS.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Scenes/TagArenaSceneSetup.cs:Worsen.Editor.Scenes",
+      "name": "Worsen.Editor.Scenes",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup",
+      "name": "TagArenaSceneSetup",
+      "type": "Class",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.BuildTagArena#0",
+      "name": "BuildTagArena",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.BuildServices#4",
+      "name": "BuildServices",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.BuildStage#0",
+      "name": "BuildStage",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.EnsureAsset#1",
+      "name": "EnsureAsset",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.RequireAsset#1",
+      "name": "RequireAsset",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.EnsureFolder#1",
+      "name": "EnsureFolder",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.Wire#3",
+      "name": "Wire",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Scenes/TagArenaSceneSetup.cs:TagArenaSceneSetup.SetFixedTimestep#0",
+      "name": "SetFixedTimestep",
+      "type": "Method",
+      "filePath": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:Worsen.Tests.Architecture",
+      "name": "Worsen.Tests.Architecture",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests",
+      "name": "ArchitectureConformanceTests",
+      "type": "Class",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EveryScriptBeginsWithTheMandatoryHeader#0",
+      "name": "EveryScriptBeginsWithTheMandatoryHeader",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EveryHeaderDeclaresATaxonomyTypeAndALayer#0",
+      "name": "EveryHeaderDeclaresATaxonomyTypeAndALayer",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.NamespaceMirrorsFolderPath#0",
+      "name": "NamespaceMirrorsFolderPath",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ClassSuffixMatchesItsFolder#0",
+      "name": "ClassSuffixMatchesItsFolder",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.MonoBehavioursLiveOnlyInManagerDriverOrOrchestrator#0",
+      "name": "MonoBehavioursLiveOnlyInManagerDriverOrOrchestrator",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EveryManagerDeclaresSystemKindAndLifecycleTier#0",
+      "name": "EveryManagerDeclaresSystemKindAndLifecycleTier",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EveryEntityManagerImplementsIEntityHandle#0",
+      "name": "EveryEntityManagerImplementsIEntityHandle",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.BehaviorStatesReadByOtherSystemsExposeAReadOnlyView#0",
+      "name": "BehaviorStatesReadByOtherSystemsExposeAReadOnlyView",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.PureLayerScriptsWithRealLogicShipTests#0",
+      "name": "PureLayerScriptsWithRealLogicShipTests",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EveryMenuItemSitsUnderTheProjectRoot#0",
+      "name": "EveryMenuItemSitsUnderTheProjectRoot",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EveryLayerHasItsAssemblyDefinition#0",
+      "name": "EveryLayerHasItsAssemblyDefinition",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ScriptsTreeContainsNoAssetsEditorCodeOrTestFolders#0",
+      "name": "ScriptsTreeContainsNoAssetsEditorCodeOrTestFolders",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ScriptsTreeHasNoDeadFolders#0",
+      "name": "ScriptsTreeHasNoDeadFolders",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.AssetsRoot",
+      "name": "AssetsRoot",
+      "type": "Property",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ScriptsRoot",
+      "name": "ScriptsRoot",
+      "type": "Property",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.EditorRoot",
+      "name": "EditorRoot",
+      "type": "Property",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ScriptFiles#0",
+      "name": "ScriptFiles",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ManagerFiles#0",
+      "name": "ManagerFiles",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.AllSourceFiles#0",
+      "name": "AllSourceFiles",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.SourceFiles#1",
+      "name": "SourceFiles",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.Rel#1",
+      "name": "Rel",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.HeaderOf#1",
+      "name": "HeaderOf",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.HeaderSection#2",
+      "name": "HeaderSection",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.CodeOf#1",
+      "name": "CodeOf",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.LayerOf#1",
+      "name": "LayerOf",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.SkeletonFolderOf#1",
+      "name": "SkeletonFolderOf",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.SystemPathOf#1",
+      "name": "SystemPathOf",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.ExpectedNamespace#1",
+      "name": "ExpectedNamespace",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs:ArchitectureConformanceTests.AssertNoViolations#2",
+      "name": "AssertNoViolations",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:Worsen.Tests.DebugOverlay",
+      "name": "Worsen.Tests.DebugOverlay",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests",
+      "name": "DebugOverlayPresenterTests",
+      "type": "Class",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests.InitialDisplayDoesNotInventPlayerTelemetry#0",
+      "name": "InitialDisplayDoesNotInventPlayerTelemetry",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests.RunStatusRetainsFullTickRangeAndHandlesAbsentPhase#0",
+      "name": "RunStatusRetainsFullTickRangeAndHandlesAbsentPhase",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests.SpeedFormattingUsesInvariantCultureAndRequestedPrecision#0",
+      "name": "SpeedFormattingUsesInvariantCultureAndRequestedPrecision",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample#2",
+      "name": "InvalidSpeedIsUnavailableWhileZeroRemainsARealSample",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests.PrecisionOutsideConfigRangeIsBounded#2",
+      "name": "PrecisionOutsideConfigRangeIsBounded",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs:DebugOverlayPresenterTests.PlayerUnavailableClearsStalePlayerDataAndPreservesRunStatus#0",
+      "name": "PlayerUnavailableClearsStalePlayerDataAndPreservesRunStatus",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:Worsen.Tests.Input",
+      "name": "Worsen.Tests.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests",
+      "name": "InputFramePresenterTests",
+      "type": "Class",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.SetUp#0",
+      "name": "SetUp",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.PressAndReleaseBeforeTickPreservesBothEdges#0",
+      "name": "PressAndReleaseBeforeTickPreservesBothEdges",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.HeldButtonsPersistWithoutRepeatingPress#0",
+      "name": "HeldButtonsPersistWithoutRepeatingPress",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.ReleaseOfOneButtonPreservesOtherHeldButtons#0",
+      "name": "ReleaseOfOneButtonPreservesOtherHeldButtons",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.ReleaseThenRepressBeforeTickPreservesEdgesAndFinalHeld#0",
+      "name": "ReleaseThenRepressBeforeTickPreservesEdgesAndFinalHeld",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.LookFromSeveralRenderUpdatesIsConsumedExactlyOnce#0",
+      "name": "LookFromSeveralRenderUpdatesIsConsumedExactlyOnce",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.MovementIsNormalizedAndPersistsAcrossTicks#0",
+      "name": "MovementIsNormalizedAndPersistsAcrossTicks",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.GamepadTurnUsesElapsedTimeAndFlushDoesNotIntegrateAgain#0",
+      "name": "GamepadTurnUsesElapsedTimeAndFlushDoesNotIntegrateAgain",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.InvertYAppliesToBothMouseAndGamepad#0",
+      "name": "InvertYAppliesToBothMouseAndGamepad",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.FocusLossDiscardsPendingAndHeldInput#0",
+      "name": "FocusLossDiscardsPendingAndHeldInput",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.DisabledInputDiscardsAndIgnoresDeviceFactsUntilReenabled#0",
+      "name": "DisabledInputDiscardsAndIgnoresDeviceFactsUntilReenabled",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.OwnerReenableDoesNotOverrideExplicitInputGate#0",
+      "name": "OwnerReenableDoesNotOverrideExplicitInputGate",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.DriverDisableResetDiscardsEverythingIncludingLookRate#0",
+      "name": "DriverDisableResetDiscardsEverythingIncludingLookRate",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.SeedPendingInput#0",
+      "name": "SeedPendingInput",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputFramePresenterTests.cs:InputFramePresenterTests.AssertNeutral#1",
+      "name": "AssertNeutral",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputFramePresenterTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Tests/Input/InputStartupTests.cs:Worsen.Tests.Input",
+      "name": "Worsen.Tests.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Tests/Input/InputStartupTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Tests/Input/InputStartupTests.cs:InputStartupTests",
+      "name": "InputStartupTests",
+      "type": "Class",
+      "filePath": "Assets/Editor/Tests/Input/InputStartupTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Input/InputStartupTests.cs:InputStartupTests.PreReadinessTapDoesNotLeakIntoFirstSceneTick#0",
+      "name": "PreReadinessTapDoesNotLeakIntoFirstSceneTick",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Input/InputStartupTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:Worsen.Tests.Run",
+      "name": "Worsen.Tests.Run",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests",
+      "name": "RunSessionControllerTests",
+      "type": "Class",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.ExpectedFactsAdvanceTheRun#3",
+      "name": "ExpectedFactsAdvanceTheRun",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases#2",
+      "name": "OutOfOrderFactsDoNotSkipPhases",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.RunDoesNotTickOrBufferGameplayBeforeSceneReady#0",
+      "name": "RunDoesNotTickOrBufferGameplayBeforeSceneReady",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.ShortPressAndReleaseBetweenTicksSurviveAndAreConsumedOnce#0",
+      "name": "ShortPressAndReleaseBetweenTicksSurviveAndAreConsumedOnce",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.EndedRunDoesNotAdvanceOrCollectMoreInput#0",
+      "name": "EndedRunDoesNotAdvanceOrCollectMoreInput",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.SceneHandoffResetsCountersAndDiscardsPriorSceneInput#0",
+      "name": "SceneHandoffResetsCountersAndDiscardsPriorSceneInput",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.InvalidTickDurationCannotCorruptTheCounter#1",
+      "name": "InvalidTickDurationCannotCorruptTheCounter",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.RecordedFramesAndDeltasProduceIdenticalRuns#0",
+      "name": "RecordedFramesAndDeltasProduceIdenticalRuns",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.InvalidSceneDoesNotDiscardTheCurrentRun#0",
+      "name": "InvalidSceneDoesNotDiscardTheCurrentRun",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.Create#1",
+      "name": "Create",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/Run/RunSessionControllerTests.cs:RunSessionControllerTests.JumpFrame#0",
+      "name": "JumpFrame",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/Run/RunSessionControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs:Worsen.Tests.SceneFlow",
+      "name": "Worsen.Tests.SceneFlow",
+      "type": "Namespace",
+      "filePath": "Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs:SceneFlowControllerTests",
+      "name": "SceneFlowControllerTests",
+      "type": "Class",
+      "filePath": "Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs:SceneFlowControllerTests.SceneKeysResolveToCanonicalPathsAndBack#2",
+      "name": "SceneKeysResolveToCanonicalPathsAndBack",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs:SceneFlowControllerTests.UnmappedLoadRequestsFailVisibly#1",
+      "name": "UnmappedLoadRequestsFailVisibly",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs:SceneFlowControllerTests.UnrelatedPathsDoNotAnnounceGameplaySceneCompletion#1",
+      "name": "UnrelatedPathsDoNotAnnounceGameplaySceneCompletion",
+      "type": "Method",
+      "filePath": "Assets/Editor/Tests/SceneFlow/SceneFlowControllerTests.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/EntityContext.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityContext.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Struct:Assets/Scripts/Core/Definitions/EntityContext.cs:EntityContext",
+      "name": "EntityContext",
+      "type": "Struct",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityContext.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Core/Definitions/EntityContext.cs:EntityContext.EntityContext#2",
+      "name": "EntityContext",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityContext.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/EntityContext.cs:EntityContext.Id",
+      "name": "Id",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityContext.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/EntityContext.cs:EntityContext.Random",
+      "name": "Random",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityContext.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/EntityId.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Struct:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId",
+      "name": "EntityId",
+      "type": "Struct",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.EntityId#1",
+      "name": "EntityId",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.Value",
+      "name": "Value",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.IsValid",
+      "name": "IsValid",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.Equals#1~EntityId",
+      "name": "Equals",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.Equals#1~object",
+      "name": "Equals",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.GetHashCode#0",
+      "name": "GetHashCode",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Core/Definitions/EntityId.cs:EntityId.ToString#0",
+      "name": "ToString",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Core/Definitions/EntityId.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/IEntityHandle.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/IEntityHandle.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Interface:Assets/Scripts/Core/Definitions/IEntityHandle.cs:IEntityHandle",
+      "name": "IEntityHandle",
+      "type": "Interface",
+      "filePath": "Assets/Scripts/Core/Definitions/IEntityHandle.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/IEntityHandle.cs:IEntityHandle.Id",
+      "name": "Id",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/IEntityHandle.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/InputButtons.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/InputButtons.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Enum:Assets/Scripts/Core/Definitions/InputButtons.cs:InputButtons",
+      "name": "InputButtons",
+      "type": "Enum",
+      "filePath": "Assets/Scripts/Core/Definitions/InputButtons.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/InputFrame.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Struct:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame",
+      "name": "InputFrame",
+      "type": "Struct",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame.InputFrame#5",
+      "name": "InputFrame",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame.Move",
+      "name": "Move",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame.LookDelta",
+      "name": "LookDelta",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame.Held",
+      "name": "Held",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame.Pressed",
+      "name": "Pressed",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/InputFrame.cs:InputFrame.Released",
+      "name": "Released",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/InputFrame.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/MovementProbe.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Struct:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe",
+      "name": "MovementProbe",
+      "type": "Struct",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.MovementProbe#11",
+      "name": "MovementProbe",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.Grounded",
+      "name": "Grounded",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.GroundNormal",
+      "name": "GroundNormal",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.WallDetected",
+      "name": "WallDetected",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.WallDistance",
+      "name": "WallDistance",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.WallNormal",
+      "name": "WallNormal",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.WallAngleDegrees",
+      "name": "WallAngleDegrees",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.WallId",
+      "name": "WallId",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.VaultCandidate",
+      "name": "VaultCandidate",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.VaultHeight",
+      "name": "VaultHeight",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.VaultClearance",
+      "name": "VaultClearance",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/MovementProbe.cs:MovementProbe.VaultTarget",
+      "name": "VaultTarget",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/MovementProbe.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/NoiseEvent.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Struct:Assets/Scripts/Core/Definitions/NoiseEvent.cs:NoiseEvent",
+      "name": "NoiseEvent",
+      "type": "Struct",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Core/Definitions/NoiseEvent.cs:NoiseEvent.NoiseEvent#4",
+      "name": "NoiseEvent",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/NoiseEvent.cs:NoiseEvent.Source",
+      "name": "Source",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/NoiseEvent.cs:NoiseEvent.Position",
+      "name": "Position",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/NoiseEvent.cs:NoiseEvent.Loudness",
+      "name": "Loudness",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/NoiseEvent.cs:NoiseEvent.Tick",
+      "name": "Tick",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/NoiseEvent.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/RunPhase.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/RunPhase.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Enum:Assets/Scripts/Core/Definitions/RunPhase.cs:RunPhase",
+      "name": "RunPhase",
+      "type": "Enum",
+      "filePath": "Assets/Scripts/Core/Definitions/RunPhase.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/SceneKey.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/SceneKey.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Enum:Assets/Scripts/Core/Definitions/SceneKey.cs:SceneKey",
+      "name": "SceneKey",
+      "type": "Enum",
+      "filePath": "Assets/Scripts/Core/Definitions/SceneKey.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Core/Definitions/SpawnRequest.cs:Worsen.Core",
+      "name": "Worsen.Core",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Struct:Assets/Scripts/Core/Definitions/SpawnRequest.cs:SpawnRequest",
+      "name": "SpawnRequest",
+      "type": "Struct",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Core/Definitions/SpawnRequest.cs:SpawnRequest.SpawnRequest#4",
+      "name": "SpawnRequest",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/SpawnRequest.cs:SpawnRequest.ArchetypeKey",
+      "name": "ArchetypeKey",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/SpawnRequest.cs:SpawnRequest.Position",
+      "name": "Position",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/SpawnRequest.cs:SpawnRequest.Rotation",
+      "name": "Rotation",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Core/Definitions/SpawnRequest.cs:SpawnRequest.Owner",
+      "name": "Owner",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Core/Definitions/SpawnRequest.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs:Worsen.Orchestrator",
+      "name": "Worsen.Orchestrator",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs:DebugOverlayOrchestrator",
+      "name": "DebugOverlayOrchestrator",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs:DebugOverlayOrchestrator.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs:DebugOverlayOrchestrator.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs:DebugOverlayOrchestrator.OnTickAdvanced#3",
+      "name": "OnTickAdvanced",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs:DebugOverlayOrchestrator.OnPhaseChanged#1",
+      "name": "OnPhaseChanged",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Orchestrator/InputOrchestrator.cs:Worsen.Orchestrator",
+      "name": "Worsen.Orchestrator",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator",
+      "name": "InputOrchestrator",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator.OnBeforeTick#0",
+      "name": "OnBeforeTick",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator.OnFramePublished#1",
+      "name": "OnFramePublished",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator.OnSceneReady#1",
+      "name": "OnSceneReady",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/InputOrchestrator.cs:InputOrchestrator.OnSceneLoadStarted#1",
+      "name": "OnSceneLoadStarted",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/InputOrchestrator.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs:Worsen.Orchestrator",
+      "name": "Worsen.Orchestrator",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs:TagArenaSceneRoot",
+      "name": "TagArenaSceneRoot",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs:TagArenaSceneRoot.ResetStatics#0",
+      "name": "ResetStatics",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs:TagArenaSceneRoot.Start#0",
+      "name": "Start",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs:Worsen.Presentation.DebugOverlay",
+      "name": "Worsen.Presentation.DebugOverlay",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs:DebugOverlayDriverConfig",
+      "name": "DebugOverlayDriverConfig",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs:DebugOverlayDriverConfig.PanelOffset",
+      "name": "PanelOffset",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs:DebugOverlayDriverConfig.PanelWidth",
+      "name": "PanelWidth",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs:DebugOverlayDriverConfig.FontSize",
+      "name": "FontSize",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs:DebugOverlayDriverConfig.SpeedDecimalPlaces",
+      "name": "SpeedDecimalPlaces",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Config/DebugOverlayDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:Worsen.Presentation.DebugOverlay",
+      "name": "Worsen.Presentation.DebugOverlay",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver",
+      "name": "DebugOverlayDriver",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.Initialize#1",
+      "name": "Initialize",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.SetRunStatus#2",
+      "name": "SetRunStatus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.SetPlayerStatus#2",
+      "name": "SetPlayerStatus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.SetPlayerUnavailable#0",
+      "name": "SetPlayerUnavailable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.Teardown#0",
+      "name": "Teardown",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.LateUpdate#0",
+      "name": "LateUpdate",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.BindAndApply#0",
+      "name": "BindAndApply",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.ApplyText#0",
+      "name": "ApplyText",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs:DebugOverlayDriver.HideAndUnbind#0",
+      "name": "HideAndUnbind",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriverState.cs:Worsen.Presentation.DebugOverlay",
+      "name": "Worsen.Presentation.DebugOverlay",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriverState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriverState.cs:DebugOverlayDriverState",
+      "name": "DebugOverlayDriverState",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriverState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs:Worsen.Presentation.DebugOverlay",
+      "name": "Worsen.Presentation.DebugOverlay",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs:DebugOverlayPresenter",
+      "name": "DebugOverlayPresenter",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs:DebugOverlayPresenter.SetRunStatus#3",
+      "name": "SetRunStatus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs:DebugOverlayPresenter.SetPlayerStatus#4",
+      "name": "SetPlayerStatus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs:DebugOverlayPresenter.SetPlayerUnavailable#1",
+      "name": "SetPlayerUnavailable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:Worsen.Presentation.DebugOverlay",
+      "name": "Worsen.Presentation.DebugOverlay",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager",
+      "name": "DebugOverlayManager",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.Instance",
+      "name": "Instance",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.Initialize#0",
+      "name": "Initialize",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.SetRunStatus#2",
+      "name": "SetRunStatus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.SetPlayerStatus#2",
+      "name": "SetPlayerStatus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.SetPlayerUnavailable#0",
+      "name": "SetPlayerUnavailable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.OnDestroy#0",
+      "name": "OnDestroy",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs:DebugOverlayManager.ResetStatics#0",
+      "name": "ResetStatics",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/DebugOverlay/Manager/DebugOverlayManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs:Worsen.Presentation.Input",
+      "name": "Worsen.Presentation.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs:InputDriverConfig",
+      "name": "InputDriverConfig",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs:InputDriverConfig.MouseDegreesPerPixel",
+      "name": "MouseDegreesPerPixel",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs:InputDriverConfig.GamepadDegreesPerSecond",
+      "name": "GamepadDegreesPerSecond",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs:InputDriverConfig.InvertLookY",
+      "name": "InvertLookY",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/Input/Config/InputDriverConfig.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/Input/Driver/InputDriverState.cs:Worsen.Presentation.Input",
+      "name": "Worsen.Presentation.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputDriverState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/Input/Driver/InputDriverState.cs:InputDriverState",
+      "name": "InputDriverState",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputDriverState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:Worsen.Presentation.Input",
+      "name": "Worsen.Presentation.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter",
+      "name": "InputFramePresenter",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.IsAcceptingInput#1",
+      "name": "IsAcceptingInput",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.SetMove#2",
+      "name": "SetMove",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.SetGamepadLook#2",
+      "name": "SetGamepadLook",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.AccumulateMouseLook#4",
+      "name": "AccumulateMouseLook",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.AccumulateGamepadLook#4",
+      "name": "AccumulateGamepadLook",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.SetButton#3",
+      "name": "SetButton",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.Flush#1",
+      "name": "Flush",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.SetInputEnabled#2",
+      "name": "SetInputEnabled",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.SetOwnerEnabled#2",
+      "name": "SetOwnerEnabled",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.SetFocus#2",
+      "name": "SetFocus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs:InputFramePresenter.Reset#1",
+      "name": "Reset",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:Worsen.Presentation.Input",
+      "name": "Worsen.Presentation.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver",
+      "name": "PlayerInputDriver",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.Initialize#0",
+      "name": "Initialize",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.SetInputEnabled#1",
+      "name": "SetInputEnabled",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.SetOwnerEnabled#1",
+      "name": "SetOwnerEnabled",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.FlushFrame#0",
+      "name": "FlushFrame",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.Teardown#0",
+      "name": "Teardown",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.OnDestroy#0",
+      "name": "OnDestroy",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.OnApplicationFocus#1",
+      "name": "OnApplicationFocus",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.Update#0",
+      "name": "Update",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.RefreshActions#0",
+      "name": "RefreshActions",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.CaptureMouseLook#0",
+      "name": "CaptureMouseLook",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.HandleActionTriggered#1",
+      "name": "HandleActionTriggered",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.BuildActionMap#0",
+      "name": "BuildActionMap",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs:PlayerInputDriver.AddButton#3",
+      "name": "AddButton",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:Worsen.Presentation.Input",
+      "name": "Worsen.Presentation.Input",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager",
+      "name": "InputManager",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.Instance",
+      "name": "Instance",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.ResetStatics#0",
+      "name": "ResetStatics",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.Initialize#0",
+      "name": "Initialize",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.Initialize.Instance@56:16",
+      "name": "Instance",
+      "type": "Variable",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.PublishFrame#0",
+      "name": "PublishFrame",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.SetInputEnabled#1",
+      "name": "SetInputEnabled",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.OnDestroy#0",
+      "name": "OnDestroy",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Presentation/Input/Manager/InputManager.cs:InputManager.HandleFrameCaptured#1",
+      "name": "HandleFrameCaptured",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:Worsen.Session.Run",
+      "name": "Worsen.Session.Run",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController",
+      "name": "RunSessionController",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.RunSessionController#2",
+      "name": "RunSessionController",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.RandomSource",
+      "name": "RandomSource",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.Next#2",
+      "name": "Next",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.StartScene#1",
+      "name": "StartScene",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.SuspendForSceneLoad#0",
+      "name": "SuspendForSceneLoad",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.Apply#1",
+      "name": "Apply",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.ReceiveInput#1",
+      "name": "ReceiveInput",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Controller/RunSessionController.cs:RunSessionController.TryTick#2",
+      "name": "TryTick",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/Run/Definitions/RunDefinitions.cs:Worsen.Session.Run",
+      "name": "Worsen.Session.Run",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/Run/Definitions/RunDefinitions.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Enum:Assets/Scripts/Session/Run/Definitions/RunDefinitions.cs:RunEvent",
+      "name": "RunEvent",
+      "type": "Enum",
+      "filePath": "Assets/Scripts/Session/Run/Definitions/RunDefinitions.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:Worsen.Session.Run",
+      "name": "Worsen.Session.Run",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager",
+      "name": "RunSessionManager",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.Instance",
+      "name": "Instance",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.Phase",
+      "name": "Phase",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.Tick",
+      "name": "Tick",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.Seed",
+      "name": "Seed",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.ElapsedSeconds",
+      "name": "ElapsedSeconds",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.RandomSource",
+      "name": "RandomSource",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.ResetStatics#0",
+      "name": "ResetStatics",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.Initialize#1",
+      "name": "Initialize",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.ReceiveInput#1",
+      "name": "ReceiveInput",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.HandleSceneReady#1",
+      "name": "HandleSceneReady",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.SuspendForSceneLoad#0",
+      "name": "SuspendForSceneLoad",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.FixedUpdate#0",
+      "name": "FixedUpdate",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/Run/Manager/RunSessionManager.cs:RunSessionManager.OnDestroy#0",
+      "name": "OnDestroy",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:Worsen.Session.Run",
+      "name": "Worsen.Session.Run",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState",
+      "name": "RunSessionBehaviorState",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Constructor:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.RunSessionBehaviorState#1",
+      "name": "RunSessionBehaviorState",
+      "type": "Constructor",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.Seed",
+      "name": "Seed",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.Phase",
+      "name": "Phase",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.Scene",
+      "name": "Scene",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.SceneIsReady",
+      "name": "SceneIsReady",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.Tick",
+      "name": "Tick",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.ElapsedSeconds",
+      "name": "ElapsedSeconds",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs:RunSessionBehaviorState.PendingInput",
+      "name": "PendingInput",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs:Worsen.Session.SceneFlow",
+      "name": "Worsen.Session.SceneFlow",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs:SceneFlowController",
+      "name": "SceneFlowController",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs:SceneFlowController.GetScenePath#1",
+      "name": "GetScenePath",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs:SceneFlowController.TryGetSceneKey#2",
+      "name": "TryGetSceneKey",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/SceneFlow/Definitions/SceneFlowDefinitions.cs:Worsen.Session.SceneFlow",
+      "name": "Worsen.Session.SceneFlow",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Definitions/SceneFlowDefinitions.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Session/SceneFlow/Definitions/SceneFlowDefinitions.cs:SceneFlowDefinitions",
+      "name": "SceneFlowDefinitions",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Definitions/SceneFlowDefinitions.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Namespace:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:Worsen.Session.SceneFlow",
+      "name": "Worsen.Session.SceneFlow",
+      "type": "Namespace",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager",
+      "name": "SceneFlowManager",
+      "type": "Class",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.Instance",
+      "name": "Instance",
+      "type": "Property",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.ResetStatics#0",
+      "name": "ResetStatics",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.Initialize#0",
+      "name": "Initialize",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.RequestLoad#1",
+      "name": "RequestLoad",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.OnEnable#0",
+      "name": "OnEnable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.OnDisable#0",
+      "name": "OnDisable",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.HandleSceneLoaded#2",
+      "name": "HandleSceneLoaded",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs:SceneFlowManager.OnDestroy#0",
+      "name": "OnDestroy",
+      "type": "Method",
+      "filePath": "Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:CLAUDE.md:L1:Project instructions",
+      "name": "Project instructions",
+      "type": "Section",
+      "filePath": "CLAUDE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:CLAUDE.md:L6:GitNexus — Code Intelligence",
+      "name": "GitNexus — Code Intelligence",
+      "type": "Section",
+      "filePath": "CLAUDE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:CLAUDE.md:L12:Always Do",
+      "name": "Always Do",
+      "type": "Section",
+      "filePath": "CLAUDE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:CLAUDE.md:L22:Never Do",
+      "name": "Never Do",
+      "type": "Section",
+      "filePath": "CLAUDE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:CLAUDE.md:L29:Resources",
+      "name": "Resources",
+      "type": "Section",
+      "filePath": "CLAUDE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:CLAUDE.md:L38:CLI",
+      "name": "CLI",
+      "type": "Section",
+      "filePath": "CLAUDE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/index.md:L1:PLANNING registry — WORSEN",
+      "name": "PLANNING registry — WORSEN",
+      "type": "Section",
+      "filePath": "PLANNING/index.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/index.md:L6:Live",
+      "name": "Live",
+      "type": "Section",
+      "filePath": "PLANNING/index.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/index.md:L23:Archived",
+      "name": "Archived",
+      "type": "Section",
+      "filePath": "PLANNING/index.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/index.md:L28:Initialization record",
+      "name": "Initialization record",
+      "type": "Section",
+      "filePath": "PLANNING/index.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/index.md:L42:Initialization audit on 2026-09-14",
+      "name": "Initialization audit on 2026-09-14",
+      "type": "Section",
+      "filePath": "PLANNING/index.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/index.md:L50:Parallel decomposition on 2026-09-14",
+      "name": "Parallel decomposition on 2026-09-14",
+      "type": "Section",
+      "filePath": "PLANNING/index.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L17:WORSEN — Core Boilerplate Implementation Plan",
+      "name": "WORSEN — Core Boilerplate Implementation Plan",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L30:Parallel execution map",
+      "name": "Parallel execution map",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L83:1. Stack decisions",
+      "name": "1. Stack decisions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L100:2. Architecture",
+      "name": "2. Architecture",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L102:2.1 Logic / presentation split (the networking hedge)",
+      "name": "2.1 Logic / presentation split (the networking hedge)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L122:2.2 Layers and assemblies",
+      "name": "2.2 Layers and assemblies",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L138:2.3 System map",
+      "name": "2.3 System map",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L166:2.4 Domain dependency order (acyclic, §2c)",
+      "name": "2.4 Domain dependency order (acyclic, §2c)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L183:2.5 Cross-layer routing (§6, §9)",
+      "name": "2.5 Cross-layer routing (§6, §9)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L198:2.6 Fixed tick and the physics round trip",
+      "name": "2.6 Fixed tick and the physics round trip",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L208:2.7 Folder layout (canonical, §12)",
+      "name": "2.7 Folder layout (canonical, §12)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L232:3. Milestones (build order, each gates the next)",
+      "name": "3. Milestones (build order, each gates the next)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L236:M0 — Skeleton (≈ 2–3 days)",
+      "name": "M0 — Skeleton (≈ 2–3 days)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L247:M1 — Movement controller (≈ 1.5–2 weeks)",
+      "name": "M1 — Movement controller (≈ 1.5–2 weeks)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L274:M2 — Tag arena (≈ 1 week, overlaps M1)",
+      "name": "M2 — Tag arena (≈ 1 week, overlaps M1)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L288:M3 — Hunter v1 (≈ 2–3 weeks)",
+      "name": "M3 — Hunter v1 (≈ 2–3 weeks)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L326:M4 — Detection beat, look-back, first-person readability (≈ 1 week)",
+      "name": "M4 — Detection beat, look-back, first-person readability (≈ 1 week)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L342:M5 — Floor loop (≈ 2 weeks)",
+      "name": "M5 — Floor loop (≈ 2 weeks)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L355:M6 — Director v1 (≈ 1.5 weeks)",
+      "name": "M6 — Director v1 (≈ 1.5 weeks)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L367:M7 — Health, injury, HUD (≈ 1 week)",
+      "name": "M7 — Health, injury, HUD (≈ 1 week)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L372:M8 — Tuning harness (built alongside M3, finished here)",
+      "name": "M8 — Tuning harness (built alongside M3, finished here)",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L382:4. What is deliberately not in the boilerplate",
+      "name": "4. What is deliberately not in the boilerplate",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L393:5. Suggested order of the first two weeks",
+      "name": "5. Suggested order of the first two weeks",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-001-worsen-boilerplate.md:L406:Appendix A — Alignment changes from the previous revision",
+      "name": "Appendix A — Alignment changes from the previous revision",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L17:PLAN-002 — Parallel contracts and integration",
+      "name": "PLAN-002 — Parallel contracts and integration",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L31:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L44:Exclusive file ownership",
+      "name": "Exclusive file ownership",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L50:Contract decisions before parallel implementation",
+      "name": "Contract decisions before parallel implementation",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L71:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L81:Testing admission",
+      "name": "Testing admission",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L92:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L102:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L112:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L116:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-002-parallel-coordination.md:L124:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L17:PLAN-003 — Player movement and health",
+      "name": "PLAN-003 — Player movement and health",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L29:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L40:Required behavior",
+      "name": "Required behavior",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L54:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L62:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L72:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L81:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L85:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-003-player-movement-health.md:L93:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L17:PLAN-004 — Level graph and tag arena",
+      "name": "PLAN-004 — Level graph and tag arena",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L29:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L47:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L55:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L63:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L72:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L76:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-004-level-tag-arena.md:L83:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L17:PLAN-005 — Hunter behavior and chase rules",
+      "name": "PLAN-005 — Hunter behavior and chase rules",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L29:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L40:Required behavior and starting values",
+      "name": "Required behavior and starting values",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L52:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L60:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L70:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L79:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L83:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-005-hunter-chase.md:L90:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L17:PLAN-006 — Camera and post-processing feedback",
+      "name": "PLAN-006 — Camera and post-processing feedback",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L22:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L26:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L32:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L67:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L76:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L89:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L99:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L103:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-006-camera-postfx-feedback.md:L111:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L17:PLAN-007 — Audio, HUD, and results",
+      "name": "PLAN-007 — Audio, HUD, and results",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L22:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L26:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L32:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L69:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L78:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L91:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L101:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L105:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-007-audio-hud-results.md:L113:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L17:PLAN-008 — Floor collection and collapse",
+      "name": "PLAN-008 — Floor collection and collapse",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L29:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L47:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L55:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L65:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L74:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L78:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-008-floor-collapse.md:L85:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L17:PLAN-009 — Director pressure and relief",
+      "name": "PLAN-009 — Director pressure and relief",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L29:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L45:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L53:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L63:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L72:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L76:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-009-director-pressure.md:L83:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L17:PLAN-010 — Telemetry replay and tuning",
+      "name": "PLAN-010 — Telemetry replay and tuning",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L21:1. Objective",
+      "name": "1. Objective",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L25:2. Starting point",
+      "name": "2. Starting point",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L29:3. Changes",
+      "name": "3. Changes",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L39:Data contract and measurements",
+      "name": "Data contract and measurements",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L49:4. Sequence",
+      "name": "4. Sequence",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L57:5. Verification",
+      "name": "5. Verification",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L67:6. Risks and open questions",
+      "name": "6. Risks and open questions",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L77:7. Deferred follow-ups",
+      "name": "7. Deferred follow-ups",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L81:8. Definition of done",
+      "name": "8. Definition of done",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/plans/PLAN-010-telemetry-replay-tuning.md:L89:9. Execution log",
+      "name": "9. Execution log",
+      "type": "Section",
+      "filePath": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L15:Project Architecture & Modular Design Guidelines",
+      "name": "Project Architecture & Modular Design Guidelines",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L37:Adoption values for this project (WORSEN)",
+      "name": "Adoption values for this project (WORSEN)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L50:Quick Reference — The Script Taxonomy",
+      "name": "Quick Reference — The Script Taxonomy",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L74:Where does this code go?",
+      "name": "Where does this code go?",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L92:0. Script Header Documentation (Mandatory for ALL Scripts)",
+      "name": "0. Script Header Documentation (Mandatory for ALL Scripts)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L96:Required Format",
+      "name": "Required Format",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L136:Rules",
+      "name": "Rules",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L144:1. Manager (`[System]Manager.cs`)",
+      "name": "1. Manager (`[System]Manager.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L162:1b. System kinds",
+      "name": "1b. System kinds",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L175:1c. Factory (`[Entity]Factory.cs`)",
+      "name": "1c. Factory (`[Entity]Factory.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L184:2. Controller (`[System]Controller.cs`)",
+      "name": "2. Controller (`[System]Controller.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L198:2b. Utility (`[Name]Utility.cs`)",
+      "name": "2b. Utility (`[Name]Utility.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L202:2c. Cross-system data in Controllers",
+      "name": "2c. Cross-system data in Controllers",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L208:3. BehaviorState (`[System]BehaviorState.cs`)",
+      "name": "3. BehaviorState (`[System]BehaviorState.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L220:4. Config (`[System]Config.cs`)",
+      "name": "4. Config (`[System]Config.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L229:4a. ScriptableObject Asset Placement (all SO types — non-negotiable)",
+      "name": "4a. ScriptableObject Asset Placement (all SO types — non-negotiable)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L235:4b. Content ScriptableObjects (`[Name]Profile.cs` / `[Name]SO.cs` / `[Name]Data.cs`)",
+      "name": "4b. Content ScriptableObjects (`[Name]Profile.cs` / `[Name]SO.cs` / `[Name]Data.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L245:5. Definitions (`[System]Definitions.cs`)",
+      "name": "5. Definitions (`[System]Definitions.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L252:6. Orchestrator (`[Target]Orchestrator.cs`)",
+      "name": "6. Orchestrator (`[Target]Orchestrator.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L274:6b. SceneRoot (`[Scene]SceneRoot.cs`)",
+      "name": "6b. SceneRoot (`[Scene]SceneRoot.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L278:7. The Presentation Stack (`Driver/`)",
+      "name": "7. The Presentation Stack (`Driver/`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L283:What counts as an engine call",
+      "name": "What counts as an engine call",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L310:Decomposition triggers (any one ⇒ split into the full stack)",
+      "name": "Decomposition triggers (any one ⇒ split into the full stack)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L316:7a. Driver (`[System]Driver.cs`)",
+      "name": "7a. Driver (`[System]Driver.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L326:7b. Presenter (`[X]Presenter.cs`)",
+      "name": "7b. Presenter (`[X]Presenter.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L336:7c. DriverState (`[X]DriverState.cs`) — optional",
+      "name": "7c. DriverState (`[X]DriverState.cs`) — optional",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L340:7d. DriverConfig (`[X]DriverConfig.cs`)",
+      "name": "7d. DriverConfig (`[X]DriverConfig.cs`)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L346:7e. Sub-drivers",
+      "name": "7e. Sub-drivers",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L353:7f. Presentation-layer systems",
+      "name": "7f. Presentation-layer systems",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L365:7g. Animation policy",
+      "name": "7g. Animation policy",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L373:8. Lifecycle & Scene Ownership",
+      "name": "8. Lifecycle & Scene Ownership",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L382:Rules",
+      "name": "Rules",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L390:8b. Sessions & Flows",
+      "name": "8b. Sessions & Flows",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L399:9. Layers & Communication",
+      "name": "9. Layers & Communication",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L401:The layer graph",
+      "name": "The layer graph",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L424:The communication ladder",
+      "name": "The communication ladder",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L433:Event rules",
+      "name": "Event rules",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L442:Discovery rules",
+      "name": "Discovery rules",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L447:10. Editor Tooling & Self-Healing",
+      "name": "10. Editor Tooling & Self-Healing",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L449:What is versioned",
+      "name": "What is versioned",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L454:The Self-Healing Doctrine",
+      "name": "The Self-Healing Doctrine",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L459:File Placement (unified — non-negotiable)",
+      "name": "File Placement (unified — non-negotiable)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L464:Menu Placement (unified — non-negotiable)",
+      "name": "Menu Placement (unified — non-negotiable)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L469:Naming",
+      "name": "Naming",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L472:11. Testing",
+      "name": "11. Testing",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L483:12. Folder & Naming Conventions",
+      "name": "12. Folder & Naming Conventions",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L485:Canonical project layout",
+      "name": "Canonical project layout",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L512:Canonical system skeleton",
+      "name": "Canonical system skeleton",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L533:13. Enforcement & Agent Workflow",
+      "name": "13. Enforcement & Agent Workflow",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L537:13a. Compile-time: assembly definitions",
+      "name": "13a. Compile-time: assembly definitions",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L540:13b. Structural lint: ast-grep",
+      "name": "13b. Structural lint: ast-grep",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L560:tools/ast-grep/rules/pure-layer-not-monobehaviour.yml",
+      "name": "tools/ast-grep/rules/pure-layer-not-monobehaviour.yml",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L579:tools/ast-grep/rules/driver-no-instance-read.yml",
+      "name": "tools/ast-grep/rules/driver-no-instance-read.yml",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L591:tools/ast-grep/rules/pure-layer-no-engine-calls.yml",
+      "name": "tools/ast-grep/rules/pure-layer-no-engine-calls.yml",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L619:13c. Graph-level: GitNexus",
+      "name": "13c. Graph-level: GitNexus",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L626:13d. Runtime reflection: ArchitectureConformanceTests",
+      "name": "13d. Runtime reflection: ArchitectureConformanceTests",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L636:13e. Definition of done for any change",
+      "name": "13e. Definition of done for any change",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L646:Example Workflow (Adding a New System)",
+      "name": "Example Workflow (Adding a New System)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-001-project-architecture-guidelines.md:L661:Appendix A — Known Debt (migrate when touched)",
+      "name": "Appendix A — Known Debt (migrate when touched)",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L15:SPEC-002 — WORSEN foundational game design revision 3",
+      "name": "SPEC-002 — WORSEN foundational game design revision 3",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L20:1. Subject and scope",
+      "name": "1. Subject and scope",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L24:2. Intended behaviour",
+      "name": "2. Intended behaviour",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L33:3. Constraints and non-negotiables",
+      "name": "3. Constraints and non-negotiables",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L37:4. Rationale",
+      "name": "4. Rationale",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L41:5. Open questions",
+      "name": "5. Open questions",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L52:6. Plans implementing this spec",
+      "name": "6. Plans implementing this spec",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:PLANNING/specs/SPEC-002-worsen-game-design.md:L56:7. History",
+      "name": "7. History",
+      "type": "Section",
+      "filePath": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L1:Exclusive Unity lease",
+      "name": "Exclusive Unity lease",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L9:Required workflow",
+      "name": "Required workflow",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L20:Commands",
+      "name": "Commands",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L28:Read-only coordination information; this grants no permission to mutate Unity inputs.",
+      "name": "Read-only coordination information; this grants no permission to mutate Unity inputs.",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L31:Use your actual agent/task identity, exact plan ID, and concrete purpose.",
+      "name": "Use your actual agent/task identity, exact plan ID, and concrete purpose.",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L68:JSON and exit codes",
+      "name": "JSON and exit codes",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L86:Standalone tests",
+      "name": "Standalone tests",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/coordination/README.md:L92:Retain the isolated fixture root for investigation, if needed:",
+      "name": "Retain the isolated fixture root for investigation, if needed:",
+      "type": "Section",
+      "filePath": "tools/coordination/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/gitnexus/queries/README.md:L1:GitNexus conformance queries (§13c)",
+      "name": "GitNexus conformance queries (§13c)",
+      "type": "Section",
+      "filePath": "tools/gitnexus/queries/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/gitnexus/queries/README.md:L24:Graph schema these queries assume",
+      "name": "Graph schema these queries assume",
+      "type": "Section",
+      "filePath": "tools/gitnexus/queries/README.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:tools/gitnexus/queries/README.md:L48:Workflow (§13c)",
+      "name": "Workflow (§13c)",
+      "type": "Section",
+      "filePath": "tools/gitnexus/queries/README.md",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_5_onenable",
+      "name": "OnEnable → Reset",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Reset",
+          "step": 6
+        },
+        {
+          "symbol": "SetFocus",
+          "step": 5
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 1
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_6_onenable",
+      "name": "OnEnable → IsAcceptingInput",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 6
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 1
+        },
+        {
+          "symbol": "RefreshActions",
+          "step": 5
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_10_onenable",
+      "name": "OnEnable → AddButton",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 1
+        },
+        {
+          "symbol": "AddButton",
+          "step": 5
+        },
+        {
+          "symbol": "BuildActionMap",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_25_onenable",
+      "name": "OnEnable → InputDriverState",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "InputDriverState",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 1
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_26_onenable",
+      "name": "OnEnable → InputFramePresenter",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "InputFramePresenter",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 1
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_27_onsceneready",
+      "name": "OnSceneReady → Next",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "HandleSceneReady",
+          "step": 2
+        },
+        {
+          "symbol": "OnSceneReady",
+          "step": 1
+        },
+        {
+          "symbol": "StartScene",
+          "step": 3
+        },
+        {
+          "symbol": "Next",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_28_start",
+      "name": "Start → DebugOverlayDriverState",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "DebugOverlayDriverState",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_29_start",
+      "name": "Start → DebugOverlayPresenter",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "DebugOverlayPresenter",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_68_buildtagarena",
+      "name": "BuildTagArena → Wire",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "Wire",
+          "step": 3
+        },
+        {
+          "symbol": "BuildServices",
+          "step": 2
+        },
+        {
+          "symbol": "BuildTagArena",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_69_onsceneloadstarted",
+      "name": "OnSceneLoadStarted → SuspendForSceneLoad",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "SuspendForSceneLoad",
+          "step": 2
+        },
+        {
+          "symbol": "OnSceneLoadStarted",
+          "step": 1
+        },
+        {
+          "symbol": "SuspendForSceneLoad",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_70_onsceneready",
+      "name": "OnSceneReady → RunSessionController",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "RunSessionController",
+          "step": 3
+        },
+        {
+          "symbol": "HandleSceneReady",
+          "step": 2
+        },
+        {
+          "symbol": "OnSceneReady",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_71_start",
+      "name": "Start → RunSessionBehaviorState",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "RunSessionBehaviorState",
+          "step": 3
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_72_initialize",
+      "name": "Initialize → ApplyText",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "ApplyText",
+          "step": 3
+        },
+        {
+          "symbol": "BindAndApply",
+          "step": 2
+        },
+        {
+          "symbol": "Initialize",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_134_start",
+      "name": "Start → Reset",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Reset",
+          "step": 6
+        },
+        {
+          "symbol": "SetFocus",
+          "step": 5
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_135_start",
+      "name": "Start → IsAcceptingInput",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 6
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "RefreshActions",
+          "step": 5
+        },
+        {
+          "symbol": "OnEnable",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_137_start",
+      "name": "Start → AddButton",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "AddButton",
+          "step": 5
+        },
+        {
+          "symbol": "BuildActionMap",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_142_start",
+      "name": "Start → InputDriverState",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "InputDriverState",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_143_start",
+      "name": "Start → InputFramePresenter",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "InputFramePresenter",
+          "step": 4
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        },
+        {
+          "symbol": "Initialize",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_158_start",
+      "name": "Start → RunSessionController",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "RunSessionController",
+          "step": 3
+        },
+        {
+          "symbol": "Initialize",
+          "step": 2
+        },
+        {
+          "symbol": "Start",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_172_onsceneloadstarted",
+      "name": "OnSceneLoadStarted → Reset",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "SetInputEnabled",
+          "step": 2
+        },
+        {
+          "symbol": "Reset",
+          "step": 5
+        },
+        {
+          "symbol": "SetInputEnabled",
+          "step": 4
+        },
+        {
+          "symbol": "OnSceneLoadStarted",
+          "step": 1
+        },
+        {
+          "symbol": "SetInputEnabled",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_173_onsceneloadstarted",
+      "name": "OnSceneLoadStarted → IsAcceptingInput",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "SetInputEnabled",
+          "step": 2
+        },
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 5
+        },
+        {
+          "symbol": "OnSceneLoadStarted",
+          "step": 1
+        },
+        {
+          "symbol": "RefreshActions",
+          "step": 4
+        },
+        {
+          "symbol": "SetInputEnabled",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_189_onsceneready",
+      "name": "OnSceneReady → Reset",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "SetInputEnabled",
+          "step": 2
+        },
+        {
+          "symbol": "Reset",
+          "step": 5
+        },
+        {
+          "symbol": "SetInputEnabled",
+          "step": 4
+        },
+        {
+          "symbol": "OnSceneReady",
+          "step": 1
+        },
+        {
+          "symbol": "SetInputEnabled",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_190_onsceneready",
+      "name": "OnSceneReady → IsAcceptingInput",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "SetInputEnabled",
+          "step": 2
+        },
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 5
+        },
+        {
+          "symbol": "OnSceneReady",
+          "step": 1
+        },
+        {
+          "symbol": "RefreshActions",
+          "step": 4
+        },
+        {
+          "symbol": "SetInputEnabled",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_201_ondestroy",
+      "name": "OnDestroy → Reset",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "OnDestroy",
+          "step": 1
+        },
+        {
+          "symbol": "OnDisable",
+          "step": 2
+        },
+        {
+          "symbol": "Reset",
+          "step": 5
+        },
+        {
+          "symbol": "SetOwnerEnabled",
+          "step": 4
+        },
+        {
+          "symbol": "SetOwnerEnabled",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_202_ondestroy",
+      "name": "OnDestroy → IsAcceptingInput",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "OnDestroy",
+          "step": 1
+        },
+        {
+          "symbol": "OnDisable",
+          "step": 2
+        },
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 5
+        },
+        {
+          "symbol": "RefreshActions",
+          "step": 4
+        },
+        {
+          "symbol": "SetOwnerEnabled",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_211_onapplicationfocus",
+      "name": "OnApplicationFocus → Reset",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "Reset",
+          "step": 3
+        },
+        {
+          "symbol": "SetFocus",
+          "step": 2
+        },
+        {
+          "symbol": "OnApplicationFocus",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_212_handleactiontriggere",
+      "name": "HandleActionTriggered → IsAcceptingInput",
+      "process_type": "intra_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "SetButton",
+          "step": 2
+        },
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 3
+        },
+        {
+          "symbol": "HandleActionTriggered",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_221_onapplicationfocus",
+      "name": "OnApplicationFocus → IsAcceptingInput",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "IsAcceptingInput",
+          "step": 3
+        },
+        {
+          "symbol": "RefreshActions",
+          "step": 2
+        },
+        {
+          "symbol": "OnApplicationFocus",
+          "step": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+id: lower-layer-no-orchestrator-ref
+language: csharp
+severity: error
+message: "Lower layers never reference an Orchestrator — publish an event and let it subscribe (§6, §9)."
+files:
+  - "Assets/Scripts/Domain/**/*.cs"
+  - "Assets/Scripts/Session/**/*.cs"
+  - "Assets/Scripts/Presentation/**/*.cs"
+rule:
+  kind: identifier
+  regex: 'Orchestrator$'

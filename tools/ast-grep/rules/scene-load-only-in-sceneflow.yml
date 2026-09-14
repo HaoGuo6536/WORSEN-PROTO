@@ -1,0 +1,11 @@
+id: scene-load-only-in-sceneflow
+language: csharp
+severity: error
+message: "Exactly one script loads scenes. Ask SceneFlowManager.RequestLoad and wait for its event (§8b)."
+files:
+  - "Assets/Scripts/**/*.cs"
+ignores:
+  - "Assets/Scripts/Session/SceneFlow/**"
+rule:
+  kind: member_access_expression
+  regex: '^SceneManager\.(Load|Unload)'

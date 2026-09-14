@@ -1,0 +1,14 @@
+# GitHub publication check — 2026-09-14
+
+Scope: first-party baseline required by M0, M0 implementation and evidence, root planning migration, nine parallel child plans, and Unity testing coordination tooling. Existing unrelated vendor assets, personal tool settings, scene rename/deletions, render settings, and other project settings remain local.
+
+- The staged Build Settings add TagArena while retaining HEAD's SampleScene. The working copy keeps the user's Scene1 rename. Package blobs include the M0 Cinemachine/Splines delta and preserve HEAD's other dependencies; the unrelated direct Newtonsoft package addition remains local. These index-only selections do not change the running editor's files.
+- Fresh GitNexus indexing completed: 4,197 nodes, 8,806 edges, 323 reported flows. Process extraction remains bounded, so absent flows do not prove absent dependencies.
+- [Staged analysis](detect-changes-staged.json): 530 changed symbols and 28 affected flows; critical risk, no partial/truncated result. [All tracked changes](detect-changes-all.json) yields the same symbols/flows and complete flags. The full structured reports were obtained through the installed CLI's LocalBackend because CLI prose displays only the first entries. A process-local Python Word XML text converter replaced the system's missing docx2txt executable; no Git configuration was changed.
+- The affected flows cover M0 initialization, input focus/readiness gating and reset, run readiness, overlay binding, scene suspension, and deterministic scene setup. Reviewed with the [M0 test and live-editor evidence](../M0/verification.md) and [structural review](../M0/structural-validation.md). Runtime sources are unchanged since those 70 passing Edit Mode tests. Hardware input remains unverified. The old pre-staging zero-symbol report is historical and does not establish this commit's impact.
+- Serialized TagArena/resource dependencies resolve to included first-party assets, Unity built-ins, or baseline URP assets. No Synaptic asset dependency was found.
+- Staged-tree audit: 161 local links across 18 Markdown documents and 27 anchors resolve. The physical-plan and lease evidence records [11 passing lease scenarios](../ParallelPlans/lease-tests.json), including concurrent acquisition, plus the Windows PowerShell smoke check.
+- Selected-file credential-pattern scan found no candidates. The verification screenshot is a Git LFS object and must be uploaded with the branch.
+- Git whitespace checking reports native Unity YAML trailing spaces and four C# files with a blank final line. No source reformatting was performed during publication. This is not represented as a clean whitespace check.
+
+The pre-commit architecture hook runs during commit. This checkpoint records publication preparation; historical M0 evidence retains its original observed working-copy settings and pre-staging state.

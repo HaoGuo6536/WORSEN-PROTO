@@ -1,0 +1,4 @@
+{
+  "markdown": "| file | method | start_line | line_span |\n| --- | --- | --- | --- |\n| Assets/Scripts/Orchestrator/InputOrchestrator.cs | OnEnable | 35 | 14 |\n| Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs | Start | 47 | 13 |",
+  "row_count": 2
+}

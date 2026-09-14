@@ -1,0 +1,11 @@
+id: state-declares-no-events
+language: csharp
+severity: error
+message: "States hold data, not notification — move the event up to the owning Manager (§3, §7c)."
+files:
+  - "Assets/Scripts/**/State/**/*.cs"
+  - "Assets/Scripts/**/Driver/*DriverState.cs"
+rule:
+  any:
+    - kind: event_field_declaration
+    - kind: event_declaration

@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"status\": \"clean\",\n  \"enumeration\": \"complete\",\n  \"cycleCount\": 0,\n  \"componentCount\": 0,\n  \"cycles\": []\n}"
+    }
+  ]
+}

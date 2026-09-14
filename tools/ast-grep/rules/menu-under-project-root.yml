@@ -1,0 +1,17 @@
+id: menu-under-project-root
+language: csharp
+severity: error
+message: "Every tool registers under the single Worsen/ root, grouped by system — never Tools/ or a second root (§10)."
+files:
+  - "Assets/Editor/**/*.cs"
+rule:
+  kind: attribute
+  all:
+    - has:
+        field: name
+        regex: '^MenuItem$'
+    - has:
+        kind: string_literal
+        stopBy: end
+        not:
+          regex: '^"(Worsen/|CONTEXT/)'

@@ -1,0 +1,11 @@
+# ast-grep configuration — structural lint for PROJECT_ARCHITECTURE_GUIDELINES.md (§13b).
+#
+# Run:  ast-grep scan            (whole repo)
+#       ast-grep scan --json     (CI)
+#       ast-grep run --debug-query -p '<pattern>' -l csharp   (to verify node names
+#                                 after a tree-sitter upgrade, per §13b)
+#
+# Every rule's `message` cites the section it enforces. A finding is never
+# silenced by deleting the rule: fix the code, or amend the document (§13e).
+ruleDirs:
+  - tools/ast-grep/rules

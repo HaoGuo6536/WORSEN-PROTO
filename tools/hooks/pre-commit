@@ -1,0 +1,23 @@
+#!/bin/sh
+# Structural lint gate for PROJECT_ARCHITECTURE_GUIDELINES.md (§13b, §13e).
+# Wired via: git config core.hooksPath tools/hooks
+#
+# A finding is never silenced by deleting a rule or passing --no-verify as a
+# habit. Fix the code, or amend the document in the same commit (§13e).
+
+if ! command -v ast-grep >/dev/null 2>&1; then
+    echo "pre-commit: ast-grep not found. Install it with:  npm install -g @ast-grep/cli" >&2
+    echo "pre-commit: skipping the structural lint gate (§13b) for this commit." >&2
+    exit 0
+fi
+
+echo "pre-commit: ast-grep scan (§13b)..."
+if ! ast-grep scan; then
+    echo "" >&2
+    echo "pre-commit: architecture violations above (§13b). Fix the code, or amend" >&2
+    echo "pre-commit: PROJECT_ARCHITECTURE_GUIDELINES.md in this same commit (§13e)." >&2
+    exit 1
+fi
+
+echo "pre-commit: clean."
+exit 0

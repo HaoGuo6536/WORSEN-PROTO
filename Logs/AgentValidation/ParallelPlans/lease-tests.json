@@ -1,0 +1,66 @@
+{
+  "command": "pwsh -NoProfile -File tools/coordination/UnityTestLease.Tests.ps1",
+  "observedCompletedAtUtc": "2026-09-14T20:26:23Z",
+  "exitCode": 0,
+  "passed": 11,
+  "failed": 0,
+  "artifactRoot": null,
+  "results": [
+    {
+      "name": "Status is neutral and the full owner lifecycle survives processes",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Concurrent acquire has exactly one winner and cannot clobber its record",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Invalid tokens cannot assert, heartbeat, release, or alter bytes",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "A stale heartbeat stays held and cannot be acquired again",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Malformed and incomplete records fail closed for every command",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "A record read failure cannot be mistaken for a free lease",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Clock rollback cannot poison the owner record or prevent release",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Root arrays and noninteger schema versions cannot masquerade as valid records",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "An unavailable exclusive guard fails busy without granting a lease",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Linked worktrees resolve the same absolute lease regardless of target path",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Missing arguments and nonrepository paths fail with JSON and nonzero exit",
+      "passed": true,
+      "error": null
+    }
+  ],
+  "scope": "Isolated temporary Git repository and linked worktree; hidden child processes; no Unity operations and no real lease acquisition."
+}

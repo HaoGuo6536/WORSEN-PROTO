@@ -1,0 +1,20 @@
+{
+    "name": "Worsen.Editor",
+    "rootNamespace": "Worsen.Editor",
+    "references": [
+        "Worsen.Core",
+        "Worsen.Domain",
+        "Worsen.Session",
+        "Worsen.Presentation",
+        "Worsen.Orchestrator"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

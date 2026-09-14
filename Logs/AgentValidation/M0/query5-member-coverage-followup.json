@@ -1,0 +1,11 @@
+{
+  "query": "MATCH (c:Class)\nWHERE c.filePath STARTS WITH 'Assets/Scripts/'\n  AND (c.name ENDS WITH 'Controller' OR c.name ENDS WITH 'Presenter')\n  AND NOT EXISTS {\n        MATCH (t:Class|Method|Function|Constructor)-[:CodeRelation]->(c)\n        WHERE t.filePath STARTS WITH 'Assets/Editor/Tests/'\n      }\n  AND NOT EXISTS {\n        MATCH (c)-[:CodeRelation {type: 'HAS_METHOD'}]->(m:Method|Constructor)\n              <-[:CodeRelation]-(t:Class|Method|Function|Constructor)\n        WHERE t.filePath STARTS WITH 'Assets/Editor/Tests/'\n      }\nRETURN c.filePath AS file, c.name AS untested_type, c.startLine AS start_line\nORDER BY file",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[]\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+      }
+    ]
+  }
+}

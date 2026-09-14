@@ -1,0 +1,25 @@
+id: pure-layer-no-engine-calls
+language: csharp
+severity: error
+message: "Engine calls belong in a Driver; pass the result in as data (§7 'What counts as an engine call')."
+files:
+  - "Assets/Scripts/**/Controller/**/*.cs"
+  - "Assets/Scripts/**/State/**/*.cs"
+  - "Assets/Scripts/**/Driver/*Presenter.cs"
+  - "Assets/Scripts/**/Driver/*DriverState.cs"
+  - "Assets/Scripts/**/Config/*SO.cs"
+  - "Assets/Scripts/Core/**/*.cs"
+rule:
+  any:
+    - pattern: Physics.$M($$$A)
+    - pattern: Physics2D.$M($$$A)
+    - pattern: Time.$P
+    - pattern: UnityEngine.Random.$M($$$A)
+    - pattern: SceneManager.$M($$$A)
+    - pattern: Resources.$M($$$A)
+    - pattern: Instantiate($$$A)
+    - pattern: Destroy($$$A)
+    - pattern: GetComponent<$T>($$$A)
+    - pattern: GetComponentInParent<$T>($$$A)
+    - pattern: GetComponentInChildren<$T>($$$A)
+    - pattern: Camera.main

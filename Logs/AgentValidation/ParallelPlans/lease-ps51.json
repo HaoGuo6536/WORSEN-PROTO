@@ -1,0 +1,11 @@
+{
+  "observedDateUtc": "2026-09-14",
+  "PowerShellVersion": "5.1.26100.9444",
+  "hostExitCode": 0,
+  "AcquireExitCode": 0,
+  "AssertOwnerExitCode": 0,
+  "HeartbeatExitCode": 0,
+  "ReleaseExitCode": 0,
+  "executionPolicy": "Process-scoped Bypass only; no machine/user policy change",
+  "scope": "Full owner lifecycle in an isolated temporary Git fixture; hidden Windows PowerShell process; no Unity operations."
+}

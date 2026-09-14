@@ -1,0 +1,8 @@
+id: driver-no-instance-read
+language: csharp
+severity: error
+message: "Drivers never pull game state — data is pushed in by the owning Manager (§7a, §9)."
+files:
+  - "Assets/Scripts/**/Driver/**/*.cs"
+rule:
+  pattern: $OWNER.Instance

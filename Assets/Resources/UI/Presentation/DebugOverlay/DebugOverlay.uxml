@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="DebugOverlay.uss" />
+    <ui:VisualElement name="debug-overlay" class="debug-overlay" picking-mode="Ignore">
+        <ui:Label text="WORSEN / M0" class="debug-title" picking-mode="Ignore" />
+        <ui:Label text="Development status" class="debug-caption" picking-mode="Ignore" />
+        <ui:Label name="tick-value" text="Tick: 0" class="debug-line" picking-mode="Ignore" />
+        <ui:Label name="phase-value" text="Run: awaiting scene" class="debug-line" picking-mode="Ignore" />
+        <ui:Label name="speed-value" text="Speed: —" class="debug-line" picking-mode="Ignore" />
+        <ui:Label name="movement-value" text="Movement: awaiting player (M1)" class="debug-line" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

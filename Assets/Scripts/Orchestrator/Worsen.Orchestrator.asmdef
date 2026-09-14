@@ -1,0 +1,14 @@
+{
+    "name": "Worsen.Orchestrator",
+    "rootNamespace": "Worsen.Orchestrator",
+    "references": ["Worsen.Core", "Worsen.Domain", "Worsen.Session", "Worsen.Presentation"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

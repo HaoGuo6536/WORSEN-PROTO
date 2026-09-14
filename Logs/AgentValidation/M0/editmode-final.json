@@ -1,0 +1,572 @@
+{
+  "success": true,
+  "isRunning": false,
+  "mode": "editmode",
+  "totalTests": 70,
+  "completedTests": 93,
+  "results": [
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.BehaviorStatesReadByOtherSystemsExposeAReadOnlyView",
+      "status": "Passed",
+      "duration": 0.0188335,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.ClassSuffixMatchesItsFolder",
+      "status": "Passed",
+      "duration": 0.0029,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.EveryEntityManagerImplementsIEntityHandle",
+      "status": "Passed",
+      "duration": 0.0035643,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.EveryHeaderDeclaresATaxonomyTypeAndALayer",
+      "status": "Passed",
+      "duration": 0.0078195,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.EveryLayerHasItsAssemblyDefinition",
+      "status": "Passed",
+      "duration": 0.000609,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.EveryManagerDeclaresSystemKindAndLifecycleTier",
+      "status": "Passed",
+      "duration": 0.0028501,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.EveryMenuItemSitsUnderTheProjectRoot",
+      "status": "Passed",
+      "duration": 0.0052436,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.EveryScriptBeginsWithTheMandatoryHeader",
+      "status": "Passed",
+      "duration": 0.0095869,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.MonoBehavioursLiveOnlyInManagerDriverOrOrchestrator",
+      "status": "Passed",
+      "duration": 0.0134196,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.NamespaceMirrorsFolderPath",
+      "status": "Passed",
+      "duration": 0.0142366,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.PureLayerScriptsWithRealLogicShipTests",
+      "status": "Passed",
+      "duration": 0.0060243,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.ScriptsTreeContainsNoAssetsEditorCodeOrTestFolders",
+      "status": "Passed",
+      "duration": 0.0031725,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests.ScriptsTreeHasNoDeadFolders",
+      "status": "Passed",
+      "duration": 0.0042333,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture.ArchitectureConformanceTests",
+      "status": "Passed",
+      "duration": 0.1075752,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Architecture",
+      "status": "Passed",
+      "duration": 0.1087555,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InitialDisplayDoesNotInventPlayerTelemetry",
+      "status": "Passed",
+      "duration": 0.0040611,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample(0.0f,\"Speed: 0.00 m/s\")",
+      "status": "Passed",
+      "duration": 0.0011869,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample(-1.0f,\"Speed: —\")",
+      "status": "Passed",
+      "duration": 0.0000573,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample(float.NaN,\"Speed: —\")",
+      "status": "Passed",
+      "duration": 0.0000291,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample(float.PositiveInfinity,\"Speed: —\")",
+      "status": "Passed",
+      "duration": 0.0000249,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample(float.NegativeInfinity,\"Speed: —\")",
+      "status": "Passed",
+      "duration": 0.0000257,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.InvalidSpeedIsUnavailableWhileZeroRemainsARealSample",
+      "status": "Passed",
+      "duration": 0.0021143,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.PlayerUnavailableClearsStalePlayerDataAndPreservesRunStatus",
+      "status": "Passed",
+      "duration": 0.0004983,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.PrecisionOutsideConfigRangeIsBounded(-100,\"Speed: 12 m/s\")",
+      "status": "Passed",
+      "duration": 0.0003063,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.PrecisionOutsideConfigRangeIsBounded(100,\"Speed: 12.375 m/s\")",
+      "status": "Passed",
+      "duration": 0.0000454,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.PrecisionOutsideConfigRangeIsBounded",
+      "status": "Passed",
+      "duration": 0.0009437,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.RunStatusRetainsFullTickRangeAndHandlesAbsentPhase",
+      "status": "Passed",
+      "duration": 0.0002263,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests.SpeedFormattingUsesInvariantCultureAndRequestedPrecision",
+      "status": "Passed",
+      "duration": 0.0007162,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay.DebugOverlayPresenterTests",
+      "status": "Passed",
+      "duration": 0.0098606,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.DebugOverlay",
+      "status": "Passed",
+      "duration": 0.0113157,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.DisabledInputDiscardsAndIgnoresDeviceFactsUntilReenabled",
+      "status": "Passed",
+      "duration": 0.0047066,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.DriverDisableResetDiscardsEverythingIncludingLookRate",
+      "status": "Passed",
+      "duration": 0.000174,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.FocusLossDiscardsPendingAndHeldInput",
+      "status": "Passed",
+      "duration": 0.0002522,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.GamepadTurnUsesElapsedTimeAndFlushDoesNotIntegrateAgain",
+      "status": "Passed",
+      "duration": 0.0003369,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.HeldButtonsPersistWithoutRepeatingPress",
+      "status": "Passed",
+      "duration": 0.0002211,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.InvertYAppliesToBothMouseAndGamepad",
+      "status": "Passed",
+      "duration": 0.0002042,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.LookFromSeveralRenderUpdatesIsConsumedExactlyOnce",
+      "status": "Passed",
+      "duration": 0.0003235,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.MovementIsNormalizedAndPersistsAcrossTicks",
+      "status": "Passed",
+      "duration": 0.0015579,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.OwnerReenableDoesNotOverrideExplicitInputGate",
+      "status": "Passed",
+      "duration": 0.0005159,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.PressAndReleaseBeforeTickPreservesBothEdges",
+      "status": "Passed",
+      "duration": 0.0002757,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.ReleaseOfOneButtonPreservesOtherHeldButtons",
+      "status": "Passed",
+      "duration": 0.000194,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests.ReleaseThenRepressBeforeTickPreservesEdgesAndFinalHeld",
+      "status": "Passed",
+      "duration": 0.0001888,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputFramePresenterTests",
+      "status": "Passed",
+      "duration": 0.0114752,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputStartupTests.PreReadinessTapDoesNotLeakIntoFirstSceneTick",
+      "status": "Passed",
+      "duration": 0.0003267,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input.InputStartupTests",
+      "status": "Passed",
+      "duration": 0.0009049,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Input",
+      "status": "Passed",
+      "duration": 0.0129067,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.EndedRunDoesNotAdvanceOrCollectMoreInput",
+      "status": "Passed",
+      "duration": 0.002134,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(Boot,SceneReady,FirstSweep)",
+      "status": "Passed",
+      "duration": 0.0003547,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(FirstSweep,ExitOpened,ExitOpen)",
+      "status": "Passed",
+      "duration": 0.0001251,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(ExitOpen,CollapseStarted,Collapse)",
+      "status": "Passed",
+      "duration": 0.0000971,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(FirstSweep,PlayerDied,Ended)",
+      "status": "Passed",
+      "duration": 0.0000909,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(ExitOpen,PlayerDied,Ended)",
+      "status": "Passed",
+      "duration": 0.000087,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(Collapse,PlayerDied,Ended)",
+      "status": "Passed",
+      "duration": 0.0000872,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(ExitOpen,ExitReached,Ended)",
+      "status": "Passed",
+      "duration": 0.0000873,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun(Collapse,ExitReached,Ended)",
+      "status": "Passed",
+      "duration": 0.000088,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ExpectedFactsAdvanceTheRun",
+      "status": "Passed",
+      "duration": 0.0019037,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.InvalidSceneDoesNotDiscardTheCurrentRun",
+      "status": "Passed",
+      "duration": 0.0026355,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.InvalidTickDurationCannotCorruptTheCounter(0.0f)",
+      "status": "Passed",
+      "duration": 0.000669,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.InvalidTickDurationCannotCorruptTheCounter(-0.1f)",
+      "status": "Passed",
+      "duration": 0.0000676,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.InvalidTickDurationCannotCorruptTheCounter(float.NaN)",
+      "status": "Passed",
+      "duration": 0.0000406,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.InvalidTickDurationCannotCorruptTheCounter(float.PositiveInfinity)",
+      "status": "Passed",
+      "duration": 0.0000366,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.InvalidTickDurationCannotCorruptTheCounter",
+      "status": "Passed",
+      "duration": 0.0013598,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(Boot,ExitOpened)",
+      "status": "Passed",
+      "duration": 0.0003347,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(Boot,PlayerDied)",
+      "status": "Passed",
+      "duration": 0.0000899,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(FirstSweep,ExitReached)",
+      "status": "Passed",
+      "duration": 0.0000696,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(FirstSweep,CollapseStarted)",
+      "status": "Passed",
+      "duration": 0.0000655,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(ExitOpen,SceneReady)",
+      "status": "Passed",
+      "duration": 0.000061,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(Collapse,ExitOpened)",
+      "status": "Passed",
+      "duration": 0.0000631,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases(Ended,SceneReady)",
+      "status": "Passed",
+      "duration": 0.0000613,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.OutOfOrderFactsDoNotSkipPhases",
+      "status": "Passed",
+      "duration": 0.0015827,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.RecordedFramesAndDeltasProduceIdenticalRuns",
+      "status": "Passed",
+      "duration": 0.0009312,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.RunDoesNotTickOrBufferGameplayBeforeSceneReady",
+      "status": "Passed",
+      "duration": 0.0004639,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.SceneHandoffResetsCountersAndDiscardsPriorSceneInput",
+      "status": "Passed",
+      "duration": 0.0007939,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests.ShortPressAndReleaseBetweenTicksSurviveAndAreConsumedOnce",
+      "status": "Passed",
+      "duration": 0.0005958,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run.RunSessionControllerTests",
+      "status": "Passed",
+      "duration": 0.0137803,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.Run",
+      "status": "Passed",
+      "duration": 0.0140712,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.SceneKeysResolveToCanonicalPathsAndBack(TagArena,\"Assets/Scenes/TagArena.unity\")",
+      "status": "Passed",
+      "duration": 0.0003739,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.SceneKeysResolveToCanonicalPathsAndBack(FloorLoop,\"Assets/Scenes/FloorLoop.unity\")",
+      "status": "Passed",
+      "duration": 0.0000757,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.SceneKeysResolveToCanonicalPathsAndBack",
+      "status": "Passed",
+      "duration": 0.0008702,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnmappedLoadRequestsFailVisibly(None)",
+      "status": "Passed",
+      "duration": 0.0003552,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnmappedLoadRequestsFailVisibly(999)",
+      "status": "Passed",
+      "duration": 0.0000621,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnmappedLoadRequestsFailVisibly",
+      "status": "Passed",
+      "duration": 0.0007667,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnrelatedPathsDoNotAnnounceGameplaySceneCompletion(null)",
+      "status": "Passed",
+      "duration": 0.0002661,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnrelatedPathsDoNotAnnounceGameplaySceneCompletion(\"\")",
+      "status": "Passed",
+      "duration": 0.0000366,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnrelatedPathsDoNotAnnounceGameplaySceneCompletion(\"Assets/Scenes/Scene1.unity\")",
+      "status": "Passed",
+      "duration": 0.0000276,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnrelatedPathsDoNotAnnounceGameplaySceneCompletion(\"TagArena\")",
+      "status": "Passed",
+      "duration": 0.000022,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests.UnrelatedPathsDoNotAnnounceGameplaySceneCompletion",
+      "status": "Passed",
+      "duration": 0.0008132,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow.SceneFlowControllerTests",
+      "status": "Passed",
+      "duration": 0.0029833,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests.SceneFlow",
+      "status": "Passed",
+      "duration": 0.0032369,
+      "message": ""
+    },
+    {
+      "name": "Worsen.Tests",
+      "status": "Passed",
+      "duration": 0.1506134,
+      "message": ""
+    },
+    {
+      "name": "Worsen",
+      "status": "Passed",
+      "duration": 0.15077,
+      "message": ""
+    },
+    {
+      "name": "C:/Users/haogu/OneDrive/Documents/UnityProjects/WORSEN-PROTO/Library/ScriptAssemblies/Worsen.Tests.dll",
+      "status": "Passed",
+      "duration": 0.1511934,
+      "message": ""
+    },
+    {
+      "name": "WORSEN-PROTO",
+      "status": "Passed",
+      "duration": 0.1613773,
+      "message": ""
+    }
+  ],
+  "summary": {
+    "passed": 93,
+    "failed": 0,
+    "skipped": 0
+  }
+}

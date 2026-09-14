@@ -1,0 +1,35 @@
+{
+  "runControllerCoverage": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| test_symbol | relation | target | target_kind |\\n| --- | --- | --- | --- |\\n| Create | CALLS | RunSessionController | Constructor |\\n| EndedRunDoesNotAdvanceOrCollectMoreInput | CALLS | StartScene | Method |\\n| EndedRunDoesNotAdvanceOrCollectMoreInput | CALLS | Apply | Method |\\n| EndedRunDoesNotAdvanceOrCollectMoreInput | CALLS | ReceiveInput | Method |\\n| EndedRunDoesNotAdvanceOrCollectMoreInput | CALLS | TryTick | Method |\\n| ExpectedFactsAdvanceTheRun | CALLS | Next | Method |\\n| InvalidSceneDoesNotDiscardTheCurrentRun | CALLS | StartScene | Method |\\n| InvalidSceneDoesNotDiscardTheCurrentRun | CALLS | TryTick | Method |\\n| InvalidTickDurationCannotCorruptTheCounter | CALLS | StartScene | Method |\\n| InvalidTickDurationCannotCorruptTheCounter | CALLS | TryTick | Method |\\n| OutOfOrderFactsDoNotSkipPhases | CALLS | Next | Method |\\n| RecordedFramesAndDeltasProduceIdenticalRuns | CALLS | StartScene | Method |\\n| RecordedFramesAndDeltasProduceIdenticalRuns | CALLS | ReceiveInput | Method |\\n| RecordedFramesAndDeltasProduceIdenticalRuns | CALLS | TryTick | Method |\\n| RunDoesNotTickOrBufferGameplayBeforeSceneReady | CALLS | StartScene | Method |\\n| RunDoesNotTickOrBufferGameplayBeforeSceneReady | CALLS | ReceiveInput | Method |\\n| RunDoesNotTickOrBufferGameplayBeforeSceneReady | CALLS | TryTick | Method |\\n| SceneHandoffResetsCountersAndDiscardsPriorSceneInput | CALLS | StartScene | Method |\\n| SceneHandoffResetsCountersAndDiscardsPriorSceneInput | CALLS | SuspendForSceneLoad | Method |\\n| SceneHandoffResetsCountersAndDiscardsPriorSceneInput | CALLS | ReceiveInput | Method |\\n| SceneHandoffResetsCountersAndDiscardsPriorSceneInput | CALLS | TryTick | Method |\\n| ShortPressAndReleaseBetweenTicksSurviveAndAreConsumedOnce | CALLS | StartScene | Method |\\n| ShortPressAndReleaseBetweenTicksSurviveAndAreConsumedOnce | CALLS | ReceiveInput | Method |\\n| ShortPressAndReleaseBetweenTicksSurviveAndAreConsumedOnce | CALLS | TryTick | Method |\",\n  \"row_count\": 24\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  },
+  "pureTypes": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| type | file |\\n| --- | --- |\\n| DebugOverlayPresenter | Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs |\\n| InputFramePresenter | Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs |\\n| RunSessionController | Assets/Scripts/Session/Run/Controller/RunSessionController.cs |\\n| SceneFlowController | Assets/Scripts/Session/SceneFlow/Controller/SceneFlowController.cs |\",\n  \"row_count\": 4\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  },
+  "domain": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| file |\\n| --- |\\n| Assets/Scripts/Domain/Worsen.Domain.asmdef |\\n| Assets/Scripts/Domain/Worsen.Domain.asmdef.meta |\",\n  \"row_count\": 2\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  }
+}

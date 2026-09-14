@@ -1,0 +1,18 @@
+id: static-event-has-reset
+language: csharp
+severity: error
+message: "Every static event is cleared in a [RuntimeInitializeOnLoadMethod(SubsystemRegistration)] reset in the same file, or Enter Play Mode without domain reload leaks subscribers (§9)."
+files:
+  - "Assets/Scripts/**/*.cs"
+rule:
+  kind: compilation_unit
+  all:
+    - has:
+        kind: event_field_declaration
+        regex: '\bstatic\b'
+        stopBy: end
+    - not:
+        has:
+          kind: attribute
+          regex: 'RuntimeInitializeOnLoadMethod'
+          stopBy: end

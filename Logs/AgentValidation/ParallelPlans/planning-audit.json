@@ -1,0 +1,82 @@
+{
+  "documents": 12,
+  "livePlans": 10,
+  "liveSpecs": 2,
+  "archived": 0,
+  "checkedLocalLinks": 157,
+  "errors": [],
+  "records": [
+    {
+      "id": "PLAN-001",
+      "path": "PLANNING/plans/PLAN-001-worsen-boilerplate.md",
+      "status": "LIVE",
+      "lines": 426
+    },
+    {
+      "id": "PLAN-002",
+      "path": "PLANNING/plans/PLAN-002-parallel-coordination.md",
+      "status": "LIVE",
+      "lines": 128
+    },
+    {
+      "id": "PLAN-003",
+      "path": "PLANNING/plans/PLAN-003-player-movement-health.md",
+      "status": "LIVE",
+      "lines": 97
+    },
+    {
+      "id": "PLAN-004",
+      "path": "PLANNING/plans/PLAN-004-level-tag-arena.md",
+      "status": "LIVE",
+      "lines": 87
+    },
+    {
+      "id": "PLAN-005",
+      "path": "PLANNING/plans/PLAN-005-hunter-chase.md",
+      "status": "LIVE",
+      "lines": 94
+    },
+    {
+      "id": "PLAN-006",
+      "path": "PLANNING/plans/PLAN-006-camera-postfx-feedback.md",
+      "status": "LIVE",
+      "lines": 115
+    },
+    {
+      "id": "PLAN-007",
+      "path": "PLANNING/plans/PLAN-007-audio-hud-results.md",
+      "status": "LIVE",
+      "lines": 117
+    },
+    {
+      "id": "PLAN-008",
+      "path": "PLANNING/plans/PLAN-008-floor-collapse.md",
+      "status": "LIVE",
+      "lines": 89
+    },
+    {
+      "id": "PLAN-009",
+      "path": "PLANNING/plans/PLAN-009-director-pressure.md",
+      "status": "LIVE",
+      "lines": 87
+    },
+    {
+      "id": "PLAN-010",
+      "path": "PLANNING/plans/PLAN-010-telemetry-replay-tuning.md",
+      "status": "LIVE",
+      "lines": 93
+    },
+    {
+      "id": "SPEC-001",
+      "path": "PLANNING/specs/SPEC-001-project-architecture-guidelines.md",
+      "status": "LIVE",
+      "lines": 671
+    },
+    {
+      "id": "SPEC-002",
+      "path": "PLANNING/specs/SPEC-002-worsen-game-design.md",
+      "status": "LIVE",
+      "lines": 60
+    }
+  ]
+}

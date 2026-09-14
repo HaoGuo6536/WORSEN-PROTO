@@ -1,0 +1,77 @@
+[
+  {
+    "Name": "1-cross-layer-domain-presentation.cypher",
+    "Query": "// §13c query 1 — any call or type reference from Domain/Session into Presentation,\n// or from Presentation into Domain/Session. Both directions are forbidden by §9:\n// Domain and Session never see Presentation, and Presentation never sees Domain.\n// The asmdefs already make this fail to compile (§13a); this query catches it in\n// review before the assemblies are wired, and proves the boundary held.\n//\n// Expected result: zero rows. Any row is a §9 violation — publish an event and\n// route it through an Orchestrator (§6) instead of referencing across.\nMATCH (a:Class|Struct|Interface|Enum|Method|Function|Constructor|Property|Const)\n      -[r:CodeRelation]->\n      (b:Class|Struct|Interface|Enum|Method|Function|Constructor|Property|Const)\nWHERE r.type IN ['CALLS', 'USES', 'EXTENDS', 'ACCESSES', 'METHOD_OVERRIDES']\n  AND (\n        (\n          (a.filePath STARTS WITH 'Assets/Scripts/Domain/'\n            OR a.filePath STARTS WITH 'Assets/Scripts/Session/')\n          AND b.filePath STARTS WITH 'Assets/Scripts/Presentation/'\n        )\n        OR\n        (\n          a.filePath STARTS WITH 'Assets/Scripts/Presentation/'\n          AND (b.filePath STARTS WITH 'Assets/Scripts/Domain/'\n            OR b.filePath STARTS WITH 'Assets/Scripts/Session/')\n        )\n      )\nRETURN a.filePath AS from_file, a.name AS from_symbol, r.type AS edge,\n       b.filePath AS to_file, b.name AS to_symbol\nORDER BY from_file, from_symbol\n",
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[]\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "Name": "2-domain-system-cycles.cypher",
+    "Query": "// §13c query 2 — any cycle among Domain systems, using each system's folder as the\n// node. §2c requires the dependency graph inside a layer to be acyclic: if two\n// systems need each other, the shared piece moves down (a Core DTO) or the\n// coordination moves up (a Session Manager).\n//\n// This finds DIRECT (two-system) cycles, which is the case that actually occurs.\n// Longer cycles (A -> B -> C -> A) need `gitnexus check` or a manual read of the\n// header DEPENDENCIES lists.\n//\n// Expected result: zero rows.\nMATCH (a:Class|Struct|Interface|Enum|Method|Function|Constructor|Property|Const)\n      -[r:CodeRelation]->\n      (b:Class|Struct|Interface|Enum|Method|Function|Constructor|Property|Const)\nWHERE r.type IN ['CALLS', 'USES', 'EXTENDS', 'ACCESSES']\n  AND a.filePath STARTS WITH 'Assets/Scripts/Domain/'\n  AND b.filePath STARTS WITH 'Assets/Scripts/Domain/'\nWITH string_split(a.filePath, '/')[4] AS system_a,\n     string_split(b.filePath, '/')[4] AS system_b\nWHERE system_a <> system_b\nWITH DISTINCT system_a, system_b\nWITH collect([system_a, system_b]) AS edges\nUNWIND edges AS forward\nUNWIND edges AS backward\nWITH forward[1] AS system_a, forward[2] AS system_b, backward[1] AS back_a, backward[2] AS back_b\nWHERE system_a = back_b AND system_b = back_a AND system_a < system_b\nRETURN DISTINCT system_a, system_b\nORDER BY system_a, system_b\n",
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[]\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "Name": "3-driver-calls-game-system.cypher",
+    "Query": "// §13c query 3 — any Driver-layer file that calls a Manager, Controller or Registry.\n// §7a: a Driver never pulls game state. Data flows in as primitive command\n// parameters, its DriverConfig, or a read-only view its Manager hands it; data\n// flows out only as C# events. A Driver that calls into a game system has\n// inverted the ownership direction (§9, rung 4).\n//\n// Expected result: zero rows. The fix is always the same: let the Manager push\n// the value in, or let the Driver publish an event the Manager subscribes to.\nMATCH (a:Class|Struct|Method|Function|Constructor|Property)\n      -[r:CodeRelation]->\n      (b:Class|Struct|Method|Function|Constructor|Property)\nWHERE r.type IN ['CALLS', 'USES', 'ACCESSES']\n  AND a.filePath STARTS WITH 'Assets/Scripts/'\n  AND a.filePath CONTAINS '/Driver/'\n  AND (\n        b.name ENDS WITH 'Manager'\n        OR b.name ENDS WITH 'Controller'\n        OR b.name ENDS WITH 'Registry'\n      )\n  AND NOT b.filePath CONTAINS '/Driver/'\nRETURN a.filePath AS driver_file, a.name AS driver_symbol, r.type AS edge,\n       b.name AS reached_symbol, b.filePath AS reached_file\nORDER BY driver_file, driver_symbol\n",
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[]\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "Name": "4-fat-orchestrators.cypher",
+    "Query": "// §13c query 4 — any Orchestrator whose method bodies exceed a handful of statements.\n// §6: an Orchestrator is stateless and thin. Each handler translates a payload and\n// forwards it, one to three lines. If it needs to remember anything, that memory is\n// a phase in the originating system's BehaviorState, not a field here.\n//\n// Line span is a proxy for statement count; 12 lines is the \"handful\" threshold and\n// is deliberately generous. A hit is a prompt to read the method, not an automatic\n// failure — but a genuinely fat Orchestrator method is logic that belongs in the\n// system that published the event.\nMATCH (m:Method)\nWHERE m.filePath STARTS WITH 'Assets/Scripts/Orchestrator/'\n  AND m.endLine - m.startLine > 12\nRETURN m.filePath AS file, m.name AS method,\n       m.startLine AS start_line, m.endLine - m.startLine AS line_span\nORDER BY line_span DESC\n",
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"markdown\": \"| file | method | start_line | line_span |\\n| --- | --- | --- | --- |\\n| Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs | Start | 47 | 17 |\\n| Assets/Scripts/Orchestrator/InputOrchestrator.cs | OnEnable | 35 | 14 |\",\n  \"row_count\": 2\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "Name": "5-untested-pure-layer-logic.cypher",
+    "Query": "// §13c query 5 — every *Controller and *Presenter with no test file referencing it.\n// §11: purity in the logic and presentation stacks exists so this code can be tested\n// without a scene. A Controller or Presenter that nothing under Assets/Editor/Tests/\n// ever touches has thrown that payoff away.\n//\n// This is the graph-level counterpart to the ArchitectureConformanceTests check\n// (§13d), which matches on file name alone. This one proves a test actually\n// REFERENCES the type, so a stub test file cannot satisfy it.\n//\n// Expected result: zero rows.\nMATCH (c:Class)\nWHERE c.filePath STARTS WITH 'Assets/Scripts/'\n  AND (c.name ENDS WITH 'Controller' OR c.name ENDS WITH 'Presenter')\n  AND NOT EXISTS {\n        MATCH (t:Class|Method|Function|Constructor)-[:CodeRelation]->(c)\n        WHERE t.filePath STARTS WITH 'Assets/Editor/Tests/'\n      }\nRETURN c.filePath AS file, c.name AS untested_type, c.startLine AS start_line\nORDER BY file\n",
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"markdown\": \"| file | untested_type | start_line |\\n| --- | --- | --- |\\n| Assets/Scripts/Session/Run/Controller/RunSessionController.cs | RunSessionController | 35 |\",\n  \"row_count\": 1\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+          }
+        ]
+      }
+    }
+  }
+]

@@ -1,0 +1,15 @@
+id: pure-layer-not-monobehaviour
+language: csharp
+severity: error
+message: "Pure layers are plain C# — remove the MonoBehaviour base (§2, §3, §7b, §7c)."
+files:
+  - "Assets/Scripts/**/Controller/**/*.cs"
+  - "Assets/Scripts/**/State/**/*.cs"
+  - "Assets/Scripts/**/Driver/*Presenter.cs"
+  - "Assets/Scripts/**/Driver/*DriverState.cs"
+  - "Assets/Scripts/Core/**/*.cs"
+rule:
+  kind: class_declaration
+  has:
+    kind: base_list
+    regex: '\bMonoBehaviour\b'

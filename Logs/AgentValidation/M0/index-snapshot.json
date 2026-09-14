@@ -1,0 +1,14 @@
+{
+  "ObservedAtUtc": "2026-09-14T20:06:30.2135143Z",
+  "IndexTimeUtc": "2026-09-14T20:05:57.851Z",
+  "Branch": "codex/boilerplate-m0",
+  "Stats": {
+    "files": 635,
+    "nodes": 4066,
+    "edges": 8560,
+    "communities": 204,
+    "processes": 312,
+    "embeddings": 0
+  },
+  "SourceScriptCount": 37
+}

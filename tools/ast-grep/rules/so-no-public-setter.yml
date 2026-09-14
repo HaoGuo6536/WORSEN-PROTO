@@ -1,0 +1,17 @@
+id: so-no-public-setter
+language: csharp
+severity: error
+message: "No public setter on a ScriptableObject — a runtime write mutates the shared asset and, in the Editor, persists to disk (§4, §4b)."
+files:
+  - "Assets/Scripts/**/Config/**/*.cs"
+rule:
+  kind: property_declaration
+  all:
+    - regex: '^\s*(public|internal)\b'
+    - has:
+        kind: accessor_list
+        regex: '\bset\b'
+  not:
+    has:
+      kind: accessor_list
+      regex: '(private|protected)\s+set'

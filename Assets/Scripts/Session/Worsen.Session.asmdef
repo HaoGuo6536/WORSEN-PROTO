@@ -1,0 +1,14 @@
+{
+    "name": "Worsen.Session",
+    "rootNamespace": "Worsen.Session",
+    "references": ["Worsen.Core", "Worsen.Domain"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

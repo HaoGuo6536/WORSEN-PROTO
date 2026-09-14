@@ -1,0 +1,17 @@
+id: instantiate-only-in-allowed-types
+language: csharp
+severity: error
+message: "Only a Driver, a Factory, a SceneRoot, or a Manager creating its own Driver may instantiate (§1, §1c, §6b)."
+# The Manager exemption is file-wide because the rule cannot see whether the
+# instantiated object is the Manager's own Driver (§1). Reviewers enforce that half.
+files:
+  - "Assets/Scripts/**/*.cs"
+ignores:
+  - "Assets/Scripts/**/Driver/**"
+  - "Assets/Scripts/**/*Factory.cs"
+  - "Assets/Scripts/**/*SceneRoot.cs"
+  - "Assets/Scripts/**/*Manager.cs"
+rule:
+  any:
+    - pattern: Instantiate($$$A)
+    - pattern: Object.Instantiate($$$A)

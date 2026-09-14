@@ -1,0 +1,11 @@
+{
+  "status": "fulfilled",
+  "value": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"markdown\": \"| relation | member | kind |\\n| --- | --- | --- |\\n| HAS_METHOD | Apply | Method |\\n| HAS_METHOD | Next | Method |\\n| HAS_METHOD | ReceiveInput | Method |\\n| HAS_METHOD | RunSessionController | Constructor |\\n| HAS_METHOD | StartScene | Method |\\n| HAS_METHOD | SuspendForSceneLoad | Method |\\n| HAS_METHOD | TryTick | Method |\",\n  \"row_count\": 7\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+      }
+    ]
+  }
+}

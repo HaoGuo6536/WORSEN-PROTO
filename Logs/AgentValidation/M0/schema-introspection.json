@@ -1,0 +1,57 @@
+[
+  {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| id | name | type | database name | comment |\\n| --- | --- | --- | --- | --- |\\n| 23 | Delegate | NODE | main(graph) |  |\\n| 12 | Typedef | NODE | main(graph) |  |\\n| 4 | Interface | NODE | main(graph) |  |\\n| 0 | File | NODE | main(graph) |  |\\n| 1 | Folder | NODE | main(graph) |  |\\n| 6 | CodeElement | NODE | main(graph) |  |\\n| 22 | Record | NODE | main(graph) |  |\\n| 2 | Function | NODE | main(graph) |  |\\n| 20 | Variable | NODE | main(graph) |  |\\n| 5 | Method | NODE | main(graph) |  |\\n| 3 | Class | NODE | main(graph) |  |\\n| 7 | Community | NODE | main(graph) |  |\\n| 8 | Process | NODE | main(graph) |  |\\n| 15 | Trait | NODE | main(graph) |  |\\n| 9 | Struct | NODE | main(graph) |  |\\n| 10 | Enum | NODE | main(graph) |  |\\n| 13 | Union | NODE | main(graph) |  |\\n| 11 | Macro | NODE | main(graph) |  |\\n| 25 | Constructor | NODE | main(graph) |  |\\n| 14 | Namespace | NODE | main(graph) |  |\\n| 16 | Impl | NODE | main(graph) |  |\\n| 17 | TypeAlias | NODE | main(graph) |  |\\n| 18 | Const | NODE | main(graph) |  |\\n| 19 | Static | NODE | main(graph) |  |\\n| 21 | Property | NODE | main(graph) |  |\\n| 514 | CodeRelation | REL | main(graph) |  |\\n| 24 | Annotation | NODE | main(graph) |  |\\n| 26 | Template | NODE | main(graph) |  |\\n| 27 | Module | NODE | main(graph) |  |\\n| 28 | Section | NODE | main(graph) |  |\\n| 29 | Route | NODE | main(graph) |  |\\n| 30 | Tool | NODE | main(graph) |  |\\n| 31 | BasicBlock | NODE | main(graph) |  |\\n| 515 | CodeEmbedding | NODE | main(graph) |  |\",\n  \"row_count\": 34\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| property id | name | type | default expression | primary key |\\n| --- | --- | --- | --- | --- |\\n| 0 | id | STRING | NULL | true |\\n| 1 | name | STRING | NULL | false |\\n| 2 | filePath | STRING | NULL | false |\\n| 3 | startLine | INT64 | NULL | false |\\n| 4 | endLine | INT64 | NULL | false |\\n| 5 | isExported | BOOL | NULL | false |\\n| 6 | content | STRING | NULL | false |\\n| 7 | description | STRING | NULL | false |\\n| 8 | parameterCount | INT32 | NULL | false |\\n| 9 | returnType | STRING | NULL | false |\",\n  \"row_count\": 10\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| type | count |\\n| --- | --- |\\n| CALLS | 1776 |\\n| STEP_IN_PROCESS | 1216 |\\n| HAS_METHOD | 1215 |\\n| DEFINES | 1171 |\\n| MEMBER_OF | 1129 |\\n| CONTAINS | 986 |\\n| ACCESSES | 600 |\\n| HAS_PROPERTY | 184 |\\n| USES | 115 |\\n| METHOD_OVERRIDES | 65 |\\n| IMPORTS | 47 |\\n| EXTENDS | 28 |\\n| HANDLES_ROUTE | 18 |\\n| ENTRY_POINT_OF | 1 |\",\n  \"row_count\": 14\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| property id | name | type | default expression | primary key |\\n| --- | --- | --- | --- | --- |\\n| 0 | id | STRING | NULL | true |\\n| 1 | name | STRING | NULL | false |\\n| 2 | filePath | STRING | NULL | false |\\n| 3 | startLine | INT64 | NULL | false |\\n| 4 | endLine | INT64 | NULL | false |\\n| 5 | isExported | BOOL | NULL | false |\\n| 6 | content | STRING | NULL | false |\\n| 7 | description | STRING | NULL | false |\\n| 8 | frameworkAnnotations | STRING[] | NULL | false |\",\n  \"row_count\": 9\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"markdown\": \"| property id | name | type | default expression | storage_direction |\\n| --- | --- | --- | --- | --- |\\n| 1 | type | STRING | NULL | both |\\n| 2 | confidence | DOUBLE | NULL | both |\\n| 3 | reason | STRING | NULL | both |\\n| 4 | step | INT32 | NULL | both |\",\n  \"row_count\": 4\n}\n\n---\n**Next:** To explore a result symbol, use context({name: \"<name>\", repo: \"WORSEN-PROTO\"}). For schema reference, READ gitnexus://repo/WORSEN-PROTO/schema."
+        }
+      ]
+    }
+  }
+]
