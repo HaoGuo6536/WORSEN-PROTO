@@ -23,7 +23,8 @@
 //   A default probe reports no contacts. Distances are metres and angles are
 //   degrees. WallId is a recorded probe identity; zero means no identified wall.
 //   The Driver resolves marker components before setting VaultCandidate, so
-//   this Core type never depends on a Domain marker enum.
+//   this Core type never depends on a Domain marker enum. StandingBlocked records
+//   capsule clearance; default false preserves earlier recordings and callers.
 //
 // ============================================================================
 
@@ -38,7 +39,7 @@ namespace Worsen.Core
             Vector3 wallNormal = default, float wallAngleDegrees = 0f,
             int wallId = 0, bool vaultCandidate = false,
             float vaultHeight = 0f, float vaultClearance = 0f,
-            Vector3 vaultTarget = default)
+            Vector3 vaultTarget = default, bool standingBlocked = false)
         {
             Grounded = grounded;
             GroundNormal = groundNormal;
@@ -51,8 +52,10 @@ namespace Worsen.Core
             VaultHeight = vaultHeight;
             VaultClearance = vaultClearance;
             VaultTarget = vaultTarget;
+            StandingBlocked = standingBlocked;
         }
 
+        public bool StandingBlocked { get; }
         public bool Grounded { get; }
         public Vector3 GroundNormal { get; }
         public bool WallDetected { get; }

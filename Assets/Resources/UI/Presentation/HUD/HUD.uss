@@ -1,0 +1,12 @@
+.hud { position: absolute; left: 0; top: 0; right: 0; bottom: 0; color: rgb(245, 240, 225); }
+.hud-essential { position: absolute; top: 24px; right: 28px; min-width: 190px; padding: 14px 20px; background-color: rgba(15, 19, 19, 0.85); border-left-width: 3px; border-left-color: rgb(219, 174, 99); }
+.count { -unity-font-style: bold; margin-bottom: 5px; }
+.exit { color: rgb(201, 201, 185); font-size: 15px; }
+.hud-extra { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.direction-group { position: absolute; bottom: 28px; left: 44%; width: 12%; align-items: center; }
+.direction-cue { font-size: 40px; width: 50px; height: 52px; -unity-text-align: middle-center; color: rgb(240, 210, 147); }
+.caption { font-size: 11px; letter-spacing: 1px; color: rgb(224, 221, 208); -unity-text-align: middle-center; }
+.inventory { position: absolute; bottom: 28px; right: 28px; align-items: flex-end; }
+.item-slots { flex-direction: row; }
+.item-slot { width: 36px; height: 36px; margin-left: 7px; background-color: rgba(15, 19, 19, 0.78); border-width: 1px; border-color: rgba(221, 217, 198, 0.6); -unity-text-align: middle-center; color: rgb(165, 168, 158); }
+

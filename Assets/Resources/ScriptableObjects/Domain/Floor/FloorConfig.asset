@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49388b6ae873fb64ca47b0e158c7b2ff, type: 3}
+  m_Name: FloorConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Floor.FloorConfig
+  _requiredCakeCount: 10
+  _flowWeight: 5
+  _precisionWeight: 3
+  _detourWeight: 2
+  _riskWeight: 1
+  _verticalWeight: 2
+  _collapseInterval: 12
+  _telegraphDuration: 6
+  _directionCueInterval: 0.5

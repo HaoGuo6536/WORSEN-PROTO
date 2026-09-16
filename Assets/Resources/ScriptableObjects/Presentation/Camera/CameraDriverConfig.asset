@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3622f6e428f8abe40ae3c72f7d428e46, type: 3}
+  m_Name: CameraDriverConfig
+  m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Camera.CameraDriverConfig
+  _horizontalFieldOfView: 95
+  _speedFieldOfView: 8
+  _maxDesignSpeed: 14
+  _detectionFieldOfView: 12
+  _detectionAttackSeconds: 0.08
+  _detectionDecaySeconds: 0.4
+  _punchIntensity: 1
+  _impulseDisplacement: 0.035
+  _impulseSeconds: 0.2
+  _lookBackYaw: 160
+  _lookBackSeconds: 0.12
+  _lookForwardSeconds: 0.15
+  _lookBackPitchLimit: 20
+  _lookBackHeadYawLimit: 20
+  _forwardPitchLimit: 85
+  _tiltEnabled: 1
+  _slideRoll: 6
+  _reboundRoll: 10
+  _reboundSeconds: 0.25
+  _nearClip: 0.05
+  _farClip: 500

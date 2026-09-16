@@ -13,7 +13,7 @@
 //   prepares text in a DriverState before the Driver applies it to labels.
 //
 // KEY RESPONSIBILITIES:
-//   - Bind the overlay UXML and apply its DriverConfig appearance settings.
+//   - Own the procedural DebugOverlaySurfaceDriver and bind its diagnostic ribbon.
 //   - Rebind when UIDocument replaces its root, including disable/enable cycles.
 //   - Resolve missing document assets by mirrored Resources paths and report failure.
 //
@@ -25,7 +25,7 @@
 //   - Own DriverConfig: DebugOverlayDriverConfig; no global engine side effects.
 //   - Commands only come from its Manager. LateUpdate checks document identity,
 //     never game state; UI Toolkit can recreate a root after this Driver enables.
-//   - TagArenaSceneSetup provides serialized document, UXML, and PanelSettings references.
+//   - Reuses setup's document and PanelSettings; legacy UXML remains serialized but optional.
 //
 // ============================================================================
 
@@ -47,6 +47,7 @@ namespace Worsen.Presentation.DebugOverlay
         private DebugOverlayDriverConfig _config;
         private DebugOverlayDriverState _state;
         private DebugOverlayPresenter _presenter;
+        private DebugOverlaySurfaceDriver _surface;
         private VisualElement _boundRoot;
         private Label _tickLabel;
         private Label _phaseLabel;
@@ -64,14 +65,15 @@ namespace Worsen.Presentation.DebugOverlay
             if (_visualTree == null) _visualTree = Resources.Load<VisualTreeAsset>(VisualTreePath);
             if (_panelSettings == null) _panelSettings = Resources.Load<PanelSettings>(PanelSettingsPath);
 
-            if (_visualTree == null || _panelSettings == null)
+            if (_config == null || _panelSettings == null)
             {
-                Debug.LogWarning("Debug overlay needs UXML and PanelSettings. Run Worsen/Scenes/1 — Build TagArena to restore its wiring.", this);
+                Debug.LogWarning("Debug overlay needs config and PanelSettings. Run Worsen/Scenes/1 — Build TagArena to restore its wiring.", this);
                 return;
             }
 
             _document.panelSettings = _panelSettings;
-            if (_document.visualTreeAsset != _visualTree) _document.visualTreeAsset = _visualTree;
+            if (_surface == null) _surface = GetComponent<DebugOverlaySurfaceDriver>();
+            if (_surface == null) _surface = gameObject.AddComponent<DebugOverlaySurfaceDriver>();
             BindAndApply();
         }
 
@@ -84,7 +86,7 @@ namespace Worsen.Presentation.DebugOverlay
 
         public void SetPlayerStatus(float speed, string movement)
         {
-            if (_state == null) return;
+            if (_state == null || _config == null) return;
             _presenter.SetPlayerStatus(_state, speed, movement, _config.SpeedDecimalPlaces);
             ApplyText();
         }
@@ -116,15 +118,18 @@ namespace Worsen.Presentation.DebugOverlay
 
         private void LateUpdate()
         {
-            if (_state != null && _document != null &&
-                !ReferenceEquals(_boundRoot, _document.rootVisualElement)) BindAndApply();
+            if (_state == null || _document == null) return;
+            if (!_document.isActiveAndEnabled) { HideAndUnbind(); return; }
+            if (!ReferenceEquals(_boundRoot, _document.rootVisualElement)) BindAndApply();
         }
 
         private void BindAndApply()
         {
-            if (!isActiveAndEnabled || _document == null || !_document.isActiveAndEnabled || _config == null) return;
+            if (!isActiveAndEnabled || _document == null || !_document.isActiveAndEnabled || _config == null || _surface == null) return;
             var root = _document.rootVisualElement;
             if (root == null) return;
+            HideAndUnbind();
+            _surface.Build(root, _config);
             var panel = root.Q<VisualElement>("debug-overlay");
             _tickLabel = root.Q<Label>("tick-value");
             _phaseLabel = root.Q<Label>("phase-value");
@@ -133,16 +138,12 @@ namespace Worsen.Presentation.DebugOverlay
             _boundRoot = root;
             if (panel == null || _tickLabel == null || _phaseLabel == null || _speedLabel == null || _movementLabel == null)
             {
-                Debug.LogWarning("Debug overlay UXML is missing its required named elements. Restore DebugOverlay.uxml and rebuild TagArena.", this);
+                Debug.LogWarning("Debug overlay surface is missing its required named elements.", this);
                 return;
             }
 
             root.pickingMode = PickingMode.Ignore;
             root.style.display = DisplayStyle.Flex;
-            panel.style.left = _config.PanelOffset.x;
-            panel.style.top = _config.PanelOffset.y;
-            panel.style.width = _config.PanelWidth;
-            panel.style.fontSize = _config.FontSize;
             ApplyText();
         }
 
@@ -163,6 +164,7 @@ namespace Worsen.Presentation.DebugOverlay
 
         private void HideAndUnbind()
         {
+            if (_surface != null) _surface.Release();
             if (_boundRoot != null) _boundRoot.style.display = DisplayStyle.None;
             _boundRoot = null;
             _tickLabel = null;

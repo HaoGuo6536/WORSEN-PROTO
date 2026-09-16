@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7ca82ba50bdc2d448cc23e4df689cf4, type: 3}
+  m_Name: TelemetryDriverConfig
+  m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Telemetry.TelemetryDriverConfig
+  _flushEverySamples: 60

@@ -13,7 +13,7 @@
 // USAGE NOTES:
 //   - Persistent on DebugOverlayManager's own root, with serialized wiring.
 //   - Paired OnEnable/OnDisable subscriptions; no scene-owned references.
-//   - Player telemetry remains unavailable until the M1 player exists.
+//   - Committed Player samples replace the former unavailable placeholder.
 // ============================================================================
 
 using UnityEngine;
@@ -38,6 +38,7 @@ namespace Worsen.Orchestrator
             if (_overlay.Initialize() != _overlay) return;
             _run = RunSessionManager.Instance ?? _run;
             _run.TickAdvanced += OnTickAdvanced;
+            _run.PlayerMovementPublished += OnMovement;
             _run.PhaseChanged += OnPhaseChanged;
         }
 
@@ -45,8 +46,12 @@ namespace Worsen.Orchestrator
         {
             if (_run == null) return;
             _run.TickAdvanced -= OnTickAdvanced;
+            _run.PlayerMovementPublished -= OnMovement;
             _run.PhaseChanged -= OnPhaseChanged;
         }
+
+        private void OnMovement(PlayerMovementSample sample)
+            => _overlay.SetPlayerStatus(new Vector2(sample.Velocity.x, sample.Velocity.z).magnitude, sample.MovementState.ToString());
 
         private void OnTickAdvanced(InputFrame input, float deltaTime, long tick)
             => _overlay.SetRunStatus(tick, _run.Phase.ToString());

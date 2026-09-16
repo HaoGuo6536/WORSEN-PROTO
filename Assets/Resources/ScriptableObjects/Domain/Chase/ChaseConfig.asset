@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 494e4520b3c3ce940a23f07525daf277, type: 3}
+  m_Name: ChaseConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Chase.ChaseConfig
+  _confirmationSeconds: 0.3
+  _lossSeconds: 2.5
+  _lossDistance: 14
+  _lostGraceSeconds: 1.5
+  _nearDistance: 4
+  _farDistance: 20
+  _rearWeight: 1
+  _frontWeight: 0.5

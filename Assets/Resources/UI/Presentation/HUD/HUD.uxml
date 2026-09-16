@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="HUD.uss" />
+    <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:VisualElement class="hud-essential" picking-mode="Ignore">
+            <ui:Label name="cake-count" text="Cakes: —" class="count" picking-mode="Ignore" />
+            <ui:Label name="exit-state" text="Exit: —" class="exit" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="hud-extra" class="hud-extra" picking-mode="Ignore">
+            <ui:VisualElement name="direction-group" class="direction-group" picking-mode="Ignore">
+                <ui:Label name="direction-cue" text="↑" class="direction-cue" picking-mode="Ignore" />
+                <ui:Label name="direction-caption" text="NEXT CAKE" class="caption" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="inventory" picking-mode="Ignore">
+                <ui:VisualElement name="item-slots" class="item-slots" picking-mode="Ignore" />
+                <ui:Label name="slot-overflow" text="" class="caption" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
+

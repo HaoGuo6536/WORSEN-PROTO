@@ -11,14 +11,14 @@
 //   Definitions (§5) · Core · shared scene lifecycle data.
 //
 // KEY RESPONSIBILITIES:
-//   - Name the prototype's arena and planned floor-loop scenes.
+//   - Name authored arenas and the generated horror run without changing existing ids.
 //   - Represent an unassigned scene explicitly with None.
 //
 // DEPENDENCIES:
 //   - None; scene path mapping belongs to the Session SceneFlow system.
 //
 // USAGE NOTES:
-//   FloorLoop is a reserved identity; M0 does not create that scene. SceneFlow
+//   SceneFlow
 //   rejects a request visibly when the corresponding build scene is unavailable.
 //
 // ============================================================================
@@ -29,6 +29,7 @@ namespace Worsen.Core
     {
         None = 0,
         TagArena = 1,
-        FloorLoop = 2
+        FloorLoop = 2,
+        HorrorRun = 3
     }
 }

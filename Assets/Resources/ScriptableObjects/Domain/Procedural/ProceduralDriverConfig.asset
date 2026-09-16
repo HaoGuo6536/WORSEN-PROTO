@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b694137e906d4123af7c19f4f6794fea, type: 3}
+  m_Name: ProceduralDriverConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Procedural.ProceduralDriverConfig
+  _wallThickness: 0.3
+  _floorThickness: 0.3
+  _ceilingThickness: 0.3
+  _wallMaterial: {fileID: 0}
+  _floorMaterial: {fileID: 0}
+  _ceilingMaterial: {fileID: 0}
+  _wallColor: {r: 0.19, g: 0.21, b: 0.2, a: 1}
+  _floorColor: {r: 0.11, g: 0.12, b: 0.11, a: 1}
+  _ceilingColor: {r: 0.09, g: 0.1, b: 0.09, a: 1}
+  _surfaceSmoothness: 0.08
+  _geometryLayer: 0
+  _navMeshAgentTypeId: 0
+  _navSampleRadius: 0.75
+  _navVoxelSize: 0.1
+  _navBoundsPadding: 1
+  _partitionLength: 7
+  _partitionThickness: 0.6
+  _shortcutWidth: 2.4
+  _vaultHeight: 1
+  _windowTopHeight: 3.25
+  _slideClearance: 1.05
+  _landingOffset: 1.05

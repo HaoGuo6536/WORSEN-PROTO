@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73fdf5dc718c1754089e1165bc3bf29a, type: 3}
+  m_Name: PlayerMoverDriverConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Player.PlayerMoverDriverConfig
+  _height: 1.8
+  _radius: 0.3
+  _slideHeightRatio: 0.5
+  _skinWidth: 0.02
+  _castIterations: 5
+  _groundProbeDistance: 0.12
+  _groundSnapDistance: 0.2
+  _stepHeight: 0.3
+  _slopeLimitDegrees: 50
+  _wallProbeDistance: 0.6
+  _vaultProbeDistance: 1.15
+  _eyeHeight: 1.6
+  _traversalLift: 0.08
+  _traversalRisePortion: 0.25
+  _traversalTraverseEnd: 0.95
+  _collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _interpolateVisuals: 1
+  _handOffset: {x: 0.32, y: -0.25, z: 0.5}
+  _footOffset: {x: 0.2, y: -0.25, z: 0.5}

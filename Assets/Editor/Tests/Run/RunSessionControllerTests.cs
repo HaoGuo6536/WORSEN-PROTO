@@ -11,6 +11,7 @@
 //   Editor tool (§10) · test suite (§11) · Run.
 //
 // KEY RESPONSIBILITIES:
+//   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Exercise valid and invalid phase transitions.
 //   - Verify readiness, completion, timing, and restart boundaries.
 //   - Replay input sequences and compare deterministic state and consumption.
@@ -20,6 +21,7 @@
 //
 // USAGE NOTES:
 //   Editor-only tests; no scene, input device, or Unity clock is required.
+//   The engine-dependent readiness regression lives in RunSessionManagerTests.
 //   Random sources are explicitly seeded for each independently constructed run.
 //
 // ============================================================================
@@ -34,6 +36,42 @@ namespace Worsen.Tests.Run
 {
     public sealed class RunSessionControllerTests
     {
+        [Test]
+        public void GeneratedHorrorFloorUsesNormalReadinessAndFreshCounters()
+        {
+            var controller = Create(out var state);
+            controller.StartScene(SceneKey.HorrorRun);
+            Assert.That(state.Scene, Is.EqualTo(SceneKey.HorrorRun));
+            Assert.That(controller.TryTick(1f / 60f, out _), Is.True);
+            controller.StartScene(SceneKey.HorrorRun);
+            Assert.That(state.Tick, Is.Zero);
+            Assert.That(state.Phase, Is.EqualTo(RunPhase.FirstSweep));
+        }
+
+        [Test]
+        public void CaptureClosesExactlyOnceAndCanReopenForNextRun()
+        {
+            var controller = Create(out _);
+            Assert.That(controller.TryCloseCapture(), Is.False);
+            controller.OpenCapture();
+            Assert.That(controller.TryCloseCapture(), Is.True);
+            Assert.That(controller.TryCloseCapture(), Is.False);
+            controller.OpenCapture();
+            Assert.That(controller.TryCloseCapture(), Is.True);
+        }
+
+        [Test]
+        public void ReadinessDoesNotReplaceTheSharedRandomAfterAssembly()
+        {
+            var controller = Create(out _);
+            var source = controller.RandomSource;
+            controller.StartScene(SceneKey.TagArena);
+            controller.SuspendForSceneLoad();
+            source.Next();
+            controller.StartScene(SceneKey.TagArena);
+            Assert.That(controller.RandomSource, Is.SameAs(source));
+            Assert.That(controller.TryTick(1f / 60f, out _), Is.True);
+        }
         [TestCase(RunPhase.Boot, RunEvent.SceneReady, RunPhase.FirstSweep)]
         [TestCase(RunPhase.FirstSweep, RunEvent.ExitOpened, RunPhase.ExitOpen)]
         [TestCase(RunPhase.ExitOpen, RunEvent.CollapseStarted, RunPhase.Collapse)]

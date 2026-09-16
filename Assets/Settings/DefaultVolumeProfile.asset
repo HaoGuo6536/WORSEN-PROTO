@@ -22,6 +22,116 @@ MonoBehaviour:
   gain:
     m_OverrideState: 1
     m_Value: {x: 1, y: 1, z: 1, w: 0}
+--- !u!114 &-8626665864256068920
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce337ddb66e26ab459124c3d4c25072c, type: 3}
+  m_Name: DitherFogVolume
+  m_EditorClassIdentifier: FronkonGames.Weird.DitherFog::FronkonGames.Weird.DitherFog.DitherFogVolume
+  active: 1
+  intensity:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0
+    max: 1
+  fogOpacity:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0
+    max: 1
+  fogColorMode:
+    m_OverrideState: 1
+    m_Value: 0
+  fogColor:
+    m_OverrideState: 1
+    m_Value: {r: 0, g: 0, b: 0, a: 1}
+  fogGradientNear:
+    m_OverrideState: 1
+    m_Value: {r: 0, g: 0, b: 0, a: 0}
+  fogGradientFar:
+    m_OverrideState: 1
+    m_Value: {r: 0, g: 0, b: 0, a: 1}
+  ditheringMode:
+    m_OverrideState: 1
+    m_Value: 2
+  ditherScale:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 1
+    max: 8
+  adaptiveDithering:
+    m_OverrideState: 1
+    m_Value: 0
+  adaptiveBrightnessThreshold:
+    m_OverrideState: 1
+    m_Value: 0.25
+    min: 0
+    max: 1
+  adaptiveContrastSensitivity:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0
+    max: 2
+  quantize:
+    m_OverrideState: 1
+    m_Value: 0
+    min: 0
+    max: 255
+  fogCurveStart:
+    m_OverrideState: 1
+    m_Value: 0.1
+    min: 0
+    max: 1
+  fogCurveEnd:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0
+    max: 1
+  fogStart:
+    m_OverrideState: 1
+    m_Value: 0.25
+    min: 0
+    max: 1
+  curvedFog:
+    m_OverrideState: 1
+    m_Value: 1
+  brightness:
+    m_OverrideState: 1
+    m_Value: 0
+    min: -1
+    max: 1
+  contrast:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0
+    max: 10
+  gamma:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0.1
+    max: 10
+  hue:
+    m_OverrideState: 1
+    m_Value: 0
+    min: 0
+    max: 1
+  saturation:
+    m_OverrideState: 1
+    m_Value: 1
+    min: 0
+    max: 2
+  affectSceneView:
+    m_OverrideState: 1
+    m_Value: 0
+  useScaledTime:
+    m_OverrideState: 1
+    m_Value: 1
 --- !u!114 &-8270506406425502121
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -342,6 +452,9 @@ MonoBehaviour:
   skyOcclusionIntensityMultiplier:
     m_OverrideState: 1
     m_Value: 1
+  worldOffset:
+    m_OverrideState: 1
+    m_Value: {x: 0, y: 0, z: 0}
 --- !u!114 &-1216621516061285780
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -374,6 +487,9 @@ MonoBehaviour:
     m_OverrideState: 1
     m_Value: {r: 1, g: 1, b: 1, a: 1}
   highQualityFiltering:
+    m_OverrideState: 1
+    m_Value: 0
+  filter:
     m_OverrideState: 1
     m_Value: 0
   downscale:
@@ -462,8 +578,7 @@ MonoBehaviour:
   - {fileID: -6288072647309666549}
   - {fileID: 7518938298396184218}
   - {fileID: -1410297666881709256}
-  - {fileID: -7750755424749557576}
-  - {fileID: -5139089513906902183}
+  - {fileID: -8626665864256068920}
 --- !u!114 &853819529557874667
 MonoBehaviour:
   m_ObjectHideFlags: 3

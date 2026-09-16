@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ffc004152192e840a0713280f42fe29, type: 3}
+  m_Name: PlayerProfile
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Player.PlayerProfile
+  _archetypeKey: player
+  _prefab: {fileID: 8973716904133982869, guid: 3231f0c006e54ea4082e6796fd69fa72, type: 3}
+  _sprintSpeed: 8
+  _walkSpeed: 4
+  _maxDesignSpeed: 14
+  _groundAcceleration: 60
+  _groundFriction: 70
+  _jumpSpeed: 5.5
+  _jumpBuffer: 0.1
+  _coyoteTime: 0.1
+  _airAcceleration: 25
+  _gravity: 18
+  _slideMinimumSpeed: 6
+  _slideBoost: 2
+  _slideDuration: 1.2
+  _vaultMinimumHeight: 0.35
+  _vaultMaximumHeight: 1.2
+  _mantleMaximumHeight: 2
+  _vaultDuration: 0.25
+  _mantleDuration: 0.35
+  _vaultCompletionTolerance: 0.05
+  _reboundDistance: 0.6
+  _reboundAngle: 45
+  _reboundJumpWindow: 0.15
+  _reboundUpwardBoost: 3
+  _reboundCooldown: 0.4
+  _softLandingThreshold: 12
+  _hardLandingThreshold: 18
+  _softLandingRetention: 0.6
+  _hardLandingRetention: 0.3
+  _softStumbleDuration: 0.2
+  _hardStumbleDuration: 0.5
+  _lookBackSteerAuthority: 0.35
+  _maximumHealth: 100
+  _lungeDamage: 50
+  _injuredThreshold: 50
+  _criticalThreshold: 25
+  _injuredSpeedMultiplier: 0.95
+  _noiseCapacity: 16
+  _footstepInterval: 0.35
+  _sprintLoudness: 0.25
+  _slideLoudness: 0.55
+  _traversalLoudness: 1

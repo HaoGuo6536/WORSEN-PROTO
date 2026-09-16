@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ad5d1b05ae34c54da14551a2e080afe, type: 3}
+  m_Name: HorrorDriverConfig
+  m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Horror.HorrorDriverConfig
+  _ambientColor: {r: 0.035, g: 0.042, b: 0.041, a: 1}
+  _backgroundColor: {r: 0.006, g: 0.009, b: 0.009, a: 1}
+  _reflectionIntensity: 0.04
+  _fogColor: {r: 0.014, g: 0.023, b: 0.021, a: 1}
+  _fogNearMeters: 8
+  _fogFarMeters: 24
+  _ambienceLoop: {fileID: 8300000, guid: c9cb65ec61228674abd218e8122cd4df, type: 3}
+  _ambienceGain: 0.5
+  _flashlightRange: 18
+  _flashlightIntensity: 7.5
+  _flashlightSpotAngle: 55
+  _flashlightInnerSpotAngle: 28
+  _flashlightColor: {r: 0.86, g: 0.93, b: 1, a: 1}
+  _flashlightLocalOffset: {x: 0.1, y: -0.08, z: 0.18}
+  _nearFillIntensity: 0.14
+  _nearFillRange: 2.6
+  _nearFillColor: {r: 0.32, g: 0.4, b: 0.5, a: 1}
+  _flashlightShadowBias: 0.025
+  _flashlightShadowNormalBias: 0.05
+  _attackMaterial: {fileID: 2100000, guid: 3bc5af824cdadda4dbd65d3bbb3ae9b6, type: 2}
+  _attackGrowl: {fileID: 8300000, guid: 674de23f9afe0474bbb2e5ae69d8c2ae, type: 3}
+  _attackGain: 0.75
+  _attackAudioMinDistance: 2
+  _attackAudioMaxDistance: 20
+  _attackRadius: 0.62
+  _windupStartScale: 1.3
+  _windupEndScale: 0.55
+  _attackArrowLength: 2.1
+  _attackArrowHalfWidth: 0.25
+  _attackArrowHeadFraction: 0.25
+  _attackHeight: 0.15
+  _attackLineWidth: 0.045
+  _attackRingSegments: 32
+  _windupColor: {r: 1, g: 0.72, b: 0.25, a: 1}
+  _activeColor: {r: 1, g: 0.1, b: 0.035, a: 1}
+  _recoveryColor: {r: 0.45, g: 0.22, b: 0.08, a: 0.65}

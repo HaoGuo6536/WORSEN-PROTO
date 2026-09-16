@@ -12,6 +12,7 @@
 //   Pure lookup rules used by the SceneFlow Manager at its loading boundary.
 //
 // KEY RESPONSIBILITIES:
+//   - Map the procedural horror scene alongside existing authored fixtures.
 //   - Reject invalid load identities rather than guessing a scene name.
 //   - Translate canonical loaded paths into shared SceneKey values.
 //
@@ -37,6 +38,7 @@ namespace Worsen.Session.SceneFlow
             {
                 case SceneKey.TagArena: return SceneFlowDefinitions.TagArenaPath;
                 case SceneKey.FloorLoop: return SceneFlowDefinitions.FloorLoopPath;
+                case SceneKey.HorrorRun: return SceneFlowDefinitions.HorrorRunPath;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(scene), scene, "No gameplay scene is mapped to this key.");
             }
@@ -51,6 +53,9 @@ namespace Worsen.Session.SceneFlow
                     return true;
                 case SceneFlowDefinitions.FloorLoopPath:
                     scene = SceneKey.FloorLoop;
+                    return true;
+                case SceneFlowDefinitions.HorrorRunPath:
+                    scene = SceneKey.HorrorRun;
                     return true;
                 default:
                     scene = SceneKey.None;

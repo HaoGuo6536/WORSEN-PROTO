@@ -1,0 +1,121 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 146efc3cfe90c1d468ad19383e655877, type: 3}
+  m_Name: ProgressionConfig
+  m_EditorClassIdentifier: Worsen.Session::Worsen.Session.Progression.ProgressionConfig
+  _shopInterval: 4
+  _maximumActiveThreats: 3
+  _goldenCakeValue: 1
+  _initialMaximumHealth: 100
+  _minimumMaximumHealth: 30
+  _maximumMaximumHealth: 200
+  _minimumMultiplier: 0.4
+  _maximumMovementMultiplier: 1.6
+  _maximumHunterMultiplier: 1.5
+  _maximumFogMultiplier: 2
+  _maximumFlashlightMultiplier: 2
+  _threats:
+  - _id: watcher
+    _title: THE WATCHER
+    _description: An unrelenting hunter joins the expedition.
+    _descriptionAtThreatCap: Hunter limit reached. Keep the current hunters; no additional hunter or other effect.
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+  - _id: rusher
+    _title: THE RUSHER
+    _description: A hunter joins. All hunters move 8% faster.
+    _descriptionAtThreatCap: No additional hunter. All hunters move 8% faster, up to the speed limit.
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1.08
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+  - _id: lurker
+    _title: THE LURKER
+    _description: A hunter joins. Hunters move 4% slower, but fog thickens 12%.
+    _descriptionAtThreatCap: No additional hunter. Hunters move 4% slower and fog thickens 12%, within their limits.
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 0.96
+    _fogDensityMultiplier: 1.12
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+  _curses:
+  - _id: fading-light
+    _title: FADING LIGHT
+    _description: Your flashlight reaches 15% less far.
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 0.85
+    _maximumHealthDelta: 0
+    _healing: 0
+  - _id: restless
+    _title: RESTLESS
+    _description: Every hunter moves 6% faster.
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1.06
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+  - _id: frailty
+    _title: FRAILTY
+    _description: Lose 10 maximum health for this expedition.
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: -10
+    _healing: 0
+  _offers:
+  - _id: medkit
+    _title: MEDKIT
+    _description: Restore 35 health, up to your current maximum.
+    _price: 3
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 35
+  - _id: running-shoes
+    _title: RUNNING SHOES
+    _description: Move 8% faster for the rest of this expedition.
+    _price: 5
+    _movementSpeedMultiplier: 1.08
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+  - _id: focus-lens
+    _title: FOCUS LENS
+    _description: Extend flashlight reach by 20% for this expedition.
+    _price: 4
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1.2
+    _maximumHealthDelta: 0
+    _healing: 0

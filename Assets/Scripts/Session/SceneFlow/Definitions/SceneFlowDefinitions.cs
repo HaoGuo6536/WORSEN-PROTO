@@ -11,6 +11,7 @@
 //   Definitions (§5) · Session · SceneFlow.
 //
 // KEY RESPONSIBILITIES:
+//   - Name the generated horror run scene.
 //   - Name the TagArena asset built by the M0 setup tool.
 //   - Reserve the later floor-loop path without creating that scene.
 //
@@ -29,5 +30,6 @@ namespace Worsen.Session.SceneFlow
     {
         public const string TagArenaPath = "Assets/Scenes/TagArena.unity";
         public const string FloorLoopPath = "Assets/Scenes/FloorLoop.unity";
+        public const string HorrorRunPath = "Assets/Scenes/HorrorRun.unity";
     }
 }

@@ -1,0 +1,12 @@
+.results { position: absolute; left: 0; top: 0; right: 0; bottom: 0; justify-content: center; align-items: center; background-color: rgba(8, 12, 12, 0.9); color: rgb(244, 240, 225); }
+.results-panel { width: 460px; max-width: 90%; padding: 28px 34px; background-color: rgb(21, 27, 26); border-top-width: 3px; border-top-color: rgb(219, 174, 99); }
+.eyebrow { font-size: 11px; letter-spacing: 4px; color: rgb(219, 174, 99); margin-bottom: 12px; }
+.results-title { font-size: 30px; -unity-font-style: bold; }
+.end-reason { font-size: 15px; color: rgb(192, 199, 188); margin-top: 4px; margin-bottom: 26px; }
+.stat-row { flex-direction: row; justify-content: space-between; padding-top: 7px; padding-bottom: 7px; border-bottom-width: 1px; border-bottom-color: rgba(180, 186, 172, 0.14); font-size: 17px; }
+.stat-value { -unity-font-style: bold; color: rgb(241, 214, 159); }
+.restart-button { margin-top: 26px; height: 46px; background-color: rgb(219, 174, 99); color: rgb(18, 23, 21); border-width: 0; border-radius: 0; -unity-font-style: bold; font-size: 16px; letter-spacing: 2px; }
+.restart-button:hover { background-color: rgb(241, 203, 143); }
+.restart-button:focus { border-width: 2px; border-color: rgb(255, 242, 214); }
+.restart-button:disabled { background-color: rgb(84, 86, 72); color: rgb(199, 200, 185); }
+

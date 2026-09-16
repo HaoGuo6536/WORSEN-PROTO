@@ -2,7 +2,7 @@
 // TagArenaSceneSetup.cs
 // ============================================================================
 // PURPOSE:
-//   Rebuilds the M0 TagArena and all runtime wiring from versioned source assets.
+//   Rebuilds the movement TagArena and its runtime wiring from versioned source.
 //   The builder preserves designer config values and scene asset identities,
 //   keeps unrelated scenes untouched, and supplies a repeatable clean-clone path.
 // ARCHITECTURAL ROLE:
@@ -10,8 +10,10 @@
 // KEY RESPONSIBILITIES:
 //   - Create missing mirrored config and UI panel assets, then wire services.
 //   - Save TagArena, register it as the first build scene, and set a 60 Hz tick.
+//   - Reject editor play entry when the arena capture fingerprint is stale.
 // DEPENDENCIES:
-//   - All M0 runtime systems and UnityEditor asset/scene serialization APIs.
+//   - Player/Level builders, Camera/PostFX/Telemetry generators and Session routing.
+//   - UnityEditor asset and scene APIs; installed Unity AI Navigation package.
 // USAGE NOTES:
 //   - Editor-only. Refuses Play Mode and refuses to rebuild a dirty TagArena.
 //   - Creates its scene additively and restores the prior active scene; other
@@ -22,12 +24,31 @@
 
 using System;
 using System.Linq;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
+using UnityEngine.Rendering.Universal;
 using Worsen.Orchestrator;
+using Worsen.Domain.Player;
+using Worsen.Domain.Level;
+using Worsen.Presentation.Telemetry;
+using Worsen.Editor.Player;
+using Worsen.Editor.Level;
+using Worsen.Editor.Camera;
+using Worsen.Editor.PostFX;
+using Worsen.Editor.Telemetry;
+using Worsen.Editor.Hunter;
+using Worsen.Editor.Chase;
+using Worsen.Editor.Audio;
+using Worsen.Editor.HUD;
+using Worsen.Editor.Results;
+using Worsen.Domain.Hunter;
+using Worsen.Domain.Chase;
 using Worsen.Presentation.DebugOverlay;
 using Worsen.Presentation.Input;
 using Worsen.Session.Run;
@@ -35,10 +56,57 @@ using Worsen.Session.SceneFlow;
 
 namespace Worsen.Editor.Scenes
 {
+    [InitializeOnLoad]
     public static class TagArenaSceneSetup
     {
         public const string ScenePath = "Assets/Scenes/TagArena.unity";
         private const string UiRoot = "Assets/Resources/UI/Presentation/DebugOverlay/";
+
+        static TagArenaSceneSetup()
+        {
+            EditorApplication.playModeStateChanged -= ValidateCaptureBeforePlay;
+            EditorApplication.playModeStateChanged += ValidateCaptureBeforePlay;
+            AssemblyReloadEvents.beforeAssemblyReload -= UnbindEditorEvents;
+            AssemblyReloadEvents.beforeAssemblyReload += UnbindEditorEvents;
+        }
+
+        private static void UnbindEditorEvents()
+        {
+            EditorApplication.playModeStateChanged -= ValidateCaptureBeforePlay;
+            AssemblyReloadEvents.beforeAssemblyReload -= UnbindEditorEvents;
+        }
+
+        private static void ValidateCaptureBeforePlay(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.ExitingEditMode) return;
+            var arena = SceneManager.GetSceneByPath(ScenePath);
+            bool arenaLoaded = arena.IsValid() && arena.isLoaded;
+            var overrideScene = EditorSceneManager.playModeStartScene;
+            bool startsArena = overrideScene != null && AssetDatabase.GetAssetPath(overrideScene) == ScenePath;
+            if (overrideScene != null && !startsArena) return;
+            if (!arenaLoaded && !startsArena) return;
+            try
+            {
+                if (!arenaLoaded) throw new InvalidOperationException("Open TagArena to validate the play-start scene.");
+                var roots = arena.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<TagArenaSceneRoot>(true)).ToArray();
+                if (roots.Length != 1 || !roots[0].isActiveAndEnabled)
+                    throw new InvalidOperationException("TagArena requires exactly one active, enabled scene root.");
+                foreach (string guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { "Assets/Resources/ScriptableObjects" }))
+                    foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid)))
+                        if (EditorUtility.IsDirty(asset))
+                            throw new InvalidOperationException("Save the edited configuration assets before rebuilding.");
+                var root = new SerializedObject(roots[0]);
+                if (root.FindProperty("_sourceRevision").stringValue != HashFiles("Assets/Scripts", "*.cs") ||
+                    root.FindProperty("_configSnapshotHash").stringValue != HashFiles("Assets/Resources/ScriptableObjects", "*.asset"))
+                    throw new InvalidOperationException("Source or configuration differs from the recorded build snapshot.");
+            }
+            catch (Exception exception)
+            {
+                EditorApplication.isPlaying = false;
+                Debug.LogError("TagArena capture provenance is not ready. " + exception.Message +
+                    " Run Worsen/Scenes/1 — Build TagArena after saving intended edits. This check never saves assets automatically.");
+            }
+        }
 
         [MenuItem("Worsen/Scenes/1 — Build TagArena")]
         public static void BuildTagArena()
@@ -47,6 +115,8 @@ namespace Worsen.Editor.Scenes
                 throw new InvalidOperationException("Stop Play Mode before rebuilding TagArena.");
             var previous = SceneManager.GetActiveScene();
             var oldArena = SceneManager.GetSceneByPath(ScenePath);
+            bool oldArenaWasLoaded = oldArena.IsValid() && oldArena.isLoaded;
+            bool previousWasArena = oldArenaWasLoaded && previous == oldArena;
             if (oldArena.IsValid() && oldArena.isLoaded && oldArena.isDirty)
                 throw new InvalidOperationException("Save your TagArena edits before explicitly rebuilding it.");
 
@@ -59,31 +129,49 @@ namespace Worsen.Editor.Scenes
             SetFixedTimestep();
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            bool oldArenaClosed = false;
+            bool sceneSaved = false;
             try
             {
                 SceneManager.SetActiveScene(scene);
-                if (oldArena.IsValid() && oldArena.isLoaded)
-                    EditorSceneManager.CloseScene(oldArena, true);
-                BuildServices(inputConfig, overlayConfig, panel, tree);
-                BuildStage();
+                EnsureHunterGateLayer();
+                var root = BuildServices(inputConfig, overlayConfig, panel, tree);
+                BuildStage(root);
+                AssetDatabase.SaveAssetIfDirty(panel);
+                var provenance = new SerializedObject(root);
+                provenance.FindProperty("_sourceRevision").stringValue = HashFiles("Assets/Scripts", "*.cs");
+                provenance.FindProperty("_configSnapshotHash").stringValue = HashFiles("Assets/Resources/ScriptableObjects", "*.asset");
+                provenance.ApplyModifiedPropertiesWithoutUndo();
+                if (oldArenaWasLoaded)
+                {
+                    if (!EditorSceneManager.CloseScene(oldArena, true))
+                        throw new InvalidOperationException("Unity could not close the saved TagArena for replacement.");
+                    oldArenaClosed = true;
+                }
                 if (!EditorSceneManager.SaveScene(scene, ScenePath))
                     throw new InvalidOperationException("Unity could not save TagArena.");
+                sceneSaved = true;
                 EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) }
                     .Concat(EditorBuildSettings.scenes.Where(s => s.path != ScenePath)).ToArray();
-                AssetDatabase.SaveAssets();
             }
             finally
             {
+                if (!sceneSaved && oldArenaClosed)
+                {
+                    var restored = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+                    if (previousWasArena) previous = restored;
+                }
                 if (previous.IsValid() && previous.isLoaded)
                 {
                     SceneManager.SetActiveScene(previous);
-                    EditorSceneManager.CloseScene(scene, true);
+                    if (!sceneSaved || !oldArenaWasLoaded)
+                        EditorSceneManager.CloseScene(scene, true);
                 }
             }
-            Debug.Log("TagArena M0 rebuilt: persistent services, input, debug overlay, and fixed timestep 1/60. Player movement is M1.");
+            Debug.Log("TagArena movement arena rebuilt with Level, Player, first-person view and recording at 60 Hz. Live acceptance remains a separate check.");
         }
 
-        private static void BuildServices(InputDriverConfig inputConfig, DebugOverlayDriverConfig overlayConfig,
+        private static TagArenaSceneRoot BuildServices(InputDriverConfig inputConfig, DebugOverlayDriverConfig overlayConfig,
             PanelSettings panel, VisualTreeAsset tree)
         {
             var run = new GameObject("Run Session").AddComponent<RunSessionManager>();
@@ -118,22 +206,100 @@ namespace Worsen.Editor.Scenes
             Wire(root, "_sceneFlow", flow);
             Wire(root, "_input", input);
             Wire(root, "_overlay", overlay);
+            var telemetry = TelemetrySetup.CreateService();
+            var telemetryRoute = telemetry.gameObject.AddComponent<TelemetryOrchestrator>();
+            Wire(telemetryRoute, "_telemetry", telemetry);
+            Wire(telemetryRoute, "_run", run);
+            Wire(root, "_telemetry", telemetry);
+            var audio = AudioSetup.Create();
+            var audioRoute = audio.gameObject.AddComponent<AudioOrchestrator>();
+            Wire(audioRoute, "_audio", audio);
+            Wire(audioRoute, "_run", run);
+            Wire(root, "_audio", audio);
+            var hud = HUDSetup.Create(root.transform);
+            var hudRoute = hud.gameObject.AddComponent<HUDOrchestrator>();
+            Wire(hudRoute, "_hud", hud);
+            Wire(hudRoute, "_run", run);
+            Wire(root, "_hud", hud);
+            var results = ResultsSetup.Create(root.transform);
+            var resultsRoute = results.gameObject.AddComponent<ResultsOrchestrator>();
+            Wire(resultsRoute, "_results", results);
+            Wire(resultsRoute, "_run", run);
+            Wire(resultsRoute, "_sceneFlow", flow);
+            Wire(root, "_results", results);
+            return root;
         }
 
-        private static void BuildStage()
+        private static void BuildStage(TagArenaSceneRoot root)
         {
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            floor.name = "M0 Test Floor";
-            floor.transform.localScale = new Vector3(4f, 1f, 4f);
-            var camera = new GameObject("Main Camera").AddComponent<Camera>();
+            var content = new GameObject("TagArena Level");
+            var level = TagArenaLevelSetup.Build(content.transform);
+            TagArenaLevelSetup.BuildNavigation(level);
+            var profile = PlayerPrefabGenerator.EnsureAssets();
+            var factory = new GameObject("Player Factory").AddComponent<PlayerFactory>();
+            Wire(root, "_level", level);
+            Wire(root, "_playerFactory", factory);
+            Wire(root, "_playerProfile", profile);
+            var hunterProfile = HunterPrefabGenerator.EnsureAssets();
+            var hunterFactory = new GameObject("Hunter Factory").AddComponent<HunterFactory>();
+            var chase = new GameObject("Chase Service").AddComponent<ChaseManager>();
+            Wire(root, "_hunterFactory", hunterFactory);
+            Wire(root, "_hunterProfile", hunterProfile);
+            Wire(root, "_chase", chase);
+            Wire(root, "_chaseConfig", ChaseConfigGenerator.EnsureAssets());
+            var serialized = new SerializedObject(root);
+            serialized.FindProperty("_spawnPosition").vector3Value = TagArenaLevelSetup.SpawnPosition;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var camera = new GameObject("Main Camera").AddComponent<UnityEngine.Camera>();
             camera.tag = "MainCamera";
-            camera.transform.SetPositionAndRotation(new Vector3(0f, 5f, -9f), Quaternion.Euler(25f, 0f, 0f));
+            camera.transform.SetPositionAndRotation(TagArenaLevelSetup.SpawnPosition + Vector3.up * 1.65f, Quaternion.Euler(0f, 90f, 0f));
             camera.gameObject.AddComponent<AudioListener>();
+            var cameraManager = CameraRigSetup.Create(root.transform, camera);
+            var postFX = PostFXSetup.Create(root.transform);
+            var rendering = camera.GetComponent<UniversalAdditionalCameraData>();
+            if (rendering == null) rendering = camera.gameObject.AddComponent<UniversalAdditionalCameraData>();
+            rendering.renderPostProcessing = true;
+            rendering.volumeLayerMask = 1 << postFX.gameObject.layer;
+            Wire(root, "_camera", cameraManager);
+            Wire(root, "_postFX", postFX);
+            var rootFields = new SerializedObject(root);
+            var run = rootFields.FindProperty("_run").objectReferenceValue;
+            var cameraRoute = cameraManager.gameObject.AddComponent<CameraOrchestrator>();
+            Wire(cameraRoute, "_camera", cameraManager);
+            Wire(cameraRoute, "_run", run);
+            var postRoute = postFX.gameObject.AddComponent<PostFXOrchestrator>();
+            Wire(postRoute, "_postFX", postFX);
+            Wire(postRoute, "_run", run);
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
             light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
         }
 
+        private static void EnsureHunterGateLayer()
+        {
+            if (LayerMask.NameToLayer("HunterRouteGate") >= 0) return;
+            var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            var layers = settings.FindProperty("layers");
+            for (int i = 8; i < layers.arraySize; i++)
+            {
+                var layer = layers.GetArrayElementAtIndex(i);
+                if (!string.IsNullOrEmpty(layer.stringValue)) continue;
+                layer.stringValue = "HunterRouteGate";
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                return;
+            }
+            throw new InvalidOperationException("No free custom layer for HunterRouteGate.");
+        }
+
+        private static string HashFiles(string directory, string pattern)
+        {
+            var text = new StringBuilder();
+            foreach (string path in Directory.GetFiles(directory, pattern, SearchOption.AllDirectories).OrderBy(p => p, StringComparer.Ordinal))
+                text.Append(path.Replace('\\', '/')).Append(Environment.NewLine).Append(File.ReadAllText(path)).Append(Environment.NewLine);
+            using (var hash = SHA256.Create())
+                return "sha256:" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", string.Empty);
+        }
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
         {
             var asset = AssetDatabase.LoadAssetAtPath<T>(path);

@@ -11,6 +11,7 @@
 //   Editor tool (§10) · test suite (§11) · SceneFlow.
 //
 // KEY RESPONSIBILITIES:
+//   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Check canonical scene-key round trips.
 //   - Reject unknown requests and ignore unrelated loaded scene paths.
 //
@@ -34,6 +35,7 @@ namespace Worsen.Tests.SceneFlow
     {
         [TestCase(SceneKey.TagArena, "Assets/Scenes/TagArena.unity")]
         [TestCase(SceneKey.FloorLoop, "Assets/Scenes/FloorLoop.unity")]
+        [TestCase(SceneKey.HorrorRun, "Assets/Scenes/HorrorRun.unity")]
         public void SceneKeysResolveToCanonicalPathsAndBack(SceneKey key, string expected)
         {
             var controller = new SceneFlowController();

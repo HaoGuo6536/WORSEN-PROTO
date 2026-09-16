@@ -15,6 +15,7 @@
 //   - Initialize one persistent service and discard duplicate service roots.
 //   - Pair Driver subscriptions with this component's enabled lifetime.
 //   - Command one frame publication per caller-controlled fixed tick.
+//   - Expose exact source selection and tick-aligned recording through the owned Driver.
 //
 // DEPENDENCIES:
 //   - Core InputFrame; the Input system's own PlayerInputDriver only.
@@ -28,6 +29,7 @@
 // ============================================================================
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
 
@@ -43,6 +45,10 @@ namespace Worsen.Presentation.Input
 
         public static InputManager Instance { get; private set; }
         public event Action<InputFrame> FramePublished;
+        public InputSource Source => _initialized ? _driver.Source : InputSource.Live;
+        public InputProbeRecord CurrentPlaybackRecord => _initialized ? _driver.CurrentPlaybackRecord : default;
+        public string LastRecordingPath => _initialized ? _driver.LastRecordingPath : "";
+        public string LastRecordingError => _initialized ? _driver.LastRecordingError : "Input is not initialized.";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -91,6 +97,17 @@ namespace Worsen.Presentation.Input
             if (_initialized)
                 _driver.SetInputEnabled(enabled);
         }
+
+        public bool StartPlayback(RunCaptureMetadata metadata, IReadOnlyList<InputProbeRecord> records) =>
+            _initialized && _driver.StartPlayback(metadata, records);
+        public bool LoadPlayback(string absolutePath) => _initialized && _driver.LoadPlayback(absolutePath);
+        public bool SetSource(InputSource source) => _initialized && _driver.SetSource(source);
+        public void BeginRecording(RunCaptureMetadata metadata)
+        {
+            if (_initialized) _driver.BeginRecording(metadata);
+        }
+        public bool RecordProbe(InputProbeRecord record) => _initialized && _driver.RecordProbe(record);
+        public bool SaveRecording(long endTick, bool complete) => _initialized && _driver.SaveRecording(endTick, complete);
 
         private void OnEnable()
         {

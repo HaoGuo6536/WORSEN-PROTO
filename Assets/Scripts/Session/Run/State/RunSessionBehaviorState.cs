@@ -13,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
 //   - Hold pending input so button edges and look deltas survive between ticks.
+//   - Retain capture lifecycle so closing a run is idempotent.
 //
 // DEPENDENCIES:
 //   - Core InputFrame, RunPhase, and SceneKey value types only.
@@ -25,6 +26,8 @@
 // ============================================================================
 
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
+using UnityEngine;
 
 namespace Worsen.Session.Run
 {
@@ -42,5 +45,20 @@ namespace Worsen.Session.Run
         public long Tick { get; internal set; }
         public double ElapsedSeconds { get; internal set; }
         public InputFrame PendingInput { get; internal set; }
+        public bool CaptureIsOpen { get; internal set; }
+        public string SourceRevision { get; internal set; } = string.Empty;
+        public string ConfigSnapshotHash { get; internal set; } = string.Empty;
+        public int CakesCollected { get; internal set; }
+        public int GoldenCakesCollected { get; internal set; }
+        public int ChaseCount { get; internal set; }
+        public int ChasesEscaped { get; internal set; }
+        public int ActiveChaseId { get; internal set; }
+        public double ChaseStartedAt { get; internal set; }
+        public double TotalChaseSeconds { get; internal set; }
+        public RunEndReason PendingEndReason { get; internal set; }
+        public EntityId DeadPlayer { get; internal set; }
+        public Vector3 KillerPosition { get; internal set; }
+        public long TelemetryEventId { get; internal set; }
     }
 }
+

@@ -1,14 +1,21 @@
 {
-    "name": "Worsen.Presentation",
-    "rootNamespace": "Worsen.Presentation",
-    "references": ["Worsen.Core", "Unity.InputSystem"],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Worsen.Presentation",
+  "rootNamespace": "Worsen.Presentation",
+  "references": [
+    "Worsen.Core",
+    "Unity.InputSystem",
+    "Unity.Cinemachine",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "FronkonGames.Weird.DitherFog"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

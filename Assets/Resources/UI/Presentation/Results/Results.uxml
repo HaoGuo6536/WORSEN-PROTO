@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Results.uss" />
+    <ui:VisualElement name="results" class="results" style="display: none;">
+        <ui:VisualElement name="results-panel" class="results-panel">
+            <ui:Label text="WORSEN" class="eyebrow" />
+            <ui:Label name="results-title" text="RUN COMPLETE" class="results-title" />
+            <ui:Label name="end-reason" text="—" class="end-reason" />
+            <ui:VisualElement class="stat-row"><ui:Label text="Run time" /><ui:Label name="run-time" text="—" class="stat-value" /></ui:VisualElement>
+            <ui:VisualElement class="stat-row"><ui:Label text="Cakes" /><ui:Label name="cake-total" text="—" class="stat-value" /></ui:VisualElement>
+            <ui:VisualElement class="stat-row"><ui:Label text="Golden Cakes" /><ui:Label name="golden-cake-total" text="—" class="stat-value" /></ui:VisualElement>
+            <ui:VisualElement class="stat-row"><ui:Label text="Chases" /><ui:Label name="chase-count" text="—" class="stat-value" /></ui:VisualElement>
+            <ui:VisualElement class="stat-row"><ui:Label text="Chases escaped" /><ui:Label name="chase-escapes" text="—" class="stat-value" /></ui:VisualElement>
+            <ui:VisualElement class="stat-row"><ui:Label text="Time in chase" /><ui:Label name="chase-time" text="—" class="stat-value" /></ui:VisualElement>
+            <ui:Button name="restart-button" text="RUN AGAIN" class="restart-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
+

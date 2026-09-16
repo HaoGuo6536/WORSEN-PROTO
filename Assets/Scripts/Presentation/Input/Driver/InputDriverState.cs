@@ -13,9 +13,10 @@
 // KEY RESPONSIBILITIES:
 //   - Retain movement and held buttons while accumulating consumable edges.
 //   - Track focus, owner availability, and the requested input gate.
+//   - Retain the cursor state that this service must restore during teardown.
 //
 // DEPENDENCIES:
-//   - Core InputButtons and UnityEngine.Vector2 value types only.
+//   - Core InputButtons and UnityEngine.Vector2/CursorLockMode value types only.
 //
 // USAGE NOTES:
 //   - Persistent runtime data owned by PlayerInputDriver; never an asset.
@@ -34,6 +35,9 @@ namespace Worsen.Presentation.Input
         public bool InputEnabled;
         public bool OwnerEnabled;
         public bool HasFocus = true;
+        public bool OwnsCursorState;
+        public CursorLockMode PreviousCursorLockMode;
+        public bool PreviousCursorVisible;
         public Vector2 Move;
         public Vector2 LookDelta;
         public Vector2 GamepadLook;

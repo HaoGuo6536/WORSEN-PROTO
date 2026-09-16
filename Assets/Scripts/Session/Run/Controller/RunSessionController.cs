@@ -12,9 +12,12 @@
 //   Owns the rules over RunSessionBehaviorState without touching a Unity scene.
 //
 // KEY RESPONSIBILITIES:
+//   - Admit the runtime-generated horror scene to the same fixed-step lifecycle.
 //   - Define phase transitions and gate ticks on scene readiness and run state.
 //   - Combine pending input, retain held controls, and consume edges exactly once.
 //   - Advance the run counter from explicit positive delta time values.
+//   - Close observational capture exactly once across repeated shutdown facts.
+//   - Accumulate run outcomes and confirmed-chase statistics from committed facts.
 //
 // DEPENDENCIES:
 //   - Run state and definitions in this system; Core input and phase values.
@@ -30,6 +33,7 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Session.Run
 {
@@ -66,7 +70,7 @@ namespace Worsen.Session.Run
 
         public void StartScene(SceneKey scene)
         {
-            if (scene != SceneKey.TagArena && scene != SceneKey.FloorLoop)
+            if (scene != SceneKey.TagArena && scene != SceneKey.FloorLoop && scene != SceneKey.HorrorRun)
                 throw new ArgumentOutOfRangeException(nameof(scene), scene, "A run needs a supported gameplay scene.");
 
             state.Scene = scene;
@@ -75,6 +79,91 @@ namespace Worsen.Session.Run
             state.Tick = 0;
             state.ElapsedSeconds = 0;
             state.PendingInput = default;
+            state.CakesCollected = state.GoldenCakesCollected = 0;
+            state.ChaseCount = state.ChasesEscaped = state.ActiveChaseId = 0;
+            state.ChaseStartedAt = state.TotalChaseSeconds = 0;
+            state.PendingEndReason = RunEndReason.Unknown;
+            state.DeadPlayer = EntityId.None;
+            state.KillerPosition = Vector3.zero;
+            state.TelemetryEventId = 0;
+        }
+
+        public void RecordCollection(PickupCollectedFact fact)
+        {
+            if (state.Phase == RunPhase.Ended) return;
+            state.CakesCollected = fact.CakeCount;
+            state.GoldenCakesCollected = fact.GoldenCount;
+        }
+
+        public void RecordChaseStarted(ChaseFact fact)
+        {
+            if (fact.ChaseId <= 0 || state.ActiveChaseId == fact.ChaseId || state.Phase == RunPhase.Ended) return;
+            CloseChase();
+            state.ActiveChaseId = fact.ChaseId;
+            state.ChaseStartedAt = state.ElapsedSeconds;
+            state.ChaseCount++;
+        }
+
+        public void RecordChaseEnded(ChaseFact fact)
+        {
+            if (state.ActiveChaseId != fact.ChaseId || fact.ChaseId <= 0) return;
+            if (fact.EndReason == ChaseEndReason.Lost) state.ChasesEscaped++;
+            CloseChase();
+        }
+
+        private void CloseChase()
+        {
+            if (state.ActiveChaseId > 0)
+                state.TotalChaseSeconds += Math.Max(0, state.ElapsedSeconds - state.ChaseStartedAt);
+            state.ActiveChaseId = 0;
+        }
+
+        public void RequestEnd(RunEndReason reason, EntityId player, Vector3 killerPosition)
+        {
+            if (state.Phase == RunPhase.Ended || reason == RunEndReason.Unknown) return;
+            if (reason == RunEndReason.Escaped && state.Phase != RunPhase.ExitOpen && state.Phase != RunPhase.Collapse) return;
+            if (state.PendingEndReason == RunEndReason.Died) return;
+            state.PendingEndReason = reason;
+            if (reason == RunEndReason.Died) { state.DeadPlayer = player; state.KillerPosition = killerPosition; }
+        }
+
+        public bool TryFinish(out RunSummary summary)
+        {
+            summary = default;
+            if (state.Phase == RunPhase.Ended || state.PendingEndReason == RunEndReason.Unknown) return false;
+            CloseChase();
+            state.Phase = RunPhase.Ended;
+            state.PendingInput = default;
+            summary = new RunSummary(state.ElapsedSeconds, state.CakesCollected, state.GoldenCakesCollected,
+                state.ChaseCount, state.ChasesEscaped, state.TotalChaseSeconds, state.PendingEndReason, state.Seed, state.Scene);
+            return true;
+        }
+
+        public long NextTelemetryEventId() => ++state.TelemetryEventId;
+
+        public float NormalizeSpeed(Vector3 velocity, float maximum)
+        {
+            if (!(maximum > 0) || float.IsInfinity(maximum) || float.IsNaN(maximum)) return 0;
+            double horizontal = Math.Sqrt((double)velocity.x * velocity.x + (double)velocity.z * velocity.z);
+            return double.IsNaN(horizontal) || double.IsInfinity(horizontal) ? 0 : (float)Math.Min(1, horizontal / maximum);
+        }
+
+        public int EmptySlots(InventorySnapshot inventory) =>
+            (string.IsNullOrEmpty(inventory.SlotOne) ? 1 : 0) + (string.IsNullOrEmpty(inventory.SlotTwo) ? 1 : 0);
+
+        public void ConfigureCapture(string revision, string configHash)
+        {
+            state.SourceRevision = revision ?? string.Empty;
+            state.ConfigSnapshotHash = configHash ?? string.Empty;
+        }
+
+        public void OpenCapture() => state.CaptureIsOpen = true;
+
+        public bool TryCloseCapture()
+        {
+            if (!state.CaptureIsOpen) return false;
+            state.CaptureIsOpen = false;
+            return true;
         }
 
         public void SuspendForSceneLoad()
@@ -114,3 +203,4 @@ namespace Worsen.Session.Run
         }
     }
 }
+
