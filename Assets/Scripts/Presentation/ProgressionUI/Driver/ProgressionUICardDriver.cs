@@ -12,6 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Paint a cut-corner card and vector emblem with visible keyboard focus.
+//   - Keep unavailable offers focusable for inspection, and scroll focused cards into view.
 //   - Pair native Button and focus callbacks across rebinding and teardown.
 //
 // DEPENDENCIES:
@@ -27,6 +28,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Worsen.Core;
 
 namespace Worsen.Presentation.ProgressionUI
 {
@@ -42,6 +44,7 @@ namespace Worsen.Presentation.ProgressionUI
         private bool _focused, _hovered;
 
         public event Action<string, int> Activated;
+        public event Action<CueId> Feedback;
 
         public void Bind(VisualElement container, ProgressionUIDriverConfig config)
         {
@@ -53,7 +56,8 @@ namespace Worsen.Presentation.ProgressionUI
             _button.style.maxWidth = Length.Percent(100);
             _button.style.flexGrow = 1;
             _button.style.flexShrink = 1;
-            _button.style.minWidth = config.CardWidth * .72f;
+            _button.style.minWidth = 0;
+            _button.style.flexBasis = config.CardWidth;
             _button.style.marginRight = _button.style.marginBottom = config.Spacing * .5f;
             _button.style.paddingLeft = _button.style.paddingRight = config.Spacing;
             _button.style.paddingTop = _button.style.paddingBottom = config.Spacing;
@@ -101,8 +105,8 @@ namespace Worsen.Presentation.ProgressionUI
             _description.text = model.Description ?? "";
             _detail.text = model.Detail ?? "";
             _action.text = pending ? "CONFIRMING..." : model.Action;
-            _button.tooltip = model.Description;
-            _button.SetEnabled(model.Enabled && !pending);
+            _button.tooltip = model.Description + "\n" + model.Detail;
+            _button.SetEnabled(!pending);
             _button.style.opacity = model.Enabled ? 1f : .78f;
             _button.MarkDirtyRepaint();
             _emblem.MarkDirtyRepaint();
@@ -110,7 +114,7 @@ namespace Worsen.Presentation.ProgressionUI
 
         public bool FocusIfEnabled()
         {
-            if (_button == null || _button.panel == null || !_button.enabledInHierarchy ||
+            if (!_model.Enabled || _button == null || _button.panel == null || !_button.enabledInHierarchy ||
                 _button.layout.width <= 0f || _button.layout.height <= 0f) return false;
             _button.Focus();
             return ReferenceEquals(_button.focusController?.focusedElement, _button);
@@ -140,9 +144,14 @@ namespace Worsen.Presentation.ProgressionUI
         {
             if (_button != null && _button.enabledInHierarchy) Activated?.Invoke(_model.Id, _revision);
         }
-        private void OnFocusIn(FocusInEvent evt) { _focused = true; _button?.MarkDirtyRepaint(); }
+        private void OnFocusIn(FocusInEvent evt)
+        {
+            if (!_hovered) Feedback?.Invoke(CueId.UiMove);
+            _focused = true; _button?.MarkDirtyRepaint();
+            _button?.GetFirstAncestorOfType<ScrollView>()?.ScrollTo(_button);
+        }
         private void OnFocusOut(FocusOutEvent evt) { _focused = false; _button?.MarkDirtyRepaint(); }
-        private void OnPointerEnter(PointerEnterEvent evt) { _hovered = true; _button?.MarkDirtyRepaint(); }
+        private void OnPointerEnter(PointerEnterEvent evt) { if (!_focused) Feedback?.Invoke(CueId.UiMove); _hovered = true; _button?.MarkDirtyRepaint(); }
         private void OnPointerLeave(PointerLeaveEvent evt) { _hovered = false; _button?.MarkDirtyRepaint(); }
 
         private void PaintCard(MeshGenerationContext context)

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Create enclosed rooms and bake bounded navigation from explicit owned sources.
 //   - Verify native paths to every cake, room, hunter spawn and exit before admission.
+//   - Apply crack textures and bounded masonry splitting with matching colliders.
 //   - Tear down only the navigation instance, materials and geometry this Driver owns.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
@@ -31,6 +32,7 @@ namespace Worsen.Domain.Procedural
     {
         private readonly ProceduralDriverState _state = new ProceduralDriverState();
         private readonly ProceduralGeometryPresenter _presenter = new ProceduralGeometryPresenter();
+        private readonly ProceduralFracturePresenter _fracture = new ProceduralFracturePresenter();
         public int OwnedBlockCount => _state.BlockCount;
         public bool IsReady => _state.Ready;
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers => _state.TraversalMarkers ?? Array.Empty<LevelMarkerRecord>();
@@ -40,9 +42,10 @@ namespace Worsen.Domain.Procedural
             Teardown();
             if (transform.lossyScale != Vector3.one) throw new InvalidOperationException("Procedural owner requires unit world scale.");
             var blocks = _presenter.Build(layout, config, driverConfig);
+            foreach (var room in layout.Graph.Rooms) _state.RoomBounds.Add(room.Id, room.Bounds);
             try
             {
-                _state.Root = new GameObject("Generated Closed Rooms - Round " + layout.RoundIndex);
+                _state.Root = new GameObject("Generated Castle Rooms - Round " + layout.RoundIndex);
                 _state.Root.SetActive(false);
                 _state.Root.transform.SetParent(transform, false);
                 // Layout positions are world-space; parent placement must not transform the generated map.
@@ -56,6 +59,7 @@ namespace Worsen.Domain.Procedural
                         block.Kind == ProceduralSurfaceKind.Ceiling ? ceiling : wall, driverConfig.GeometryLayer);
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(blocks);
                 BuildNavigation(layout, blocks, driverConfig);
+                foreach (var room in layout.Graph.Rooms) CreateSafetySlab(room, driverConfig.GeometryLayer);
                 _state.Root.SetActive(true);
                 Physics.SyncTransforms();
                 _state.Ready = true;
@@ -76,6 +80,10 @@ namespace Worsen.Domain.Procedural
             _state.OwnedMaterials.Clear();
             _state.BlockCount = 0;
             _state.TraversalMarkers = null;
+            _state.Fragments.Clear(); _state.FragmentPlans.Clear(); _state.RoomBounds.Clear();
+            _state.CrackMaterials.Clear();
+            if (_state.CrackTexture != null) Release(_state.CrackTexture);
+            _state.CrackTexture = null;
         }
 
         private void OnDestroy() => Teardown();
@@ -90,7 +98,69 @@ namespace Worsen.Domain.Procedural
             item.transform.localScale = block.Size;
             item.GetComponent<Renderer>().sharedMaterial = material;
             if (block.SurfaceId != 0) item.AddComponent<ProceduralTraversalSurface>().Configure(block);
+            if (!_state.Fragments.TryGetValue(block.RoomId, out var fragments))
+            {
+                fragments = new List<GameObject>(); _state.Fragments.Add(block.RoomId, fragments);
+                _state.FragmentPlans.Add(block.RoomId, new List<ProceduralBlock>());
+            }
+            fragments.Add(item); _state.FragmentPlans[block.RoomId].Add(block);
             _state.BlockCount++;
+        }
+
+        public void SetRoomDestruction(RoomDestructionSample sample)
+        {
+            if (!_state.Ready || !_state.Fragments.TryGetValue(sample.RoomId, out var fragments)) return;
+            var plans = _state.FragmentPlans[sample.RoomId];
+            var bounds = _state.RoomBounds[sample.RoomId];
+            for (int index = 0; index < fragments.Count; index++)
+                if (fragments[index] != null)
+                    fragments[index].transform.position = plans[index].Center + _fracture.Offset(plans[index], bounds, sample, index);
+            if (sample.Phase != RoomPhase.Open && !_state.CrackMaterials.ContainsKey(sample.RoomId))
+                AddCracks(sample.RoomId, fragments);
+            if (_state.CrackMaterials.TryGetValue(sample.RoomId, out var material))
+            {
+                var tint = new Color(0.012f, 0.006f, 0.018f, _fracture.CrackOpacity(sample));
+                if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", tint);
+                if (material.HasProperty("_Color")) material.SetColor("_Color", tint);
+            }
+        }
+
+        private void CreateSafetySlab(LevelRoom room, int layer)
+        {
+            var slab = new GameObject("Room " + room.Id + " concealed collapse catch slab");
+            slab.layer = layer; slab.transform.SetParent(_state.Root.transform, false);
+            slab.transform.position = new Vector3(room.Center.x, -0.6f, room.Center.z);
+            slab.AddComponent<BoxCollider>().size = new Vector3(room.Size.x, 0.3f, room.Size.z);
+        }
+
+        private void AddCracks(int roomId, IReadOnlyList<GameObject> fragments)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Transparent");
+            if (shader == null) return;
+            if (_state.CrackTexture == null) _state.CrackTexture = CreateCrackTexture();
+            var material = new Material(shader) { name = "Room " + roomId + " fracture mask", renderQueue = 3001 };
+            material.mainTexture = _state.CrackTexture;
+            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
+            if (material.HasProperty("_SrcBlend")) material.SetFloat("_SrcBlend", 5f);
+            if (material.HasProperty("_DstBlend")) material.SetFloat("_DstBlend", 10f);
+            if (material.HasProperty("_ZWrite")) material.SetFloat("_ZWrite", 0f);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            _state.CrackMaterials.Add(roomId, material); _state.OwnedMaterials.Add(material);
+            foreach (var fragment in fragments)
+            {
+                var overlay = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                overlay.name = "Fracture texture overlay"; overlay.transform.SetParent(fragment.transform, false);
+                overlay.transform.localScale = Vector3.one * 1.0015f;
+                var collider = overlay.GetComponent<Collider>(); collider.enabled = false; Release(collider);
+                overlay.GetComponent<Renderer>().sharedMaterial = material;
+            }
+        }
+        private Texture2D CreateCrackTexture()
+        {
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Seeded masonry fissures", wrapMode = TextureWrapMode.Repeat };
+            var pixels = _fracture.CrackPixels(size);
+            texture.SetPixels32(pixels); texture.Apply(false, true); return texture;
         }
 
         private void BuildNavigation(ProceduralLayout layout, IReadOnlyList<ProceduralBlock> blocks, ProceduralDriverConfig config)

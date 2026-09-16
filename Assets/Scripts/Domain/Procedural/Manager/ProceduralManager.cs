@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Sequence seeded generation, physical construction and admission.
 //   - Publish immutable Core graph data and spawn value types for scene assembly.
+//   - Forward room destruction samples into owned masonry presentation.
 // DEPENDENCIES:
 //   - Core LevelGraph only outside this system; no Domain sibling calls.
 // USAGE NOTES:
@@ -38,11 +39,14 @@ namespace Worsen.Domain.Procedural
         public Vector3 PlayerSpawnPosition => _state.Layout?.PlayerSpawnPosition ?? Vector3.zero;
         public Quaternion PlayerSpawnRotation => _state.Layout?.PlayerSpawnRotation ?? Quaternion.identity;
         public IReadOnlyList<Vector3> HunterSpawnPositions => _state.Layout?.HunterSpawnPositions ?? Array.Empty<Vector3>();
+        public IReadOnlyList<GeneratedRoomSample> PresentationRooms => _state.Layout?.PresentationRooms ?? Array.Empty<GeneratedRoomSample>();
+        public IReadOnlyList<ProceduralRoomModule> RoomModules => _state.Layout?.Modules ?? Array.Empty<ProceduralRoomModule>();
+        public IReadOnlyList<ProceduralDoorPlan> Doors => _state.Layout?.Doors ?? Array.Empty<ProceduralDoorPlan>();
         public string LayoutManifest => _state.Layout?.Manifest ?? string.Empty;
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers => _driver != null ? _driver.TraversalMarkers : Array.Empty<LevelMarkerRecord>();
         public event Action<bool> ReadinessChanged;
 
-        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex)
+        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f)
         {
             Teardown();
             if (config != null) _config = config;
@@ -52,7 +56,7 @@ namespace Worsen.Domain.Procedural
             _controller = new ProceduralController(_state, _config, new System.Random(ProceduralController.LayoutSeed(runSeed, roundIndex)));
             try
             {
-                var layout = _controller.Generate(runSeed, roundIndex);
+                var layout = _controller.Generate(runSeed, roundIndex, merchantRefuge, optionalWindowMultiplier);
                 _driver.Build(layout, _config, _driverConfig);
                 _controller.Admit();
                 ReadinessChanged?.Invoke(true);
@@ -63,6 +67,9 @@ namespace Worsen.Domain.Procedural
                 throw new InvalidOperationException("Procedural generation failed for seed " + runSeed + ", round " + roundIndex + ".", exception);
             }
         }
+
+        public void SetRoomDestruction(RoomDestructionSample sample)
+        { if (IsReady && _driver != null) _driver.SetRoomDestruction(sample); }
 
         public void Teardown()
         {

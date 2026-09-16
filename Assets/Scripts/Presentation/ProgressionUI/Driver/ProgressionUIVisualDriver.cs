@@ -12,6 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Draw responsive panels and the health gauge with Painter2D.
+//   - Keep long retained lists in their own scroll area and keyboard focus visible.
 //   - Preserve readable text and native keyboard/mouse buttons in a scrollable modal.
 //
 // DEPENDENCIES:
@@ -42,6 +43,7 @@ namespace Worsen.Presentation.ProgressionUI
         public VisualElement CardContainer { get; private set; }
         public event Action<int> ContinueClicked;
         public event Action<int> RestartClicked;
+        public event Action<CueId> Feedback;
 
         public void Bind(VisualElement root, ProgressionUIDriverConfig config)
         {
@@ -80,6 +82,8 @@ namespace Worsen.Presentation.ProgressionUI
             _modal.style.alignItems = Align.Center;
             _modal.style.justifyContent = Justify.Center;
             _modal.generateVisualContent += PaintScrim;
+            _modal.RegisterCallback<KeyDownEvent>(OnKeyDown);
+            _modal.RegisterCallback<NavigationCancelEvent>(OnCancel);
             var scroll = new ScrollView(ScrollViewMode.Vertical) { name = "progression-scroll" };
             scroll.style.width = config.PanelWidth;
             scroll.style.maxWidth = Length.Percent(92);
@@ -87,6 +91,7 @@ namespace Worsen.Presentation.ProgressionUI
             scroll.style.flexShrink = 1;
             _modal.Add(scroll);
             _panel = Element("progression-panel", scroll);
+            _panel.style.minWidth = 0;
             _panel.style.paddingLeft = _panel.style.paddingRight = config.Spacing * 1.5f;
             _panel.style.paddingTop = _panel.style.paddingBottom = config.Spacing * 1.25f;
             _panel.generateVisualContent += PaintPanel;
@@ -108,9 +113,12 @@ namespace Worsen.Presentation.ProgressionUI
             CardContainer.style.marginTop = config.Spacing;
             _message = Text("progression-feedback", _panel, config.FontSize * .8f);
             _message.style.marginTop = config.Spacing * .5f;
-            _retained = Text("retained-choices", _panel, config.FontSize * .65f);
+            var retainedScroll = new ScrollView(ScrollViewMode.Vertical) { name = "retained-scroll" };
+            retainedScroll.style.maxHeight = config.RetainedMaximumHeight;
+            retainedScroll.style.marginTop = config.Spacing;
+            _panel.Add(retainedScroll);
+            _retained = Text("retained-choices", retainedScroll, config.FontSize * .65f);
             _retained.style.color = config.MutedColor;
-            _retained.style.marginTop = config.Spacing;
             var buttons = Element("progression-actions", _panel);
             buttons.style.flexDirection = FlexDirection.Row;
             buttons.style.flexWrap = Wrap.Wrap;
@@ -120,7 +128,7 @@ namespace Worsen.Presentation.ProgressionUI
             _continue.clicked += OnContinue;
             _restart.clicked += OnRestart;
             var help = Text("menu-controls", _panel, config.FontSize * .6f);
-            help.text = "TAB / SHIFT+TAB  MOVE FOCUS     ENTER / SPACE  CONFIRM";
+            help.text = "TAB / SHIFT+TAB  FOCUS     ENTER / SPACE  CONFIRM     ESC / BACK  LEAVE SHOP";
             help.style.color = config.MutedColor;
             help.style.marginTop = config.Spacing;
         }
@@ -162,7 +170,7 @@ namespace Worsen.Presentation.ProgressionUI
         {
             if (_status != null) _status.generateVisualContent -= PaintStatus;
             if (_gauge != null) _gauge.generateVisualContent -= PaintHealth;
-            if (_modal != null) _modal.generateVisualContent -= PaintScrim;
+            if (_modal != null) { _modal.generateVisualContent -= PaintScrim; _modal.UnregisterCallback<KeyDownEvent>(OnKeyDown); _modal.UnregisterCallback<NavigationCancelEvent>(OnCancel); }
             if (_panel != null) _panel.generateVisualContent -= PaintPanel;
             if (_continue != null) _continue.clicked -= OnContinue;
             if (_restart != null) _restart.clicked -= OnRestart;
@@ -178,6 +186,16 @@ namespace Worsen.Presentation.ProgressionUI
         private void OnDestroy() => Unbind();
         private void OnContinue() { if (_state != null && _continue.enabledInHierarchy) ContinueClicked?.Invoke(_state.Revision); }
         private void OnRestart() { if (_state != null && _restart.enabledInHierarchy) RestartClicked?.Invoke(_state.Revision); }
+        private void OnKeyDown(KeyDownEvent evt)
+        {
+            if (evt.keyCode != KeyCode.Escape || _state == null || !_state.CanContinue || _state.Pending) return;
+            OnContinue(); evt.StopPropagation();
+        }
+        private void OnCancel(NavigationCancelEvent evt)
+        {
+            if (_state == null || !_state.CanContinue || _state.Pending) return;
+            OnContinue(); evt.StopPropagation();
+        }
         private void PaintStatus(MeshGenerationContext context) => Panel(context.painter2D, _status, _config.PanelColor, _config.MutedColor);
         private void PaintPanel(MeshGenerationContext context) => Panel(context.painter2D, _panel, _config.PanelColor, _config.MutedColor);
         private void PaintScrim(MeshGenerationContext context) => Panel(context.painter2D, _modal, _config.ScrimColor, Color.clear);
@@ -231,7 +249,13 @@ namespace Worsen.Presentation.ProgressionUI
             button.generateVisualContent -= PaintContinue; button.generateVisualContent -= PaintRestart;
             button.UnregisterCallback<FocusInEvent>(OnFocusIn); button.UnregisterCallback<FocusOutEvent>(OnFocusOut);
         }
-        private void OnFocusIn(FocusInEvent evt) => (evt.currentTarget as VisualElement)?.MarkDirtyRepaint();
+        private void OnFocusIn(FocusInEvent evt)
+        {
+            var element = evt.currentTarget as VisualElement;
+            element?.MarkDirtyRepaint();
+            element?.GetFirstAncestorOfType<ScrollView>()?.ScrollTo(element);
+            Feedback?.Invoke(CueId.UiMove);
+        }
         private void OnFocusOut(FocusOutEvent evt) => (evt.currentTarget as VisualElement)?.MarkDirtyRepaint();
         private static VisualElement Element(string name, VisualElement parent)
         {

@@ -9,7 +9,7 @@
 //   BehaviorState (§3) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Store round identity, wallet, health and bounded loadout effects.
-//   - Retain selection counts and per-floor deduplication identities.
+//   - Retain run-wide ownership, committed hunter/curse offers and per-visit stock.
 // DEPENDENCIES:
 //   - Core progression types and System collections only.
 // USAGE NOTES:
@@ -29,6 +29,10 @@ namespace Worsen.Session.Progression
         public int Seed { get; internal set; }
         public int RoundSeed { get; internal set; }
         public int Round { get; internal set; }
+        public int CompletedCombatFloors { get; internal set; }
+        public int LastShopAtCombatCount { get; internal set; }
+        public ProgressionTraits Traits { get; internal set; }
+        public int WaxWardCharges { get; internal set; }
         public int Wallet { get; internal set; }
         public int ThreatCount { get; internal set; }
         public int CurseCount { get; internal set; }
@@ -43,6 +47,10 @@ namespace Worsen.Session.Progression
         public string Message { get; internal set; } = string.Empty;
         internal Dictionary<string, int> SelectionCounts { get; } = new Dictionary<string, int>();
         internal HashSet<string> PurchasedOfferIds { get; } = new HashSet<string>();
+        internal Dictionary<string, int> VisitPurchaseCounts { get; } = new Dictionary<string, int>();
+        internal List<string> ActiveThreatIds { get; } = new List<string>();
+        internal List<string> OfferedThreatIds { get; } = new List<string>();
+        internal List<string> OfferedCurseIds { get; } = new List<string>();
         internal HashSet<int> CollectedGoldenAnchors { get; } = new HashSet<int>();
     }
 }

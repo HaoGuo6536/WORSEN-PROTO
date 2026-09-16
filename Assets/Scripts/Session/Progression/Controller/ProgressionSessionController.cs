@@ -8,10 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
-//   - Advance combat floors and every-fourth-floor shops from explicit facts.
-//   - Apply retained threat, curse and upgrade effects without engine calls.
+//   - Advance combat floors and shops using completed-combat cadence.
+//   - Commit unique curse/upgrade traits, consumable stock and one-charge wards.
 //   - Produce immutable snapshots and deterministic per-round generation inputs.
-//   - Show truthful choice descriptions when the active hunter limit is reached.
+//   - Commit at most three eligible hunter/curse choices and skip exhausted menus.
 // DEPENDENCIES:
 //   - Own Config and BehaviorState; Core progression value contracts.
 //   - Injected System.Random; no scene or foreign gameplay systems.
@@ -28,6 +28,7 @@ namespace Worsen.Session.Progression
 {
     public sealed class ProgressionSessionController
     {
+        private const int MaximumChoices = 3;
         private readonly ProgressionSessionBehaviorState state;
         private readonly ProgressionConfig config;
         private readonly System.Random random;
@@ -44,6 +45,13 @@ namespace Worsen.Session.Progression
         {
             state.Seed = seed;
             state.Round = 0;
+            state.CompletedCombatFloors = state.LastShopAtCombatCount = 0;
+            state.Traits = ProgressionTraits.None;
+            state.WaxWardCharges = 0;
+            state.VisitPurchaseCounts.Clear();
+            state.OfferedThreatIds.Clear();
+            state.OfferedCurseIds.Clear();
+            state.ActiveThreatIds.Clear();
             state.Wallet = state.ThreatCount = state.CurseCount = 0;
             state.Health = state.MaximumHealth = config.InitialMaximumHealth;
             state.MovementSpeedMultiplier = state.HunterSpeedMultiplier = 1f;
@@ -58,12 +66,12 @@ namespace Worsen.Session.Progression
         {
             if (!Matches(ProgressionPhase.ChooseThreat, revision)) return false;
             ProgressionEntryConfig choice = Find(config.Threats, id);
-            if (choice == null) return Reject("That threat is unavailable.");
+            if (choice == null || !state.OfferedThreatIds.Contains(id) || state.ActiveThreatIds.Contains(id) || state.ActiveThreatIds.Count >= config.MaximumActiveThreats)
+                return Reject("That hunter is unavailable or already follows you.");
             ApplyEntry(choice);
-            state.ThreatCount++;
-            state.Phase = ProgressionPhase.ChooseCurse;
-            state.Message = "Choose a curse to carry into the dark.";
-            state.Revision++;
+            state.ActiveThreatIds.Add(id);
+            state.ThreatCount = state.ActiveThreatIds.Count;
+            BeginCurseSelection(id);
             return true;
         }
 
@@ -71,7 +79,8 @@ namespace Worsen.Session.Progression
         {
             if (!Matches(ProgressionPhase.ChooseCurse, revision)) return false;
             ProgressionEntryConfig choice = Find(config.Curses, id);
-            if (choice == null) return Reject("That curse is unavailable.");
+            if (choice == null || Count(id) != 0 || !state.OfferedCurseIds.Contains(id))
+                return Reject("That curse is unavailable or already carried.");
             ApplyEntry(choice);
             state.CurseCount++;
             BeginGeneration();
@@ -102,6 +111,7 @@ namespace Worsen.Session.Progression
         public bool CompleteFloor(int generationId)
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
+            state.CompletedCombatFloors++;
             BeginNextRound();
             return true;
         }
@@ -129,12 +139,23 @@ namespace Worsen.Session.Progression
             if (!Matches(ProgressionPhase.Shop, revision)) return false;
             ProgressionEntryConfig offer = Find(config.Offers, id);
             if (offer == null) return Reject("That offer is unavailable.");
-            if (state.PurchasedOfferIds.Contains(id)) return Reject("Already purchased on this floor.");
-            if (state.Wallet < offer.Price) return Reject("Not enough Golden Cakes.");
+            string unavailable = OfferUnavailableReason(offer);
+            if (unavailable != null) return Reject(unavailable);
             state.Wallet -= offer.Price;
-            state.PurchasedOfferIds.Add(id);
+            state.VisitPurchaseCounts[id] = VisitCount(id) + 1;
+            if (!offer.Repeatable) state.PurchasedOfferIds.Add(id);
+            if (offer.GrantsWaxWard) state.WaxWardCharges = 1;
             ApplyEntry(offer);
             state.Message = offer.Title + " purchased.";
+            state.Revision++;
+            return true;
+        }
+
+        public bool TryConsumeWaxWard(int generationId)
+        {
+            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || state.WaxWardCharges != 1) return false;
+            state.WaxWardCharges = 0;
+            state.Message = "Your Wax Ward broke the shadow's grip.";
             state.Revision++;
             return true;
         }
@@ -172,20 +193,20 @@ namespace Worsen.Session.Progression
             if (catalog != null)
                 foreach (ProgressionEntryConfig entry in catalog)
                 {
+                    if (state.Phase == ProgressionPhase.ChooseCurse && !state.OfferedCurseIds.Contains(entry.Id)) continue;
+                    if (state.Phase == ProgressionPhase.ChooseThreat && !state.OfferedThreatIds.Contains(entry.Id)) continue;
                     string description = entry.Description;
-                    if (state.Phase == ProgressionPhase.ChooseThreat && state.ThreatCount >= config.MaximumActiveThreats)
-                        description = string.IsNullOrWhiteSpace(entry.DescriptionAtThreatCap)
-                            ? "Hunter limit reached. No additional hunter joins."
-                            : entry.DescriptionAtThreatCap;
                     choices.Add(new ProgressionChoice(entry.Id, entry.Title, description, Count(entry.Id)));
                 }
             var offers = new List<ProgressionOffer>();
             if (state.Phase == ProgressionPhase.Shop)
                 foreach (ProgressionEntryConfig entry in config.Offers)
                 {
-                    bool purchased = state.PurchasedOfferIds.Contains(entry.Id);
+                    int stock = RemainingStock(entry);
+                    bool purchased = (!entry.Repeatable && state.PurchasedOfferIds.Contains(entry.Id)) || stock == 0;
+                    string reason = OfferUnavailableReason(entry);
                     offers.Add(new ProgressionOffer(entry.Id, entry.Title, entry.Description, entry.Price,
-                        purchased, !purchased && state.Wallet >= entry.Price));
+                        purchased, reason == null, stock, entry.Repeatable, reason));
                 }
             var retained = new List<ProgressionSelection>();
             AppendSelections(retained, config.Threats, ProgressionChoiceKind.Threat);
@@ -209,12 +230,18 @@ namespace Worsen.Session.Progression
             }
             state.Round++;
             state.RoundSeed = random.Next();
-            state.IsShop = state.Round % config.ShopInterval == 0;
-            state.PurchasedOfferIds.Clear();
+            state.IsShop = state.CompletedCombatFloors > 0 &&
+                state.CompletedCombatFloors - state.LastShopAtCombatCount >= config.ShopInterval;
+            if (state.IsShop) state.LastShopAtCombatCount = state.CompletedCombatFloors;
+            state.VisitPurchaseCounts.Clear();
+            state.OfferedThreatIds.Clear();
+            state.OfferedCurseIds.Clear();
             state.CollectedGoldenAnchors.Clear();
             if (state.IsShop) BeginGeneration();
+            else if (!HasEligibleThreat()) BeginCurseSelection(null);
             else
             {
+                BuildThreatChoices();
                 state.Phase = ProgressionPhase.ChooseThreat;
                 state.Message = "Choose what follows you onto floor " + state.Round + ".";
                 state.Revision++;
@@ -240,6 +267,7 @@ namespace Worsen.Session.Progression
         private void ApplyEntry(ProgressionEntryConfig entry)
         {
             state.SelectionCounts[entry.Id] = Count(entry.Id) + 1;
+            state.Traits |= entry.Traits;
             state.MovementSpeedMultiplier = Clamp(state.MovementSpeedMultiplier * (double)entry.MovementSpeedMultiplier,
                 config.MinimumMultiplier, config.MaximumMovementMultiplier);
             state.HunterSpeedMultiplier = Clamp(state.HunterSpeedMultiplier * (double)entry.HunterSpeedMultiplier,
@@ -255,7 +283,86 @@ namespace Worsen.Session.Progression
 
         private ProgressionEffects Effects() => new ProgressionEffects(state.MovementSpeedMultiplier,
             state.HunterSpeedMultiplier, state.FogDensityMultiplier, state.FlashlightRangeMultiplier,
-            state.MaximumHealth, state.Health, state.IsShop ? 0 : Math.Min(state.ThreatCount, config.MaximumActiveThreats));
+            state.MaximumHealth, state.Health, state.IsShop ? 0 : Math.Min(state.ThreatCount, config.MaximumActiveThreats),
+            state.Traits, state.WaxWardCharges, Array.AsReadOnly(state.ActiveThreatIds.ToArray()));
+
+        private void BuildThreatChoices()
+        {
+            state.OfferedThreatIds.Clear();
+            // Derive offers from the committed round seed without consuming layout randomness.
+            int offset = (int)((uint)state.RoundSeed % (uint)config.Threats.Count);
+            for (int index = 0; index < config.Threats.Count && state.OfferedThreatIds.Count < MaximumChoices; index++)
+            {
+                ProgressionEntryConfig entry = config.Threats[(offset + index) % config.Threats.Count];
+                if (!state.ActiveThreatIds.Contains(entry.Id)) state.OfferedThreatIds.Add(entry.Id);
+            }
+        }
+
+        private bool HasEligibleThreat()
+        {
+            if (state.ActiveThreatIds.Count >= config.MaximumActiveThreats) return false;
+            foreach (ProgressionEntryConfig entry in config.Threats)
+                if (!state.ActiveThreatIds.Contains(entry.Id)) return true;
+            return false;
+        }
+
+        private void BeginCurseSelection(string preferredThreat)
+        {
+            BuildCurseChoices(preferredThreat);
+            if (state.OfferedCurseIds.Count == 0)
+            {
+                BeginGeneration();
+                state.Message = "All eligible curses are already carried. The next floor is taking shape...";
+                return;
+            }
+            state.Phase = ProgressionPhase.ChooseCurse;
+            state.Message = "Choose a curse to carry into the dark.";
+            state.Revision++;
+        }
+
+        private void BuildCurseChoices(string preferredThreat)
+        {
+            state.OfferedCurseIds.Clear();
+            // Reuse the committed floor seed; UI reads and purchases never draw layout randomness.
+            int offset = (int)((uint)state.RoundSeed % (uint)config.Curses.Count);
+            // Preserve a real map choice beside hunter-specific choices while both pools remain.
+            AppendCurseChoice(offset, null, true);
+            if (!string.IsNullOrEmpty(preferredThreat)) AppendCurseChoice(offset, preferredThreat, false);
+            for (int index = 0; index < config.Curses.Count && state.OfferedCurseIds.Count < MaximumChoices; index++)
+            {
+                ProgressionEntryConfig entry = config.Curses[(offset + index) % config.Curses.Count];
+                if (EligibleCurse(entry) && !state.OfferedCurseIds.Contains(entry.Id)) state.OfferedCurseIds.Add(entry.Id);
+            }
+        }
+
+        private void AppendCurseChoice(int offset, string threatId, bool general)
+        {
+            for (int index = 0; index < config.Curses.Count; index++)
+            {
+                ProgressionEntryConfig entry = config.Curses[(offset + index) % config.Curses.Count];
+                bool matches = general ? string.IsNullOrEmpty(entry.RequiredThreatId) : entry.RequiredThreatId == threatId;
+                if (!matches || !EligibleCurse(entry)) continue;
+                state.OfferedCurseIds.Add(entry.Id);
+                return;
+            }
+        }
+
+        private bool EligibleCurse(ProgressionEntryConfig entry) => Count(entry.Id) == 0 &&
+            (string.IsNullOrEmpty(entry.RequiredThreatId) || state.ActiveThreatIds.Contains(entry.RequiredThreatId));
+
+        private int VisitCount(string id) => state.VisitPurchaseCounts.TryGetValue(id, out int value) ? value : 0;
+        private int RemainingStock(ProgressionEntryConfig entry) => !entry.Repeatable && state.PurchasedOfferIds.Contains(entry.Id)
+            ? 0 : Math.Max(0, entry.StockPerVisit - VisitCount(entry.Id));
+
+        private string OfferUnavailableReason(ProgressionEntryConfig entry)
+        {
+            if (!entry.Repeatable && state.PurchasedOfferIds.Contains(entry.Id)) return "Already owned for this expedition.";
+            if (RemainingStock(entry) == 0) return "Sold out for this visit.";
+            if (entry.GrantsWaxWard && state.WaxWardCharges > 0) return "You already carry a Wax Ward.";
+            if (entry.Healing > 0f && state.Health >= state.MaximumHealth) return "Your health is already full.";
+            if (state.Wallet < entry.Price) return "Not enough Golden Cakes.";
+            return null;
+        }
 
         private bool Matches(ProgressionPhase phase, int revision) => state.Phase == phase && state.Revision == revision;
         private bool MatchesGeneration(ProgressionPhase phase, int generationId) => state.Phase == phase && state.GenerationId == generationId;
@@ -294,6 +401,9 @@ namespace Worsen.Session.Progression
             ValidateCatalog(value.Threats, identifiers, false);
             ValidateCatalog(value.Curses, identifiers, false);
             ValidateCatalog(value.Offers, identifiers, true);
+            foreach (ProgressionEntryConfig curse in value.Curses)
+                if (!string.IsNullOrEmpty(curse.RequiredThreatId) && Find(value.Threats, curse.RequiredThreatId) == null)
+                    throw new ArgumentException("A curse requires a hunter missing from the threat catalog.", nameof(value));
         }
 
         private static void ValidateCatalog(IReadOnlyList<ProgressionEntryConfig> catalog, HashSet<string> identifiers, bool allowEmpty)
@@ -304,7 +414,8 @@ namespace Worsen.Session.Progression
             {
                 if (entry == null || string.IsNullOrWhiteSpace(entry.Id) || string.IsNullOrWhiteSpace(entry.Title) ||
                     !identifiers.Add(entry.Id) || entry.Price < 0 || !Finite(entry.Healing) || entry.Healing < 0f ||
-                    !Finite(entry.MaximumHealthDelta))
+                    !Finite(entry.MaximumHealthDelta) || entry.StockPerVisit < 1 ||
+                    (entry.GrantsWaxWard && (!entry.Repeatable || entry.Healing > 0f || entry.Traits != ProgressionTraits.None)))
                     throw new ArgumentException("Progression entries need unique identifiers and valid rewards.", nameof(catalog));
                 foreach (float multiplier in new[] { entry.MovementSpeedMultiplier, entry.HunterSpeedMultiplier,
                     entry.FogDensityMultiplier, entry.FlashlightRangeMultiplier })

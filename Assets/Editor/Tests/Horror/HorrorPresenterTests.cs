@@ -34,6 +34,22 @@ namespace Worsen.Tests.Horror
         private HorrorPresenter _presenter;
         private HorrorDriverState _state;
         private HorrorPresentationSettings _settings;
+        [Test]
+        public void AuthoritativeFlashlightMatchesSensingAndRejectsStaleOrInvalidAim()
+        {
+            var first = new FlashlightSample(new EntityId(42), 10, true, Vector3.up, Vector3.forward, 23f, 28f);
+            Assert.That(_presenter.SetFlashlight(_state, first), Is.True);
+            _presenter.SetEffects(_state, 1f, 0.2f);
+            _presenter.CalculateAtmosphere(_state, _settings, 100f);
+            Assert.That(_state.FlashlightRange, Is.EqualTo(23f));
+            _presenter.ToggleFlashlight(_state);
+            Assert.That(_state.FlashlightEnabled, Is.True);
+            Assert.That(_presenter.SetFlashlight(_state, new FlashlightSample(first.Source, 9, false, Vector3.up, Vector3.forward, 2f, 30f)), Is.False);
+            Assert.That(_presenter.SetFlashlight(_state, new FlashlightSample(first.Source, 11, true, Vector3.up, Vector3.zero, 2f, 30f)), Is.False);
+            _presenter.ResetRound(_state);
+            Assert.That(_state.HasAuthoritativeFlashlight, Is.False);
+        }
+
         [SetUp]
         public void SetUp()
         {

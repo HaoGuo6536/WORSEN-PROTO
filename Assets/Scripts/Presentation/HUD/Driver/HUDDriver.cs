@@ -13,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own document binding and the HUDVisualDriver lifetime.
 //   - Preserve supplied facts across document recreation and disable/enable.
+//   - Receive camera aim orientation for a three-dimensional objective compass.
 //
 // DEPENDENCIES:
 //   Core primitives and own HUD presentation stack; Unity UI Toolkit only at Driver boundaries.
@@ -87,6 +88,13 @@ namespace Worsen.Presentation.HUD
         {
             if (_state == null) return;
             _presenter.SetHeading(_state, headingDegrees);
+            Apply();
+        }
+
+        public void SetViewRotation(Quaternion rotation)
+        {
+            if (_state == null) return;
+            _presenter.SetViewRotation(_state, rotation);
             Apply();
         }
 

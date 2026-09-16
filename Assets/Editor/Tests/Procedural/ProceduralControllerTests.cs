@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Check seeded variation, bounded growth, loops and complete straight cake lines.
+//   - Keep presentation room bounds aligned with enclosed playable room volumes.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core contracts, NUnit and UnityEditor serialized setup.
 // USAGE NOTES:
@@ -27,7 +28,14 @@ namespace Worsen.Tests.Procedural
     public sealed class ProceduralControllerTests
     {
         private ProceduralConfig _config;
-        [SetUp] public void SetUp() => _config = ScriptableObject.CreateInstance<ProceduralConfig>();
+        [SetUp] public void SetUp()
+        {
+            _config = ScriptableObject.CreateInstance<ProceduralConfig>();
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = false;
+            settings.FindProperty("_initialRoomCount").intValue = 5;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
         [TearDown] public void TearDown() => UnityEngine.Object.DestroyImmediate(_config);
 
         [Test]
@@ -125,6 +133,59 @@ namespace Worsen.Tests.Procedural
             controller.Generate(1, 1); Assert.That(state.IsReady, Is.False);
             controller.Admit(); Assert.That(state.IsReady, Is.True);
             controller.Reset(); Assert.That(state.IsReady, Is.False); Assert.That(state.Layout, Is.Null);
+        }
+
+        [Test]
+        public void CastlePresentationRoomsPreservePortalFactsAndOnlyMarkSafeRedundantRooms()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            for (int seed = 0; seed < 20; seed++)
+            {
+                var layout = Generate(seed, 3);
+                Assert.That(layout.PresentationRooms.Count, Is.EqualTo(layout.Graph.Rooms.Count));
+                Assert.That(layout.PresentationRooms.Any(r => r.OptionalRoom), Is.True, "Loop must supply a safe optional-effect candidate.");
+                foreach (var sample in layout.PresentationRooms)
+                {
+                    var room = layout.Graph.Rooms.Single(r => r.Id == sample.RoomId);
+                    Assert.That(sample.Bounds, Is.EqualTo(room.Bounds));
+                    Assert.That(sample.PortalCenters, Is.EqualTo(layout.Doors.Where(d => d.FromRoomId == room.Id || d.ToRoomId == room.Id).Select(d => d.Center).ToArray()));
+                    Assert.That(sample.OpenSky, Is.False, "All castle rooms are enclosed, including the higher-ceiling families.");
+                    if (!sample.OptionalRoom) continue;
+                    Assert.That(sample.RoomId, Is.Not.EqualTo(layout.Graph.ExitRoomId));
+                    Assert.That(sample.Bounds.Contains(layout.PlayerSpawnPosition), Is.False, "Actual spawn room must be protected.");
+                    var reduced = LevelGraphUtility.Build(layout.Graph.Rooms.Where(r => r.Id != sample.RoomId).ToArray(),
+                        layout.Graph.Edges.Where(e => e.FromRoomId != sample.RoomId && e.ToRoomId != sample.RoomId && e.Access == TraversalAccess.All).ToArray(),
+                        layout.Graph.Anchors.Where(a => a.RoomId != sample.RoomId).ToArray(), layout.Graph.ExitRoomId, layout.Graph.ExitPosition);
+                    foreach (var actor in new[] { TraversalAccess.Player, TraversalAccess.Hunter })
+                        Assert.That(LevelGraphUtility.DistancesTo(reduced, reduced.ExitRoomId, actor).Values.All(d => d >= 0), Is.True);
+                }
+            }
+        }
+
+        [Test]
+        public void CastlePlayerSpawnsClearOfEveryCakeAcrossFamiliesAndRounds()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var families = new System.Collections.Generic.HashSet<ProceduralModuleKind>();
+            foreach (int round in new[] { 1, 2, 20 })
+            foreach (int seed in Enumerable.Range(0, 40).Concat(new[] { 1701, 1980825774 }))
+            {
+                var layout = Generate(seed, round);
+                families.Add(layout.Modules[1].Kind);
+                foreach (var anchor in layout.Graph.Anchors)
+                {
+                    var delta = anchor.Position - layout.PlayerSpawnPosition;
+                    Assert.That(new Vector2(delta.x, delta.z).magnitude, Is.GreaterThanOrEqualTo(1f),
+                        "Spawn must not collect cake without input: seed " + seed + " round " + round + " anchor " + anchor.Id);
+                }
+            }
+            Assert.That(families.Count, Is.EqualTo(5), "Exercise hub starts beside every possible neighboring combat room family.");
         }
 
         private ProceduralLayout Generate(int seed, int round)

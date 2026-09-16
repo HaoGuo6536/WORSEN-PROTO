@@ -4,12 +4,13 @@
 //
 // PURPOSE:
 //   Verifies first-person presentation against explicit samples and elapsed time.
-//   These tests protect the M4 view contract without relying on a live Cinemachine rig.
+//   These tests protect free-look, achieved steering bank and unshaken aim without relying on a live Cinemachine rig.
 //
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Verify confirmed consumption precedence, bounded motion, comfort and reset.
 //   - Cover once-per-tick look input, bounded view angles and exact timing endpoints.
 //   - Exercise effect composition, comfort settings, death and reset isolation.
 //
@@ -83,13 +84,13 @@ namespace Worsen.Tests.Camera
         }
 
         [Test]
-        public void LookBackReaches160AndReturnsAtDeclaredEndpoints()
+        public void FreeLookPressDoesNotRotateAndReleaseReturnsFromMouseDirectedView()
         {
             _presenter.SetLookBack(_state, _config, true);
-            _presenter.Tick(_state, _config, 0.06f, 1f);
-            Assert.That(_state.LookYaw, Is.EqualTo(80f).Within(0.0001f));
-            _presenter.Tick(_state, _config, 0.06f, 1f);
-            Assert.That(_state.LookYaw, Is.EqualTo(160f).Within(0.0001f));
+            _presenter.Tick(_state, _config, 0.12f, 1f);
+            Assert.That(_state.LookYaw + _state.HeadYaw, Is.Zero);
+            _presenter.SetMovement(_state, _config, Sample(1, look: new Vector2(160f, 0f), lookBack: true));
+            Assert.That(_state.HeadYaw, Is.EqualTo(160f));
             _presenter.SetLookBack(_state, _config, false);
             _presenter.Tick(_state, _config, 0.15f, 1f);
             Assert.That(_state.LookYaw, Is.EqualTo(0f).Within(0.0001f));
@@ -99,7 +100,7 @@ namespace Worsen.Tests.Camera
         public void ReversingLookBackStartsFromTheCurrentView()
         {
             _presenter.SetLookBack(_state, _config, true);
-            _presenter.Tick(_state, _config, 0.06f, 1f);
+            _presenter.SetMovement(_state, _config, Sample(1, look: new Vector2(80f, 0f), lookBack: true));
             _presenter.SetLookBack(_state, _config, false);
             _presenter.Tick(_state, _config, 0f, 1f);
             Assert.That(_state.LookYaw, Is.EqualTo(80f).Within(0.0001f));
@@ -127,8 +128,8 @@ namespace Worsen.Tests.Camera
             Assert.That(_state.Pitch, Is.EqualTo(-85f));
             Assert.That(_state.HeadYaw, Is.Zero);
             _presenter.SetMovement(_state, _config, Sample(2, look: new Vector2(90f, 0f), lookBack: true));
-            Assert.That(_state.Pitch, Is.EqualTo(-20f));
-            Assert.That(_state.HeadYaw, Is.EqualTo(20f));
+            Assert.That(_state.Pitch, Is.EqualTo(-85f));
+            Assert.That(_state.HeadYaw, Is.EqualTo(90f));
         }
 
         [Test]
@@ -136,16 +137,16 @@ namespace Worsen.Tests.Camera
         {
             _presenter.SetMovement(_state, _config, Sample(1, movement: MovementState.Slide));
             _presenter.Tick(_state, _config, 0f, 1f);
-            Assert.That(_state.Roll, Is.EqualTo(6f));
+            Assert.That(_state.Roll, Is.Zero);
             _presenter.PlayTraversal(_state, new PlayerTraversalFact(default, 1, TraversalKind.Rebound, false, Vector3.left, 0f));
             _presenter.Tick(_state, _config, 0f, 1f);
-            Assert.That(_state.Roll, Is.EqualTo(6f));
+            Assert.That(_state.Roll, Is.Zero);
             _presenter.PlayTraversal(_state, new PlayerTraversalFact(default, 2, TraversalKind.Rebound, true, Vector3.left, 0f));
             _presenter.Tick(_state, _config, 0f, 1f);
             Assert.That(_state.Roll, Is.EqualTo(-10f));
             _presenter.Tick(_state, _config, 0.25f, 1f);
             _presenter.Tick(_state, _config, 0f, 1f);
-            Assert.That(_state.Roll, Is.EqualTo(6f));
+            Assert.That(_state.Roll, Is.Zero);
         }
 
         [Test]
@@ -189,10 +190,111 @@ namespace Worsen.Tests.Camera
             Assert.That(_state.DetectionElapsed, Is.Zero);
         }
 
+        [Test]
+        public void BankingUsesAchievedTurnAndReturnsSmoothlyToNeutral()
+        {
+            _presenter.SetMovement(_state, _config, Sample(1, movement: MovementState.Slide, turnRate: 40f));
+            _presenter.Tick(_state, _config, 0.1f, 1f);
+            Assert.That(_state.Roll, Is.InRange(-6f, -0.1f));
+            float bank = _state.Roll;
+            _presenter.SetMovement(_state, _config, Sample(2));
+            _presenter.Tick(_state, _config, 0.05f, 1f);
+            Assert.That(_state.Roll, Is.GreaterThan(bank).And.LessThan(0f));
+            _presenter.Tick(_state, _config, 1f, 1f);
+            Assert.That(_state.Roll, Is.EqualTo(0f).Within(0.001f));
+        }
+
+        [Test]
+        public void ShakeIsClampedDoesNotChangeAimAndCanBeDisabled()
+        {
+            _presenter.SetMovement(_state, _config, Sample(1, look: new Vector2(150f, 10f), lookBack: true));
+            _presenter.Tick(_state, _config, 0f, 1f);
+            Quaternion aim = _state.AimRotation;
+            _presenter.PlayShake(_state, 100f, 10f);
+            _presenter.Tick(_state, _config, 0.02f, 1f);
+            Assert.That(_state.AimRotation, Is.EqualTo(aim));
+            Assert.That(Vector3.Distance(_state.Position, _state.EyePosition), Is.LessThanOrEqualTo(_config.MaximumShakeDisplacement));
+            Assert.That(Quaternion.Angle(_state.Rotation, aim), Is.LessThanOrEqualTo(_config.MaximumShakeDegrees * 3f));
+            var serialized = new SerializedObject(_config);
+            serialized.FindProperty("_shakeIntensity").floatValue = 0f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            _presenter.Tick(_state, _config, 0.02f, 1f);
+            Assert.That(_state.Position, Is.EqualTo(_state.EyePosition));
+            Assert.That(Quaternion.Angle(_state.Rotation, aim), Is.LessThan(0.001f));
+        }
+
+        [Test]
+        public void ConsumptionDragsGraduallyAndWinsOverFollowingDeathSnapAndMovement()
+        {
+            _presenter.SetMovement(_state, _config, Sample(1));
+            _presenter.Tick(_state, _config, 0f, 1f);
+            var start = _state.Position;
+            _presenter.PlayConsumed(_state, _config, start + Vector3.left * 10f);
+            _presenter.PlayDeathSnap(_state, start + Vector3.right * 10f);
+            _presenter.SetMovement(_state, _config, Sample(2, look: new Vector2(90f, 90f)));
+            _presenter.Tick(_state, _config, 0.45f, 1f);
+            Assert.That(_state.Consumed, Is.True);
+            Assert.That(_state.Position.x, Is.InRange(start.x - 1.8f, start.x - 0.1f));
+            Assert.That(_state.Position.y, Is.LessThan(start.y));
+            var halfway = _state.Position;
+            _presenter.Tick(_state, _config, 0.45f, 1f);
+            Assert.That(_state.Position.x, Is.LessThan(halfway.x));
+            Assert.That(Vector3.Dot(_state.Rotation * Vector3.forward, Vector3.left), Is.GreaterThan(0.999f));
+            var end = _state.Position;
+            _presenter.PlayConsumed(_state, _config, start + Vector3.right * 10f);
+            _presenter.Tick(_state, _config, 10f, 1f);
+            Assert.That(_state.Position, Is.EqualTo(end));
+            Assert.That(Vector3.Distance(end, start), Is.LessThan(3.1f));
+        }
+
+        [Test]
+        public void ConsumptionNeedsExplicitValidTriggerAndResetRestoresOrdinaryDeath()
+        {
+            _presenter.PlayConsumed(_state, _config, Vector3.zero);
+            Assert.That(_state.Consumed, Is.False);
+            _presenter.SetMovement(_state, _config, Sample(1));
+            _presenter.PlayShake(_state, 1f, 1f);
+            _presenter.PlayDetectionBeat(_state);
+            _presenter.PlayConsumed(_state, _config, new Vector3(float.NaN, 0f, 0f));
+            _presenter.PlayConsumed(_state, _config, new Vector3(float.MaxValue, 0f, 0f));
+            Assert.That(_state.Consumed, Is.False);
+            _presenter.PlayConsumed(_state, _config, _state.EyePosition + Vector3.back * 10000f);
+            _presenter.Tick(_state, _config, float.NaN, 1f);
+            Assert.That(_state.ConsumptionElapsed, Is.Zero);
+            _presenter.Tick(_state, _config, 100f, 1f);
+            Assert.That(float.IsNaN(_state.Position.sqrMagnitude), Is.False);
+            Assert.That(Vector3.Distance(_state.Position, _state.EyePosition), Is.LessThan(3.1f));
+            _presenter.Reset(_state);
+            Assert.That(_state.Consumed, Is.False);
+            Assert.That(_state.ConsumptionDuration, Is.Zero);
+            _presenter.SetMovement(_state, _config, Sample(1));
+            _presenter.PlayDeathSnap(_state, _state.EyePosition + Vector3.right);
+            _presenter.Tick(_state, _config, 0.1f, 1f);
+            Assert.That(Vector3.Dot(_state.Rotation * Vector3.forward, Vector3.right), Is.GreaterThan(0.999f));
+        }
+
+        [Test]
+        public void ConsumptionHonorsMotionShakeAndTiltComfort()
+        {
+            var serialized = new SerializedObject(_config);
+            serialized.FindProperty("_consumptionMotionIntensity").floatValue = 0f;
+            serialized.FindProperty("_shakeIntensity").floatValue = 0f;
+            serialized.FindProperty("_tiltEnabled").boolValue = false;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            _presenter.SetMovement(_state, _config, Sample(1));
+            _presenter.Tick(_state, _config, 0f, 1f);
+            var start = _state.Position; var rotation = _state.Rotation;
+            _presenter.PlayConsumed(_state, _config, start + Vector3.back * 10f);
+            _presenter.Tick(_state, _config, 0.45f, 1f);
+            Assert.That(_state.Position, Is.EqualTo(start));
+            Assert.That(Quaternion.Angle(_state.Rotation, rotation), Is.LessThan(0.001f));
+            Assert.That(_state.Roll, Is.Zero);
+        }
+
         private PlayerMovementSample Sample(long tick, Vector3 velocity = default, Vector2 look = default,
-            bool lookBack = false, MovementState movement = MovementState.Ground)
+            bool lookBack = false, MovementState movement = MovementState.Ground, float turnRate = 0f)
             => new PlayerMovementSample(default, tick, new Vector3(2f, 0f, 3f), velocity,
-                new Vector3(2f, 1.6f, 3f), 30f, look, lookBack, movement, 0f);
+                new Vector3(2f, 1.6f, 3f), 30f, look, lookBack, movement, 0f, turnRate);
     }
 }
 

@@ -6,6 +6,7 @@
 //   Provides one persistent command surface for audible run feedback.
 //   Explicit initialization returns the canonical service across repeated scene
 //   creation, keeping event routing separate from source playback and mixer math.
+//   Emitter, threat and portal facts drive the spatial soundscape without scene queries.
 //
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Audio (Service system).
@@ -28,6 +29,7 @@
 
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Audio
 {
@@ -68,6 +70,28 @@ namespace Worsen.Presentation.Audio
         public void SetMovementState(MovementState movement) { if (_initialized) _driver.SetMovementState(movement); }
         public void SetSpeedNormalized(float speed) { if (_initialized) _driver.SetSpeedNormalized(speed); }
         public void SetInjury(float currentHealth, float maxHealth) { if (_initialized) _driver.SetInjury(currentHealth, maxHealth); }
+        public void ObserveMovement(PlayerMovementSample sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveMovement(sample); }
+        public void ObserveTraversal(PlayerTraversalFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveTraversal(fact); }
+        public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHunterFeedback(fact); }
+        public void ObservePickup(PickupCollectedFact fact, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObservePickup(fact, position); }
+        public void ObserveHand(CollapseHandFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHand(fact); }
+        public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObserveRoom(sample, position); }
+        public void ObserveHealth(EntityId id, float health, float maximum) { if (_initialized && isActiveAndEnabled) _driver.ObserveHealth(id, health, maximum); }
+        public void ObserveProgression(ProgressionSnapshot sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgression(sample); }
+        public void ObserveAfterimage(FlashlightSample sample, float lifetime) { if (_initialized && isActiveAndEnabled) _driver.ObserveAfterimage(sample, lifetime); }
+        public void ObserveFlashlight(FlashlightSample sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveFlashlight(sample); }
+
+        public void SetTorchPositions(int roomId, Vector3[] positions) { if (_initialized) _driver.SetTorchPositions(roomId, positions); }
+        public void SetRooms(System.Collections.Generic.IReadOnlyList<GeneratedRoomSample> rooms) { if (_initialized) _driver.SetRooms(rooms); }
+        public void ObserveRoom(RoomDestructionSample sample) { if (_initialized) _driver.ObserveRoom(sample); }
+        public void PlayCueAt(CueId cue, Vector3 position, float gain = 1f, int emitterId = 0) { if (_initialized && isActiveAndEnabled) _driver.PlayCueAt(cue, position, gain, emitterId); }
+        public void SetThreat(int id, bool chasing, float closeness) { if (_initialized) _driver.SetThreat(id, chasing, closeness); }
+        public void RemoveThreat(int id) { if (_initialized) _driver.RemoveThreat(id); }
+        public void SetAmbience(float openness, float collapse) { if (_initialized) _driver.SetAmbience(openness, collapse); }
+        public void SetListenerPosition(Vector3 position) { if (_initialized) _driver.SetListenerPosition(position); }
+        public void SetFootstepGain(float gain) { if (_initialized) _driver.SetFootstepGain(gain); }
+        public void StopEmitter(int emitter) { if (_initialized) _driver.StopEmitter(emitter); }
+        public void SetEmitterOcclusion(int emitter, float amount) { if (_initialized) _driver.SetEmitterOcclusion(emitter, amount); }
         public void ResetRun() { if (_initialized) _driver.ResetRun(); }
 
         private void OnEnable() { if (_initialized) _driver.SetOwnerEnabled(true); }

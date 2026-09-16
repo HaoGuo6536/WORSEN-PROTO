@@ -9,6 +9,7 @@
 //   Definitions (§5) · Core · Progression shared contracts.
 // KEY RESPONSIBILITIES:
 //   - Describe immutable display snapshots and committed generation requests.
+//   - Describe unique run traits, consumable stock, and actionable rejection reasons.
 //   - Carry the effective loadout without exposing mutable run state.
 // DEPENDENCIES:
 //   - System collection interfaces only; no project layer dependencies.
@@ -22,6 +23,20 @@ using System.Collections.Generic;
 namespace Worsen.Core
 {
     public enum ProgressionPhase { Dormant, ChooseThreat, ChooseCurse, Generating, Exploring, Shop, Ended, GenerationFailed }
+    [System.Flags]
+    public enum ProgressionTraits
+    {
+        None = 0, EchoDebt = 1, Afterimage = 2, RestlessMasonry = 4, GildedHunger = 8,
+        BorrowedFootsteps = 16, UnquietFlame = 32, ShutteredLens = 64, FeltSoles = 128,
+        ClimberWraps = 256, PilgrimChalk = 512,
+        RusherLongStride = 1024, RusherSecondWind = 2048, RusherBloodScent = 4096,
+        LurkerDarkAdaptation = 8192, LurkerCrookedStep = 16384, LurkerStolenSilence = 32768,
+        WatcherLongMemory = 65536, WatcherCuttingCorners = 131072, WatcherUnquietGaze = 262144,
+        HexerSplitBolt = 524288, HexerHastyScript = 1048576, HexerLingeringHex = 2097152,
+        ThorncallerThornRing = 4194304, ThorncallerQuickRoots = 8388608, ThorncallerReachingRoots = 16777216,
+        SealedSills = 33554432
+    }
+
     public enum ProgressionChoiceKind { Threat, Curse, Upgrade }
 
     public readonly struct ProgressionChoice
@@ -36,14 +51,18 @@ namespace Worsen.Core
 
     public readonly struct ProgressionOffer
     {
-        public ProgressionOffer(string id, string title, string description, int price, bool purchased, bool canAfford)
-        { Id = id; Title = title; Description = description; Price = price; Purchased = purchased; CanAfford = canAfford; }
+        public ProgressionOffer(string id, string title, string description, int price, bool purchased, bool canAfford, int stockRemaining = 0, bool repeatable = false, string unavailableReason = null)
+        { Id = id; Title = title; Description = description; Price = price; Purchased = purchased; CanAfford = canAfford;
+          StockRemaining = stockRemaining; Repeatable = repeatable; UnavailableReason = unavailableReason; }
         public string Id { get; }
         public string Title { get; }
         public string Description { get; }
         public int Price { get; }
         public bool Purchased { get; }
         public bool CanAfford { get; }
+        public int StockRemaining { get; }
+        public bool Repeatable { get; }
+        public string UnavailableReason { get; }
     }
 
     public readonly struct ProgressionSelection
@@ -59,11 +78,13 @@ namespace Worsen.Core
     public readonly struct ProgressionEffects
     {
         public ProgressionEffects(float movementSpeedMultiplier, float hunterSpeedMultiplier, float fogDensityMultiplier,
-            float flashlightRangeMultiplier, float maximumHealth, float health, int activeThreatBudget)
+            float flashlightRangeMultiplier, float maximumHealth, float health, int activeThreatBudget,
+            ProgressionTraits traits = ProgressionTraits.None, int waxWardCharges = 0, IReadOnlyList<string> activeThreatIds = null)
         {
             MovementSpeedMultiplier = movementSpeedMultiplier; HunterSpeedMultiplier = hunterSpeedMultiplier;
             FogDensityMultiplier = fogDensityMultiplier; FlashlightRangeMultiplier = flashlightRangeMultiplier;
             MaximumHealth = maximumHealth; Health = health; ActiveThreatBudget = activeThreatBudget;
+            Traits = traits; WaxWardCharges = waxWardCharges; ActiveThreatIds = activeThreatIds;
         }
         public float MovementSpeedMultiplier { get; }
         public float HunterSpeedMultiplier { get; }
@@ -72,6 +93,9 @@ namespace Worsen.Core
         public float MaximumHealth { get; }
         public float Health { get; }
         public int ActiveThreatBudget { get; }
+        public ProgressionTraits Traits { get; }
+        public int WaxWardCharges { get; }
+        public IReadOnlyList<string> ActiveThreatIds { get; }
     }
 
     public readonly struct ProgressionGenerationRequest

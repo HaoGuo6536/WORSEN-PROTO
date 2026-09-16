@@ -14,13 +14,14 @@
 //   - Format supplied counts, clamp the display-only gauge and validate direction samples.
 //   - Restore extra HUD elements using the supplied duration; a new chase cancels it.
 //   - Clear transient chase suppression immediately at an explicit new-run boundary.
+//   - Express objective direction in the supplied camera frame, including height and rear targets.
 //
 // DEPENDENCIES:
 //   - Worsen.Core ExitState and UnityEngine vector/math value operations only.
 //
 // USAGE NOTES:
 //   - Stateless calculator over caller-owned HUDDriverState. No engine calls.
-//   - Direction is a world-space vector; heading is clockwise yaw from world positive z.
+//   - Direction is a world-space vector; camera orientation supersedes the heading-only fallback.
 //
 // ============================================================================
 
@@ -45,14 +46,14 @@ namespace Worsen.Presentation.HUD
         {
             state.ExitOpen = exitState == ExitState.Open;
             state.ExitText = exitState == ExitState.Open ? "Exit: OPEN" : exitState == ExitState.Locked ? "Exit: LOCKED" : "Exit: —";
-            state.DirectionCaption = exitState == ExitState.Open ? "EXIT" : exitState == ExitState.Locked ? "NEXT CAKE" : "DIRECTION";
+            state.DirectionCaption = "";
         }
 
         public void SetDirection(HUDDriverState state, Vector3 direction, bool visible)
         {
             state.WorldDirection = direction;
             state.DirectionVisible = visible && IsFinite(direction.x) && IsFinite(direction.y) &&
-                IsFinite(direction.z) && (direction.x != 0f || direction.z != 0f);
+                IsFinite(direction.z) && (direction.x != 0f || direction.y != 0f || direction.z != 0f);
             UpdateDirection(state);
         }
 
@@ -63,11 +64,46 @@ namespace Worsen.Presentation.HUD
             UpdateDirection(state);
         }
 
+        public void SetViewRotation(HUDDriverState state, Quaternion rotation)
+        {
+            if (!IsFinite(rotation.x) || !IsFinite(rotation.y) || !IsFinite(rotation.z) || !IsFinite(rotation.w)) return;
+            double length = Math.Sqrt((double)rotation.x * rotation.x + (double)rotation.y * rotation.y +
+                (double)rotation.z * rotation.z + (double)rotation.w * rotation.w);
+            if (length < 0.000001) return;
+            state.ViewRotation = new Quaternion((float)(rotation.x / length), (float)(rotation.y / length),
+                (float)(rotation.z / length), (float)(rotation.w / length));
+            state.HasViewRotation = true;
+            UpdateDirection(state);
+        }
+
         private static void UpdateDirection(HUDDriverState state)
         {
-            state.DirectionDegrees = state.DirectionVisible
-                ? Mathf.DeltaAngle(state.HeadingDegrees,
-                    (float)(Math.Atan2(state.WorldDirection.x, state.WorldDirection.z) * 180.0 / Math.PI)) : 0f;
+            if (!state.DirectionVisible)
+            {
+                state.ViewDirection = Vector3.zero;
+                state.DirectionDegrees = state.DirectionPitchDegrees = 0f;
+                return;
+            }
+            Vector3 world = state.WorldDirection;
+            double length = Math.Sqrt((double)world.x * world.x + (double)world.y * world.y + (double)world.z * world.z);
+            Vector3 direction = new Vector3((float)(world.x / length), (float)(world.y / length), (float)(world.z / length));
+            if (state.HasViewRotation)
+            {
+                Quaternion rotation = state.ViewRotation;
+                Vector3 imaginary = new Vector3(-rotation.x, -rotation.y, -rotation.z);
+                Vector3 twiceCross = 2f * Vector3.Cross(imaginary, direction);
+                state.ViewDirection = direction + rotation.w * twiceCross + Vector3.Cross(imaginary, twiceCross);
+            }
+            else
+            {
+                double radians = state.HeadingDegrees * Math.PI / 180.0;
+                float sine = (float)Math.Sin(radians), cosine = (float)Math.Cos(radians);
+                state.ViewDirection = new Vector3(direction.x * cosine - direction.z * sine, direction.y,
+                    direction.x * sine + direction.z * cosine);
+            }
+            Vector3 local = state.ViewDirection;
+            state.DirectionDegrees = (float)(Math.Atan2(local.x, local.z) * 180.0 / Math.PI);
+            state.DirectionPitchDegrees = (float)(Math.Atan2(local.y, Math.Sqrt(local.x * local.x + local.z * local.z)) * 180.0 / Math.PI);
         }
 
         public void SetItemSlots(HUDDriverState state, int emptySlotCount, int maximumDisplayedSlots)

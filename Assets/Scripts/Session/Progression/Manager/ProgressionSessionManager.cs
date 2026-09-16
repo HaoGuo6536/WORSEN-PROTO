@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Progression (Session system).
 // KEY RESPONSIBILITIES:
-//   - Own persistent state and explicitly seeded controller initialization.
-//   - Relay choice, collection, health and floor lifecycle facts to the controller.
+//   - Own persistent state and explicitly seeded new-run/replay initialization.
+//   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
 //   - Publish Core snapshots and newly committed generation requests once.
 // DEPENDENCIES:
 //   - Progression Config, Controller and BehaviorState; Core progression types.
@@ -66,12 +66,15 @@ namespace Worsen.Session.Progression
             Publish(previousGeneration);
         }
 
-        public bool RestartRun(int revision)
+        // The one-argument API deliberately replays the current expedition seed.
+        public bool RestartRun(int revision) => RestartRun(revision, Snapshot.Seed);
+
+        public bool RestartRun(int revision, int seed)
         {
             RequireInitialized();
             ProgressionSnapshot snapshot = controller.Snapshot();
             if (snapshot.Revision != revision || !snapshot.CanRestart) return false;
-            StartRun(snapshot.Seed);
+            StartRun(seed);
             return true;
         }
 
@@ -83,6 +86,7 @@ namespace Worsen.Session.Progression
         public bool FailGeneration(int generationId, string reason) => Change(() => controller.FailGeneration(generationId, reason));
         public bool CompleteFloor(int generationId) => Change(() => controller.CompleteFloor(generationId));
         public bool RecordGoldenCollected(int generationId, int anchorId) => Change(() => controller.RecordGoldenCollected(generationId, anchorId));
+        public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId));
         public bool RecordHealth(int generationId, float health) => Change(() => controller.RecordHealth(generationId, health));
         public bool EndRun(int generationId) => Change(() => controller.EndRun(generationId));
 

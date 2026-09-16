@@ -2,26 +2,42 @@
 // HunterDefinitions.cs
 // ============================================================================
 // PURPOSE:
-//   Carries local hunter attack and navigation decisions as plain values. These types do not cross the Hunter system boundary or perform engine work.
+//   Carries Hunter-local sensing, action and attack values as plain contracts.
+//   These definitions contain no engine operations or mutable runtime authority.
+//   Cross-system feedback uses the separate Core event contracts.
 // ARCHITECTURAL ROLE:
-//   Definitions (§5) · Domain · Hunter.
+//   Definitions (section 5) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Keep authored data and system-local value contracts separate from execution.
+//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Keep per-life state separate from shared configuration and foreign systems.
 // DEPENDENCIES:
-//   - The owning Hunter system and pure UnityEngine values only.
+//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
+//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
-//   Scene-owned instances receive immutable shared configuration. Runtime code never changes assets.
+//   System-local values only; constructors assign data without behavior.
 // ============================================================================
 using UnityEngine;
 namespace Worsen.Domain.Hunter
 {
-    public enum HunterAction { Patrol, InvestigateHint, Chase, Lunge, SearchLastKnown, CutOff }
+    public enum HunterAction { Patrol, InvestigateHint, Chase, Lunge, SearchLastKnown, CutOff, InvestigateLight, AvoidLight, FlankLight }
+    public enum HunterAttackStyle { Lunge, Projectile, GroundSpikes }
+    public enum HunterLightResponse { Investigate, Avoid, Flank }
     [System.Flags]
     public enum HunterWorldFacts : ulong
     {
         PlayerVisible = 1, PlayerHeard = 2, HasBelief = 4, BeliefFresh = 8,
         InLungeRange = 16, LoopDetected = 32, HasHint = 64,
-        CaughtPlayer = 128, LocatedPlayer = 256, Patrolled = 512
+        CaughtPlayer = 128, LocatedPlayer = 256, Patrolled = 512, LightObserved = 1024, DirectlyIlluminated = 2048,
+        LightMemoryFresh = 4096, LightReactionReady = 8192, EscapedBeam = 16384
+    }
+    public readonly struct HunterLightObservation
+    {
+        public HunterLightObservation(bool observed, bool illuminated, Vector3 position, long tick)
+        { Observed = observed; Illuminated = illuminated; Position = position; Tick = tick; }
+        public bool Observed { get; }
+        public bool Illuminated { get; }
+        public Vector3 Position { get; }
+        public long Tick { get; }
     }
     public enum HunterLungePhase { None, Windup, Active, Recovery }
     public readonly struct HunterTickResult

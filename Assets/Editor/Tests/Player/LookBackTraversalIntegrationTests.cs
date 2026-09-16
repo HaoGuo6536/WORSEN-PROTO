@@ -2,13 +2,13 @@
 // LookBackTraversalIntegrationTests.cs
 // ============================================================================
 // PURPOSE:
-//   Exercises held LookBack steering and slide-jump on the built TagArena floor,
+//   Exercises mouse-directed free-look with full captured-frame steering and slide-jump on the built TagArena floor,
 //   then observes the real first-person camera's held and released orientations.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player integration.
 // KEY RESPONSIBILITIES:
 //   - Use actual Run fixed ticks, collision probes and committed traversal facts.
-//   - Verify frozen body heading, reduced lateral steering and usable slide-jump.
+//   - Verify frozen body heading, full ground steering, heavy slide countersteering and usable slide-jump.
 //   - Observe Camera output routed from gameplay, including body look on release.
 // DEPENDENCIES:
 //   Core, Player/Hunter/Chase, Run/Input, Camera, TagArena and CaptureGateTrace.
@@ -95,8 +95,8 @@ namespace Worsen.Tests.Player
                     .FindProperty("_config").objectReferenceValue;
                 Assert.That(profile, Is.Not.Null);
                 Assert.That(cameraConfig, Is.Not.Null);
-                Assert.That(profile.LookBackSteerAuthority, Is.EqualTo(0.35f));
-                Assert.That(cameraConfig.LookBackYaw, Is.EqualTo(160f));
+                Assert.That(profile.SlideMaximumTurnRate, Is.LessThanOrEqualTo(40f));
+                Assert.That(cameraConfig.FreeLookYawLimit, Is.GreaterThanOrEqualTo(160f));
                 trial = new Trial(run, player, chase, profile, cameraConfig, UnityEngine.Camera.main);
                 input.FramePublished += trial.PublishSynthetic;
                 run.PlayerProbeRecorded += trial.ObserveCommitted;
@@ -129,7 +129,7 @@ namespace Worsen.Tests.Player
 
         private sealed class Trial
         {
-            private const float Heading = 90f, HeadDelta = 5f, ReleaseDelta = 7f;
+            private const float Heading = 90f, HeadDelta = 165f, ReleaseDelta = 7f;
             private readonly RunSessionManager run;
             private readonly PlayerManager player;
             private readonly ChaseManager chase;
@@ -145,6 +145,8 @@ namespace Worsen.Tests.Player
             private InputFrame sent;
             private InputButtons previousHeld;
             private Vector3 steerStart;
+            private float previousSlideYaw, previousSlideSpeed, countersteerDegrees;
+            private int countersteerSamples;
             private float lateralDisplacement, steeringRatioSum, backYaw, returnedYaw;
             private bool jumped, airborne, landed, cameraBack, cameraReturned;
             public string Failure = "";
@@ -172,7 +174,14 @@ namespace Worsen.Tests.Player
                 Vector2 look = Vector2.zero;
                 if (stage == Stage.Accelerate) look.x = Mathf.DeltaAngle(player.ReadOnlyState.HeadingDegrees, Heading);
                 if (stage == Stage.Steer) { move.x = 0.5f; if (stageTicks == 0) look.x = HeadDelta; }
-                if (stage == Stage.Slide) held |= InputButtons.Crouch;
+                if (stage == Stage.Slide)
+                {
+                    // The preceding diagonal sprint carries momentum into the slide.
+                    // Countersteer within the same narrow connector rather than expecting
+                    // neutral input to erase that momentum (ground strafing has full authority).
+                    move.x = -1f;
+                    held |= InputButtons.Crouch;
+                }
                 if (stage == Stage.Jump && stageTicks == 0) held |= InputButtons.Jump;
                 if (stage == Stage.Return && stageTicks == 0) look.x = ReleaseDelta;
                 sent = new InputFrame(move, look, held, held & ~previousHeld, previousHeld & ~held);
@@ -214,11 +223,13 @@ namespace Worsen.Tests.Player
                             float forward = Vector3.Dot(pose.Velocity, Vector3.right);
                             float lateral = Vector3.Dot(pose.Velocity, Vector3.back);
                             if (!record.Probe.Grounded || !pose.Grounded || forward < profile.SprintSpeed * 0.8f ||
-                                Mathf.Abs(lateral / forward - profile.LookBackSteerAuthority * 0.5f) > 0.025f)
-                                Fail("Held LookBack did not retain forward motion and reduced lateral steering.");
+                                Mathf.Abs(lateral / forward - 0.5f) > 0.025f)
+                                Fail("Held LookBack did not retain forward motion and full lateral steering in the captured movement frame.");
                             steeringRatioSum += lateral / Mathf.Max(0.001f, forward); steerSamples++;
                         }
-                        if (stageTicks == 20)
+                        // Five settled ratio samples retain the full-authority check while
+                        // leaving room for the slide-jump inside the authored 8m-wide connector.
+                        if (stageTicks == 16)
                         { lateralDisplacement = Vector3.Dot(pose.Position - steerStart, Vector3.back); Advance(Stage.Slide); }
                         break;
                     case Stage.Slide:
@@ -227,6 +238,19 @@ namespace Worsen.Tests.Player
                         if (player.ReadOnlyState.MovementState != MovementState.Slide ||
                             Mathf.Abs(capsule.height - standingHeight * 0.5f) > 0.001f || !pose.Grounded)
                             Fail("Held LookBack did not enter the real reduced slide capsule.");
+                        float slideYaw = Mathf.Atan2(pose.Velocity.x, pose.Velocity.z) * Mathf.Rad2Deg;
+                        if (stageTicks > 1)
+                        {
+                            float turn = Mathf.DeltaAngle(previousSlideYaw, slideYaw);
+                            if (turn >= -0.001f || Mathf.Abs(turn) > profile.SlideMaximumTurnRate * record.DeltaTime + 0.01f)
+                                Fail("Slide countersteering did not turn gradually within the configured heavy steering limit.");
+                            if (Speed() > previousSlideSpeed + 0.001f)
+                                Fail("Slide countersteering created horizontal speed.");
+                            countersteerDegrees -= turn;
+                            countersteerSamples++;
+                        }
+                        previousSlideYaw = slideYaw;
+                        previousSlideSpeed = Speed();
                         slideSamples++;
                         if (stageTicks == 10) Advance(Stage.Jump);
                         break;
@@ -248,7 +272,7 @@ namespace Worsen.Tests.Player
                 float yaw = Mathf.Atan2(output.transform.forward.x, output.transform.forward.z) * Mathf.Rad2Deg;
                 bool atEye = Vector3.Distance(output.transform.position, player.LastMovementSample.EyePosition) < 0.05f;
                 if (stage == Stage.BackView && player.ReadOnlyState.LookBack && atEye &&
-                    Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + cameraConfig.LookBackYaw + HeadDelta)) < 2f)
+                    Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + HeadDelta)) < 2f)
                 { backYaw = yaw; cameraBack = true; Advance(Stage.Return); }
                 else if (stage == Stage.Return && stageTicks >= 2 && !player.ReadOnlyState.LookBack && atEye &&
                     Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + ReleaseDelta)) < 2f)
@@ -258,9 +282,11 @@ namespace Worsen.Tests.Player
             public void ObserveFocus(bool focused) { if (!focused) Fail("Actual focus interrupted the LookBack trial."); }
             public void AssertOutcome()
             {
-                Assert.That(steerSamples, Is.EqualTo(9));
+                Assert.That(steerSamples, Is.EqualTo(5));
                 Assert.That(lateralDisplacement, Is.GreaterThan(0.2f));
                 Assert.That(slideSamples, Is.EqualTo(10));
+                Assert.That(countersteerSamples, Is.EqualTo(9));
+                Assert.That(countersteerDegrees, Is.GreaterThan(1f).And.LessThanOrEqualTo(profile.SlideMaximumTurnRate * 9f / 60f + 0.01f));
                 Assert.That(jumped && airborne && landed, Is.True, "Real slide-jump/air/landing chain was incomplete.");
                 Assert.That(cameraBack && cameraReturned, Is.True);
                 Assert.That(player.ReadOnlyState.LookBack, Is.False);
@@ -268,7 +294,7 @@ namespace Worsen.Tests.Player
             }
             public string Describe() => "stage=" + stage + "; ticks=" + committed + "; position=" + player.ReadOnlyState.Position +
                 "; steerSamples=" + steerSamples + "; meanLateralForwardRatio=" + (steeringRatioSum / Mathf.Max(1, steerSamples)) +
-                "; lateralMetres=" + lateralDisplacement + "; slides=" + slideSamples + "; jump/air/land=" + jumped + "/" + airborne + "/" + landed +
+                "; lateralMetres=" + lateralDisplacement + "; countersteerSamples/degrees=" + countersteerSamples + "/" + countersteerDegrees + "; slides=" + slideSamples + "; jump/air/land=" + jumped + "/" + airborne + "/" + landed +
                 "; cameraBack/return=" + cameraBack + "/" + cameraReturned + "; cameraWorldYaw=" + backYaw + "/" + returnedYaw;
             private void Advance(Stage next) { stage = next; stageTicks = 0; }
             private void Fail(string message) { if (Failure.Length == 0) Failure = message; }

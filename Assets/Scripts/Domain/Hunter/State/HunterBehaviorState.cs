@@ -2,17 +2,19 @@
 // HunterBehaviorState.cs
 // ============================================================================
 // PURPOSE:
-//   Stores one hunter's identity, observations, plan and attack bookkeeping.
-//   Per-run speed scaling is instance data, leaving shared archetypes unchanged.
-//   Reset replaces all fields so a reused entity cannot inherit contacts or hints.
+//   Stores one Hunter life, beliefs, light reactions and committed attack identities.
+//   Per-instance curses and cooldowns stay outside shared profile assets.
+//   Reset removes contacts, light traces and unavailable rooms from the previous life.
 // ARCHITECTURAL ROLE:
-//   BehaviorState (§3) · Domain · Hunter.
+//   BehaviorState (section 3) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Describe owned state and expose only read access across system boundaries.
+//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Keep per-life state separate from shared configuration and foreign systems.
 // DEPENDENCIES:
-//   - Core shared facts and the owning Hunter system only.
+//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
+//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
-//   Scene-owned state; no event publication, engine calls, or independent simulation loop.
+//   Owned by HunterController; passive data only and no event publication.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -38,6 +40,29 @@ namespace Worsen.Domain.Hunter
         public HunterAction CurrentAction => Action;
         public float PhaseSeconds { get; internal set; }
         public Vector3 LungeDirection { get; internal set; }
+        public FlashlightSample Flashlight { get; internal set; }
+        public bool LightObserved { get; internal set; }
+        public bool DirectlyIlluminated { get; internal set; }
+        public Vector3 LastLightPosition { get; internal set; }
+        public float LightMemoryRemaining { get; internal set; }
+        internal float LightExposure;
+        internal float LightReactionRemaining;
+        internal float LightReactionCooldown;
+        internal Vector3 LightReactionTarget;
+        internal float StepDistance;
+        internal float FootstepCooldown;
+        internal float ScreamCooldown;
+        internal readonly Queue<HunterFeedbackKind> Feedback = new Queue<HunterFeedbackKind>();
+        internal FlashlightSample Afterimage;
+        internal float AfterimageRemaining;
+        internal readonly HashSet<int> UnavailableRoomIds = new HashSet<int>();
+        internal readonly List<Bounds> UnavailableRooms = new List<Bounds>();
+        internal ProgressionTraits Traits;
+        internal readonly HashSet<int> FiredRangedAttacks = new HashSet<int>();
+        internal readonly HashSet<int> AcceptedRangedAttacks = new HashSet<int>();
+        internal Vector3 AttackTarget;
+        public int AttackSerial { get; internal set; }
+        internal bool AttackBecameActive;
         internal bool LungeHitAccepted;
         internal bool SensorInitialized;
         internal bool PlayerHeard;
@@ -48,6 +73,7 @@ namespace Worsen.Domain.Hunter
         internal long LastNoiseTick = -1;
         internal float DeltaTime;
         internal Vector3 NavigationTarget;
+        public Vector3 CurrentTarget => NavigationTarget;
         internal bool HasPatrolTarget;
         internal float SearchSeconds;
         internal ulong PlannedFacts = ulong.MaxValue;

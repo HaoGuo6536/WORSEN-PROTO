@@ -12,6 +12,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own Driver configuration and symmetric enable/disable event routing.
+//   - Republish Core audio feedback for UI navigation and intent; purchases sound only after Session commits.
+//   - Forward an optional terminal reveal delay without delaying authoritative death.
 //   - Expose snapshot, hide and lifecycle commands without game rules.
 //
 // DEPENDENCIES:
@@ -41,6 +43,7 @@ namespace Worsen.Presentation.ProgressionUI
         public event Action<string, int> PurchaseRequested;
         public event Action<int> ContinueRequested;
         public event Action<int> RestartRequested;
+        public event Action<CueId> Feedback;
 
         public void Initialize(ProgressionUIDriverConfig config = null)
         {
@@ -56,6 +59,7 @@ namespace Worsen.Presentation.ProgressionUI
         }
 
         public void SetSnapshot(ProgressionSnapshot snapshot) { if (_driver != null) _driver.SetSnapshot(snapshot); }
+        public void DeferTerminal(float seconds) { if (_driver != null) _driver.DeferTerminal(seconds); }
         public void Hide() { if (_driver != null) _driver.Hide(); }
         public void Teardown()
         {
@@ -87,6 +91,7 @@ namespace Worsen.Presentation.ProgressionUI
             _driver.PurchaseClicked += OnPurchaseClicked;
             _driver.ContinueClicked += OnContinueClicked;
             _driver.RestartClicked += OnRestartClicked;
+            _driver.Feedback += OnFeedback;
         }
         private void UnwireEvents()
         {
@@ -96,7 +101,9 @@ namespace Worsen.Presentation.ProgressionUI
             _driver.PurchaseClicked -= OnPurchaseClicked;
             _driver.ContinueClicked -= OnContinueClicked;
             _driver.RestartClicked -= OnRestartClicked;
+            _driver.Feedback -= OnFeedback;
         }
+        private void OnFeedback(CueId cue) => Feedback?.Invoke(cue);
         private void OnThreatChosen(string id, int revision) => ChooseThreatRequested?.Invoke(id, revision);
         private void OnCurseChosen(string id, int revision) => ChooseCurseRequested?.Invoke(id, revision);
         private void OnPurchaseClicked(string id, int revision) => PurchaseRequested?.Invoke(id, revision);

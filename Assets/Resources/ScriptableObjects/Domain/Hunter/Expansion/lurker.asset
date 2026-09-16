@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25ce58078307f234cb8b967f4f0dbd0a, type: 3}
+  m_Name: lurker
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.HunterProfile
+  _archetypeKey: lurker
+  _prefab: {fileID: 3088260719861184564, guid: 848a313f6eeb607428bd56eb4ea56f87, type: 3}
+  _acceleration: 20
+  _turnRate: 240
+  _chaseSpeedMultiplier: 1.05
+  _patrolSpeed: 3
+  _sightConeDegrees: 110
+  _sightRange: 30
+  _sensorIntervalTicks: 4
+  _hearingRange: 18
+  _hearingThreshold: 0.08
+  _noiseMaxAgeSeconds: 0.5
+  _memoryDecaySeconds: 8
+  _beliefFreshSeconds: 3
+  _lungeWindupSeconds: 0.45
+  _lungeActiveSeconds: 0.3
+  _lungeRecoverySeconds: 1.1
+  _lungeDistance: 4
+  _maximumMeleeElevation: 0.45
+  _lungeSpeed: 18
+  _lungeDamage: 30
+  _arrivalRadius: 1
+  _searchSeconds: 2
+  _cutOffPredictionSeconds: 1.5
+  _lightResponse: 1
+  _lightMemorySeconds: 3
+  _lightReactionSeconds: 0.8
+  _lightReactionCooldownSeconds: 3
+  _lightExposureSeconds: 0.12
+  _lightReactionDistance: 3
+  _screamOnDetection: 1
+  _attackScreamChance: 0.15
+  _screamCooldownSeconds: 14
+  _attackStyle: 0
+  _rangedAttackDistance: 15
+  _projectileSpeed: 11
+  _projectileRadius: 0.22
+  _spikeRadius: 1.5

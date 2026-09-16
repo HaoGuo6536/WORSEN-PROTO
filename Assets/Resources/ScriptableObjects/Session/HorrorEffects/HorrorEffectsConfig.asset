@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0180bc3d206f47340af8af04e3e9685f, type: 3}
+  m_Name: HorrorEffectsConfig
+  m_EditorClassIdentifier: Worsen.Session::Worsen.Session.HorrorEffects.HorrorEffectsConfig
+  flashlightRange: 18
+  flashlightCone: 52
+  shutteredConeMultiplier: 0.58
+  afterimageLifetime: 1.8
+  echoDelay: 1.2
+  echoLoudness: 1.2
+  hardLandingStumbleThreshold: 0.3
+  borrowedStepDelay: 2.1
+  borrowedStepInterval: 0.65
+  borrowedStepDistance: 1.2
+  borrowedStepLoudness: 0.7
+  gildedLoudness: 1.6
+  optionalRoomInterval: 18
+  flameRadius: 7
+  flameDimMultiplier: 0.4
+  flamePositionInterval: 0.25
+  feltSolesMultiplier: 0.4
+  climberRecoveryMultiplier: 0.75
+  sealedWindowMultiplier: 0.4
+  maximumPendingNoises: 24
+  maximumOptionalRooms: 128
+  maximumChalkMarks: 256

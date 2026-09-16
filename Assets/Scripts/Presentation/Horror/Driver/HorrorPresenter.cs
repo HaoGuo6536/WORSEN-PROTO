@@ -10,6 +10,7 @@
 //   Presenter (§7b) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Validate authoritative light samples and preserve exact gameplay range.
 //   - Convert effect multipliers into real fog distances and flashlight reach.
 //   - Compute warning color, contracting ring, directional pose and one growl per windup.
 //
@@ -44,13 +45,32 @@ namespace Worsen.Presentation.Horror
             state.FogCurveEnd = Mathf.Clamp(fogFar / farClip, state.FogCurveStart + 0.001f, 1f);
             state.FlashlightRange = Mathf.Clamp(
                 PositiveOr(settings.FlashlightRange, 1f) * state.FlashlightMultiplier, 0.01f, farClip);
+            if (state.HasAuthoritativeFlashlight) state.FlashlightRange = state.AuthoritativeFlashlight.Range;
             state.FlashlightIntensity = NonNegativeOr(settings.FlashlightIntensity, 0f);
         }
 
-        public void ToggleFlashlight(HorrorDriverState state) => state.FlashlightEnabled = !state.FlashlightEnabled;
+        public bool SetFlashlight(HorrorDriverState state, FlashlightSample sample)
+        {
+            if (!sample.Source.IsValid || !Finite(sample.Origin) || !Finite(sample.Direction)
+                || sample.Direction.sqrMagnitude < 0.0001f || float.IsNaN(sample.Range)
+                || float.IsInfinity(sample.Range) || sample.Range < 0f || sample.Range > 1000f
+                || float.IsNaN(sample.ConeDegrees) || float.IsInfinity(sample.ConeDegrees)
+                || sample.ConeDegrees < 1f || sample.ConeDegrees > 179f) return false;
+            if (state.HasAuthoritativeFlashlight && sample.Source == state.AuthoritativeFlashlight.Source
+                && sample.Tick < state.AuthoritativeFlashlight.Tick) return false;
+            state.HasAuthoritativeFlashlight = true;
+            state.AuthoritativeFlashlight = sample;
+            state.FlashlightEnabled = sample.Enabled;
+            return true;
+        }
+
+        public void ToggleFlashlight(HorrorDriverState state)
+        { if (!state.HasAuthoritativeFlashlight) state.FlashlightEnabled = !state.FlashlightEnabled; }
 
         public void ResetRound(HorrorDriverState state)
         {
+            state.HasAuthoritativeFlashlight = false;
+            state.AuthoritativeFlashlight = default;
             state.FlashlightEnabled = true;
             state.Attacks.Clear();
         }

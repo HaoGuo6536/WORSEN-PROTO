@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2691957692d5f94689ce94c955cf54d, type: 3}
+  m_Name: EnvironmentDriverConfig
+  m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Environment.EnvironmentDriverConfig
+  _wallTorchPrefab: {fileID: 7352538865242720557, guid: a04fc2803ee1d644792ac393a63bb1f6, type: 3}
+  _firePrefab: {fileID: 3282076405706618199, guid: 5f487b0aebbcb6c4d8f8f2ddfb4eeadb, type: 3}
+  _wallDecorationPrefabs:
+  - {fileID: 6048718885073179262, guid: b7d5e2ca9b1255b4f8c97bbbd8411998, type: 3}
+  - {fileID: 7570209312610243936, guid: 1578e0c27bdfe45479291a763048c9e8, type: 3}
+  - {fileID: 155418687324701982, guid: 973abcb182e3f594cbc1a683c8b9646b, type: 3}
+  _doorArchPrefab: {fileID: 1896082038722128342, guid: 3c5c7b0e1d376b448903eb0be910d57c, type: 3}
+  _cornerColumnPrefab: {fileID: 6814349714555985266, guid: 3608825bdabef95449de9b607cf19fa7, type: 3}
+  _floorPropPrefabs:
+  - {fileID: 2172189657851771120, guid: b1a1dd858afdd424d8a1d83cd6aef695, type: 3}
+  - {fileID: 7801550674377613391, guid: ae55865c7840d8244b49450027acf299, type: 3}
+  - {fileID: 7475490651564548137, guid: 356adb8030612504b82fd90eccf3c06a, type: 3}
+  _merchantDisplayPrefab: {fileID: 7475490651564548137, guid: 356adb8030612504b82fd90eccf3c06a, type: 3}
+  _lumenLanternPrefab: {fileID: 1815986115497639496, guid: b2c378c894c0e47479e4c02ef1dbe420, type: 3}
+  _lumenMoonPrefab: {fileID: 6625318437860587032, guid: 01e1386f72e4aa646bbf42e4195372c1, type: 3}
+  _lightTemplate: {fileID: 0}
+  _warmColor: {r: 1, g: 0.57, b: 0.25, a: 1}
+  _moonColor: {r: 0.34, g: 0.52, b: 0.8, a: 1}
+  _torchIntensity: 2.4
+  _lightRange: 7
+  _maximumLumenEffects: 12
+  _maximumRealtimeLights: 0
+  _maximumShadowLights: 0
+  _effectDistance: 60
+  _refreshInterval: 0.1
+  _lumenRangeMultiplier: 1
+  _lumenBrightness: 0.95
+  _lumenFlareScale: 0.7

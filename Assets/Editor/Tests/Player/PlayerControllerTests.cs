@@ -11,6 +11,9 @@
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Verify traversal admission, fixed locks and outcomes under the per-tick speed cap.
+//   - Verify Q head input survives vault/mantle admission and continuation without changing trajectory or lock.
+//   - Verify committed posture/sprint facts, clearance-safe held crouch and replay/reset parity.
+//   - Verify heavy slide turns, unchanged free-look steering and independent slowdown effects.
 //   - Verify hold-to-sprint, uphill landing recovery and clearance-safe slide cancellation.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
@@ -61,6 +64,113 @@ namespace Worsen.Tests.Player
             Assert.That(Speed, Is.EqualTo(_profile.SprintSpeed).Within(0.0001f));
             for (int i = 0; i < 60; i++) _controller.Tick(Frame(Vector2.up), Ground, Dt, i + 120);
             Assert.That(Speed, Is.EqualTo(_profile.WalkSpeed).Within(0.0001f));
+        }
+
+        [Test]
+        public void HeldCrouchCommitsLowPostureAndOnlyStandsAfterClearRelease()
+        {
+            var held = Frame(held: InputButtons.Crouch);
+            CommitAction(held, Ground, Vector3.zero, true, 1);
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.True);
+            Assert.That(_state.LastMovementSample.IsSprinting, Is.False);
+            CommitAction(Frame(), new MovementProbe(true, Vector3.up, standingBlocked: true), Vector3.zero, true, 2);
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.True, "Blocked release cannot stand through the ceiling.");
+            CommitAction(Frame(), Ground, Vector3.zero, true, 3);
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.False);
+        }
+
+        [Test]
+        public void HeldCrouchDoesNotPreventJumpAndSlideExpiryKeepsItsLowPosture()
+        {
+            _controller.Tick(Frame(held: InputButtons.Crouch), Ground, Dt, 1);
+            var jump = _controller.Tick(Frame(pressed: InputButtons.Jump, held: InputButtons.Crouch), Ground, Dt, 2);
+            Assert.That(jump.Crouched, Is.False);
+            Assert.That(Array.Exists(jump.Facts, fact => fact.Kind == TraversalKind.Jump && fact.Succeeded), Is.True);
+            _controller.Reset(new EntityId(1), Vector3.zero, 0f);
+            _state.Velocity = Vector3.forward * 8f;
+            _controller.Tick(Frame(Vector2.up, InputButtons.Crouch, InputButtons.Crouch), Ground, Dt, 1);
+            var expired = _controller.Tick(Frame(held: InputButtons.Crouch), Ground, _profile.SlideDuration + Dt, 2);
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
+            Assert.That(expired.Crouched, Is.True);
+            Assert.That(_controller.Tick(Frame(), Ground, Dt, 3).Crouched, Is.False);
+            _state.Velocity = Vector3.forward * 8f;
+            _controller.Tick(Frame(Vector2.up, InputButtons.Crouch, InputButtons.Crouch), Ground, Dt, 4);
+            var cancelled = _controller.Tick(Frame(pressed: InputButtons.Jump, held: InputButtons.Crouch), Ground, Dt, 5);
+            Assert.That(cancelled.Crouched, Is.False, "Successful slide-jump cancellation has standing clearance and overrides held C while airborne.");
+        }
+
+        [TestCase(0f, true, true, true, false, false)]
+        [TestCase(2f, true, true, true, false, false)]
+        [TestCase(8f, true, true, true, false, true)]
+        [TestCase(8f, true, false, true, false, false)]
+        [TestCase(8f, true, true, false, false, false)]
+        [TestCase(8f, false, true, true, false, false)]
+        [TestCase(8f, true, true, true, true, false)]
+        public void SprintFactRequiresAchievedGroundMotionAndUprightSprintInput(float speed, bool grounded,
+            bool movingInput, bool sprintHeld, bool crouched, bool expected)
+        {
+            InputButtons held = (sprintHeld ? InputButtons.Sprint : InputButtons.None)
+                | (crouched ? InputButtons.Crouch : InputButtons.None);
+            _state.Velocity = Vector3.forward * 8f;
+            CommitAction(Frame(movingInput ? Vector2.up : Vector2.zero, held: held), Ground,
+                Vector3.forward * speed, grounded, 1);
+            Assert.That(_state.LastMovementSample.IsSprinting, Is.EqualTo(expected));
+            Assert.That(_state.IsSprinting, Is.EqualTo(expected));
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.EqualTo(crouched));
+        }
+
+        [Test]
+        public void SlideAndModifiedSprintFactsRemainDistinctAndResetWithTheLife()
+        {
+            _state.Velocity = Vector3.forward * 8f;
+            CommitAction(Frame(Vector2.up, InputButtons.Crouch, InputButtons.Sprint | InputButtons.Crouch), Ground,
+                Vector3.forward * 10f, true, 1);
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.True);
+            Assert.That(_state.LastMovementSample.IsSprinting, Is.False);
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            _controller.SetGrabSpeedMultiplier(0.25f);
+            CommitAction(Frame(Vector2.up, held: InputButtons.Sprint), Ground, Vector3.forward * 2f, true, 2);
+            Assert.That(_state.LastMovementSample.IsSprinting, Is.True, "Achieved pace compares against the same modifier-scaled walking speed.");
+            _controller.ApplyHit(_profile.MaximumHealth);
+            Assert.That(_state.IsSprinting, Is.False);
+            _controller.Reset(new EntityId(3), Vector3.zero, 0f);
+            Assert.That(_state.IsSprinting || _state.Crouched, Is.False);
+            Assert.That(_state.LastMovementSample.IsSprinting || _state.LastMovementSample.IsCrouched, Is.False);
+        }
+
+        [Test]
+        public void RecordedActionFactsReplayExactlyWithoutNewCaptureFields()
+        {
+            var inputs = new[] { Frame(held: InputButtons.Crouch), Frame(), Frame(Vector2.up, held: InputButtons.Sprint), Frame(Vector2.up, held: InputButtons.Sprint) };
+            var velocities = new[] { Vector3.zero, Vector3.zero, Vector3.forward * 8f, Vector3.zero };
+            var records = new InputProbeRecord[inputs.Length];
+            var samples = new PlayerMovementSample[inputs.Length];
+            for (int index = 0; index < inputs.Length; index++)
+            {
+                records[index] = CommitAction(inputs[index], Ground, velocities[index], true, index + 1);
+                samples[index] = _state.LastMovementSample;
+            }
+            _controller.Reset(new EntityId(1), Vector3.zero, 0f);
+            for (int index = 0; index < records.Length; index++)
+            {
+                _controller.Replay(records[index]);
+                Assert.That(_state.LastMovementSample.IsCrouched, Is.EqualTo(samples[index].IsCrouched));
+                Assert.That(_state.LastMovementSample.IsSprinting, Is.EqualTo(samples[index].IsSprinting));
+                Assert.That(_state.LastMovementSample.Position, Is.EqualTo(samples[index].Position));
+            }
+        }
+
+        private InputProbeRecord CommitAction(InputFrame input, MovementProbe probe, Vector3 resolvedVelocity, bool grounded, long tick)
+        {
+            var decision = _controller.Tick(input, probe, Dt, tick);
+            var position = _state.Position + resolvedVelocity * Dt;
+            var resolution = new MovementResolution(position, resolvedVelocity, grounded, false,
+                position + Vector3.up * (decision.Crouched ? 0.8f : 1.6f));
+            var record = new InputProbeRecord(InputProbeRecord.CurrentSchemaVersion, tick, input, probe, Dt, resolution);
+            _controller.CommitPose(new PlayerMoveResult(position, resolvedVelocity, grounded, false));
+            _controller.CommitFrame(resolution.EyePosition, record, decision.Facts);
+            return record;
         }
 
         [TestCase(5.999f, false)]
@@ -213,8 +323,46 @@ namespace Worsen.Tests.Player
             Assert.That(_state.LookBack, Is.False);
         }
 
+        [TestCase(1f, 0.25f)]
+        [TestCase(1.5f, 0.35f)]
+        public void HeldFreeLookSurvivesTraversalWhileTrajectoryAndLockMatchForwardView(float height, float duration)
+        {
+            var baselineState = new PlayerBehaviorState();
+            var baseline = new PlayerController(baselineState, _profile, new System.Random(77));
+            baseline.Reset(new EntityId(1), Vector3.zero, 90f);
+            _controller.Reset(new EntityId(1), Vector3.zero, 90f);
+            _state.Velocity = baselineState.Velocity = Vector3.right * 8f;
+            var probe = new MovementProbe(true, Vector3.up, vaultCandidate: true,
+                vaultHeight: height, vaultClearance: 1.8f, vaultTarget: new Vector3(2f, height, 0f));
+            int steps = Mathf.RoundToInt(duration / Dt);
+            for (int index = 0; index < steps; index++)
+            {
+                InputButtons pressed = index == 0 ? InputButtons.Jump : InputButtons.None;
+                var look = new Vector2(index == 0 ? 165f : 0.5f, 2f);
+                var actual = _controller.Tick(Frame(Vector2.up, pressed, InputButtons.LookBack, look), probe, Dt, index + 1);
+                var expected = baseline.Tick(Frame(Vector2.up, pressed), probe, Dt, index + 1);
+                Assert.That(_state.LookBack, Is.True, "Q must survive admission and every locked traversal tick.");
+                Assert.That(_state.HeadingDegrees, Is.EqualTo(90f));
+                Assert.That(_state.HeadLookDelta, Is.EqualTo(look));
+                Assert.That(actual.Traversing, Is.True);
+                Assert.That(actual.TraversalStart, Is.EqualTo(expected.TraversalStart));
+                Assert.That(actual.TraversalTarget, Is.EqualTo(expected.TraversalTarget));
+                Assert.That(actual.TraversalHeight, Is.EqualTo(expected.TraversalHeight));
+                Assert.That(actual.TraversalProgress, Is.EqualTo(expected.TraversalProgress));
+                Assert.That(_state.InputLockSeconds, Is.EqualTo(baselineState.InputLockSeconds));
+                Assert.That(_state.InputLockSeconds, Is.EqualTo(duration - index * Dt).Within(0.000001f));
+                Assert.That(_state.VaultExitVelocity, Is.EqualTo(baselineState.VaultExitVelocity));
+            }
+            Assert.That(_state.VaultRemaining, Is.Zero);
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
+            _controller.Tick(Frame(look: new Vector2(7f, 0f)), default, Dt, steps + 1);
+            Assert.That(_state.LookBack, Is.False);
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(97f));
+            Assert.That(_state.InputLockSeconds, Is.Zero);
+        }
+
         [Test]
-        public void LookBackReducesLateralAirAuthorityButKeepsForwardInput()
+        public void LookBackPreservesLateralAirAuthorityAndForwardInput()
         {
             _state.MovementState = MovementState.Air;
             _state.Velocity = Vector3.forward * 8f;
@@ -224,7 +372,47 @@ namespace Worsen.Tests.Player
             _state.MovementState = MovementState.Air;
             _state.Velocity = Vector3.forward * 8f;
             _controller.Tick(Frame(Vector2.right), default, 0.1f, 1);
-            Assert.That(reduced, Is.GreaterThan(0f).And.LessThan(_state.Velocity.x * 0.4f));
+            Assert.That(reduced, Is.EqualTo(_state.Velocity.x).Within(0.0001f));
+        }
+
+        [Test]
+        public void SlideSteeringIsHeavyAndCannotGainSpeedOrRenewDuration()
+        {
+            _state.Velocity = Vector3.forward * 8f;
+            _controller.Tick(Frame(Vector2.up, InputButtons.Crouch), Ground, Dt, 1);
+            float speed = _state.Velocity.magnitude, remaining = _state.SlideRemaining;
+            Vector3 before = _state.Velocity;
+            _controller.Tick(Frame(Vector2.right, InputButtons.Crouch, InputButtons.LookBack, new Vector2(170f, 0f)), Ground, 0.1f, 2);
+            Assert.That(Vector3.SignedAngle(before, _state.Velocity, Vector3.up), Is.InRange(0.1f, 4.001f));
+            Assert.That(_state.Velocity.magnitude, Is.LessThanOrEqualTo(speed));
+            Assert.That(_state.SlideRemaining, Is.LessThan(remaining));
+            Assert.That(_state.HeadingDegrees, Is.Zero);
+        }
+
+        [Test]
+        public void SlideCannotRestoreMomentumLostToCollision()
+        {
+            _state.Velocity = Vector3.forward * 8f;
+            _controller.Tick(Frame(Vector2.up, InputButtons.Crouch), Ground, Dt, 1);
+            _controller.CommitPose(new PlayerMoveResult(Vector3.zero, Vector3.forward * 2f, true, false));
+            _controller.Tick(Frame(Vector2.right), Ground, Dt, 2);
+            Assert.That(_state.Velocity.magnitude, Is.LessThanOrEqualTo(2.0001f));
+        }
+
+        [Test]
+        public void GrabSlowKeepsEscapeAuthorityAndResetClearsPerks()
+        {
+            _controller.SetMovementEffects(0.2f, 0.8f, 1f);
+            _controller.SetGrabSpeedMultiplier(0f);
+            _controller.Tick(Frame(Vector2.up), Ground, 0.2f, 1);
+            Assert.That(_state.Velocity.z, Is.EqualTo(_profile.WalkSpeed * 0.25f).Within(0.0001f));
+            Assert.That(_state.FootstepNoiseMultiplier, Is.EqualTo(0.2f));
+            _controller.SetGrabSpeedMultiplier(1f);
+            Assert.That(_state.ReboundCooldownMultiplier, Is.EqualTo(0.8f));
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            Assert.That(_state.FootstepNoiseMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.ReboundCooldownMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.GrabSpeedMultiplier, Is.EqualTo(1f));
         }
 
         [TestCase(11.999f, 10f, MovementState.Ground, 0f)]

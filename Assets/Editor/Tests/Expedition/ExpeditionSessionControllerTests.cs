@@ -9,6 +9,7 @@
 //   Tests (§11) · Editor · Expedition.
 // KEY RESPONSIBILITIES:
 //   - Exercise duplicate/stale events, cleanup admission and failed generation.
+//   - Verify roster identity and portal crossing admission for real retained effects.
 //   - Check shop safety, exact threat budgets and invalid loadout rejection.
 // DEPENDENCIES:
 //   - Session Expedition pure Controller/State, Core definitions, NUnit.
@@ -36,6 +37,46 @@ namespace Worsen.Tests.Expedition
             _state = new ExpeditionSessionBehaviorState();
             _controller = new ExpeditionSessionController(_state);
             _controller.Bind(SceneKey.FloorLoop);
+        }
+
+        [Test]
+        public void SelectedHunterIdentitiesSurviveSpawnPlanning()
+        {
+            var effects = new ProgressionEffects(1f, 1f, 1f, 1f, 100f, 100f, 2,
+                ProgressionTraits.SealedSills, 0, new[] { "hexer", "thorncaller" });
+            _controller.Queue(new ProgressionGenerationRequest(1, 17, 1, false, effects));
+            _controller.Begin(1);
+            var spawns = _controller.HunterSpawns("fallback", new[] { Vector3.zero, Vector3.one });
+            Assert.That(spawns[0].ArchetypeKey, Is.EqualTo("hexer"));
+            Assert.That(spawns[1].ArchetypeKey, Is.EqualTo("thorncaller"));
+            Assert.That(_controller.OptionalWindowMultiplier(), Is.EqualTo(0.4f));
+        }
+
+        [Test]
+        public void RosterBudgetMismatchRejectsRatherThanSpawningWrongModel()
+        {
+            var effects = new ProgressionEffects(1f, 1f, 1f, 1f, 100f, 100f, 2,
+                activeThreatIds: new[] { "rusher" });
+            _controller.Queue(new ProgressionGenerationRequest(1, 17, 1, false, effects));
+            _controller.Begin(1);
+            Assert.Throws<InvalidOperationException>(() => _controller.HunterSpawns("fallback", new[] { Vector3.zero, Vector3.one }));
+        }
+
+        [Test]
+        public void MarksRequireAdjacentRoomCrossingNearASharedPortal()
+        {
+            _controller.Queue(Request(threats: 0)); _controller.Begin(1);
+            _controller.RecordRooms(new[] {
+                new GeneratedRoomSample(1, new Bounds(new Vector3(0,3,0),new Vector3(12,6,12)),false,false,new[]{new Vector3(6,0,0)}),
+                new GeneratedRoomSample(2, new Bounds(new Vector3(12,3,0),new Vector3(12,6,12)),false,false,new[]{new Vector3(6,0,0)},true)});
+            var id = new EntityId(1); _controller.RecordPlayer(id); _controller.Ready();
+            PlayerMovementSample Sample(float x, long tick) => new PlayerMovementSample(id,tick,new Vector3(x,1,0),Vector3.zero,Vector3.zero,0,Vector2.zero,false,MovementState.Ground,0);
+            Assert.That(_controller.ObserveCrossing(Sample(5.5f,1),out _,out _),Is.False);
+            Assert.That(_controller.ObserveCrossing(Sample(6.5f,2),out int door,out Vector3 position),Is.True);
+            Assert.That(position,Is.EqualTo(new Vector3(6,0,0)));
+            Assert.That(door,Is.GreaterThan(0));
+            Assert.That(_controller.ObserveCrossing(Sample(0,3),out _,out _),Is.False);
+            Assert.That(_controller.OptionalRooms(),Is.EqualTo(new[]{2}));
         }
 
         [Test]

@@ -13,6 +13,10 @@
 //   - Preserve an active segment only when a fresh route validates its direction.
 //   - Permit rejected-gap recovery only from a verified, connected entry bank.
 //   - Keep terminal velocity at rest when collision resolution realizes arrival.
+//   - Reach turning waypoints before advancing so tolerance cannot cut through walls.
+//   - Align in place at a completed turn before accelerating along its outgoing leg.
+//   - Preserve corner momentum only when the Driver supplies verified arc clearance.
+//   - Advance passed intermediate waypoint planes on that same verified arc.
 // DEPENDENCIES:
 //   - HunterSteeringDriverState and UnityEngine Vector3 value data only.
 // USAGE NOTES:
@@ -42,6 +46,7 @@ namespace Worsen.Domain.Hunter
             state.Forward = Direction(forward, Vector3.forward);
             state.Corners = Array.Empty<Vector3>();
             state.CornerIndex = 0;
+            state.AlignAfterCorner = false;
             state.LungeDirection = Vector3.zero;
             state.LungeDistanceTravelled = 0f;
             state.LungeWasActive = false;
@@ -148,7 +153,7 @@ namespace Worsen.Domain.Hunter
 
         public Vector3 Tick(HunterSteeringDriverState state, float dt, float speed, float acceleration,
             float turnRateDegrees, bool recovery, bool lungeActive, Vector3 committedLungeDirection,
-            float lungeSpeed, float maximumLungeDistance, float cornerTolerance = 0.25f)
+            float lungeSpeed, float maximumLungeDistance, float cornerTolerance = 0.25f, bool clearCornerArc = false)
         {
             if (dt <= 0f || float.IsNaN(dt) || float.IsInfinity(dt)) return Vector3.zero;
             if (recovery)
@@ -175,25 +180,35 @@ namespace Worsen.Domain.Hunter
                 return displacement;
             }
             state.LungeWasActive = false;
-            return FollowPath(state, dt, Nonnegative(speed), Nonnegative(acceleration), Nonnegative(turnRateDegrees), Nonnegative(cornerTolerance));
+            return FollowPath(state, dt, Nonnegative(speed), Nonnegative(acceleration), Nonnegative(turnRateDegrees), Nonnegative(cornerTolerance), clearCornerArc);
         }
 
-        private static Vector3 FollowPath(HunterSteeringDriverState state, float dt, float speed, float acceleration, float turnRate, float cornerTolerance)
+        private static Vector3 FollowPath(HunterSteeringDriverState state, float dt, float speed, float acceleration, float turnRate, float cornerTolerance, bool clearCornerArc)
         {
             Vector3 targetDelta = Vector3.zero;
             while (state.CornerIndex < state.Corners.Length)
             {
                 targetDelta = Horizontal(state.Corners[state.CornerIndex] - state.Position);
-                float arrivalDistance = state.CornerIndex == state.Corners.Length - 1 ? 0.0001f : cornerTolerance;
-                if (targetDelta.sqrMagnitude > arrivalDistance * arrivalDistance) break;
+                float arrivalDistance = state.CornerIndex == state.Corners.Length - 1 || (!clearCornerArc && IsTurningCorner(state)) ? 0.0001f : cornerTolerance;
+                bool passedOnClearArc = clearCornerArc && PassedIntermediateCorner(state);
+                if (targetDelta.sqrMagnitude > arrivalDistance * arrivalDistance && !passedOnClearArc) break;
+                if (!clearCornerArc && IsTurningCorner(state)) state.AlignAfterCorner = true;
                 state.CornerIndex++;
             }
             bool hasCorner = state.CornerIndex < state.Corners.Length;
             float targetDistance = hasCorner ? targetDelta.magnitude : 0f;
             bool finalCorner = hasCorner && state.CornerIndex == state.Corners.Length - 1;
+            bool preciseCorner = finalCorner || (!clearCornerArc && hasCorner && IsTurningCorner(state));
             if (hasCorner) state.Forward = Turn(state.Forward, targetDelta, turnRate * dt);
+            if (hasCorner && state.AlignAfterCorner)
+            {
+                state.Velocity = Vector3.zero;
+                if (Vector3.Dot(Direction(state.Forward, Vector3.forward), Direction(targetDelta, state.Forward)) >= 0.9999f)
+                    state.AlignAfterCorner = false;
+                return Vector3.zero;
+            }
             float desiredSpeed = hasCorner ? speed : 0f;
-            if (finalCorner)
+            if (preciseCorner)
             {
                 Vector3 heading = Direction(state.Forward, Vector3.forward);
                 Vector3 targetDirection = Direction(targetDelta, state.Forward);
@@ -209,15 +224,38 @@ namespace Worsen.Domain.Hunter
             float change = difference.magnitude;
             state.Velocity += change > 0f ? difference * Math.Min(1f, acceleration * dt / change) : Vector3.zero;
             Vector3 movement = state.Velocity * dt;
-            if (finalCorner && movement.sqrMagnitude >= targetDelta.sqrMagnitude && Vector3.Dot(movement, targetDelta) > 0f &&
+            if (preciseCorner && movement.sqrMagnitude >= targetDelta.sqrMagnitude && Vector3.Dot(movement, targetDelta) > 0f &&
                 Vector3.Dot(Direction(movement, Vector3.forward), Direction(targetDelta, Vector3.forward)) > 0.99f)
             {
                 movement = targetDelta;
                 state.Velocity = Vector3.zero;
+                if (!clearCornerArc && IsTurningCorner(state)) state.AlignAfterCorner = true;
                 state.CornerIndex++;
             }
             state.Position += movement;
             return movement;
+        }
+
+        private static bool IsTurningCorner(HunterSteeringDriverState state)
+        {
+            int index = state.CornerIndex;
+            if (index <= 0 || index >= state.Corners.Length - 1) return false;
+            Vector3 incoming = Horizontal(state.Corners[index] - state.Corners[index - 1]);
+            Vector3 outgoing = Horizontal(state.Corners[index + 1] - state.Corners[index]);
+            if (incoming.sqrMagnitude <= 0.0001f || outgoing.sqrMagnitude <= 0.0001f) return false;
+            return Vector3.Dot(incoming.normalized, outgoing.normalized) < 0.99f;
+        }
+
+        private static bool PassedIntermediateCorner(HunterSteeringDriverState state)
+        {
+            int index = state.CornerIndex;
+            if (index <= 0 || index >= state.Corners.Length - 1) return false;
+            Vector3 approach = Horizontal(state.Corners[index] - state.Corners[index - 1]);
+            Vector3 past = Horizontal(state.Position - state.Corners[index]);
+            // The Driver sweeps the same inertial preview before authorizing this.
+            // Once momentum carries the actor beyond a bevel's approach plane,
+            // steering back to its small arrival circle invents an unsafe orbit.
+            return approach.sqrMagnitude > 0.0001f && Vector3.Dot(past, approach) > 0f;
         }
 
         private static Vector3 Turn(Vector3 forward, Vector3 target, float maximumDegrees)

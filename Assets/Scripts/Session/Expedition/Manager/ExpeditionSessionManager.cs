@@ -10,9 +10,11 @@
 // KEY RESPONSIBILITIES:
 //   - Bind scene-owned services explicitly and release every binding on disable.
 //   - Defer new assembly until old factory objects finish deferred destruction.
+//   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
 //   - Apply run-scoped modifiers and route completed floor facts to progression.
 //   - Announce assembled floors for the SceneRoot readiness hand-off.
 // DEPENDENCIES:
+//   - Session HorrorEffects owns retained gameplay effects; its actor and hazard binding is floor-scoped.
 //   - Session Progression owns requests/rewards; Session Run owns gameplay/capture.
 //   - Domain Procedural/Level assemble geometry; Player/Hunter factories own actors.
 //   - Domain Chase/Floor/Director provide the generated floor's gameplay services.
@@ -36,6 +38,7 @@ using Worsen.Domain.Level;
 using Worsen.Domain.Player;
 using Worsen.Domain.Procedural;
 using Worsen.Session.Progression;
+using Worsen.Session.HorrorEffects;
 using Worsen.Session.Run;
 using EntityId = Worsen.Core.EntityId;
 
@@ -55,6 +58,8 @@ namespace Worsen.Session.Expedition
         private PlayerProfile _playerProfile;
         private HunterFactory _hunterFactory;
         private HunterProfile _hunterProfile;
+        private HunterProfile[] _hunterRoster;
+        private HorrorEffectsManager _effects;
         private ChaseManager _chase;
         private ChaseConfig _chaseConfig;
         private FloorManager _floor;
@@ -69,8 +74,10 @@ namespace Worsen.Session.Expedition
         public int GenerationId => _state == null ? 0 : _state.Request.GenerationId;
         public EntityId ActivePlayerId => _state?.Player ?? EntityId.None;
         public int ActiveHunterCount => _state?.Hunters.Count ?? 0;
+        public IReadOnlyList<GeneratedRoomSample> PresentationRooms => _state?.Rooms ?? Array.Empty<GeneratedRoomSample>();
         public string LastError => _state?.Failure ?? string.Empty;
         public event Action<ProgressionGenerationRequest, Vector3, Quaternion> AssemblyReady;
+        public event Action<IReadOnlyList<GeneratedRoomSample>> RoomsReady;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -92,7 +99,8 @@ namespace Worsen.Session.Expedition
             ProceduralManager procedural, ProceduralConfig proceduralConfig, ProceduralDriverConfig proceduralDriverConfig,
             LevelManager level, PlayerFactory playerFactory, PlayerProfile playerProfile,
             HunterFactory hunterFactory, HunterProfile hunterProfile, ChaseManager chase, ChaseConfig chaseConfig,
-            FloorManager floor, FloorConfig floorConfig, DirectorManager director, DirectorConfig directorConfig, SceneKey scene)
+            FloorManager floor, FloorConfig floorConfig, DirectorManager director, DirectorConfig directorConfig, SceneKey scene,
+            HunterProfile[] hunterRoster = null, HorrorEffectsManager effects = null)
         {
             if (Instance != this || _controller == null)
                 throw new InvalidOperationException("Initialize and use the canonical Expedition Session before binding a scene.");
@@ -105,7 +113,7 @@ namespace Worsen.Session.Expedition
             _run = run; _progression = progression; _procedural = procedural;
             _proceduralConfig = proceduralConfig; _proceduralDriverConfig = proceduralDriverConfig; _level = level;
             _playerFactory = playerFactory; _playerProfile = playerProfile; _hunterFactory = hunterFactory;
-            _hunterProfile = hunterProfile; _chase = chase; _chaseConfig = chaseConfig;
+            _hunterProfile = hunterProfile; _hunterRoster = hunterRoster; _effects = effects; _chase = chase; _chaseConfig = chaseConfig;
             _floor = floor; _floorConfig = floorConfig; _director = director; _directorConfig = directorConfig;
             _controller.Bind(scene);
             if (isActiveAndEnabled) OnEnable();
@@ -119,6 +127,11 @@ namespace Worsen.Session.Expedition
             _run.HealthChanged += HandleHealth;
             _run.RunEnded += HandleRunEnded;
             _floor.OnPickupCollected += HandlePickup;
+            _floor.OnRoomDestruction += HandleDestruction;
+            _floor.OnRoomPhaseChanged += HandleRoomPhase;
+            _run.PlayerMovementPublished += HandleMovement;
+            _run.PlayerTraversalPublished += HandleTraversal;
+            _run.TickAdvanced += HandleTick;
             _subscribed = true;
         }
 
@@ -131,7 +144,10 @@ namespace Worsen.Session.Expedition
                 _progression.SnapshotChanged -= HandleSnapshot;
             }
             if (_run != null) { _run.HealthChanged -= HandleHealth; _run.RunEnded -= HandleRunEnded; }
-            if (_floor != null) _floor.OnPickupCollected -= HandlePickup;
+            if (_floor != null)
+            { _floor.OnPickupCollected -= HandlePickup; _floor.OnRoomDestruction -= HandleDestruction; _floor.OnRoomPhaseChanged -= HandleRoomPhase; }
+            if (_run != null)
+            { _run.PlayerMovementPublished -= HandleMovement; _run.PlayerTraversalPublished -= HandleTraversal; _run.TickAdvanced -= HandleTick; }
             _subscribed = false;
         }
 
@@ -150,7 +166,7 @@ namespace Worsen.Session.Expedition
             {
                 _run = null; _progression = null; _procedural = null; _proceduralConfig = null;
                 _proceduralDriverConfig = null; _level = null; _playerFactory = null; _playerProfile = null;
-                _hunterFactory = null; _hunterProfile = null; _chase = null; _chaseConfig = null;
+                _hunterFactory = null; _hunterProfile = null; _hunterRoster = null; _effects = null; _chase = null; _chaseConfig = null;
                 _floor = null; _floorConfig = null; _director = null; _directorConfig = null;
                 _controller?.ClearScene();
             }
@@ -163,6 +179,7 @@ namespace Worsen.Session.Expedition
                 if (!_controller.Queue(request)) return;
                 _run.SuspendForSceneLoad();
                 ReleaseFloor();
+                _effects?.BeginFloor(request.GenerationId, request.Effects);
                 _assembly = StartCoroutine(AssembleAfterTeardown(request.GenerationId));
             }
             catch (Exception exception) { FailAssembly(request.GenerationId, exception); }
@@ -181,10 +198,12 @@ namespace Worsen.Session.Expedition
         private void AssembleFloor()
         {
             var request = _state.Request;
-            _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round);
+            _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
+                request.IsShop, _controller.OptionalWindowMultiplier());
             if (!_procedural.IsReady || _procedural.Graph == null)
                 throw new InvalidOperationException("Procedural generation returned without a ready graph.");
             _level.InitializeGenerated(_procedural.Graph);
+            _controller.RecordRooms(_procedural.PresentationRooms);
             _run.PrepareScene(_state.Scene, request.Seed);
             _playerFactory.Configure(_playerProfile, _run.RandomSource);
             _controller.RecordPlayer(_playerFactory.Spawn(_controller.PlayerSpawn(_playerProfile.ArchetypeKey,
@@ -194,13 +213,16 @@ namespace Worsen.Session.Expedition
             player.ApplyRunModifiers(request.Effects.Health, request.Effects.MaximumHealth, request.Effects.MovementSpeedMultiplier);
 
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions);
-            _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
+            if (_hunterRoster != null && _hunterRoster.Length > 0)
+                _hunterFactory.Configure(_hunterRoster, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
+            else _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
             foreach (var spawn in spawns)
             {
                 EntityId id = _hunterFactory.Spawn(spawn);
                 _controller.RecordHunter(id);
                 if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Generated hunter failed to register.");
                 hunter.ApplyRunSpeedMultiplier(request.Effects.HunterSpeedMultiplier);
+                hunter.SetTraits(request.Effects.Traits);
             }
 
             if (request.IsShop) _run.BindGameplay(null, null, null);
@@ -213,24 +235,48 @@ namespace Worsen.Session.Expedition
                 _run.BindGameplay(_chase, _floor, _director);
             }
             _controller.Ready();
+            if (_effects != null)
+            {
+                _effects.ConfigureHazards(_progression, request.IsShop ? null : _floor);
+                _effects.SetOptionalRooms(_controller.OptionalRooms());
+                _effects.BindActors();
+            }
+            RoomsReady?.Invoke(_procedural.PresentationRooms);
             AssemblyReady?.Invoke(request, _procedural.PlayerSpawnPosition, _procedural.PlayerSpawnRotation);
             if (!_progression.ConfirmFloorReady(request.GenerationId))
                 throw new InvalidOperationException("Progression rejected readiness for the generated floor.");
         }
 
+        private void HandleDestruction(RoomDestructionSample sample) => _procedural.SetRoomDestruction(sample);
+        private void HandleRoomPhase(RoomPhaseChangedFact fact)
+        { foreach (EntityId id in _state.Hunters) if (HunterRegistry.TryGet(id, out var hunter)) hunter.SetRoomPhase(fact); }
+        private void HandleMovement(PlayerMovementSample sample)
+        {
+            _effects?.ObserveMovement(sample);
+            if (_controller.ObserveCrossing(sample, out int door, out Vector3 position)) _effects?.RecordDoorCrossed(door, position);
+        }
+        private void HandleTraversal(PlayerTraversalFact fact) => _effects?.ObserveTraversal(fact);
+        private void HandleTick(InputFrame frame, float dt, long tick) => _effects?.Tick(frame, dt, tick);
+
         private void HandleHealth(EntityId player, float health, float maximum)
         {
-            if (_controller.AcceptsGameplay(player)) _progression.RecordHealth(GenerationId, health);
+            // Commit terminal health in HandleRunEnded after a confirmed consumption fact can reach presentation.
+            if (health > 0f && _controller.AcceptsGameplay(player)) _progression.RecordHealth(GenerationId, health);
         }
 
         private void HandlePickup(PickupCollectedFact fact)
         {
             if (_controller.AcceptsGameplay(fact.PlayerId) && fact.Kind == PickupKind.GoldenCake)
+                {
                 _progression.RecordGoldenCollected(GenerationId, fact.AnchorId);
+                if (PlayerRegistry.TryGet(fact.PlayerId, out var player))
+                    _effects?.RecordGoldenCollected(fact.PlayerId, player.ReadOnlyState.Position, fact.Tick);
+            }
         }
 
         private void HandleRunEnded(RunSummary summary)
         {
+            _effects?.Suspend();
             if (summary.EndReason == RunEndReason.Unknown || !_controller.Resolve(summary.Scene)) return;
             int generationId = GenerationId;
             if (PlayerRegistry.TryGet(_state.Player, out var player) && player.ReadOnlyState != null)
@@ -241,6 +287,7 @@ namespace Worsen.Session.Expedition
 
         private void HandleSnapshot(ProgressionSnapshot snapshot)
         {
+            if (snapshot.GenerationId == GenerationId) _effects?.UpdateEffects(snapshot.Effects);
             if (_state.Phase != ExpeditionAssemblyPhase.Ready || !_state.Request.IsShop ||
                 snapshot.GenerationId != GenerationId || snapshot.Phase != ProgressionPhase.Shop) return;
             if (PlayerRegistry.TryGet(_state.Player, out var player))
@@ -250,6 +297,7 @@ namespace Worsen.Session.Expedition
         private void ReleaseFloor()
         {
             var failures = new List<Exception>();
+            if (_effects != null) { _effects.ClearHazards(); _effects.Suspend(); }
             if (_director != null) Release(_director.Teardown, failures);
             if (_floor != null) Release(_floor.Teardown, failures);
             if (_chase != null) Release(_chase.Teardown, failures);
@@ -282,7 +330,7 @@ namespace Worsen.Session.Expedition
         {
             ClearScene();
             if (Instance == this) Instance = null;
-            AssemblyReady = null;
+            AssemblyReady = null; RoomsReady = null;
         }
     }
 }

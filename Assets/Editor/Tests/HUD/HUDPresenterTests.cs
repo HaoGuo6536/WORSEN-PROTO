@@ -45,10 +45,10 @@ namespace Worsen.Tests.HUD
             Assert.That(state.DirectionDegrees, Is.Zero.Within(0.0001f));
             presenter.SetExitState(state, ExitState.Open);
             Assert.That(state.ExitText, Is.EqualTo("Exit: OPEN"));
-            Assert.That(state.DirectionCaption, Is.EqualTo("EXIT"));
+            Assert.That(state.DirectionCaption, Is.Empty);
             presenter.SetExitState(state, ExitState.Locked);
             Assert.That(state.ExitText, Is.EqualTo("Exit: LOCKED"));
-            Assert.That(state.DirectionCaption, Is.EqualTo("NEXT CAKE"));
+            Assert.That(state.DirectionCaption, Is.Empty);
         }
 
         [Test]
@@ -191,6 +191,50 @@ namespace Worsen.Tests.HUD
             presenter.ResetRunView(state);
             Assert.That(state.ChaseMode, Is.False);
             Assert.That(state.ExtraOpacity, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void CompassRetainsDirectlyAboveBelowAndBehindTargets()
+        {
+            var state = new HUDDriverState(); var presenter = new HUDPresenter();
+            presenter.SetDirection(state, Vector3.up, true);
+            Assert.That(state.DirectionVisible, Is.True);
+            Assert.That(state.DirectionPitchDegrees, Is.EqualTo(90f).Within(.001f));
+            presenter.SetDirection(state, Vector3.down, true);
+            Assert.That(state.DirectionVisible, Is.True);
+            Assert.That(state.DirectionPitchDegrees, Is.EqualTo(-90f).Within(.001f));
+            presenter.SetDirection(state, Vector3.back, true);
+            Assert.That(Mathf.Abs(state.DirectionDegrees), Is.EqualTo(180f).Within(.001f));
+            Assert.That(state.ViewDirection.z, Is.LessThan(0f));
+        }
+
+        [Test]
+        public void FreeLookRotationSupersedesMovementHeadingAndPreservesCameraPitch()
+        {
+            var state = new HUDDriverState(); var presenter = new HUDPresenter();
+            presenter.SetDirection(state, Vector3.forward, true);
+            // Camera looks right while locomotion heading remains forward.
+            presenter.SetViewRotation(state, new Quaternion(0f, .70710678f, 0f, .70710678f));
+            presenter.SetHeading(state, 0f);
+            Assert.That(state.DirectionDegrees, Is.EqualTo(-90f).Within(.001f));
+            // Camera looks upward30 degrees; the level target is now below its aim.
+            presenter.SetViewRotation(state, new Quaternion(-.25881905f, 0f, 0f, .9659258f));
+            Assert.That(state.DirectionPitchDegrees, Is.EqualTo(-30f).Within(.001f));
+        }
+
+        [Test]
+        public void InvalidCameraSamplesAndExtremeFiniteDirectionsRemainSafe()
+        {
+            var state = new HUDDriverState(); var presenter = new HUDPresenter();
+            presenter.SetViewRotation(state, new Quaternion(0f, 0f, 0f, 2f));
+            presenter.SetDirection(state, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), true);
+            Assert.That(state.ViewDirection.magnitude, Is.EqualTo(1f).Within(.001f));
+            presenter.SetViewRotation(state, new Quaternion(float.NaN, 0f, 0f, 1f));
+            presenter.SetViewRotation(state, new Quaternion(0f, 0f, 0f, 0f));
+            Assert.That(state.ViewRotation.w, Is.EqualTo(1f));
+            presenter.SetDirection(state, Vector3.up, false);
+            Assert.That(state.DirectionVisible, Is.False);
+            Assert.That(state.ViewDirection, Is.EqualTo(Vector3.zero));
         }
 
     }

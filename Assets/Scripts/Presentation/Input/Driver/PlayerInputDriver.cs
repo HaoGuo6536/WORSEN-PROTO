@@ -29,7 +29,7 @@
 //     returning to ready live input locks/hides it. UI action maps remain independent.
 //   - Changes no global Input System settings; an uninitialized duplicate owns no cursor.
 //   - Bindings: WASD/arrows or left stick move; mouse/right stick look; left Shift/left
-//   - stick press hold to sprint; Space/south jump or cancel slide; left Ctrl/east crouch; Q/right shoulder look
+//   - stick press hold to sprint; Space/south jump or cancel slide; C/east crouch/slide; Q/right shoulder look
 //   - back; E/west interact; F/left shoulder use item. The template asset is untouched.
 //   - Serialized _config wins; Resources fallback warns and uses ephemeral defaults if absent.
 //   - Gamepad turn rate uses the render elapsed time passed to the Presenter.
@@ -329,7 +329,7 @@ namespace Worsen.Presentation.Input
             _look.AddBinding("<Gamepad>/rightStick");
             AddButton("Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftStickPress");
             AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
-            AddButton("Crouch", "<Keyboard>/leftCtrl", "<Gamepad>/buttonEast");
+            AddButton("Crouch", "<Keyboard>/c", "<Gamepad>/buttonEast");
             AddButton("LookBack", "<Keyboard>/q", "<Gamepad>/rightShoulder");
             AddButton("Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             AddButton("UseItem", "<Keyboard>/f", "<Gamepad>/leftShoulder");

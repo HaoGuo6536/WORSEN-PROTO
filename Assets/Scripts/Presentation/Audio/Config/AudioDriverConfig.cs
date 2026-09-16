@@ -4,7 +4,8 @@
 //
 // PURPOSE:
 //   Holds the presentation-only tuning and clip references for the audio service.
-//   Designers can replace the audible prototype samples while preserving mixer behavior.
+//   Designers can replace prototype samples and wire a complete spatial soundscape bank.
+//   The optional bank preserves legacy fixtures while enabling synchronized adaptive music.
 //
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Presentation · Audio.
@@ -26,6 +27,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Audio
 {
@@ -41,6 +43,8 @@ namespace Worsen.Presentation.Audio
         [SerializeField, Min(0.01f)] private float _slowStepSeconds = 0.6f;
         [SerializeField, Min(0.01f)] private float _fastStepSeconds = 0.28f;
         [SerializeField, Range(0f, 1f)] private float _minimumStepSpeed = 0.04f;
+        [SerializeField] private AudioSoundscapeDriverConfig _soundscape;
+        public AudioSoundscapeDriverConfig Soundscape => _soundscape;
         [SerializeField] private AudioClip _breathLoop;
         [SerializeField] private AudioClip _hunterLoop;
         [SerializeField] private AudioCueDefinition[] _cues =

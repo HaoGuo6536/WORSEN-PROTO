@@ -11,6 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Initialize the serialized Driver and mirrored config fallback.
+//   - Forward confirmed consumption with a duration supplied by the coordinator.
 //   - Forward commands and pair Driver enable/disable and teardown.
 //
 // DEPENDENCIES:
@@ -57,6 +58,7 @@ namespace Worsen.Presentation.PostFX
         public void SetInjury(float currentHealth, float maxHealth) { if (_initialized) _driver.SetInjury(currentHealth, maxHealth); }
         public void PlayReacquireBlur() { if (_initialized) _driver.PlayReacquireBlur(); }
         public void PlayIntrusion(float seconds) { if (_initialized) _driver.PlayIntrusion(seconds); }
+        public void PlayConsumed(float seconds) { if (_initialized) _driver.PlayConsumed(seconds); }
         public void ResetEffects() { if (_initialized) _driver.ResetEffects(); }
 
         public void Teardown()

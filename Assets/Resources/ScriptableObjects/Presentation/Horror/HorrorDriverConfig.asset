@@ -12,28 +12,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ad5d1b05ae34c54da14551a2e080afe, type: 3}
   m_Name: HorrorDriverConfig
   m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Horror.HorrorDriverConfig
-  _ambientColor: {r: 0.035, g: 0.042, b: 0.041, a: 1}
-  _backgroundColor: {r: 0.006, g: 0.009, b: 0.009, a: 1}
+  _ambientColor: {r: 0.14, g: 0.16, b: 0.16, a: 1}
+  _backgroundColor: {r: 0, g: 0, b: 0, a: 1}
   _reflectionIntensity: 0.04
-  _fogColor: {r: 0.014, g: 0.023, b: 0.021, a: 1}
+  _fogColor: {r: 0, g: 0, b: 0, a: 1}
   _fogNearMeters: 8
   _fogFarMeters: 24
   _ambienceLoop: {fileID: 8300000, guid: c9cb65ec61228674abd218e8122cd4df, type: 3}
-  _ambienceGain: 0.5
+  _ambienceGain: 0
+  _lumenFlashlightPrefab: {fileID: 7346686662351987924, guid: 9a1d4f43ad1b77441a56c72af82b1c29, type: 3}
+  _lumenNearFillPrefab: {fileID: 7506791539612003830, guid: 6b50ab3340414c144b1bf1f8a52c2c57, type: 3}
   _flashlightRange: 18
   _flashlightIntensity: 7.5
   _flashlightSpotAngle: 55
   _flashlightInnerSpotAngle: 28
   _flashlightColor: {r: 0.86, g: 0.93, b: 1, a: 1}
   _flashlightLocalOffset: {x: 0.1, y: -0.08, z: 0.18}
-  _nearFillIntensity: 0.14
+  _nearFillIntensity: 0.8
   _nearFillRange: 2.6
-  _nearFillColor: {r: 0.32, g: 0.4, b: 0.5, a: 1}
+  _nearFillColor: {r: 0.55, g: 0.65, b: 0.8, a: 1}
+  _nearFillSmoothness: 0.35
+  _nearFillOffMultiplier: 0.2
   _flashlightShadowBias: 0.025
   _flashlightShadowNormalBias: 0.05
   _attackMaterial: {fileID: 2100000, guid: 3bc5af824cdadda4dbd65d3bbb3ae9b6, type: 2}
   _attackGrowl: {fileID: 8300000, guid: 674de23f9afe0474bbb2e5ae69d8c2ae, type: 3}
-  _attackGain: 0.75
+  _attackGain: 0
   _attackAudioMinDistance: 2
   _attackAudioMaxDistance: 20
   _attackRadius: 0.62

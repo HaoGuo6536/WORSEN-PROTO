@@ -12,7 +12,8 @@
     "UnityEditor.TestRunner",
     "Unity.InputSystem",
     "Unity.RenderPipelines.Core.Runtime",
-    "FronkonGames.Weird.DitherFog"
+    "FronkonGames.Weird.DitherFog",
+    "DistantLands.Lumen.Runtime"
   ],
   "includePlatforms": [
     "Editor"

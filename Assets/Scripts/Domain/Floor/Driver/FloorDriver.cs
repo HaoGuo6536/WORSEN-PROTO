@@ -2,14 +2,16 @@
 // FloorDriver.cs
 // ============================================================================
 // PURPOSE:
-//   Builds and operates Floor-owned pickups, exits, warning lights and physical room closure.
+//   Builds and operates Floor-owned pickups, exits, warning lights and staged room destruction.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Instance the configured cake slice visual independently of collection triggers.
-//   - Implement the Floor responsibility named by this file.
+//   - Tint owned golden material copies while retaining authored cake textures and alpha.
+//   - Own native Lumen fake-light warnings and exit cues without Unity Light objects.
+//   - Support staged collapse and an opt-in hinged exit that requires a real crossing.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -33,7 +35,7 @@ namespace Worsen.Domain.Floor
         private readonly FloorDriverState _state = new FloorDriverState();
         private readonly FloorPresenter _presenter = new FloorPresenter();
         public event Action<Collider, int, PickupKind> PickupContact;
-        public event Action<Collider, int> LethalContact;
+
         public event Action<Collider> ExitContact;
         public int OwnedPickupCount => _state.Pickups.Count;
         public int OwnedRoomCount => _state.Rooms.Count;
@@ -50,7 +52,7 @@ namespace Worsen.Domain.Floor
             _state.BlockerMaterial = MakeMaterial(_config.ClosedColor);
             _state.ExitMaterial = MakeMaterial(_config.ExitLockedColor);
             foreach (var room in graph.Rooms) BuildRoom(room);
-            foreach (var anchor in anchors) BuildPickup(anchor, PickupKind.Cake);
+            foreach (var anchor in anchors) { _state.Anchors.Add(anchor.Id, anchor); BuildPickup(anchor, PickupKind.Cake); }
             BuildExit(graph.ExitPosition);
             _state.Ready = true;
             _state.Root.SetActive(true);
@@ -66,6 +68,8 @@ namespace Worsen.Domain.Floor
         public void OpenExit(IReadOnlyList<LevelAnchor> anchors)
         {
             _state.ExitMaterial.color = _config.ExitOpenColor;
+            if (_state.ExitGlow != null) _state.ExitGlow.SetAppearance(_config.ExitOpenColor, _config.WarningIntensity);
+            if (_state.ExitDoor != null) _state.ExitDoor.Open();
             OnDisable();
             foreach (var anchor in anchors) BuildPickup(anchor, PickupKind.GoldenCake);
             if (isActiveAndEnabled) OnEnable();
@@ -78,8 +82,38 @@ namespace Worsen.Domain.Floor
 
         public void TickWarnings(float elapsed)
         {
+            if (_state.ExitDoor != null) _state.ExitDoor.Tick(elapsed);
             float intensity = _presenter.WarningIntensity(elapsed, _config.WarningPulsePeriod, _config.WarningIntensity);
             foreach (var room in _state.Rooms.Values) room.SetWarningIntensity(intensity);
+        }
+
+        public void ApplyDestruction(RoomDestructionSample sample, float elapsed)
+        {
+            if (_state.Rooms.TryGetValue(sample.RoomId, out var room)) room.ApplyDestruction(sample, elapsed);
+            foreach (var pickup in _state.Pickups)
+                if (pickup != null && pickup.gameObject.activeSelf && _state.Anchors.TryGetValue(pickup.AnchorId, out var anchor) &&
+                    anchor.RoomId == sample.RoomId && room != null && room.PickupOvertaken(anchor.Position)) pickup.gameObject.SetActive(false);
+        }
+        public void ApplyHandFact(CollapseHandFact fact)
+        { if (_state.Rooms.TryGetValue(fact.RoomId, out var room)) room.ApplyHandFact(fact); }
+        public void PreviewCracks(int roomId)
+        { if (_state.Rooms.TryGetValue(roomId, out var room)) room.PreviewCracks(); }
+        public bool PickupAvailable(int anchorId)
+        {
+            return _state.Anchors.TryGetValue(anchorId, out var anchor) &&
+                _state.Rooms.TryGetValue(anchor.RoomId, out var room) && !room.PickupOvertaken(anchor.Position);
+        }
+        public FloorHandProbe QueryHand(Vector3 playerPosition, int preferredRoom = 0, int preferredHand = -1)
+        {
+            if (preferredHand >= 0)
+                return _state.Rooms.TryGetValue(preferredRoom, out var preferred) ? preferred.Probe(playerPosition, preferredHand) : default;
+            FloorHandProbe closest = default;
+            foreach (var room in _state.Rooms.Values)
+            {
+                var probe = room.Probe(playerPosition);
+                if (probe.Available && (!closest.Available || probe.Distance < closest.Distance)) closest = probe;
+            }
+            return closest;
         }
 
         public FloorPathCandidate QueryPath(int anchorId, Vector3 from, Vector3 to)
@@ -102,29 +136,31 @@ namespace Worsen.Domain.Floor
             OnDisable();
             if (_state.Root != null) { _state.Root.SetActive(false); Release(_state.Root); }
             foreach (var material in _state.Materials) if (material != null) Release(material);
-            _state.Pickups.Clear(); _state.Rooms.Clear(); _state.Materials.Clear();
-            _state.Root = null; _state.Exit = null; _state.Ready = false;
+            _state.Pickups.Clear(); _state.Rooms.Clear(); _state.Materials.Clear(); _state.Anchors.Clear();
+            _state.Root = null; _state.Exit = null; _state.ExitDoor = null; _state.ExitGlow = null; _state.Ready = false;
         }
 
         private void OnEnable()
         {
             if (!_state.Ready || _state.Subscribed) return;
             foreach (var pickup in _state.Pickups) pickup.Contact += HandlePickup;
-            foreach (var room in _state.Rooms.Values) room.LethalContact += HandleLethal;
-            _state.Exit.Contact += HandleExit;
+
+            if (_state.Exit != null) _state.Exit.Contact += HandleExit;
+            if (_state.ExitDoor != null) _state.ExitDoor.Contact += HandleExit;
             _state.Subscribed = true;
         }
         private void OnDisable()
         {
             if (!_state.Subscribed) return;
             foreach (var pickup in _state.Pickups) if (pickup != null) pickup.Contact -= HandlePickup;
-            foreach (var room in _state.Rooms.Values) if (room != null) room.LethalContact -= HandleLethal;
+
             if (_state.Exit != null) _state.Exit.Contact -= HandleExit;
+            if (_state.ExitDoor != null) _state.ExitDoor.Contact -= HandleExit;
             _state.Subscribed = false;
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => PickupContact?.Invoke(other, anchor, kind);
-        private void HandleLethal(Collider other, int room) => LethalContact?.Invoke(other, room);
+
         private void HandleExit(Collider other) => ExitContact?.Invoke(other);
 
         private void BuildPickup(LevelAnchor anchor, PickupKind kind)
@@ -141,7 +177,34 @@ namespace Worsen.Domain.Floor
                 var visual = Instantiate(_config.CakePrefab, item.transform, false);
                 visual.name = "Cake Slice";
                 if (kind == PickupKind.GoldenCake)
-                    foreach (var renderer in visual.GetComponentsInChildren<Renderer>()) renderer.sharedMaterial = _state.GoldenMaterial;
+                    foreach (var renderer in visual.GetComponentsInChildren<Renderer>(true))
+                    {
+                        var materials = renderer.sharedMaterials;
+                        for (int i = 0; i < materials.Length; i++)
+                        {
+                            var source = materials[i];
+                            if (source == null) continue;
+                            // Cache one Floor-owned copy per source material. A
+                            // plain opaque gold material loses the cake's palette
+                            // and can fill transparent decoration into solid quads.
+                            string ownedName = "Floor Golden Cake " + source.GetInstanceID();
+                            var golden = _state.Materials.Find(candidate => candidate != null && candidate.name == ownedName);
+                            if (golden == null)
+                            {
+                                golden = new Material(source) { name = ownedName };
+                                foreach (string property in new[] { "_BaseColor", "_Color", "_EmissionColor" })
+                                    if (golden.HasProperty(property))
+                                    {
+                                        var color = golden.GetColor(property);
+                                        golden.SetColor(property, new Color(color.r * _config.GoldenColor.r,
+                                            color.g * _config.GoldenColor.g, color.b * _config.GoldenColor.b, color.a));
+                                    }
+                                _state.Materials.Add(golden);
+                            }
+                            materials[i] = golden;
+                        }
+                        renderer.sharedMaterials = materials;
+                    }
             }
             else
             {
@@ -155,12 +218,24 @@ namespace Worsen.Domain.Floor
         }
         private void BuildExit(Vector3 position)
         {
+            if (_config.UsePhysicalExitDoor)
+            {
+                var doorRoot = new GameObject("The Final Door");
+                doorRoot.transform.SetParent(_state.Root.transform, false); doorRoot.transform.position = position;
+                doorRoot.transform.rotation = Quaternion.Euler(0f, _config.ExitDoorYaw, 0f);
+                _state.ExitDoor = doorRoot.AddComponent<FloorExitDoor>();
+                var wood = _config.ExitDoorMaterial != null ? _config.ExitDoorMaterial : MakeMaterial(new Color(0.105f, 0.045f, 0.025f));
+                var stone = MakeMaterial(new Color(0.18f, 0.19f, 0.22f));
+                _state.ExitDoor.Configure(_config, wood, stone, _state.ExitMaterial);
+                return;
+            }
             var root = new GameObject("Walk-in Exit"); root.transform.SetParent(_state.Root.transform, false);
             root.transform.position = position + Vector3.up * (_config.ExitSize.y * 0.5f);
             var box = root.AddComponent<BoxCollider>(); box.isTrigger = true; box.size = _config.ExitSize;
             _state.Exit = root.AddComponent<FloorExitVolume>();
-            var light = root.AddComponent<Light>(); light.type = LightType.Point;
-            light.color = _config.ExitOpenColor; light.range = _config.ExitSize.magnitude; light.intensity = _config.WarningIntensity;
+            _state.ExitGlow = root.AddComponent<FloorLumenGlow>();
+            _state.ExitGlow.Configure(_config.LumenExitGlowPrefab, _config.ExitSize.magnitude,
+                _config.ExitLockedColor, 0.3f, true);
             var marker = GameObject.CreatePrimitive(PrimitiveType.Cube); marker.name = "Exit Marker";
             marker.transform.SetParent(root.transform, false); marker.transform.localPosition = Vector3.up * (_config.ExitSize.y * 0.5f);
             marker.transform.localScale = new Vector3(_config.ExitSize.x, _config.BlockerThickness, _config.BlockerThickness);
@@ -171,16 +246,10 @@ namespace Worsen.Domain.Floor
             var root = new GameObject("Collapse Room " + room.Id); root.transform.SetParent(_state.Root.transform, false);
             root.transform.position = room.Center;
             var roomVolume = root.AddComponent<RoomCollapseVolume>();
-            var blockers = new List<GameObject>();
-            foreach (var bounds in _presenter.BoundaryBlockers(room.Bounds, _config.BlockerThickness))
-            {
-                var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube); blocker.name = "Closure Door Blocker";
-                blocker.transform.SetParent(root.transform, false); blocker.transform.position = bounds.center; blocker.transform.localScale = bounds.size;
-                blocker.GetComponent<Renderer>().sharedMaterial = _state.BlockerMaterial; blockers.Add(blocker);
-            }
-            var warning = root.AddComponent<Light>(); warning.type = LightType.Point;
-            warning.range = room.Size.magnitude; warning.intensity = _config.WarningIntensity;
-            roomVolume.Configure(room.Id, room.Size, blockers.ToArray(), warning); _state.Rooms.Add(room.Id, roomVolume);
+            var warning = root.AddComponent<FloorLumenGlow>();
+            warning.Configure(_config.LumenRoomWarningPrefab, Mathf.Min(room.Size.x, room.Size.z) * 0.48f,
+                _config.WarningColor, _config.WarningIntensity, false);
+            roomVolume.Configure(room, _config, _state.BlockerMaterial, warning); _state.Rooms.Add(room.Id, roomVolume);
         }
         private Material MakeMaterial(Color color)
         {

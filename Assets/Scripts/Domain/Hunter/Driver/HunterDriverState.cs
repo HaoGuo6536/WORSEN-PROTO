@@ -2,19 +2,20 @@
 // HunterDriverState.cs
 // ============================================================================
 // PURPOSE:
-//   Retains physical probe and path refresh bookkeeping for one hunter body.
-//   Keeping this transient data separate makes teardown and reuse predictable.
+//   Stores passive transient data for the owning Hunter engine boundary.
+//   Handles, collections and movement or visual bookkeeping belong to one life.
+//   The owning Driver initializes and clears this data during entity reuse.
 // ARCHITECTURAL ROLE:
-//   DriverState (§7c) · Domain · Hunter.
+//   DriverState (section 7c) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Store the path cooldown, gravity velocity and deferred contact collection.
-//   - Retain validation-only endpoints while crossing a navigation gap.
+//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Cache a bounded, physically verified corner-arc prediction until the next path refresh.
 // DEPENDENCIES:
-//   - UnityEngine references are passive data; no game system dependencies.
+//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
+//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
-//   Scene-owned, replaced by Initialize and cleared by Teardown.
-//   Gap endpoints survive invalidation until the body leaves the crossing. They
-//   never authorize movement without fresh local crossing and target-path validation.
+//   Passive data only; no simulation or engine operations.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -24,7 +25,12 @@ namespace Worsen.Domain.Hunter
     public sealed class HunterDriverState
     {
         public readonly HunterSteeringDriverState Steering = new HunterSteeringDriverState();
+        public readonly HunterSteeringDriverState CornerPreview = new HunterSteeringDriverState();
+        public readonly RaycastHit[] CornerCastHits = new RaycastHit[32];
+        public readonly Collider[] CornerOverlaps = new Collider[16];
+        public bool ClearCornerArc;
         public readonly List<Collider> Contacts = new List<Collider>();
+        public readonly List<Bounds> UnavailableRooms = new List<Bounds>();
         public NavMeshPath Path;
         public Vector3 RepathEntry;
         public Vector3 RepathExit;

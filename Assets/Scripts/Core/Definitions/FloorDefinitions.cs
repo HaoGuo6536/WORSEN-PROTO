@@ -17,6 +17,7 @@
 //   - Core definitions and pure UnityEngine value types only.
 //
 // USAGE NOTES:
+//   Closed retains its serialized value and denotes fully consumed, not a new blocker wall.
 //   Distances are metres and durations are seconds; ticks identify committed steps.
 //   Constructors carry supplied values and perform no engine or gameplay operations.
 //
@@ -28,7 +29,7 @@ namespace Worsen.Core
 {
     public enum PickupKind { Cake, GoldenCake }
     public enum ExitState { Locked, Open }
-    public enum RoomPhase { Open, Telegraph, Closed }
+    public enum RoomPhase { Open = 0, Telegraph = 1, Closed = 2, Tearing = 3, Encroaching = 4 }
     public readonly struct PickupCollectedFact
     {
         public PickupCollectedFact(EntityId playerId, int anchorId, PickupKind kind, int cakeCount, int goldenCount, long tick)

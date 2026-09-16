@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies collection and collapse rules against explicit level and player data.
-//   Seeded selection, exact clock boundaries and terminal contacts are exercised
+//   Seeded selection, exact clock boundaries and confirmed terminal outcomes are exercised
 //   without navigation queries, scene objects or a running Unity editor.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Floor.
@@ -228,7 +228,7 @@ namespace Worsen.Tests.Floor
             var fixture = Start(graph, Config(1));
             CollectAll(fixture);
 
-            var facts = fixture.Controller.Tick(60f, 90);
+            var facts = fixture.Controller.Tick(70f, 90);
 
             CollectionAssert.AreEqual(new[] { 5, 40, 20, 30, 10 }, facts.Where(fact => fact.Phase == RoomPhase.Telegraph).Select(fact => fact.RoomId));
             CollectionAssert.AreEqual(new[] { 5, 40, 20, 30, 10 }, facts.Where(fact => fact.Phase == RoomPhase.Closed).Select(fact => fact.RoomId));
@@ -247,37 +247,29 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void TelegraphClosesAtExactlySixSecondsAndNeverBefore()
+        public void CollapseHasCrackingTearingEncroachingAndConsumedStagesAtExactBoundaries()
         {
-            var fixture = Start(SingleRoom(1), Config(1));
-            CollectAll(fixture);
-            AssertPhases(fixture.Controller.Tick(0f, 10), new[] { 1 }, new[] { RoomPhase.Telegraph });
-            Assert.That(fixture.Controller.Tick(5.5f, 11), Is.Empty);
-            Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Telegraph));
-
-            var closed = fixture.Controller.Tick(0.5f, 12);
-
-            AssertPhases(closed, new[] { 1 }, new[] { RoomPhase.Closed });
-            Assert.That(closed[0].Tick, Is.EqualTo(12));
-            Assert.That(fixture.Controller.Tick(0f, 13), Is.Empty);
+            var fixture = Start(SingleRoom(1), Config(1)); CollectAll(fixture);
+            AssertPhases(fixture.Controller.Tick(0f, 1), new[] { 1 }, new[] { RoomPhase.Telegraph });
+            Assert.That(fixture.Controller.Tick(5.5f, 2), Is.Empty);
+            AssertPhases(fixture.Controller.Tick(0.5f, 3), new[] { 1 }, new[] { RoomPhase.Tearing });
+            Assert.That(fixture.Controller.Collect(new EntityId(1), 101, PickupKind.GoldenCake, 3, out _), Is.True);
+            AssertPhases(fixture.Controller.Tick(2f, 4), new[] { 1 }, new[] { RoomPhase.Encroaching });
+            AssertPhases(fixture.Controller.Tick(6f, 5), new[] { 1 }, new[] { RoomPhase.Closed });
+            Assert.That(fixture.Controller.Tick(0f, 6), Is.Empty);
         }
-
         [Test]
-        public void LargeTickEmitsEveryTransitionAndTelegraphsBeforeClosuresAtTheSameInstant()
+        public void RoomSpacingNeverStartsNeighborBeforePreviousConsumption()
         {
-            var config = Config(1);
-            Set(config, "_collapseInterval", 6f);
+            var config = Config(1); Set(config, "_collapseInterval", 6f);
             var graph = Graph(new[] { 3, 2, 1 }, new[] { new LevelEdge(1, 1, 3, true), new LevelEdge(2, 2, 3, true) },
                 new[] { Anchor(101, 3) }, 3);
-            var fixture = Start(graph, config);
-            CollectAll(fixture);
-
-            var facts = fixture.Controller.Tick(18f, 99);
-
-            AssertPhases(facts, new[] { 1, 2, 1, 3, 2, 3 }, new[]
-            { RoomPhase.Telegraph, RoomPhase.Telegraph, RoomPhase.Closed, RoomPhase.Telegraph, RoomPhase.Closed, RoomPhase.Closed });
-            Assert.That(facts.All(fact => fact.Tick == 99), Is.True);
-            Assert.That(fixture.Controller.Tick(18f, 100), Is.Empty);
+            var fixture = Start(graph, config); CollectAll(fixture);
+            var facts = fixture.Controller.Tick(13.9f, 1);
+            Assert.That(facts.All(fact => fact.RoomId == 1), Is.True);
+            var rest = fixture.Controller.Tick(28.1f, 2);
+            Assert.That(rest.Count(fact => fact.Phase == RoomPhase.Closed), Is.EqualTo(3));
+            Assert.That(fixture.State.RoomPhases.Values.All(phase => phase == RoomPhase.Closed), Is.True);
         }
 
         [TestCase(-1f)]
@@ -315,7 +307,7 @@ namespace Worsen.Tests.Floor
         {
             var fixture = Start(SingleRoom(1), Config(1));
             CollectAll(fixture);
-            fixture.Controller.Tick(6f, 2);
+            fixture.Controller.Tick(14f, 2);
 
             Assert.That(fixture.Controller.Collect(new EntityId(1), 101, PickupKind.GoldenCake, 3, out _), Is.False);
             Assert.That(fixture.State.GoldenCakeCount, Is.Zero);
@@ -340,45 +332,34 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void LethalContactRequiresClosedKnownRoomAndLivingPlayerAndEndsOnlyOnce()
+        public void ConsumedRoomDoesNotDirectlyKillALivingPlayer()
         {
-            var fixture = Start(SingleRoom(1), Config(1), players: new IReadOnlyPlayerState[] { new PlayerFixture(1), new PlayerFixture(2, false) });
-            Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 1, out _), Is.False);
-            CollectAll(fixture);
-            fixture.Controller.Tick(0f, 2);
+            var fixture = Start(SingleRoom(1), Config(1)); CollectAll(fixture); fixture.Controller.Tick(14f, 2);
             Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 2, out _), Is.False);
-            fixture.Controller.Tick(6f, 3);
-            Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 99, 3, out _), Is.False);
-            Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(2), 1, 3, out _), Is.False);
-            Assert.That(fixture.Controller.ContactLethalRoom(EntityId.None, 1, 3, out _), Is.False);
-
-            Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 4, out var fact), Is.True);
-
-            Assert.That(fact.RoomId, Is.EqualTo(1));
-            Assert.That(fact.PlayerId, Is.EqualTo(new EntityId(1)));
-            Assert.That(fact.Tick, Is.EqualTo(4));
-            Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 5, out _), Is.False);
-            Assert.That(fixture.Controller.ContactExit(new EntityId(1), 5, out _), Is.False);
+            Assert.That(fixture.State.IsReady, Is.True);
         }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public void ClosedExitRoomAlwaysProducesLethalOutcomeRegardlessOfCallbackOrder(bool exitFirst)
+        [Test]
+        public void ConfirmedDeadRegisteredPlayerEndsOnceOnlyInAnActiveHazardRoom()
+        {
+            var player = new PlayerFixture(1);
+            var fixture = Start(SingleRoom(1), Config(1), players:new[]{player}); CollectAll(fixture);
+            player.IsAlive = false;
+            Assert.That(fixture.Controller.ContactLethalRoom(player.Id, 1, 1, out _), Is.False);
+            fixture.Controller.Tick(6f, 2);
+            Assert.That(fixture.Controller.ContactLethalRoom(player.Id, 1, 2, out var fact), Is.True);
+            Assert.That(fact.PlayerId, Is.EqualTo(player.Id));
+            Assert.That(fixture.Controller.ContactLethalRoom(player.Id, 1, 2, out _), Is.False);
+        }
+        [Test]
+        public void OptionalCracksDoNotChangeGameplayScheduleAndDeduplicate()
         {
             var fixture = Start(SingleRoom(1), Config(1));
+            Assert.That(fixture.Controller.TelegraphOptionalRoom(1), Is.True);
+            Assert.That(fixture.Controller.TelegraphOptionalRoom(1), Is.False);
+            Assert.That(fixture.Controller.TelegraphOptionalRoom(99), Is.False);
+            Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
             CollectAll(fixture);
-            fixture.Controller.Tick(6f, 2);
-
-            if (exitFirst)
-            {
-                Assert.That(fixture.Controller.ContactExit(new EntityId(1), 3, out _), Is.False);
-                Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 3, out _), Is.True);
-            }
-            else
-            {
-                Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 3, out _), Is.True);
-                Assert.That(fixture.Controller.ContactExit(new EntityId(1), 3, out _), Is.False);
-            }
+            AssertPhases(fixture.Controller.Tick(0f, 1), new[]{1},new[]{RoomPhase.Telegraph});
         }
 
         [Test]
@@ -474,8 +455,7 @@ namespace Worsen.Tests.Floor
             CollectAll(fixture);
             fixture.Controller.Collect(new EntityId(1), 101, PickupKind.GoldenCake, 2, out _);
             fixture.Controller.SelectCue(new[] { new FloorPathCandidate(0, 2f, Vector3.right) });
-            fixture.Controller.Tick(6f, 3);
-            Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 3, out _), Is.True);
+            Assert.That(fixture.Controller.ContactExit(new EntityId(1), 3, out _), Is.True);
 
             fixture.Controller.Initialize(SingleRoom(1), new IReadOnlyPlayerState[] { new PlayerFixture(2) });
 
@@ -572,7 +552,7 @@ namespace Worsen.Tests.Floor
             public float MaxDesignSpeed => 12f;
             public float Health => IsAlive ? 100f : 0f;
             public float MaxHealth => 100f;
-            public bool IsAlive { get; }
+            public bool IsAlive { get; set; }
             public bool LookBack => false;
             public MovementState MovementState => Worsen.Core.MovementState.Ground;
             public long Tick => 0;

@@ -13,7 +13,8 @@
 // DEPENDENCIES:
 //   - Core traversal interfaces/records and Procedural room/configuration values.
 // USAGE NOTES:
-//   Pure and stateless. A shortcut never replaces the mandatory walking route.
+//   Pure and stateless. Legacy partition modules remain testable; castle families
+//   are built by ProceduralCastlePresenter. A shortcut never replaces a walking route.
 //   Native navigation separately verifies that Hunter must take the longer path;
 //   no HunterRouteGate layer is used because that layer lets Hunter ignore walls.
 // ============================================================================
@@ -33,6 +34,7 @@ namespace Worsen.Domain.Procedural
             var blocks = new List<ProceduralBlock>();
             foreach (var module in layout.Modules)
             {
+                if ((int)module.Kind > (int)ProceduralModuleKind.SlidePartition) continue;
                 var room = layout.Graph.Rooms[module.RoomId - 1];
                 var center = new Vector3(room.Center.x, 0f, room.Center.z);
                 var along = module.AlongX ? Vector3.right : Vector3.forward;

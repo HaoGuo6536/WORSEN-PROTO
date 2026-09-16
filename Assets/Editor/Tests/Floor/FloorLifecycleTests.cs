@@ -124,10 +124,10 @@ namespace Worsen.Tests.Floor
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>(true);
                 var exit = fixture.Root.GetComponentInChildren<FloorExitVolume>(true);
                 Assert.That(SubscriberCount(fixture.Driver, "PickupContact", fixture.Manager), Is.EqualTo(1));
-                Assert.That(SubscriberCount(fixture.Driver, "LethalContact", fixture.Manager), Is.EqualTo(1));
+
                 Assert.That(SubscriberCount(fixture.Driver, "ExitContact", fixture.Manager), Is.EqualTo(1));
                 Assert.That(SubscriberCount(cake, "Contact", fixture.Driver), Is.EqualTo(1));
-                Assert.That(SubscriberCount(room, "LethalContact", fixture.Driver), Is.EqualTo(1));
+                Assert.That(room.GetComponentsInChildren<Collider>(true).All(value => !value.enabled), Is.True);
                 Assert.That(SubscriberCount(exit, "Contact", fixture.Driver), Is.EqualTo(1));
 
                 InvokeTrigger(cake, "OnTriggerEnter", fixture.ContactCollider);
@@ -166,7 +166,7 @@ namespace Worsen.Tests.Floor
                         {
                             if (fact.Phase == RoomPhase.Closed) teardown();
                         };
-                        operation = () => fixture.Manager.Tick(6f, 2);
+                        operation = () => fixture.Manager.Tick(14f, 2);
                     }
                     else
                     {
@@ -213,7 +213,7 @@ namespace Worsen.Tests.Floor
         }
 
         [TestCase("exit")]
-        [TestCase("lethal")]
+        [TestCase("hand")]
         public void TerminalSubscriberReinitializeKeepsTheFinalDisplayOnTheFreshRun(string terminal)
         {
             LifecycleFixture fixture = null;
@@ -235,12 +235,9 @@ namespace Worsen.Tests.Floor
                 }
                 else
                 {
-                    fixture.ContactCollider.transform.position = new Vector3(1000f, 0f, 1000f);
-                    fixture.Manager.Tick(6f, 2);
-                    Assert.That(fixture.Manager.ReadOnlyState.RoomPhases[1], Is.EqualTo(RoomPhase.Closed));
-                    fixture.Manager.OnLethalContact += _ => restart();
-
-                    Assert.DoesNotThrow(() => fixture.Manager.ContactLethalRoom(new EntityId(1), 1));
+                    fixture.Manager.Tick(14f, 2);
+                    fixture.Manager.OnCollapseHand += fact => { if (fact.Kind == CollapseHandEventKind.Escaped) restart(); };
+                    Assert.DoesNotThrow(() => fixture.Manager.CancelCollapseGrab(new EntityId(1)));
                 }
 
                 Assert.That(restarts, Is.EqualTo(1));
@@ -364,3 +361,4 @@ namespace Worsen.Tests.Floor
         public EntityId Id => new EntityId(1);
     }
 }
+

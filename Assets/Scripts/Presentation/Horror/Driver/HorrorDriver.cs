@@ -10,6 +10,7 @@
 //   Driver (§7a) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Render external light authority independently of camera shake and bank.
 //   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
 //   - Forward camera and volume wiring, apply modifiers, and completely reset warning objects.
 //
@@ -98,6 +99,15 @@ namespace Worsen.Presentation.Horror
                 foreach (HorrorAttackCueDriver cue in _state.Cues.Values) if (cue != null) cue.Stop();
         }
 
+        public void SetFlashlight(FlashlightSample sample)
+        {
+            if (_state == null || !_presenter.SetFlashlight(_state, sample)) return;
+            ApplyAtmosphere();
+        }
+
+        public void SetAfterimage(FlashlightSample sample, float lifetime)
+        { if (_atmosphere != null) _atmosphere.SetAfterimage(sample, lifetime); }
+
         public void ToggleFlashlight()
         {
             if (_state == null) return;
@@ -149,6 +159,7 @@ namespace Worsen.Presentation.Horror
             if (_state == null) return;
             ClearCues();
             _presenter.ResetRound(_state);
+            _atmosphere.ClearAfterimage();
             ApplyAtmosphere();
         }
 
@@ -175,6 +186,7 @@ namespace Worsen.Presentation.Horror
             _presenter.CalculateAtmosphere(_state, _config.Settings, _outputCamera.farClipPlane);
             _atmosphere.Apply(_state.FogCurveStart, _state.FogCurveEnd, _state.FlashlightRange,
                 _state.FlashlightIntensity, _state.FlashlightEnabled);
+            if (_state.HasAuthoritativeFlashlight) _atmosphere.SetFlashlightPose(_state.AuthoritativeFlashlight);
         }
 
         private void ClearCues()

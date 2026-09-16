@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 434583bfb63b8954dba128b82ccc4cbf, type: 3}
+  m_Name: watcher_Animation
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.HunterAnimationDriverConfig
+  _idle: {fileID: 7400028, guid: f4ef0982fd965094995be21c86d4eb5b, type: 3}
+  _walk: {fileID: 7400034, guid: f4ef0982fd965094995be21c86d4eb5b, type: 3}
+  _run: {fileID: 7400036, guid: f4ef0982fd965094995be21c86d4eb5b, type: 3}
+  _windup: {fileID: 7400158, guid: f4ef0982fd965094995be21c86d4eb5b, type: 3}
+  _attack: {fileID: 7400006, guid: f4ef0982fd965094995be21c86d4eb5b, type: 3}
+  _recovery: {fileID: 7400002, guid: f4ef0982fd965094995be21c86d4eb5b, type: 3}
+  _runThreshold: 4
+  _blendSeconds: 0.1

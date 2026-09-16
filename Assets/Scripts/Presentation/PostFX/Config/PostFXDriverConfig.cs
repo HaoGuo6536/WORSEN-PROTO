@@ -11,6 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Expose optional re-acquire blur and bounded effect strength.
+//   - Tune the delayed consumption fade without changing global renderer state.
 //   - Keep runtime envelopes out of shared assets.
 //
 // DEPENDENCIES:
@@ -37,6 +38,11 @@ namespace Worsen.Presentation.PostFX
         [SerializeField, Range(0f, 100f)] private float _intrusionDesaturation = 70f;
         [SerializeField, Range(0f, 1f)] private float _intrusionGrain = 0.5f;
         [SerializeField, Min(0f)] private float _volumePriority = 20f;
+
+        [SerializeField, Range(0f, 0.8f)] private float _consumptionFadeStart = 0.2f;
+        [SerializeField, Range(-10f, 0f)] private float _consumptionExposure = -8f;
+        public float ConsumptionFadeStart => _consumptionFadeStart;
+        public float ConsumptionExposure => _consumptionExposure;
 
         public float PeripheralChromatic => _peripheralChromatic;
         public float PeripheralDistortion => _peripheralDistortion;

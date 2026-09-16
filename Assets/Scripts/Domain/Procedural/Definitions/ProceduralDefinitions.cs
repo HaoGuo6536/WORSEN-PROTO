@@ -2,7 +2,7 @@
 // ProceduralDefinitions.cs
 // ============================================================================
 // PURPOSE:
-//   Carries generated room cells, door openings and shell blocks between the
+//   Carries generated room cells, traversal apertures and castle shell blocks between the
 //   procedural logic and engine boundary. Shared consumers receive only the
 //   existing immutable Core LevelGraph and spawn value types from the Manager.
 // ARCHITECTURAL ROLE:
@@ -22,8 +22,11 @@ namespace Worsen.Domain.Procedural
 {
     public readonly struct ProceduralDoorPlan
     {
-        public ProceduralDoorPlan(int fromRoomId, int toRoomId, Vector3 center, bool alongX)
-        { FromRoomId = fromRoomId; ToRoomId = toRoomId; Center = center; AlongX = alongX; }
+        public ProceduralDoorPlan(int fromRoomId, int toRoomId, Vector3 center, bool alongX,
+            TraversalSurfaceKind traversalKind = TraversalSurfaceKind.None)
+        { FromRoomId = fromRoomId; ToRoomId = toRoomId; Center = center; AlongX = alongX; TraversalKind = traversalKind; }
+        public TraversalSurfaceKind TraversalKind { get; }
+        public bool IsOptional => TraversalKind != TraversalSurfaceKind.None;
         public int FromRoomId { get; }
         public int ToRoomId { get; }
         public Vector3 Center { get; }
@@ -42,10 +45,15 @@ namespace Worsen.Domain.Procedural
         public Quaternion PlayerSpawnRotation { get; internal set; }
         public IReadOnlyList<Vector3> HunterSpawnPositions { get; internal set; }
         public string Manifest { get; internal set; }
+        public IReadOnlyList<GeneratedRoomSample> PresentationRooms { get; internal set; }
     }
 
     public enum ProceduralSurfaceKind { Floor, Wall, Ceiling }
-    public enum ProceduralModuleKind { VaultPartition, WindowPartition, SlidePartition }
+    public enum ProceduralModuleKind
+    {
+        VaultPartition, WindowPartition, SlidePartition,
+        TorchGallery, OpenStairHall, SplitLevelLibrary, BrokenCloister, BrokenGallery, MerchantRefuge, ExitHub
+    }
 
     public readonly struct ProceduralRoomModule
     {

@@ -14,15 +14,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Floor.FloorDriverConfig
   _pickupRadius: 0.55
   _cakePrefab: {fileID: 5849646911839023565, guid: d4e5976f84ec9a34ea5edf703b08e53e, type: 3}
+  _lumenRoomWarningPrefab: {fileID: 9212181303678681936, guid: 3ce9bf204bcd3894e98ccc99d7b88844, type: 3}
+  _lumenExitGlowPrefab: {fileID: 8198862922933775823, guid: c9d74ec9bf615a346b5ca8f17d566cdb, type: 3}
   _pickupHeight: 0.7
   _exitSize: {x: 2, y: 3, z: 2}
   _pathSampleRadius: 2
   _blockerThickness: 0.3
   _warningPulsePeriod: 0.6
-  _warningIntensity: 5
+  _warningIntensity: 2.2
   _cakeColor: {r: 1, g: 0.85, b: 0.7, a: 1}
   _goldenColor: {r: 1, g: 0.65, b: 0.02, a: 1}
-  _warningColor: {r: 1, g: 0.08, b: 0.02, a: 1}
-  _closedColor: {r: 0.18, g: 0.005, b: 0.005, a: 1}
+  _warningColor: {r: 0.26, g: 0.08, b: 0.48, a: 1}
+  _closedColor: {r: 0.014, g: 0.006, b: 0.035, a: 1}
   _exitLockedColor: {r: 0.5, g: 0.05, b: 0.03, a: 1}
   _exitOpenColor: {r: 0.1, g: 1, b: 0.3, a: 1}
+  _handPrefab: {fileID: 7833788608576970841, guid: 027584b0c8be4694fb4d7896c947effd, type: 3}
+  _crackMaterial: {fileID: 2100000, guid: c8fc22c4a9b38584885b32b99fd951d2, type: 2}
+  _mistMaterial: {fileID: 2100000, guid: de1e98ab6870dbc47ac615b500b3ad0a, type: 2}
+  _handGridWidth: 5
+  _portalInset: 0.25
+  _handVisualScale: 1
+  _usePhysicalExitDoor: 1
+  _exitDoorPrefab: {fileID: 7936330550174537739, guid: bab56727ecb87c349bd6f34314028d73, type: 3}
+  _exitDoorMaterial: {fileID: 2100000, guid: ee21c8897bad8d8438d007ddb9c465fd, type: 2}
+  _exitDoorOpeningDuration: 1.2
+  _exitDoorOpeningAngle: 100
+  _exitDoorPrefabYaw: 90
+  _exitDoorYaw: 0
+  _exitCrossingDistance: 0.35

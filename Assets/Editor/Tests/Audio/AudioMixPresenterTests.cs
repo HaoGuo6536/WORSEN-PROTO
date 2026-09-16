@@ -10,6 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Verify landing/contact sounds consume the current cadence footfall only.
 //   - Verify priority contention, interrupted fades, expiry and complete reset.
 //   - Verify fractional critical-health thresholds, proximity and cadence remain finite and bounded.
 //
@@ -47,6 +48,16 @@ namespace Worsen.Tests.Audio
             };
         }
 
+        [Test]
+        public void ContactConsumesCurrentFootfallButNextScheduledStepStillPlays()
+        {
+            _presenter.SetMovementState(_state, MovementState.Ground); _presenter.SetSpeedNormalized(_state, 1f);
+            _presenter.MarkFootContact(_state, _settings);
+            Assert.That(_presenter.Tick(_state, _settings, .016f), Is.False);
+            Assert.That(_presenter.Tick(_state, _settings, .263f), Is.False);
+            Assert.That(_presenter.Tick(_state, _settings, .002f), Is.True);
+            Assert.That(_presenter.Tick(_state, _settings, .016f), Is.False);
+        }
         [Test]
         public void LowerPriorityAndRepeatedCueCannotInterruptActiveCue()
         {

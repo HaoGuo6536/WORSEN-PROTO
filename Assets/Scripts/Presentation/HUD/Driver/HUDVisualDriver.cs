@@ -13,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Build a responsive named UI Toolkit tree and draw chrome, gauge and icons.
 //   - Pair all vector callbacks when binding, unbinding or replacing a document.
+//   - Paint a faceted white compass needle in three dimensions without a caption or render target.
 //
 // DEPENDENCIES:
 //   Own HUDDriverConfig, HUDDriverState and pure HUDGeometryPresenter only.
@@ -34,8 +35,9 @@ namespace Worsen.Presentation.HUD
         private HUDDriverConfig _config;
         private HUDDriverState _state;
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
+        private readonly HUDCompassPresenter _compass = new HUDCompassPresenter();
         private VisualElement _root, _panel, _gauge, _extra, _directionGroup, _arrow, _slots;
-        private Label _count, _exit, _caption, _overflow, _warning;
+        private Label _count, _exit, _overflow, _warning;
 
         public void Bind(VisualElement root, HUDDriverConfig config)
         {
@@ -89,12 +91,8 @@ namespace Worsen.Presentation.HUD
             _directionGroup.style.width = config.PanelWidth * 0.5f;
             _directionGroup.style.alignItems = Align.Center;
             _arrow = Element("direction-cue", _directionGroup);
-            _arrow.style.width = _arrow.style.height = config.SlotSize;
+            _arrow.style.width = _arrow.style.height = config.CompassSize;
             _arrow.generateVisualContent += PaintArrow;
-            _caption = Text("direction-caption", "NEXT CAKE", _directionGroup);
-            _caption.style.fontSize = config.SmallFontSize;
-            _caption.style.letterSpacing = 1.5f;
-            _caption.style.marginTop = config.FontSize * 0.5f;
 
             var inventory = Element("inventory-panel", _extra);
             inventory.style.position = Position.Absolute;
@@ -106,7 +104,7 @@ namespace Worsen.Presentation.HUD
             _overflow = Text("slot-overflow", "", inventory);
             _overflow.style.color = config.MutedColor;
             _overflow.style.fontSize = config.SmallFontSize;
-            var controls = Text("controls-hint", "SHIFT  RUN     SPACE  JUMP / CANCEL SLIDE     CTRL  SLIDE     F  FLASHLIGHT", _extra);
+            var controls = Text("controls-hint", "SHIFT  RUN     SPACE  JUMP / CANCEL SLIDE     C  SLIDE     Q  HOLD FREE LOOK     F  FLASHLIGHT", _extra);
             controls.style.position = Position.Absolute;
             controls.style.left = config.ScreenMargin;
             controls.style.bottom = config.ScreenMargin;
@@ -127,13 +125,12 @@ namespace Worsen.Presentation.HUD
             _extra.style.display = state.ChaseMode ? DisplayStyle.None : DisplayStyle.Flex;
             _extra.style.opacity = state.ExtraOpacity;
             _directionGroup.style.display = state.DirectionVisible ? DisplayStyle.Flex : DisplayStyle.None;
-            _arrow.style.rotate = new Rotate(new Angle(state.DirectionDegrees, AngleUnit.Degree));
-            _caption.text = state.DirectionCaption;
             _overflow.text = state.SlotOverflowText;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
             _panel.MarkDirtyRepaint();
             _gauge.MarkDirtyRepaint();
             _slots.MarkDirtyRepaint();
+            _arrow.MarkDirtyRepaint();
         }
 
         public void Unbind()
@@ -144,7 +141,7 @@ namespace Worsen.Presentation.HUD
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _gauge = _extra = _directionGroup = _arrow = _slots = null;
-            _count = _exit = _caption = _overflow = _warning = null;
+            _count = _exit = _overflow = _warning = null;
             _state = null;
             _config = null;
         }
@@ -176,10 +173,19 @@ namespace Worsen.Presentation.HUD
 
         private void PaintArrow(MeshGenerationContext context)
         {
+            if (_state == null || !_state.DirectionVisible) return;
             var painter = context.painter2D;
-            painter.fillColor = _config.TextColor;
-            Path(painter, _geometry.Arrow(_arrow.contentRect));
-            painter.Fill();
+            painter.fillColor = new Color(0f, 0f, 0f, .2f);
+            painter.strokeColor = new Color(1f, 1f, 1f, .3f);
+            painter.lineWidth = 1f;
+            Path(painter, _compass.BaseRing(_arrow.contentRect));
+            painter.Fill(); painter.Stroke();
+            foreach (HUDCompassFace face in _compass.Needle(_arrow.contentRect, _state.ViewDirection))
+            {
+                painter.fillColor = face.Color;
+                painter.BeginPath(); painter.MoveTo(face.A); painter.LineTo(face.B); painter.LineTo(face.C);
+                painter.ClosePath(); painter.Fill();
+            }
         }
 
         private void PaintSlots(MeshGenerationContext context)

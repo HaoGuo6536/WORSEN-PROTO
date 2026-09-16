@@ -2,15 +2,15 @@
 // ProgressionConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Defines the first expedition's threat, curse and shop catalog with its caps.
-//   Designers can replace the placeholder names or tune the functional effects
+//   Defines the expedition's unique curse and upgrade catalog, consumable stock and caps.
+//   Designers can tune prices and effect traits
 //   without changing wallet, selection or round-transition code.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Keep all balance values and offer descriptions in designer-owned data.
-//   - Supply safe defaults for a shop on every fourth generated floor.
-//   - Describe threat choices separately once the active hunter limit is reached.
+//   - Supply safe defaults for a shop after every two completed combat floors.
+//   - Describe five hunter identities and hunter-dependent plus general curse traits.
 // DEPENDENCIES:
 //   - Unity ScriptableObject serialization and System collection interfaces.
 // USAGE NOTES:
@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Session.Progression
 {
@@ -37,17 +38,25 @@ namespace Worsen.Session.Progression
         [SerializeField, Min(0.01f)] private float _flashlightRangeMultiplier = 1f;
         [SerializeField] private float _maximumHealthDelta;
         [SerializeField, Min(0f)] private float _healing;
+        [SerializeField] private ProgressionTraits _traits;
+        [SerializeField] private bool _repeatable;
+        [SerializeField, Min(1)] private int _stockPerVisit = 1;
+        [SerializeField] private bool _grantsWaxWard;
+        [SerializeField] private string _requiredThreatId;
 
         public ProgressionEntryConfig(string id, string title, string description, int price = 0,
             float movementSpeedMultiplier = 1f, float hunterSpeedMultiplier = 1f,
             float fogDensityMultiplier = 1f, float flashlightRangeMultiplier = 1f,
-            float maximumHealthDelta = 0f, float healing = 0f, string descriptionAtThreatCap = null)
+            float maximumHealthDelta = 0f, float healing = 0f, string descriptionAtThreatCap = null,
+            ProgressionTraits traits = ProgressionTraits.None, bool repeatable = false, int stockPerVisit = 1,
+            bool grantsWaxWard = false, string requiredThreatId = null)
         {
             _id = id; _title = title; _description = description; _price = price;
             _movementSpeedMultiplier = movementSpeedMultiplier; _hunterSpeedMultiplier = hunterSpeedMultiplier;
             _fogDensityMultiplier = fogDensityMultiplier; _flashlightRangeMultiplier = flashlightRangeMultiplier;
             _maximumHealthDelta = maximumHealthDelta; _healing = healing;
             _descriptionAtThreatCap = descriptionAtThreatCap;
+            _traits = traits; _repeatable = repeatable; _stockPerVisit = stockPerVisit; _grantsWaxWard = grantsWaxWard; _requiredThreatId = requiredThreatId;
         }
         public string Id => _id;
         public string Title => _title;
@@ -60,13 +69,18 @@ namespace Worsen.Session.Progression
         public float FlashlightRangeMultiplier => _flashlightRangeMultiplier;
         public float MaximumHealthDelta => _maximumHealthDelta;
         public float Healing => _healing;
+        public ProgressionTraits Traits => _traits;
+        public bool Repeatable => _repeatable;
+        public int StockPerVisit => _stockPerVisit;
+        public bool GrantsWaxWard => _grantsWaxWard;
+        public string RequiredThreatId => _requiredThreatId;
     }
 
     [CreateAssetMenu(menuName = "Worsen/Progression/Progression Config")]
     public sealed class ProgressionConfig : ScriptableObject
     {
-        [SerializeField, Min(2)] private int _shopInterval = 4;
-        [SerializeField, Min(1)] private int _maximumActiveThreats = 3;
+        [SerializeField, Min(2)] private int _shopInterval = 2;
+        [SerializeField, Min(1)] private int _maximumActiveThreats = 5;
         [SerializeField, Min(1)] private int _goldenCakeValue = 1;
         [SerializeField, Min(1f)] private float _initialMaximumHealth = 100f;
         [SerializeField, Min(1f)] private float _minimumMaximumHealth = 30f;
@@ -78,24 +92,45 @@ namespace Worsen.Session.Progression
         [SerializeField, Min(1f)] private float _maximumFlashlightMultiplier = 2f;
         [SerializeField] private ProgressionEntryConfig[] _threats =
         {
-            new ProgressionEntryConfig("watcher", "THE WATCHER", "An unrelenting hunter joins the expedition.",
-                descriptionAtThreatCap: "Hunter limit reached. Keep the current hunters; no additional hunter or other effect."),
-            new ProgressionEntryConfig("rusher", "THE RUSHER", "A hunter joins. All hunters move 8% faster.", hunterSpeedMultiplier: 1.08f,
-                descriptionAtThreatCap: "No additional hunter. All hunters move 8% faster, up to the speed limit."),
-            new ProgressionEntryConfig("lurker", "THE LURKER", "A hunter joins. Hunters move 4% slower, but fog thickens 12%.", hunterSpeedMultiplier: 0.96f, fogDensityMultiplier: 1.12f,
-                descriptionAtThreatCap: "No additional hunter. Hunters move 4% slower and fog thickens 12%, within their limits.")
+            new ProgressionEntryConfig("watcher", "THE WATCHER", "A patient Satyr follows remembered light and tries to cut off your route."),
+            new ProgressionEntryConfig("rusher", "THE RUSHER", "A Werewolf commits to aggressive close-range lunges."),
+            new ProgressionEntryConfig("lurker", "THE LURKER", "A Goblin slips aside from your beam and attacks from the dark."),
+            new ProgressionEntryConfig("hexer", "THE HEXER", "A hovering Fairy casts clearly signalled projectiles along your route."),
+            new ProgressionEntryConfig("thorncaller", "THE THORNCALLER", "A rooted creature warns the ground before raising deadly thorns.")
         };
         [SerializeField] private ProgressionEntryConfig[] _curses =
         {
-            new ProgressionEntryConfig("fading-light", "FADING LIGHT", "Your flashlight reaches 15% less far.", flashlightRangeMultiplier: 0.85f),
-            new ProgressionEntryConfig("restless", "RESTLESS", "Every hunter moves 6% faster.", hunterSpeedMultiplier: 1.06f),
-            new ProgressionEntryConfig("frailty", "FRAILTY", "Lose 10 maximum health for this expedition.", maximumHealthDelta: -10f)
+            new ProgressionEntryConfig("echo-debt", "ECHO DEBT", "Hard landings leave a delayed noise that hunters can investigate.", traits: ProgressionTraits.EchoDebt),
+            new ProgressionEntryConfig("afterimage", "AFTERIMAGE", "Switching off your flashlight leaves a brief light trace at your last position.", traits: ProgressionTraits.Afterimage),
+            new ProgressionEntryConfig("restless-masonry", "RESTLESS MASONRY", "Optional rooms begin cracking sooner. The escape route remains intact.", traits: ProgressionTraits.RestlessMasonry),
+            new ProgressionEntryConfig("gilded-hunger", "GILDED HUNGER", "Golden Cakes announce their collection with a sound that draws nearby hunters.", traits: ProgressionTraits.GildedHunger),
+            new ProgressionEntryConfig("borrowed-footsteps", "BORROWED FOOTSTEPS", "Your footsteps echo along your recent route after you have moved on.", traits: ProgressionTraits.BorrowedFootsteps),
+            new ProgressionEntryConfig("unquiet-flame", "UNQUIET FLAME", "Sprinting gutters nearby decorative flames; route lights keep a faint glow.", traits: ProgressionTraits.UnquietFlame),
+            new ProgressionEntryConfig("sealed-sills", "SEALED SILLS", "Some optional vault windows are sealed. Required routes and stairs remain passable.", traits: ProgressionTraits.SealedSills),
+            new ProgressionEntryConfig("rusher-long-stride", "LONG STRIDE", "The Rusher commits to a farther-reaching lunge. Sidestep its warning line.", traits: ProgressionTraits.RusherLongStride, requiredThreatId: "rusher"),
+            new ProgressionEntryConfig("rusher-second-wind", "SECOND WIND", "The Rusher recovers sooner after a missed lunge. Its next windup remains visible.", traits: ProgressionTraits.RusherSecondWind, requiredThreatId: "rusher"),
+            new ProgressionEntryConfig("rusher-blood-scent", "BLOOD SCENT", "The Rusher hears farther and remembers your last noise longer.", traits: ProgressionTraits.RusherBloodScent, requiredThreatId: "rusher"),
+            new ProgressionEntryConfig("lurker-dark-adaptation", "DARK ADAPTATION", "The Lurker sees a wider arc around itself in darkness.", traits: ProgressionTraits.LurkerDarkAdaptation, requiredThreatId: "lurker"),
+            new ProgressionEntryConfig("lurker-crooked-step", "CROOKED STEP", "The Lurker makes a stronger, longer sideways dodge when caught in your light.", traits: ProgressionTraits.LurkerCrookedStep, requiredThreatId: "lurker"),
+            new ProgressionEntryConfig("lurker-stolen-silence", "STOLEN SILENCE", "The Lurker attacks with a shorter but still readable windup.", traits: ProgressionTraits.LurkerStolenSilence, requiredThreatId: "lurker"),
+            new ProgressionEntryConfig("watcher-long-memory", "LONG MEMORY", "The Watcher remembers seen players and flashlight traces for longer.", traits: ProgressionTraits.WatcherLongMemory, requiredThreatId: "watcher"),
+            new ProgressionEntryConfig("watcher-cutting-corners", "CUTTING CORNERS", "The Watcher predicts your route earlier and aims farther ahead when cutting you off.", traits: ProgressionTraits.WatcherCuttingCorners, requiredThreatId: "watcher"),
+            new ProgressionEntryConfig("watcher-unquiet-gaze", "UNQUIET GAZE", "The Watcher sees farther and may scream as it attacks.", traits: ProgressionTraits.WatcherUnquietGaze, requiredThreatId: "watcher"),
+            new ProgressionEntryConfig("hexer-split-bolt", "SPLIT BOLT", "The Hexer fans three bolts across its warned firing line.", traits: ProgressionTraits.HexerSplitBolt, requiredThreatId: "hexer"),
+            new ProgressionEntryConfig("hexer-hasty-script", "HASTY SCRIPT", "The Hexer completes its casting warning sooner. Break line of sight before release.", traits: ProgressionTraits.HexerHastyScript, requiredThreatId: "hexer"),
+            new ProgressionEntryConfig("hexer-lingering-hex", "LINGERING HEX", "The Hexer fires slower, wider bolts that occupy your escape path longer.", traits: ProgressionTraits.HexerLingeringHex, requiredThreatId: "hexer"),
+            new ProgressionEntryConfig("thorncaller-thorn-ring", "THORN RING", "The Thorncaller raises a ring of thorns around its warned target. Move out of the marked zone.", traits: ProgressionTraits.ThorncallerThornRing, requiredThreatId: "thorncaller"),
+            new ProgressionEntryConfig("thorncaller-quick-roots", "QUICK ROOTS", "The Thorncaller shortens the ground warning before its thorns erupt.", traits: ProgressionTraits.ThorncallerQuickRoots, requiredThreatId: "thorncaller"),
+            new ProgressionEntryConfig("thorncaller-reaching-roots", "REACHING ROOTS", "The Thorncaller marks a larger eruption area before striking.", traits: ProgressionTraits.ThorncallerReachingRoots, requiredThreatId: "thorncaller")
         };
         [SerializeField] private ProgressionEntryConfig[] _offers =
         {
-            new ProgressionEntryConfig("medkit", "MEDKIT", "Restore 35 health, up to your current maximum.", price: 3, healing: 35f),
-            new ProgressionEntryConfig("running-shoes", "RUNNING SHOES", "Move 8% faster for the rest of this expedition.", price: 5, movementSpeedMultiplier: 1.08f),
-            new ProgressionEntryConfig("focus-lens", "FOCUS LENS", "Extend flashlight reach by 20% for this expedition.", price: 4, flashlightRangeMultiplier: 1.2f)
+            new ProgressionEntryConfig("shuttered-lens", "SHUTTERED LENS", "Narrow your beam to reduce incidental exposure while preserving aimed visibility.", price: 3, traits: ProgressionTraits.ShutteredLens),
+            new ProgressionEntryConfig("felt-soles", "FELT SOLES", "Quieten ordinary footsteps. Sprinting, hard landings and cursed echoes still carry.", price: 3, traits: ProgressionTraits.FeltSoles),
+            new ProgressionEntryConfig("climber-wraps", "CLIMBER'S WRAPS", "Recover control sooner after wall rebounds, within the normal movement limits.", price: 4, traits: ProgressionTraits.ClimberWraps),
+            new ProgressionEntryConfig("pilgrim-chalk", "PILGRIM'S CHALK", "Mark doorways you have crossed on this floor. Unvisited rooms remain unknown.", price: 2, traits: ProgressionTraits.PilgrimChalk),
+            new ProgressionEntryConfig("field-dressing", "FIELD DRESSING", "Restore 35 health immediately. One dressing per visit; no purchase at full health.", price: 2, healing: 35f, repeatable: true),
+            new ProgressionEntryConfig("wax-ward", "WAX WARD", "Automatically break the next shadow-hand grab. Carry one charge; one ward per visit.", price: 2, repeatable: true, grantsWaxWard: true)
         };
         public int ShopInterval => _shopInterval;
         public int MaximumActiveThreats => _maximumActiveThreats;

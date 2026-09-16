@@ -10,6 +10,7 @@
 //   Definitions (§5) · Core · shared boilerplate contracts.
 //
 // KEY RESPONSIBILITIES:
+//   - Distinguish accepted projectile and ground-spike damage while preserving prior values.
 //   - Carry explicit values across system and layer boundaries.
 //   - Preserve replay and measurement identity without engine object references.
 //
@@ -27,7 +28,7 @@ using UnityEngine;
 namespace Worsen.Core
 {
     public enum InputSource { Live, Playback }
-    public enum ChaseEndReason { Unknown, Lunge, Cornered, Lost }
+    public enum ChaseEndReason { Unknown, Lunge, Cornered, Lost, Projectile, GroundSpike }
     public enum TelemetrySampleKind
     {
         HorizontalSpeed, ChaseStarted, ChaseEnded, InputLockStarted, InputLockEnded,

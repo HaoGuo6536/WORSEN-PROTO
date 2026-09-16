@@ -11,6 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Store only transient UI text, direction, slot counts, gauge fill, and fade progress.
+//   - Retain a supplied camera orientation and full three-dimensional compass direction.
 //
 // DEPENDENCIES:
 //   - No other project systems; values are presentation copies.
@@ -28,7 +29,7 @@ namespace Worsen.Presentation.HUD
     {
         public string CountText = "Cakes: —";
         public string ExitText = "Exit: —";
-        public string DirectionCaption = "NEXT CAKE";
+        public string DirectionCaption = "";
         public string SlotOverflowText = "";
         public int DisplayedSlots;
         public float CountFraction;
@@ -38,6 +39,10 @@ namespace Worsen.Presentation.HUD
         public Vector3 WorldDirection;
         public float HeadingDegrees;
         public float DirectionDegrees;
+        public float DirectionPitchDegrees;
+        public bool HasViewRotation;
+        public Quaternion ViewRotation = Quaternion.identity;
+        public Vector3 ViewDirection;
         public bool ChaseMode;
         public float ExtraOpacity = 1f;
     }

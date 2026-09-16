@@ -10,6 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Verify terminal fade timing, invalid triggers, precedence and clean reset.
 //   - Cover bounded proximity, fractional injury and independent intrusion/blur expiry.
 //   - Verify look-back release edges, comfort toggles and reset isolation.
 //
@@ -140,6 +141,48 @@ namespace Worsen.Tests.PostFX
             _presenter.Tick(_state, _config, 0f);
             Assert.That(_state.Chromatic + _state.Vignette + _state.Grain + _state.Blur, Is.Zero);
             Assert.That(_state.LookBack, Is.False);
+        }
+
+        [Test]
+        public void ConsumptionFadesGraduallyAndRemainsBlackDespiteLaterFeedback()
+        {
+            _presenter.PlayConsumed(_state, 0.9f);
+            _presenter.Tick(_state, _config, 0.09f);
+            Assert.That(_state.Blackout, Is.Zero);
+            _presenter.Tick(_state, _config, 0.36f);
+            Assert.That(_state.Blackout, Is.InRange(0.1f, 0.9f));
+            _presenter.PlayConsumed(_state, 2f);
+            Assert.That(_state.ConsumptionElapsed, Is.EqualTo(0.45f).Within(0.0001f));
+            _presenter.Tick(_state, _config, 0.5f);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.black));
+            Assert.That(_state.Blackout, Is.EqualTo(1f));
+            _presenter.SetInjury(_state, 100f, 100f);
+            _presenter.PlayIntrusion(_state, 2f);
+            _presenter.PlayReacquireBlur(_state, _config);
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.black));
+            Assert.That(_state.Grain + _state.Blur, Is.Zero);
+            Assert.That(_state.Exposure, Is.EqualTo(-8f));
+            _presenter.Reset(_state);
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.Consumed, Is.False);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+            Assert.That(_state.Exposure + _state.Blackout, Is.Zero);
+        }
+
+        [TestCase(float.NaN)]
+        [TestCase(float.PositiveInfinity)]
+        [TestCase(-1f)]
+        [TestCase(0f)]
+        public void OrdinaryInjuryAndInvalidConsumptionDoNotBlackOut(float duration)
+        {
+            _presenter.SetInjury(_state, 0f, 100f);
+            _presenter.PlayIntrusion(_state, 1f);
+            _presenter.PlayConsumed(_state, duration);
+            _presenter.Tick(_state, _config, 1f);
+            Assert.That(_state.Consumed, Is.False);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+            Assert.That(_state.Blackout, Is.Zero);
         }
 
         [Test]

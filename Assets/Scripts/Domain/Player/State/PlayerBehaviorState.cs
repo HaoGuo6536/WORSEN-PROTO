@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Store committed sprint status separately from input intent and commanded physical posture.
+//   - Store achieved slide turn and independent perk/grab effects, reset for each life.
 //   - Store per-life movement, health and aggregate run modifiers without changing shared assets.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 // DEPENDENCIES:
@@ -48,6 +50,7 @@ namespace Worsen.Domain.Player
         public Vector2 HeadLookDelta { get; set; }
         public bool Grounded { get; set; }
         public bool Crouched { get; set; }
+        public bool IsSprinting { get; set; }
         public float JumpBufferRemaining { get; set; }
         public bool VaultAttemptResolvedForPress { get; set; }
         public float ReboundJumpRemaining { get; set; }
@@ -56,6 +59,12 @@ namespace Worsen.Domain.Player
         public int LastReboundWall { get; set; }
         public float SlideRemaining { get; set; }
         public float SlideEntrySpeed { get; set; }
+        public float SlideTurnRateDegrees { get; set; }
+        public float MovementDeltaTime { get; set; }
+        public Vector3 PreviousHorizontalVelocity { get; set; }
+        public float FootstepNoiseMultiplier { get; set; } = 1f;
+        public float ReboundCooldownMultiplier { get; set; } = 1f;
+        public float GrabSpeedMultiplier { get; set; } = 1f;
         public float StumbleRemaining { get; set; }
         public float VaultRemaining { get; set; }
         public Vector3 VaultTarget { get; set; }

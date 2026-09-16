@@ -9,6 +9,7 @@
 //   Controller (§2) · Session · Expedition.
 // KEY RESPONSIBILITIES:
 //   - Reject stale requests and preserve the queued phase during deferred cleanup.
+//   - Preserve selected hunter identities and validate real room crossings for retained perks.
 //   - Produce spawn requests and enforce the requested active hunter budget.
 //   - Commit readiness only after every required actor has been registered.
 // DEPENDENCIES:
@@ -76,13 +77,62 @@ namespace Worsen.Session.Expedition
             int count = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
             if (positions == null || positions.Count < count)
                 throw new InvalidOperationException("Generated floor has fewer hunter spawns than the active threat budget.");
+            if (!_state.Request.IsShop && _state.Request.Effects.ActiveThreatIds != null && _state.Request.Effects.ActiveThreatIds.Count != count)
+                throw new InvalidOperationException("Selected hunter identities must exactly match their budget.");
             var requests = new SpawnRequest[count];
             for (int index = 0; index < count; index++)
             {
-                ValidatePlacement(archetype, positions[index]);
-                requests[index] = new SpawnRequest(archetype, positions[index], Quaternion.identity);
+                string selected = _state.Request.Effects.ActiveThreatIds == null ? archetype : _state.Request.Effects.ActiveThreatIds[index];
+                ValidatePlacement(selected, positions[index]);
+                requests[index] = new SpawnRequest(selected, positions[index], Quaternion.identity);
             }
             return requests;
+        }
+
+        public float OptionalWindowMultiplier() => (_state.Request.Effects.Traits & ProgressionTraits.SealedSills) != 0 ? 0.4f : 1f;
+
+        public void RecordRooms(IReadOnlyList<GeneratedRoomSample> rooms)
+        {
+            RequireGenerating();
+            _state.Rooms = rooms ?? Array.Empty<GeneratedRoomSample>();
+            _state.HasPreviousPosition = false;
+        }
+
+        public int[] OptionalRooms()
+        {
+            var ids = new List<int>();
+            foreach (var room in _state.Rooms) if (room.OptionalRoom) ids.Add(room.RoomId);
+            return ids.ToArray();
+        }
+
+        public bool ObserveCrossing(PlayerMovementSample sample, out int doorId, out Vector3 position)
+        {
+            doorId = 0; position = Vector3.zero;
+            if (sample.Id != _state.Player || _state.Phase != ExpeditionAssemblyPhase.Ready) return false;
+            int current = 0;
+            foreach (var room in _state.Rooms) if (room.Bounds.Contains(sample.Position)) { current = room.RoomId; break; }
+            bool crossed = false;
+            if (_state.HasPreviousPosition && current != 0 && _state.PreviousRoom != 0 && current != _state.PreviousRoom
+                && Vector3.Distance(sample.Position, _state.PreviousPosition) < 3f)
+            {
+                Vector3 midpoint = (sample.Position + _state.PreviousPosition) * 0.5f;
+                float nearest = 4f;
+                foreach (var from in _state.Rooms) if (from.RoomId == _state.PreviousRoom && from.PortalCenters != null)
+                    foreach (var to in _state.Rooms) if (to.RoomId == current && to.PortalCenters != null)
+                        for (int i = 0; i < from.PortalCenters.Length; i++)
+                            for (int j = 0; j < to.PortalCenters.Length; j++)
+                            {
+                                Vector3 a = from.PortalCenters[i], b = to.PortalCenters[j];
+                                float distance = new Vector2(a.x-midpoint.x,a.z-midpoint.z).sqrMagnitude;
+                                if ((a-b).sqrMagnitude >= 0.01f || distance >= nearest) continue;
+                                int index = from.RoomId < to.RoomId ? i : j;
+                                doorId = Mathf.Min(from.RoomId,to.RoomId)*100000 + Mathf.Max(from.RoomId,to.RoomId)*256 + index;
+                                position = a; nearest = distance; crossed = true;
+                            }
+            }
+            _state.HasPreviousPosition = true; _state.PreviousPosition = sample.Position;
+            if (current != 0) _state.PreviousRoom = current;
+            return crossed;
         }
 
         public void RecordPlayer(EntityId id)
@@ -121,7 +171,8 @@ namespace Worsen.Session.Expedition
             !_state.Request.IsShop && player == _state.Player;
 
         public void ReleaseActors()
-        { _state.Player = EntityId.None; _state.Hunters.Clear(); }
+        { _state.Player = EntityId.None; _state.Hunters.Clear(); _state.Rooms = Array.Empty<GeneratedRoomSample>();
+          _state.HasPreviousPosition = false; _state.PreviousRoom = 0; }
 
         public void Fail(string reason)
         {

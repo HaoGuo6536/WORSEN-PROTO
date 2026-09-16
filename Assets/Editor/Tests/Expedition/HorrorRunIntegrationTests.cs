@@ -8,7 +8,8 @@
 //   Editor tool (§10) · test suite (§11) · Expedition scene integration.
 // KEY RESPONSIBILITIES:
 //   - Verify native geometry/navigation admission and growing in-place floors.
-//   - Exercise collection/exit/health callbacks and retained shop effects.
+//   - Exercise the two-combat shop cadence, unique choices and per-visit consumables.
+//   - Verify a central four-route exit hub and distinct ready animated hunter models.
 //   - Verify canonical input routing and immediate capture-boundary HUD reset.
 // DEPENDENCIES:
 //   - Core; Domain Procedural/Level/Floor/Player/Hunter; Session Run/Progression/
@@ -110,7 +111,7 @@ namespace Worsen.Tests.Expedition
             int previousRooms = 0;
             try
             {
-                for (int round = 1; round <= 3; round++)
+                for (int round = 1; round <= 2; round++)
                 {
                     hud.SetChaseMode(true);
                     ChooseCombatFloor(progression, input, round);
@@ -135,7 +136,7 @@ namespace Worsen.Tests.Expedition
                     foreach (var anchor in anchors.Take(3)) floor.Collect(player.Id, anchor.Id, PickupKind.GoldenCake);
                     Assert.That(progression.Snapshot.Wallet, Is.EqualTo(beforeWallet + 3));
                     Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.EqualTo(3));
-                    hud.SetChaseMode(true); // Also covers automatic generation of the shop after floor three.
+                    hud.SetChaseMode(true); // Also covers automatic generation of the shop after two combat floors.
                     floor.ContactExit(player.Id);
                     yield return Until(() => progression.Snapshot.Round == round + 1,
                         "Floor contact did not reach RunEnded and advance progression.");
@@ -149,37 +150,52 @@ namespace Worsen.Tests.Expedition
                 AssertFloor(progression, expedition, run, procedural, floor, sceneHandle, true, captures);
                 Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
                 previousRooms = procedural.Graph.Rooms.Count;
-                Assert.That(progression.Snapshot.Round, Is.EqualTo(4));
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(9));
+                Assert.That(progression.Snapshot.Round, Is.EqualTo(3));
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
                 var shopPlayer = One<PlayerManager>();
                 int shopGeneration = expedition.GenerationId;
-                var medkit = progression.Snapshot.Offers.Single(offer => offer.Id == "medkit");
+                Assert.That(progression.Snapshot.Offers.Select(offer => offer.Id), Is.EquivalentTo(new[] {
+                    "shuttered-lens", "felt-soles", "climber-wraps", "pilgrim-chalk", "field-dressing", "wax-ward" }));
+                var medkit = progression.Snapshot.Offers.Single(offer => offer.Id == "field-dressing");
+                Assert.That(medkit.Repeatable, Is.True);
+                Assert.That(medkit.StockRemaining, Is.EqualTo(1));
                 Assert.That(medkit.CanAfford, Is.True);
                 Assert.That(progression.Purchase(medkit.Id, progression.Snapshot.Revision), Is.True);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(9 - medkit.Price));
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - medkit.Price));
                 Assert.That(progression.Snapshot.Health, Is.EqualTo(95f));
                 Assert.That(shopPlayer.ReadOnlyState.Health, Is.EqualTo(95f), "Shop healing must reach the live player immediately.");
                 Assert.That(expedition.GenerationId, Is.EqualTo(shopGeneration), "Purchasing must not regenerate the shop.");
                 Assert.That(progression.Purchase(medkit.Id, progression.Snapshot.Revision), Is.False);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(9 - medkit.Price));
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - medkit.Price));
+                var soldDressing = progression.Snapshot.Offers.Single(offer => offer.Id == medkit.Id);
+                Assert.That(soldDressing.StockRemaining, Is.Zero);
+                Assert.That(soldDressing.UnavailableReason, Does.Contain("Sold out"));
+                var soles = progression.Snapshot.Offers.Single(offer => offer.Id == "felt-soles");
+                Assert.That(soles.Repeatable, Is.False);
+                Assert.That(progression.Purchase(soles.Id, progression.Snapshot.Revision), Is.True);
+                int equippedWallet = progression.Snapshot.Wallet;
+                Assert.That(progression.Snapshot.Effects.Traits.HasFlag(ProgressionTraits.FeltSoles), Is.True);
+                Assert.That(progression.Purchase(soles.Id, progression.Snapshot.Revision), Is.False);
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(equippedWallet));
                 AssertInputGate(input, false);
                 Assert.That(progression.ContinueShop(progression.Snapshot.Revision), Is.True);
 
                 hud.SetChaseMode(true);
-                ChooseCombatFloor(progression, input, 5);
+                ChooseCombatFloor(progression, input, 4);
                 yield return AwaitFloor(progression, expedition, run, ProgressionPhase.Exploring);
                 AssertFloor(progression, expedition, run, procedural, floor, sceneHandle, false, captures);
                 Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
                 var doomedPlayer = One<PlayerManager>();
                 Assert.That(doomedPlayer.ReadOnlyState.Health, Is.EqualTo(95f));
-                Assert.That(progression.Snapshot.ThreatCount, Is.EqualTo(4));
-                Assert.That(progression.Snapshot.CurseCount, Is.EqualTo(4));
+                Assert.That(progression.Snapshot.ThreatCount, Is.EqualTo(3));
+                Assert.That(progression.Snapshot.CurseCount, Is.EqualTo(3));
+                Assert.That(progression.Snapshot.Effects.Traits.HasFlag(ProgressionTraits.FeltSoles), Is.True);
                 int previousGeneration = expedition.GenerationId;
                 doomedPlayer.ApplyHit(doomedPlayer.ReadOnlyState.MaxHealth + 1f, doomedPlayer.transform.position + Vector3.forward);
                 // Health can end progression synchronously; Run finalizes its summary on its next fixed tick.
-                yield return Until(() => progression.Snapshot.Phase == ProgressionPhase.Ended && summaries.Count == 4,
+                yield return Until(() => progression.Snapshot.Phase == ProgressionPhase.Ended && summaries.Count == 3,
                     "Player death did not reach both the expedition end and committed RunEnded summary.");
-                Assert.That(summaries.Count, Is.EqualTo(4));
+                Assert.That(summaries.Count, Is.EqualTo(3));
                 Assert.That(summaries.Last().EndReason, Is.EqualTo(RunEndReason.Died));
                 Assert.That(run.Phase, Is.EqualTo(RunPhase.Ended));
                 Assert.That(progression.Snapshot.Health, Is.Zero);
@@ -200,9 +216,9 @@ namespace Worsen.Tests.Expedition
                 Assert.That(procedural.LayoutManifest, Is.EqualTo(firstManifest), "Restart must regenerate the same first floor seed.");
                 Assert.That(doomedPlayer == null, Is.True, "Old actors must be destroyed before the replacement map is admitted.");
                 Assert.That(One<PlayerManager>().ReadOnlyState.Health, Is.EqualTo(100f));
-                Assert.That(captures.Count, Is.EqualTo(6), "One capture per admitted floor: 1, 2, 3, shop 4, 5 and restarted 1.");
-                Assert.That(captures.Distinct().Count(), Is.EqualTo(6));
-                Assert.That(summaries.Count, Is.EqualTo(4));
+                Assert.That(captures.Count, Is.EqualTo(5), "One capture per admitted floor: 1, 2, shop 3, 4 and restarted 1.");
+                Assert.That(captures.Distinct().Count(), Is.EqualTo(5));
+                Assert.That(summaries.Count, Is.EqualTo(3));
             }
             finally
             {
@@ -220,10 +236,33 @@ namespace Worsen.Tests.Expedition
             Assert.That(progression.Snapshot.Round, Is.EqualTo(round));
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
             AssertInputGate(input, false);
-            Assert.That(progression.ChooseThreat("watcher", progression.Snapshot.Revision), Is.True);
+            string[] roster = { "watcher", "rusher", "lurker", "hexer", "thorncaller" };
+            var retainedThreats = progression.Snapshot.Effects.ActiveThreatIds.ToArray();
+            string[] eligible = roster.Except(retainedThreats).ToArray();
+            string[] offered = progression.Snapshot.Choices.Select(choice => choice.Id).ToArray();
+            Assert.That(offered.Length, Is.EqualTo(Math.Min(3, eligible.Length)), "Offer three hunters while enough remain.");
+            Assert.That(offered.Distinct().Count(), Is.EqualTo(offered.Length));
+            Assert.That(offered.All(id => eligible.Contains(id)), Is.True, "Only unselected members of the full five-hunter roster are eligible.");
+            string nextThreat = progression.Snapshot.Choices.First().Id;
+            if (retainedThreats.Length > 0)
+            {
+                Assert.That(progression.ChooseThreat(retainedThreats[0], progression.Snapshot.Revision), Is.False);
+                Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
+            }
+            Assert.That(progression.ChooseThreat(nextThreat, progression.Snapshot.Revision), Is.True);
+            Assert.That(progression.Snapshot.Effects.ActiveThreatIds, Is.EquivalentTo(retainedThreats.Concat(new[] { nextThreat })));
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseCurse));
             AssertInputGate(input, false);
-            Assert.That(progression.ChooseCurse("restless", progression.Snapshot.Revision), Is.True);
+            var retainedCurses = progression.Snapshot.Retained.Where(item => item.Kind == ProgressionChoiceKind.Curse).ToArray();
+            Assert.That(progression.Snapshot.Choices.Count, Is.InRange(1, 3));
+            Assert.That(progression.Snapshot.Choices.All(choice => choice.SelectedCount == 0
+                && !retainedCurses.Any(item => item.Id == choice.Id)), Is.True);
+            string nextCurse = progression.Snapshot.Choices.First().Id;
+            if (retainedCurses.Length > 0)
+                Assert.That(progression.ChooseCurse(retainedCurses[0].Id, progression.Snapshot.Revision), Is.False);
+            Assert.That(progression.ChooseCurse(nextCurse, progression.Snapshot.Revision), Is.True);
+            Assert.That(progression.Snapshot.Retained.Where(item => item.Kind == ProgressionChoiceKind.Curse)
+                .All(item => item.Count == 1), Is.True, "Curses remain unique for the expedition.");
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.Generating));
             AssertInputGate(input, false);
         }
@@ -259,6 +298,7 @@ namespace Worsen.Tests.Expedition
             var path = new NavMeshPath();
             Assert.That(NavMesh.CalculatePath(start.position, exit.position, NavMesh.AllAreas, path), Is.True);
             Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete), "Generated spawn and exit must have native walking connectivity.");
+            AssertCentralExitHub(procedural.Graph);
             if (shop)
             {
                 Assert.That(HunterRegistry.Items, Is.Empty);
@@ -268,11 +308,60 @@ namespace Worsen.Tests.Expedition
             else
             {
                 Assert.That(HunterRegistry.Items.Count, Is.GreaterThan(0));
+                AssertActiveRoster(progression.Snapshot.Effects);
                 Assert.That(floor.ReadOnlyState.IsReady, Is.True);
                 Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.EqualTo(procedural.Graph.Anchors.Count));
                 Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
                 Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
             }
+        }
+
+        private static void AssertCentralExitHub(LevelGraph graph)
+        {
+            var hub = graph.Rooms.Single(room => room.Id == graph.ExitRoomId);
+            Assert.That(new Vector2(graph.ExitPosition.x, graph.ExitPosition.z),
+                Is.EqualTo(new Vector2(hub.Center.x, hub.Center.z)), "Exit must sit in the hub centre.");
+            var connections = graph.Edges.Where(edge => edge.FromRoomId == hub.Id || edge.ToRoomId == hub.Id).ToArray();
+            Assert.That(connections.Length, Is.EqualTo(4), "The central exit hub needs four walking entrances.");
+            Assert.That(connections.All(edge => edge.Bidirectional && edge.Access == TraversalAccess.All), Is.True);
+            var directions = new HashSet<Vector2Int>();
+            Assert.That(NavMesh.SamplePosition(graph.ExitPosition, out var destination, 1f, NavMesh.AllAreas), Is.True);
+            foreach (var edge in connections)
+            {
+                int neighborId = edge.FromRoomId == hub.Id ? edge.ToRoomId : edge.FromRoomId;
+                var neighbor = graph.Rooms.Single(room => room.Id == neighborId);
+                var delta = neighbor.Center - hub.Center;
+                directions.Add(Mathf.Abs(delta.x) > Mathf.Abs(delta.z)
+                    ? new Vector2Int(delta.x > 0f ? 1 : -1, 0) : new Vector2Int(0, delta.z > 0f ? 1 : -1));
+                var ground = new Vector3(neighbor.Center.x, graph.ExitPosition.y, neighbor.Center.z);
+                Assert.That(NavMesh.SamplePosition(ground, out var origin, 2f, NavMesh.AllAreas), Is.True);
+                var path = new NavMeshPath();
+                Assert.That(NavMesh.CalculatePath(origin.position, destination.position, NavMesh.AllAreas, path), Is.True);
+                Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete), "Every hub neighbor needs native walking access to the exit.");
+            }
+            Assert.That(directions.Count, Is.EqualTo(4), "Entrances must reach all four sides of the hub.");
+        }
+
+        private static void AssertActiveRoster(ProgressionEffects effects)
+        {
+            Assert.That(effects.ActiveThreatIds.Count, Is.EqualTo(effects.ActiveThreatBudget));
+            Assert.That(effects.ActiveThreatIds.Distinct().Count(), Is.EqualTo(effects.ActiveThreatBudget));
+            Assert.That(HunterRegistry.Items.Select(hunter => hunter.Id).Distinct().Count(), Is.EqualTo(effects.ActiveThreatBudget));
+            var modelSignatures = new HashSet<string>();
+            foreach (var hunter in HunterRegistry.Items)
+            {
+                Assert.That(hunter.ReadOnlyState.IsActive, Is.True);
+                Assert.That(hunter.ReadOnlyState.Id, Is.EqualTo(hunter.Id));
+                var animation = hunter.GetComponentInChildren<HunterAnimationDriver>(true);
+                Assert.That(animation, Is.Not.Null);
+                Assert.That(animation.IsReady, Is.True, "The imported animation graph must be running on every admitted hunter.");
+                var skins = hunter.GetComponentsInChildren<SkinnedMeshRenderer>();
+                Assert.That(skins.Any(skin => skin.sharedMesh != null), Is.True, "A capsule without its imported creature is not an admitted model.");
+                modelSignatures.Add(string.Join("|", skins.Where(skin => skin.sharedMesh != null)
+                    .Select(skin => skin.sharedMesh.name).OrderBy(name => name)));
+            }
+            Assert.That(modelSignatures.Count, Is.EqualTo(effects.ActiveThreatBudget),
+                "Selecting distinct hunters must not spawn repeated copies of the default creature.");
         }
 
         private static IEnumerator LoadToChoices()

@@ -10,6 +10,8 @@
 //   Definitions (§5) · Core · shared boilerplate contracts.
 //
 // KEY RESPONSIBILITIES:
+//   - Carry achieved slide turning for cosmetic banking without steering authority.
+//   - Carry committed crouch and sprint facts so feedback never guesses from camera height or input intent.
 //   - Carry explicit values across system and layer boundaries.
 //   - Preserve replay and measurement identity without engine object references.
 //
@@ -19,6 +21,8 @@
 // USAGE NOTES:
 //   Positions are metres; look deltas are degrees; Tick identifies the committed step.
 //   These values contain no engine operations or gameplay decision logic.
+//   IsSprinting describes achieved grounded sprint movement; IsCrouched describes the committed low posture.
+//   Optional constructor fields preserve older consumers that do not provide these facts.
 //
 // ============================================================================
 
@@ -37,7 +41,7 @@ namespace Worsen.Core
     }
     public readonly struct PlayerMovementSample
     {
-        public PlayerMovementSample(EntityId id, long tick, Vector3 position, Vector3 velocity, Vector3 eyePosition, float headingDegrees, Vector2 headLookDelta, bool lookBack, MovementState movementState, float inputLockSeconds)
+        public PlayerMovementSample(EntityId id, long tick, Vector3 position, Vector3 velocity, Vector3 eyePosition, float headingDegrees, Vector2 headLookDelta, bool lookBack, MovementState movementState, float inputLockSeconds, float slideTurnRateDegrees = 0f, bool isCrouched = false, bool isSprinting = false)
         {
             Id = id;
             Tick = tick;
@@ -49,6 +53,9 @@ namespace Worsen.Core
             LookBack = lookBack;
             MovementState = movementState;
             InputLockSeconds = inputLockSeconds;
+            SlideTurnRateDegrees = slideTurnRateDegrees;
+            IsCrouched = isCrouched;
+            IsSprinting = isSprinting;
         }
         public EntityId Id { get; }
         public long Tick { get; }
@@ -60,6 +67,9 @@ namespace Worsen.Core
         public bool LookBack { get; }
         public MovementState MovementState { get; }
         public float InputLockSeconds { get; }
+        public float SlideTurnRateDegrees { get; }
+        public bool IsCrouched { get; }
+        public bool IsSprinting { get; }
     }
     public readonly struct PlayerTraversalFact
     {
@@ -90,4 +100,3 @@ namespace Worsen.Core
         public string SlotTwo { get; }
     }
 }
-

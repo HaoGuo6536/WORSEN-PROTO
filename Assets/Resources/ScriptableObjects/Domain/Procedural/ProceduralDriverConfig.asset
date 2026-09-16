@@ -15,9 +15,9 @@ MonoBehaviour:
   _wallThickness: 0.3
   _floorThickness: 0.3
   _ceilingThickness: 0.3
-  _wallMaterial: {fileID: 0}
-  _floorMaterial: {fileID: 0}
-  _ceilingMaterial: {fileID: 0}
+  _wallMaterial: {fileID: 2100000, guid: 7a8b9b4f18edb834f8f47c2fd57b3cd3, type: 2}
+  _floorMaterial: {fileID: 2100000, guid: 54a87be8f335c26449094c4d8dcd7871, type: 2}
+  _ceilingMaterial: {fileID: 2100000, guid: ee21c8897bad8d8438d007ddb9c465fd, type: 2}
   _wallColor: {r: 0.19, g: 0.21, b: 0.2, a: 1}
   _floorColor: {r: 0.11, g: 0.12, b: 0.11, a: 1}
   _ceilingColor: {r: 0.09, g: 0.1, b: 0.09, a: 1}

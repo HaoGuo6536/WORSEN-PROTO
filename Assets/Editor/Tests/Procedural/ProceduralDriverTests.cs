@@ -24,6 +24,7 @@ using UnityEngine.AI;
 using Worsen.Domain.Procedural;
 using Worsen.Core;
 using Worsen.Domain.Player;
+using Worsen.Domain.Floor;
 using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Procedural
@@ -43,6 +44,8 @@ namespace Worsen.Tests.Procedural
             _config = ScriptableObject.CreateInstance<ProceduralConfig>();
             _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
             var serialized = new SerializedObject(_config);
+            serialized.FindProperty("_castleModules").boolValue = false;
+            serialized.FindProperty("_initialRoomCount").intValue = 5;
             serialized.FindProperty("_origin").vector2Value = new Vector2(10000f, 10000f);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _owner = new GameObject("Procedural native verification owner");
@@ -167,6 +170,173 @@ namespace Worsen.Tests.Procedural
             Assert.That(probe.WallDistance, Is.LessThanOrEqualTo(0.6f));
             Assert.That(Vector3.Distance(probe.WallNormal, normal), Is.LessThan(0.00001f),
                 "Native cast normal must align with the authored rebound face within floating-point precision.");
+        }
+
+        [TestCase(1)] [TestCase(3)] [TestCase(20)]
+        public void TwentyCastleSeedsPassActualNavigationForEveryElevatedObjective(int round)
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            for (int seed = 0; seed < 20; seed++)
+            {
+                _manager.Initialize(_config, _driverConfig, seed, round);
+                Assert.That(_manager.IsReady, Is.True, "Seed " + seed + " round " + round);
+                Assert.That(_manager.Graph.Anchors.Any(a => a.Position.y > 2f), Is.True);
+                Assert.That(_manager.Doors.Count(d => d.FromRoomId == _manager.Graph.ExitRoomId || d.ToRoomId == _manager.Graph.ExitRoomId), Is.EqualTo(4));
+                foreach (var anchor in _manager.Graph.Anchors)
+                    Assert.That(Physics.CheckCapsule(anchor.Position + Vector3.up * 0.31f,
+                        anchor.Position + Vector3.up * 1.49f, 0.3f, ~0, QueryTriggerInteraction.Ignore), Is.False);
+                _manager.Teardown();
+            }
+        }
+
+        [Test]
+        public void CastleStairClimbsWithoutJumpAndHasSafeLowerBailout()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            _manager.Initialize(_config, _driverConfig, 8, 1);
+            var module = _manager.RoomModules.First(m => m.Kind == ProceduralModuleKind.OpenStairHall);
+            var room = _manager.Graph.Rooms[module.RoomId - 1];
+            var along = module.AlongX ? Vector3.right : Vector3.forward;
+            var across = module.AlongX ? Vector3.forward : Vector3.right;
+            var ground = new Vector3(room.Center.x, 0.1f, room.Center.z);
+            var player = SpawnPlayer(ground - along * 3f - across * 4.4f, across);
+            for (int tick = 1; tick <= 240; tick++)
+            {
+                player.Tick(new InputFrame(Vector2.up, Vector2.zero, InputButtons.None, InputButtons.None, InputButtons.None), 1f / 60f, tick);
+                Physics.SyncTransforms();
+                if (Vector3.Dot(player.ReadOnlyState.Position - ground, across) >= 1.8f) break;
+            }
+            Assert.That(player.ReadOnlyState.Position.y, Is.EqualTo(_config.UpperDeckHeight).Within(0.09f),
+                "The ordinary movement kit must ascend the entire staircase without a jump purchase.");
+            Object.DestroyImmediate(_actor); Object.DestroyImmediate(_playerProfile); Object.DestroyImmediate(_playerDriverConfig);
+            player = SpawnPlayer(ground + Vector3.up * _config.UpperDeckHeight + across * 2.6f, -across);
+            for (int tick = 1; tick <= 100; tick++)
+            {
+                player.Tick(new InputFrame(Vector2.up, Vector2.zero, InputButtons.None, InputButtons.None, InputButtons.None), 1f / 60f, tick);
+                Physics.SyncTransforms();
+            }
+            Assert.That(player.ReadOnlyState.Position.y, Is.InRange(-0.05f, 0.15f), "A bridge drop must have a usable lower floor.");
+        }
+
+        [Test]
+        public void EveryCastleWindowCompletesRealVaultInBothDirections()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            _manager.Initialize(_config, _driverConfig, 8, 3);
+            var windows = _owner.GetComponentsInChildren<ProceduralTraversalSurface>()
+                .Where(s => s.SurfaceId >= 80000 && s.Kind == TraversalSurfaceKind.Vault).ToArray();
+            Assert.That(windows.Length, Is.GreaterThan(0));
+            foreach (var surface in windows)
+            foreach (bool reverse in new[] { false, true })
+            {
+                var across = (surface.EndpointB - surface.EndpointA).normalized * (reverse ? -1f : 1f);
+                var entry = reverse ? surface.EndpointB : surface.EndpointA;
+                var target = reverse ? surface.EndpointA : surface.EndpointB;
+                var player = SpawnPlayer(entry - across * 0.35f, across);
+                Assert.That(_actor.GetComponent<PlayerDriver>().Probe().VaultCandidate, Is.True,
+                    "Window " + surface.SurfaceId + " must be in range at a1.4m center approach.");
+                bool completed = false;
+                for (int tick = 1; tick <= 24; tick++)
+                {
+                    player.Tick(new InputFrame(Vector2.up, Vector2.zero,
+                        InputButtons.Sprint | (tick == 1 ? InputButtons.Jump : InputButtons.None),
+                        tick == 1 ? InputButtons.Jump : InputButtons.None,
+                        tick == 2 ? InputButtons.Jump : InputButtons.None), 1f / 60f, tick);
+                    Physics.SyncTransforms();
+                    foreach (var fact in player.LastTraversalFacts.Where(f => f.Kind == TraversalKind.Vault))
+                    {
+                        Assert.That(fact.Succeeded, Is.True, "Castle window " + surface.SurfaceId + " reverse " + reverse);
+                        Assert.That(Vector3.Distance(player.ReadOnlyState.Position, target), Is.LessThanOrEqualTo(_playerProfile.VaultCompletionTolerance));
+                        completed = true;
+                    }
+                    if (completed) break;
+                }
+                Assert.That(completed, Is.True, "Every graph window edge must have real physical completion.");
+                ReleaseActor();
+            }
+        }
+
+        [Test]
+        public void EveryCastleSlideLinkRequiresCrouchAndPassesInBothDirections()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            _manager.Initialize(_config, _driverConfig, 8, 3);
+            var slides = _owner.GetComponentsInChildren<ProceduralTraversalSurface>()
+                .Where(s => s.SurfaceId >= 80000 && s.Kind == TraversalSurfaceKind.SlideGate).ToArray();
+            Assert.That(slides.Length, Is.GreaterThan(0));
+            foreach (var surface in slides)
+            foreach (bool reverse in new[] { false, true })
+            {
+                var across = (surface.EndpointB - surface.EndpointA).normalized * (reverse ? -1f : 1f);
+                var entry = reverse ? surface.EndpointB : surface.EndpointA;
+                var target = reverse ? surface.EndpointA : surface.EndpointB;
+                var player = SpawnPlayer(entry - across * 0.35f, across);
+                bool pressed = false, slid = false, standingBlocked = false, passed = false;
+                for (int tick = 1; tick <= 90; tick++)
+                {
+                    var velocity = player.ReadOnlyState.Velocity;
+                    bool press = !pressed && new Vector2(velocity.x, velocity.z).magnitude >= _playerProfile.SlideMinimumSpeed;
+                    if (press) pressed = true;
+                    player.Tick(new InputFrame(Vector2.up, Vector2.zero, InputButtons.Sprint,
+                        press ? InputButtons.Crouch : InputButtons.None, InputButtons.None), 1f / 60f, tick);
+                    Physics.SyncTransforms();
+                    slid |= player.ReadOnlyState.MovementState == MovementState.Slide;
+                    standingBlocked |= _actor.GetComponent<PlayerDriver>().Probe().StandingBlocked;
+                    if (Vector3.Dot(player.ReadOnlyState.Position - target, across) > 0.3f) { passed = true; break; }
+                }
+                Assert.That(slid && standingBlocked && passed, Is.True,
+                    "Castle slide " + surface.SurfaceId + " reverse " + reverse + " must be traversable through actual movement.");
+                ReleaseActor();
+            }
+        }
+
+        [TestCase(1980825774, 2)] [TestCase(798225482, 1)]
+        public void IdleCastlePlayerDoesNotOverlapAnyPickupTrigger(int seed, int round)
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var pickupConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+            try
+            {
+                _manager.Initialize(_config, _driverConfig, seed, round);
+                var player = SpawnPlayer(_manager.PlayerSpawnPosition, _manager.PlayerSpawnRotation * Vector3.forward);
+                for (int tick = 1; tick <= 30; tick++)
+                {
+                    player.Tick(default, 1f / 60f, tick);
+                    Physics.SyncTransforms();
+                    var capsule = _actor.GetComponent<CapsuleCollider>();
+                    foreach (var anchor in _manager.Graph.Anchors)
+                    {
+                        var triggerCenter = anchor.Position + Vector3.up * pickupConfig.PickupHeight;
+                        float separation = Vector3.Distance(capsule.ClosestPoint(triggerCenter), triggerCenter);
+                        Assert.That(separation, Is.GreaterThan(pickupConfig.PickupRadius),
+                            "Idle spawn overlaps pickup " + anchor.Id + " at tick " + tick);
+                    }
+                }
+            }
+            finally { Object.DestroyImmediate(pickupConfig); }
+        }
+
+        private void ReleaseActor()
+        {
+            if (_actor != null) Object.DestroyImmediate(_actor);
+            if (_playerProfile != null) Object.DestroyImmediate(_playerProfile);
+            if (_playerDriverConfig != null) Object.DestroyImmediate(_playerDriverConfig);
+            _actor = null; _playerProfile = null; _playerDriverConfig = null;
         }
 
         private PlayerManager SpawnPlayer(Vector3 feet, Vector3 forward)

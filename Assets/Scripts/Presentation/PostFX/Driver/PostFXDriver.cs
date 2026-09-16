@@ -11,6 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own and apply distortion, vignette, desaturation, grain and optional blur.
+//   - Apply terminal tint/exposure only to the owned runtime volume, using unscaled time.
 //   - Destroy the runtime profile and its components on teardown.
 //   - Retain all rendering package types behind this boundary.
 //
@@ -119,6 +120,11 @@ namespace Worsen.Presentation.PostFX
             if (_state != null) _presenter.PlayIntrusion(_state, seconds);
         }
 
+        public void PlayConsumed(float seconds)
+        {
+            if (_state != null) _presenter.PlayConsumed(_state, seconds);
+        }
+
         public void ResetEffects()
         {
             if (_state == null) return;
@@ -150,7 +156,7 @@ namespace Worsen.Presentation.PostFX
         private void LateUpdate()
         {
             if (_state == null) return;
-            _presenter.Tick(_state, _config, Time.deltaTime);
+            _presenter.Tick(_state, _config, _state.Consumed ? Time.unscaledDeltaTime : Time.deltaTime);
             Apply();
         }
 
@@ -160,6 +166,10 @@ namespace Worsen.Presentation.PostFX
             _distortion.intensity.Override(_state.Distortion);
             _vignette.intensity.Override(_state.Vignette);
             _color.saturation.Override(_state.Saturation);
+            _color.colorFilter.Override(_state.SceneTint);
+            _color.postExposure.Override(_state.Exposure);
+            _color.colorFilter.overrideState = _state.Consumed;
+            _color.postExposure.overrideState = _state.Consumed;
             _grain.intensity.Override(_state.Grain);
             _blur.active = _state.Blur > 0f;
             _blur.gaussianMaxRadius.Override(_state.BlurRadius);

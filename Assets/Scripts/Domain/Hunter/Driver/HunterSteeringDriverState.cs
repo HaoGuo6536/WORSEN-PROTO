@@ -16,6 +16,7 @@
 //   Per-instance state; HunterSteeringPresenter.Reset clears every retained value.
 //   Driver collision resolution may reconcile Position after applying a displacement.
 //   LungeDistanceTravelled counts requested travel so a collision cannot extend a lunge.
+//   AlignAfterCorner survives path refreshes until heading aligns with the new leg.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -29,6 +30,7 @@ namespace Worsen.Domain.Hunter
         public Vector3 Forward = Vector3.forward;
         public Vector3[] Corners = Array.Empty<Vector3>();
         public int CornerIndex;
+        public bool AlignAfterCorner;
         public Vector3 LungeDirection;
         public float LungeDistanceTravelled;
         public bool LungeWasActive;

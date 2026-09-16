@@ -12,6 +12,7 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Relay committed pickup, hand, destruction and hunter sound facts without audio decisions.
 //   - Publish committed hunter attack telegraphs and prepare independently seeded generated floors.
 //   - Maintain one persistent canonical run and one shared seeded random source.
 //   - Request synchronous input publication immediately before each fixed tick.
@@ -67,6 +68,11 @@ namespace Worsen.Session.Run
         public event Action<RunPhase> PhaseChanged;
         public event Action<PlayerMovementSample> PlayerMovementPublished;
         public event Action<HunterAttackSample> HunterAttackPublished;
+        public event Action<HunterFeedbackEvent> HunterFeedbackPublished;
+        public event Action<HunterHit> HitAccepted;
+        public event Action<PickupCollectedFact, Vector3> PickupCollected;
+        public event Action<RoomDestructionSample> RoomDestructionPublished;
+        public event Action<CollapseHandFact> CollapseHandPublished;
         public event Action<PlayerTraversalFact> PlayerTraversalPublished;
         public event Action<InputProbeRecord> PlayerProbeRecorded;
         public event Action<RunCaptureMetadata> CaptureStarted;
@@ -189,7 +195,8 @@ namespace Worsen.Session.Run
             UnsubscribeGameplay();
             foreach (PlayerManager player in players)
             { player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath; }
-            foreach (HunterManager hunter in hunters) hunter.OnLungeHit += QueueHit;
+            foreach (HunterManager hunter in hunters)
+            { hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback; }
             if (chase != null)
             {
                 chase.OnChaseStarted += HandleChaseStarted;
@@ -205,6 +212,8 @@ namespace Worsen.Session.Run
                 floor.OnExitReached += HandleExitReached;
                 floor.OnLethalContact += HandleLethal;
                 floor.OnDisplayChanged += HandleFloorDisplay;
+                floor.OnRoomDestruction += HandleRoomDestruction;
+                floor.OnCollapseHand += HandleCollapseHand;
             }
             if (director != null)
             {
@@ -217,7 +226,8 @@ namespace Worsen.Session.Run
         {
             foreach (PlayerManager player in players)
                 if (player != null) { player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath; }
-            foreach (HunterManager hunter in hunters) if (hunter != null) hunter.OnLungeHit -= QueueHit;
+            foreach (HunterManager hunter in hunters) if (hunter != null)
+            { hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HandleHunterFeedback; }
             if (chase != null)
             {
                 chase.OnChaseStarted -= HandleChaseStarted;
@@ -233,6 +243,8 @@ namespace Worsen.Session.Run
                 floor.OnExitReached -= HandleExitReached;
                 floor.OnLethalContact -= HandleLethal;
                 floor.OnDisplayChanged -= HandleFloorDisplay;
+                floor.OnRoomDestruction -= HandleRoomDestruction;
+                floor.OnCollapseHand -= HandleCollapseHand;
             }
             if (director != null)
             {
@@ -286,6 +298,9 @@ namespace Worsen.Session.Run
             FinishIfRequested();
         }
 
+        private void HandleHunterFeedback(HunterFeedbackEvent fact) => HunterFeedbackPublished?.Invoke(fact);
+        private void HandleRoomDestruction(RoomDestructionSample sample) => RoomDestructionPublished?.Invoke(sample);
+        private void HandleCollapseHand(CollapseHandFact fact) => CollapseHandPublished?.Invoke(fact);
         private void QueueHit(HunterHit hit) => pendingHits.Add(hit);
         private void DrainPendingHits()
         {
@@ -301,6 +316,7 @@ namespace Worsen.Session.Run
             int chaseId = state.ActiveChaseId;
             target.ApplyHit(hit.Damage, hit.HunterPosition);
             if (target.ReadOnlyState.Health >= previousHealth) return;
+            HitAccepted?.Invoke(hit);
             Emit(TelemetrySampleKind.AcceptedHit, hit.Target, hit.Tick, hit.Damage,
                 chaseId == 0 ? "pre-confirmation" : "accepted", hit.Reason, chaseId);
             if (chase != null) chase.RecordCatch(hit);
@@ -325,7 +341,12 @@ namespace Worsen.Session.Run
             Emit(TelemetrySampleKind.Proximity, sample.Player, sample.Tick, sample.Distance, chaseId: sample.ChaseId);
             ProximityPublished?.Invoke(sample);
         }
-        private void HandlePickup(PickupCollectedFact fact) => controller.RecordCollection(fact);
+        private void HandlePickup(PickupCollectedFact fact)
+        {
+            controller.RecordCollection(fact);
+            if (PlayerRegistry.TryGet(fact.PlayerId, out var player))
+                PickupCollected?.Invoke(fact, player.ReadOnlyState.Position);
+        }
         private void HandleExitOpened(long tick)
         { controller.Apply(RunEvent.ExitOpened); PhaseChanged?.Invoke(state.Phase); }
         private void HandleRoomPhase(RoomPhaseChangedFact fact)
@@ -380,6 +401,8 @@ namespace Worsen.Session.Run
             PhaseChanged = null;
             PlayerMovementPublished = null;
             HunterAttackPublished = null;
+            HunterFeedbackPublished = null; HitAccepted = null; PickupCollected = null;
+            RoomDestructionPublished = null; CollapseHandPublished = null;
             PlayerTraversalPublished = null;
             PlayerProbeRecorded = null;
             CaptureStarted = null;

@@ -2,20 +2,19 @@
 // HunterManager.cs
 // ============================================================================
 // PURPOSE:
-//   Connects one hunter's sensors, decisions and physical movement in a fixed step.
-//   Contact colliders become entity identities here, and accepted lunge facts flow
-//   upward so the Run Session can apply damage without Hunter calling Player.
+//   Coordinates one Hunter sensor, decision and engine presentation stack.
+//   Raw collision contacts become entity identities here and committed feedback
+//   travels upward as Core events without Hunter calling audio or player damage.
 // ARCHITECTURAL ROLE:
-//   Manager (§1) · Domain · Hunter (Entity system).
+//   Manager (section 1), Entity system - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Initialize/reset the owned stacks and sequence probe, decision and pose commit.
-//   - Resolve engine identities and publish sight and hit observations.
-//   - Apply aggregate run speed through instance state and expose Core attack presentation facts.
+//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Keep per-life state separate from shared configuration and foreign systems.
 // DEPENDENCIES:
-//   - Reads injected Player and Level read-only views; Core identity and event facts.
+//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
+//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
-//   Scene-owned. Initialize fully resets each life; Factory supplies all dependencies.
-//   Session is the sole tick owner. Driver subscriptions pair OnEnable/OnDisable.
+//   Scene-owned entity; Session is sole tick owner. Subscriptions pair OnEnable/OnDisable.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -35,18 +34,29 @@ namespace Worsen.Domain.Hunter
         private IReadOnlyPlayerState _player;
         public EntityId Id => _state?.Id ?? EntityId.None;
         public IReadOnlyHunterState ReadOnlyState => _state;
-        public HunterAttackSample AttackSample => _controller?.AttackSample() ?? default;
+        public HunterAttackSample AttackSample => _profile != null && _profile.AttackStyle == HunterAttackStyle.Lunge ?
+            _controller?.AttackSample() ?? default : default;
         public event Action<HunterHit> OnLungeHit;
         public event Action<HunterSighting> OnSighting;
+        public event Action<HunterFeedbackEvent> OnFeedback;
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
             if (_driver == null) _driver = GetComponent<HunterDriver>();
             _driver.OnLungeContact += HandleContact;
+            _driver.OnRangedContact += HandleRangedContact;
+            _driver.OnRangedMiss += HandleRangedMiss;
+            _driver.OnAttackFeedback += HandleAttackFeedback;
         }
         private void OnDisable()
         {
-            if (_driver != null) _driver.OnLungeContact -= HandleContact;
+            if (_driver != null)
+            {
+                _driver.OnLungeContact -= HandleContact;
+                _driver.OnRangedContact -= HandleRangedContact;
+                _driver.OnRangedMiss -= HandleRangedMiss;
+                _driver.OnAttackFeedback -= HandleAttackFeedback;
+            }
             HunterRegistry.Unregister(this);
         }
         public void Initialize(HunterProfile profile, EntityContext context, IReadOnlyPlayerState player, IReadOnlyLevelState level)
@@ -58,18 +68,42 @@ namespace Worsen.Domain.Hunter
             _state = new HunterBehaviorState();
             _controller = new HunterController(_state, profile, context.Random, player, level);
             _controller.Reset(context.Id, _driver.Position, _driver.Forward);
+            _driver.SetTargetFilter(IsTarget);
+            _driver.ConfigureAttackFeedback(context.Id, profile.ArchetypeKey);
         }
         public void Tick(float dt, long tick)
         {
             if (_controller == null || !_state.IsActive) return;
             bool sample = _controller.ShouldProbe(tick);
             SightProbe sight = sample ? _driver.ProbeSight(_player.Position, IsTarget) : default;
-            HunterTickResult result = _controller.Tick(sight, dt, tick);
+            HunterLightObservation light = sample ? _driver.ProbeLight(_state.Flashlight, tick,
+                _controller.EffectiveSightRange, _controller.EffectiveSightCone, _profile.SensorIntervalTicks * 2, IsTarget) : default;
+            if (sample && !light.Observed && _state.AfterimageRemaining > 0f)
+            {
+                FlashlightSample trace = _state.Afterimage;
+                var refreshed = new FlashlightSample(trace.Source, tick, trace.Enabled, trace.Origin, trace.Direction, trace.Range, trace.ConeDegrees);
+                HunterLightObservation observed = _driver.ProbeLight(refreshed, tick, _controller.EffectiveSightRange, _controller.EffectiveSightCone, 0);
+                light = new HunterLightObservation(observed.Observed, false, observed.Position, observed.Tick);
+            }
+            HunterTickResult result = _controller.Tick(sight, light, dt, tick);
+            bool reactionValid = (_state.CurrentAction != HunterAction.AvoidLight && _state.CurrentAction != HunterAction.FlankLight) ||
+                _driver.ValidateReactionTarget(result.Target);
+            if (!reactionValid) _controller.ReportPathFailure();
+            _driver.TickAttacks(dt, tick);
+            if (result.BeginLunge && _profile.AttackStyle != HunterAttackStyle.Lunge)
+                _driver.BeginAttackWarning(_profile.AttackStyle, _state.AttackSerial, _state.AttackTarget, _controller.EffectiveAttackDistance,
+                    _profile.AttackStyle == HunterAttackStyle.GroundSpikes ? _controller.SpikeRadius : _controller.ProjectileRadius,
+                    _controller.SplitBolt, _controller.ThornRing);
+            if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
+                _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
             _driver.Move(result.Target, result.Speed, _profile.Acceleration, _profile.TurnRate, dt,
-                !_state.IsActive || result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery,
-                result.ActiveContact, result.LungeDirection, _controller.LungeSpeed, _profile.LungeDistance);
+                !reactionValid || !_state.IsActive || result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
+                    (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
+                result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
             if (!_driver.PathAvailable && result.Phase == HunterLungePhase.None) _controller.ReportPathFailure();
+            _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
+            while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
         private bool IsTarget(Collider collider)
@@ -85,6 +119,20 @@ namespace Worsen.Domain.Hunter
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
             if (_controller.TryAcceptContact(handle.Id, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
+        private void HandleRangedContact(Collider collider, int serial)
+        {
+            if (_controller == null) return;
+            IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
+            if (handle != null && _controller.TryAcceptRangedContact(handle.Id, serial, out HunterHit hit)) OnLungeHit?.Invoke(hit);
+        }
+        private void HandleAttackFeedback(HunterFeedbackEvent feedback) { OnFeedback?.Invoke(feedback); }
+        private void HandleRangedMiss(int serial) { _controller?.ReportAttackMiss(serial); }
+        public void SetRoomPhase(RoomPhaseChangedFact fact)
+        { if (_controller == null) return; _controller.SetRoomPhase(fact); _driver.SetUnavailableRooms(_controller.UnavailableRooms); }
+        public void SetTraits(ProgressionTraits traits) { _controller?.SetTraits(traits); }
+        public void SetAfterimage(FlashlightSample sample, float lifetime) { _controller?.SetAfterimage(sample, lifetime); }
+        public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise, _driver.NoiseTransmission(noise.Position)); }
+        public void SetFlashlight(FlashlightSample sample) { _controller?.SetFlashlight(sample); }
         public void ApplyRunSpeedMultiplier(float multiplier) { _controller?.ApplyRunSpeedMultiplier(multiplier); }
         public void ReceiveHint(HintPayload hint) { _controller?.ReceiveHint(hint); }
         public void Teardown()

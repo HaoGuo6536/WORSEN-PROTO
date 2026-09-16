@@ -9,8 +9,9 @@
 // KEY RESPONSIBILITIES:
 //   - Forward supplied values and pair every subscription with teardown.
 //   - Reset chase presentation when a new generated floor capture begins.
+//   - Forward the current unshaken camera aim after camera LateUpdate for the 3D compass.
 // DEPENDENCIES:
-//   - Core event payloads, Session Run and the target Presentation Manager.
+//   - Core event payloads, Session Run, HUD and Camera Presentation Managers.
 // USAGE NOTES:
 //   Setup wires references before activation. Handlers contain routing only.
 //   Scene-owned; disabled before its scene publishers and views are destroyed.
@@ -19,12 +20,19 @@ using UnityEngine;
 using Worsen.Core;
 using Worsen.Session.Run;
 using Worsen.Presentation.HUD;
+using Worsen.Presentation.Camera;
 namespace Worsen.Orchestrator
 {
+    [DefaultExecutionOrder(100)]
     public sealed class HUDOrchestrator : MonoBehaviour
     {
         [SerializeField] private RunSessionManager _run;
         [SerializeField] private HUDManager _hud;
+        [SerializeField] private CameraManager _camera;
+        private void LateUpdate()
+        {
+            if (_hud != null && _camera != null) _hud.SetViewRotation(_camera.AimRotation);
+        }
         private void OnEnable()
         {
             if (_run == null) return;

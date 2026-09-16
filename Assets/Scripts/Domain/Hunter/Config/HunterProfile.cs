@@ -2,15 +2,19 @@
 // HunterProfile.cs
 // ============================================================================
 // PURPOSE:
-//   Defines one hunter archetype and its sensing, decision, and attack tunings. Per-life belief and attack state are kept outside this shared asset.
+//   Defines immutable Hunter archetype sensing, light response and attack tuning.
+//   Profiles distinguish melee reach/elevation, traveling spells and warned ground eruptions.
+//   Runtime memories, curse effects and cooldowns live in per-instance state.
 // ARCHITECTURAL ROLE:
-//   Content SO (§4b) · Domain · Hunter.
+//   Content SO (section 4b) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Keep authored data and system-local value contracts separate from execution.
+//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Keep per-life state separate from shared configuration and foreign systems.
 // DEPENDENCIES:
-//   - The owning Hunter system and pure UnityEngine values only.
+//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
+//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
-//   Scene-owned instances receive immutable shared configuration. Runtime code never changes assets.
+//   Shared immutable asset; never modified by runtime code.
 // ============================================================================
 using UnityEngine;
 namespace Worsen.Domain.Hunter
@@ -36,11 +40,42 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private float _lungeActiveSeconds = 0.3f;
         [SerializeField] private float _lungeRecoverySeconds = 0.8f;
         [SerializeField] private float _lungeDistance = 4f;
+        [SerializeField] private float _maximumMeleeElevation = 0.45f;
         [SerializeField] private float _lungeSpeed = 18f;
         [SerializeField] private int _lungeDamage = 50;
         [SerializeField] private float _arrivalRadius = 1f;
         [SerializeField] private float _searchSeconds = 2f;
         [SerializeField] private float _cutOffPredictionSeconds = 1.5f;
+        [SerializeField] private HunterLightResponse _lightResponse = HunterLightResponse.Investigate;
+        [SerializeField] private float _lightMemorySeconds = 3f;
+        [SerializeField] private float _lightReactionSeconds = 0.8f;
+        [SerializeField] private float _lightReactionCooldownSeconds = 3f;
+        [SerializeField] private float _lightExposureSeconds = 0.12f;
+        [SerializeField] private float _lightReactionDistance = 3f;
+        // Retain the serialized key for existing roster assets and setup tools.
+        [SerializeField, InspectorName("Attack Screams Enabled")] private bool _screamOnDetection;
+        [SerializeField, Range(0f, 1f)] private float _attackScreamChance = 0.25f;
+        [SerializeField] private float _screamCooldownSeconds = 12f;
+        [SerializeField] private HunterAttackStyle _attackStyle;
+        [SerializeField] private float _rangedAttackDistance = 15f;
+        [SerializeField] private float _projectileSpeed = 11f;
+        [SerializeField] private float _projectileRadius = 0.22f;
+        [SerializeField] private float _spikeRadius = 1.5f;
+        public HunterAttackStyle AttackStyle => _attackStyle;
+        public float RangedAttackDistance => Mathf.Max(2f, _rangedAttackDistance);
+        public float ProjectileSpeed => Mathf.Max(2f, _projectileSpeed);
+        public float ProjectileRadius => Mathf.Max(0.1f, _projectileRadius);
+        public float SpikeRadius => Mathf.Max(0.5f, _spikeRadius);
+        public HunterLightResponse LightResponse => _lightResponse;
+        public float LightMemorySeconds => Mathf.Max(0.1f, _lightMemorySeconds);
+        public float LightReactionSeconds => Mathf.Max(0.1f, _lightReactionSeconds);
+        public float LightReactionCooldownSeconds => Mathf.Max(1f, _lightReactionCooldownSeconds);
+        public float LightExposureSeconds => Mathf.Max(0.05f, _lightExposureSeconds);
+        public float LightReactionDistance => Mathf.Max(0.5f, _lightReactionDistance);
+        public bool ScreamOnDetection => _screamOnDetection;
+        public bool AttackScreamsEnabled => _screamOnDetection;
+        public float AttackScreamChance => Mathf.Clamp01(_attackScreamChance);
+        public float ScreamCooldownSeconds => Mathf.Max(5f, _screamCooldownSeconds);
         public string ArchetypeKey => _archetypeKey;
         public GameObject Prefab => _prefab;
         public float Acceleration => _acceleration;
@@ -59,6 +94,7 @@ namespace Worsen.Domain.Hunter
         public float LungeActiveSeconds => _lungeActiveSeconds;
         public float LungeRecoverySeconds => _lungeRecoverySeconds;
         public float LungeDistance => _lungeDistance;
+        public float MaximumMeleeElevation => Mathf.Max(0.2f, _maximumMeleeElevation);
         public float LungeSpeed => _lungeSpeed;
         public int LungeDamage => _lungeDamage;
         public float ArrivalRadius => _arrivalRadius;

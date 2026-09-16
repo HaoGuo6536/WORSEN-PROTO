@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 896c7ff262f04b35a1782d7f0cc0b9fb, type: 3}
   m_Name: ProceduralConfig
   m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Procedural.ProceduralConfig
-  _initialRoomCount: 5
+  _initialRoomCount: 7
   _roomsPerRound: 2
   _maximumRoomCount: 15
   _roomSize: 12
@@ -27,3 +27,6 @@ MonoBehaviour:
   _spawnHeight: 0.1
   _spawnSideOffset: 4
   _origin: {x: 0, y: 0}
+  _castleModules: 1
+  _castleHeight: 7
+  _upperDeckHeight: 2.4

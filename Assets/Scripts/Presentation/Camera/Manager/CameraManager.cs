@@ -11,6 +11,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Initialize the serialized Driver and mirrored config fallback.
+//   - Expose unshaken aim for routed flashlight sensing; forward world event shakes.
+//   - Forward confirmed consumption and expose its configured duration for routed visual synchronization.
 //   - Forward commands and pair Driver enable/disable and teardown.
 //
 // DEPENDENCIES:
@@ -35,6 +37,10 @@ namespace Worsen.Presentation.Camera
         [SerializeField] private CameraDriver _driver;
         private bool _initialized;
 
+        public Quaternion AimRotation => _driver != null ? _driver.AimRotation : Quaternion.identity;
+        public float ConsumptionSeconds => _driver != null ? _driver.ConsumptionSeconds : 0f;
+        public Vector3 AimPosition => _driver != null ? _driver.AimPosition : Vector3.zero;
+
         public bool IsReady => _initialized && _driver != null && _driver.IsReady;
 
         public CameraManager Initialize()
@@ -56,9 +62,11 @@ namespace Worsen.Presentation.Camera
         public void SetMovement(PlayerMovementSample sample) { if (_initialized) _driver.SetMovement(sample); }
         public void SetLookBack(bool held) { if (_initialized) _driver.SetLookBack(held); }
         public void PlayDetectionBeat() { if (_initialized) _driver.PlayDetectionBeat(); }
+        public void PlayShake(float strength, float seconds) { if (_initialized) _driver.PlayShake(strength, seconds); }
         public void SetProximity(float closeness) { if (_initialized) _driver.SetProximity(closeness); }
         public void PlayTraversal(PlayerTraversalFact fact) { if (_initialized) _driver.PlayTraversal(fact); }
         public void PlayDeathSnap(Vector3 killerPosition) { if (_initialized) _driver.PlayDeathSnap(killerPosition); }
+        public void PlayConsumed(Vector3 handPosition) { if (_initialized) _driver.PlayConsumed(handPosition); }
         public void ResetView() { if (_initialized) _driver.ResetView(); }
 
         public void Teardown()

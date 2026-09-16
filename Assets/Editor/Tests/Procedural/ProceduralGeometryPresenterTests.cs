@@ -16,6 +16,7 @@
 // ============================================================================
 using System.Linq;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Worsen.Domain.Procedural;
 
@@ -26,7 +27,7 @@ namespace Worsen.Tests.Procedural
         private ProceduralConfig _config;
         private ProceduralDriverConfig _driverConfig;
         [SetUp] public void SetUp()
-        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); }
+        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); var settings = new SerializedObject(_config); settings.FindProperty("_castleModules").boolValue = false; settings.FindProperty("_initialRoomCount").intValue = 5; settings.ApplyModifiedPropertiesWithoutUndo(); }
         [TearDown] public void TearDown()
         { Object.DestroyImmediate(_config); Object.DestroyImmediate(_driverConfig); }
 

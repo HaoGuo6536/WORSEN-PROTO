@@ -13,6 +13,8 @@
 // KEY RESPONSIBILITIES:
 //   - Bind and rebuild the current document without losing presentation state.
 //   - Route one admitted UI action and maintain symmetric callback ownership.
+//   - Forward navigation feedback and explain unavailable offers without dispatching purchase requests.
+//   - Advance the terminal reveal gate using unscaled presentation time and clear it on disable.
 //   - Own panel/card sub-drivers and scheduled keyboard focus.
 //
 // DEPENDENCIES:
@@ -53,6 +55,7 @@ namespace Worsen.Presentation.ProgressionUI
         public event Action<string, int> PurchaseClicked;
         public event Action<int> ContinueClicked;
         public event Action<int> RestartClicked;
+        public event Action<CueId> Feedback;
 
         public void Initialize(ProgressionUIDriverConfig config)
         {
@@ -81,6 +84,11 @@ namespace Worsen.Presentation.ProgressionUI
             if (_presenter.Present(_state, snapshot)) Apply(focus);
         }
 
+        public void DeferTerminal(float seconds)
+        {
+            if (_state != null) _presenter.DeferTerminal(_state, seconds);
+        }
+
         public void Hide()
         {
             if (_state == null) return;
@@ -103,11 +111,16 @@ namespace Worsen.Presentation.ProgressionUI
             Unhook();
             _visual.ContinueClicked += OnContinue;
             _visual.RestartClicked += OnRestart;
-            foreach (var card in _cards) card.Activated += OnCardActivated;
+            _visual.Feedback += OnFeedback;
+            foreach (var card in _cards) { card.Activated += OnCardActivated; card.Feedback += OnFeedback; }
             BindAndApply();
         }
 
-        private void OnDisable() { Unhook(); HideAndUnbind(); }
+        private void OnDisable()
+        {
+            if (_state != null) _presenter.ClearTerminalDeferral(_state);
+            Unhook(); HideAndUnbind();
+        }
         private void OnDestroy()
         {
             Teardown();
@@ -117,6 +130,7 @@ namespace Worsen.Presentation.ProgressionUI
         private void LateUpdate()
         {
             if (_state == null || _document == null) return;
+            if (_presenter.Tick(_state, Time.unscaledDeltaTime)) Apply(true);
             if (!_document.isActiveAndEnabled) { HideAndUnbind(); return; }
             if (!ReferenceEquals(_boundRoot, _document.rootVisualElement)) BindAndApply();
         }
@@ -153,14 +167,14 @@ namespace Worsen.Presentation.ProgressionUI
             while (_cards.Count > _state.Cards.Length)
             {
                 var card = _cards[_cards.Count - 1];
-                card.Activated -= OnCardActivated; card.Unbind();
+                card.Activated -= OnCardActivated; card.Feedback -= OnFeedback; card.Unbind();
                 _cards.RemoveAt(_cards.Count - 1); Destroy(card);
             }
             while (_cards.Count < _state.Cards.Length)
             {
                 var card = gameObject.AddComponent<ProgressionUICardDriver>();
                 _cards.Add(card);
-                if (isActiveAndEnabled) card.Activated += OnCardActivated;
+                if (isActiveAndEnabled) { card.Activated += OnCardActivated; card.Feedback += OnFeedback; }
                 card.Bind(_visual.CardContainer, _config);
             }
         }
@@ -182,7 +196,11 @@ namespace Worsen.Presentation.ProgressionUI
             if (_state == null) return;
             var action = _state.Phase == ProgressionPhase.ChooseThreat ? ProgressionUIAction.ChooseThreat :
                 _state.Phase == ProgressionPhase.ChooseCurse ? ProgressionUIAction.ChooseCurse : ProgressionUIAction.Purchase;
-            if (!Admit(action, id, revision)) return;
+            if (!Admit(action, id, revision))
+            {
+                if (_presenter.DescribeRejectedCard(_state, id, revision)) { Apply(false); Feedback?.Invoke(CueId.ShopReject); }
+                return;
+            }
             if (action == ProgressionUIAction.ChooseThreat) ThreatChosen?.Invoke(id, revision);
             else if (action == ProgressionUIAction.ChooseCurse) CurseChosen?.Invoke(id, revision);
             else PurchaseClicked?.Invoke(id, revision);
@@ -195,13 +213,20 @@ namespace Worsen.Presentation.ProgressionUI
             if (_state == null || !isActiveAndEnabled || _document == null || !_document.isActiveAndEnabled ||
                 !ReferenceEquals(_boundRoot, _document.rootVisualElement) || !_presenter.TryIssue(_state, action, id, revision)) return false;
             Apply(false);
+            CueId? cue = _presenter.ActionFeedback(action);
+            if (cue.HasValue) Feedback?.Invoke(cue.Value);
             return true;
+        }
+
+        private void OnFeedback(CueId cue)
+        {
+            if (_state != null && !_state.Hidden && _state.ModalVisible && !_state.Pending) Feedback?.Invoke(cue);
         }
 
         private void Unhook()
         {
-            if (_visual != null) { _visual.ContinueClicked -= OnContinue; _visual.RestartClicked -= OnRestart; }
-            foreach (var card in _cards) if (card != null) card.Activated -= OnCardActivated;
+            if (_visual != null) { _visual.ContinueClicked -= OnContinue; _visual.RestartClicked -= OnRestart; _visual.Feedback -= OnFeedback; }
+            foreach (var card in _cards) if (card != null) { card.Activated -= OnCardActivated; card.Feedback -= OnFeedback; }
         }
 
         private void HideAndUnbind()

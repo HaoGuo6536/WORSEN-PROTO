@@ -14,6 +14,7 @@
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
+//   Slide steering is limited by lateral acceleration and angular rate; legacy LookBackSteerAuthority is unused.
 //   Designer data only. The factory resolves ArchetypeKey; runtime code never edits this asset.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
@@ -39,6 +40,9 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _slideMinimumSpeed = 6f;
         [SerializeField] private float _slideBoost = 2f;
         [SerializeField] private float _slideDuration = 1.2f;
+        [SerializeField, Min(0f)] private float _slideLateralAcceleration = 5f;
+        [SerializeField, Range(0f, 90f)] private float _slideMaximumTurnRate = 40f;
+        [SerializeField, Range(0f, 1f)] private float _walkingLoudness = 0.12f;
         [SerializeField] private float _vaultMinimumHeight = 0.35f;
         [SerializeField] private float _vaultMaximumHeight = 1.2f;
         [SerializeField] private float _mantleMaximumHeight = 2f;
@@ -83,6 +87,9 @@ namespace Worsen.Domain.Player
         public float SlideMinimumSpeed => _slideMinimumSpeed;
         public float SlideBoost => _slideBoost;
         public float SlideDuration => _slideDuration;
+        public float SlideLateralAcceleration => _slideLateralAcceleration;
+        public float SlideMaximumTurnRate => _slideMaximumTurnRate;
+        public float WalkingLoudness => _walkingLoudness;
         public float VaultMinimumHeight => _vaultMinimumHeight;
         public float VaultMaximumHeight => _vaultMaximumHeight;
         public float MantleMaximumHeight => _mantleMaximumHeight;

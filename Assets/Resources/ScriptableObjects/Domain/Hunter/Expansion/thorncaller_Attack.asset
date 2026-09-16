@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b26ff8ac23e6464883d9aae274572ed, type: 3}
+  m_Name: thorncaller_Attack
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.HunterAttackDriverConfig
+  _warningMaterial: {fileID: 2100000, guid: 8a4099c098bc2e84888312a1bd9c96a6, type: 2}
+  _projectileMaterial: {fileID: 2100000, guid: 339dbee77f0c880459c1ca928f769c8a, type: 2}
+  _spikeMaterial: {fileID: 2100000, guid: bff6528c90fb2944687413c150a945d1, type: 2}
+  _projectilePrefab: {fileID: 5768026348391133489, guid: 1989d258d4aa69f41ac16f51e4dc8303, type: 3}
+  _spikePrefab: {fileID: 7342457441850161382, guid: b2ee18a7edc941b42ab08e06847bcc5e, type: 3}
+  _collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _warningColor: {r: 0.65, g: 1, b: 0.2, a: 1}

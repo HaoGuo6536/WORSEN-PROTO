@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: FloorDriverConfig
   m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Floor.FloorDriverConfig
   _pickupRadius: 0.55
+  _cakePrefab: {fileID: 0}
+  _lumenRoomWarningPrefab: {fileID: 9212181303678681936, guid: 3ce9bf204bcd3894e98ccc99d7b88844, type: 3}
+  _lumenExitGlowPrefab: {fileID: 8198862922933775823, guid: c9d74ec9bf615a346b5ca8f17d566cdb, type: 3}
   _pickupHeight: 0.7
   _exitSize: {x: 2, y: 3, z: 2}
   _pathSampleRadius: 2
@@ -25,3 +28,17 @@ MonoBehaviour:
   _closedColor: {r: 0.18, g: 0.005, b: 0.005, a: 1}
   _exitLockedColor: {r: 0.5, g: 0.05, b: 0.03, a: 1}
   _exitOpenColor: {r: 0.1, g: 1, b: 0.3, a: 1}
+  _handPrefab: {fileID: 0}
+  _crackMaterial: {fileID: 0}
+  _mistMaterial: {fileID: 0}
+  _handGridWidth: 5
+  _portalInset: 0.25
+  _handVisualScale: 1
+  _usePhysicalExitDoor: 0
+  _exitDoorPrefab: {fileID: 0}
+  _exitDoorMaterial: {fileID: 0}
+  _exitDoorOpeningDuration: 1.2
+  _exitDoorOpeningAngle: 100
+  _exitDoorPrefabYaw: 90
+  _exitDoorYaw: 0
+  _exitCrossingDistance: 0.35

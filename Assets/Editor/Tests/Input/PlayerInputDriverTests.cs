@@ -10,6 +10,7 @@
 //   - Check readiness, end/restart, focus, owner/component disable and teardown.
 //   - Protect canonical-service cursor ownership and live/playback transitions.
 //   - Verify independent UI click actions survive the gameplay gate closing.
+//   - Verify C produces slide/crouch while Left Ctrl no longer does.
 //   - Preserve physical Shift press/hold/release through the Sprint input contract.
 // DEPENDENCIES:
 //   - Input presentation components, Core records, Unity Input System and Test Framework.
@@ -115,6 +116,21 @@ namespace Worsen.Tests.Input
             _manager.PublishFrame();
             Assert.That(_lastFrame.Held & InputButtons.Sprint, Is.EqualTo(InputButtons.None));
             Assert.That(_lastFrame.Released & InputButtons.Sprint, Is.EqualTo(InputButtons.Sprint));
+        }
+
+        [Test]
+        public void CPublishesCrouchAndControlDoesNot()
+        {
+            _manager.SetInputEnabled(true);
+            PushKeys(Key.LeftCtrl);
+            _manager.PublishFrame();
+            Assert.That(_lastFrame.Held & InputButtons.Crouch, Is.EqualTo(InputButtons.None));
+            PushKeys(Key.C);
+            _manager.PublishFrame();
+            Assert.That(_lastFrame.Pressed & InputButtons.Crouch, Is.EqualTo(InputButtons.Crouch));
+            PushKeys();
+            _manager.PublishFrame();
+            Assert.That(_lastFrame.Released & InputButtons.Crouch, Is.EqualTo(InputButtons.Crouch));
         }
 
         [Test]

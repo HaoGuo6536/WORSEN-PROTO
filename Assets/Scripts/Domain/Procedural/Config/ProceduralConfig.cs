@@ -2,13 +2,14 @@
 // ProceduralConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Defines the size and objective density of generated enclosed floors. Later
+//   Defines bounded castle growth, interior elevations and objective density. Later
 //   rounds grow within a fixed room budget while keeping wide, ordinary walking
 //   routes available without an upgrade or special traversal requirement.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Store layout growth, room dimensions and straight cake-line spacing.
+//   - Keep broad cloister/gallery rooms enclosed beneath a higher ceiling.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
@@ -22,7 +23,7 @@ namespace Worsen.Domain.Procedural
     [CreateAssetMenu(menuName = "Worsen/Procedural/Config")]
     public sealed class ProceduralConfig : ScriptableObject
     {
-        [SerializeField] private int _initialRoomCount = 5;
+        [SerializeField] private int _initialRoomCount = 7;
         [SerializeField] private int _roomsPerRound = 2;
         [SerializeField] private int _maximumRoomCount = 15;
         [SerializeField] private float _roomSize = 12f;
@@ -37,6 +38,14 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private float _spawnHeight = 0.1f;
         [SerializeField] private float _spawnSideOffset = 4f;
         [SerializeField] private Vector2 _origin = Vector2.zero;
+        [SerializeField] private bool _castleModules = true;
+        [SerializeField] private float _castleHeight = 7f;
+        [SerializeField] private float _highCeilingHeight = 10f;
+        [SerializeField] private float _upperDeckHeight = 2.4f;
+        public bool CastleModules => _castleModules;
+        public float CastleHeight => _castleHeight;
+        public float HighCeilingHeight => _highCeilingHeight;
+        public float UpperDeckHeight => _upperDeckHeight;
         public int InitialRoomCount => _initialRoomCount;
         public int RoomsPerRound => _roomsPerRound;
         public int MaximumRoomCount => _maximumRoomCount;

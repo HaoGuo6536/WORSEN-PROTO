@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Implement the Floor responsibility named by this file.
+//   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -90,9 +90,13 @@ namespace Worsen.Domain.Floor
             for (int index = 0; index < order.Length; index++)
             {
                 _state.MutableRoomPhases.Add(order[index].Id, RoomPhase.Open);
-                double start = index * (double)_config.CollapseInterval;
+                double duration = _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration;
+                double start = index * Math.Max(_config.CollapseInterval, duration);
+                _state.CollapseStarts.Add(order[index].Id, start);
                 _state.Schedule.Add(new FloorScheduledTransition(order[index].Id, RoomPhase.Telegraph, start));
-                _state.Schedule.Add(new FloorScheduledTransition(order[index].Id, RoomPhase.Closed, start + _config.TelegraphDuration));
+                _state.Schedule.Add(new FloorScheduledTransition(order[index].Id, RoomPhase.Tearing, start + _config.TelegraphDuration));
+                _state.Schedule.Add(new FloorScheduledTransition(order[index].Id, RoomPhase.Encroaching, start + _config.TelegraphDuration + _config.TearingDuration));
+                _state.Schedule.Add(new FloorScheduledTransition(order[index].Id, RoomPhase.Closed, start + duration));
             }
             _state.Schedule.Sort((left, right) =>
             {
@@ -191,13 +195,35 @@ namespace Worsen.Domain.Floor
             return true;
         }
 
+        // Room occupancy itself is never a kill. Only the hand controller can confirm
+        // that a committed damaging grab killed its registered player.
         public bool ContactLethalRoom(EntityId id, int roomId, long tick, out FloorLethalContactFact fact)
         {
             fact = default;
-            if (!_state.IsReady || _state.Ended || !LivingPlayer(id) || !_state.MutableRoomPhases.TryGetValue(roomId, out var phase) || phase != RoomPhase.Closed) return false;
+            if (!_state.IsReady || _state.Ended || !_state.MutableRoomPhases.TryGetValue(roomId, out var phase) ||
+                (phase != RoomPhase.Tearing && phase != RoomPhase.Encroaching && phase != RoomPhase.Closed) ||
+                !_state.Players.Any(player => player != null && player.Id == id && !player.IsAlive)) return false;
             _state.Ended = true;
             fact = new FloorLethalContactFact(id, roomId, tick);
             return true;
+        }
+
+        public bool TelegraphOptionalRoom(int roomId)
+        {
+            return _state.IsReady && !_state.Ended && _state.MutableRoomPhases.TryGetValue(roomId, out var phase) &&
+                phase == RoomPhase.Open && _state.OptionalCrackedRooms.Add(roomId);
+        }
+
+        public RoomDestructionSample Destruction(int roomId)
+        {
+            if (!_state.IsReady || !_state.MutableRoomPhases.TryGetValue(roomId, out var phase)) return default;
+            double age = Math.Max(0d, _state.CollapseElapsed - _state.CollapseStarts[roomId]);
+            float progress = 0f;
+            if (phase == RoomPhase.Telegraph) progress = (float)(age / _config.TelegraphDuration);
+            else if (phase == RoomPhase.Tearing) progress = (float)((age - _config.TelegraphDuration) / _config.TearingDuration);
+            else if (phase == RoomPhase.Encroaching) progress = (float)((age - _config.TelegraphDuration - _config.TearingDuration) / _config.EncroachingDuration);
+            else if (phase == RoomPhase.Closed) progress = 1f;
+            return new RoomDestructionSample(roomId, phase, Mathf.Clamp01(progress));
         }
 
         public IReadOnlyPlayerState CuePlayer() => _state.Players.Where(player => player != null && player.IsAlive).OrderBy(player => player.Id.Value).FirstOrDefault();
@@ -208,7 +234,7 @@ namespace Worsen.Domain.Floor
             _state.CakeCount = 0; _state.GoldenCakeCount = 0; _state.RequiredCakeCount = 0;
             _state.ExitState = ExitState.Locked; _state.CollapseElapsed = 0d; _state.CueElapsed = 0d; _state.NextTransition = 0;
             _state.SelectedAnchors.Clear(); _state.MutableActiveAnchors.Clear(); _state.MutableRoomPhases.Clear();
-            _state.CollectedCakes.Clear(); _state.CollectedGoldenCakes.Clear(); _state.Schedule.Clear();
+            _state.CollectedCakes.Clear(); _state.CollectedGoldenCakes.Clear(); _state.Schedule.Clear(); _state.CollapseStarts.Clear(); _state.OptionalCrackedRooms.Clear();
             _state.Players = Array.Empty<IReadOnlyPlayerState>(); _state.Graph = null; _state.Display = default;
         }
 

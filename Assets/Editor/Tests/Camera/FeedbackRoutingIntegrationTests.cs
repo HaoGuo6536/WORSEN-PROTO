@@ -7,9 +7,12 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Camera integration.
 // KEY RESPONSIBILITIES:
+//   - Drive held free-look explicitly with mouse degrees; only release is an automatic ease.
 //   - Observe confirmed sight and two native lunge contacts through Session routing.
 //   - Measure actual LookBack camera endpoints with frame-width timing uncertainty.
 //   - Verify scene-local comfort settings without modifying shared designer assets.
+//   - Isolate music routing with disposable test stems; production Pursuit/Danger may be empty.
+//   - Inspect actual pooled cue identity, configured clips, gain/pitch and playback; retain legacy coverage.
 // DEPENDENCIES:
 //   Core; Player/Hunter; Session.Run; Camera/PostFX/Audio/HUD/Results/Input;
 //   TagArena assembly, UI Toolkit, NUnit and Unity Test Framework. Rendering package
@@ -133,7 +136,10 @@ namespace Worsen.Tests.Camera
             private UnityEngine.Camera output;
             private CameraDriverConfig cameraConfig, cameraOriginal, cameraClone;
             private PostFXDriverConfig postConfig, postOriginal, postClone;
-            private AudioDriverConfig audioConfig;
+            private AudioDriverConfig audioConfig, audioOriginal, audioClone;
+            private AudioSoundscapeDriverConfig soundscapeOriginal, soundscapeClone;
+            private readonly List<AudioClip> musicClips = new List<AudioClip>();
+            private string audioJson, soundscapeJson;
             private InputActionMap gameplay;
             private ReadOnlyArray<InputDevice>? previousDevices;
             private FeedbackFrameObserver observer;
@@ -217,6 +223,7 @@ namespace Worsen.Tests.Camera
                     cameraConfig = (CameraDriverConfig)Read(camera, "_config");
                     postConfig = (PostFXDriverConfig)Read(postFX, "_config");
                     audioConfig = (AudioDriverConfig)Read(audio, "_config");
+                    if (SceneCount == 1) InstallMusicFixture();
                     Assert.That(Run.Tick, Is.Zero);
                     Assert.That(camera.IsReady && postFX.IsReady && audio.IsInitialized, Is.True);
                     Assert.That(output, Is.Not.Null);
@@ -271,7 +278,8 @@ namespace Worsen.Tests.Camera
                     if (sliding && player.ReadOnlyState.Velocity.magnitude >= 7.9f) held |= InputButtons.Crouch;
                     if (slideCommitted) held |= InputButtons.Crouch;
                     Vector2 move = sliding ? Vector2.up : Vector2.zero;
-                    var frame = new InputFrame(move, Vector2.zero, held, held & ~previousHeld, previousHeld & ~held);
+                    Vector2 look = requestedBack && (previousHeld & InputButtons.LookBack) == 0 ? new Vector2(160f, 0f) : Vector2.zero;
+                    var frame = new InputFrame(move, look, held, held & ~previousHeld, previousHeld & ~held);
                     previousHeld = held;
                     Run.ReceiveInput(frame);
                 });
@@ -377,7 +385,7 @@ namespace Worsen.Tests.Camera
                     {
                         Assert.That(Effect("_chromatic", "intensity"), Is.EqualTo(proximity * postConfig.PeripheralChromatic).Within(0.0001f));
                         Assert.That(Effect("_distortion", "intensity"), Is.EqualTo(-proximity * postConfig.PeripheralDistortion).Within(0.0001f));
-                        if (((AudioSource)Read(audio, "_hunter")).volume > 0f && ((AudioSource)Read(audio, "_breath")).volume > 0f)
+                        if (ThreatLayerPlaying() && ((AudioSource)Read(audio, "_breath")).isPlaying && ((AudioSource)Read(audio, "_breath")).volume > 0f)
                             proximityFrames++;
                     }
                     Assert.That(Effect("_vignette", "intensity"), Is.EqualTo((1f - health / 100f) * postConfig.InjuryVignette).Within(0.0001f));
@@ -387,8 +395,7 @@ namespace Worsen.Tests.Camera
                         Assert.That(Vector3.Angle(output.transform.forward, killer - player.LastMovementSample.EyePosition), Is.LessThan(0.1f));
                         Assert.That((float)Read(Read(cameraDriver, "_listener"), "Gain"), Is.Zero);
                         DeathRendered = true;
-                        LoopsSilent = ((AudioSource)Read(audio, "_hunter")).volume == 0f &&
-                            ((AudioSource)Read(audio, "_breath")).volume == 0f;
+                        LoopsSilent = ThreatAndGameplayLoopsSilent() && ((AudioSource)Read(audio, "_breath")).volume == 0f;
                     }
                     return;
                 }
@@ -418,8 +425,8 @@ namespace Worsen.Tests.Camera
                 if (!endpoint) return;
                 float duration = returning ? 0.15f : 0.12f;
                 Assert.That(lookMaxFrame, Is.LessThanOrEqualTo(0.08f), "Insufficient frame resolution for easing measurement.");
-                Assert.That(sawMidpoint, Is.True, "A snapped endpoint cannot prove easing.");
-                Assert.That(lookElapsed, Is.InRange(duration - 0.01f, duration + lookMaxFrame + 0.001f));
+                if (returning) Assert.That(sawMidpoint, Is.True, "Release must ease from the mouse-directed view.");
+                if (returning) Assert.That(lookElapsed, Is.InRange(duration - 0.01f, duration + lookMaxFrame + 0.001f));
                 events.Add((returning ? "return" : "lookback") + " comfort=" + comfortCycle + " startTick=" + lookStartTick +
                     " startFrame=" + lookStartFrame + " endFrame=" + Time.frameCount + " sampledDt=" + lookElapsed + " maxFrame=" + lookMaxFrame);
                 lookTimes.Add(lookElapsed);
@@ -452,7 +459,13 @@ namespace Worsen.Tests.Camera
                 foreach (string field in new[] { "_chromatic", "_distortion", "_vignette", "_grain" })
                     Assert.That(Effect(field, "intensity"), Is.Zero);
                 Assert.That(Effect("_color", "saturation"), Is.Zero);
-                Assert.That(((AudioSource)Read(audio, "_hunter")).volume, Is.Zero);
+                Assert.That(ThreatAndGameplayLoopsSilent(), Is.True, "Restart must clear threat music and gameplay loop playback.");
+                if (audioConfig.Soundscape != null)
+                {
+                    var soundscape = (AudioSoundscapeDriver)Read(audio, "_soundscape");
+                    Assert.That(((AudioSource[])Read(soundscape, "_voices")).All(source => !source.isPlaying), Is.True, "Restart must stop every pooled effect.");
+                    Assert.That(((AudioSoundscapeDriverState)Read(soundscape, "_state")).Voices.All(voice => voice.Remaining == 0f), Is.True, "Restart must release every effect voice lease.");
+                }
                 Assert.That(((AudioSource)Read(audio, "_breath")).volume, Is.Zero);
                 Assert.That(((AudioSource[])Read(audio, "_cueSources")).All(source => !source.isPlaying && source.volume == 0f), Is.True);
                 Assert.That(hud.GetComponent<UIDocument>().rootVisualElement.Q<VisualElement>("hud-extra").style.display.value, Is.EqualTo(DisplayStyle.Flex));
@@ -493,8 +506,113 @@ namespace Worsen.Tests.Camera
             }
             private void AssertUnchanged()
             { Assert.That(JsonUtility.ToJson(cameraOriginal), Is.EqualTo(cameraJson)); Assert.That(JsonUtility.ToJson(postOriginal), Is.EqualTo(postJson)); }
+            private void InstallMusicFixture()
+            {
+                // Keep scene wiring and production cue banks; only fixture-owned music
+                // slots use generated non-silent clips for gain/playback assertions.
+                if (audioConfig.Soundscape == null) return;
+                var originalDriver = (AudioSoundscapeDriver)Read(audio, "_soundscape");
+                var originalLayers = (AudioSource[])Read(originalDriver, "_layers");
+                AudioClip[] productionMusic = { audioConfig.Soundscape.TensionStem, audioConfig.Soundscape.ChaseStem, audioConfig.Soundscape.DangerStem };
+                for (int i = 0; i < productionMusic.Length; i++)
+                    if (productionMusic[i] == null)
+                    {
+                        Assert.That(originalLayers[i].clip, Is.Null, "Empty production slot must not receive a fallback clip.");
+                        Assert.That(originalLayers[i].isPlaying, Is.False, "Empty production slot must remain silent.");
+                    }
+                audioOriginal = audioConfig; soundscapeOriginal = audioConfig.Soundscape;
+                audioJson = JsonUtility.ToJson(audioOriginal);
+                soundscapeJson = JsonUtility.ToJson(soundscapeOriginal);
+                audioClone = UnityEngine.Object.Instantiate(audioOriginal);
+                soundscapeClone = UnityEngine.Object.Instantiate(soundscapeOriginal);
+                audioClone.name = "Feedback test audio config";
+                soundscapeClone.name = "Feedback test soundscape";
+                string[] slots = { "_tensionStem", "_chaseStem", "_dangerStem" };
+                int[] frequencies = { 64, 83, 107 };
+                const int sampleRate = 48000;
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    var clip = AudioClip.Create("Feedback test music " + i, sampleRate, 1, sampleRate, false);
+                    musicClips.Add(clip);
+                    var samples = new float[sampleRate];
+                    for (int frame = 0; frame < samples.Length; frame++)
+                        samples[frame] = .01f * Mathf.Sin(2f * Mathf.PI * frequencies[i] * frame / sampleRate);
+                    Assert.That(clip.SetData(samples, 0), Is.True);
+                    Write(soundscapeClone, slots[i], clip);
+                }
+                Write(audioClone, "_soundscape", soundscapeClone);
+                audio.Teardown(); audio.Initialize(audioClone);
+                audio.SetOwnerEnabled(AudioManager.Instance.isActiveAndEnabled);
+                audioConfig = audioClone;
+            }
+            private AudioSource[] RichLayers()
+            {
+                var driver = (AudioSoundscapeDriver)Read(audio, "_soundscape");
+                Assert.That(driver, Is.Not.Null);
+                var layers = (AudioSource[])Read(driver, "_layers");
+                Assert.That(layers.Length, Is.EqualTo(5));
+                AudioClip[] expected = { audioConfig.Soundscape.TensionStem, audioConfig.Soundscape.ChaseStem, audioConfig.Soundscape.DangerStem };
+                for (int i = 0; i < 3; i++)
+                {
+                    Assert.That(expected[i], Is.Not.Null, "Trial requires its three temporary music stems.");
+                    Assert.That(layers[i].clip, Is.SameAs(expected[i]));
+                    Assert.That(layers[i].loop, Is.True);
+                    Assert.That(layers[i].outputAudioMixerGroup, Is.EqualTo(audioConfig.Soundscape.MusicGroup));
+                }
+                return layers;
+            }
+            private bool ThreatLayerPlaying()
+            {
+                if (audioConfig.Soundscape == null)
+                { var legacy = (AudioSource)Read(audio, "_hunter"); return legacy.isPlaying && legacy.volume > 0f; }
+                var layers = RichLayers();
+                return layers[1].isPlaying && layers[1].volume > 0f;
+            }
+            private bool ThreatAndGameplayLoopsSilent()
+            {
+                if (audioConfig.Soundscape == null) return ((AudioSource)Read(audio, "_hunter")).volume == 0f;
+                var driver = (AudioSoundscapeDriver)Read(audio, "_soundscape");
+                var sources = (AudioSource[])Read(driver, "_voices");
+                var voices = ((AudioSoundscapeDriverState)Read(driver, "_state")).Voices;
+                for (int i = 0; i < voices.Length; i++)
+                {
+                    if (!voices[i].Loop) continue;
+                    var bank = audioConfig.Soundscape.Sounds.Single(entry => (int)entry.Cue == voices[i].Cue);
+                    if (!bank.Ambience && (voices[i].Remaining > 0f || sources[i].isPlaying)) return false;
+                }
+                return RichLayers().Take(3).All(source => source.volume == 0f);
+            }
             private void AssertCue(CueId cue)
             {
+                if (audioConfig.Soundscape != null)
+                {
+                    var config = audioConfig.Soundscape;
+                    var bank = config.Sounds.Single(entry => entry.Cue == cue);
+                    var driver = (AudioSoundscapeDriver)Read(audio, "_soundscape");
+                    Assert.That(driver, Is.Not.Null, "Configured soundscape driver is missing.");
+                    var voices = ((AudioSoundscapeDriverState)Read(driver, "_state")).Voices;
+                    var pooledSources = (AudioSource[])Read(driver, "_voices");
+                    Assert.That(pooledSources.Length, Is.EqualTo(voices.Length));
+                    float maximumGain = Mathf.Clamp01(bank.Gain) * audioConfig.MasterGain *
+                        (bank.Ambience ? config.AmbienceGain : config.EffectsGain);
+                    float minimumGain = maximumGain * (1f - Mathf.Clamp01(bank.GainVariation));
+                    var active = Enumerable.Range(0, voices.Length).Where(index => voices[index].Cue == (int)cue &&
+                        voices[index].Remaining > 0f && pooledSources[index].isPlaying).ToArray();
+                    Assert.That(active, Is.Not.Empty, "Actual pooled cue source did not start: " + cue);
+                    foreach (int index in active)
+                    {
+                        var source = pooledSources[index];
+                        Assert.That(source.clip, Is.Not.Null);
+                        Assert.That(bank.Clips, Does.Contain(source.clip), "Playing clip must belong to the requested cue bank.");
+                        Assert.That(source.volume, Is.GreaterThan(0f));
+                        Assert.That(source.volume, Is.InRange(minimumGain - 0.0001f, maximumGain + 0.0001f));
+                        Assert.That(source.pitch, Is.InRange(bank.PitchMinimum - 0.0001f, bank.PitchMaximum + 0.0001f));
+                        Assert.That(source.loop, Is.EqualTo(bank.Loop));
+                        Assert.That(source.spatialBlend, Is.EqualTo(bank.Spatial ? 1f : 0f));
+                        Assert.That(source.outputAudioMixerGroup, Is.EqualTo(bank.Ambience ? config.AmbienceGroup : config.EffectsGroup));
+                    }
+                    return;
+                }
                 var definition = audioConfig.Cues.Single(entry => entry.Cue == cue);
                 var sources = (AudioSource[])Read(audio, "_cueSources");
                 Assert.That(sources.Any(source => source.clip == definition.Clip && source.isPlaying &&
@@ -535,6 +653,26 @@ namespace Worsen.Tests.Camera
             {
                 Detach();
                 if (captureRun != null) captureRun.CaptureStarted -= CaptureStarted;
+                if (audioClone != null)
+                {
+                    try
+                    {
+                        Assert.That(JsonUtility.ToJson(audioOriginal), Is.EqualTo(audioJson));
+                        Assert.That(JsonUtility.ToJson(soundscapeOriginal), Is.EqualTo(soundscapeJson));
+                    }
+                    finally
+                    {
+                        if (audio != null)
+                        {
+                            audio.Teardown(); audio.Initialize(audioOriginal);
+                            audio.SetOwnerEnabled(AudioManager.Instance != null && AudioManager.Instance.isActiveAndEnabled);
+                        }
+                        UnityEngine.Object.Destroy(audioClone);
+                        UnityEngine.Object.Destroy(soundscapeClone);
+                        foreach (AudioClip clip in musicClips) UnityEngine.Object.Destroy(clip);
+                        musicClips.Clear();
+                    }
+                }
                 if (cameraClone != null)
                 {
                     if (camera != null) { camera.Teardown(); Write(camera, "_config", cameraOriginal); camera.Initialize(); }

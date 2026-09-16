@@ -11,7 +11,9 @@
 //   Presenter (§7b) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Format titles, descriptions, wallet, health and retained choices.
+//   - Preserve unique ownership, consumable stock and authoritative rejection reasons.
+//   - Group retained choices without truncation; distinguish UI intent from committed purchase audio.
+//   - Delay only terminal presentation with supplied time; leave progression authority unchanged.
 //   - Reject hidden, stale or repeated UI clicks using the displayed snapshot.
 //
 // DEPENDENCIES:
@@ -35,11 +37,24 @@ namespace Worsen.Presentation.ProgressionUI
         public bool Present(ProgressionUIDriverState state, ProgressionSnapshot snapshot)
         {
             if (state.HasSnapshot && snapshot.Revision < state.Revision) return false;
+            if (state.HasDeferredTerminal && snapshot.Revision < state.DeferredTerminal.Revision) return false;
+            if (state.TerminalDeferred && (snapshot.GenerationId != state.DeferredGenerationId
+                || snapshot.Phase == ProgressionPhase.Dormant || snapshot.Phase == ProgressionPhase.Generating
+                || snapshot.Phase == ProgressionPhase.ChooseThreat || snapshot.Phase == ProgressionPhase.ChooseCurse))
+                ClearTerminalDeferral(state);
+            if (state.TerminalDeferred && state.TerminalRemaining > 0f && snapshot.Phase == ProgressionPhase.Ended)
+            {
+                state.DeferredTerminal = snapshot;
+                state.HasDeferredTerminal = true;
+                state.ModalVisible = false;
+                return true;
+            }
             bool changed = !state.HasSnapshot || snapshot.Revision != state.Revision;
             state.HasSnapshot = true;
             state.Hidden = false;
             if (changed) state.Pending = false;
             state.Revision = snapshot.Revision;
+            state.GenerationId = snapshot.GenerationId;
             state.Phase = snapshot.Phase;
             state.ModalVisible = snapshot.Phase != ProgressionPhase.Dormant && snapshot.Phase != ProgressionPhase.Exploring;
             state.CanContinue = snapshot.CanContinue;
@@ -57,7 +72,38 @@ namespace Worsen.Presentation.ProgressionUI
             return true;
         }
 
-        public void Hide(ProgressionUIDriverState state) => state.Hidden = true;
+        public void Hide(ProgressionUIDriverState state)
+        {
+            ClearTerminalDeferral(state);
+            state.Hidden = true;
+        }
+
+        public void DeferTerminal(ProgressionUIDriverState state, float seconds)
+        {
+            if (state.TerminalDeferred || state.Phase == ProgressionPhase.Ended || !Finite(seconds) || seconds <= 0f) return;
+            state.TerminalDeferred = true;
+            state.TerminalRemaining = Math.Min(2f, seconds);
+            state.DeferredGenerationId = state.GenerationId;
+        }
+
+        public bool Tick(ProgressionUIDriverState state, float dt)
+        {
+            if (!state.TerminalDeferred || !Finite(dt) || dt <= 0f) return false;
+            state.TerminalRemaining = Math.Max(0f, state.TerminalRemaining - dt);
+            if (state.TerminalRemaining > 0f) return false;
+            bool pending = state.HasDeferredTerminal;
+            var snapshot = state.DeferredTerminal;
+            ClearTerminalDeferral(state);
+            return pending && Present(state, snapshot);
+        }
+
+        public void ClearTerminalDeferral(ProgressionUIDriverState state)
+        {
+            state.TerminalDeferred = state.HasDeferredTerminal = false;
+            state.TerminalRemaining = 0f;
+            state.DeferredGenerationId = 0;
+            state.DeferredTerminal = default;
+        }
 
         public bool TryIssue(ProgressionUIDriverState state, ProgressionUIAction action, string id, int revision)
         {
@@ -67,6 +113,19 @@ namespace Worsen.Presentation.ProgressionUI
             if (!allowed) return false;
             state.Pending = true;
             return true;
+        }
+
+        public CueId? ActionFeedback(ProgressionUIAction action)
+            => action == ProgressionUIAction.Purchase ? (CueId?)null
+                : action == ProgressionUIAction.Continue ? CueId.UiBack : CueId.UiConfirm;
+
+        public bool DescribeRejectedCard(ProgressionUIDriverState state, string id, int revision)
+        {
+            if (!state.HasSnapshot || state.Hidden || state.Pending || !state.ModalVisible || revision != state.Revision) return false;
+            foreach (var card in state.Cards)
+                if (!card.Enabled && string.Equals(card.Id, id, StringComparison.Ordinal))
+                { state.Message = card.Title + ": " + card.Detail; return true; }
+            return false;
         }
 
         private static bool CardEnabled(ProgressionUICard[] cards, ProgressionUIAction kind, string id)
@@ -86,9 +145,17 @@ namespace Worsen.Presentation.ProgressionUI
                 for (int i = 0; i < cards.Length; i++)
                 {
                     var offer = offers[i];
-                    string detail = offer.Purchased ? "Purchased this visit" : !offer.CanAfford ? "Not enough currency" : "Available";
+                    bool owned = offer.Purchased && !offer.Repeatable;
+                    bool soldOut = offer.Repeatable && offer.StockRemaining <= 0;
+                    string status = owned ? "Owned for this run" : soldOut ? "Sold out this visit"
+                        : !string.IsNullOrEmpty(offer.UnavailableReason) ? offer.UnavailableReason
+                        : !offer.CanAfford ? "Not enough currency" : "Available";
+                    string detail = status + "\n" + (offer.Repeatable
+                        ? "Consumable · stock " + Number(Math.Max(0, offer.StockRemaining))
+                        : "Unique equipment · kept for this run");
+                    bool available = !owned && !soldOut && offer.CanAfford && string.IsNullOrEmpty(offer.UnavailableReason);
                     cards[i] = new ProgressionUICard(offer.Id, offer.Title, offer.Description, detail,
-                        offer.Purchased ? "OWNED" : "BUY  " + Number(offer.Price), !offer.Purchased && offer.CanAfford,
+                        owned ? "OWNED" : soldOut ? "SOLD OUT" : "BUY  " + Number(offer.Price), available,
                         ProgressionUIAction.Purchase);
                 }
                 return cards;
@@ -103,7 +170,8 @@ namespace Worsen.Presentation.ProgressionUI
                 var choice = choices[i];
                 output[i] = new ProgressionUICard(choice.Id, choice.Title, choice.Description,
                     choice.SelectedCount > 0 ? "Already retained: " + Number(choice.SelectedCount) : "New to this expedition",
-                    "CHOOSE", !string.IsNullOrEmpty(choice.Id), kind);
+                    choice.SelectedCount > 0 && kind == ProgressionUIAction.ChooseCurse ? "RETAINED" : "CHOOSE",
+                    !string.IsNullOrEmpty(choice.Id) && (kind != ProgressionUIAction.ChooseCurse || choice.SelectedCount == 0), kind);
             }
             return output;
         }
@@ -112,10 +180,21 @@ namespace Worsen.Presentation.ProgressionUI
         {
             if (snapshot.Retained == null || snapshot.Retained.Count == 0) return "No retained choices yet.";
             var text = new StringBuilder();
-            foreach (var selection in snapshot.Retained)
+            foreach (ProgressionChoiceKind kind in new[] { ProgressionChoiceKind.Threat, ProgressionChoiceKind.Curse, ProgressionChoiceKind.Upgrade })
             {
-                if (text.Length > 0) text.Append("  /  ");
-                text.Append(selection.Title).Append(" x").Append(Number(selection.Count));
+                bool heading = false;
+                foreach (var selection in snapshot.Retained)
+                {
+                    if (selection.Kind != kind) continue;
+                    if (!heading)
+                    {
+                        if (text.Length > 0) text.Append("\n\n");
+                        text.Append(kind == ProgressionChoiceKind.Threat ? "FOLLOWING YOU" : kind == ProgressionChoiceKind.Curse ? "YOUR CURSES" : "YOUR EQUIPMENT");
+                        heading = true;
+                    }
+                    text.Append("\n• ").Append(selection.Title);
+                    if (selection.Count > 1) text.Append(" x").Append(Number(selection.Count));
+                }
             }
             return text.ToString();
         }
@@ -139,9 +218,9 @@ namespace Worsen.Presentation.ProgressionUI
             switch (phase)
             {
                 case ProgressionPhase.ChooseThreat: return "Choose one threat. It remains with this expedition.";
-                case ProgressionPhase.ChooseCurse: return "Choose one curse. Read its effect before continuing.";
+                case ProgressionPhase.ChooseCurse: return "Each curse changes a specific rule and can be chosen only once per run.";
                 case ProgressionPhase.Generating: return "Preparing the next room...";
-                case ProgressionPhase.Shop: return "Recover, improve your equipment, then continue.";
+                case ProgressionPhase.Shop: return "Unique equipment stays with you. Consumables have limited stock. Continue whenever you are ready.";
                 case ProgressionPhase.Ended: return "Your retained choices are shown below.";
                 case ProgressionPhase.GenerationFailed: return "The room could not be prepared. Start again to begin a fresh expedition.";
                 default: return "";

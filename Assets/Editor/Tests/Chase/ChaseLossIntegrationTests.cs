@@ -10,7 +10,7 @@
 //   - Verify physical occlusion with range/cone still eligible and distance >14 m.
 //   - Measure confirmation/loss/grace in completed Session ticks and preserve identity.
 //   - Record real poses, sight samples and phase facts without changing game rules.
-//   - Observe final Lost-end audio playback and the actual half-second HUD fade.
+//   - Observe exactly one mapped pooled or legacy Lose source and the half-second HUD fade.
 // DEPENDENCIES:
 //   - Core facts; Domain Player/Hunter/Chase; Session.Run; Input; TagArenaSceneRoot.
 //   - Audio/HUD presentation and UI Toolkit; read-only observation of actual sources.
@@ -146,6 +146,7 @@ namespace Worsen.Tests.Chase
             private Label hudCount, hudExit;
             private string initialCount, initialExit;
             private AudioSource[] cueSources;
+            private AudioSoundscapeDriver soundscape;
             private AudioClip loseClip;
             private ChaseLossFeedbackObserver feedbackObserver;
             private int lossEndFrame, restoreFrame, feedbackSamples, graceFeedbackSamples;
@@ -206,10 +207,23 @@ namespace Worsen.Tests.Chase
                     Assert.That(audio, Is.Not.Null);
                     Assert.That(audio.IsInitialized, Is.True);
                     audioConfig = (AudioDriverConfig)Read(audio, "_config");
-                    cueSources = (AudioSource[])Read(audio, "_cueSources");
-                    loseClip = audioConfig.Cues.Single(cue => cue.Cue == CueId.Lose).Clip;
+                    if (audioConfig.Soundscape != null)
+                    {
+                        soundscape = (AudioSoundscapeDriver)Read(audio, "_soundscape");
+                        Assert.That(soundscape, Is.Not.Null);
+                        cueSources = (AudioSource[])Read(soundscape, "_voices");
+                        var bank = audioConfig.Soundscape.Sounds.Single(cue => cue.Cue == CueId.Lose);
+                        loseClip = bank.Clips.FirstOrDefault(clip => clip != null);
+                        Assert.That(cueSources.Length, Is.EqualTo(audioConfig.Soundscape.VoiceCount));
+                        Snapshot(audioConfig.Soundscape);
+                    }
+                    else
+                    {
+                        cueSources = (AudioSource[])Read(audio, "_cueSources");
+                        loseClip = audioConfig.Cues.Single(cue => cue.Cue == CueId.Lose).Clip;
+                        Assert.That(cueSources.Length, Is.EqualTo(2));
+                    }
                     Assert.That(loseClip, Is.Not.Null);
-                    Assert.That(cueSources.Length, Is.EqualTo(2));
                     hud = One<HUDDriver>();
                     hudConfig = (HUDDriverConfig)Read(hud, "_config");
                     Snapshot(audioConfig); Snapshot(hudConfig);
@@ -276,15 +290,41 @@ namespace Worsen.Tests.Chase
                 {
                     Assert.That(fact.EndReason, Is.EqualTo(ChaseEndReason.Lost));
                     Assert.That(ends.Count, Is.EqualTo(1));
-                    var definition = audioConfig.Cues.Single(cue => cue.Cue == CueId.Lose);
-                    AudioSource[] playing = cueSources.Where(source => source.clip == loseClip && source.isPlaying).ToArray();
+                    AudioSource[] playing = PlayingLoseSources();
                     Assert.That(playing.Length, Is.EqualTo(1), "Final loss must start one real Lose cue source.");
-                    Assert.That(playing[0].volume, Is.EqualTo(definition.Gain * audioConfig.MasterGain).Within(0.0001f));
+                    if (soundscape != null)
+                    {
+                        var config = audioConfig.Soundscape;
+                        var bank = config.Sounds.Single(cue => cue.Cue == CueId.Lose);
+                        Assert.That(playing[0].clip, Is.Not.Null);
+                        Assert.That(bank.Clips, Does.Contain(playing[0].clip));
+                        float maximum = Mathf.Clamp01(bank.Gain) * audioConfig.MasterGain * (bank.Ambience ? config.AmbienceGain : config.EffectsGain);
+                        Assert.That(playing[0].volume, Is.GreaterThan(0f));
+                        Assert.That(playing[0].volume, Is.InRange(maximum * (1f - Mathf.Clamp01(bank.GainVariation)) - .0001f, maximum + .0001f));
+                        Assert.That(playing[0].pitch, Is.InRange(bank.PitchMinimum - .0001f, bank.PitchMaximum + .0001f));
+                        Assert.That(playing[0].loop, Is.EqualTo(bank.Loop));
+                        Assert.That(playing[0].spatialBlend, Is.EqualTo(bank.Spatial ? 1f : 0f));
+                        Assert.That(playing[0].outputAudioMixerGroup, Is.EqualTo(bank.Ambience ? config.AmbienceGroup : config.EffectsGroup));
+                        loseClip = playing[0].clip;
+                    }
+                    else
+                    {
+                        var definition = audioConfig.Cues.Single(cue => cue.Cue == CueId.Lose);
+                        Assert.That(playing[0].volume, Is.EqualTo(definition.Gain * audioConfig.MasterGain).Within(0.0001f));
+                    }
                     Assert.That(hudExtra.style.display.value, Is.EqualTo(DisplayStyle.Flex));
                     Assert.That(hudExtra.style.opacity.value, Is.Zero, "HUD restoration must start hidden, not snap to full opacity.");
                     loseSourceObserved = true; lossEndFrame = Time.frameCount;
                 }
                 catch (Exception error) { Fail("Final loss feedback routing: " + error); }
+            }
+            private AudioSource[] PlayingLoseSources()
+            {
+                if (soundscape == null) return cueSources.Where(source => source.clip == loseClip && source.isPlaying).ToArray();
+                var voices = ((AudioSoundscapeDriverState)Read(soundscape, "_state")).Voices;
+                Assert.That(voices.Length, Is.EqualTo(cueSources.Length));
+                return Enumerable.Range(0, voices.Length).Where(index => voices[index].Cue == (int)CueId.Lose &&
+                    voices[index].Remaining > 0f && cueSources[index].isPlaying).Select(index => cueSources[index]).ToArray();
             }
             private void CaptureStarted(RunCaptureMetadata metadata)
             { captureMetadata = metadata; capturedMetadata = true; }
@@ -521,7 +561,7 @@ namespace Worsen.Tests.Chase
                     {
                         Assert.That(hudExtra.style.display.value, Is.EqualTo(DisplayStyle.None));
                         Assert.That(hudExtra.style.opacity.value, Is.Zero);
-                        Assert.That(cueSources.Any(source => source.clip == loseClip && source.isPlaying), Is.False,
+                        Assert.That(PlayingLoseSources(), Is.Empty,
                             "Temporary Lost grace cannot emit the final Lose cue.");
                         if (chase.ReadOnlyState.Phase == ChasePhase.Lost) graceFeedbackSamples++;
                         return;

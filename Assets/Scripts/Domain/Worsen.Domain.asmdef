@@ -1,7 +1,7 @@
 {
     "name": "Worsen.Domain",
     "rootNamespace": "Worsen.Domain",
-    "references": ["Worsen.Core"],
+    "references": ["Worsen.Core", "DistantLands.Lumen.Runtime"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -1,0 +1,1134 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39e2006e053138643a14b775c7a5a0dd, type: 3}
+  m_Name: AudioSoundscapeDriverConfig
+  m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Audio.AudioSoundscapeDriverConfig
+  _sounds:
+  - Cue: 65
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.18
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 25
+    Cooldown: 0.12
+    MaxConcurrent: 1
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 66
+    Clips:
+    - {fileID: 8300000, guid: 9fc0454ca6f4d7642b0e4205fdf29241, type: 3}
+    Gain: 0.18
+    GainVariation: 0.06
+    PitchMinimum: 0.98
+    PitchMaximum: 1.02
+    Priority: 30
+    Cooldown: 0
+    MaxConcurrent: 1
+    Spatial: 0
+    Loop: 1
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 0
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 1
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 2
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 3
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 4
+    Clips:
+    - {fileID: 8300000, guid: 81084e7e3051fef4c8b5c4241d1861c3, type: 3}
+    - {fileID: 8300000, guid: aaa7210343f08684fa4782cdc9ffe076, type: 3}
+    Gain: 0.45
+    GainVariation: 0.08
+    PitchMinimum: 0.82
+    PitchMaximum: 0.92
+    Priority: 90
+    Cooldown: 0.08
+    MaxConcurrent: 1
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 5
+    Clips:
+    - {fileID: 8300000, guid: e00b566786ccf724fb7c7e9050b216d0, type: 3}
+    - {fileID: 8300000, guid: 745a3cf7858a72f44af66af537f3776f, type: 3}
+    - {fileID: 8300000, guid: 9791f36d8a6fe0d4f883d268d606fb3b, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 6
+    Clips:
+    - {fileID: 8300000, guid: 1e3ef847dca26a74398fd1e7a3788752, type: 3}
+    - {fileID: 8300000, guid: d25826bad7b6f0d42b3ddb7f79f957fb, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 7
+    Clips:
+    - {fileID: 8300000, guid: defb2e15db6327f4ea9adad89486c0fa, type: 3}
+    - {fileID: 8300000, guid: dfeb80bf3e8c9614887777522869dc57, type: 3}
+    - {fileID: 8300000, guid: 0fd56891eb9ec354a99a06e9cf381197, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 8
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 9
+    Clips:
+    - {fileID: 8300000, guid: ddf4dca3307e7e341b2ab72c05d34667, type: 3}
+    - {fileID: 8300000, guid: a718d5e0a58a2c048b5ddbd706f4cce2, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 10
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 11
+    Clips:
+    - {fileID: 8300000, guid: 7ca7942788e0d1e4d8d80cdc6f426b4b, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 1
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 12
+    Clips:
+    - {fileID: 8300000, guid: e00b566786ccf724fb7c7e9050b216d0, type: 3}
+    - {fileID: 8300000, guid: 745a3cf7858a72f44af66af537f3776f, type: 3}
+    - {fileID: 8300000, guid: 9791f36d8a6fe0d4f883d268d606fb3b, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 13
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 14
+    Clips:
+    - {fileID: 8300000, guid: ddf4dca3307e7e341b2ab72c05d34667, type: 3}
+    - {fileID: 8300000, guid: a718d5e0a58a2c048b5ddbd706f4cce2, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 15
+    Clips:
+    - {fileID: 8300000, guid: f50f73e538141e04fac9ae379fe39d03, type: 3}
+    - {fileID: 8300000, guid: 6c8cee4a28e19574386c34577a0b61ef, type: 3}
+    - {fileID: 8300000, guid: 3c261915074ab8042877e00593890309, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 16
+    Clips:
+    - {fileID: 8300000, guid: f50f73e538141e04fac9ae379fe39d03, type: 3}
+    - {fileID: 8300000, guid: 6c8cee4a28e19574386c34577a0b61ef, type: 3}
+    - {fileID: 8300000, guid: 3c261915074ab8042877e00593890309, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 17
+    Clips:
+    - {fileID: 8300000, guid: 81084e7e3051fef4c8b5c4241d1861c3, type: 3}
+    - {fileID: 8300000, guid: aaa7210343f08684fa4782cdc9ffe076, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 18
+    Clips:
+    - {fileID: 8300000, guid: 9fc0454ca6f4d7642b0e4205fdf29241, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 1
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 19
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 20
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 21
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 22
+    Clips:
+    - {fileID: 8300000, guid: 81084e7e3051fef4c8b5c4241d1861c3, type: 3}
+    - {fileID: 8300000, guid: aaa7210343f08684fa4782cdc9ffe076, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 23
+    Clips:
+    - {fileID: 8300000, guid: 348208ea5838fbe40bd6d804ff998552, type: 3}
+    - {fileID: 8300000, guid: b094f327a6a691347be72d810760743f, type: 3}
+    - {fileID: 8300000, guid: 683eb31e8d0218541a96240d77e8df9a, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 90
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 24
+    Clips:
+    - {fileID: 8300000, guid: 07856750346987c4db2e4e254b1790ba, type: 3}
+    - {fileID: 8300000, guid: 15e117b0bcffc994ca693baa66311df7, type: 3}
+    - {fileID: 8300000, guid: e013b1233be37ed44bdb4c51e64ff2da, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 25
+    Clips:
+    - {fileID: 8300000, guid: 9db8203d3ef4a12499c1be86c4c8791a, type: 3}
+    - {fileID: 8300000, guid: aac8488b82f2e4d4fa6ad5650a59ab3d, type: 3}
+    Gain: 0.36
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 26
+    Clips:
+    - {fileID: 8300000, guid: 9db8203d3ef4a12499c1be86c4c8791a, type: 3}
+    - {fileID: 8300000, guid: aac8488b82f2e4d4fa6ad5650a59ab3d, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 27
+    Clips:
+    - {fileID: 8300000, guid: e00b566786ccf724fb7c7e9050b216d0, type: 3}
+    - {fileID: 8300000, guid: 745a3cf7858a72f44af66af537f3776f, type: 3}
+    - {fileID: 8300000, guid: 9791f36d8a6fe0d4f883d268d606fb3b, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 28
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 29
+    Clips:
+    - {fileID: 8300000, guid: 53cc21e79a542b745ab72f32af307177, type: 3}
+    - {fileID: 8300000, guid: 3b6fa25bd807fba42a745023b4600d09, type: 3}
+    - {fileID: 8300000, guid: 178ee03a3a5f8a74293db00871ee9725, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 30
+    Clips:
+    - {fileID: 8300000, guid: 53cc21e79a542b745ab72f32af307177, type: 3}
+    - {fileID: 8300000, guid: 3b6fa25bd807fba42a745023b4600d09, type: 3}
+    - {fileID: 8300000, guid: 178ee03a3a5f8a74293db00871ee9725, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 31
+    Clips:
+    - {fileID: 8300000, guid: 81084e7e3051fef4c8b5c4241d1861c3, type: 3}
+    - {fileID: 8300000, guid: aaa7210343f08684fa4782cdc9ffe076, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 32
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 33
+    Clips:
+    - {fileID: 8300000, guid: 348208ea5838fbe40bd6d804ff998552, type: 3}
+    - {fileID: 8300000, guid: b094f327a6a691347be72d810760743f, type: 3}
+    - {fileID: 8300000, guid: 683eb31e8d0218541a96240d77e8df9a, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 8
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 32
+  - Cue: 34
+    Clips:
+    - {fileID: 8300000, guid: bc626d8e2cdcf924dae6319396118e12, type: 3}
+    - {fileID: 8300000, guid: 8abd811c33cd3c243874b685003eef29, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 35
+    Clips:
+    - {fileID: 8300000, guid: defb2e15db6327f4ea9adad89486c0fa, type: 3}
+    - {fileID: 8300000, guid: dfeb80bf3e8c9614887777522869dc57, type: 3}
+    - {fileID: 8300000, guid: 0fd56891eb9ec354a99a06e9cf381197, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 36
+    Clips:
+    - {fileID: 8300000, guid: 8f41d85f78d41d14cbadad33d10c217e, type: 3}
+    - {fileID: 8300000, guid: b6383cc53f23c3745b83d348d144496f, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 37
+    Clips:
+    - {fileID: 8300000, guid: 27bb4fdb4703bb644a63b8b74d7b9f70, type: 3}
+    Gain: 0.35
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 15
+    Cooldown: 0.08
+    MaxConcurrent: 4
+    Spatial: 1
+    Loop: 1
+    Ambience: 1
+    MinimumDistance: 1.8
+    MaximumDistance: 18
+  - Cue: 38
+    Clips:
+    - {fileID: 8300000, guid: 8f41d85f78d41d14cbadad33d10c217e, type: 3}
+    - {fileID: 8300000, guid: b6383cc53f23c3745b83d348d144496f, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 39
+    Clips:
+    - {fileID: 8300000, guid: a236c502123c1764dbb7b78bd8e706c0, type: 3}
+    - {fileID: 8300000, guid: 4982e074f7faef04bb7b834f60dfe669, type: 3}
+    Gain: 0.35
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 15
+    Cooldown: 0.08
+    MaxConcurrent: 4
+    Spatial: 1
+    Loop: 1
+    Ambience: 1
+    MinimumDistance: 1.8
+    MaximumDistance: 18
+  - Cue: 40
+    Clips:
+    - {fileID: 8300000, guid: 27bb4fdb4703bb644a63b8b74d7b9f70, type: 3}
+    Gain: 0.35
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 15
+    Cooldown: 0.08
+    MaxConcurrent: 4
+    Spatial: 1
+    Loop: 1
+    Ambience: 1
+    MinimumDistance: 1.8
+    MaximumDistance: 18
+  - Cue: 41
+    Clips:
+    - {fileID: 8300000, guid: 2b2c2a709e0ab734c830345607409fda, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 42
+    Clips:
+    - {fileID: 8300000, guid: c792183327a25b240b188f435aff2608, type: 3}
+    - {fileID: 8300000, guid: ce93802fda14b1e41a1e2c1b1984d9ce, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 43
+    Clips:
+    - {fileID: 8300000, guid: 1e3ef847dca26a74398fd1e7a3788752, type: 3}
+    - {fileID: 8300000, guid: d25826bad7b6f0d42b3ddb7f79f957fb, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 44
+    Clips:
+    - {fileID: 8300000, guid: c792183327a25b240b188f435aff2608, type: 3}
+    - {fileID: 8300000, guid: ce93802fda14b1e41a1e2c1b1984d9ce, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 45
+    Clips:
+    - {fileID: 8300000, guid: 9db8203d3ef4a12499c1be86c4c8791a, type: 3}
+    - {fileID: 8300000, guid: aac8488b82f2e4d4fa6ad5650a59ab3d, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 46
+    Clips:
+    - {fileID: 8300000, guid: 1e3ef847dca26a74398fd1e7a3788752, type: 3}
+    - {fileID: 8300000, guid: d25826bad7b6f0d42b3ddb7f79f957fb, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 47
+    Clips:
+    - {fileID: 8300000, guid: 9db8203d3ef4a12499c1be86c4c8791a, type: 3}
+    - {fileID: 8300000, guid: aac8488b82f2e4d4fa6ad5650a59ab3d, type: 3}
+    Gain: 0.36
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 48
+    Clips:
+    - {fileID: 8300000, guid: f50f73e538141e04fac9ae379fe39d03, type: 3}
+    - {fileID: 8300000, guid: 6c8cee4a28e19574386c34577a0b61ef, type: 3}
+    - {fileID: 8300000, guid: 3c261915074ab8042877e00593890309, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 49
+    Clips:
+    - {fileID: 8300000, guid: ba21bfdd6c8155c41acc5add21fe07f2, type: 3}
+    - {fileID: 8300000, guid: b96a19de83efca44bb8e7ef94e563d85, type: 3}
+    - {fileID: 8300000, guid: 04ea9c6f70bb56341bf3ce27161bf961, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.12
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 50
+    Clips:
+    - {fileID: 8300000, guid: ba21bfdd6c8155c41acc5add21fe07f2, type: 3}
+    - {fileID: 8300000, guid: b96a19de83efca44bb8e7ef94e563d85, type: 3}
+    - {fileID: 8300000, guid: 04ea9c6f70bb56341bf3ce27161bf961, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.12
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 51
+    Clips:
+    - {fileID: 8300000, guid: ba21bfdd6c8155c41acc5add21fe07f2, type: 3}
+    - {fileID: 8300000, guid: b96a19de83efca44bb8e7ef94e563d85, type: 3}
+    - {fileID: 8300000, guid: 04ea9c6f70bb56341bf3ce27161bf961, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.12
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 52
+    Clips:
+    - {fileID: 8300000, guid: 13493d657491af44a976fae986355e98, type: 3}
+    - {fileID: 8300000, guid: 2505803e540bb36488cd8a0f1e93a5b6, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 53
+    Clips:
+    - {fileID: 8300000, guid: 9db8203d3ef4a12499c1be86c4c8791a, type: 3}
+    - {fileID: 8300000, guid: aac8488b82f2e4d4fa6ad5650a59ab3d, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 54
+    Clips:
+    - {fileID: 8300000, guid: 1e3ef847dca26a74398fd1e7a3788752, type: 3}
+    - {fileID: 8300000, guid: d25826bad7b6f0d42b3ddb7f79f957fb, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 55
+    Clips:
+    - {fileID: 8300000, guid: ba21bfdd6c8155c41acc5add21fe07f2, type: 3}
+    - {fileID: 8300000, guid: b96a19de83efca44bb8e7ef94e563d85, type: 3}
+    - {fileID: 8300000, guid: 04ea9c6f70bb56341bf3ce27161bf961, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 0
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 56
+    Clips:
+    - {fileID: 8300000, guid: 53cc21e79a542b745ab72f32af307177, type: 3}
+    - {fileID: 8300000, guid: 3b6fa25bd807fba42a745023b4600d09, type: 3}
+    - {fileID: 8300000, guid: 178ee03a3a5f8a74293db00871ee9725, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 57
+    Clips:
+    - {fileID: 8300000, guid: 27bb4fdb4703bb644a63b8b74d7b9f70, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 1
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 58
+    Clips:
+    - {fileID: 8300000, guid: ddf4dca3307e7e341b2ab72c05d34667, type: 3}
+    - {fileID: 8300000, guid: a718d5e0a58a2c048b5ddbd706f4cce2, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 59
+    Clips:
+    - {fileID: 8300000, guid: defb2e15db6327f4ea9adad89486c0fa, type: 3}
+    - {fileID: 8300000, guid: dfeb80bf3e8c9614887777522869dc57, type: 3}
+    - {fileID: 8300000, guid: 0fd56891eb9ec354a99a06e9cf381197, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 60
+    Clips:
+    - {fileID: 8300000, guid: 29349bacec1391447b1a5d560779cc03, type: 3}
+    - {fileID: 8300000, guid: 007c22fdd1f17184a9cd2ce4acd61e02, type: 3}
+    Gain: 0.55
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 80
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 61
+    Clips:
+    - {fileID: 8300000, guid: 4ea91be1a342a35488c3b8cf7a3c0432, type: 3}
+    - {fileID: 8300000, guid: 24470b87737bb4e4ea48211d034e0186, type: 3}
+    Gain: 0.42
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 62
+    Clips:
+    - {fileID: 8300000, guid: 0a43b9cdf672abb4981e63ce3b8e8ea0, type: 3}
+    - {fileID: 8300000, guid: 9becedf7aa8b74845b36975fd53fe265, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 63
+    Clips:
+    - {fileID: 8300000, guid: 7dba6ac07aba85646883949c1d5fd0bc, type: 3}
+    - {fileID: 8300000, guid: a96dc540384d93a4585c563ed5cddf9f, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  - Cue: 64
+    Clips:
+    - {fileID: 8300000, guid: a726b4c50df55d041b346fc782f010dc, type: 3}
+    - {fileID: 8300000, guid: 9af87a039b104f74c9331e3518367023, type: 3}
+    Gain: 0.23
+    GainVariation: 0.12
+    PitchMinimum: 0.94
+    PitchMaximum: 1.06
+    Priority: 35
+    Cooldown: 0.08
+    MaxConcurrent: 3
+    Spatial: 1
+    Loop: 0
+    Ambience: 0
+    MinimumDistance: 1.8
+    MaximumDistance: 20
+  _voiceCount: 24
+  _effectsGain: 0.8
+  _musicGain: 0.52
+  _ambienceGain: 0.25
+  _attackSeconds: 0.65
+  _releaseSeconds: 3.5
+  _chaseHoldSeconds: 2.5
+  _exertionOnsetSeconds: 0.8
+  _exertionReleaseSeconds: 1.1
+  _criticalExertionMultiplier: 0
+  _tensionStem: {fileID: 8300000, guid: ee2ebb4c4ca5fad40bdac20c3eeaae1a, type: 3}
+  _chaseStem: {fileID: 8300000, guid: 64ed54603ea4bdc4c930044de83bdd69, type: 3}
+  _dangerStem: {fileID: 8300000, guid: d53d6acc1efce1e4296fdd63d421a1a1, type: 3}
+  _runIntro: {fileID: 8300000, guid: 1848e5c0f65bc1542a32b7b6c41f30a4, type: 3}
+  _runLoop: {fileID: 8300000, guid: 10546d9649879d14e8277d84c34d122e, type: 3}
+  _runEnd: {fileID: 8300000, guid: 9ffb473a8305d8741a911f9eef94a48c, type: 3}
+  _deepImpactGain: 0.5
+  _stressImpactGain: 0.6
+  _dangerAmbienceGain: 0.25
+  _chaseDangerGain: 0.65
+  _runGain: 0.55
+  _impactMinimumPitch: 0.85
+  _impactMaximumPitch: 1.3
+  _impactRampSeconds: 4
+  _interiorAmbience: {fileID: 8300000, guid: b17326ca413c5d34f81526b2a28c5f8c, type: 3}
+  _exteriorAmbience: {fileID: 8300000, guid: 9528e5e45c00e994ab56d0054dbf2488, type: 3}
+  _effectsGroup: {fileID: 0}
+  _musicGroup: {fileID: 0}
+  _ambienceGroup: {fileID: 0}
+  _torchAudibleDistance: 16
+  _accentMinimumSeconds: 7
+  _accentMaximumSeconds: 15
+  _footstepGroundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295

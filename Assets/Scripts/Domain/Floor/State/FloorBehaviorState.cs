@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Implement the Floor responsibility named by this file.
+//   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -31,6 +31,7 @@ namespace Worsen.Domain.Floor
         internal readonly List<LevelAnchor> SelectedAnchors = new List<LevelAnchor>();
         internal readonly List<LevelAnchor> MutableActiveAnchors = new List<LevelAnchor>();
         internal readonly Dictionary<int, RoomPhase> MutableRoomPhases = new Dictionary<int, RoomPhase>();
+        internal readonly HashSet<int> OptionalCrackedRooms = new HashSet<int>();
         internal readonly HashSet<int> CollectedCakes = new HashSet<int>();
         internal readonly HashSet<int> CollectedGoldenCakes = new HashSet<int>();
         internal readonly List<FloorScheduledTransition> Schedule = new List<FloorScheduledTransition>();
@@ -39,6 +40,7 @@ namespace Worsen.Domain.Floor
         internal double CollapseElapsed;
         internal double CueElapsed;
         internal int NextTransition;
+        internal readonly Dictionary<int, double> CollapseStarts = new Dictionary<int, double>();
         internal bool Ended;
         internal long Tick;
         internal FloorDisplaySnapshot Display;

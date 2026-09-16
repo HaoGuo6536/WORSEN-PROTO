@@ -10,7 +10,9 @@
 //   DriverState (§7c) · Presentation · Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Keep unshaken aim separate from cosmetic banking and deterministic shake envelopes.
 //   - Store consumed sample identity and head offsets.
+//   - Latch confirmed consumption and its captured start/target poses until reset.
 //   - Store output pose and lens values for the Driver.
 //
 // DEPENDENCIES:
@@ -49,6 +51,11 @@ namespace Worsen.Presentation.Camera
         public float ReboundElapsed = -1f;
         public float ReboundSign = 1f;
         public float Proximity;
+        public bool Consumed;
+        public float ConsumptionElapsed, ConsumptionDuration;
+        public Vector3 ConsumptionStartPosition, ConsumptionTargetPosition;
+        public Quaternion ConsumptionStartRotation = Quaternion.identity;
+        public Quaternion ConsumptionTargetRotation = Quaternion.identity;
         public bool DeathSnapped;
         public Quaternion DeathRotation = Quaternion.identity;
         public Vector3 Position;
@@ -56,5 +63,11 @@ namespace Worsen.Presentation.Camera
         public float HorizontalFieldOfView;
         public float VerticalFieldOfView;
         public float Roll;
+        public float SlideTurnRateDegrees;
+        public float SlideBank;
+        public float ShakeElapsed;
+        public float ShakeDuration;
+        public float ShakeStrength;
+        public Quaternion AimRotation = Quaternion.identity;
     }
 }

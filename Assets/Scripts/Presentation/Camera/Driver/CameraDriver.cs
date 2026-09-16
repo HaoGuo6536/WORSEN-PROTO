@@ -7,11 +7,13 @@
 //   The package stays behind this boundary so gameplay and view math need no vendor types.
 //
 // ARCHITECTURAL ROLE:
-//   Driver (§7a) · Presentation · Camera.
+//   Driver (Â§7a) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
 //   - Bind the serialized output camera and rebuild missing owned rig components.
 //   - Apply pose and lens in LateUpdate, then manually advance the owned brain.
+//   - Expose unshaken aim and route explicit event shake without moving gameplay authority.
+//   - Advance terminal consumption with unscaled presentation time.
 //   - Generate the detection impulse and release only owned runtime objects.
 //
 // DEPENDENCIES:
@@ -48,6 +50,10 @@ namespace Worsen.Presentation.Camera
         private bool _runtimeListener;
         private CinemachineBrain.UpdateMethods _previousUpdateMethod;
         private bool _previousBrainEnabled;
+
+        public Quaternion AimRotation => _state != null ? _presenter.AimRotation(_state) : Quaternion.identity;
+        public float ConsumptionSeconds => _config != null ? _presenter.ConsumptionSeconds(_config) : 0f;
+        public Vector3 AimPosition => _state?.EyePosition ?? Vector3.zero;
 
         public bool IsReady => _state != null && _outputCamera != null && _rig != null && _brain != null
             && _impulse != null && _listener != null;
@@ -108,6 +114,11 @@ namespace Worsen.Presentation.Camera
             _impulse.GenerateImpulseWithVelocity(_presenter.DetectionImpulseVelocity(_config));
         }
 
+        public void PlayShake(float strength, float seconds)
+        {
+            if (_state != null) _presenter.PlayShake(_state, strength, seconds);
+        }
+
         public void SetProximity(float closeness)
         {
             if (_state != null) _presenter.SetProximity(_state, closeness);
@@ -115,12 +126,18 @@ namespace Worsen.Presentation.Camera
 
         public void PlayTraversal(PlayerTraversalFact fact)
         {
-            if (_state != null) _presenter.PlayTraversal(_state, fact);
+            if (_state == null) return;
+            _presenter.PlayTraversal(_state, fact, _config);
         }
 
         public void PlayDeathSnap(Vector3 killerPosition)
         {
             if (_state != null) _presenter.PlayDeathSnap(_state, killerPosition);
+        }
+
+        public void PlayConsumed(Vector3 handPosition)
+        {
+            if (_state != null) _presenter.PlayConsumed(_state, _config, handPosition);
         }
 
         public void ResetView()
@@ -187,10 +204,10 @@ namespace Worsen.Presentation.Camera
         private void LateUpdate()
         {
             if (_state == null || !_state.HasMovement) return;
-            _presenter.Tick(_state, _config, Time.deltaTime, _outputCamera.aspect);
+            _presenter.Tick(_state, _config, _state.Consumed ? Time.unscaledDeltaTime : Time.deltaTime, _outputCamera.aspect);
             _rig.transform.SetPositionAndRotation(_state.Position, _state.Rotation);
             _rig.Lens.FieldOfView = _state.VerticalFieldOfView;
-            _listener.Gain = _state.DeathSnapped ? 0f : _config.PunchIntensity;
+            _listener.Gain = _state.DeathSnapped ? 0f : _config.PunchIntensity * _config.ShakeIntensity;
             _brain.ManualUpdate();
         }
 

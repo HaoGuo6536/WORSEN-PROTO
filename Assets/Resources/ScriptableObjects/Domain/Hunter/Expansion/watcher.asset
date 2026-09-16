@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25ce58078307f234cb8b967f4f0dbd0a, type: 3}
+  m_Name: watcher
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.HunterProfile
+  _archetypeKey: watcher
+  _prefab: {fileID: 8541050095054286804, guid: 36a5ce80d5479e049bd79ef6c0c905b3, type: 3}
+  _acceleration: 20
+  _turnRate: 240
+  _chaseSpeedMultiplier: 1.02
+  _patrolSpeed: 3
+  _sightConeDegrees: 110
+  _sightRange: 30
+  _sensorIntervalTicks: 4
+  _hearingRange: 18
+  _hearingThreshold: 0.08
+  _noiseMaxAgeSeconds: 0.5
+  _memoryDecaySeconds: 8
+  _beliefFreshSeconds: 3
+  _lungeWindupSeconds: 0.55
+  _lungeActiveSeconds: 0.3
+  _lungeRecoverySeconds: 1.3
+  _lungeDistance: 4
+  _lungeSpeed: 18
+  _lungeDamage: 40
+  _arrivalRadius: 1
+  _searchSeconds: 2
+  _cutOffPredictionSeconds: 1.5
+  _lightResponse: 2
+  _lightMemorySeconds: 3
+  _lightReactionSeconds: 0.8
+  _lightReactionCooldownSeconds: 3
+  _lightExposureSeconds: 0.12
+  _lightReactionDistance: 3
+  _screamOnDetection: 1
+  _screamCooldownSeconds: 14
+  _attackStyle: 0
+  _rangedAttackDistance: 15
+  _projectileSpeed: 11
+  _projectileRadius: 0.22
+  _spikeRadius: 1.5

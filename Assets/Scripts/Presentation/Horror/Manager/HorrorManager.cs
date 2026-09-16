@@ -10,6 +10,7 @@
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
 //   - Initialize the scene-owned Driver and forward commands.
 //   - Pair owner enable, disable and destruction with rendering restoration.
 //
@@ -51,6 +52,8 @@ namespace Worsen.Presentation.Horror
             return this;
         }
 
+        public void SetFlashlight(FlashlightSample sample) { if (_driver != null) _driver.SetFlashlight(sample); }
+        public void SetAfterimage(FlashlightSample sample, float lifetime) { if (_driver != null) _driver.SetAfterimage(sample, lifetime); }
         public void ToggleFlashlight() { if (_driver != null && isActiveAndEnabled) _driver.ToggleFlashlight(); }
         public void SetEffects(float fogMultiplier, float flashlightMultiplier)
         { if (_driver != null) _driver.SetEffects(fogMultiplier, flashlightMultiplier); }

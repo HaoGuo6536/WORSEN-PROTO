@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Count landing and slide-exit contact as the current step, so cadence waits for the next footfall.
 //   - Admit higher-priority cues and retain an outgoing fade on interruption.
 //   - Preserve fractional injury samples and map them with proximity to bounded gains.
 //   - Advance footsteps and all fades using caller-supplied elapsed time.
@@ -53,6 +54,8 @@ namespace Worsen.Presentation.Audio
         public void SetSpeedNormalized(AudioDriverState state, float speed) => state.SpeedNormalized = Unit(speed);
         public float ClampGain(float gain) => Unit(gain);
         public void SetMovementState(AudioDriverState state, MovementState movement) => state.MovementState = movement;
+        public void MarkFootContact(AudioDriverState state, AudioMixSettings settings) =>
+            state.FootstepRemaining = Mathf.Max(state.FootstepRemaining, StepInterval(state, settings));
         public void SetInjury(AudioDriverState state, float currentHealth, float maxHealth)
         {
             state.MaxHealth = Nonnegative(maxHealth);
@@ -88,7 +91,7 @@ namespace Worsen.Presentation.Audio
             }
             state.FootstepRemaining = Mathf.Max(0f, state.FootstepRemaining - dt);
             if (state.FootstepRemaining > 0f) return false;
-            state.FootstepRemaining = Mathf.Max(0.01f, Mathf.Lerp(Nonnegative(settings.SlowStepSeconds), Nonnegative(settings.FastStepSeconds), state.SpeedNormalized));
+            state.FootstepRemaining = StepInterval(state, settings);
             return true;
         }
 
@@ -107,6 +110,8 @@ namespace Worsen.Presentation.Audio
 
         private float Approach(float current, float target, float dt, float seconds) =>
             Mathf.MoveTowards(Unit(current), Unit(target), dt / Mathf.Max(0.001f, Nonnegative(seconds)));
+        private float StepInterval(AudioDriverState state, AudioMixSettings settings) =>
+            Mathf.Max(0.01f, Mathf.Lerp(Nonnegative(settings.SlowStepSeconds), Nonnegative(settings.FastStepSeconds), Unit(state.SpeedNormalized)));
         private float Nonnegative(float value) => float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Max(0f, value);
         private float Unit(float value) => Mathf.Clamp01(Nonnegative(value));
     }

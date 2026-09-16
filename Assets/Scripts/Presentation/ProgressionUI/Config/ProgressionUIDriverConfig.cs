@@ -11,6 +11,7 @@
 //   DriverConfig (§7d) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
+//   - Bound the scrollable retained inventory independently from shop actions.
 //   - Expose colors, font sizes and responsive card/panel geometry.
 //
 // DEPENDENCIES:
@@ -38,6 +39,7 @@ namespace Worsen.Presentation.ProgressionUI
         [SerializeField, Min(18)] private int _smallFontSize = 20;
         [SerializeField, Min(600f)] private float _panelWidth = 1120f;
         [SerializeField, Min(220f)] private float _cardWidth = 320f;
+        [SerializeField, Min(100f)] private float _retainedMaximumHeight = 240f;
         [SerializeField, Min(0f)] private float _spacing = 24f;
         [SerializeField, Min(0f)] private float _cornerCut = 10f;
         [SerializeField, Min(1f)] private float _strokeWidth = 1.5f;
@@ -50,6 +52,7 @@ namespace Worsen.Presentation.ProgressionUI
         public int SmallFontSize => _smallFontSize;
         public float PanelWidth => _panelWidth;
         public float CardWidth => _cardWidth;
+        public float RetainedMaximumHeight => _retainedMaximumHeight;
         public float Spacing => _spacing;
         public float CornerCut => _cornerCut;
         public float StrokeWidth => _strokeWidth;

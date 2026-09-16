@@ -12,6 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
 //   - Expire optional blur and intrusion without clearing injury or proximity.
+//   - Fade the world into black after confirmed consumption; later injury cannot cancel it.
 //   - Reset all transient effects on a scene or run reset.
 //
 // DEPENDENCIES:
@@ -31,6 +32,9 @@ namespace Worsen.Presentation.PostFX
     {
         public void Reset(PostFXDriverState state)
         {
+            state.Consumed = false;
+            state.ConsumptionElapsed = state.ConsumptionDuration = state.Blackout = state.Exposure = 0f;
+            state.SceneTint = Color.white;
             state.LookBack = false;
             state.Proximity = state.Injury = state.IntrusionRemaining = state.BlurRemaining = 0f;
             state.Chromatic = state.Distortion = state.Vignette = state.Saturation = state.Grain = state.Blur = 0f;
@@ -58,6 +62,15 @@ namespace Worsen.Presentation.PostFX
         public void PlayIntrusion(PostFXDriverState state, float seconds)
             => state.IntrusionRemaining = Mathf.Max(state.IntrusionRemaining, Mathf.Max(0f, Finite(seconds)));
 
+        public void PlayConsumed(PostFXDriverState state, float seconds)
+        {
+            seconds = Finite(seconds);
+            if (state.Consumed || seconds <= 0f) return;
+            state.Consumed = true;
+            state.ConsumptionElapsed = 0f;
+            state.ConsumptionDuration = Mathf.Clamp(seconds, 0.1f, 2f);
+        }
+
         public void Tick(PostFXDriverState state, PostFXDriverConfig config, float dt)
         {
             dt = Mathf.Max(0f, Finite(dt));
@@ -70,6 +83,18 @@ namespace Worsen.Presentation.PostFX
             state.Grain = state.IntrusionRemaining > 0f ? Mathf.Clamp01(config.IntrusionGrain) : 0f;
             state.Blur = Mathf.Clamp01(state.BlurRemaining / Mathf.Max(0.001f, config.ReacquireBlurSeconds));
             state.BlurRadius = Mathf.Lerp(0.5f, config.BlurRadius, state.Blur);
+            if (!state.Consumed) return;
+            state.ConsumptionElapsed = Mathf.Min(state.ConsumptionDuration, state.ConsumptionElapsed + dt);
+            float progress = state.ConsumptionElapsed / state.ConsumptionDuration;
+            float delay = Mathf.Clamp(Finite(config.ConsumptionFadeStart), 0f, 0.8f);
+            float fade = Mathf.Clamp01((progress - delay) / (1f - delay));
+            state.Blackout = fade * fade * (3f - 2f * fade);
+            state.SceneTint = Color.Lerp(Color.white, Color.black, state.Blackout);
+            state.Exposure = Mathf.Clamp(Finite(config.ConsumptionExposure), -10f, 0f) * state.Blackout;
+            state.Vignette = Mathf.Max(state.Vignette, state.Blackout);
+            state.Grain *= 1f - state.Blackout;
+            state.Chromatic *= 1f - state.Blackout;
+            state.Blur *= 1f - state.Blackout;
         }
 
         private float Finite(float value) => float.IsNaN(value) || float.IsInfinity(value) ? 0f : value;

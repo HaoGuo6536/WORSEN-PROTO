@@ -21,7 +21,8 @@ MonoBehaviour:
   _slowStepSeconds: 0.6
   _fastStepSeconds: 0.28
   _minimumStepSpeed: 0.04
-  _breathLoop: {fileID: 8300000, guid: ff761f7fb929bc940b78933ac400f2a1, type: 3}
+  _soundscape: {fileID: 11400000, guid: 22bda59ab73357a4b8d1dffc49d67c2c, type: 2}
+  _breathLoop: {fileID: 8300000, guid: 9fc0454ca6f4d7642b0e4205fdf29241, type: 3}
   _hunterLoop: {fileID: 8300000, guid: 97085b13cc025b248bc47f243f8f8a30, type: 3}
   _cues:
   - _cue: 0

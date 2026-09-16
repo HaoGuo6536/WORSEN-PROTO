@@ -11,6 +11,7 @@
 //   DriverState (§7c) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
+//   - Hold the latest terminal snapshot while an explicitly requested visual sequence finishes.
 //   - Retain display copies, revision and pending interaction state.
 //
 // DEPENDENCIES:
@@ -29,7 +30,11 @@ namespace Worsen.Presentation.ProgressionUI
     public sealed class ProgressionUIDriverState
     {
         public bool HasSnapshot, Hidden, ModalVisible, Pending, CanContinue, CanRestart;
-        public int Revision;
+        public int Revision, GenerationId;
+        public bool TerminalDeferred, HasDeferredTerminal;
+        public float TerminalRemaining;
+        public ProgressionSnapshot DeferredTerminal;
+        public int DeferredGenerationId;
         public ProgressionPhase Phase;
         public string Title = "", Subtitle = "", RoundText = "", WalletText = "", HealthText = "";
         public string BurdenText = "", RetainedText = "", Message = "";

@@ -8,8 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
-//   - Wire the expedition, Painter2D menus, flashlight, dither fog and cake model.
+//   - Wire five animated hunters, spatial sound, Lumen 2, curse rules and physical exit/collapse.
+//   - Preserve deterministic asset identity when rebuilding the complete expedition.
 //   - Preserve unrelated loaded scenes and existing configuration asset identities.
+//   - Keep the diagnostic service wired with its document hidden by default.
+//   - Supply the HUD compass with the explicit camera aim source.
 // DEPENDENCIES:
 //   - Runtime layer APIs, existing presentation generators, UnityEditor and URP.
 // USAGE NOTES:
@@ -43,6 +46,11 @@ using Worsen.Session.Run;
 using Worsen.Session.SceneFlow;
 using Worsen.Session.Progression;
 using Worsen.Session.Expedition;
+using Worsen.Session.HorrorEffects;
+using Worsen.Presentation.Environment;
+using Worsen.Presentation.Audio;
+using Worsen.Editor.Horror;
+using DistantLands.Lumen;
 namespace Worsen.Editor.Scenes
 {
     public static class HorrorRunSceneSetup
@@ -57,6 +65,8 @@ namespace Worsen.Editor.Scenes
             var old = SceneManager.GetSceneByPath(ScenePath);
             if (old.IsValid() && old.isLoaded && old.isDirty) throw new InvalidOperationException("Save your HorrorRun scene edits first.");
             var cake = HorrorArtSetup.EnsureCake();
+            HorrorExpansionSetup.BuildContent();
+            ConfigureLumenRenderer();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             bool saved = false;
             try
@@ -67,6 +77,8 @@ namespace Worsen.Editor.Scenes
                 var flow = Add<SceneFlowManager>("Scene Flow");
                 var progression = Add<ProgressionSessionManager>("Progression Session");
                 var expedition = Add<ExpeditionSessionManager>("Expedition Session");
+                Wire(root, "_effects", Add<HorrorEffectsManager>("Horror Effects Session"));
+                Wire(root, "_effectsConfig", Ensure<HorrorEffectsConfig>(ConfigRoot + "Session/HorrorEffects/HorrorEffectsConfig.asset"));
                 Wire(root, "_run", run); Wire(root, "_sceneFlow", flow);
                 Wire(root, "_progression", progression); Wire(root, "_expedition", expedition);
                 Wire(root, "_progressionConfig", Ensure<ProgressionConfig>(ConfigRoot + "Session/Progression/ProgressionConfig.asset"));
@@ -118,7 +130,12 @@ namespace Worsen.Editor.Scenes
             Wire(root, "_playerFactory", Add<PlayerFactory>("Player Factory"));
             Wire(root, "_playerProfile", Require<PlayerProfile>(ConfigRoot + "Domain/Player/PlayerProfile.asset"));
             Wire(root, "_hunterFactory", Add<HunterFactory>("Hunter Factory"));
-            Wire(root, "_hunterProfile", Require<HunterProfile>(ConfigRoot + "Domain/Hunter/FloorLoopHunterProfile.asset"));
+            HunterProfile[] roster = Worsen.Editor.Hunter.HorrorHunterSetup.BuildProfiles();
+            Wire(root, "_hunterProfile", roster[0]);
+            var rootRoster = new SerializedObject(root);
+            var profiles = rootRoster.FindProperty("_hunterRoster"); profiles.arraySize = roster.Length;
+            for (int i = 0; i < roster.Length; i++) profiles.GetArrayElementAtIndex(i).objectReferenceValue = roster[i];
+            rootRoster.ApplyModifiedPropertiesWithoutUndo();
             Wire(root, "_chase", Add<ChaseManager>("Chase Service"));
             Wire(root, "_chaseConfig", Require<ChaseConfig>(ConfigRoot + "Domain/Chase/ChaseConfig.asset"));
             Wire(root, "_director", Add<DirectorManager>("Director Service"));
@@ -129,7 +146,9 @@ namespace Worsen.Editor.Scenes
             if (AssetDatabase.LoadAssetAtPath<FloorDriverConfig>(driverPath) == null)
                 AssetDatabase.CopyAsset(ConfigRoot + "Domain/Floor/FloorDriverConfig.asset", driverPath);
             var driverConfig = Require<FloorDriverConfig>(driverPath);
-            Wire(driverConfig, "_cakePrefab", cake); AssetDatabase.SaveAssetIfDirty(driverConfig);
+            Wire(driverConfig, "_cakePrefab", cake);
+            HorrorWorldAssetSetup.Configure(driverConfig, Require<ProceduralDriverConfig>(ConfigRoot + "Domain/Procedural/ProceduralDriverConfig.asset"));
+            AssetDatabase.SaveAssetIfDirty(driverConfig);
             Wire(floor.GetComponent<FloorDriver>(), "_config", driverConfig);
             Wire(root, "_floor", floor); Wire(root, "_floorConfig", floorConfig);
         }
@@ -146,21 +165,40 @@ namespace Worsen.Editor.Scenes
             Route<CameraOrchestrator>(cameraManager.gameObject, run, "_camera", cameraManager);
             Route<PostFXOrchestrator>(postFX.gameObject, run, "_postFX", postFX);
             var audio = Worsen.Editor.Audio.AudioSetup.Create(); Wire(root, "_audio", audio);
+            Worsen.Editor.Audio.HorrorAudioSetup.Configure(Require<AudioDriverConfig>(ConfigRoot + "Presentation/Audio/AudioDriverConfig.asset"));
             Route<AudioOrchestrator>(audio.gameObject, run, "_audio", audio);
             var hud = Worsen.Editor.HUD.HUDSetup.Create(root.transform); Wire(root, "_hud", hud);
             Route<HUDOrchestrator>(hud.gameObject, run, "_hud", hud);
+            Wire(hud.GetComponent<HUDOrchestrator>(), "_camera", cameraManager);
             var telemetry = Worsen.Editor.Telemetry.TelemetrySetup.CreateService(); Wire(root, "_telemetry", telemetry);
             Route<TelemetryOrchestrator>(telemetry.gameObject, run, "_telemetry", telemetry);
             var horror = Add<HorrorManager>("Horror Atmosphere");
             var horrorDriver = horror.GetComponent<HorrorDriver>() ?? horror.gameObject.AddComponent<HorrorDriver>();
             var config = Ensure<HorrorDriverConfig>(ConfigRoot + "Presentation/Horror/HorrorDriverConfig.asset");
             ConfigureHorrorAudio(config);
+            Wire(config, "_lumenFlashlightPrefab", HorrorLumenStyleSetup.EnsureFlashlight());
+            Wire(config, "_lumenNearFillPrefab", HorrorLumenStyleSetup.EnsureNearFill());
+            var atmosphere = new SerializedObject(config);
+            atmosphere.FindProperty("_ambientColor").colorValue = new Color(.14f, .16f, .16f, 1f);
+            atmosphere.FindProperty("_nearFillIntensity").floatValue = .8f;
+            atmosphere.FindProperty("_nearFillColor").colorValue = new Color(.55f, .65f, .8f, 1f);
+            atmosphere.FindProperty("_nearFillSmoothness").floatValue = .35f;
+            atmosphere.FindProperty("_nearFillOffMultiplier").floatValue = .2f;
+            atmosphere.FindProperty("_fogColor").colorValue = Color.black;
+            atmosphere.FindProperty("_backgroundColor").colorValue = Color.black;
+            atmosphere.FindProperty("_fogNearMeters").floatValue = 8f;
+            atmosphere.FindProperty("_fogFarMeters").floatValue = 24f;
+            atmosphere.ApplyModifiedPropertiesWithoutUndo();
             Wire(config, "_attackMaterial", HorrorArtSetup.EnsureAttackMaterial());
             AssetDatabase.SaveAssetIfDirty(config);
             Wire(horror, "_driver", horrorDriver); Wire(horrorDriver, "_outputCamera", camera);
             Wire(horrorDriver, "_fogVolume", HorrorArtSetup.BuildFog(root.transform));
             Wire(root, "_horror", horror); Wire(root, "_horrorConfig", config);
             Wire(root, "_horrorRoute", horror.gameObject.AddComponent<HorrorOrchestrator>());
+            var environment = Add<EnvironmentManager>("Medieval Lighting and Dressing");
+            Wire(root, "_environment", environment);
+            Wire(root, "_environmentConfig", HorrorWorldAssetSetup.BuildEnvironmentConfig());
+            Wire(root, "_environmentRoute", environment.gameObject.AddComponent<EnvironmentOrchestrator>());
         }
 
         private static void BuildOverlay(HorrorRunSceneRoot root, RunSessionManager run)
@@ -176,6 +214,8 @@ namespace Worsen.Editor.Scenes
             Wire(driver, "_visualTree", document.visualTreeAsset); Wire(manager, "_driver", driver);
             Wire(manager, "_config", Require<DebugOverlayDriverConfig>(ConfigRoot + "Presentation/DebugOverlay/DebugOverlayDriverConfig.asset"));
             Wire(root, "_overlay", manager); Route<DebugOverlayOrchestrator>(owner, run, "_overlay", manager);
+            // Keep diagnostics available while hiding the ribbon from the player-facing scene.
+            document.enabled = false;
         }
         [MenuItem("Worsen/Scenes/Update Horror Audio Selections")]
         public static void UpdateHorrorAudioSelections()
@@ -186,16 +226,30 @@ namespace Worsen.Editor.Scenes
         }
         private static void ConfigureHorrorAudio(HorrorDriverConfig config)
         {
-            // Local MOSS analysis selected the short attack onset; the FL project owns the optional drone.
+            // Audio owns the expansion soundscape; retain the validated legacy clip reference for older scenes.
             Wire(config, "_attackGrowl", Require<AudioClip>("Assets/External/MonstersSFX/MonstersUpdateOne/FantasyCreatures/Undead/SFX_Undead_MadGrowl_LowPitchVoice_Short_01.wav"));
-            var ambience = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Horror/WORSEN_RoomPressure.wav");
-            if (ambience != null)
+            var serialized = new SerializedObject(config);
+            serialized.FindProperty("_attackGain").floatValue = 0f;
+            serialized.FindProperty("_ambienceGain").floatValue = 0f;
+            serialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(config);
+        }
+        private static void ConfigureLumenRenderer()
+        {
+            var pipeline = Require<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
+            var pipelineData = new SerializedObject(pipeline);
+            pipelineData.FindProperty("m_OpaqueDownsampling").intValue = 0;
+            pipelineData.FindProperty("m_RequireDepthTexture").boolValue = true;
+            pipelineData.FindProperty("m_RequireOpaqueTexture").boolValue = true;
+            pipelineData.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(pipeline);
+            var renderer = Require<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+            var feature = renderer.rendererFeatures.OfType<LumenRendererFeature>().FirstOrDefault();
+            if (feature == null)
             {
-                Wire(config, "_ambienceLoop", ambience);
-                var serialized = new SerializedObject(config);
-                serialized.FindProperty("_ambienceGain").floatValue = 0.5f;
-                serialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(config);
+                feature = ScriptableObject.CreateInstance<LumenRendererFeature>(); feature.name = "Lumen 2 Normals";
+                AssetDatabase.AddObjectToAsset(feature, renderer); renderer.rendererFeatures.Add(feature);
             }
+            feature.SetActive(true); feature.Create(); renderer.SetDirty();
+            EditorUtility.SetDirty(feature); EditorUtility.SetDirty(renderer); AssetDatabase.SaveAssetIfDirty(renderer);
         }
         private static T Add<T>(string name) where T : Component => new GameObject(name).AddComponent<T>();
         private static void Route<T>(GameObject owner, RunSessionManager run, string field, UnityEngine.Object target) where T : Component
@@ -224,7 +278,7 @@ namespace Worsen.Editor.Scenes
         {
             var text = new StringBuilder();
             foreach (string path in Directory.GetFiles(directory, pattern, SearchOption.AllDirectories).OrderBy(path => path, StringComparer.Ordinal))
-                text.Append(path.Replace('\\', '/')).Append(Environment.NewLine).Append(File.ReadAllText(path)).Append(Environment.NewLine);
+                text.Append(path.Replace('\\', '/')).Append(System.Environment.NewLine).Append(File.ReadAllText(path)).Append(System.Environment.NewLine);
             using (var hash = SHA256.Create()) return "sha256:" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", "");
         }
     }

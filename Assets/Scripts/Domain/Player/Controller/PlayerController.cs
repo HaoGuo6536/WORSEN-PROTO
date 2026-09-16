@@ -12,6 +12,9 @@
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Admit traversal endpoints only within the chosen lock's effective speed budget.
 //   - Retain committed walkable contact after uphill landings and use hold-to-sprint input.
+//   - Preserve held free-look during vault/mantle locks without changing their captured trajectories.
+//   - Keep held free-look independent of movement; bound slide turns without restoring collision-lost speed.
+//   - Commit supported held crouch and achieved grounded sprint facts from input and resolved motion.
 //   - Cancel slide propulsion on a fresh jump press, retaining a low capsule when blocked.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
@@ -48,13 +51,16 @@ namespace Worsen.Domain.Player
             _state.HeadingDegrees = headingDegrees;
             _state.Forward = Quaternion.Euler(0f, headingDegrees, 0f) * Vector3.forward;
             _state.MovementSpeedMultiplier = 1f;
+            _state.FootstepNoiseMultiplier = _state.ReboundCooldownMultiplier = _state.GrabSpeedMultiplier = 1f;
+            _state.SlideTurnRateDegrees = _state.MovementDeltaTime = 0f;
+            _state.PreviousHorizontalVelocity = Vector3.zero;
             _state.SprintSpeed = _profile.SprintSpeed;
             _state.MaxDesignSpeed = _profile.MaxDesignSpeed;
             _state.Health = _profile.MaximumHealth;
             _state.MaxHealth = _profile.MaximumHealth;
             _state.HealthState = PlayerHealthState.Healthy;
             _state.MovementState = MovementState.Ground;
-            _state.LookBack = _state.Grounded = _state.Crouched = false;
+            _state.LookBack = _state.Grounded = _state.Crouched = _state.IsSprinting = false;
             _state.Tick = 0;
             _state.HeadLookDelta = Vector2.zero;
             _state.JumpBufferRemaining = _state.ReboundJumpRemaining = _state.CoyoteRemaining = 0f;
@@ -83,8 +89,12 @@ namespace Worsen.Domain.Player
             if (!Finite(deltaTime) || deltaTime <= 0f) throw new ArgumentOutOfRangeException(nameof(deltaTime));
             var facts = new List<PlayerTraversalFact>(2);
             _state.Tick = tick;
+            _state.MovementDeltaTime = deltaTime;
+            _state.PreviousHorizontalVelocity = Horizontal(_state.Velocity);
+            _state.SlideTurnRateDegrees = 0f;
             _state.LastTraversalFacts = Array.Empty<PlayerTraversalFact>();
             _state.InputLockSeconds = 0f;
+            _state.IsSprinting = false;
             _state.PreserveVelocityOnCommit = false;
             _state.CompletedTraversal = null;
             AdvanceTimers(deltaTime);
@@ -92,6 +102,7 @@ namespace Worsen.Domain.Player
             {
                 _state.Velocity = Vector3.zero;
                 _state.HeadLookDelta = Vector2.zero;
+                _state.LookBack = false;
                 return new PlayerTickResult(Vector3.zero, _state.Crouched, facts.ToArray());
             }
             ApplyLook(frame);
@@ -148,7 +159,7 @@ namespace Worsen.Domain.Player
                     + Vector3.up * _profile.ReboundUpwardBoost;
                 _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
                 _state.LastReboundWall = probe.WallId;
-                _state.ReboundCooldownRemaining = _profile.ReboundCooldown;
+                _state.ReboundCooldownRemaining = _profile.ReboundCooldown * _state.ReboundCooldownMultiplier;
                 ConsumeJump();
                 facts.Add(Fact(TraversalKind.Rebound, true, _state.Velocity.normalized, _profile.ReboundCooldown));
                 AddNoise(_profile.TraversalLoudness);
@@ -180,11 +191,13 @@ namespace Worsen.Domain.Player
                 _state.Velocity += Vector3.down * _profile.Gravity * deltaTime;
             else _state.Velocity = Horizontal(_state.Velocity);
             _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
-            _state.Crouched = _state.MovementState == MovementState.Slide || probe.StandingBlocked;
-            if (_state.Grounded && Horizontal(_state.Velocity).magnitude >= _profile.SlideMinimumSpeed
+            _state.Crouched = _state.MovementState == MovementState.Slide || probe.StandingBlocked
+                || (_state.Grounded && (frame.Held & InputButtons.Crouch) != 0);
+            if (_state.Grounded && Horizontal(_state.Velocity).magnitude >= 0.5f
                 && _state.FootstepRemaining <= 0f && _state.MovementState != MovementState.Slide)
             {
-                AddNoise(_profile.SprintLoudness);
+                bool sprinting = (frame.Held & InputButtons.Sprint) != 0;
+                AddNoise(sprinting ? _profile.SprintLoudness : _profile.WalkingLoudness * _state.FootstepNoiseMultiplier);
                 _state.FootstepRemaining = _profile.FootstepInterval;
             }
             return new PlayerTickResult(_state.Velocity * deltaTime, _state.Crouched, facts.ToArray());
@@ -196,6 +209,10 @@ namespace Worsen.Domain.Player
             if (result.Grounded && _state.MovementState == MovementState.Air)
                 _state.LandingImpactSpeed = Mathf.Max(_state.LandingImpactSpeed, -_state.Velocity.y);
             _state.Position = result.Position;
+            Vector3 resolvedHorizontal = Horizontal(result.Velocity);
+            if (_state.MovementState == MovementState.Slide && _state.MovementDeltaTime > 0f
+                && resolvedHorizontal.sqrMagnitude > 0.01f && _state.PreviousHorizontalVelocity.sqrMagnitude > 0.01f)
+                _state.SlideTurnRateDegrees = Vector3.SignedAngle(_state.PreviousHorizontalVelocity, resolvedHorizontal, Vector3.up) / _state.MovementDeltaTime;
             _state.Velocity = _state.PreserveVelocityOnCommit ? _state.Velocity : result.Velocity;
             _state.Grounded = result.Grounded;
             if (result.Ceiling && _state.Velocity.y > 0f)
@@ -211,14 +228,30 @@ namespace Worsen.Domain.Player
 
         public void CommitFrame(Vector3 eyePosition, InputProbeRecord record, PlayerTraversalFact[] facts)
         {
+            _state.IsSprinting = AchievedSprinting(record);
             _state.LastMovementSample = new PlayerMovementSample(_state.Id, _state.Tick,
                 _state.Position, record.Resolution.Present ? record.Resolution.Velocity : _state.Velocity,
                 eyePosition, _state.HeadingDegrees,
-                _state.HeadLookDelta, _state.LookBack, _state.MovementState, _state.InputLockSeconds);
+                _state.HeadLookDelta, _state.LookBack, _state.MovementState, _state.InputLockSeconds, _state.SlideTurnRateDegrees, _state.Crouched, _state.IsSprinting);
             _state.LastProbeRecord = record;
             var resolved = new List<PlayerTraversalFact>(facts ?? Array.Empty<PlayerTraversalFact>());
             if (_state.CompletedTraversal.HasValue) resolved.Add(_state.CompletedTraversal.Value);
             _state.LastTraversalFacts = resolved.AsReadOnly();
+        }
+
+        private bool AchievedSprinting(InputProbeRecord record)
+        {
+            if (!_state.IsAlive || _state.Crouched || _state.MovementState != MovementState.Ground
+                || !record.Resolution.Present || !record.Resolution.Grounded
+                || (record.Input.Held & InputButtons.Sprint) == 0) return false;
+            Vector2 move = record.Input.Move;
+            Vector3 horizontal = Horizontal(record.Resolution.Velocity);
+            if (!Finite(move.x) || !Finite(move.y) || !Finite(horizontal)) return false;
+            Vector3 desired = _state.Forward * move.y + Vector3.Cross(Vector3.up, _state.Forward) * move.x;
+            float walkingSpeed = _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier;
+            // Acceleration below walking pace, idle intent and wall-arrested motion
+            // are not an achieved sprint. Modifier-scaled walking pace keeps grabs meaningful.
+            return Vector3.Dot(horizontal, desired) > 0f && horizontal.magnitude > walkingSpeed + 0.0001f;
         }
 
         public PlayerHitResult ApplyHit(float damage)
@@ -227,7 +260,7 @@ namespace Worsen.Domain.Player
             _state.Health = Mathf.Max(0f, _state.Health - damage);
             _state.HealthState = HealthTier(_state.Health);
             _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
-            if (!_state.IsAlive) _state.Velocity = Vector3.zero;
+            if (!_state.IsAlive) { _state.IsSprinting = false; _state.Velocity = Vector3.zero; _state.LookBack = false; _state.HeadLookDelta = Vector2.zero; }
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
             return new PlayerHitResult(true, !_state.IsAlive);
         }
@@ -247,6 +280,7 @@ namespace Worsen.Domain.Player
             _state.MovementSpeedMultiplier = movementMultiplier;
             _state.SprintSpeed = _profile.SprintSpeed;
             _state.MaxDesignSpeed = _profile.MaxDesignSpeed * movementMultiplier;
+            if (!_state.IsAlive) _state.IsSprinting = false;
             _state.Velocity = _state.IsAlive ? ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed()) : Vector3.zero;
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
             return new PlayerHitResult(previousHealth != _state.Health || previousMaximum != _state.MaxHealth,
@@ -273,6 +307,20 @@ namespace Worsen.Domain.Player
             _state.FootstepRemaining = Mathf.Max(0f, _state.FootstepRemaining - dt);
         }
 
+        public void SetMovementEffects(float footstepNoiseMultiplier, float reboundCooldownMultiplier, float grabSpeedMultiplier)
+        {
+            _state.FootstepNoiseMultiplier = Finite(footstepNoiseMultiplier) ? Mathf.Clamp01(footstepNoiseMultiplier) : 1f;
+            _state.ReboundCooldownMultiplier = Finite(reboundCooldownMultiplier) ? Mathf.Clamp(reboundCooldownMultiplier, 0.65f, 1f) : 1f;
+            SetGrabSpeedMultiplier(grabSpeedMultiplier);
+        }
+
+        public void SetGrabSpeedMultiplier(float multiplier)
+        {
+            _state.GrabSpeedMultiplier = Finite(multiplier) ? Mathf.Clamp(multiplier, 0.25f, 1f) : 1f;
+            _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
+            _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
+        }
+
         private void ApplyLook(InputFrame frame)
         {
             _state.LookBack = (frame.Held & InputButtons.LookBack) != 0;
@@ -290,14 +338,19 @@ namespace Worsen.Domain.Player
                 _state.SlideRemaining = Mathf.Max(0f, _state.SlideRemaining - dt);
                 float duration = Mathf.Max(0.0001f, _profile.SlideDuration);
                 float speed = Mathf.Lerp(EffectiveSprintSpeed(), _state.SlideEntrySpeed, _state.SlideRemaining / duration);
-                horizontal = horizontal.normalized * speed;
+                // Never recover speed lost to collision, damage or a grab. Steering rotates only.
+                speed = Mathf.Min(speed, horizontal.magnitude);
+                float steering = Finite(frame.Move.x) ? Mathf.Clamp(frame.Move.x, -1f, 1f) : 0f;
+                float rate = Mathf.Min(Mathf.Max(0f, _profile.SlideMaximumTurnRate),
+                    Mathf.Max(0f, _profile.SlideLateralAcceleration) / Mathf.Max(0.1f, speed) * Mathf.Rad2Deg);
+                horizontal = Quaternion.AngleAxis(steering * rate * dt, Vector3.up) * horizontal.normalized * speed;
+                _state.SlideTurnRateDegrees = steering * rate;
                 if (_state.SlideRemaining <= 0f && !probe.StandingBlocked)
                     _state.MovementState = MovementState.Ground;
             }
             else
             {
                 Vector2 input = Finite(frame.Move.x) && Finite(frame.Move.y) ? Vector2.ClampMagnitude(frame.Move, 1f) : Vector2.zero;
-                if (_state.LookBack) input.x *= _profile.LookBackSteerAuthority;
                 Vector3 right = Vector3.Cross(Vector3.up, _state.Forward);
                 Vector3 direction = _state.Forward * input.y + right * input.x;
                 if (_state.MovementState == MovementState.Air)
@@ -308,7 +361,7 @@ namespace Worsen.Domain.Player
                 else
                 {
                     float speed = (frame.Held & InputButtons.Sprint) != 0
-                        ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier();
+                        ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier;
                     // Preserve a landing's retained momentum on its transition tick.
                     bool landed = _state.LandingImpactSpeed < 0f;
                     if (!landed) horizontal = Vector3.MoveTowards(horizontal, direction * speed,
@@ -362,6 +415,8 @@ namespace Worsen.Domain.Player
             _state.VaultExitVelocity = Horizontal(_state.Velocity);
             _state.MovementState = MovementState.Vault;
             _state.Crouched = false;
+            // ApplyLook already captured the held head input. Traversal locks only
+            // locomotion; its stored start/target and exit velocity remain unchanged.
             _state.Grounded = false;
             ConsumeJump();
             AddNoise(_profile.TraversalLoudness);
@@ -403,8 +458,8 @@ namespace Worsen.Domain.Player
                 : health <= _state.MaxHealth * (_profile.InjuredThreshold / _profile.MaximumHealth) ? PlayerHealthState.Injured : PlayerHealthState.Healthy;
         private float InjuryMultiplier() => _state.HealthState == PlayerHealthState.Injured || _state.HealthState == PlayerHealthState.Critical
             ? _profile.InjuredSpeedMultiplier : 1f;
-        private float EffectiveMaximumSpeed() => _state.MaxDesignSpeed * InjuryMultiplier();
-        private float EffectiveSprintSpeed() => _state.SprintSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier();
+        private float EffectiveMaximumSpeed() => _state.MaxDesignSpeed * InjuryMultiplier() * _state.GrabSpeedMultiplier;
+        private float EffectiveSprintSpeed() => _state.SprintSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier;
         private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration)
             => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration);
         private void AddNoise(float loudness)

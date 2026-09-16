@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Route independent walking-noise, rebound-recovery and grab-speed effects.
 //   - Apply aggregate run health/movement modifiers through the Controller and publish health changes.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 // DEPENDENCIES:
@@ -92,6 +93,9 @@ namespace Worsen.Domain.Player
             if (result.Changed) OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
             if (result.Died) OnDied?.Invoke(Id, _state.Position);
         }
+        public void SetMovementEffects(float footstepNoiseMultiplier, float reboundCooldownMultiplier, float grabSpeedMultiplier)
+        { _controller?.SetMovementEffects(footstepNoiseMultiplier, reboundCooldownMultiplier, grabSpeedMultiplier); }
+        public void SetGrabSpeedMultiplier(float multiplier) { _controller?.SetGrabSpeedMultiplier(multiplier); }
         public void ApplyLungeHit(Vector3 killerPosition) { if (_profile != null) ApplyHit(_profile.LungeDamage, killerPosition); }
         public void Teardown()
         {

@@ -2,28 +2,20 @@
 // HunterDriver.cs
 // ============================================================================
 // PURPOSE:
-//   Uses the navigation mesh only to request paths, then applies inertial steering.
-//   Sight rays and swept capsule contacts return observations to the owning
-//   Manager, keeping game identities and combat decisions outside the engine boundary.
+//   Applies the named Hunter engine interaction from explicit owner commands.
+//   Unity physics, animation or rendering remains at this engine boundary.
+//   Contacts and observable feedback return to the Manager through typed events.
 // ARCHITECTURAL ROLE:
-//   Driver (§7a) · Domain · Hunter.
+//   Driver (section 7a) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Probe three sight samples and request complete paths without NavMeshAgent steering.
-//   - Apply collision-limited steps and report all active-lunge contacts.
-//   - Revalidate active gap crossings from stable anchors before keeping progress.
+//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Traverse physically clear stair risers and verify rounded-edge tread support.
+//   - Preserve open-turn inertia after bounded capsule/floor prediction at path refresh.
 // DEPENDENCIES:
-//   - Core sight values; Unity physics and navigation APIs; own Presenter and DriverConfig.
+//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
+//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
-//   Scene-owned, commanded only by HunterManager. No global side effects or tick loop.
-//   Ignores the authored HunterRouteGate layer for hunter movement and sight.
-//   Sweeps inset the query radius by skin width, then retain that skin when stopping.
-//   This keeps a floor-tangent spawn out of the sweep's initial-overlap result.
-//   An invalid gap remains stopped until a fresh route validates its crossing or
-//   the body leaves the crossing on the navigation mesh; a bank sample is not validation.
-//   If rejection occurs while still attached to the entry bank, a clear navigation
-//   return to that entry permits a fresh detour from the actual position.
-//   Unimpeded arrival retains the Presenter's terminal velocity; clipped motion
-//   and vertical grounding still feed their actual displacement back to steering.
+//   Scene-owned, no independent simulation loop. Teardown destroys only owned transient effects.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -37,6 +29,10 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterMotorDriverConfig _config;
         [SerializeField] private CapsuleCollider _capsule;
         [SerializeField] private Rigidbody _body;
+        [SerializeField] private HunterAnimationDriver _animation;
+        [SerializeField] private HunterAttackDriver _attacks;
+        private readonly HunterRoutePresenter _routePresenter = new HunterRoutePresenter();
+        private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
         private HunterDriverState _state;
         private readonly HunterSteeringPresenter _presenter = new HunterSteeringPresenter();
         public Vector3 Position => transform.position;
@@ -44,6 +40,36 @@ namespace Worsen.Domain.Hunter
         public Vector3 Velocity => _state?.Steering.Velocity ?? Vector3.zero;
         public bool PathAvailable => _state != null && _state.PathAvailable;
         public event Action<Collider> OnLungeContact;
+        public event Action<Collider, int> OnRangedContact;
+        public event Action<int> OnRangedMiss;
+        public event Action<HunterFeedbackEvent> OnAttackFeedback;
+        private void OnEnable()
+        {
+            if (_attacks == null) _attacks = GetComponent<HunterAttackDriver>();
+            if (_attacks != null) { _attacks.OnContact += HandleAttackContact; _attacks.OnMiss += HandleAttackMiss; _attacks.OnFeedback += HandleAttackFeedback; }
+        }
+        private void OnDisable()
+        {
+            if (_attacks != null) { _attacks.OnContact -= HandleAttackContact; _attacks.OnMiss -= HandleAttackMiss; _attacks.OnFeedback -= HandleAttackFeedback; }
+        }
+        private void HandleAttackContact(Collider collider, int serial) { OnRangedContact?.Invoke(collider, serial); }
+        private void HandleAttackFeedback(HunterFeedbackEvent feedback) { OnAttackFeedback?.Invoke(feedback); }
+        public void ConfigureAttackFeedback(Worsen.Core.EntityId hunter, string key) { if (_attacks != null) _attacks.ConfigureFeedback(hunter, key); }
+        private void HandleAttackMiss(int serial) { OnRangedMiss?.Invoke(serial); }
+        public void SetUnavailableRooms(System.Collections.Generic.IReadOnlyList<Bounds> rooms)
+        {
+            if (_state == null) return;
+            _state.UnavailableRooms.Clear();
+            foreach (Bounds room in rooms) _state.UnavailableRooms.Add(room);
+            _state.PathCooldown = 0f; _state.PathAvailable = false;
+            _presenter.SetPath(_state.Steering, Array.Empty<Vector3>());
+        }
+        public void SetTargetFilter(Func<Collider, bool> filter) { if (_attacks != null) _attacks.SetTargetFilter(filter); }
+        public float NoiseTransmission(Vector3 source) => ClearSegment(Position + Vector3.up * _config.EyeHeight, source + Vector3.up * 0.5f) ? 1f : 0.35f;
+        public void BeginAttackWarning(HunterAttackStyle style, int serial, Vector3 target, float range, float radius, bool split, bool ring)
+        { if (_attacks != null) _attacks.BeginWarning(style, serial, target, range, radius, split, ring); }
+        public void FireAttack(float speed, float radius) { if (_attacks != null) _attacks.Fire(speed, radius); }
+        public void TickAttacks(float dt, long tick) { if (_attacks != null) _attacks.Tick(dt, tick); }
         public void Initialize()
         {
             if (_config == null) _config = Resources.Load<HunterMotorDriverConfig>("ScriptableObjects/Domain/Hunter/HunterMotorDriverConfig");
@@ -53,6 +79,10 @@ namespace Worsen.Domain.Hunter
             _body.isKinematic = true; _body.useGravity = false;
             _state = new HunterDriverState { Path = new NavMeshPath() };
             _presenter.Reset(_state.Steering, Position, Forward);
+            if (_animation == null) _animation = GetComponentInChildren<HunterAnimationDriver>();
+            if (_animation != null) _animation.Initialize();
+            if (_attacks == null) _attacks = GetComponent<HunterAttackDriver>();
+            if (_attacks != null) _attacks.Initialize();
         }
         public SightProbe ProbeSight(Vector3 target, Func<Collider, bool> isTarget)
         {
@@ -60,6 +90,41 @@ namespace Worsen.Domain.Hunter
             return new SightProbe(CanSee(target + Vector3.up * heights.x, isTarget),
                 CanSee(target + Vector3.up * heights.y, isTarget), CanSee(target + Vector3.up * heights.z, isTarget));
         }
+        public HunterLightObservation ProbeLight(FlashlightSample sample, long tick, float sightRange, float sightCone, int maxAge, Func<Collider, bool> isEmitter = null)
+        {
+            if (!_lightPresenter.IsFresh(sample, tick, maxAge)) return default;
+            Vector3 eye = Position + Vector3.up * _config.EyeHeight;
+            bool illuminated = _lightPresenter.InBeam(sample, eye) && ClearSegment(sample.Origin, eye);
+            bool sourceVisible = _lightPresenter.InSight(eye, Forward, sample.Origin, sightRange, sightCone) && ClearSegment(eye, sample.Origin, isEmitter);
+            if (illuminated || sourceVisible) return new HunterLightObservation(true, illuminated, sample.Origin, tick);
+            if (Physics.Raycast(sample.Origin, sample.Direction.normalized, out RaycastHit hit, sample.Range,
+                WithoutHunterGate(_config.SightMask), QueryTriggerInteraction.Ignore))
+            {
+                Vector3 patch = hit.point + hit.normal * 0.03f;
+                if (_lightPresenter.InSight(eye, Forward, patch, sightRange, sightCone) && ClearSegment(eye, patch))
+                    return new HunterLightObservation(true, false, patch, tick);
+            }
+            return default;
+        }
+        private bool ClearSegment(Vector3 origin, Vector3 point, Func<Collider, bool> permitted = null)
+        {
+            Vector3 delta = point - origin;
+            foreach (RaycastHit hit in Physics.RaycastAll(origin, delta.normalized, Mathf.Max(0f, delta.magnitude - 0.08f),
+                WithoutHunterGate(_config.SightMask), QueryTriggerInteraction.Ignore))
+                if (!Own(hit.collider) && (permitted == null || !permitted(hit.collider))) return false;
+            return true;
+        }
+        public bool ValidateReactionTarget(Vector3 target)
+        {
+            if (!NavMesh.SamplePosition(Position, out NavMeshHit start, 0.5f, NavMesh.AllAreas) ||
+                !NavMesh.SamplePosition(target, out NavMeshHit end, 0.75f, NavMesh.AllAreas) ||
+                Mathf.Abs(end.position.y - target.y) > _config.StepHeight ||
+                NavMesh.Raycast(start.position, end.position, out _, NavMesh.AllAreas)) return false;
+            return _routePresenter.Allowed(new[] { Position, end.position }, _state.UnavailableRooms) &&
+                ClearSegment(Position + Vector3.up * _config.EyeHeight, end.position + Vector3.up * _config.EyeHeight);
+        }
+        public void Animate(float dt, int phase, float progress)
+        { if (_animation != null) _animation.Apply(dt, Velocity.magnitude, phase, progress); }
         private bool CanSee(Vector3 point, Func<Collider, bool> isTarget)
         {
             Vector3 origin = Position + Vector3.up * _config.EyeHeight;
@@ -79,18 +144,22 @@ namespace Worsen.Domain.Hunter
         {
             if (_state == null || !(dt > 0f)) return;
             _state.Contacts.Clear(); _state.PathCooldown -= dt;
-            if (!stopped && !lungeActive && (_state.PathCooldown <= 0f ||
-                Vector3.SqrMagnitude(target - _state.LastTarget) > _config.CornerTolerance * _config.CornerTolerance))
+            bool refresh = !stopped && !lungeActive && (_state.PathCooldown <= 0f ||
+                Vector3.SqrMagnitude(target - _state.LastTarget) > _config.CornerTolerance * _config.CornerTolerance);
+            if (refresh)
                 RequestPath(target);
             Vector3 start = Position;
             _state.Steering.Position = start;
+            if (refresh) _state.ClearCornerArc = HasClearCornerArc(speed, acceleration, turnRate);
             Vector3 movement = _presenter.Tick(_state.Steering, dt, speed, acceleration, turnRate,
                 stopped || (!lungeActive && !_state.PathAvailable), lungeActive, lungeDirection,
-                lungeSpeed, lungeDistance, _config.CornerTolerance);
+                lungeSpeed, lungeDistance, _config.CornerTolerance, _state.ClearCornerArc);
             movement.y = 0f;
             Vector3 planar = Sweep(start, movement, lungeActive);
+            if (_state.ClearCornerArc && planar.sqrMagnitude + 0.000001f < movement.sqrMagnitude)
+            { _state.ClearCornerArc = false; _state.PathCooldown = 0f; }
             Vector3 position = start + planar;
-            if (!stopped && !lungeActive && planar.sqrMagnitude + 0.000001f < movement.sqrMagnitude &&
+            if (!stopped && planar.sqrMagnitude + 0.000001f < movement.sqrMagnitude &&
                 TryStep(start, movement, out Vector3 stepped)) position = stepped;
             _state.VerticalSpeed -= _config.Gravity * dt;
             Vector3 vertical = Sweep(position, Vector3.up * (_state.VerticalSpeed * dt), false);
@@ -108,6 +177,77 @@ namespace Worsen.Domain.Hunter
                     if (!Own(other) && !_state.Contacts.Contains(other)) _state.Contacts.Add(other);
                 foreach (Collider other in _state.Contacts) OnLungeContact?.Invoke(other);
             }
+        }
+        private bool HasClearCornerArc(float speed, float acceleration, float turnRate)
+        {
+            // A navigation corner can have ample outside clearance. Stopping at every
+            // bevel removes the intended turn inertia. Prove the ordinary arc before
+            // allowing it; stairs, gaps, blocked or unfinished predictions stay precise.
+            HunterSteeringDriverState source = _state.Steering;
+            if (!_state.PathAvailable || _state.RepathActive || source.AlignAfterCorner ||
+                speed <= 0f || acceleration <= 0f || turnRate <= 0f) return false;
+            int corner = source.CornerIndex;
+            while (corner == 0 && corner < source.Corners.Length && Vector3.Distance(source.Position, source.Corners[corner]) <= _config.CornerTolerance)
+                corner++;
+            if (corner <= 0 || corner >= source.Corners.Length - 1) return false;
+            Vector3 incoming = source.Corners[corner] - source.Corners[corner - 1]; incoming.y = 0f;
+            Vector3 outgoing = source.Corners[corner + 1] - source.Corners[corner]; outgoing.y = 0f;
+            if (incoming.sqrMagnitude < 0.0001f || outgoing.sqrMagnitude < 0.0001f ||
+                Vector3.Dot(incoming.normalized, outgoing.normalized) >= 0.99f) return false;
+            Vector3 approach = source.Corners[corner] - source.Position; approach.y = 0f;
+            if (approach.magnitude > speed * speed / (2f * acceleration) + speed * _config.PathRepathSeconds + _config.CornerTolerance)
+                return false;
+            for (int i = corner; i < source.Corners.Length; i++)
+                if (Mathf.Abs(source.Corners[i].y - source.Corners[0].y) > _config.GroundProbeDistance) return false;
+            HunterSteeringDriverState preview = _state.CornerPreview;
+            preview.Position = source.Position; preview.Forward = source.Forward; preview.Velocity = source.Velocity;
+            preview.Corners = source.Corners; preview.CornerIndex = source.CornerIndex;
+            preview.AlignAfterCorner = false; preview.LungeWasActive = false;
+            Capsule(preview.Position, out Vector3 low, out Vector3 high);
+            int overlaps = Physics.OverlapCapsuleNonAlloc(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
+                _state.CornerOverlaps, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
+            if (overlaps == _state.CornerOverlaps.Length) return false;
+            for (int i = 0; i < overlaps; i++) if (!Own(_state.CornerOverlaps[i])) return false;
+            const float step = 1f / 30f;
+            for (int sample = 0; sample < 48; sample++)
+            {
+                Vector3 before = preview.Position;
+                Vector3 delta = _presenter.Tick(preview, step, speed, acceleration, turnRate,
+                    false, false, Vector3.zero, 0f, 0f, _config.CornerTolerance, true);
+                if (!ClearCornerSegment(before, delta) || !HasLevelSupport(preview.Position)) return false;
+                if (preview.CornerIndex > corner && preview.CornerIndex < preview.Corners.Length)
+                {
+                    Vector3 direction = preview.Corners[preview.CornerIndex] - preview.Position; direction.y = 0f;
+                    if (Vector3.Dot(preview.Forward, direction.normalized) > 0.999f &&
+                        Vector3.Dot(preview.Velocity.normalized, direction.normalized) > 0.99f) return true;
+                }
+            }
+            return false;
+        }
+        private bool ClearCornerSegment(Vector3 position, Vector3 delta)
+        {
+            if (delta.sqrMagnitude <= 0.00000001f) return true;
+            Capsule(position, out Vector3 low, out Vector3 high);
+            low += Vector3.up * _config.SkinWidth; high += Vector3.up * _config.SkinWidth;
+            int hits = Physics.CapsuleCastNonAlloc(low, high, _config.Radius, delta.normalized, _state.CornerCastHits,
+                delta.magnitude + _config.SkinWidth, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
+            if (hits == _state.CornerCastHits.Length) return false;
+            for (int i = 0; i < hits; i++)
+                if (!Own(_state.CornerCastHits[i].collider) && Vector3.Dot(_state.CornerCastHits[i].normal, delta.normalized) < -0.0001f) return false;
+            return true;
+        }
+        private bool HasLevelSupport(Vector3 position)
+        {
+            int hits = Physics.RaycastNonAlloc(position + Vector3.up * _config.GroundProbeDistance,
+                Vector3.down, _state.CornerCastHits, _config.GroundProbeDistance * 2f + _config.SkinWidth,
+                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
+            if (hits == _state.CornerCastHits.Length) return false;
+            for (int i = 0; i < hits; i++)
+            {
+                RaycastHit hit = _state.CornerCastHits[i];
+                if (!Own(hit.collider) && Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees) return true;
+            }
+            return false;
         }
         private void RequestPath(Vector3 target)
         {
@@ -140,6 +280,8 @@ namespace Worsen.Domain.Hunter
                             _state.Path.status == NavMeshPathStatus.PathComplete;
                 }
             }
+            if (_state.PathAvailable && !_routePresenter.Allowed(_state.RepathActive ? _state.Steering.Corners : _state.Path.corners, _state.UnavailableRooms))
+                _state.PathAvailable = false;
             if (_state.PathAvailable && _state.RepathActive) return;
             _presenter.SetPath(_state.Steering, _state.PathAvailable ? _state.Path.corners : Array.Empty<Vector3>());
         }
@@ -200,10 +342,31 @@ namespace Worsen.Domain.Hunter
             if (Blocked(raised) || Cast(raised, movement, out _)) return false;
             raised += movement;
             Vector3 drop = Vector3.down * (_config.StepHeight + _config.GroundProbeDistance);
-            if (!Cast(raised, drop, out RaycastHit ground) ||
-                Vector3.Angle(ground.normal, Vector3.up) > _config.SlopeLimitDegrees) return false;
+            if (!Cast(raised, drop, out RaycastHit ground)) return false;
+            if (Vector3.Angle(ground.normal, Vector3.up) > _config.SlopeLimitDegrees &&
+                !SupportedStairEdge(position, raised, movement, ground.collider)) return false;
             stepped = raised + Vector3.down * Mathf.Max(0f, ground.distance - _config.SkinWidth);
             return stepped.y <= position.y + _config.StepHeight + _config.SkinWidth && !Blocked(stepped);
+        }
+        private bool SupportedStairEdge(Vector3 position, Vector3 raised, Vector3 movement, Collider edge)
+        {
+            // At walking speed the capsule first lands on the rounded lip, whose
+            // contact normal can exceed the slope limit even on a flat stair top.
+            // Confirm that top within the forward foot footprint on the same solid;
+            // never classify a wall, steep ramp or unrelated floor as a stair.
+            Vector3 direction = new Vector3(movement.x, 0f, movement.z).normalized;
+            Vector3 origin = raised + direction * Mathf.Max(0f, _config.Radius - _config.SkinWidth);
+            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, _config.StepHeight + _config.GroundProbeDistance,
+                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (RaycastHit hit in hits)
+            {
+                if (Own(hit.collider)) continue;
+                float rise = hit.point.y - position.y;
+                return hit.collider == edge && rise > _config.SkinWidth && rise <= _config.StepHeight + _config.SkinWidth &&
+                    Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees;
+            }
+            return false;
         }
         private bool Blocked(Vector3 position)
         {
@@ -218,6 +381,11 @@ namespace Worsen.Domain.Hunter
         private bool Own(Collider other) => other == _capsule || other.transform.IsChildOf(transform);
         private static int WithoutHunterGate(int mask)
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
-        public void Teardown() { _state = null; }
+        public void Teardown()
+        {
+            if (_animation != null) _animation.Teardown();
+            if (_attacks != null) _attacks.Teardown();
+            _state = null;
+        }
     }
 }

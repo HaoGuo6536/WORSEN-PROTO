@@ -3,7 +3,7 @@
 // ============================================================================
 //
 // PURPOSE:
-//   Verifies the real Unity light and Volume ownership lifecycle in an isolated preview scene.
+//   Verifies Lumen fake-light data and Volume ownership in an isolated preview scene.
 //   The fixture exercises camera flashlight placement and confirms that disabling or teardown restores prior state.
 //
 // ARCHITECTURAL ROLE:
@@ -13,6 +13,7 @@
 //   - Check spotlight output and private dither parameters against unchanged shared assets.
 //   - Check camera, daylight, global render and prior Volume restoration and object cleanup.
 //   - Preserve existing scene identities, dirty flags, roots and render settings.
+//   - Keep near-fill on/off contrast and close-surface falloff independently tunable.
 //
 // DEPENDENCIES:
 //   - HorrorAtmosphereDriver; Unity Editor scene management; imported DitherFogVolume; NUnit.
@@ -23,6 +24,7 @@
 //   scope as Unity's PreviewRenderUtility. Existing scenes stay active and open,
 //   including dirty/untitled scenes; no save, discard or scene-setup reload occurs.
 //   Tests remain synchronous Edit Mode cases so immediate teardown is exercised.
+//   Vendor rendering stays disabled in Edit Mode; GPU appearance needs Play Mode review.
 //   Sun assignment is read from scoped RenderSettings serialization: its public
 //   getter can resolve an unrelated brightest directional light when none is set.
 //
@@ -36,6 +38,7 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using FronkonGames.Weird.DitherFog;
 using Worsen.Presentation.Horror;
+using DistantLands.Lumen;
 
 namespace Worsen.Tests.Horror
 {
@@ -120,23 +123,48 @@ namespace Worsen.Tests.Horror
         }
 
         [Test]
+        public void AuthoritativeLightPoseSurvivesCosmeticCameraRotation()
+        {
+            Initialize();
+            _driver.SetOwnershipEnabled(true);
+            _driver.Apply(0.08f, 0.24f, 18f, 7.5f, true);
+            var sample = new Worsen.Core.FlashlightSample(new Worsen.Core.EntityId(42), 3, true,
+                new Vector3(4f, 2f, 8f), Vector3.back, 12f, 25f);
+            _driver.SetFlashlightPose(sample);
+            _camera.transform.rotation = Quaternion.Euler(30f, 80f, 12f);
+            LumenEffectPlayer spot = _driver.GetComponentInChildren<LumenEffectPlayer>(true);
+            Assert.That(Vector3.Distance(spot.transform.position, sample.Origin), Is.LessThan(0.0001f));
+            Assert.That(Vector3.Angle(spot.transform.forward, sample.Direction), Is.LessThan(0.001f));
+            Assert.That(spot.range, Is.EqualTo(new HorrorLumenPresenter().RangeMultiplier(12f, 2f)));
+            Assert.That(((LumenLightLayer)spot.profile.layers[0]).maxSpotlightAngle, Is.EqualTo(12.5f));
+            Assert.That(_driver.GetComponentsInChildren<Light>(true), Is.Empty);
+        }
+
+        [Test]
         public void CameraSpotlightStartsOnAndTheSwitchLeavesOnlyDimNearVisibility()
         {
             Initialize();
             _driver.SetOwnershipEnabled(true);
             _driver.Apply(0.08f, 0.24f, 18f, 7.5f, true);
-            Light spot = FindLight(LightType.Spot);
-            Light fill = FindLight(LightType.Point);
-            Assert.That(spot.enabled, Is.True);
-            Assert.That(spot.range, Is.EqualTo(18f));
-            Assert.That(spot.intensity, Is.EqualTo(7.5f));
-            Assert.That(spot.transform.parent, Is.SameAs(_camera.transform));
-            Assert.That(spot.transform.localPosition, Is.EqualTo(_config.FlashlightLocalOffset));
-            Assert.That(spot.shadows, Is.EqualTo(LightShadows.Soft));
+            LumenEffectPlayer spot = FindLight(LightType.Spot);
+            LumenEffectPlayer fill = FindLight(LightType.Point);
+            Assert.That(spot.gameObject.activeSelf, Is.True);
+            Assert.That(spot.range, Is.EqualTo(new HorrorLumenPresenter().RangeMultiplier(18f, 2f)));
+            Assert.That(spot.brightness, Is.EqualTo(7.5f));
+            Assert.That(spot.transform.parent.parent, Is.SameAs(_camera.transform));
+            Assert.That(spot.transform.parent.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(_camera.GetComponentsInChildren<Light>(true), Is.Empty);
+            float fillOnBrightness = fill.brightness;
+            float fillOnRange = fill.range;
+            Assert.That(fillOnBrightness, Is.EqualTo(_config.NearFillIntensity));
+            Assert.That(((LumenLightLayer)fill.profile.layers[0]).smoothness, Is.EqualTo(_config.NearFillSmoothness));
             _driver.Apply(0.08f, 0.24f, 18f, 7.5f, false);
-            Assert.That(spot.enabled, Is.False);
-            Assert.That(fill.enabled, Is.True);
-            Assert.That(fill.intensity, Is.LessThan(spot.intensity));
+            Assert.That(spot.gameObject.activeSelf, Is.False);
+            Assert.That(fill.gameObject.activeSelf, Is.True);
+            Assert.That(fill.brightness, Is.LessThan(spot.brightness));
+            Assert.That(fill.brightness, Is.EqualTo(fillOnBrightness * _config.NearFillOffMultiplier));
+            Assert.That(fill.brightness, Is.LessThan(fillOnBrightness * .3f));
+            Assert.That(fill.range, Is.EqualTo(fillOnRange), "Dimming must not expand the near-fill footprint.");
         }
 
         [Test]
@@ -204,23 +232,75 @@ namespace Worsen.Tests.Horror
             Initialize();
             _driver.SetOwnershipEnabled(true);
             _driver.Apply(0.08f, 0.24f, 18f, 7.5f, true);
-            Light spot = FindLight(LightType.Spot);
+            LumenEffectPlayer spot = FindLight(LightType.Spot);
             GameObject lightRoot = spot.gameObject;
+            LumenEffectProfile lightProfile = spot.profile;
             VolumeProfile runtimeProfile = _volume.profile;
             _driver.Teardown();
             Assert.That(lightRoot == null, Is.True);
+            Assert.That(lightProfile == null, Is.True);
             Assert.That(runtimeProfile == null, Is.True);
             Assert.That(_shared != null, Is.True);
             Assert.That(_daylight != null && _daylight.enabled, Is.True);
             Assert.That(_volume.HasInstantiatedProfile(), Is.False);
             Initialize();
-            Assert.That(_camera.GetComponentsInChildren<Light>().Length, Is.EqualTo(2));
+            Assert.That(_camera.GetComponentsInChildren<LumenEffectPlayer>(true).Length, Is.EqualTo(2));
             _driver.Teardown();
             _driver.Teardown();
-            Assert.That(_camera.GetComponentsInChildren<Light>(), Is.Empty);
+            Assert.That(_camera.GetComponentsInChildren<LumenEffectPlayer>(true), Is.Empty);
+        }
+
+        [Test]
+        public void AfterimageUsesSeparateOwnedProfileAndDisappearsOnRelease()
+        {
+            Initialize(); _driver.SetOwnershipEnabled(true);
+            _driver.Apply(.2f, .8f, 18f, 7.5f, true);
+            LumenEffectProfile mainProfile = FindLight(LightType.Spot).profile;
+            var sample = new Worsen.Core.FlashlightSample(new Worsen.Core.EntityId(42), 3, true,
+                new Vector3(4f, 2f, 8f), Vector3.back, 12f, 25f);
+            _driver.SetAfterimage(sample, 2f);
+            LumenEffectPlayer trace = _driver.GetComponentInChildren<LumenEffectPlayer>(true);
+            Assert.That(trace, Is.Not.Null);
+            Assert.That(trace.gameObject.activeSelf, Is.True);
+            Assert.That(trace.profile, Is.Not.SameAs(mainProfile));
+            Assert.That(((LumenLightLayer)mainProfile.layers[0]).maxSpotlightAngle, Is.EqualTo(27.5f));
+            Assert.That(((LumenLightLayer)trace.profile.layers[0]).maxSpotlightAngle, Is.EqualTo(12.5f));
+            LumenEffectProfile traceProfile = trace.profile;
+            _driver.SetOwnershipEnabled(false);
+            Assert.That(trace.gameObject.activeSelf, Is.False);
+            _driver.Teardown();
+            Assert.That(trace == null && traceProfile == null, Is.True);
         }
 
         private void Initialize() => _driver.Initialize(_config, _camera, _volume, new[] { _daylight });
+
+        [Test]
+        public void ConeUpdatesNeverMutateAuthoredProfile()
+        {
+            var prefab = new GameObject("Authored fake flashlight");
+            prefab.SetActive(false); SceneManager.MoveGameObjectToScene(prefab, _scene);
+            var source = ScriptableObject.CreateInstance<LumenEffectProfile>();
+            source.layers.Add(new LumenLightLayer { range = 2f, isSpotlight = true, minSpotlightAngle = 14f, maxSpotlightAngle = 27.5f });
+            prefab.AddComponent<LumenEffectPlayer>().profile = source;
+            try
+            {
+                using (var serialized = new SerializedObject(_config))
+                {
+                    serialized.FindProperty("_lumenFlashlightPrefab").objectReferenceValue = prefab;
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                }
+                Initialize();
+                LumenEffectPlayer effect = FindLight(LightType.Spot);
+                Assert.That(effect.profile, Is.Not.SameAs(source));
+                _driver.SetFlashlightPose(new Worsen.Core.FlashlightSample(new Worsen.Core.EntityId(42), 3, true,
+                    Vector3.zero, Vector3.forward, 12f, 25f));
+                Assert.That(((LumenLightLayer)source.layers[0]).maxSpotlightAngle, Is.EqualTo(27.5f));
+                Assert.That(((LumenLightLayer)effect.profile.layers[0]).maxSpotlightAngle, Is.EqualTo(12.5f));
+                _driver.Teardown();
+                Assert.That(source != null && prefab != null && !prefab.activeSelf, Is.True);
+            }
+            finally { Object.DestroyImmediate(prefab); Object.DestroyImmediate(source); }
+        }
 
         private static Light AssignedSun()
         {
@@ -275,10 +355,10 @@ namespace Worsen.Tests.Horror
                 "The fixture changed render settings belonging to the previously active scene.");
         }
 
-        private Light FindLight(LightType type)
+        private LumenEffectPlayer FindLight(LightType type)
         {
-            foreach (Light light in _camera.GetComponentsInChildren<Light>())
-                if (light.type == type) return light;
+            foreach (LumenEffectPlayer light in _camera.GetComponentsInChildren<LumenEffectPlayer>(true))
+                if (((LumenLightLayer)light.profile.layers[0]).isSpotlight == (type == LightType.Spot)) return light;
             Assert.Fail("Expected owned light type " + type);
             return null;
         }

@@ -10,11 +10,13 @@
 //   DriverState (§7c) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain externally authoritative flashlight facts without owning gameplay light rules.
 //   - Retain current multiplier outputs, created objects and per-enemy cue state.
 //   - Retain the exact camera, daylight, and render values to restore on release.
+//   - Retain owned Lumen effect handles and private profile clones for paired cleanup.
 //
 // DEPENDENCIES:
-//   - Core EntityId; UnityEngine and rendering references stored without operating on them.
+//   - Core EntityId; Unity rendering and Lumen references stored without operating on them.
 //
 // USAGE NOTES:
 //   Owned by HorrorDriver; scene-owned and never shared with another system.
@@ -26,6 +28,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Worsen.Core;
+using DistantLands.Lumen;
 using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Horror
@@ -33,6 +36,8 @@ namespace Worsen.Presentation.Horror
     public sealed class HorrorDriverState
     {
         public bool OwnerEnabled;
+        public bool HasAuthoritativeFlashlight;
+        public FlashlightSample AuthoritativeFlashlight;
         public bool FlashlightEnabled = true;
         public float FogMultiplier = 1f;
         public float FlashlightMultiplier = 1f;
@@ -67,8 +72,17 @@ namespace Worsen.Presentation.Horror
         public VolumeProfile RuntimeFogProfile;
         public bool PreviousFogVolumeEnabled;
         public GameObject LightRoot;
-        public Light Flashlight;
-        public Light NearFill;
+        public LumenEffectPlayer Flashlight;
+        public LumenEffectPlayer NearFill;
+        public LumenEffectPlayer Afterimage;
+        public readonly List<LumenEffectProfile> LightProfiles = new List<LumenEffectProfile>();
+        public readonly RaycastHit[] BeamHits = new RaycastHit[32];
+        public readonly Collider[] NearColliders = new Collider[32];
+        public float AfterimageRange;
+        public float FlashlightRange;
+        public float FlashlightBrightness;
+        public bool FlashlightEnabled;
+        public float AfterimageRemaining;
     }
 
     public sealed class HorrorAttackDriverState

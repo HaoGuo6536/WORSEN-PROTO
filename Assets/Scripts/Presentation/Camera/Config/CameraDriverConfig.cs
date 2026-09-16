@@ -7,11 +7,11 @@
 //   These settings affect visual feedback only; player movement retains its own rules.
 //
 // ARCHITECTURAL ROLE:
-//   DriverConfig (§7d) · Presentation · Camera.
+//   DriverConfig (Â§7d) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Preserve the M4 field of view, look-back and detection timing defaults.
-//   - Expose comfort controls without storing runtime effect state.
+//   - Tune mouse-directed free-look, achieved slide banking and bounded shake.
+//   - Tune a bounded consumption drag and expose comfort controls without storing runtime effect state.
 //
 // DEPENDENCIES:
 //   - No other project systems.
@@ -49,8 +49,30 @@ namespace Worsen.Presentation.Camera
         [SerializeField, Range(0f, 10f)] private float _slideRoll = 6f;
         [SerializeField, Range(0f, 15f)] private float _reboundRoll = 10f;
         [SerializeField, Min(0.001f)] private float _reboundSeconds = 0.25f;
+        [SerializeField, Range(90f, 180f)] private float _freeLookYawLimit = 175f;
+        [SerializeField, Range(20f, 89f)] private float _freeLookPitchLimit = 85f;
+        [SerializeField, Min(1f)] private float _slideBankFullTurnRate = 40f;
+        [SerializeField, Min(0f)] private float _slideBankResponse = 12f;
+        [SerializeField, Range(0f, 1f)] private float _shakeIntensity = 1f;
+        [SerializeField, Range(0f, 1f)] private float _landingShakeStrength = 0.35f;
+        [SerializeField, Min(0f)] private float _landingShakeSeconds = 0.18f;
+        [SerializeField, Range(0f, 1f)] private float _reboundShakeStrength = 0.55f;
+        [SerializeField, Min(0f)] private float _reboundShakeSeconds = 0.2f;
+        [SerializeField, Range(0f, 5f)] private float _maximumShakeDegrees = 1.8f;
+        [SerializeField, Range(0f, 0.1f)] private float _maximumShakeDisplacement = 0.025f;
         [SerializeField, Min(0.01f)] private float _nearClip = 0.05f;
         [SerializeField, Min(1f)] private float _farClip = 500f;
+
+        [SerializeField, Range(0.1f, 2f)] private float _consumptionSeconds = 0.9f;
+        [SerializeField, Range(0f, 3f)] private float _consumptionDragDistance = 1.8f;
+        [SerializeField, Range(0f, 0.75f)] private float _consumptionSinkDistance = 0.45f;
+        [SerializeField, Range(0f, 1f)] private float _consumptionMotionIntensity = 1f;
+        [SerializeField, Range(0f, 10f)] private float _consumptionRoll = 5f;
+        public float ConsumptionSeconds => _consumptionSeconds;
+        public float ConsumptionDragDistance => _consumptionDragDistance;
+        public float ConsumptionSinkDistance => _consumptionSinkDistance;
+        public float ConsumptionMotionIntensity => _consumptionMotionIntensity;
+        public float ConsumptionRoll => _consumptionRoll;
 
         public float HorizontalFieldOfView => _horizontalFieldOfView;
         public float SpeedFieldOfView => _speedFieldOfView;
@@ -71,6 +93,17 @@ namespace Worsen.Presentation.Camera
         public float SlideRoll => _slideRoll;
         public float ReboundRoll => _reboundRoll;
         public float ReboundSeconds => _reboundSeconds;
+        public float FreeLookYawLimit => _freeLookYawLimit;
+        public float FreeLookPitchLimit => _freeLookPitchLimit;
+        public float SlideBankFullTurnRate => _slideBankFullTurnRate;
+        public float SlideBankResponse => _slideBankResponse;
+        public float ShakeIntensity => _shakeIntensity;
+        public float LandingShakeStrength => _landingShakeStrength;
+        public float LandingShakeSeconds => _landingShakeSeconds;
+        public float ReboundShakeStrength => _reboundShakeStrength;
+        public float ReboundShakeSeconds => _reboundShakeSeconds;
+        public float MaximumShakeDegrees => _maximumShakeDegrees;
+        public float MaximumShakeDisplacement => _maximumShakeDisplacement;
         public float NearClip => _nearClip;
         public float FarClip => _farClip;
     }

@@ -10,7 +10,8 @@
     "Unity.AI.Navigation",
     "Unity.RenderPipelines.Universal.Runtime",
     "FronkonGames.Weird.DitherFog",
-    "Unity.RenderPipelines.Core.Runtime"
+    "Unity.RenderPipelines.Core.Runtime",
+    "DistantLands.Lumen.Runtime"
   ],
   "includePlatforms": [
     "Editor"

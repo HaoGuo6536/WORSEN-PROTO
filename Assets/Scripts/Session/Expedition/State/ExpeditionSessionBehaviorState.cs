@@ -9,6 +9,7 @@
 //   BehaviorState (§3) · Session · Expedition.
 // KEY RESPONSIBILITIES:
 //   - Retain the pending request and assembly phase across the teardown yield.
+//   - Track immutable room presentation and genuine portal crossings for floor-scoped marks.
 //   - Track factory identities for complete, idempotent cleanup.
 // DEPENDENCIES:
 //   - Core progression, scene and entity definitions; System collections.
@@ -29,6 +30,10 @@ namespace Worsen.Session.Expedition
         public int LastGenerationId { get; internal set; }
         public ProgressionGenerationRequest Request { get; internal set; }
         public EntityId Player { get; internal set; }
+        internal IReadOnlyList<GeneratedRoomSample> Rooms = System.Array.Empty<GeneratedRoomSample>();
+        internal bool HasPreviousPosition;
+        internal UnityEngine.Vector3 PreviousPosition;
+        internal int PreviousRoom;
         public string Failure { get; internal set; } = string.Empty;
         internal List<EntityId> Hunters { get; } = new List<EntityId>();
     }

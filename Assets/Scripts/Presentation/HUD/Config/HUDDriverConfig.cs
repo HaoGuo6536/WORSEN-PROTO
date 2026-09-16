@@ -12,6 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Expose restoration, display limits and the vector interface palette and geometry.
 //   - Keep shared asset values read-only at runtime.
+//   - Size the white three-dimensional compass independently of inventory slots.
 //
 // DEPENDENCIES:
 //   - Unity ScriptableObject and value types only.
@@ -43,6 +44,7 @@ namespace Worsen.Presentation.HUD
         [SerializeField, Min(1f)] private float _strokeWidth = 1.5f;
         [SerializeField, Min(20f)] private float _slotSize = 32f;
         [SerializeField, Min(0f)] private float _slotGap = 8f;
+        [SerializeField, Min(48f)] private float _compassSize = 84f;
         public Color PanelColor => _panelColor;
         public Color TextColor => _textColor;
         public Color MutedColor => _mutedColor;
@@ -53,6 +55,7 @@ namespace Worsen.Presentation.HUD
         public float StrokeWidth => _strokeWidth;
         public float SlotSize => _slotSize;
         public float SlotGap => _slotGap;
+        public float CompassSize => _compassSize >= 48f ? _compassSize : 84f;
         public float RestoreSeconds => _restoreSeconds;
         public int FontSize => _fontSize;
         public int SmallFontSize => _smallFontSize;
