@@ -11,6 +11,7 @@
 //   - Route room batches, threshold chalk and localized flame dimming into the own Driver.
 //   - Expose exit-frame facts, default-off lamp hooks and fog/rim output for later routing.
 //   - Forward Level light snapshots without introducing a Domain assembly reference.
+//   - Forward footprint cells without flattening them to room bounding rectangles.
 // DEPENDENCIES:
 //   - Own presentation stack and Core GeneratedRoomSample/InteractableState; remaining public data is primitive.
 // USAGE NOTES:
@@ -47,10 +48,11 @@ namespace Worsen.Presentation.Environment
             _driver.BeginFloor();
             if (rooms == null) return;
             foreach (GeneratedRoomSample room in rooms)
-                _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters);
+                _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters, cells: room.Cells);
         }
-        public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null)
-        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved); }
+        public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
+            IReadOnlyList<Bounds> cells = null)
+        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved, cells); }
         public Vector3[] GetTorchPositions(int roomId)
         { return _driver != null ? _driver.GetTorchPositions(roomId) : new Vector3[0]; }
         public void SetObserver(Vector3 position) { if (_driver != null) _driver.SetObserver(position); }

@@ -11,6 +11,7 @@
 //   - Retain trap identities, default-off cake hooks, typed guidance and separate collapse readiness.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Retain elapsed locked-exit contact until cancellation or a terminal outcome.
+//   - Retain dormant pocket identities and explicit activation deadlines on the floor clock.
 //   - Retain optional rewards, queued cake losses, collapse hooks and read-only room hand phases.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
@@ -60,6 +61,8 @@ namespace Worsen.Domain.Floor
         internal double CueElapsed;
         internal int NextTransition;
         internal readonly Dictionary<int, double> CollapseStarts = new Dictionary<int, double>();
+        internal readonly HashSet<int> PocketRooms = new HashSet<int>();
+        internal readonly Dictionary<int, double> PocketStarts = new Dictionary<int, double>();
         internal bool Ended;
         internal long Tick;
         internal FloorDisplaySnapshot Display;

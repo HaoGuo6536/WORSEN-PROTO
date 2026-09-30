@@ -11,6 +11,7 @@
 //   Presenter (§7b) Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
+//   - Probe exposed cell edges only; exclude notches and internal cell seams.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
@@ -18,6 +19,7 @@
 //   Scene-owned through FloorManager/FloorDriver. Time is supplied by the owner.
 //   No persistent singleton, global settings, or independent update loop.
 // ============================================================================
+using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
 
@@ -25,6 +27,60 @@ namespace Worsen.Domain.Floor
 {
     public sealed class RoomCollapsePresenter
     {
+        public FloorHandProbe BoundaryProbe(LevelRoom room, RoomPhase phase, Vector3 feet, float reach, int preferredFace = -1)
+        {
+            if (room.Cells.Count == 1) return BoundaryProbe(room.Cells[0], room.Id, phase, feet, reach, preferredFace);
+            if (phase != RoomPhase.Tearing && phase != RoomPhase.Encroaching && phase != RoomPhase.Closed) return default;
+            bool inside = room.ContainsXZ(feet);
+            var bounds = room.Bounds;
+            if (!inside && feet.x >= bounds.min.x && feet.x <= bounds.max.x &&
+                feet.z >= bounds.min.z && feet.z <= bounds.max.z) return default;
+            FloorHandProbe closest = default;
+            float nearest = float.PositiveInfinity;
+            for (int cellIndex = 0; cellIndex < room.Cells.Count; cellIndex++)
+            {
+                var cell = room.Cells[cellIndex];
+                if (feet.y < cell.min.y || feet.y >= cell.max.y) continue;
+                for (int face = 0; face < 4; face++)
+                {
+                    int identity = cellIndex * 4 + face;
+                    if (preferredFace >= 0 && identity != preferredFace) continue;
+                    bool xFace = face < 2, positive = face % 2 == 1;
+                    float plane = xFace ? (positive ? cell.max.x : cell.min.x) : (positive ? cell.max.z : cell.min.z);
+                    var spans = new List<Vector2> { new Vector2(xFace ? cell.min.z : cell.min.x, xFace ? cell.max.z : cell.max.x) };
+                    for (int otherIndex = 0; otherIndex < room.Cells.Count; otherIndex++)
+                    {
+                        if (otherIndex == cellIndex) continue;
+                        var other = room.Cells[otherIndex];
+                        if (feet.y < other.min.y || feet.y >= other.max.y) continue;
+                        float min = xFace ? other.min.x : other.min.z, max = xFace ? other.max.x : other.max.z;
+                        if (!(positive ? min <= plane && max > plane : min < plane && max >= plane)) continue;
+                        float low = xFace ? other.min.z : other.min.x, high = xFace ? other.max.z : other.max.x;
+                        for (int s = spans.Count - 1; s >= 0; s--)
+                        {
+                            var span = spans[s];
+                            if (low >= span.y || high <= span.x) continue;
+                            spans.RemoveAt(s);
+                            if (low > span.x) spans.Add(new Vector2(span.x, low));
+                            if (high < span.y) spans.Add(new Vector2(high, span.y));
+                        }
+                    }
+                    foreach (var span in spans)
+                    {
+                        var point = xFace ? new Vector3(plane, feet.y, Mathf.Clamp(feet.z, span.x, span.y)) :
+                            new Vector3(Mathf.Clamp(feet.x, span.x, span.y), feet.y, plane);
+                        float distance = Vector3.Distance(feet, point);
+                        if (distance >= nearest || ((!inside || phase != RoomPhase.Closed) && distance > reach)) continue;
+                        var outward = xFace ? (positive ? Vector3.right : Vector3.left) : (positive ? Vector3.forward : Vector3.back);
+                        closest = new FloorHandProbe(room.Id, identity, point, inside ? 0f : distance, true,
+                            outward, inside ? distance : 0f, phase == RoomPhase.Closed, feet);
+                        nearest = distance;
+                    }
+                }
+            }
+            return closest;
+        }
+
         public FloorHandProbe BoundaryProbe(Bounds bounds, int roomId, RoomPhase phase, Vector3 feet,
             float reach, int preferredFace = -1)
         {

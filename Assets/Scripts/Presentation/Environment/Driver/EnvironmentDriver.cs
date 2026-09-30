@@ -14,6 +14,7 @@
 //   - Own small chalk threshold crosses and clear them on room/floor teardown.
 //   - Own runtime Lumen grammar sub-drivers; budget exit fans alongside local lamps.
 //   - Bind Core light facts by exact generated socket position; unlit torches consume no budget.
+//   - Build dressing and open-sky light pools per footprint cell, retaining one room owner.
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
 //   - Core interactable snapshots are pushed by the owning Manager, never pulled from Level.
@@ -64,14 +65,15 @@ namespace Worsen.Presentation.Environment
             _state.ActiveLumenCount = 0; _state.ActiveLightCount = 0;
         }
 
-        public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null)
+        public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
+            IReadOnlyList<Bounds> cells = null)
         {
             if (_config == null || _state.Rooms.ContainsKey(id)) return;
             var root = new GameObject("Room " + id + " Medieval Dressing");
             root.transform.SetParent(transform, false); root.SetActive(false);
             _state.Rooms.Add(id, root);
             _state.RoomBounds.Add(id, bounds);
-            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved);
+            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved, cells);
             for (int i = 0; i < slots.Length; i++)
             {
                 EnvironmentSlot slot = slots[i];
@@ -88,8 +90,10 @@ namespace Worsen.Presentation.Environment
                     SpawnDecoration(DecorationPrefab(slot.Kind, id + i), root.transform, slot, slot.Envelope);
                 }
             }
-            if (openSky) AddFlame(id, id * 13 + 12, root.transform,
-                new Vector3(bounds.center.x, bounds.min.y + 5.5f, bounds.center.z), false, true);
+            if (openSky)
+                foreach (var cell in cells ?? new[] { bounds })
+                    AddFlame(id, id * 13 + 12, root.transform,
+                        new Vector3(cell.center.x, cell.min.y + 5.5f, cell.center.z), false, true);
             root.SetActive(_state.OwnerEnabled);
             _state.UntilRefresh = 0f;
         }

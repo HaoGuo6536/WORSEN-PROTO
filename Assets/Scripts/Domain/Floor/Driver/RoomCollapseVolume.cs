@@ -12,6 +12,7 @@
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Reconcile overlap contacts before each Floor tick, including stationary actors on activation.
+//   - Build cell-local pools and triggers; never probe or reach across a missing notch.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
@@ -37,34 +38,39 @@ namespace Worsen.Domain.Floor
         public RoomPhase Phase => _state.Phase;
         public int HandCount => _state.Hands.Count;
         public Bounds RoomBounds => _state.Bounds;
+        public bool ContainsXZ(Vector3 position) => _state.Room.ContainsXZ(position);
 
         public void Configure(LevelRoom room, FloorDriverConfig config, Material darkMaterial, FloorLumenGlow warning,
             Func<Collider, EntityId> resolveIdentity = null, float boundaryReach = 0f, int minimumHands = 0)
         {
-            _config = config; _state.Bounds = room.Bounds; _state.RoomId = room.Id; _state.Warning = warning;
+            _config = config; _state.Bounds = room.Bounds; _state.Room = room; _state.RoomId = room.Id; _state.Warning = warning;
             _state.ResolveIdentity = resolveIdentity; _state.BoundaryReach = boundaryReach;
-            _state.Boundary = gameObject.AddComponent<BoxCollider>();
-            _state.Boundary.isTrigger = true; _state.Boundary.enabled = false;
-            _state.Boundary.center = transform.InverseTransformPoint(room.Center);
-            _state.Boundary.size = room.Size + new Vector3(boundaryReach * 2f, 0f, boundaryReach * 2f);
             _state.Phase = RoomPhase.Open; warning.SetVisible(false);
             int width = config.HandGridWidth;
             var fogMaterial = config.MistMaterial != null ? config.MistMaterial : MakeFogMaterial();
-            for (int i = 0; i < width * width; i++)
+            foreach (var cell in room.Cells)
             {
-                Vector3 point = _presenter.GridPoint(room.Bounds, i, width, config.PortalInset);
-                point.y = SurfaceHeight(point, room.Bounds);
-                AddHand(point, i, width, darkMaterial, fogMaterial, true);
-                if (point.y > room.Bounds.min.y + 1.5f)
-                    AddHand(new Vector3(point.x,room.Bounds.min.y + 0.015f,point.z), i, width, darkMaterial, fogMaterial, false);
+                var boundary = gameObject.AddComponent<BoxCollider>();
+                boundary.isTrigger = true; boundary.enabled = false;
+                boundary.center = transform.InverseTransformPoint(cell.center);
+                boundary.size = cell.size + (room.Cells.Count == 1 ? new Vector3(boundaryReach * 2f, 0f, boundaryReach * 2f) : Vector3.zero);
+                _state.Boundaries.Add(boundary);
+                for (int i = 0; i < width * width; i++)
+                {
+                    Vector3 point = _presenter.GridPoint(cell, i, width, config.PortalInset);
+                    point.y = SurfaceHeight(point, cell);
+                    AddHand(point, i, width, darkMaterial, fogMaterial, true, cell);
+                    if (point.y > cell.min.y + 1.5f)
+                        AddHand(new Vector3(point.x, cell.min.y + 0.015f, point.z), i, width, darkMaterial, fogMaterial, false, cell);
+                }
+                BuildCracks(config.CrackMaterial != null ? config.CrackMaterial : darkMaterial, cell);
             }
             while (_state.Hands.Count < minimumHands)
-                AddHand(_presenter.GridPoint(room.Bounds, _state.Hands.Count % (width * width), width, config.PortalInset),
-                    0, width, darkMaterial, fogMaterial, false);
-            BuildCracks(config.CrackMaterial != null ? config.CrackMaterial : darkMaterial);
+                AddHand(_presenter.GridPoint(room.Cells[0], _state.Hands.Count % (width * width), width, config.PortalInset),
+                    0, width, darkMaterial, fogMaterial, false, room.Cells[0]);
         }
 
-        private void AddHand(Vector3 point, int gridIndex, int width, Material darkMaterial, Material fogMaterial, bool addMist)
+        private void AddHand(Vector3 point, int gridIndex, int width, Material darkMaterial, Material fogMaterial, bool addMist, Bounds cell)
         {
             int index = _state.Hands.Count;
             var hand = _config.HandPrefab != null ? Instantiate(_config.HandPrefab, transform, false) : BuildHand(darkMaterial);
@@ -72,7 +78,8 @@ namespace Worsen.Domain.Floor
             hand.transform.rotation = Quaternion.Euler(0f, index * 137.5f, 0f);
             foreach (var collider in hand.GetComponentsInChildren<Collider>()) collider.enabled = false;
             hand.SetActive(false); _state.Hands.Add(hand.transform); _state.HandPositions.Add(point);
-            _state.Mist.Add(addMist ? BuildMist(gridIndex,point,width,fogMaterial) : null);
+            _state.HandBounds.Add(cell);
+            _state.Mist.Add(addMist ? BuildMist(gridIndex,point,width,fogMaterial,cell) : null);
         }
         public void ApplyHandFact(CollapseHandFact fact)
         {
@@ -90,8 +97,9 @@ namespace Worsen.Domain.Floor
         public void ApplyPhase(RoomPhase phase, Color warningColor, Color closedColor)
         {
             _state.Phase = phase;
-            _state.Boundary.enabled = phase == RoomPhase.Tearing || phase == RoomPhase.Encroaching || phase == RoomPhase.Closed;
-            if (!_state.Boundary.enabled) _state.Contacts.Clear();
+            bool active = phase == RoomPhase.Tearing || phase == RoomPhase.Encroaching || phase == RoomPhase.Closed;
+            foreach (var boundary in _state.Boundaries) boundary.enabled = active;
+            if (!active) _state.Contacts.Clear();
             if (_state.Warning == null) return;
             _state.Warning.SetColor(warningColor);
             _state.Warning.SetVisible(phase != RoomPhase.Open && phase != RoomPhase.Closed);
@@ -115,8 +123,11 @@ namespace Worsen.Domain.Floor
             }
             for (int i = 0; i < _state.Hands.Count; i++)
             {
-                float reveal = _presenter.HandReveal(_state.Bounds, _state.HandPositions[i], mist);
+                var cell = _state.HandBounds[i];
+                float reveal = _presenter.HandReveal(cell, _state.HandPositions[i], mist);
                 bool reaching = cakes != null && i < cakes.Count && mist > 0f;
+                if (reaching && _state.Room.Cells.Count > 1)
+                    reaching = cakes[i].x >= cell.min.x && cakes[i].x <= cell.max.x && cakes[i].z >= cell.min.z && cakes[i].z <= cell.max.z;
                 if (reaching) reveal = Mathf.Max(reveal, mist);
                 var hand = _state.Hands[i]; hand.gameObject.SetActive(reveal > 0.01f);
                 hand.position = reaching ? _presenter.CakeReach(_state.HandPositions[i], cakes[i], sample.Phase, sample.Progress) : _state.HandPositions[i];
@@ -135,7 +146,7 @@ namespace Worsen.Domain.Floor
         public FloorHandProbe Probe(Vector3 playerPosition, int preferredHand = -1, EntityId playerId = default)
         {
             if (playerId.IsValid && !_state.Contacts.ContainsValue(playerId)) return default;
-            var probe = _presenter.BoundaryProbe(_state.Bounds, _state.RoomId, _state.Phase,
+            var probe = _presenter.BoundaryProbe(_state.Room, _state.Phase,
                 playerPosition, _state.BoundaryReach, preferredHand);
             // Only exterior reaches cross a portal. Do not raycast at the visual
             // hands or let scenery inside a consumed room suppress its spring.
@@ -149,19 +160,24 @@ namespace Worsen.Domain.Floor
             }
             return probe;
         }
-        public bool PickupOvertaken(Vector3 position) => _state.Phase == RoomPhase.Closed;
+        public bool PickupOvertaken(Vector3 position) => _state.Room.ContainsXZ(position) && _state.Phase == RoomPhase.Closed;
 
         public void RefreshContacts()
         {
             _state.Contacts.Clear();
-            if (_state.Boundary == null || !_state.Boundary.enabled || !isActiveAndEnabled) return;
-            var bounds = _state.Boundary.bounds;
-            foreach (var other in Physics.OverlapBox(bounds.center, bounds.extents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
-                Observe(other);
+            if (!isActiveAndEnabled) return;
+            foreach (var boundary in _state.Boundaries)
+            {
+                if (!boundary.enabled) continue;
+                var bounds = boundary.bounds;
+                if (_state.Room.Cells.Count > 1) bounds.Expand(new Vector3(_state.BoundaryReach * 2f, 0f, _state.BoundaryReach * 2f));
+                foreach (var other in Physics.OverlapBox(bounds.center, bounds.extents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
+                    Observe(other);
+            }
         }
         private void Observe(Collider other)
         {
-            if (_state.Boundary == null || !_state.Boundary.enabled || other == null || !other.enabled || !other.gameObject.activeInHierarchy) return;
+            if (_state.Boundaries.Count == 0 || !_state.Boundaries[0].enabled || other == null || !other.enabled || !other.gameObject.activeInHierarchy) return;
             EntityId id = _state.ResolveIdentity?.Invoke(other) ?? EntityId.None;
             if (id.IsValid) _state.Contacts[other] = id;
         }
@@ -200,11 +216,11 @@ namespace Worsen.Domain.Floor
             part.GetComponent<Collider>().enabled = false; part.GetComponent<Renderer>().sharedMaterial = material;
         }
 
-        private ParticleSystem BuildMist(int index, Vector3 point, int width, Material material)
+        private ParticleSystem BuildMist(int index, Vector3 point, int width, Material material, Bounds bounds)
         {
             var root = new GameObject("Clipped Shadow Mist " + index); root.transform.SetParent(transform, false);
-            float cell = Mathf.Min(_state.Bounds.size.x, _state.Bounds.size.z) / width;
-            root.transform.position = new Vector3(point.x, _state.Bounds.center.y, point.z);
+            float cell = Mathf.Min(bounds.size.x, bounds.size.z) / width;
+            root.transform.position = new Vector3(point.x, bounds.center.y, point.z);
             var fog = root.AddComponent<ParticleSystem>(); fog.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             fog.useAutoRandomSeed = false; fog.randomSeed = (uint)(1 + _state.RoomId * 97 + index);
             var main = fog.main; main.loop = true; main.duration = 8f; main.startLifetime = 8f;
@@ -214,7 +230,7 @@ namespace Worsen.Domain.Floor
             var emission = fog.emission; emission.rateOverTime = 4f;
             var shape = fog.shape; shape.shapeType = ParticleSystemShapeType.Box;
             float margin = main.startSize.constant;
-            shape.scale = new Vector3(Mathf.Max(0.05f, cell - margin), Mathf.Max(0.05f, _state.Bounds.size.y - margin - 0.1f), Mathf.Max(0.05f, cell - margin));
+            shape.scale = new Vector3(Mathf.Max(0.05f, cell - margin), Mathf.Max(0.05f, bounds.size.y - margin - 0.1f), Mathf.Max(0.05f, cell - margin));
             var color = fog.colorOverLifetime; color.enabled = true;
             var gradient = new Gradient(); gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
                 new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(1f, 0.8f), new GradientAlphaKey(0f, 1f) });
@@ -241,9 +257,8 @@ namespace Worsen.Domain.Floor
             return material;
         }
 
-        private void BuildCracks(Material material)
+        private void BuildCracks(Material material, Bounds bounds)
         {
-            var bounds = _state.Bounds;
             for (int surface = 0; surface < 6; surface++) for (int branch = 0; branch < 4; branch++)
             {
                 Vector3 normal = surface < 2 ? Vector3.up : surface < 4 ? Vector3.right : Vector3.forward;
