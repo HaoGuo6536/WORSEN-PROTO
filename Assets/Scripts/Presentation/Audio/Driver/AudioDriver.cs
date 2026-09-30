@@ -158,6 +158,15 @@ namespace Worsen.Presentation.Audio
         public void ObserveArchetype(HunterArchetypeFact fact) { if (_soundscape != null) _soundscape.ObserveArchetype(fact); }
         public void ObserveWeaver(WeaverFact fact) { if (_soundscape != null) _soundscape.ObserveWeaver(fact); }
         public void ObserveTicking(TickingSoundFact fact) { if (_soundscape != null) _soundscape.ObserveTicking(fact); }
+        public void ObserveHerald(HeraldScreamFact fact) { if (_soundscape != null) _soundscape.ObserveHerald(fact); }
+        public void ObserveHeraldBreath(HeraldBreathFact fact) { if (_soundscape != null) _soundscape.ObserveHeraldBreath(fact); }
+        public void ObserveHeraldDeafen(HeraldDeafenFact fact) { if (_soundscape != null) _soundscape.ObserveHeraldDeafen(fact); }
+        public void ObserveBlinder(BlinderSoundFact fact) { if (_soundscape != null) _soundscape.ObserveBlinder(fact); }
+        public void ObserveBlinderHit(BlinderHitFact fact) { if (_soundscape != null) _soundscape.ObserveBlinderHit(fact); }
+        public void ObserveRam(RamFact fact) { if (_soundscape != null) _soundscape.ObserveRam(fact); }
+        public void ObserveMimic(MimicFact fact) { if (_soundscape != null) _soundscape.ObserveMimic(fact); }
+        public void ObserveStare(StareFact fact) { if (_soundscape != null) _soundscape.ObserveStare(fact); }
+        public void ObserveMannequin(MannequinFact fact) { if (_soundscape != null) _soundscape.ObserveMannequin(fact); }
         public void ObserveHabit(HunterHabitFact fact) { if (_soundscape != null) _soundscape.ObserveHabit(fact); }
         public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick) { if (_soundscape != null) _soundscape.ObserveDeliberation(hunter, position, tick); }
         public void ObserveProgressionEvent(ProgressionEventFact fact) { if (_soundscape != null) _soundscape.ObserveProgressionEvent(fact); }
