@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Reproduce separating drop-edge snap admission, jump rejection and uphill support.
 //   - Reproduce the 26.6-degree overlap sentinel, uphill support, ledge gates and slide redirects.
 //   - Verify grace mask exclusion, invalid-layer safety and the session warning latch.
 //   - Implement only the Player responsibility named by this script.
@@ -30,6 +31,40 @@ namespace Worsen.Tests.Player
     public sealed class PlayerMoverPresenterTests
     {
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();
+        [TestCase(0.25f, 0.16f)]
+        [TestCase(0.2f, 0.12f)]
+        public void SnapSizedDropRetainsSupportAcrossRoundedEdge(float snapDistance, float probeDistance)
+        {
+            const float skin = 0.02f;
+            Vector3 velocity = Vector3.right * 4f;
+            Vector3 edgeNormal = new Vector3(0.4f, Mathf.Sqrt(0.84f), 0f);
+            Assert.That(_presenter.CanGround(velocity, edgeNormal, 50f), Is.False,
+                "Regression: a capsule-down edge normal separates from horizontal travel.");
+            Assert.That(_presenter.CanSnapToGround(velocity, edgeNormal, 50f), Is.True);
+            Vector3 feet = new Vector3(11.1f, 1.2f, 0f);
+            float edgeDistance = 0.3f - 0.28f * edgeNormal.y;
+            feet = _presenter.GroundSnap(feet, edgeDistance, skin, snapDistance);
+            float lowerDistance = feet.y - 1.05f + skin;
+            Assert.That(lowerDistance, Is.LessThan(snapDistance));
+            Assert.That(0.15f + skin, Is.GreaterThan(probeDistance),
+                "Losing committed support would shorten the next search below the full drop.");
+            Assert.That(_presenter.CanSnapToGround(velocity, Vector3.up, 50f), Is.True);
+            feet = _presenter.GroundSnap(feet, lowerDistance, skin, snapDistance);
+            Assert.That(feet.y, Is.EqualTo(1.05f).Within(0.00001f));
+        }
+
+        [Test]
+        public void SnapRejectsRisingJumpButRetainsWalkableUphillMotion()
+        {
+            Vector3 normal = new Vector3(-1f, 2f, 0f).normalized;
+            Vector3 uphill = _presenter.ContactVelocity(Vector3.right * 4f, normal, false);
+            Assert.That(uphill.y, Is.GreaterThan(0f));
+            Assert.That(_presenter.CanSnapToGround(uphill, normal, 50f), Is.True);
+            Assert.That(_presenter.CanSnapToGround(uphill + Vector3.up * 5.5f, normal, 50f), Is.False);
+            Assert.That(_presenter.CanSnapToGround(new Vector3(4f, 5.5f, 0f), Vector3.up, 50f), Is.False);
+            Assert.That(_presenter.CanSnapToGround(Vector3.right * 4f, Vector3.right, 50f), Is.False);
+        }
+
         [TestCase(26.56505f)]
         [TestCase(40f)]
         public void SlopeOverlapDepenetratesWithoutZeroingAlongSlopeVelocity(float degrees)

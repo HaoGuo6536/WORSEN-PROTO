@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Content SO (§4b) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Bound total commanded speed on ticks that consume external impulses or acceleration.
 //   - Tune passive health regeneration and the quiet interval after accepted damage.
 //   - Tune ledge reach, late traversal steering, timed boosts and fail-forward recovery.
 //   - Tune grace duration and independent light/heavy hit recovery speed and duration.
@@ -33,6 +34,7 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _sprintSpeed = 8f;
         [SerializeField] private float _walkSpeed = 4f;
         [SerializeField] private float _maxDesignSpeed = 14f;
+        [SerializeField, Min(0f)] private float _maximumExternalMotionSpeed = 14f;
         [SerializeField] private float _groundAcceleration = 60f;
         [SerializeField] private float _groundFriction = 70f;
         [SerializeField] private float _jumpSpeed = 5.5f;
@@ -99,6 +101,7 @@ namespace Worsen.Domain.Player
         public float SprintSpeed => _sprintSpeed;
         public float WalkSpeed => _walkSpeed;
         public float MaxDesignSpeed => _maxDesignSpeed;
+        public float MaximumExternalMotionSpeed => _maximumExternalMotionSpeed;
         public float GroundAcceleration => _groundAcceleration;
         public float GroundFriction => _groundFriction;
         public float JumpSpeed => _jumpSpeed;
