@@ -16,6 +16,8 @@ CLASS="${5:-unclassified}"; TOOLSETS="${6:-terminal,file}"
 RUN="$RUNS/$SLUG-$N"; WT="$WT_ROOT/$SLUG"; REC="$RUN/run.json"
 FLAG_IDLE_MIN="${FLAG_IDLE_MIN:-20}"; FLAG_WALL_MIN="${FLAG_WALL_MIN:-90}"
 KILL_IDLE_MIN="${KILL_IDLE_MIN:-35}"; KILL_WALL_MIN="${KILL_WALL_MIN:-150}"
+# Read-only classes change no files until their report, so file activity is not a liveness signal.
+case "$CLASS" in diagnosis|docs) FLAG_IDLE_MIN="${FLAG_IDLE_OVERRIDE:-60}"; KILL_IDLE_MIN="${KILL_IDLE_OVERRIDE:-120}";; esac
 [ -f "$RUN/brief.md" ] && [ -f "$REC" ] || die "run $SLUG-$N is not prepared (tools/delegation/prepare.sh)"
 grep -q '"started"' "$REC" && die "$SLUG-$N was already launched; prepare a new run number"
 LAUNCHES="$(grep -l '"started"' "$RUNS/$SLUG"-*/run.json 2>/dev/null | wc -l)"

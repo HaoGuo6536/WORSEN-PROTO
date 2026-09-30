@@ -53,6 +53,23 @@ foreach ($b in $Branches) {
 $compileOut = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'compile.ps1') -Worktree $int -RunName "int-$Label-$stamp"
 $compileExit = $LASTEXITCODE; $compileOut | ForEach-Object { Log "  $_" }
 $entry.compile_ok = ($compileExit -eq 0)
+# Headless pure tier (no Unity): every pure test in the candidate's compiled test assembly must
+# pass. Engine-bound cases are "environment", not passes; they run in the Unity suite below.
+$pureScript = Join-Path $int 'tools\offline-compile\Run-PureTests.ps1'
+if ($entry.compile_ok -and (Test-Path -LiteralPath $pureScript)) {
+    $pureRun = "pure-$Label-$stamp"
+    $pureOut = & powershell -NoProfile -File $pureScript -Worktree $int -CompileRun "int-$Label-$stamp" -RunName $pureRun
+    $pureExit = $LASTEXITCODE
+    $pureOut | Set-Content -LiteralPath (Join-Path $out 'pure-results.log') -Encoding UTF8
+    $pureLine = @($pureOut | Where-Object { $_ -match '^PURE_RESULT ' }) | Select-Object -Last 1
+    Log "  $pureLine"
+    $pureSummary = Join-Path $int "Logs\AgentValidation\PLAN-002\offline-compile\$pureRun\summary.json"
+    if (Test-Path -LiteralPath $pureSummary) {
+        $pure = Get-Content -LiteralPath $pureSummary -Raw | ConvertFrom-Json
+        $entry.pure = [ordered]@{ total = $pure.Total; passed = $pure.Totals.passed; failed = $pure.Totals.failed; environment = $pure.Totals.environment; skipped = $pure.Totals.skipped }
+        $entry.pure_ok = ($pureExit -eq 0 -and $pure.Totals.failed -eq 0 -and $pure.Totals.passed -gt 0 -and @($pure.InfrastructureErrors).Count -eq 0)
+    } else { $entry.pure_ok = $false }
+} else { $entry.pure_ok = $null }
 Push-Location $int; $lint = Invoke-Native ast-grep scan; $lintExit = $script:NativeExit; Pop-Location
 $lint | Set-Content -LiteralPath (Join-Path $out 'ast-grep.txt')
 $entry.lint_ok = ($lintExit -eq 0 -and -not ($lint | Where-Object { $_ -match '^(error|warning)\[' }))
@@ -66,9 +83,9 @@ $candidate = (Invoke-Git $int rev-parse HEAD) | Select-Object -Last 1
 $entry.candidate = $candidate
 $changed = @(Invoke-Git $int diff --name-only "$mainHead..$candidate")
 $changed | Set-Content -LiteralPath (Join-Path $out 'changed-files.txt')
-if (-not $entry.compile_ok -or -not $entry.lint_ok -or $entry.arch_ok -eq $false) {
+if (-not $entry.compile_ok -or -not $entry.lint_ok -or $entry.arch_ok -eq $false -or $entry.pure_ok -eq $false) {
     $entry.verdict = 'fail-precheck'; Add-LedgerEntry $ledger $entry
-    throw "Offline pre-check failed (compile=$($entry.compile_ok) lint=$($entry.lint_ok) arch=$($entry.arch_ok)); see $out. Nothing published."
+    throw "Offline pre-check failed (compile=$($entry.compile_ok) lint=$($entry.lint_ok) arch=$($entry.arch_ok) pure=$($entry.pure_ok)); see $out. Nothing published."
 }
 Log "Offline pre-check passed; candidate $candidate"
 if ($PrecheckOnly) { Log 'Precheck only; nothing published.'; return }
@@ -99,7 +116,9 @@ try {
     if ($s.Failed) { $entry.verdict = 'fail-compile'; throw 'Unity reports script compilation failed on the candidate.' }
 
     if ($SetupSteps.Count + $SetupSnippets.Count -gt 0) {
-        $setupOut = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'unity-setup.ps1') -Purpose "Gate $Label setup" -Steps $SetupSteps -Snippets $SetupSnippets -Token $token -OutJson (Join-Path $out 'setup.json') -ContinueOnError
+        # In-process call: `powershell -File` would split the string arrays into positional arguments.
+        $global:LASTEXITCODE = 0
+        $setupOut = & (Join-Path $PSScriptRoot 'unity-setup.ps1') -Purpose "Gate $Label setup" -Steps $SetupSteps -Snippets $SetupSnippets -Token $token -OutJson (Join-Path $out 'setup.json') -ContinueOnError
         $setupExit = $LASTEXITCODE; $setupOut | ForEach-Object { Log "  $_" }
         $entry.setup_ok = ($setupExit -eq 0)
     } else { $entry.setup_ok = $true }
@@ -133,6 +152,15 @@ try {
     if ($waitExit -ne 0) { $entry.verdict = 'fail-no-results'; throw 'Test results were not produced; lease retained until the run is confirmed finished.' }
     $s = Wait-EditorIdle $token 10
     if ($s -and $s.TimeScale -ne 1) { Log "WARNING: Time.timeScale is $($s.TimeScale) after the suite (a test leaked it)" }
+    # Nobody may commit in the open checkout while it is detached for the gate; a moved HEAD
+    # means the tested tree is not the candidate, so keep that work on a rescue branch and stop.
+    $headNow = (Invoke-Git $main rev-parse HEAD) | Select-Object -Last 1
+    if ($headNow -ne $candidate) {
+        Invoke-Git $main branch -f "rescue/$Label-$stamp" $headNow | Out-Null
+        Invoke-Git $main reset -q --soft $candidate | Out-Null
+        $entry.verdict = 'fail-head-moved'
+        throw "HEAD moved during the gate ($headNow); saved as rescue/$Label-$stamp; not promoting."
+    }
     $results = Get-Content -LiteralPath $resultsJson -Raw | ConvertFrom-Json
     $baseline = Get-LastPromoted $ledger
     $verdict = Get-GateVerdict $results (Get-Quarantine $quarantineFile) $baseline

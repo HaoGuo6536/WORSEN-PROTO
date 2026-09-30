@@ -28,7 +28,14 @@
 3. **Compile (must pass):**
    `powershell -NoProfile -File "C:/Users/Hao Guo/Documents/UnityProjects/WORSEN-PROTO/tools/integration/compile.ps1" -Worktree "WORKTREE" -RunName <task>-<nnn>`
    New run name each time. Required: 0 errors in all seven assemblies and no new warnings (the script compares with the baseline).
-4. **Lint:** `ast-grep scan` from `WORKTREE`. Required: 0 findings.
+4. **Headless pure tests** (when `WORKTREE/tools/offline-compile/Run-PureTests.ps1` exists): after a clean compile, run
+   `powershell -NoProfile -File "WORKTREE/tools/offline-compile/Run-PureTests.ps1" -Worktree "WORKTREE" -CompileRun <your-compile-run> -RunName <task>-pure-<nnn> -Filter '<anchored regex of the fixtures you added, touched or depend on>'`
+   (example: `^Worsen[.]Tests[.]Player[.](PlayerControllerTests|PlayerMoverPresenterTests)[.]`).
+   - It never starts Unity. Report the `PURE_RESULT` line and the filter.
+   - Any pure failure, timeout or harness error blocks hand-off: fix it.
+   - Environment and skipped cases are not passes. List them for the coordinator's Unity run, and report a selection with no pure cases as "no pure coverage".
+   - Never weaken assertions or add skips to get a green headless result.
+5. **Lint:** `ast-grep scan` from `WORKTREE`. Required: 0 findings.
 
 ## Final message format
 

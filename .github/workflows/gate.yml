@@ -1,0 +1,70 @@
+# Unity-free checks that every change to main must pass (audit L2-03, L3-04).
+# Unity compilation and tests run in the local fail-closed gate (tools/integration/integrate.ps1),
+# because the project needs Asset Store packages that the public repository cannot hold (VENDOR.md).
+name: gate
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: false
+          fetch-depth: 1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install ast-grep (pinned)
+        run: npm install -g @ast-grep/cli@0.44.1
+      - name: Structural lint (SPEC-001 §13b), zero findings
+        run: |
+          ast-grep scan --json > ast-grep.json || true
+          count=$(python -c "import json;print(len(json.load(open('ast-grep.json'))))")
+          echo "ast-grep findings: $count"
+          if [ "$count" -ne 0 ]; then ast-grep scan; exit 1; fi
+      - name: Rule tests
+        run: |
+          if [ -d tools/ast-grep/rule-tests ]; then ast-grep test; else echo "no rule tests yet"; fi
+      - name: Architecture checks (SPEC-001 §8b, §9, §13f)
+        run: |
+          if [ -f tools/checks/architecture.py ]; then
+            python tools/checks/architecture.py --root .
+            [ -f tools/checks/test_architecture.py ] && python tools/checks/test_architecture.py
+          else echo "architecture checker not present yet"; fi
+      - name: Tooling syntax and self-tests
+        shell: bash
+        run: |
+          for f in tools/delegation/*.sh tools/hooks/*; do bash -n "$f"; done
+          python -m py_compile tools/delegation/*.py
+          pwsh -NoProfile -Command '$ok = $true; Get-ChildItem tools/integration/*.ps1, tools/offline-compile/*.ps1 | ForEach-Object { $t = $null; $e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$t, [ref]$e); if ($e.Count) { $ok = $false; "{0}: {1}" -f $_.Name, $e[0].Message } }; if (-not $ok) { exit 1 }'
+          pwsh -NoProfile -File tools/integration/Gate.Tests.ps1
+      - name: Instruction and README links resolve
+        run: |
+          python - <<'PY'
+          import os, re, sys
+          files = ["AGENTS.md", "CLAUDE.md", "VENDOR.md", "evidence/README.md"]
+          files += [os.path.join(r, f) for top in [".claude/skills", "tools"] for r, _, fs in os.walk(top) for f in fs if f in ("SKILL.md", "README.md")]
+          bad = 0
+          for f in sorted(set(files)):
+              if not os.path.exists(f): continue
+              for link in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", open(f, encoding="utf-8").read()):
+                  if link.startswith(("http:", "https:", "mailto:")): continue
+                  target = os.path.normpath(os.path.join(os.path.dirname(f), link)).replace(os.sep, "/")
+                  if target.startswith("Logs/"): continue  # local-only evidence by design (git-ignored)
+                  if not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(f), link))):
+                      print(f"BROKEN {f} -> {link}"); bad += 1
+          print("broken links:", bad); sys.exit(1 if bad else 0)
+          PY

@@ -26,6 +26,7 @@ Every run appends one line to [evidence/gate-ledger.jsonl](../../evidence/gate-l
 
 ## Operating rules
 
+- **While a gate runs, the open checkout is detached at the candidate. Do not commit there** (a commit would land on the candidate); work in a worktree instead. The gate refuses to promote if HEAD moved and saves the stray commit as `rescue/<label>-<stamp>`.
 - The gate refuses to switch the open checkout if the active scene has unsaved changes, the editor is busy, or the checkout is not on `main`. It keeps the lease when the editor state is unknown.
 - Focus-dependent Play Mode tests carry `[Category("RequiresFocus")]` and are quarantined. Run them in an owner-present pass: `run-tests.ps1 -TestName <fixture>` with Unity in the foreground.
 - Fix a red candidate forward. Base the fix worker on `cand/<label>` and gate `cand/<label>` plus the fix branch together.
