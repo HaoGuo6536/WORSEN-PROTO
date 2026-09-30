@@ -1,0 +1,166 @@
+{
+  "theme": "school",
+  "wallHeight": 3.8,
+  "pieces": [
+    {
+      "id": "wall_2m",
+      "file": "School_wall_2m.fbx",
+      "size": [
+        2.0,
+        3.8,
+        0.304
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_door_4m",
+      "file": "School_wall_door_4m.fbx",
+      "size": [
+        4.0,
+        3.8,
+        0.298
+      ],
+      "kind": "door"
+    },
+    {
+      "id": "wall_window_2m",
+      "file": "School_wall_window_2m.fbx",
+      "size": [
+        2.0,
+        3.8,
+        0.304
+      ],
+      "kind": "window"
+    },
+    {
+      "id": "wall_arc_r4",
+      "file": "School_wall_arc_r4.fbx",
+      "size": [
+        2.199962,
+        3.8,
+        0.386297
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "wall_arc_r6",
+      "file": "School_wall_arc_r6.fbx",
+      "size": [
+        2.170602,
+        3.8,
+        0.341153
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "wall_arc_r8",
+      "file": "School_wall_arc_r8.fbx",
+      "size": [
+        2.153682,
+        3.8,
+        0.318441
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "corner_in",
+      "file": "School_corner_in.fbx",
+      "size": [
+        0.5,
+        3.8,
+        0.5245
+      ],
+      "kind": "corner"
+    },
+    {
+      "id": "corner_out",
+      "file": "School_corner_out.fbx",
+      "size": [
+        0.5,
+        3.8,
+        0.5245
+      ],
+      "kind": "corner"
+    },
+    {
+      "id": "pillar",
+      "file": "School_pillar.fbx",
+      "size": [
+        0.48,
+        3.8,
+        0.48
+      ],
+      "kind": "pillar"
+    },
+    {
+      "id": "floor_2x2",
+      "file": "School_floor_2x2.fbx",
+      "size": [
+        2.0,
+        0.1002,
+        2.0
+      ],
+      "kind": "floor"
+    },
+    {
+      "id": "ceiling_2x2",
+      "file": "School_ceiling_2x2.fbx",
+      "size": [
+        2.0,
+        0.13,
+        2.0
+      ],
+      "kind": "ceiling"
+    },
+    {
+      "id": "trim_base_2m",
+      "file": "School_trim_base_2m.fbx",
+      "size": [
+        2.0,
+        0.18,
+        0.07
+      ],
+      "kind": "trim"
+    },
+    {
+      "id": "prop_desk",
+      "file": "School_prop_desk.fbx",
+      "size": [
+        1.12,
+        0.755162,
+        0.65
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_locker_bank",
+      "file": "School_prop_locker_bank.fbx",
+      "size": [
+        1.2,
+        1.86,
+        0.479
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_chalkboard",
+      "file": "School_prop_chalkboard.fbx",
+      "size": [
+        1.8,
+        1.38,
+        0.1945
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_chair",
+      "file": "School_prop_chair.fbx",
+      "size": [
+        0.43,
+        0.891366,
+        0.432938
+      ],
+      "kind": "prop"
+    }
+  ]
+}
