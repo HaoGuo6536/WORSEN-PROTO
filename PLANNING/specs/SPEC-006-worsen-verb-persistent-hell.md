@@ -114,3 +114,4 @@ Coordinator hand-offs: [SPEC-004 §2.4][s4] and [PLAN-023 §§1–3, 5–8][p23]
 [expedition]: ../../Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs
 [persistence]: ../../Assets/Scripts/Core/Definitions/PersistenceDefinitions.cs
 [selection]: ../../Assets/Scripts/Session/Progression/Controller/ProgressionSessionController.cs
+| 2026-09-30 | Owner: not approved; persistent hell dropped (run-scoped worsening only); worsen verb under review | Hao Guo / coordinator |

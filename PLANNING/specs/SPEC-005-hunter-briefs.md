@@ -2,7 +2,7 @@
 id: SPEC-005
 type: spec
 title: Hunter briefs
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Hao Guo
@@ -14,7 +14,7 @@ archived: none
 
 # SPEC-005 — Hunter briefs
 
-> Status: DRAFT since 2026-09-30. See [../index.md](../index.md).
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). See [../index.md](../index.md).
 
 ## 1. Subject and scope
 
@@ -261,6 +261,17 @@ The new modules already encode useful rules, but a class, emitted fact, setup re
 | Who supplies missing voice/tick/skitter/Herald assets and routes module facts? | No-clip placeholders and unconsumed facts cannot teach counterplay. | PLAN-017 / PLAN-021 / coordinator | Before mixed-roster playtest |
 | Resolve source/asset/catalogue gaps, caps and owner-decision drift? | Faithless switch, old revival/bail, legacy selection and incomplete consumers contradict intended play. | Coordinator and respective owners | Before claiming implementation complete |
 
+### Owner decisions on approval (2026-09-30)
+
+- Run selection uses the ten new hunters only; the five legacy archetypes are retired from selection and remain only for the TagArena/FloorLoop compatibility scenes.
+- First appearance uses round gates: Echo, Weaver and Ticking from round 1; Ram and Mannequin from round 4; Mimic and Blinder from round 5; Skip, Herald and Stare from round 6.
+- A Skip interception is a normal hit (same damage and grace as other hunters).
+- The built Ticking (a moving clock with a body) fills the systemic threat slot.
+- The Mannequin's catch plays a short snap or crunch instead of the loud shared death sting.
+- Silhouettes, gaits and the four tunables are a provisional baseline, tuned in play.
+- Hunter-type curses apply to every instance of that type.
+- Voice and sound assets are chosen by the coordinator from installed packs or made in-house, with provenance recorded.
+
 ## 6. Plans implementing this spec
 
 [PLAN-016][p16] and [PLAN-017][p17] are the related LIVE work, pending approval of these DRAFT briefs; this file does not amend their status or declare their exits met. [PLAN-023][p23] owns admission/curse catalogue reconciliation; [PLAN-021][p21] audio and [PLAN-022][p22] the catch. Shared routing remains coordinator-owned under [PLAN-011][p11].
@@ -364,3 +375,4 @@ Every brief's numbers were read from the following sources, not inferred from a 
 [lurker]: ../../Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/lurker.asset
 [hexer]: ../../Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/hexer.asset
 [thorncaller]: ../../Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/thorncaller.asset
+| 2026-09-30 | Approved by the owner (LIVE); owner decisions recorded under §5 | Hao Guo / coordinator |
