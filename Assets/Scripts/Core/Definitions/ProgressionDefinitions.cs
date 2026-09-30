@@ -11,6 +11,7 @@
 //   - Describe immutable display snapshots and committed generation requests.
 //   - Describe unique run traits, consumable stock, and actionable rejection reasons.
 //   - Carry the effective loadout without exposing mutable run state.
+//   - Add optional pedestal metadata, slot receipts and pending replacement/reroll views.
 // DEPENDENCIES:
 //   - System collection interfaces only; no project layer dependencies.
 // USAGE NOTES:
@@ -51,9 +52,10 @@ namespace Worsen.Core
 
     public readonly struct ProgressionOffer
     {
-        public ProgressionOffer(string id, string title, string description, int price, bool purchased, bool canAfford, int stockRemaining = 0, bool repeatable = false, string unavailableReason = null)
+        public ProgressionOffer(string id, string title, string description, int price, bool purchased, bool canAfford, int stockRemaining = 0, bool repeatable = false, string unavailableReason = null,
+            FearAxis axis = FearAxis.None, EffectKind kind = EffectKind.Upgrade)
         { Id = id; Title = title; Description = description; Price = price; Purchased = purchased; CanAfford = canAfford;
-          StockRemaining = stockRemaining; Repeatable = repeatable; UnavailableReason = unavailableReason; }
+          StockRemaining = stockRemaining; Repeatable = repeatable; UnavailableReason = unavailableReason; Axis = axis; Kind = kind; }
         public string Id { get; }
         public string Title { get; }
         public string Description { get; }
@@ -63,6 +65,17 @@ namespace Worsen.Core
         public int StockRemaining { get; }
         public bool Repeatable { get; }
         public string UnavailableReason { get; }
+        public FearAxis Axis { get; }
+        public EffectKind Kind { get; }
+    }
+
+    public readonly struct ProgressionInventorySlot
+    {
+        public ProgressionInventorySlot(string id, string title, int paidPrice)
+        { Id = id; Title = title; PaidPrice = paidPrice; }
+        public string Id { get; }
+        public string Title { get; }
+        public int PaidPrice { get; }
     }
 
     public readonly struct ProgressionSelection
@@ -115,12 +128,17 @@ namespace Worsen.Core
             int threatCount, int curseCount, ProgressionPhase phase, float health, float maxHealth,
             IReadOnlyList<ProgressionChoice> choices, IReadOnlyList<ProgressionOffer> offers,
             IReadOnlyList<ProgressionSelection> retained, ProgressionEffects effects, string message,
-            bool canContinue, bool canRestart)
+            bool canContinue, bool canRestart, IReadOnlyList<ProgressionInventorySlot> inventory = null,
+            string pendingOfferId = null, string pendingOfferTitle = null, int pendingPrice = 0,
+            bool canReroll = false, int rerollPrice = 0, int freeRerollsRemaining = 0, string rerollUnavailableReason = null)
         {
             Revision = revision; GenerationId = generationId; Round = round; Seed = seed; Wallet = wallet;
             ThreatCount = threatCount; CurseCount = curseCount; Phase = phase; Health = health; MaxHealth = maxHealth;
             Choices = choices; Offers = offers; Retained = retained; Effects = effects; Message = message;
             CanContinue = canContinue; CanRestart = canRestart;
+            Inventory = inventory; PendingOfferId = pendingOfferId; PendingOfferTitle = pendingOfferTitle;
+            PendingPrice = pendingPrice; CanReroll = canReroll; RerollPrice = rerollPrice;
+            FreeRerollsRemaining = freeRerollsRemaining; RerollUnavailableReason = rerollUnavailableReason;
         }
         public int Revision { get; }
         public int GenerationId { get; }
@@ -139,5 +157,13 @@ namespace Worsen.Core
         public string Message { get; }
         public bool CanContinue { get; }
         public bool CanRestart { get; }
+        public IReadOnlyList<ProgressionInventorySlot> Inventory { get; }
+        public string PendingOfferId { get; }
+        public string PendingOfferTitle { get; }
+        public int PendingPrice { get; }
+        public bool CanReroll { get; }
+        public int RerollPrice { get; }
+        public int FreeRerollsRemaining { get; }
+        public string RerollUnavailableReason { get; }
     }
 }

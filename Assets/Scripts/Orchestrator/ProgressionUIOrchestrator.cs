@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
 //   - Route display snapshots and UI decisions through paired subscriptions.
+//   - Route rerolls and pending inventory replacements to their Progression owner.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
 // DEPENDENCIES:
 //   - Session Progression/Run, Presentation ProgressionUI and Core payloads.
@@ -55,6 +56,9 @@ namespace Worsen.Orchestrator
             _ui.ChooseThreatRequested += OnThreat;
             _ui.ChooseCurseRequested += OnCurse;
             _ui.PurchaseRequested += OnPurchase;
+            _ui.RerollRequested += OnReroll;
+            _ui.ReplacementRequested += OnReplacement;
+            _ui.CancelReplacementRequested += OnCancelReplacement;
             _ui.ContinueRequested += OnContinue;
             _ui.RestartRequested += OnRestart;
         }
@@ -67,6 +71,9 @@ namespace Worsen.Orchestrator
             _ui.ChooseThreatRequested -= OnThreat;
             _ui.ChooseCurseRequested -= OnCurse;
             _ui.PurchaseRequested -= OnPurchase;
+            _ui.RerollRequested -= OnReroll;
+            _ui.ReplacementRequested -= OnReplacement;
+            _ui.CancelReplacementRequested -= OnCancelReplacement;
             _ui.ContinueRequested -= OnContinue;
             _ui.RestartRequested -= OnRestart;
             _ui.ResetCatch();
@@ -78,6 +85,13 @@ namespace Worsen.Orchestrator
         private void OnThreat(string id, int revision) => _progression.ChooseThreat(id, revision);
         private void OnCurse(string id, int revision) => _progression.ChooseCurse(id, revision);
         private void OnPurchase(string id, int revision) => _progression.Purchase(id, revision);
+        private void OnCancelReplacement(int revision) => _progression.CancelReplacement(revision);
+        private void OnReplacement(int slot, int revision) => _progression.ReplaceInventorySlot(slot, revision);
+        private void OnReroll(int revision)
+        {
+            if (_progression.Snapshot.Phase == ProgressionPhase.Shop) _progression.RerollShop(revision);
+            else _progression.RerollSelection(revision);
+        }
         private void OnContinue(int revision) => _progression.ContinueShop(revision);
         private void OnRestart(int revision)
         {

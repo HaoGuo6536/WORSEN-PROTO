@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
-//   - Check all four effect kinds, held consumables, reset and immutable revisions.
+//   - Check all four effect kinds, reroll-restocked pedestals, held items and frozen revisions.
 //   - Check configurable cadence, mandatory choices and catalogue offer requirements.
 // DEPENDENCIES:
 //   - Core, Session Progression, NUnit and temporary Unity config allocation.
@@ -128,10 +128,14 @@ namespace Worsen.Tests.Progression
             var chosen = controller.EffectsSnapshot();
             Assert.That(Snapshot.Effects.Traits, Is.EqualTo(ProgressionTraits.EchoDebt));
             OpenFloor();
-            for (int anchor = 0; anchor < 10; anchor++) controller.RecordGoldenCollected(Snapshot.GenerationId, anchor);
+            for (int anchor = 0; anchor < 20; anchor++) controller.RecordGoldenCollected(Snapshot.GenerationId, anchor);
             controller.CompleteFloor(Snapshot.GenerationId); OpenFloor(); controller.CompleteFloor(Snapshot.GenerationId);
             controller.ConfirmFloorReady(Snapshot.GenerationId);
-            for (int copy = 0; copy < 3; copy++) Assert.That(controller.Purchase("speed-boost", Snapshot.Revision), Is.True);
+            for (int copy = 0; copy < 3; copy++)
+            {
+                if (copy > 0) Assert.That(controller.RerollShop(Snapshot.Revision), Is.True);
+                Assert.That(controller.Purchase("speed-boost", Snapshot.Revision), Is.True);
+            }
             Assert.That(controller.Purchase("speed-boost", Snapshot.Revision), Is.False);
             Assert.That(Snapshot.Effects.MovementSpeedMultiplier, Is.EqualTo(1f), "Player applies catalogue sprint effects exactly once.");
             Assert.That(controller.Purchase("wax-ward", Snapshot.Revision), Is.True);

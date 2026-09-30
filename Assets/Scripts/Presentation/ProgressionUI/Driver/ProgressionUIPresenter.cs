@@ -12,6 +12,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Preserve unique ownership, consumable stock and authoritative rejection reasons.
+//   - Display catalogue axes, priced rerolls, inventory and deferred replacement choices.
+//   - Trust Session-admitted selection cards, including stackable curses after rerolls.
 //   - Group retained choices without truncation; distinguish UI intent from committed purchase audio.
 //   - Gate terminal and shelter presentation on catch completion with a bounded, flagged timeout.
 //   - Reject hidden, stale or repeated UI clicks using the displayed snapshot.
@@ -27,6 +29,7 @@
 // ============================================================================
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Worsen.Core;
@@ -71,7 +74,7 @@ namespace Worsen.Presentation.ProgressionUI
             state.Message = snapshot.Message ?? "";
             state.Title = Title(snapshot.Phase);
             state.Subtitle = Subtitle(snapshot.Phase);
-            state.RetainedText = Retained(snapshot);
+            state.RetainedText = Retained(snapshot) + Inventory(snapshot);
             state.Cards = Cards(snapshot);
             return true;
         }
@@ -140,7 +143,7 @@ namespace Worsen.Presentation.ProgressionUI
         }
 
         public CueId? ActionFeedback(ProgressionUIAction action)
-            => action == ProgressionUIAction.Purchase ? (CueId?)null
+            => action == ProgressionUIAction.Purchase || action == ProgressionUIAction.ReplaceSlot ? (CueId?)null
                 : action == ProgressionUIAction.Continue ? CueId.UiBack : CueId.UiConfirm;
 
         public bool DescribeRejectedCard(ProgressionUIDriverState state, string id, int revision)
@@ -162,6 +165,21 @@ namespace Worsen.Presentation.ProgressionUI
 
         private static ProgressionUICard[] Cards(ProgressionSnapshot snapshot)
         {
+            if (snapshot.Phase == ProgressionPhase.Shop && !string.IsNullOrEmpty(snapshot.PendingOfferId))
+            {
+                var replacements = new List<ProgressionUICard>();
+                for (int slot = 0; slot < (snapshot.Inventory?.Count ?? 0); slot++)
+                {
+                    var item = snapshot.Inventory[slot];
+                    replacements.Add(new ProgressionUICard(Number(slot), "SLOT " + Number(slot + 1) + " · " + item.Title,
+                        "Discard this item for " + snapshot.PendingOfferTitle + ". The discarded item is gone.",
+                        "Pending purchase · " + Number(snapshot.PendingPrice) + " coins. Nothing charged yet.",
+                        "REPLACE  " + Number(snapshot.PendingPrice), !string.IsNullOrEmpty(item.Id), ProgressionUIAction.ReplaceSlot));
+                }
+                replacements.Add(new ProgressionUICard("cancel-replacement", "KEEP YOUR INVENTORY", "Cancel this purchase.",
+                    "No debit and no refund. Keep every held item.", "CANCEL", true, ProgressionUIAction.CancelReplacement));
+                return replacements.ToArray();
+            }
             if (snapshot.Phase == ProgressionPhase.Shop)
             {
                 var offers = snapshot.Offers;
@@ -174,15 +192,16 @@ namespace Worsen.Presentation.ProgressionUI
                     string status = owned ? "Owned for this run" : soldOut ? "Sold out this visit"
                         : !string.IsNullOrEmpty(offer.UnavailableReason) ? offer.UnavailableReason
                         : !offer.CanAfford ? "Not enough currency" : "Available";
-                    string detail = status + "\n" + (offer.Repeatable
-                        ? "Consumable · stock " + Number(Math.Max(0, offer.StockRemaining))
-                        : "Unique equipment · kept for this run");
+                    string detail = status + "\nPrice · " + Number(offer.Price) + " coins\n" +
+                        (offer.Kind == EffectKind.Consumable ? "Consumable · inventory slot" : "Upgrade · kept for this run") +
+                        (offer.Repeatable ? " · stock " + Number(Math.Max(0, offer.StockRemaining)) : "") +
+                        (offer.Axis == FearAxis.None ? "" : "\nFear axis · " + offer.Axis);
                     bool available = !owned && !soldOut && offer.CanAfford && string.IsNullOrEmpty(offer.UnavailableReason);
                     cards[i] = new ProgressionUICard(offer.Id, offer.Title, offer.Description, detail,
                         owned ? "OWNED" : soldOut ? "SOLD OUT" : "BUY  " + Number(offer.Price), available,
                         ProgressionUIAction.Purchase);
                 }
-                return cards;
+                return WithReroll(cards, snapshot);
             }
             if (snapshot.Phase != ProgressionPhase.ChooseThreat && snapshot.Phase != ProgressionPhase.ChooseCurse)
                 return Array.Empty<ProgressionUICard>();
@@ -194,10 +213,31 @@ namespace Worsen.Presentation.ProgressionUI
                 var choice = choices[i];
                 output[i] = new ProgressionUICard(choice.Id, choice.Title, choice.Description,
                     choice.SelectedCount > 0 ? "Already retained: " + Number(choice.SelectedCount) : "New to this expedition",
-                    choice.SelectedCount > 0 && kind == ProgressionUIAction.ChooseCurse ? "RETAINED" : "CHOOSE",
-                    !string.IsNullOrEmpty(choice.Id) && (kind != ProgressionUIAction.ChooseCurse || choice.SelectedCount == 0), kind);
+                    "CHOOSE", !string.IsNullOrEmpty(choice.Id), kind);
             }
-            return output;
+            return WithReroll(output, snapshot);
+        }
+
+        private static ProgressionUICard[] WithReroll(ProgressionUICard[] cards, ProgressionSnapshot snapshot)
+        {
+            // Optional snapshot additions preserve legacy producers until they migrate.
+            if (!snapshot.CanReroll && snapshot.Inventory == null) return cards;
+            var result = new List<ProgressionUICard>(cards);
+            result.Add(new ProgressionUICard("reroll", "REROLL", snapshot.Phase == ProgressionPhase.Shop
+                ? "Draw a new set of eligible pedestals." : "Draw new eligible choices.",
+                snapshot.RerollUnavailableReason ?? (Number(snapshot.FreeRerollsRemaining) + " free rerolls remaining"),
+                "REROLL  " + Number(snapshot.RerollPrice), snapshot.CanReroll, ProgressionUIAction.Reroll));
+            return result.ToArray();
+        }
+
+        private static string Inventory(ProgressionSnapshot snapshot)
+        {
+            if (snapshot.Inventory == null) return "";
+            var text = new StringBuilder("\n\nINVENTORY");
+            for (int slot = 0; slot < snapshot.Inventory.Count; slot++)
+                text.Append("\n").Append(Number(slot + 1)).Append(" · ").Append(snapshot.Inventory[slot].Title ?? "Empty");
+            if (!string.IsNullOrEmpty(snapshot.PendingOfferId)) text.Append("\n\nCHOOSE A SLOT TO REPLACE · ").Append(snapshot.PendingOfferTitle);
+            return text.ToString();
         }
 
         private static string Retained(ProgressionSnapshot snapshot)
@@ -242,9 +282,9 @@ namespace Worsen.Presentation.ProgressionUI
             switch (phase)
             {
                 case ProgressionPhase.ChooseThreat: return "Choose one threat. It remains with this expedition.";
-                case ProgressionPhase.ChooseCurse: return "Each curse changes a specific rule and can be chosen only once per run.";
+                case ProgressionPhase.ChooseCurse: return "Each curse changes a specific rule. Only eligible choices below their stack cap are offered.";
                 case ProgressionPhase.Generating: return "Preparing the next room...";
-                case ProgressionPhase.Shop: return "Unique equipment stays with you. Consumables have limited stock. Continue whenever you are ready.";
+                case ProgressionPhase.Shop: return "Upgrades stay with you. Consumables occupy slots; full inventory requires a replacement choice.";
                 case ProgressionPhase.Ended: return "Your retained choices are shown below.";
                 case ProgressionPhase.GenerationFailed: return "The room could not be prepared. Start again to begin a fresh expedition.";
                 default: return "";
