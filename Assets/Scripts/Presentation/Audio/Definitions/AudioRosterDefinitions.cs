@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Describes named hunter cues without adding or renumbering Core's legacy ids.
-//   A binding borrows an existing bank or holds an explicit no-clip placeholder.
+//   A binding borrows a bank or supplies a primary clip and nonrepeating alternates.
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Presentation · Audio.
 // KEY RESPONSIBILITIES:
@@ -26,8 +26,11 @@ namespace Worsen.Presentation.Audio
         public CueId Bank;
         public bool Placeholder;
         public AudioClip Clip;
+        public AudioClip[] Alternates;
+        [Range(0f, 1f)] public float Gain;
+        public bool OverrideGain;
         public AudioRosterBinding(string id, CueId bank, bool placeholder = false)
-        { Id = id; Bank = bank; Placeholder = placeholder; Clip = null; }
+        { Id = id; Bank = bank; Placeholder = placeholder; Clip = null; Alternates = null; Gain = 1f; OverrideGain = false; }
     }
     [Serializable]
     public struct AudioSoundZone
