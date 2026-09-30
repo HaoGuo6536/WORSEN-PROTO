@@ -13,9 +13,8 @@
 //   - Retain progress/cancellation height, severity-scaled landing and stumble clocks.
 //   - Retain runtime lens and comfort overrides across transient view resets.
 //   - Keep unshaken aim separate from cosmetic banking and deterministic shake envelopes.
-//   - Store consumed sample identity and head offsets.
-//   - Latch catch start/target poses, approach/hold clocks and timing facts until reset.
-//   - Store output pose and lens values for the Driver.
+//   - Store sample identity, output pose and lens values for the Driver.
+//   - Latch hunter/hand catch clocks, hand reveal/grip and once-only completion edges.
 //
 // DEPENDENCIES:
 //   - Core identity and movement types; pure UnityEngine value types.
@@ -58,6 +57,7 @@ namespace Worsen.Presentation.Camera
         public float ReboundSign = 1f;
         public float Proximity;
         public bool Consumed;
+        public float HandDistance, HandReveal, HandGrip;
         public float CatchElapsed, CatchApproachDuration, CatchHoldElapsed, CatchHoldDuration;
         public bool CatchHoldStarted, CatchHoldEnded;
         public Vector3 CatchStartPosition, CatchTargetPosition;
