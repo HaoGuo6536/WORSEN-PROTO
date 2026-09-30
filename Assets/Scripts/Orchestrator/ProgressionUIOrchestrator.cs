@@ -14,7 +14,7 @@
 //   - Route display snapshots and UI decisions through paired subscriptions.
 //   - Route rerolls and pending inventory replacements to their Progression owner.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
-//   - Default Hidden Count to false until Progression supplies its future curse flag.
+//   - Derive Hidden Count from Progression's active-effects view, including fresh-run clearing.
 // DEPENDENCIES:
 //   - Session Progression/Run, Presentation ProgressionUI and Core payloads.
 //   - CameraManager supplies the authoritative catch-completed event.
@@ -93,7 +93,7 @@ namespace Worsen.Orchestrator
         }
         private void OnSnapshot(ProgressionSnapshot value)
         {
-            _ui.SetHiddenCount(false);
+            _ui.SetHiddenCount(_progression.EffectsSnapshot.ActiveEffects.Has(new EffectId("hidden-count")));
             if (_terminalResults && value.Phase == ProgressionPhase.Ended) _ui.Hide();
             else _ui.SetSnapshot(value);
         }

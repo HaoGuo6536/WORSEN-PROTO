@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
+//   - Include More Shrines in the exact approved upgrade inventory.
 //   - Require all approved general curses, upgrades, consumables and first hunter curses.
 //   - Fail malformed data/copy; warn without failing on hunter-number-only changes.
 // DEPENDENCIES:
@@ -48,7 +49,7 @@ namespace Worsen.Tests.Progression
         {
             EffectCatalogueUtility.Validate(catalogue, new[] { "watcher", "rusher", "lurker", "hexer", "thorncaller" });
             AssertIds(catalogue, EffectKind.Curse, "no-look-back silent-presence hidden-count darker-floors random-spawn shuffled-collapse nothing thin-skin spent-pockets greedy-door short-grace faster-collapse slow-mend no-regen rough-start short-burst heavy-legs", true);
-            AssertIds(catalogue, EffectKind.Upgrade, "stored-momentum soft-landing quiet-slide thick-skin wax-heart low-profile steady-hand second-bounce sweet-tooth glimpse latch echo-boots exit-sense blind-faith loud-heart gilded-greed longer-slide higher-jump sticky-fingers bigger-pockets cat-eyes field-kit lucky-reroll bargain-hunter keen-ears trail-reader sure-footing golden-sense stone-nerves web-cutter marked-doors afterglow spare-key mirror-skin ear-plugs bail-bond extra-life golden-touch shop-reroll loyalty-card interest refund extra-pedestal business-license speed-boost quick-start air-control fast-hands long-boost");
+            AssertIds(catalogue, EffectKind.Upgrade, "stored-momentum soft-landing quiet-slide thick-skin wax-heart low-profile steady-hand second-bounce sweet-tooth glimpse latch echo-boots exit-sense blind-faith loud-heart gilded-greed longer-slide higher-jump sticky-fingers bigger-pockets cat-eyes field-kit lucky-reroll bargain-hunter keen-ears trail-reader sure-footing golden-sense stone-nerves web-cutter marked-doors afterglow spare-key mirror-skin ear-plugs bail-bond extra-life golden-touch shop-reroll loyalty-card interest refund extra-pedestal more-shrines business-license speed-boost quick-start air-control fast-hands long-boost");
             AssertIds(catalogue, EffectKind.Consumable, "firecracker gauze smelling-salts wax-ward doorstop oil-flask glass-vial adrenaline");
             Assert.That(EffectCatalogueUtility.Find(catalogue, "wagered-haul"), Is.Null);
             Assert.That(EffectCatalogueUtility.Find(catalogue, "no-regen").PrerequisiteEffectId, Is.EqualTo("slow-mend"));

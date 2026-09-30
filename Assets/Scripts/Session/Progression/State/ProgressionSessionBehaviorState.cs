@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Retain event cadence/history, expiring hazards and archetype mutations independently of scenes.
 //   - Retain once-per-run revival admission separately from floor health and armed wards.
 //   - Store round identity, wallet, baseline health and legacy loadout effects.
 //   - Retain committed hunter/curse offers and stage-specific selection reroll counts.
@@ -15,6 +16,7 @@
 //   - Own delegated shop state without moving the wallet out of Progression.
 //   - Retain shrine history, pending deals and separately expiring floor effects.
 // DEPENDENCIES:
+//   - Domain Hunter immutable mutation values, never Hunter runtime state.
 //   - Core progression types, System collections and the owned Shop state.
 // USAGE NOTES:
 //   Persistent only through ProgressionSessionManager. No scene references,
@@ -24,6 +26,7 @@
 using System.Collections.Generic;
 using Worsen.Core;
 using Worsen.Session.Progression.Shop;
+using Worsen.Domain.Hunter;
 
 namespace Worsen.Session.Progression
 {
@@ -39,6 +42,14 @@ namespace Worsen.Session.Progression
         public ProgressionTraits Traits { get; internal set; }
         public int WaxWardCharges { get; internal set; }
         internal bool ExtraLifeConsumed;
+        internal long NextEventRound;
+        internal int LastEventCheckRound;
+        internal FearAxis EventFearAxis;
+        internal bool MutationMessagePending;
+        internal readonly List<ProgressionEventFact> EventHistory = new List<ProgressionEventFact>();
+        internal readonly Queue<ProgressionEventFact> PendingEvents = new Queue<ProgressionEventFact>();
+        internal readonly Dictionary<string, int> EventHazards = new Dictionary<string, int>();
+        internal readonly Dictionary<string, List<HunterMutation>> Mutations = new Dictionary<string, List<HunterMutation>>();
         public int Wallet { get; internal set; }
         public int ThreatCount { get; internal set; }
         public int CurseCount { get; internal set; }

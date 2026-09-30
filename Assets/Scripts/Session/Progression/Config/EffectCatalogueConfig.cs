@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Register More Shrines and Blinder curses while preserving exact module effect ids.
 //   - Store copy, fear axes, availability, requirements, caps and future shop prices.
 //   - Give Bargain a separate curse value, defaulting to one rather than shop price.
 // DEPENDENCIES:
@@ -84,6 +85,8 @@ namespace Worsen.Session.Progression
             new EffectCatalogueEntry("no-look-back", EffectKind.Curse, FearAxis.Information, "No Look-Back", "Removes the look-back snap."),
             new EffectCatalogueEntry("silent-presence", EffectKind.Curse, FearAxis.Information, "Silent Presence", "Removes distant hunter presence loops; detection and attack cues remain."),
             new EffectCatalogueEntry("hidden-count", EffectKind.Curse, FearAxis.Information, "Hidden Count", "Removes the shelter's active hunter list."),
+            new EffectCatalogueEntry("blinder-more-traps", EffectKind.Curse, FearAxis.Information, "More Traps", "Adds Blinder traps, removing safe paths through the floor.", hunters: new[] { "blinder" }),
+            new EffectCatalogueEntry("blinder-silent-traps", EffectKind.Curse, FearAxis.Information, "Silent Traps", "Removes the sound warning from Blinder traps.", hunters: new[] { "blinder" }),
             new EffectCatalogueEntry("darker-floors", EffectKind.Curse, FearAxis.Information, "Darker Floors", "Reduces lit rooms and the distance you can see through fog."),
             new EffectCatalogueEntry("random-spawn", EffectKind.Curse, FearAxis.Unpredictability, "Random Spawn", "Replaces the exit-room start with a spawn elsewhere on the floor."),
             new EffectCatalogueEntry("shuffled-collapse", EffectKind.Curse, FearAxis.Unpredictability, "Shuffled Collapse", "Removes farthest-first collapse order; an escape route remains guaranteed."),
@@ -141,6 +144,7 @@ namespace Worsen.Session.Progression
             new EffectCatalogueEntry("interest", EffectKind.Upgrade, FearAxis.Stakes, "Interest", "The wallet grows by a capped share between floors.", floor: 3, price: 12),
             new EffectCatalogueEntry("refund", EffectKind.Upgrade, FearAxis.Stakes, "Refund", "A consumable replaced at the shop refunds half its price.", floor: 4, price: 12),
             new EffectCatalogueEntry("extra-pedestal", EffectKind.Upgrade, FearAxis.Agency, "Extra Pedestal", "The shop shows one more offer per visit.", floor: 4, price: 12),
+            new EffectCatalogueEntry("more-shrines", EffectKind.Upgrade, FearAxis.Agency, "More Shrines", "Adds one shrine per eligible floor above the depth curve.", price: 12),
             new EffectCatalogueEntry("business-license", EffectKind.Upgrade, FearAxis.Stakes, "Business License", "Golden Cake yield increases to 1.25 times, or 1.5 times with two copies.", floor: 5, cap: 2, price: 12),
             new EffectCatalogueEntry("speed-boost", EffectKind.Upgrade, FearAxis.Agency, "Speed Boost", "Increases sprint speed, capped below hunters' chase speed.", cap: 3, price: 12),
             new EffectCatalogueEntry("quick-start", EffectKind.Upgrade, FearAxis.Agency, "Quick Start", "Increases acceleration from a standstill.", cap: 3, price: 12),
