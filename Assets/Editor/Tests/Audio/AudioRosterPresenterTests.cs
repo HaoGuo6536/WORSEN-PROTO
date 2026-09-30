@@ -21,6 +21,7 @@ using Worsen.Presentation.Audio;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioRosterPresenterTests
     {
         private AudioRosterPresenter presenter;

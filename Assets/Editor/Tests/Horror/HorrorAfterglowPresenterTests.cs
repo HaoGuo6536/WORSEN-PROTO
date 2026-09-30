@@ -20,6 +20,7 @@ using Worsen.Core;
 using Worsen.Presentation.Horror;
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorAfterglowPresenterTests
     {
         private static ActiveEffects Effects(string id) => new ActiveEffects(new[] { new ActiveEffect(new EffectId(id), EffectKind.Upgrade, 1) });

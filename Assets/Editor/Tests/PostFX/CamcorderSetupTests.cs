@@ -25,6 +25,7 @@ using Worsen.Editor.Camera;
 using Worsen.Presentation.Camera;
 namespace Worsen.Tests.PostFX
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CamcorderSetupTests
     {
         [Test]

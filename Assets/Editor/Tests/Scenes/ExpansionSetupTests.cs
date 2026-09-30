@@ -24,6 +24,7 @@ using Worsen.Editor.Scenes;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Scenes
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpansionSetupTests
     {
         [Test] public void TitleFirstPreservesExplicitTestScenesAndIsIdempotent()

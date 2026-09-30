@@ -31,6 +31,7 @@ using Object = UnityEngine.Object;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionBacklogTests
     {
         private readonly List<Object> owned = new List<Object>();

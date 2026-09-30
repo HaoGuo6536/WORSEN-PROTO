@@ -27,6 +27,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.CastleEnvironment
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EnvironmentTemplateSocketTests
     {
         [TestCase(3.2f)] [TestCase(3.8f)]

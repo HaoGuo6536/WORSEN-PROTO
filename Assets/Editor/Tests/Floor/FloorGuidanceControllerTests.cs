@@ -29,6 +29,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorGuidanceControllerTests
     {
         private static readonly EntityId Player = new EntityId(1);

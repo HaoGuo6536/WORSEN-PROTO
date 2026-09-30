@@ -24,6 +24,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateGeometryPresenterTests
     {
         [Test]
