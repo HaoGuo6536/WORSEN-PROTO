@@ -11,6 +11,7 @@
 //   - Measure confirmation/loss/grace in completed Session ticks and preserve identity.
 //   - Record real poses, sight samples and phase facts without changing game rules.
 //   - Observe exactly one mapped pooled or legacy Lose source and the half-second HUD fade.
+//   - Require cake count and HUD panels, with PLAN-020 exit-state chrome absent.
 // DEPENDENCIES:
 //   - Core facts; Domain Player/Hunter/Chase; Session.Run; Input; TagArenaSceneRoot.
 //   - Audio/HUD presentation and UI Toolkit; read-only observation of actual sources.
@@ -143,8 +144,8 @@ namespace Worsen.Tests.Chase
             private HUDDriver hud;
             private HUDDriverConfig hudConfig;
             private VisualElement hudExtra, hudPanel;
-            private Label hudCount, hudExit;
-            private string initialCount, initialExit;
+            private Label hudCount;
+            private string initialCount;
             private AudioSource[] cueSources;
             private AudioSoundscapeDriver soundscape;
             private AudioClip loseClip;
@@ -231,9 +232,10 @@ namespace Worsen.Tests.Chase
                     VisualElement document = hud.GetComponent<UIDocument>().rootVisualElement;
                     hudExtra = document.Q<VisualElement>("hud-extra");
                     hudPanel = document.Q<VisualElement>("hud");
-                    hudCount = document.Q<Label>("cake-count"); hudExit = document.Q<Label>("exit-state");
-                    Assert.That(hudExtra != null && hudPanel != null && hudCount != null && hudExit != null, Is.True);
-                    initialCount = hudCount.text; initialExit = hudExit.text;
+                    hudCount = document.Q<Label>("cake-count");
+                    Assert.That(hudExtra != null && hudPanel != null && hudCount != null, Is.True);
+                    Assert.That(document.Q<Label>("exit-state"), Is.Null, "PLAN-020 removes exit-state HUD chrome.");
+                    initialCount = hudCount.text;
                     Assert.That(run.Tick, Is.Zero, "Observe readiness before the first real tick.");
                     Assert.That(PlayerRegistry.Items.Count, Is.EqualTo(1));
                     Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
@@ -555,9 +557,7 @@ namespace Worsen.Tests.Chase
                 try
                 {
                     Assert.That(hudCount.text, Is.EqualTo(initialCount));
-                    Assert.That(hudExit.text, Is.EqualTo(initialExit));
                     Assert.That(hudCount.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None));
-                    Assert.That(hudExit.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None));
                     if (ends.Count == 0)
                     {
                         // SPEC-004 §2.3: the whole panel hides during a chase; its facts are retained.
