@@ -61,10 +61,13 @@ namespace Worsen.Tests.Run
         [TearDown]
         public void TearDown()
         {
-            _run.DetachGameplay();
-            for (int i = _owned.Count - 1; i >= 0; i--) if (_owned[i] != null) Object.DestroyImmediate(_owned[i]);
-            _owned.Clear();
-            typeof(RunSessionManager).GetProperty("Instance").SetValue(null, null);
+            try
+            {
+                if (_run != null) _run.DetachGameplay();
+                for (int i = _owned.Count - 1; i >= 0; i--) if (_owned[i] != null) Object.DestroyImmediate(_owned[i]);
+                _owned.Clear();
+            }
+            finally { Worsen.Tests.Menu.PauseFixtureCleanup.Restore(); }
         }
         [Test]
         public void PauseGatesQueuedDamageBeforeInputAndTickAndResumeDiscardsBufferedControls()

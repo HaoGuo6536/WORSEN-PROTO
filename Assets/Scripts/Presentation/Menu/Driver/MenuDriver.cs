@@ -17,6 +17,8 @@
 //   Scene-owned through MenuManager with its own DriverConfig. QuitApplication owns
 //   application exit only when commanded; clicks alone never quit or pause gameplay.
 //   Owns Time.timeScale during acknowledged pause only, restoring the prior value.
+//   Ownership is exclusive across scenes; invalid or paused baselines restore to 1.
+//   Disable/destroy/teardown release ownership, including scene unload and editor exit.
 //   Requires a wired UIDocument PanelSettings; missing wiring is logged, not fabricated.
 // ============================================================================
 using System;
@@ -62,10 +64,31 @@ namespace Worsen.Presentation.Menu
         private void SetEnginePaused(bool paused)
         {
             if (paused && !_state.OwnsTimeScale)
-            { _state.PreviousTimeScale = Time.timeScale; _state.OwnsTimeScale = true; Time.timeScale = 0f; }
+            {
+                ReleasePauseTimeScale();
+                _state.PreviousTimeScale = ValidTimeScale(Time.timeScale);
+                MenuDriverState.TimeScaleOwner = _state;
+                _state.OwnsTimeScale = true;
+                Time.timeScale = 0f;
+            }
             else if (!paused && _state.OwnsTimeScale)
-            { Time.timeScale = _state.PreviousTimeScale; _state.OwnsTimeScale = false; }
+            {
+                if (ReferenceEquals(MenuDriverState.TimeScaleOwner, _state)) ReleasePauseTimeScale();
+                _state.OwnsTimeScale = false;
+            }
         }
+        public static bool ReleasePauseTimeScale()
+        {
+            var owner = MenuDriverState.TimeScaleOwner;
+            if (owner == null) return false;
+            MenuDriverState.TimeScaleOwner = null;
+            owner.OwnsTimeScale = false;
+            Time.timeScale = ValidTimeScale(owner.PreviousTimeScale);
+            return true;
+        }
+        private static float ValidTimeScale(float value) => value > 0f && !float.IsInfinity(value) ? value : 1f;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetPauseOwnership() => ReleasePauseTimeScale();
         public void SetSettings(PlayerSettingsRecord value) { _presenter.SetSettings(_state, value); Apply(); }
         public void SetSaveResult(bool saved, string message) { _presenter.SetSaveResult(_state, saved, message); Apply(); }
         public void TogglePause()

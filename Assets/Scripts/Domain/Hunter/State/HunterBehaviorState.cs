@@ -12,6 +12,7 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Retain per-archetype pursuit policy and bounded commitment/deliberation timers.
+//   - Retain the fixed travel budget of the current walking search leg.
 //   - Retain run overrides across Controller.Reset, but clear transient habit/catch state.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -107,6 +108,7 @@ namespace Worsen.Domain.Hunter
         public Vector3 CurrentTarget => NavigationTarget;
         internal bool HasPatrolTarget;
         internal float SearchSeconds;
+        internal float SearchLegBudget;
         internal ulong PlannedFacts = ulong.MaxValue;
         internal HunterAction Action;
         internal bool ActionFailed;

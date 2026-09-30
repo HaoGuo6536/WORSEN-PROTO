@@ -20,6 +20,7 @@
 //   transient driver config without asset lookup; rooms and exit rays use real commands.
 //   Vendor rendering stays off in Edit Mode. Live rendering and scene wiring remain
 //   coordinator checks; no scene, prefab, shared config or render settings are changed.
+//   Router lifecycle is invoked explicitly; SetActive alone is not an Edit Mode callback.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -68,13 +69,13 @@ namespace Worsen.Tests.CastleEnvironment
             Set(_floorVisuals, "_exitDoorYaw", 73f);
             _route = Component<EnvironmentOrchestrator>();
             _route.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals);
-            _route.gameObject.SetActive(true);
+            Invoke(_route, "OnEnable");
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (_route != null) _route.gameObject.SetActive(false);
+            if (_route != null) Invoke(_route, "OnDisable");
             for (int i = _objects.Count - 1; i >= 0; i--) Object.DestroyImmediate(_objects[i]);
             _objects.Clear(); Object.DestroyImmediate(_config); Object.DestroyImmediate(_floorVisuals);
         }
@@ -101,17 +102,18 @@ namespace Worsen.Tests.CastleEnvironment
         public void ReconfigureAndDisablePairFloorDisplayAndRoomSubscriptions()
         {
             _route.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals);
+            Invoke(_route, "OnEnable");
             Assert.That(Subscribers(_expedition, "RoomsReady"), Is.EqualTo(1));
             Assert.That(Subscribers(_run, "FloorDisplayChanged"), Is.EqualTo(1));
             Assert.That(Subscribers(_level, "InteractableChanged"), Is.EqualTo(1));
             Assert.That(Subscribers(_expedition, "FloorReleased"), Is.EqualTo(1));
-            Rooms(); _route.gameObject.SetActive(false);
+            Rooms(); Invoke(_route, "OnDisable");
             Assert.That(Subscribers(_expedition, "RoomsReady"), Is.Zero);
             Assert.That(Subscribers(_run, "FloorDisplayChanged"), Is.Zero);
             Assert.That(Subscribers(_level, "InteractableChanged"), Is.Zero);
             Assert.That(Subscribers(_expedition, "FloorReleased"), Is.Zero);
             Display(ExitState.Open, 1f); Assert.That(Exit.OpeningProgress, Is.Zero);
-            _route.gameObject.SetActive(true);
+            Invoke(_route, "OnEnable");
             Display(ExitState.Open, 1f); Assert.That(Exit.OpeningProgress, Is.EqualTo(1f));
         }
 
@@ -147,6 +149,7 @@ namespace Worsen.Tests.CastleEnvironment
             _objects.Add(owner); owner.SetActive(false); return owner.AddComponent<T>();
         }
         private static FieldInfo Field(object target, string name) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+        private static void Invoke(object target, string name) => target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, null);
         private static void Set(object target, string name, object value) => Field(target, name).SetValue(target, value);
         private static int Subscribers(object target, string name) => (Field(target, name).GetValue(target) as Delegate)?.GetInvocationList().Length ?? 0;
         private static void Publish(object target, string name, params object[] args) => (Field(target, name).GetValue(target) as Delegate)?.DynamicInvoke(args);

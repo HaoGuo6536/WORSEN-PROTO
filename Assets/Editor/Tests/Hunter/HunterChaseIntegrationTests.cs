@@ -4,12 +4,13 @@
 // PURPOSE:
 //   Exercises the built TagArena through real Hunter sight, navigation and capsule
 //   contacts. It follows those observations through Chase and Session until two
-//   default lunges damage the stationary Player and finish the run.
+//   accepted default lunge hits damage the stationary Player and finish the run.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Hunter integration.
 // KEY RESPONSIBILITIES:
 //   - Observe the real fixed-tick sight, confirmed chase, contact and damage chain.
 //   - Verify catch identities, terminal capture ordering and the stopped run tick.
+//   - Count contact candidates per active lunge separately from grace-filtered Run hits.
 //   - Observe actual focus and Input gate transitions without suppressing interruption.
 //   - Scope gameplay to synthetic neutral input while preserving live capture gates.
 //   - Persist original capture metadata and observed file paths in NUnit result output.
@@ -151,6 +152,9 @@ namespace Worsen.Tests.Hunter
             public readonly List<bool> CaptureCompletions = new List<bool>();
             private readonly List<HunterSighting> sightings = new List<HunterSighting>();
             private readonly List<HunterHit> hits = new List<HunterHit>();
+            private readonly List<HunterHit> candidates = new List<HunterHit>();
+            private readonly HashSet<int> candidateAttacks = new HashSet<int>();
+            private readonly HashSet<int> activeAttacks = new HashSet<int>();
             private readonly List<long> contactTicks = new List<long>();
             private readonly List<ChaseFact> starts = new List<ChaseFact>();
             private readonly List<ChaseFact> catches = new List<ChaseFact>();
@@ -223,7 +227,8 @@ namespace Worsen.Tests.Hunter
                     // Clear buffered hardware/cancelled edges before tick one. This
                     // retains real owner/focus/input gates and the active recording.
                     Assert.That(Input.SetSource(InputSource.Live), Is.True);
-                    hunter.OnSighting += OnSighting; hunter.OnLungeHit += OnHit;
+                    hunter.OnSighting += OnSighting; hunter.OnLungeHit += OnCandidate;
+                    Run.HitAccepted += OnHit; Run.HunterAttackPublished += OnAttack;
                     driver.OnLungeContact += OnContact;
                     Input.FramePublished += NeutralInput; Run.TickAdvanced += OnTick;
                     Run.ChaseStarted += OnStarted; Run.ChaseEnded += OnCaught;
@@ -270,6 +275,18 @@ namespace Worsen.Tests.Hunter
             }
             private void OnSighting(HunterSighting fact) => sightings.Add(fact);
             private void OnHit(HunterHit hit) => hits.Add(hit);
+            private void OnCandidate(HunterHit hit)
+            {
+                candidates.Add(hit);
+                if (hunter.AttackSample.Phase != (int)HunterLungePhase.Active ||
+                    !candidateAttacks.Add(((HunterBehaviorState)hunter.ReadOnlyState).AttackSerial))
+                    Fail("A lunge emitted a duplicate candidate or emitted outside its active window.");
+            }
+            private void OnAttack(HunterAttackSample sample)
+            {
+                if (sample.Hunter == hunter.Id && sample.Phase == (int)HunterLungePhase.Active)
+                    activeAttacks.Add(((HunterBehaviorState)hunter.ReadOnlyState).AttackSerial);
+            }
             private void OnContact(Collider collider)
             {
                 if (collider.GetComponentInParent<PlayerManager>() == player) contactTicks.Add(Run.Tick);
@@ -326,7 +343,13 @@ namespace Worsen.Tests.Hunter
                 Assert.That(pathObserved, Is.True, "Hunter never moved along a real available navigation path.");
                 Assert.That(sightings.Count(fact => fact.Visible), Is.GreaterThan(1));
                 Assert.That(sightings.All(fact => fact.Hunter == hunter.Id && fact.Target == player.Id), Is.True);
-                Assert.That(hits.Count, Is.EqualTo(2), "Each active lunge must emit one accepted hit.");
+                Assert.That(hits.Count, Is.EqualTo(2), "Only Run damage acceptance counts as a hit.");
+                Assert.That(candidateAttacks, Is.EquivalentTo(activeAttacks), "Each active lunge must emit one candidate in this stationary trial.");
+                Assert.That(candidates.Count, Is.EqualTo(activeAttacks.Count));
+                Assert.That(candidates.Count, Is.GreaterThanOrEqualTo(hits.Count));
+                foreach (HunterHit candidate in candidates)
+                    Assert.That(contactTicks, Does.Contain(candidate.Tick), "Candidate lacks a physical contact.");
+                foreach (HunterHit hit in hits) Assert.That(candidates, Does.Contain(hit));
                 Assert.That(health, Is.EqualTo(new[] { 50f, 0f }));
                 Assert.That(starts.Count, Is.EqualTo(2));
                 Assert.That(catches.Count, Is.EqualTo(2));
@@ -365,7 +388,7 @@ namespace Worsen.Tests.Hunter
 
             public string Describe() => "ready=" + Ready + "; ticks=" + CompletedTicks +
                 "; visible=" + sightings.Count(fact => fact.Visible) + "; contacts=" + contactTicks.Count +
-                "; hits=" + hits.Count + "; starts=" + starts.Count + "; catches=" + catches.Count +
+                "; accepted/candidates=" + hits.Count + "/" + candidates.Count + "; starts=" + starts.Count + "; catches=" + catches.Count +
                 "; player=" + (player == null ? "absent" : player.ReadOnlyState.Position.ToString()) +
                 "; hunter=" + (hunter == null ? "absent" : hunter.ReadOnlyState.Position.ToString());
             private void Fail(string message) { if (Failure.Length == 0) Failure = message; }
@@ -376,7 +399,7 @@ namespace Worsen.Tests.Hunter
             {
                 if (captureRun != null) captureRun.CaptureStarted -= OnCaptureStarted;
                 TagArenaSceneRoot.SceneReady -= ObserveReady;
-                if (hunter != null) { hunter.OnSighting -= OnSighting; hunter.OnLungeHit -= OnHit; }
+                if (hunter != null) { hunter.OnSighting -= OnSighting; hunter.OnLungeHit -= OnCandidate; }
                 if (driver != null) driver.OnLungeContact -= OnContact;
                 if (Input != null)
                 {
@@ -386,6 +409,7 @@ namespace Worsen.Tests.Hunter
                 if (Run != null)
                 {
                     Run.TickAdvanced -= OnTick;
+                    Run.HitAccepted -= OnHit; Run.HunterAttackPublished -= OnAttack;
                     Run.ChaseStarted -= OnStarted; Run.ChaseEnded -= OnCaught;
                     Run.HealthChanged -= OnHealth; Run.PlayerDied -= OnDeath;
                     Run.CaptureEnded -= OnCapture; Run.RunEnded -= OnEnded;

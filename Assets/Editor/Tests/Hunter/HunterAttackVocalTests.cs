@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies occasional attack-commitment screams and immediate dead-target silence.
+//   A topology-free fixture excludes navigation decisions from scripted vocal rolls.
 // ARCHITECTURAL ROLE:
 //   Editor tool (section 10), test suite (section 11) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
@@ -66,6 +67,7 @@ namespace Worsen.Tests.Hunter
             _controller.Tick(Visible, 0.1f, 0);
             Assert.That(Drain().Contains(HunterFeedbackKind.Scream), Is.False);
             Assert.That(_random.Rolls, Is.Zero);
+            Assert.That(_state.AttackSerial, Is.Zero, "Detection is not an attack commitment.");
             _player.Position = Vector3.forward * 3f;
             HunterTickResult first = _controller.Tick(Visible, 0.1f, 1);
             Assert.That(first.BeginLunge, Is.True);

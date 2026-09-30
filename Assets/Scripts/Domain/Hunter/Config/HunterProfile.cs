@@ -16,6 +16,7 @@
 //   - Configure walk speed, chase-relative stalk speed and the player's reveal cone.
 //   - Supply deliberation, utility, prediction, missed-lunge and shared hearing tuning.
 //   - Author habit entries, a tell-only mutation pool and bounded emergence preferences.
+//   - Require credible Stalk clues and allow bounded walk travel before search-leg expiry.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
@@ -51,6 +52,7 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private float _patrolSpeed = 3f;
         [SerializeField, Min(0f)] private float _investigateSpeed = 3f;
         [SerializeField, Range(0f, 1f)] private float _stalkSpeedMultiplier = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _stalkMinimumConfidence = 0.25f;
         [SerializeField, Min(0f)] private float _stalkRevealDistance = 12f;
         [SerializeField, Range(0f, 180f)] private float _stalkViewHalfAngleDegrees = 55f;
         [SerializeField] private float _sightConeDegrees = 110f;
@@ -98,6 +100,8 @@ namespace Worsen.Domain.Hunter
         [SerializeField, Range(0f, 1f)] private float _parallelCorridorChance = 0.25f;
         [SerializeField, Min(0f)] private float _searchExpansionMeters = 2f;
         [SerializeField, Min(0.1f)] private float _searchLegTimeoutSeconds = 4f;
+        [SerializeField, Min(1f)] private float _searchTravelAllowance = 2f;
+        [SerializeField, Min(0.1f)] private float _searchMaximumLegSeconds = 60f;
         [SerializeField, Min(0.1f)] private float _retreatTimeoutSeconds = 12f;
         [SerializeField, Min(0f)] private float _cakeGoalUtility = 40f;
         [SerializeField, Min(0f)] private float _exitGoalUtility = 65f;
@@ -121,6 +125,8 @@ namespace Worsen.Domain.Hunter
         public float ParallelCorridorChance => Mathf.Clamp01(_parallelCorridorChance);
         public float SearchExpansionMeters => Mathf.Max(0f, _searchExpansionMeters);
         public float SearchLegTimeoutSeconds => Mathf.Max(0.1f, _searchLegTimeoutSeconds);
+        public float SearchTravelAllowance => Mathf.Max(1f, _searchTravelAllowance);
+        public float SearchMaximumLegSeconds => Mathf.Max(SearchLegTimeoutSeconds, _searchMaximumLegSeconds);
         public float RetreatTimeoutSeconds => Mathf.Max(0.1f, _retreatTimeoutSeconds);
         public float CakeGoalUtility => Mathf.Max(0f, _cakeGoalUtility);
         public float ExitGoalUtility => Mathf.Max(0f, _exitGoalUtility);
@@ -152,6 +158,7 @@ namespace Worsen.Domain.Hunter
         public float PatrolSpeed => _patrolSpeed;
         public float InvestigateSpeed => Mathf.Max(0f, _investigateSpeed);
         public float StalkSpeedMultiplier => Mathf.Clamp01(_stalkSpeedMultiplier);
+        public float StalkMinimumConfidence => Mathf.Clamp01(_stalkMinimumConfidence);
         public float StalkRevealDistance => Mathf.Max(0f, _stalkRevealDistance);
         public float StalkViewHalfAngleDegrees => Mathf.Clamp(_stalkViewHalfAngleDegrees, 0f, 180f);
         public float SightConeDegrees => _sightConeDegrees;

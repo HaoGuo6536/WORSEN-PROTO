@@ -12,6 +12,8 @@
 //   - Observe real Chase transitions and frozen default Director timing twice per seed.
 //   - Record every pose, pressure observation, hint belief and no-proximity interval.
 //   - Distinguish finite motor arrival from emitted hints and censored observation gaps.
+//   - Permit the bounded SPEC-004 deliberation beat, not an immediate motor repath.
+//   - Allow floating-point roundoff in computed hint radii, not gameplay drift.
 // DEPENDENCIES:
 //   - Core; Domain Player, Hunter, Chase, Floor; Session.Run; FloorLoopSceneRoot.
 //   - Presentation.Input device isolation; Unity physics/navigation; Editor asset reads.
@@ -328,7 +330,7 @@ namespace Worsen.Tests.Director
                     Assert.That(hint.Hunter, Is.EqualTo(hunter.Id)); Assert.That(hint.Player, Is.EqualTo(player.Id));
                     Assert.That(hint.DeliveredTick, Is.EqualTo(run.Tick));
                     Assert.That(hint.AgeSeconds, Is.EqualTo(config.HintAgeSeconds).Within(0.0001f));
-                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters));
+                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters).Within(0.0001f));
                     Assert.That(hunterState.LastKnownTick, Is.EqualTo(hint.ObservedTick), "Actual Hunter must accept the delivered hint.");
                     Assert.That(hunterState.PlayerVisible, Is.False);
                     Assert.That(hunterState.BeliefConfidence, Is.GreaterThan(0f));
@@ -423,7 +425,7 @@ namespace Worsen.Tests.Director
                 if (tick == hint.deliveredTick + 1)
                 {
                     Assert.That(hunterState.CurrentAction, Is.EqualTo(HunterAction.InvestigateHint));
-                    Assert.That(Vector3.Distance(motor.LastTarget, hint.belief), Is.LessThan(0.001f));
+                    Assert.That(Vector3.Distance(hunterState.CurrentTarget, hint.belief), Is.LessThan(0.001f));
                     report.firstInvestigationTick = tick;
                 }
                 if (hunterState.CurrentAction == HunterAction.InvestigateHint) report.investigationTicks++;
