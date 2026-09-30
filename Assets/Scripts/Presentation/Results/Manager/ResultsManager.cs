@@ -11,6 +11,7 @@
 //   Manager (§1) · Presentation · Results (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward catch identity and completion; DriverState owns the pending summary.
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward summary display commands and republish one accepted restart click.
 //
@@ -27,6 +28,7 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Results
 {
@@ -50,6 +52,8 @@ namespace Worsen.Presentation.Results
         }
 
         public void Show(RunSummary summary) { if (_driver != null) _driver.Show(summary); }
+        public void PrepareCatch(EntityId player) { if (_driver != null) _driver.PrepareCatch(player); }
+        public void EndCatch(EntityId player) { if (_driver != null) _driver.EndCatch(player); }
         public void Hide() { if (_driver != null) _driver.Hide(); }
 
         private void Awake() => Initialize();

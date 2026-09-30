@@ -2,14 +2,14 @@
 // LookBackTraversalIntegrationTests.cs
 // ============================================================================
 // PURPOSE:
-//   Exercises mouse-directed free-look with full captured-frame steering and slide-jump on the built TagArena floor,
+//   Exercises snapped look-back with full captured-frame steering and slide-jump on the built TagArena floor,
 //   then observes the real first-person camera's held and released orientations.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player integration.
 // KEY RESPONSIBILITIES:
 //   - Use actual Run fixed ticks, collision probes and committed traversal facts.
 //   - Verify frozen body heading, full ground steering, heavy slide countersteering and usable slide-jump.
-//   - Observe Camera output routed from gameplay, including body look on release.
+//   - Expect a fixed 180-degree rear view despite held look deltas, then body look on release.
 // DEPENDENCIES:
 //   Core, Player/Hunter/Chase, Run/Input, Camera, TagArena and CaptureGateTrace.
 //   NUnit, Unity Test Framework and read-only UnityEditor serialized inspection.
@@ -96,7 +96,7 @@ namespace Worsen.Tests.Player
                 Assert.That(profile, Is.Not.Null);
                 Assert.That(cameraConfig, Is.Not.Null);
                 Assert.That(profile.SlideMaximumTurnRate, Is.LessThanOrEqualTo(40f));
-                Assert.That(cameraConfig.FreeLookYawLimit, Is.GreaterThanOrEqualTo(160f));
+                // Serialized legacy yaw is ignored by the fixed rear-view snap; observe the actual pose below.
                 trial = new Trial(run, player, chase, profile, cameraConfig, UnityEngine.Camera.main);
                 input.FramePublished += trial.PublishSynthetic;
                 run.PlayerProbeRecorded += trial.ObserveCommitted;
@@ -272,7 +272,7 @@ namespace Worsen.Tests.Player
                 float yaw = Mathf.Atan2(output.transform.forward.x, output.transform.forward.z) * Mathf.Rad2Deg;
                 bool atEye = Vector3.Distance(output.transform.position, player.LastMovementSample.EyePosition) < 0.05f;
                 if (stage == Stage.BackView && player.ReadOnlyState.LookBack && atEye &&
-                    Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + HeadDelta)) < 2f)
+                    Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + 180f)) < 2f)
                 { backYaw = yaw; cameraBack = true; Advance(Stage.Return); }
                 else if (stage == Stage.Return && stageTicks >= 2 && !player.ReadOnlyState.LookBack && atEye &&
                     Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + ReleaseDelta)) < 2f)

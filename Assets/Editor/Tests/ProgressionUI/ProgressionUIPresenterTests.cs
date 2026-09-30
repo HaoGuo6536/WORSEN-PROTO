@@ -11,7 +11,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Verify optional terminal deferral, latest snapshot, timing and reset boundaries.
+//   - Verify event-gated terminal cuts, latest snapshot, flagged timeout and reset boundaries.
 //   - Verify stock, permanent ownership, reason preservation, retained list size and audio intent.
 //   - Verify displayed descriptions and authoritative eligibility survive formatting.
 //   - Verify one pending action per revision and recovery on a newer response.
@@ -254,7 +254,7 @@ namespace Worsen.Tests.ProgressionUI
         {
             var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
             presenter.Present(state, Snapshot(1, ProgressionPhase.Exploring));
-            presenter.DeferTerminal(state, 0.9f);
+            presenter.DeferTerminal(state, 3f, new EntityId(1));
             presenter.Present(state, Snapshot(2, ProgressionPhase.Ended, "Earlier result"));
             presenter.Present(state, Snapshot(3, ProgressionPhase.Ended, "Latest result"));
             Assert.That(presenter.Present(state, Snapshot(2, ProgressionPhase.Ended)), Is.False);
@@ -266,7 +266,10 @@ namespace Worsen.Tests.ProgressionUI
             Assert.That(presenter.Tick(state, -1f), Is.False);
             Assert.That(presenter.Tick(state, 0.45f), Is.False);
             presenter.DeferTerminal(state, 2f);
-            Assert.That(presenter.Tick(state, 0.5f), Is.True);
+            Assert.That(presenter.Tick(state, 0.5f), Is.False);
+            Assert.That(presenter.EndCatch(state, new EntityId(2)), Is.False);
+            Assert.That(presenter.EndCatch(state, new EntityId(1)), Is.True);
+            Assert.That(state.CatchFallbackFired, Is.False);
             Assert.That(state.ModalVisible, Is.True);
             Assert.That(state.Message, Is.EqualTo("Latest result"));
             Assert.That(state.HealthVisible, Is.True);
@@ -306,6 +309,61 @@ namespace Worsen.Tests.ProgressionUI
             presenter.Present(state, Snapshot(5, ProgressionPhase.ChooseThreat));
             Assert.That(state.TerminalDeferred, Is.False);
             Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
+        }
+
+        [TestCase(ProgressionPhase.Ended)]
+        [TestCase(ProgressionPhase.Shop)]
+        public void MissingCatchReleasesOnceWithDiagnosticAndDoesNotRearmOnDuplicateDeath(ProgressionPhase phase)
+        {
+            var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
+            presenter.Present(state, Snapshot(1, ProgressionPhase.Exploring));
+            presenter.DeferTerminal(state, 2.05f, new EntityId(1));
+            presenter.Present(state, Snapshot(2, phase));
+            Assert.That(state.ModalVisible, Is.False);
+            Assert.That(presenter.Tick(state, 2f), Is.False);
+            presenter.DeferTerminal(state, 2.05f, new EntityId(1));
+            Assert.That(presenter.Tick(state, .1f), Is.True);
+            Assert.That(state.ModalVisible && state.CatchFallbackFired, Is.True);
+            Assert.That(presenter.Tick(state, 100f), Is.False);
+            Assert.That(presenter.EndCatch(state, new EntityId(1)), Is.False);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ReleaseBeforeTerminalSnapshotIsRemembered(bool timeout)
+        {
+            var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
+            presenter.Present(state, Snapshot(1, ProgressionPhase.Exploring));
+            presenter.DeferTerminal(state, 2.05f, new EntityId(1));
+            if (timeout) Assert.That(presenter.Tick(state, 3f), Is.True);
+            else presenter.EndCatch(state, new EntityId(1));
+            presenter.DeferTerminal(state, 2.05f, new EntityId(1));
+            presenter.Present(state, Snapshot(2, ProgressionPhase.Ended));
+            Assert.That(state.ModalVisible, Is.True);
+            Assert.That(state.CatchFallbackFired, Is.EqualTo(timeout));
+            presenter.Hide(state);
+            Assert.That(state.CatchCompleted || state.CatchFallbackFired || state.HasDeferredTerminal, Is.False);
+        }
+
+        [TestCase(ProgressionPhase.Ended)]
+        [TestCase(ProgressionPhase.Shop)]
+        public void CatchGateAlsoProtectsShelterAndResetAllowsANewCatch(ProgressionPhase phase)
+        {
+            var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
+            presenter.Present(state, Snapshot(1, ProgressionPhase.Exploring));
+            presenter.DeferTerminal(state, 3f, new EntityId(1));
+            presenter.Present(state, Snapshot(2, phase));
+            Assert.That(state.ModalVisible, Is.False);
+            presenter.EndCatch(state, new EntityId(1));
+            Assert.That(state.ModalVisible, Is.True);
+            presenter.ClearTerminalDeferral(state);
+            presenter.Present(state, Snapshot(3, ProgressionPhase.Exploring));
+            presenter.DeferTerminal(state, 3f, new EntityId(2));
+            presenter.Present(state, Snapshot(4, phase));
+            presenter.EndCatch(state, new EntityId(1));
+            Assert.That(state.ModalVisible, Is.False);
+            presenter.EndCatch(state, new EntityId(2));
+            Assert.That(state.ModalVisible, Is.True);
         }
 
         private static ProgressionSnapshot Snapshot(int revision, ProgressionPhase phase, string message = "", float health = 75, float maximum = 100)
