@@ -11,6 +11,7 @@
 //   - Resolve destination identity without jumping over intervening occupied cells.
 //   - Tile the full gap and subtract an aperture from collision and visual wall pieces.
 //   - Produce ordered collapse transitions and deterministic falling offsets.
+//   - Deduplicate future gold across buildable admitted sites before activation.
 // DEPENDENCIES:
 //   - Own layout, DriverConfig and DriverState; Core graph and anchor values only.
 // USAGE NOTES:
@@ -29,6 +30,19 @@ namespace Worsen.Domain.Procedural
         public int Destination(ProceduralLayout layout, int sourceRoom, Vector3 position, Vector3 facing)
             => Corridor(layout, sourceRoom, position, facing, out _, out _, out int destination) ? destination : 0;
 
+        public int FutureGoldenAnchorCount(ProceduralLayout layout, ProceduralConfig config,
+            ProceduralDriverConfig driver, IReadOnlyList<ProceduralBlock> blocks)
+        {
+            var ids = new HashSet<int>();
+            for (int i = 0; i < layout.ShrineSites.Count; i++)
+            {
+                if (!layout.ShrineSites[i].GapEdge) continue;
+                try { foreach (var anchor in Build(layout, i, config, driver, blocks).LinedAnchors) ids.Add(anchor.Id); }
+                catch (ArgumentException) { /* Not a buildable Passage; never count inaccessible rewards. */ }
+            }
+            return ids.Count;
+        }
+
         private static bool Corridor(ProceduralLayout layout, int sourceRoom, Vector3 position, Vector3 facing,
             out Vector3 edge, out Vector3 landing, out int destination)
         {
@@ -38,6 +52,19 @@ namespace Worsen.Domain.Procedural
                 !((Mathf.Abs(facing.x) == 1f && facing.z == 0f) || (Mathf.Abs(facing.z) == 1f && facing.x == 0f))) return false;
             var room = layout.Graph.Rooms.FirstOrDefault(r => r.Id == sourceRoom);
             if (room.Id == 0 || room.Pocket) return false;
+            if (layout.UsesTemplates)
+            {
+                foreach (var gap in layout.GapSites.Where(g => g.RoomId == sourceRoom))
+                {
+                    var delta = gap.Edge - position;
+                    if (Vector3.Dot(delta, facing) <= 0f || Mathf.Abs(Vector3.Cross(delta, facing).y) > .01f ||
+                        Vector3.Dot((gap.Landing - gap.Edge).normalized, facing) < .999f) continue;
+                    var target = layout.Graph.Rooms.FirstOrDefault(r => r.Pocket && r.ContainsXZ(gap.Landing + facing * .1f));
+                    if (target.Id == 0) continue;
+                    edge = gap.Edge; landing = gap.Landing; destination = target.Id; return true;
+                }
+                return false;
+            }
             var cell = ProceduralFootprintUtility.Volumes(layout, room).FirstOrDefault(r => r.ContainsXZ(position));
             if (cell.Id == 0) return false;
             bool x = facing.x != 0f;
@@ -73,7 +100,7 @@ namespace Worsen.Domain.Procedural
                 driver.PassageFallAcceleration, driver.PassageFallDuration })
                 if (!Finite(value) || value <= 0f) throw new ArgumentException("Invalid Passage dimensions or timing.");
             if (!Finite(driver.PassageFirstTileDelay) || driver.PassageFirstTileDelay < 0f ||
-                driver.PassageWidth >= layout.CellSize || driver.PassageWidth <= driver.NavSampleRadius * 2f)
+                driver.PassageWidth >= (layout.UsesTemplates ? 4f : layout.CellSize) || driver.PassageWidth <= driver.NavSampleRadius * 2f)
                 throw new ArgumentException("Passage width must fit a cell and navigation clearance.");
             if (siteIndex < 0 || siteIndex >= layout.ShrineSites.Count) throw new ArgumentOutOfRangeException(nameof(siteIndex));
             var site = layout.ShrineSites[siteIndex];
@@ -96,9 +123,15 @@ namespace Worsen.Domain.Procedural
                 var aperture = new Bounds(face + Vector3.up * (config.DoorHeight * .5f), x ?
                     new Vector3(driver.WallThickness * 2f, config.DoorHeight, driver.PassageWidth) :
                     new Vector3(driver.PassageWidth, config.DoorHeight, driver.WallThickness * 2f));
-                foreach (var block in blocks.Where(b => b.RoomId == roomId && b.Kind == ProceduralSurfaceKind.Wall && b.Rotation == Quaternion.identity))
-                    if (Overlaps(new Bounds(block.Center, block.Size), aperture))
-                        walls.Add(new ProceduralPassageWall(block, Subtract(block, aperture)));
+                foreach (var block in blocks.Where(b => b.RoomId == roomId && b.Kind == ProceduralSurfaceKind.Wall))
+                {
+                    var right = block.Rotation * Vector3.right;
+                    if (Mathf.Abs(right.y) > .001f || Mathf.Min(Mathf.Abs(right.x), Mathf.Abs(right.z)) > .001f) continue;
+                    var size = Mathf.Abs(right.x) > .5f ? block.Size : new Vector3(block.Size.z, block.Size.y, block.Size.x);
+                    if (Overlaps(new Bounds(block.Center, size), aperture))
+                        walls.Add(new ProceduralPassageWall(block, Subtract(new ProceduralBlock(block.RoomId, block.Kind,
+                            block.Center, size, role: block.Role), aperture)));
+                }
             }
             if (!walls.Any(w => w.Original.RoomId == site.RoomId && w.Original.HasCollision) ||
                 !walls.Any(w => w.Original.RoomId == destination && w.Original.HasCollision))

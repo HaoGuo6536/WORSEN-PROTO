@@ -1,0 +1,95 @@
+// ============================================================================
+// ProceduralTemplateGeometryPresenterTests.cs
+// ============================================================================
+// PURPOSE:
+//   Verifies template piece commands, closed sockets and per-piece art fallback.
+//   Transient kit objects exercise the existing Driver without baking navigation.
+// ARCHITECTURAL ROLE:
+//   Editor tool (§10) · Tests · Procedural.
+// KEY RESPONSIBILITIES:
+//   - Check authored wall/arc identities, tiled support and unused socket closure.
+//   - Check missing art stays primitive and available art retains metre transforms.
+// DEPENDENCIES:
+//   - NUnit, Core, Domain.Procedural and temporary Unity objects.
+// USAGE NOTES:
+//   No persistent assets or scene writes; coordinator runs in Edit Mode.
+// ============================================================================
+using System;
+using System.Linq;
+using System.Reflection;
+using NUnit.Framework;
+using UnityEngine;
+using Worsen.Domain.Procedural;
+using Object = UnityEngine.Object;
+
+namespace Worsen.Tests.Procedural
+{
+    public sealed class ProceduralTemplateGeometryPresenterTests
+    {
+        [Test]
+        public void TilesAndWallCommandsPreserveKitIdentityAndOnlyOpenedSocketsAreCut()
+        {
+            var config = ScriptableObject.CreateInstance<ProceduralConfig>();
+            var driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            try
+            {
+                var catalogue = ProceduralTemplateTestData.Catalogue();
+                var room = new ProceduralTemplateRoom { RoomId = 1, Template = catalogue.Templates[3], OpenDoors = new[] { 0 } };
+                var blocks = new ProceduralTemplateGeometryPresenter().Build(catalogue, room, config, driver);
+                Assert.That(blocks.Count(b => b.Kind == ProceduralSurfaceKind.Floor), Is.EqualTo(room.Template.Footprint.Length));
+                Assert.That(blocks.Any(b => b.PieceId == "wall_2m"), Is.True);
+                for (int i = 0; i < room.Template.Doors.Length; i++)
+                {
+                    var point = ProceduralTemplateUtility.Door(room.Template.Doors[i]) + Vector3.up;
+                    bool blocked = blocks.Any(b => b.HasCollision && new Bounds(Vector3.zero, b.Size).Contains(Quaternion.Inverse(b.Rotation) * (point - b.Center)));
+                    Assert.That(blocked, Is.EqualTo(i != 0), "Socket " + i);
+                }
+            }
+            finally { Object.DestroyImmediate(config); Object.DestroyImmediate(driver); }
+        }
+        [TestCase("wall_arc_r4", 4f, 30f)] [TestCase("wall_arc_r6", 6f, 20f)] [TestCase("wall_arc_r8", 8f, 15f)]
+        public void RoundWallCommandsRetainTheAuthoredArc(string id, float radius, float angle)
+        {
+            var config = ScriptableObject.CreateInstance<ProceduralConfig>(); var driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            try
+            {
+                var catalogue = new ProceduralTemplateCatalogue { Kit = new[] { new ProceduralKitPiece { Id = id, Kind = "arc", Size = new Vector3(2f, 7f, .5f) } } };
+                var template = new ProceduralRoomTemplate { Height = 7f, Shape = "round", Pieces = new[] { new ProceduralTemplatePiece { Id = id, RotY = 15f } } };
+                var block = new ProceduralTemplateGeometryPresenter().Build(catalogue, new ProceduralTemplateRoom { RoomId = 1, Template = template }, config, driver).Single();
+                Assert.That(block.PieceId, Is.EqualTo(id)); Assert.That(block.Size.x, Is.EqualTo(2f * radius * Mathf.Sin(angle * .5f * Mathf.Deg2Rad)).Within(.001f));
+                Assert.That(block.HasCollision, Is.True);
+            }
+            finally { Object.DestroyImmediate(config); Object.DestroyImmediate(driver); }
+        }
+        [TestCase(false)] [TestCase(true)]
+        public void DriverUsesAvailablePrefabAndOnlyMissingPieceUsesPrimitive(bool available)
+        {
+            var root = new GameObject("Kit fixture"); var catalogue = ScriptableObject.CreateInstance<ProceduralRoomCatalogueData>();
+            var prefab = GameObject.CreatePrimitive(PrimitiveType.Cube); prefab.name = "Test kit";
+            var driver = root.AddComponent<ProceduralDriver>();
+            var state = (ProceduralDriverState)Field(driver, "_state").GetValue(driver);
+            state.Root = new GameObject("Generated test root"); state.Root.transform.SetParent(root.transform);
+            state.Catalogue = catalogue; state.ThemeId = "castle";
+            Field(catalogue, "_pieces").SetValue(catalogue, new[] { new ProceduralRoomCatalogueData.KitAsset { Theme = "castle", Id = "wall_2m", Prefab = available ? prefab : null } });
+            try
+            {
+                var pivot = new Vector3(8f, 0f, 12f); var rotation = Quaternion.Euler(0f, 90f, 0f);
+                var block = new ProceduralBlock(1, ProceduralSurfaceKind.Wall, pivot + Vector3.up * 3.5f, new Vector3(2f, 7f, .5f), rotation: rotation,
+                    pieceId: "wall_2m", piecePosition: pivot);
+                typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0 });
+                var item = state.Fragments[1].Single();
+                Assert.That(item.GetComponent<Collider>().enabled, Is.True);
+                Assert.That(item.GetComponent<Renderer>().enabled, Is.EqualTo(!available));
+                if (available)
+                {
+                    var visual = item.transform.GetChild(0);
+                    Assert.That(Vector3.Distance(visual.position, pivot), Is.LessThan(.001f));
+                    Assert.That(Vector3.Distance(visual.lossyScale, Vector3.one), Is.LessThan(.001f));
+                    Assert.That(visual.GetComponent<Collider>().enabled, Is.False);
+                }
+            }
+            finally { driver.Teardown(); Object.DestroyImmediate(root); Object.DestroyImmediate(prefab); Object.DestroyImmediate(catalogue); }
+        }
+        private static FieldInfo Field(object target, string name) => target.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+    }
+}

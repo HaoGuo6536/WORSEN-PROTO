@@ -120,6 +120,17 @@ namespace Worsen.Tests.Procedural
         }
 
         [Test]
+        public void FutureGoldenCountDeduplicatesAllSitesLeadingToTheSamePocket()
+        {
+            var layout = Layout(19, out var blocks);
+            var site = layout.ShrineSites.First(s => s.GapEdge);
+            Property(layout, nameof(layout.ShrineSites), new[] { site, site });
+            var anchors = _presenter.Build(layout, 0, _config, _driver, blocks).LinedAnchors;
+            Assert.That(_presenter.FutureGoldenAnchorCount(layout, _config, _driver, blocks), Is.EqualTo(anchors.Select(a => a.Id).Distinct().Count()));
+            Assert.That(anchors, Is.Not.Empty);
+        }
+
+        [Test]
         public void CollapseStartsAtFourSecondsThenMovesOutwardEveryPointFourSecondsWithoutRepeats()
         {
             var state = new ProceduralPassageDriverState { Plan = Plan() };
