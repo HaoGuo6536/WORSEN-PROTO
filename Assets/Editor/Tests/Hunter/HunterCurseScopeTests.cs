@@ -8,6 +8,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve general traits while excluding every other species' curse bits.
 //   - Check hearing, attack timing and bounded detection screams without engine fixtures.
+//   - Isolate borrowed legacy profiles from new-roster module traits.
 // DEPENDENCIES:
 //   - Hunter controller/state/profile, Core traits, Player/Level read-only views, NUnit.
 // USAGE NOTES:
@@ -101,6 +102,26 @@ namespace Worsen.Tests.Hunter
 
         private int DrainScreams()
         { int count = 0; while (_controller.TryDequeueFeedback(out HunterFeedbackEvent item)) if (item.Kind == HunterFeedbackKind.Scream) count++; return count; }
+
+        [TestCase(false)] [TestCase(true)]
+        public void NewRosterRulesNeverInheritLegacyTraitsFromBorrowedProfile(bool configBound)
+        {
+            Initialize("rusher");
+            var config = ScriptableObject.CreateInstance<Worsen.Domain.Hunter.Archetypes.Skip.SkipConfig>();
+            try
+            {
+                if (configBound) EchoControllerTests.Tune(_profile, "_archetypeRules", config);
+                var module = new Worsen.Domain.Hunter.Archetypes.Skip.SkipController(config, _profile, new System.Random(9));
+                _controller = new HunterController(_state, _profile, new System.Random(7), _player, new LevelFixture(),
+                    configBound ? null : module);
+                _controller.Reset(new EntityId(12), Vector3.zero, Vector3.forward);
+                _controller.SetTraits(ProgressionTraits.RusherLongStride | ProgressionTraits.RusherBloodScent | ProgressionTraits.EchoDebt);
+                Assert.That(_controller.EffectiveAttackDistance, Is.EqualTo(_profile.LungeDistance));
+                Assert.That((ProgressionTraits)typeof(HunterBehaviorState).GetField("Traits", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_state), Is.EqualTo(ProgressionTraits.None));
+                Assert.That(_profile.ArchetypeKey, Is.EqualTo("rusher"), "Borrowed profile identity is not rewritten.");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(config); }
+        }
 
         [TestCase("watcher", true)] [TestCase("rusher", false)] [TestCase("lurker", false)]
         [TestCase("hexer", false)] [TestCase("thorncaller", false)]

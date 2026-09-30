@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Cover both route kinds, cooldown, deduplication, curses and slow foot motion.
+//   - Verify silent normal hits, per-body recovery and Player grace/revival protection.
 // DEPENDENCIES:
 //   - Hunter rules, Core effects, existing world fixture and NUnit.
 // USAGE NOTES:
@@ -102,14 +103,91 @@ namespace Worsen.Tests.Hunter
             _effects = new ActiveEffects(new[] { new ActiveEffect(SkipController.WiderReach, EffectKind.Curse, 1) });
             Advance(.1f); Assert.That(_skip.TryTeleport(out _), Is.True);
         }
-        [Test] public void SharedDormancySuppressesPursuitLungesAndSounds()
+        [Test] public void SharedDormancySuppressesPursuitAndSoundsButBodyContactIsANormalHit()
         {
             var state = new HunterBehaviorState();
             var shared = new HunterController(state, _profile, new System.Random(9), _player, _world, _skip);
             shared.Reset(new EntityId(-1), Vector3.forward, Vector3.back);
             var result = shared.Tick(new SightProbe(true, true, true), .1f, 1);
             Assert.That(result.Phase, Is.EqualTo(HunterLungePhase.None)); Assert.That(state.PursuitSuppressed, Is.True);
-            Assert.That(shared.TryDequeueFeedback(out _), Is.False); Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            Assert.That(shared.TryAcceptContact(new EntityId(99), out _), Is.False);
+            Assert.That(shared.TryAcceptContact(_player.Id, out var hit), Is.True);
+            Assert.That(hit.Hunter, Is.EqualTo(state.Id)); Assert.That(hit.Target, Is.EqualTo(_player.Id));
+            Assert.That(hit.Damage, Is.EqualTo(_profile.LungeDamage));
+            Assert.That(hit.Source, Is.EqualTo(HitSource.Lunge)); Assert.That(hit.Severity, Is.EqualTo(HitSeverity.Heavy));
+            Assert.That(hit.Reason, Is.EqualTo(ChaseEndReason.Lunge)); Assert.That(hit.Tick, Is.EqualTo(1));
+            Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            Assert.That(shared.TryDequeueFeedback(out _), Is.False);
+            shared.Tick(default, _profile.LungeRecoverySeconds, 2);
+            Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.True);
+            shared.SetCatchActive(true); shared.Tick(default, 10f, 3);
+            Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+        }
+        [Test] public void InterceptionUsesPlayerGraceAndRevivalDoesNotSpendContactReadiness()
+        {
+            var profile = ScriptableObject.CreateInstance<PlayerProfile>();
+            try
+            {
+                var player = new PlayerController(_player, profile, new System.Random(3));
+                player.Reset(new EntityId(1), Vector3.zero, 0f, .25f);
+                var shared = new HunterController(new HunterBehaviorState(), _profile, new System.Random(9), _player, _world, _skip);
+                shared.Reset(new EntityId(-1), Vector3.forward, Vector3.back);
+                Assert.That(shared.TryAcceptContact(_player.Id, out var hit), Is.True);
+                Assert.That(player.ApplyHit(hit.Damage, hit.Severity).Changed, Is.True);
+                float health = _player.Health;
+                Assert.That(player.ApplyHit(hit.Damage, hit.Severity).Changed, Is.False);
+                Assert.That(_player.Health, Is.EqualTo(health)); Assert.That(_player.GraceActive, Is.True);
+                player.AdvanceRecovery(_player.GraceWindow.EndTick);
+                player.ApplyHit(1000f); Assert.That(player.ReviveInPlace(.5f), Is.True);
+                shared.Reset(new EntityId(-1), Vector3.forward, Vector3.back);
+                Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+                Assert.That(_skip.ContactReady, Is.True);
+                long revivedAt = _player.Tick;
+                player.AdvanceRecovery(revivedAt + 8);
+                Assert.That(_player.RevivalCollisionGraceActive, Is.False);
+                Assert.That(_player.RevivalDamageImmune, Is.True);
+                Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+                Assert.That(_skip.ContactReady, Is.True);
+                player.AdvanceRecovery(revivedAt + 12);
+                Assert.That(shared.TryAcceptContact(_player.Id, out hit), Is.True);
+                Assert.That(player.ApplyHit(hit.Damage, hit.Severity).Changed, Is.True);
+            }
+            finally { Object.DestroyImmediate(profile); }
+        }
+        [Test] public void RejectedStunnedSlippedDeadAndInactiveContactsDoNotConsumeReadiness()
+        {
+            var state = new HunterBehaviorState();
+            var shared = new HunterController(state, _profile, new System.Random(9), _player, _world, _skip);
+            shared.Reset(new EntityId(-1), Vector3.forward, Vector3.back);
+            shared.ApplyStun(1f, 1f); Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            shared.Tick(default, 1f, 1); shared.Tick(default, .1f, 2);
+            shared.ApplySlip(1f); Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            shared.Tick(default, 1f, 3); shared.Tick(default, .1f, 4);
+            _player.Health = 0; Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            shared.Tick(default, .1f, 5); _player.Health = 100;
+            Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            Assert.That(_skip.ContactReady, Is.True);
+            shared.Reset(new EntityId(-1), Vector3.forward, Vector3.back);
+            Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.True);
+        }
+        [Test] public void TypeCurseSnapshotAppliesToEveryDuplicateWithoutSharingContactOrRouteState()
+        {
+            var effects = new ActiveEffects(new[] { new ActiveEffect(SkipController.QuickerLearner, EffectKind.Curse, 2) });
+            for (int duplicate = 0; duplicate < 4; duplicate++)
+            {
+                var module = new SkipController(_config, _profile, new System.Random(19));
+                var state = new HunterBehaviorState();
+                var shared = new HunterController(state, _profile, new System.Random(7), _player, _world, module);
+                shared.Reset(new EntityId(-1 - duplicate), Vector3.zero, Vector3.forward);
+                typeof(HunterBehaviorState).GetProperty("DuplicateIndex").SetValue(state, duplicate);
+                shared.SetActiveEffects(effects); shared.Tick(default, .1f, 1);
+                Assert.That(module.Threshold, Is.EqualTo(1), "duplicate " + duplicate);
+                Assert.That(module.ContactReady, Is.True); Assert.That(module.Uses(7), Is.Zero);
+                shared.TryAcceptContact(_player.Id, out _);
+                shared.SetActiveEffects(default(ActiveEffects)); shared.Tick(default, .1f, 2);
+                Assert.That(module.Threshold, Is.EqualTo(3));
+            }
+            Assert.That(_config.UsesRequired, Is.EqualTo(3));
         }
         [Test] public void WrongPlayerAndInvalidRouteAreRejectedAndDuplicatesOwnTheirCounts()
         {
