@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep visible door movement and physical passage in agreement.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
-//   - Keep the locked threshold sensing contact without bypassing open-door crossing rules.
+//   - Reject locked and opening threshold contacts; only fully-open crossings publish.
 // DEPENDENCIES:
 //   - Core shared values and Floor-owned visual configuration only.
 // USAGE NOTES:
@@ -36,7 +36,7 @@ namespace Worsen.Tests.Floor
             using(var f=new Fixture())
             {
                 var trigger=f.Door.GetComponent<BoxCollider>();
-                Assert.That(trigger.enabled,Is.True,"Locked overlaps must reach the bail hold.");
+                Assert.That(trigger.enabled,Is.True,"The threshold remains ready to observe later open crossings.");
                 Physics.SyncTransforms();
                 Assert.That(Physics.Raycast(f.Origin+new Vector3(0.25f,1.5f,-1f),Vector3.forward,2f,~0,QueryTriggerInteraction.Ignore),Is.True);
                 var hinges=f.Root.GetComponentsInChildren<Transform>().Where(t=>t.name.Contains("Hinged Door")).ToArray();
@@ -61,15 +61,15 @@ namespace Worsen.Tests.Floor
                 int contacts=0;f.Driver.ExitContact+=_=>contacts++;
                 f.Actor.transform.position=f.Origin+new Vector3(0f,1f,-0.6f);
                 Physics.SyncTransforms();Invoke(f.Door,"OnTriggerEnter",f.Actor.GetComponent<Collider>());
-                Assert.That(contacts,Is.EqualTo(1),"Locked contact is distinct from a completed crossing.");
+                Assert.That(contacts,Is.Zero,"Locked contacts never publish an escape or start a hold.");
                 f.Driver.OpenExit(Array.Empty<LevelAnchor>());f.Driver.TickWarnings(1.2f);
                 Invoke(f.Door,"OnTriggerEnter",f.Actor.GetComponent<Collider>());
                 for(int i=0;i<4;i++)Invoke(f.Door,"OnTriggerStay",f.Actor.GetComponent<Collider>());
-                Assert.That(contacts,Is.EqualTo(1),"Stationary open overlap must not add a contact.");
+                Assert.That(contacts,Is.Zero,"Stationary open overlap must not add a contact.");
                 f.Actor.transform.position=f.Origin+new Vector3(0f,1f,0.6f);Physics.SyncTransforms();
                 Invoke(f.Door,"OnTriggerStay",f.Actor.GetComponent<Collider>());
                 Invoke(f.Door,"OnTriggerStay",f.Actor.GetComponent<Collider>());
-                Assert.That(contacts,Is.EqualTo(2),"One locked contact and exactly one deliberate crossing.");
+                Assert.That(contacts,Is.EqualTo(1),"Only one deliberate fully-open crossing publishes.");
             }
         }
         [Test] public void ReinitializationReturnsClosedDoorAndClearsPreviousOpening()

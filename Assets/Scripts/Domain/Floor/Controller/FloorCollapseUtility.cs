@@ -11,7 +11,8 @@
 // DEPENDENCIES:
 //   Core level values and injected Player read-only views; no engine operations.
 // USAGE NOTES:
-//   Stateless. A player already in a disconnected pocket has no route to preserve.
+//   Stateless; managed bounds math keeps occupancy independent of native engine calls.
+//   A player already in a disconnected pocket has no route to preserve.
 //   Protection includes the occupied room; progression resumes after the player moves.
 // ============================================================================
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace Worsen.Domain.Floor
             foreach (var player in players.Where(value => value != null && value.Id.IsValid && value.IsAlive))
             {
                 var occupied = graph.Rooms.Where(room => room.ContainsXZ(player.Position) &&
-                    room.Cells.Any(cell => cell.Contains(player.Position))).OrderBy(room => room.Id).ToArray();
+                    room.Cells.Any(cell => FloorBoundsUtility.Contains(cell, player.Position))).OrderBy(room => room.Id).ToArray();
                 if (occupied.Length == 0) { protectedRooms.UnionWith(next.Keys); continue; }
                 foreach (var room in occupied)
                 {
