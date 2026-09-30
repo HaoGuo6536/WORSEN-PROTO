@@ -12,9 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 896c7ff262f04b35a1782d7f0cc0b9fb, type: 3}
   m_Name: ProceduralConfig
   m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Procedural.ProceduralConfig
+  _themes: {fileID: 11400000, guid: 17a773c5567899d4cb4d372a63b8018b, type: 2}
+  _challenges: {fileID: 11400000, guid: 35dc0a39a5c659445b794697262d5fb8, type: 2}
   _initialRoomCount: 7
   _roomsPerRound: 2
   _maximumRoomCount: 15
+  _multiCellStartRound: 1
+  _oneCellWeight: 0.55
+  _twoCellWeight: 0.3
+  _threeCellWeight: 0.15
+  _lShapeWeight: 0.4
+  _gapStartRound: 2
+  _gapProbability: 0.35
+  _maximumGapCells: 3
+  _pocketProbability: 0.5
+  _pocketRoomCount: 2
+  _multiFloorStartRound: 3
+  _storeyProbability: 0.65
+  _storeyHeight: 3.2
+  _baseLedgeMinimumHeight: 0.5
+  _baseLedgeMaximumHeight: 1.8
+  _baseLedgeReach: 1.2
+  _baseReboundSupported: 1
   _roomSize: 12
   _roomHeight: 4
   _doorWidth: 3.2
@@ -23,10 +42,23 @@ MonoBehaviour:
   _cakesPerLine: 5
   _cakeSpacing: 2
   _cakeLineOffset: 2
+  _minimumCandidatesPerRoom: 3
+  _maximumCandidatesPerRoom: 5
+  _flowPreference: 1
+  _precisionPreference: 2
+  _detourPreference: 2
+  _riskPreference: 2
+  _verticalPreference: 2
+  _candidatePerimeterInset: 1.3
   _anchorHeight: 0.05
   _spawnHeight: 0.1
   _spawnSideOffset: 4
+  _minimumHunterSpawnRooms: 2
+  _generationRetries: 3
+  _ordinaryDoorFraction: 0.35
+  _knockablePropsPerRoom: 2
   _origin: {x: 0, y: 0}
   _castleModules: 1
   _castleHeight: 7
+  _highCeilingHeight: 10
   _upperDeckHeight: 2.4

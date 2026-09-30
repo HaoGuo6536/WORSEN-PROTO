@@ -17,6 +17,7 @@
 //   - Supply deliberation, utility, prediction, missed-lunge and shared hearing tuning.
 //   - Author habit entries, a tell-only mutation pool and bounded emergence preferences.
 //   - Require credible Stalk clues and allow bounded walk travel before search-leg expiry.
+//   - Select an optional archetype rules config and per-profile motor override.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
@@ -34,6 +35,10 @@ namespace Worsen.Domain.Hunter
     {
         [SerializeField] private string _archetypeKey = "Hunter";
         [SerializeField] private GameObject _prefab;
+        [SerializeField] private HunterArchetypeConfig _archetypeRules = null;
+        [SerializeField] private HunterMotorDriverConfig _motorOverride = null;
+        public HunterArchetypeConfig ArchetypeRules => _archetypeRules;
+        public HunterMotorDriverConfig MotorOverride => _motorOverride;
         [Header("Habits and hidden mutations")]
         [SerializeField] private HunterHabitData[] _habits = {
             new HunterHabitData(HunterHabitKind.ThresholdPause),
@@ -114,8 +119,9 @@ namespace Worsen.Domain.Hunter
         [SerializeField, Range(0f, 1f)] private float _investigateNoiseThreshold = 0.1f;
         [SerializeField, Range(0f, 1f)] private float _exitNoiseThreshold = 0.4f;
         public float ActionCommitmentSeconds => Mathf.Max(0.1f, _actionCommitmentSeconds);
-        public float LossSeconds => Mathf.Max(0f, _lossSeconds);
-        public float LossDistance => Mathf.Max(0f, _lossDistance);
+        public bool NeverLoses => _archetypeRules != null && _archetypeRules.NeverLoses;
+        public float LossSeconds => NeverLoses ? float.PositiveInfinity : Mathf.Max(0f, _lossSeconds);
+        public float LossDistance => NeverLoses ? float.PositiveInfinity : Mathf.Max(0f, _lossDistance);
         // Windup and active duration already define the uninterruptible lunge commitment.
         public float LungeCommitmentSeconds => LungeWindupSeconds + LungeActiveSeconds;
         public float MissStaggerSeconds => Mathf.Max(0.01f, _missStaggerSeconds);

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Spawn every requested duplicate; archetype catalogue uniqueness is not a body cap.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -31,7 +32,9 @@ namespace Worsen.Domain.Hunter
         private System.Random _random;
         private IReadOnlyPlayerState _player;
         private IReadOnlyLevelState _level;
-        private int _nextId = -1;
+        private static int _nextId = -1;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetIdentities() { _nextId = -1; }
         private readonly Dictionary<EntityId, HunterManager> _spawned = new Dictionary<EntityId, HunterManager>();
         public void Configure(HunterProfile profile, System.Random random, IReadOnlyPlayerState player, IReadOnlyLevelState level)
             => Configure(new[] { profile }, random, player, level);
@@ -54,18 +57,23 @@ namespace Worsen.Domain.Hunter
             _random = random; _player = player; _level = level;
         }
         public EntityId Spawn(SpawnRequest request)
+            => Spawn(new HunterSpawnRequest(request, 0));
+        public EntityId Spawn(HunterSpawnRequest duplicate)
         {
+            if (duplicate.DuplicateIndex < 0) throw new ArgumentOutOfRangeException(nameof(duplicate));
+            SpawnRequest request = duplicate.Spawn;
             if (_profiles.Count == 0 || _random == null || _player == null || _level == null)
                 throw new InvalidOperationException("Configure HunterFactory before spawning.");
             if (string.IsNullOrEmpty(request.ArchetypeKey) || !_profiles.TryGetValue(request.ArchetypeKey, out HunterProfile profile))
                 throw new ArgumentException("Unknown Hunter archetype.");
+            if (_nextId == int.MinValue) throw new InvalidOperationException("Hunter identity space exhausted.");
             EntityId id = new EntityId(_nextId--);
             GameObject instance = Instantiate(profile.Prefab, request.Position, request.Rotation);
             HunterManager hunter = instance.GetComponent<HunterManager>();
             try
             {
                 if (hunter == null) throw new InvalidOperationException("Hunter prefab requires HunterManager.");
-                hunter.Initialize(profile, new EntityContext(id, _random), _player, _level);
+                hunter.Initialize(profile, new EntityContext(id, _random), _player, _level, duplicate.DuplicateIndex);
                 _spawned.Add(id, hunter); HunterRegistry.Register(hunter); return id;
             }
             catch { Destroy(instance); throw; }

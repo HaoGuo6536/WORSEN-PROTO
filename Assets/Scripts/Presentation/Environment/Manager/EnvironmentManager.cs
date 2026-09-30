@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Environment (Service system).
 // KEY RESPONSIBILITIES:
+//   - Forward the active-effects torch-count multiplier without changing Level light state.
 //   - Own and initialize the EnvironmentDriver, forwarding scene lifecycle and pushed facts.
 //   - Route room batches, threshold chalk and localized flame dimming into the own Driver.
 //   - Expose exit-frame facts, default-off lamp hooks and fog/rim output for later routing.
@@ -58,6 +59,7 @@ namespace Worsen.Presentation.Environment
         public void SetObserver(Vector3 position) { if (_driver != null) _driver.SetObserver(position); }
         public void SetLightingHooks(bool darkerFloors, bool wick)
         { if (_driver != null) _driver.SetLightingHooks(darkerFloors, wick); }
+        public void SetTorchCountMultiplier(float multiplier) { if (_driver != null) _driver.SetTorchCountMultiplier(multiplier); }
         public void ApplyLight(InteractableState light) { if (_driver != null) _driver.ApplyLight(light); }
         public void SetExitFrame(int roomId, Vector3 position, Quaternion rotation)
         { if (_driver != null) _driver.SetExitFrame(roomId, position, rotation); }

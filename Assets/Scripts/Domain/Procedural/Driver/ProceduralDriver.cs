@@ -17,6 +17,7 @@
 //   - Keep safety slabs inside occupied cells and verify optional pocket isolation.
 //   - Exclude player-only staging/drops from hunter paths and own opt-in partition links.
 //   - Apply theme palettes and own optional puzzle cages, contacts and solved facts.
+//   - Filter shrine sockets against physical geometry and admit only reachable sites.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -125,7 +126,9 @@ namespace Worsen.Domain.Procedural
                     navigationBlocks.AddRange(puzzles.Blocks(plan, config.Challenges).Where((b, index) => index != 4));
                 }
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(navigationBlocks);
+                layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks);
                 BuildNavigation(layout, navigationBlocks, driverConfig);
+                layout.InteractableManifest += new ProceduralShrineSitePresenter().Manifest(layout.ShrineSites, config);
                 foreach (var room in layout.Graph.Rooms)
                 foreach (var cell in ProceduralFootprintUtility.Volumes(layout, room)) CreateSafetySlab(cell, driverConfig.GeometryLayer);
                 _state.Root.SetActive(true);
@@ -351,6 +354,13 @@ namespace Worsen.Domain.Procedural
                         !NavMesh.CalculatePath(origin.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
                         throw new InvalidOperationException("Optional pocket anchor has no local walking route.");
             }
+            // Candidate sockets are optional: keep only reachable sites inside their room.
+            // A small floor may offer fewer sites; the Shrine system places what fits.
+            layout.ShrineSites = Array.AsReadOnly(layout.ShrineSites.Where(site =>
+                NavMesh.SamplePosition(site.Position, out var end, config.NavSampleRadius, filter) &&
+                layout.Graph.Rooms.Single(room => room.Id == site.RoomId).ContainsXZ(end.position) &&
+                NavMesh.CalculatePath(start.position, end.position, filter, path) && path.status == NavMeshPathStatus.PathComplete &&
+                NavMesh.CalculatePath(end.position, start.position, filter, path) && path.status == NavMeshPathStatus.PathComplete).ToArray());
         }
 
         private static void ValidateShortcutDetours(IReadOnlyList<ProceduralBlock> blocks, ProceduralDriverConfig config)

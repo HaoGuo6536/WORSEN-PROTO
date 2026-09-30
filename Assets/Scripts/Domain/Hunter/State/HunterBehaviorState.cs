@@ -14,6 +14,7 @@
 //   - Retain per-archetype pursuit policy and bounded commitment/deliberation timers.
 //   - Retain the fixed travel budget of the current walking search leg.
 //   - Retain run overrides across Controller.Reset, but clear transient habit/catch state.
+//   - Retain the spawn request's duplicate index independently of entity identity.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -29,6 +30,7 @@ namespace Worsen.Domain.Hunter
     public sealed class HunterBehaviorState : IReadOnlyHunterPursuitState
     {
         public EntityId Id { get; internal set; }
+        public int DuplicateIndex { get; internal set; }
         public EntityId TargetId { get; internal set; }
         public Vector3 Position { get; internal set; }
         public Vector3 Velocity { get; internal set; }

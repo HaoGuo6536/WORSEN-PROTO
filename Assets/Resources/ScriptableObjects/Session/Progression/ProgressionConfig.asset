@@ -12,9 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 146efc3cfe90c1d468ad19383e655877, type: 3}
   m_Name: ProgressionConfig
   m_EditorClassIdentifier: Worsen.Session::Worsen.Session.Progression.ProgressionConfig
+  _effectCatalogue: {fileID: 11400000, guid: 3e2e570a1a5a1a64ca4f02fa1c67adbb, type: 2}
+  _shopConfig: {fileID: 11400000, guid: aacc7b8de0535444aa339aa779f85027, type: 2}
+  _selectionInterval: 2
   _shopInterval: 2
   _maximumActiveThreats: 5
   _goldenCakeValue: 1
+  _earlyBailWalletFraction: 0.75
   _initialMaximumHealth: 100
   _minimumMaximumHealth: 30
   _maximumMaximumHealth: 200

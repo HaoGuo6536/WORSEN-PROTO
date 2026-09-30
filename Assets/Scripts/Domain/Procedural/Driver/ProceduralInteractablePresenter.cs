@@ -11,14 +11,14 @@
 //   - Sample ordinary doors with injected randomness, always excluding exit links.
 //   - Keep prop envelopes clear of shell geometry, objective anchors and main routes.
 //   - Produce stable Core snapshots and a culture-independent construction manifest.
-//   - Keep props on occupied cells and suppress legacy light sockets over L-shaped voids.
+//   - Keep props on occupied cells and emit uniquely identified per-cell torch sockets.
 // DEPENDENCIES:
 //   - Core contracts and own layout/config values; no Presentation dependency.
 // USAGE NOTES:
 //   Doors start open and retract visually; they add no static navigation blocker.
 //   Partition identities reference the existing vault/window sill SurfaceId, not
 //   duplicate geometry. Light sockets mirror EnvironmentPresenter.BuildSlots' fixed
-//   legacy placement contract until the coordinator moves that contract into Core.
+//   per-cell placement, envelope and exposed-wall contract without referencing Presentation.
 //   Environment must bind those identities and apply Lit changes to its existing flames.
 // ============================================================================
 using System;
@@ -66,11 +66,8 @@ namespace Worsen.Domain.Procedural
             foreach (var room in layout.Graph.Rooms)
             {
                 var portals = layout.Doors.Where(d => d.FromRoomId == room.Id || d.ToRoomId == room.Id).Select(d => d.Center).ToArray();
-                AddLights(result, room, portals);
+                for (int cell = 0; cell < room.Cells.Count; cell++) AddLights(result, room, portals, cell);
                 var volumes = ProceduralFootprintUtility.Volumes(layout, room);
-                result.RemoveAll(p => p.State.RoomId == room.Id && p.State.Kind == InteractableKind.Light &&
-                    (!volumes.Any(v => v.Bounds.Contains(p.State.Position)) || !blocks.Any(b =>
-                        b.Kind == ProceduralSurfaceKind.Wall && new Bounds(b.Center, b.Size + Vector3.one * 0.65f).Contains(p.State.Position))));
                 int start = random.Next(volumes.Count * 4), count = 0;
                 for (int index = 0; index < volumes.Count * 4 && count < config.KnockablePropsPerRoom; index++)
                 {
@@ -105,9 +102,9 @@ namespace Worsen.Domain.Procedural
             return text.ToString();
         }
 
-        private static void AddLights(List<ProceduralInteractablePlan> result, LevelRoom room, Vector3[] portals)
+        private static void AddLights(List<ProceduralInteractablePlan> result, LevelRoom room, Vector3[] portals, int cellIndex)
         {
-            var bounds = room.Bounds;
+            var bounds = room.Cells[cellIndex];
             if (bounds.size.x < 5f || bounds.size.z < 5f || bounds.size.y < 3.4f) return;
             int torchCount = 0, decorCount = 0, start = (room.Id & int.MaxValue) % 8;
             for (int n = 0; n < 8; n++)
@@ -124,13 +121,35 @@ namespace Worsen.Domain.Procedural
                 if (!torch && decorCount >= 2) { if (torchCount >= 2) continue; torch = true; }
                 if (torch)
                 {
-                    result.Add(new ProceduralInteractablePlan(new InteractableState(400000 + room.Id * 10 + index,
-                        InteractableKind.Light, room.Id, position, InteractableStateValue.Lit), Vector3.zero));
+                    // Select legacy slots first, then filter; rejected seam slots still
+                    // consume the same budget as Environment's recursive BuildSlots.
+                    if (room.Cells.Count == 1 || FitsLightCell(position, bounds, room.Cells, wall))
+                        result.Add(new ProceduralInteractablePlan(new InteractableState(
+                            cellIndex == 0 ? 400000 + room.Id * 10 + index : 4000000 + room.Id * 100 + cellIndex * 10 + index,
+                            InteractableKind.Light, room.Id, position, InteractableStateValue.Lit), Vector3.zero));
                     torchCount++;
                 }
                 else decorCount++;
                 if (torchCount == 2 && decorCount == 2) break;
             }
+        }
+        private static bool FitsLightCell(Vector3 position, Bounds cell, IReadOnlyList<Bounds> cells, int wall)
+        {
+            // Torch envelope is (.8, 1.1, .6), rotated on east/west walls.
+            var half = wall == 1 || wall == 3 ? new Vector3(.3f, .55f, .4f) : new Vector3(.4f, .55f, .3f);
+            var min = position - half; var max = position + half;
+            if (min.x < cell.min.x || max.x > cell.max.x || min.z < cell.min.z || max.z > cell.max.z) return false;
+            bool x = wall == 1 || wall == 3, positive = wall == 1 || wall == 2;
+            float plane = x ? (positive ? cell.max.x : cell.min.x) : (positive ? cell.max.z : cell.min.z);
+            foreach (var other in cells)
+            {
+                if (other.Equals(cell) || other.min.y >= max.y || other.max.y <= min.y) continue;
+                float low = x ? other.min.x : other.min.z, high = x ? other.max.x : other.max.z;
+                bool across = positive ? low <= plane && high > plane : low < plane && high >= plane;
+                bool overlap = x ? other.min.z < max.z && other.max.z > min.z : other.min.x < max.x && other.max.x > min.x;
+                if (across && overlap) return false;
+            }
+            return true;
         }
         private static bool Overlaps(ProceduralBlock block, Bounds envelope)
         {

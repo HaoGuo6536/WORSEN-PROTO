@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
+//   - Format explicitly labelled MicroEvent journal rows with invariant, complete outcome detail.
 //   - Format metadata, raw rows and denominator-bearing summaries.
 //   - Append named progression and Hunter navigation columns without moving legacy cells.
 // DEPENDENCIES:
@@ -65,6 +66,12 @@ namespace Worsen.Presentation.Telemetry
                 }
             return Row(fields);
         }
+
+        public string MicroEvent(int kind, int target, UnityEngine.Vector3 position, float seconds, bool applied, long tick, int seed)
+            => Row("raw", tick, null, null, "MicroEvent", seconds,
+                string.Format(CultureInfo.InvariantCulture,
+                    "kind={0};target_id={1};position_x={2:R};position_y={3:R};position_z={4:R};duration={5:R};applied={6};seed={7}",
+                    kind, target, position.x, position.y, position.z, seconds, applied, seed), null, null, null);
 
         public static TelemetrySample Observation(long tick, TelemetrySampleKind kind, params (string Name, object Value)[] fields)
         {

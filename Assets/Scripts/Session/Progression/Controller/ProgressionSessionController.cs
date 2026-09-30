@@ -9,6 +9,7 @@
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Consume revision-guarded selected item uses, arm one ward and spend one revival per run.
+//   - Apply the current shrine yield to later Golden Cake credit through the shared remainder path.
 //   - Retain current-floor health for reporting, but refill it after choices before each generation.
 //   - Advance independent selection and shop clocks using completed combat floors.
 //   - Debit the configured bail penalty once, inside generation-guarded completion.
@@ -198,7 +199,7 @@ namespace Worsen.Session.Progression
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || anchorId < 0 ||
                 state.CollectedGoldenAnchors.Contains(anchorId)) return false;
-            if (!shop.GoldenCredit(state.Wallet, config.GoldenCakeValue, Active(), out int credit)) return false;
+            if (!shop.GoldenCredit(state.Wallet, config.GoldenCakeValue, Active(), out int credit, shrines.YieldMultiplier)) return false;
             state.CollectedGoldenAnchors.Add(anchorId);
             state.Wallet += credit;
             state.Revision++;

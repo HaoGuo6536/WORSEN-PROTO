@@ -8,12 +8,13 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Environment target.
 // KEY RESPONSIBILITIES:
+//   - Pair Horror lighting hooks and resynchronize torch density/Wick after floor dressing resets.
 //   - Pair floor, movement and visual-effect subscriptions with scene lifetime.
 //   - Keep decorations and local lighting synchronized with room destruction.
 //   - Publish the exit frame after room dressing exists and forward continuous opening progress.
 //   - Bind Level light snapshots after dressing and reset them when Expedition releases a floor.
 // DEPENDENCIES:
-//   Session Expedition/Run/HorrorEffects; Presentation Environment; Core values.
+//   Session Expedition/Run/HorrorEffects; Presentation Environment/Horror; Core values.
 //   Domain Level supplies the current graph and light facts; FloorDriverConfig supplies the authored door yaw.
 // USAGE NOTES:
 //   Scene-owned, explicitly configured after canonical services initialize.
@@ -27,6 +28,7 @@ using Worsen.Session.Run;
 using Worsen.Session.Expedition;
 using Worsen.Session.HorrorEffects;
 using Worsen.Presentation.Environment;
+using Worsen.Presentation.Horror;
 using Worsen.Domain.Level;
 using Worsen.Domain.Floor;
 namespace Worsen.Orchestrator
@@ -39,11 +41,13 @@ namespace Worsen.Orchestrator
         private EnvironmentManager _environment;
         private LevelManager _level;
         private FloorDriverConfig _floorVisuals;
+        private HorrorManager _horror;
         public void Configure(RunSessionManager run, ExpeditionSessionManager expedition, HorrorEffectsManager effects,
-            EnvironmentManager environment, LevelManager level = null, FloorDriverConfig floorVisuals = null)
-        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; if (isActiveAndEnabled) OnEnable(); }
+            EnvironmentManager environment, LevelManager level = null, FloorDriverConfig floorVisuals = null, HorrorManager horror = null)
+        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; _horror=horror; if (isActiveAndEnabled) OnEnable(); }
         private void OnEnable()
         {
+            OnDisable();
             if (_run == null || _expedition == null || _effects == null || _environment == null) return;
             _expedition.RoomsReady += OnRooms;
             _expedition.FloorReleased += OnFloorReleased;
@@ -53,9 +57,12 @@ namespace Worsen.Orchestrator
             _run.FloorDisplayChanged += OnFloorDisplay;
             _effects.FlameDimChanged += OnFlame;
             _effects.DoorMarked += OnMark;
+            if (_horror != null) _horror.LightingHooksChanged += OnLightingHooks;
+            SynchronizeLighting();
         }
         private void OnDisable()
         {
+            if (_horror != null) _horror.LightingHooksChanged -= OnLightingHooks;
             if (_expedition != null) { _expedition.RoomsReady -= OnRooms; _expedition.FloorReleased -= OnFloorReleased; }
             if (_level != null) _level.InteractableChanged -= OnInteractable;
             if (_run != null) { _run.PlayerMovementPublished -= OnMovement; _run.RoomDestructionPublished -= OnDestruction; _run.FloorDisplayChanged -= OnFloorDisplay; }
@@ -64,6 +71,7 @@ namespace Worsen.Orchestrator
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms)
         {
             _environment.SetRooms(rooms);
+            SynchronizeLighting();
             if (_level != null && rooms != null)
                 foreach (var room in rooms) BindLights(room.RoomId);
             if (_level == null || !_level.ReadOnlyState.IsReady || _floorVisuals == null) return;
@@ -74,7 +82,11 @@ namespace Worsen.Orchestrator
         private void BindLights(int roomId)
         { foreach (var light in _level.Interactables.InRoom(roomId)) _environment.ApplyLight(light); }
         private void OnInteractable(InteractableState before, InteractableState after) => _environment.ApplyLight(after);
-        private void OnFloorReleased() => _environment.BeginFloor();
+        private void OnDestroy() => OnDisable();
+        private void OnLightingHooks(float torches, bool wick)
+        { _environment.SetTorchCountMultiplier(torches); _environment.SetLightingHooks(false, wick); }
+        private void SynchronizeLighting() => OnLightingHooks(_horror != null ? _horror.TorchCountMultiplier : 1f, _horror != null && _horror.Wick);
+        private void OnFloorReleased() { _environment.BeginFloor(); SynchronizeLighting(); }
         private void OnFloorDisplay(FloorDisplaySnapshot snapshot) => _environment.SetExitProgress(snapshot.OpeningProgress);
         private void OnMovement(PlayerMovementSample sample) => _environment.SetObserver(sample.Position);
         private void OnDestruction(RoomDestructionSample sample) => _environment.SetRoomDestruction(sample.RoomId, sample.Progress);

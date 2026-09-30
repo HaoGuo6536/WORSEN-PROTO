@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
+//   - Assemble floor shrines, preserve shields and route Wick, Passage and Purgatory outcomes.
 //   - Snapshot catalogue cake/collapse hooks and the actual round into each non-shop Floor.
 //   - Start each spawned Player at its effective maximum, never the previous floor's current health.
 //   - Route immutable active effects before floor health and on current-floor revisions.
@@ -21,6 +22,7 @@
 //   - Route Level interactables to geometry and door acoustics before hunter ticks.
 //   - Retain fallback manifests and spawn shortfalls through the existing diagnostic path.
 // DEPENDENCIES:
+//   - Domain Shrine owns single-use world objects; own spawn Driver validates live late-spawn cover.
 //   - Session HorrorEffects owns retained gameplay effects; its actor and hazard binding is floor-scoped.
 //   - Session Progression owns requests/rewards; Session Run owns gameplay/capture.
 //   - Domain Procedural/Level assemble geometry; Player/Hunter factories own actors.
@@ -35,6 +37,9 @@
 //   Scenes without the effect service use neutral window density, not a second tuning source.
 //   Floor bindings pair BindWorld/UnbindWorld; late hunters receive doors on BeforeTick.
 //   Fallback layouts never publish readiness. FloorReleased clears presentation even on failure.
+//   Purgatory fraction means physical Golden Cakes collected / created, not exit credit.
+//   Wick restores the first activation's lamp states; overlaps extend without replacing that snapshot.
+//   Missing late-spawn/mutation/Passage admission publishes unresolved intent, never an unsafe fallback.
 // ============================================================================
 using System;
 using System.Collections;
@@ -48,6 +53,7 @@ using Worsen.Domain.Hunter;
 using Worsen.Domain.Level;
 using Worsen.Domain.Player;
 using Worsen.Domain.Procedural;
+using Worsen.Domain.Shrine;
 using Worsen.Session.Progression;
 using Worsen.Session.HorrorEffects;
 using Worsen.Session.Run;
@@ -80,6 +86,11 @@ namespace Worsen.Session.Expedition
         private Coroutine _assembly;
         private bool _subscribed;
         private bool _worldBound;
+        [SerializeField] private ShrineConfig _shrineConfig = null;
+        [SerializeField] private ShrineDriverConfig _shrineDriverConfig = null;
+        [SerializeField] private ExpeditionSpawnDriverConfig _spawnConfig = null;
+        private ShrineManager _shrines;
+        private ExpeditionSpawnDriver _spawnDriver;
 
         public static ExpeditionSessionManager Instance { get; private set; }
         public ExpeditionAssemblyPhase AssemblyPhase => _state?.Phase ?? ExpeditionAssemblyPhase.Unbound;
@@ -94,6 +105,9 @@ namespace Worsen.Session.Expedition
         public event Action<ProgressionGenerationRequest, Vector3, Quaternion> AssemblyReady;
         public event Action<IReadOnlyList<GeneratedRoomSample>> RoomsReady;
         public event Action FloorReleased;
+        public bool WickActive => _controller?.WickActive ?? false;
+        public event Action<bool> WickActiveChanged;
+        public event Action<ShrineResolvedFact, string> ShrineWorldEffectUnresolved;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -140,6 +154,8 @@ namespace Worsen.Session.Expedition
             if (_subscribed || _run == null || _progression == null || _floor == null) return;
             _progression.GenerationRequested += HandleGeneration;
             _progression.EffectsSnapshotChanged += HandleSnapshot;
+            _progression.ShrineResolved += HandleShrineResolved;
+            _progression.TransactionCommitted += HandleProgressionTransaction;
             _run.HealthChanged += HandleHealth;
             _run.RunEnded += HandleRunEnded;
             _floor.OnPickupCollected += HandlePickup;
@@ -158,6 +174,8 @@ namespace Worsen.Session.Expedition
             {
                 _progression.GenerationRequested -= HandleGeneration;
                 _progression.EffectsSnapshotChanged -= HandleSnapshot;
+                _progression.ShrineResolved -= HandleShrineResolved;
+                _progression.TransactionCommitted -= HandleProgressionTransaction;
             }
             if (_run != null) { _run.HealthChanged -= HandleHealth; _run.RunEnded -= HandleRunEnded; }
             if (_floor != null)
@@ -235,6 +253,8 @@ namespace Worsen.Session.Expedition
                 throw new InvalidOperationException("Generated player failed to register.");
             player.SetActiveEffects(_progression.EffectsSnapshot.ActiveEffects);
             player.BeginFloorHealth(request.Effects.MaximumHealth, request.Effects.MovementSpeedMultiplier);
+            player.RestoreShield(_controller.CarriedShield);
+            _controller.AdmitShieldTransfer();
 
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions);
             if (_state.HunterSpawnShortfall > 0)
@@ -265,6 +285,9 @@ namespace Worsen.Session.Expedition
                 _director.Initialize(_directorConfig, _run.RandomSource, _chase.ReadOnlyState, _floor.ReadOnlyState);
                 _director.SetLevelView(_level.ReadOnlyState);
                 _run.BindGameplay(_chase, _floor, _director);
+                _controller.BeginCollection(_floor.ReadOnlyState.ActiveCakeAnchors,
+                    activeEffects.Has(new EffectId("blind-faith")));
+                AssembleShrines();
             }
             RouteClosedDoors();
             _controller.Ready();
@@ -301,6 +324,8 @@ namespace Worsen.Session.Expedition
         private void HandleInteractable(InteractableState before, InteractableState after)
         {
             _procedural.ApplyInteractableState(after);
+            if (WickActive && after.Kind == InteractableKind.Light && after.Value != InteractableStateValue.Lit)
+                _level.SetLit(after.Id, true);
             if (after.Kind == InteractableKind.Door) RouteClosedDoors();
         }
 
@@ -320,18 +345,125 @@ namespace Worsen.Session.Expedition
             if (_controller.ObserveCrossing(sample, out int door, out Vector3 position)) _effects?.RecordDoorCrossed(door, position);
         }
         private void HandleTraversal(PlayerTraversalFact fact) => _effects?.ObserveTraversal(fact);
-        private void HandleTick(InputFrame frame, float dt, long tick) => _effects?.Tick(frame, dt, tick);
+        private void HandleTick(InputFrame frame, float dt, long tick)
+        {
+            _effects?.Tick(frame, dt, tick);
+            if (_controller.TickWick(dt, tick)) RestoreWick();
+        }
+
+        private void AssembleShrines()
+        {
+            if (_shrineConfig == null) _shrineConfig = Resources.Load<ShrineConfig>("ScriptableObjects/Domain/Shrine/ShrineConfig");
+            if (_shrineDriverConfig == null) _shrineDriverConfig = Resources.Load<ShrineDriverConfig>("ScriptableObjects/Domain/Shrine/ShrineDriverConfig");
+            if (_spawnConfig == null) _spawnConfig = Resources.Load<ExpeditionSpawnDriverConfig>("ScriptableObjects/Session/Expedition/ExpeditionSpawnDriverConfig");
+            if (_shrineConfig == null || _shrineDriverConfig == null || _spawnConfig == null)
+                throw new InvalidOperationException("Shrine configuration is unwired. Run Worsen/Shrine/Ensure Shrine Assets.");
+            _shrines = new GameObject("Floor Shrines").AddComponent<ShrineManager>();
+            _spawnDriver = gameObject.AddComponent<ExpeditionSpawnDriver>();
+            var sites = new List<ShrineSite>();
+            foreach (var site in _procedural.ShrineSites) sites.Add(new ShrineSite(site.Position, site.RoomId, site.GapEdge));
+            _shrines.Assemble(sites, _state.Request.Round, _shrineConfig, _shrineDriverConfig,
+                new System.Random(ExpeditionSessionController.ShrineSeed(_progression.Snapshot.Seed, _state.Request.Round)));
+            _run.BindShrines(_shrines, _progression, GenerationId, _state.Player, () => _controller.CollectedFraction);
+        }
+
+        private void HandleProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
+        { if (operation == nameof(ProgressionSessionManager.StartRun)) _controller.ResetRun(); }
+
+        private void HandleShrineResolved(ShrineResolvedFact fact)
+        {
+            if (!_controller.AcceptShrine(fact)) return;
+            if (fact.DropBeliefs)
+                foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.ClearBelief();
+            if (fact.WickSeconds > 0f)
+            {
+                var lamps = new List<InteractableState>();
+                foreach (var room in _level.ReadOnlyState.Graph.Rooms) lamps.AddRange(_level.Interactables.InRoom(room.Id));
+                _controller.BeginWick(fact.WickSeconds, fact.Activation.Tick, lamps);
+                foreach (var lamp in lamps) if (lamp.Kind == InteractableKind.Light) _level.SetLit(lamp.Id, true);
+                WickActiveChanged?.Invoke(WickActive);
+            }
+            if (fact.ResolvedKind == ShrineKind.Passage)
+            {
+                int pocket = 0;
+                foreach (var site in _procedural.ShrineSites)
+                    if (site.GapEdge && site.RoomId == fact.Activation.RoomId && site.Position == fact.Activation.Position)
+                        pocket = ExpeditionSessionController.PassagePocket(_level.ReadOnlyState.Graph,
+                            new ShrineSite(site.Position, site.RoomId, true), site.Facing);
+                if (pocket == 0 || !_floor.ActivatePocket(pocket)) Unresolved(fact, "passage-pocket-unavailable");
+            }
+            for (int i = 0; i < fact.ExtraHunters; i++) SpawnShrineHunter(fact, i);
+        }
+
+        private void SpawnShrineHunter(ShrineResolvedFact fact, int index)
+        {
+            if (!PlayerRegistry.TryGet(_state.Player, out var player) || !player.ReadOnlyState.IsAlive) return;
+            var roster = _state.Request.Effects.ActiveThreatIds;
+            if (roster == null || roster.Count == 0) { Unresolved(fact, "purgatory-run-roster-empty"); return; }
+            var random = new System.Random(unchecked(ExpeditionSessionController.ShrineSeed(_progression.Snapshot.Seed,
+                _state.Request.Round) ^ fact.Activation.ShrineId * 397 ^ index));
+            string key = roster[random.Next(roster.Count)];
+            HunterProfile profile = _hunterProfile != null && _hunterProfile.ArchetypeKey == key ? _hunterProfile : null;
+            if (_hunterRoster != null) foreach (var entry in _hunterRoster) if (entry != null && entry.ArchetypeKey == key) profile = entry;
+            if (profile == null) { Unresolved(fact, "purgatory-profile-unavailable:" + key); return; }
+            foreach (var position in _procedural.HunterSpawnPositions)
+            {
+                if (!_procedural.ValidateHunterSpawn(position, out _) || !LateSpawnRoomAvailable(position, player.ReadOnlyState.Position) ||
+                    !_spawnDriver.Validate(position, player.ReadOnlyState.Position, _spawnConfig)) continue;
+                EntityId id = _hunterFactory.Spawn(new SpawnRequest(key, position, Quaternion.identity));
+                _controller.RecordHunter(id);
+                if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Purgatory hunter failed to register.");
+                hunter.ApplyRunSpeedMultiplier(_state.Request.Effects.HunterSpeedMultiplier);
+                hunter.SetTraits(_state.Request.Effects.Traits); hunter.SetClosedDoors(_level.ClosedDoors);
+                hunter.SetFloorView(_floor.ReadOnlyState);
+                foreach (var phase in _floor.ReadOnlyState.RoomPhases) hunter.SetRoomPhase(new RoomPhaseChangedFact(phase.Key, phase.Value, _run.Tick));
+                _run.BindAdditionalHunter(hunter);
+                if (fact.Mutation)
+                {
+                    var pool = profile.MutationPool;
+                    bool applied = false;
+                    if (pool != null && pool.Count > 0)
+                    {
+                        int first = random.Next(pool.Count);
+                        for (int n = 0; n < pool.Count && !applied; n++)
+                        { var entry = pool[(first + n) % pool.Count]; if (entry != null) applied = hunter.ApplyMutation(entry.Mutation); }
+                    }
+                    if (!applied) Unresolved(fact, "purgatory-mutation-unavailable:" + key);
+                }
+                return;
+            }
+            Unresolved(fact, "purgatory-no-safe-live-spawn");
+        }
+
+        private bool LateSpawnRoomAvailable(Vector3 candidate, Vector3 player)
+        {
+            foreach (var room in _level.ReadOnlyState.Graph.Rooms)
+                if (room.ContainsXZ(candidate)) return !room.ContainsXZ(player) && !room.Pocket &&
+                    _floor.ReadOnlyState.RoomPhases.TryGetValue(room.Id, out var phase) && phase == RoomPhase.Open;
+            return false;
+        }
+        private void Unresolved(ShrineResolvedFact fact, string reason)
+        { ShrineWorldEffectUnresolved?.Invoke(fact, reason); Debug.LogWarning("Shrine " + fact.Activation.ShrineId + ": " + reason, this); }
+        private void RestoreWick()
+        {
+            if (_controller == null) return;
+            var restore = _controller.EndWick();
+            if (_level != null) foreach (var lamp in restore) _level.SetLit(lamp.Key, lamp.Value);
+            WickActiveChanged?.Invoke(false);
+        }
 
         private void HandleHealth(EntityId player, float health, float maximum)
         {
+            if (health <= 0f && player == _state.Player) _controller.ResetRun();
             // Commit terminal health in HandleRunEnded after a confirmed consumption fact can reach presentation.
             if (health > 0f && _controller.AcceptsGameplay(player)) _progression.RecordHealth(GenerationId, health);
         }
 
         private void HandlePickup(PickupCollectedFact fact)
         {
+            _controller.ObservePickup(fact, _floor.ReadOnlyState.CakeCount == _floor.ReadOnlyState.RequiredCakeCount);
             if (_controller.AcceptsGameplay(fact.PlayerId) && fact.Kind == PickupKind.GoldenCake)
-                {
+            {
                 _progression.RecordGoldenCollected(GenerationId, fact.AnchorId);
                 if (PlayerRegistry.TryGet(fact.PlayerId, out var player))
                     _effects?.RecordGoldenCollected(fact.PlayerId, player.ReadOnlyState.Position, fact.Tick);
@@ -368,6 +500,18 @@ namespace Worsen.Session.Expedition
         private void ReleaseFloor()
         {
             var failures = new List<Exception>();
+            if (_state != null && PlayerRegistry.TryGet(_state.Player, out var player) && player.ReadOnlyState != null)
+                _controller.CaptureShield(player.ReadOnlyState.IsAlive, player.ReadOnlyShieldState.Shield);
+            Release(RestoreWick, failures);
+            if (_run != null) _run.BindShrines(null, null, 0, EntityId.None, null);
+            if (_shrines != null)
+            {
+                Release(_shrines.Teardown, failures);
+                if (Application.isPlaying) Destroy(_shrines.gameObject); else DestroyImmediate(_shrines.gameObject);
+                _shrines = null;
+            }
+            if (_spawnDriver != null)
+            { if (Application.isPlaying) Destroy(_spawnDriver); else DestroyImmediate(_spawnDriver); _spawnDriver = null; }
             UnbindWorld();
             Release(() => FloorReleased?.Invoke(), failures);
             if (_effects != null) { _effects.ClearHazards(); _effects.Suspend(); }
@@ -406,6 +550,7 @@ namespace Worsen.Session.Expedition
             ClearScene();
             if (Instance == this) Instance = null;
             AssemblyReady = null; RoomsReady = null; FloorReleased = null;
+            WickActiveChanged = null; ShrineWorldEffectUnresolved = null;
         }
     }
 }

@@ -14,6 +14,7 @@
 // KEY RESPONSIBILITIES:
 //   - Publish pending death before terminal commit; allow an admitted revival without resetting Floor.
 //   - Publish empty counts from the routed Progression inventory, never the legacy Player slots.
+//   - Sample floor shrines after committed actor ticks and deliver delayed shrine hearing once.
 //   - Forward typed guidance/traps and route boundary acceleration using the Floor tick delta.
 //   - Share pickup/hand/trap hearing; environmental sources use Director only when bound.
 //   - Pair traversal, stumble and cake-loss relays; route pickup noise to bound active hunters.
@@ -28,6 +29,7 @@
 //   - Consume only Floor's unified escape fact, retaining the early-bail flag.
 //
 // DEPENDENCIES:
+//   - Domain Shrine and Session Progression resolve generation-bound shrine activation.
 //   - Run Controller, state, and definitions in this system; shared Core types.
 //   - Domain Player, Hunter, Chase, Floor and Director Managers receive ordered ticks.
 //   - Unity lifecycle and fixed delta time at the Session engine boundary (§8b).
@@ -46,6 +48,8 @@
 //   Recovery uses the processing Run tick, not a queued hit's historical timestamp.
 //   EntityId.None noises go through Director's acoustic hint path, never both paths.
 //   Without Director the legacy direct-hearing fallback is retained. No source is forged.
+//   Shield-only hits publish Damage=0 and telemetry health loss=0, still count as catches
+//   and keep Player's grace/boost. Other hit payloads retain their incoming damage metadata.
 //
 // ============================================================================
 
@@ -59,6 +63,8 @@ using Worsen.Domain.Hunter;
 using Worsen.Domain.Chase;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Director;
+using Worsen.Domain.Shrine;
+using Worsen.Session.Progression;
 
 namespace Worsen.Session.Run
 {
@@ -69,6 +75,11 @@ namespace Worsen.Session.Run
         private ChaseManager chase;
         private FloorManager floor;
         private DirectorManager director;
+        private ShrineManager shrines;
+        private ProgressionSessionManager shrineProgression;
+        private EntityId shrinePlayer;
+        private int shrineGeneration;
+        private Func<float> shrineCollectedFraction;
         private readonly List<PlayerManager> players = new List<PlayerManager>();
         private readonly List<HunterManager> hunters = new List<HunterManager>();
         private readonly List<HunterHit> pendingHits = new List<HunterHit>();
@@ -219,9 +230,55 @@ namespace Worsen.Session.Run
             if (isActiveAndEnabled) OnEnable();
         }
 
+        public void BindShrines(ShrineManager manager, ProgressionSessionManager progression, int generation,
+            EntityId player, Func<float> collectedFraction)
+        {
+            if (shrines != null) shrines.Activated -= HandleShrineActivated;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= HandleShrineNoise;
+            shrines = manager; shrineProgression = progression; shrineGeneration = generation;
+            shrinePlayer = player; shrineCollectedFraction = collectedFraction;
+            if (!isActiveAndEnabled) return;
+            if (shrines != null) shrines.Activated += HandleShrineActivated;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += HandleShrineNoise;
+        }
+
+        public void BindAdditionalHunter(HunterManager hunter)
+        {
+            if (hunter == null || hunters.Contains(hunter)) return;
+            hunters.Add(hunter);
+            if (!isActiveAndEnabled) return;
+            hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback;
+        }
+
+        private void TickShrines(InputFrame frame, float dt, long tick)
+        {
+            if (IsPaused || shrineProgression == null || state.PendingEndReason != RunEndReason.Unknown) return;
+            // Advance clocks first: a newly activated delay starts at this committed tick,
+            // and Director drains the resulting delivery-tick noise later in this same tick.
+            shrineProgression.TickShrines(shrineGeneration, dt, tick);
+            if (shrines != null && PlayerRegistry.TryGet(shrinePlayer, out var player) && player.ReadOnlyState.IsAlive)
+                shrines.Sample(player.ReadOnlyState.Position, player.ReadOnlyState.Velocity, frame.Pressed, tick);
+        }
+
+        private void HandleShrineActivated(ShrineActivatedFact fact)
+        {
+            if (!IsPaused && shrineProgression != null && PlayerRegistry.TryGet(shrinePlayer, out var player) && player.ReadOnlyState.IsAlive)
+                shrineProgression.ActivateShrine(shrineGeneration, fact, player, shrineCollectedFraction?.Invoke() ?? 0f);
+        }
+
+        private void HandleShrineNoise(NoiseEvent noise)
+        {
+            if (IsPaused) return;
+            if (director != null) { director.HearNoise(noise); return; }
+            foreach (var hunter in HunterRegistry.Items)
+                if (hunter != null && hunter.isActiveAndEnabled && hunter.ReadOnlyState?.IsActive == true) hunter.HearNoise(noise);
+        }
+
         private void OnEnable()
         {
             UnsubscribeGameplay();
+            if (shrines != null) shrines.Activated += HandleShrineActivated;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += HandleShrineNoise;
             foreach (PlayerManager player in players)
             {
                 player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
@@ -264,6 +321,8 @@ namespace Worsen.Session.Run
 
         private void UnsubscribeGameplay()
         {
+            if (shrines != null) shrines.Activated -= HandleShrineActivated;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= HandleShrineNoise;
             foreach (PlayerManager player in players)
                 if (player != null)
                 {
@@ -313,6 +372,7 @@ namespace Worsen.Session.Run
             UnsubscribeGameplay();
             players.Clear(); hunters.Clear(); pendingHits.Clear();
             chase = null; floor = null; director = null;
+            BindShrines(null, null, 0, EntityId.None, null);
             if (state != null) state.FloorDeltaSeconds = 0f;
         }
 
@@ -343,6 +403,7 @@ namespace Worsen.Session.Run
                     try { floor.Tick(deltaTime, state.Tick); }
                     finally { state.FloorDeltaSeconds = 0f; }
                 }
+                TickShrines(frame, deltaTime, state.Tick);
                 if (director != null) director.Tick(deltaTime, state.Tick);
             }
             foreach (PlayerManager player in PlayerRegistry.Items)
@@ -403,7 +464,9 @@ namespace Worsen.Session.Run
             float previousHealth = target.ReadOnlyState.Health;
             int chaseId = state.ActiveChaseId;
             if (!target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source)) return;
-            if (target.ReadOnlyState.Health >= previousHealth) return;
+            float healthLoss = Mathf.Max(0f, previousHealth - target.ReadOnlyState.Health);
+            if (healthLoss == 0f) hit = new HunterHit(hit.Hunter, hit.Target, 0, hit.Tick,
+                hit.HunterPosition, hit.Reason, hit.Severity, hit.Source);
             if (!target.ReadOnlyState.IsAlive)
             {
                 HunterManager killer = hunters.Find(hunter => hunter != null && hunter.Id == hit.Hunter);
@@ -411,7 +474,7 @@ namespace Worsen.Session.Run
                     hit.Source == HitSource.Trap ? DeathCause.Trap : DeathCause.Hunter, killer != null ? killer.ArchetypeKey : string.Empty);
             }
             HitAccepted?.Invoke(hit);
-            Emit(TelemetrySampleKind.AcceptedHit, hit.Target, hit.Tick, hit.Damage,
+            Emit(TelemetrySampleKind.AcceptedHit, hit.Target, hit.Tick, healthLoss,
                 chaseId == 0 ? "pre-confirmation" : "accepted", hit.Reason, chaseId);
             if (chase != null) chase.RecordCatch(hit);
         }

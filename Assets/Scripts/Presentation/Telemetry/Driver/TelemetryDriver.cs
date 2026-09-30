@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
+//   - Flush labelled micro-event rows through the same journal and failure handling as other observations.
 //   - Open unique files, write raw facts and provenance, flush completed or interrupted captures.
 //   - Keep one expedition observation journal across floor capture starts/ends.
 // DEPENDENCIES:
@@ -117,6 +118,10 @@ namespace Worsen.Presentation.Telemetry
             foreach (var sample in _observations.Generation(request, tick)) RecordObservation(sample);
         }
         public void RecordObservation(TelemetrySample sample, string outputDirectory = null)
+            => WriteObservation(_csv.Raw(sample), outputDirectory);
+        public void RecordMicroEvent(int kind, int target, Vector3 position, float seconds, bool applied, long tick, int seed)
+            => WriteObservation(_csv.MicroEvent(kind, target, position, seconds, applied, tick, seed), null);
+        private void WriteObservation(string row, string outputDirectory)
         {
             if (_state.ObservationFailed) return;
             try
@@ -129,7 +134,7 @@ namespace Worsen.Presentation.Telemetry
                     _observationWriter = new StreamWriter(_openOutput(_state.ObservationOutputPath), new UTF8Encoding(false));
                     _observationWriter.WriteLine(_csv.Header);
                 }
-                _observationWriter.WriteLine(_csv.Raw(sample));
+                _observationWriter.WriteLine(row);
                 _observationWriter.Flush();
             }
             catch (Exception exception) when (IsFileFailure(exception))

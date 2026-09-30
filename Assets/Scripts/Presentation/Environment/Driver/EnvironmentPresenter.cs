@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Scale the nearest eligible lit-torch budget, never reviving unlit or destroyed sockets.
 //   - Keep decoration above running lanes and away from door apertures.
 //   - Select the nearest effects under fixed budgets and preserve a readable flame minimum.
 //   - Compute local flame falloff and bounded chalk crosses with room ownership.
@@ -260,6 +261,24 @@ namespace Worsen.Presentation.Environment
                 if (delta.sqrMagnitude < square) return false;
             }
             return true;
+        }
+
+        public static int[] BudgetedLights(EnvironmentDriverState state, int maximum, float distance)
+        {
+            int[] eligible = Nearest(state.Observer, state.Positions, state.Available, state.Flames.Count, distance);
+            int torches = 0;
+            foreach (int i in eligible) if (!state.Flames[i].Moon && !state.Flames[i].Exit) torches++;
+            float multiplier = float.IsNaN(state.TorchCountMultiplier) || float.IsInfinity(state.TorchCountMultiplier)
+                ? 1f : Mathf.Clamp01(state.TorchCountMultiplier);
+            int budget = Mathf.FloorToInt(Mathf.Min(Mathf.Max(0, maximum), torches) * multiplier);
+            var visible = new List<int>();
+            foreach (int i in eligible)
+            {
+                if (visible.Count >= maximum) break;
+                if (!state.Flames[i].Moon && !state.Flames[i].Exit && budget-- <= 0) continue;
+                visible.Add(i);
+            }
+            return visible.ToArray();
         }
 
         public static int[] Nearest(Vector3 observer, IList<Vector3> positions, IList<bool> available, int maximum, float distance)

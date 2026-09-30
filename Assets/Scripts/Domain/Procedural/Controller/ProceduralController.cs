@@ -13,7 +13,7 @@
 //   - Produce stable room, edge and anchor identities and a comparable manifest.
 //   - Sample diverse geometry-backed candidates; leave required cake selection to Floor.
 //   - Keep player spawns outside cake pickup radii while preserving ordinary routes.
-//   - Publish enclosed room volumes with higher ceilings for broad gallery spaces.
+//   - Publish exact footprint cells and pocket flags, retaining cells at higher ceilings.
 //   - Start each castle floor in its exit hub with a clear approach to the center door.
 //   - Enforce reusable first-contact validation and record deterministic distance relaxation.
 //   - Reserve gaps before growth; separate optional pocket anchors from required candidates.
@@ -65,7 +65,12 @@ namespace Worsen.Domain.Procedural
                 new Vector3(_config.Origin.x + (cells.Min(c => c.x) + cells.Max(c => c.x)) * _config.RoomSize * 0.5f,
                     height * 0.5f, _config.Origin.y + (cells.Min(c => c.y) + cells.Max(c => c.y)) * _config.RoomSize * 0.5f),
                 new Vector3((cells.Max(c => c.x) - cells.Min(c => c.x) + 1) * _config.RoomSize, height,
-                    (cells.Max(c => c.y) - cells.Min(c => c.y) + 1) * _config.RoomSize))).ToArray();
+                    (cells.Max(c => c.y) - cells.Min(c => c.y) + 1) * _config.RoomSize),
+                cells: cells.Select(cell => new Bounds(
+                    new Vector3(_config.Origin.x + cell.x * _config.RoomSize, height * 0.5f,
+                        _config.Origin.y + cell.y * _config.RoomSize),
+                    new Vector3(_config.RoomSize, height, _config.RoomSize))).ToArray(),
+                pocket: index >= connectedCount)).ToArray();
             var doors = CreateDoors(footprints, connectedCount, optionalWindowMultiplier);
             var edges = doors.Select((door, index) => new LevelEdge(1001 + index,
                 door.FromRoomId, door.ToRoomId, true, door.IsOptional ? TraversalAccess.Player : TraversalAccess.All)).ToArray();
@@ -83,7 +88,11 @@ namespace Worsen.Domain.Procedural
                     var room = rooms[module.RoomId - 1];
                     rooms[module.RoomId - 1] = new LevelRoom(room.Id,
                         new Vector3(room.Center.x, _config.HighCeilingHeight * 0.5f, room.Center.z),
-                        new Vector3(room.Size.x, _config.HighCeilingHeight, room.Size.z));
+                        new Vector3(room.Size.x, _config.HighCeilingHeight, room.Size.z),
+                        cells: room.Cells.Select(cell => new Bounds(
+                            new Vector3(cell.center.x, _config.HighCeilingHeight * 0.5f, cell.center.z),
+                            new Vector3(cell.size.x, _config.HighCeilingHeight, cell.size.z))).ToArray(),
+                        pocket: room.Pocket);
                 }
             var allAnchors = CreateAnchors(rooms, modules, doors);
             var anchors = allAnchors.Where(a => a.RoomId <= connectedCount).ToArray();
@@ -427,7 +436,8 @@ namespace Worsen.Domain.Procedural
                     room.Id != layout.Graph.ExitRoomId && PreservesEscapeWithoutRoom(layout.Graph, room.Id);
                 samples.Add(new GeneratedRoomSample(room.Id, room.Bounds, false, refuge,
                     layout.Doors.Where(door => door.FromRoomId == room.Id || door.ToRoomId == room.Id)
-                        .Select(door => door.Center).ToArray(), optional));
+                        .Select(door => door.Center).ToArray(), optionalRoom: optional || room.Pocket,
+                    cells: room.Cells.ToArray()));
             }
             return samples.AsReadOnly();
         }
@@ -512,7 +522,7 @@ namespace Worsen.Domain.Procedural
             => Ground(CellRoom(room, module.Cells[0]).Center) + (module.AlongX ? Vector3.forward : Vector3.right) * (_config.SpawnSideOffset * sign);
         private LevelRoom CellRoom(LevelRoom room, Vector2Int cell) => new LevelRoom(room.Id,
             new Vector3(_config.Origin.x + cell.x * _config.RoomSize, room.Center.y, _config.Origin.y + cell.y * _config.RoomSize),
-            new Vector3(_config.RoomSize, room.Size.y, _config.RoomSize));
+            new Vector3(_config.RoomSize, room.Size.y, _config.RoomSize), pocket: room.Pocket);
 
         private IReadOnlyList<ProceduralGapSite> GapSites(ProceduralLayout layout)
         {

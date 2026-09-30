@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36e578d0c3d857843b4905c276bffab4, type: 3}
+  m_Name: ShopConfig
+  m_EditorClassIdentifier: Worsen.Session::Worsen.Session.Progression.Shop.ShopConfig
+  _rules:
+    _pedestals: 4
+    _freeRerolls: 1
+    _rerollPrice: 2
+    _rerollIncrease: 1
+    _roundPriceGrowth: 0.15
+    _expensivePrice: 8
+    _expensiveUnlockRound: 5
+    _inventorySlots: 3
+    _biggerPocketsSlots: 1
+    _luckyRerolls: 1
+    _shopRerolls: 1
+    _bargainDiscount: 0.25
+    _loyaltyDiscount: 0.1
+    _bailPenaltyMultiplier: 0.5
+    _goldenTouchBonus: 1
+    _interestFraction: 0.1
+    _interestCap: 5
+    _refundFraction: 0.5
+    _extraPedestals: 1
+    _businessYieldPerStack: 0.25

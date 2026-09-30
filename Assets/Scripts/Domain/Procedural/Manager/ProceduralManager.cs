@@ -14,6 +14,7 @@
 //   - Retry failed generation/builds and retain a separate fail-closed fallback journal.
 //   - Expose Core interactable snapshots and apply Level's routed state-change facts.
 //   - Publish primitive theme, threshold and optional puzzle facts for external routing.
+//   - Expose kind-free shrine sites only after physical floor admission; reset on teardown.
 // DEPENDENCIES:
 //   - Core graph, interactable and destruction contracts; no Domain sibling calls.
 // USAGE NOTES:
@@ -48,6 +49,7 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<GeneratedRoomSample> PresentationRooms => _state.Layout?.PresentationRooms ?? Array.Empty<GeneratedRoomSample>();
         public IReadOnlyList<ProceduralRoomModule> RoomModules => _state.Layout?.Modules ?? Array.Empty<ProceduralRoomModule>();
         public IReadOnlyList<ProceduralDoorPlan> Doors => _state.Layout?.Doors ?? Array.Empty<ProceduralDoorPlan>();
+        public IReadOnlyList<ProceduralShrineSite> ShrineSites => IsReady ? _state.Layout.ShrineSites : Array.Empty<ProceduralShrineSite>();
         public string LayoutManifest => _state.GenerationManifest;
         public IReadOnlyList<InteractableState> Interactables => _state.Layout == null ? Array.Empty<InteractableState>() :
             Array.AsReadOnly(_state.Layout.Interactables.Select(plan => plan.State).ToArray());

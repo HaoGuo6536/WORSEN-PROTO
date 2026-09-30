@@ -8,18 +8,22 @@
 // ARCHITECTURAL ROLE:
 //   Controller (section 2) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
+//   - Forget pursuit decisions on Pacification without cancelling a committed attack.
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Admit only this archetype's curse bits while retaining general run traits.
 //   - Walk to uncertain clues and stalk fresh beliefs, holding when the player looks toward the hunter.
 //   - Weigh competing goals, remember pickups/search order, deliberate and withdraw on request.
 //   - Emit gated habit facts and validate run-long single-rule overrides without editing assets.
 //   - Bound prediction by observed motion and sight; budget walking travel separately from search.
+//   - Consult injected archetype rules without branching on specialised archetype names.
+//   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
 //   - Core AcousticOcclusionUtility supplies hearing; closed-door state is injected separately.
 // USAGE NOTES:
-//   Time and randomness are injected. Hidden player position is never used as a clue.
+//   Time and randomness are injected. Default rules never use hidden player position
+//   as a clue; recording archetypes explicitly own their alternative perception rule.
 //   Stalk uses player pose only for the reveal gate, never to update its belief target.
 //   The Player view has no camera direction: use planar heading plus LookBack's 180
 //   degrees, without pitch, head scan or an occlusion query. Manager must forward
@@ -51,14 +55,41 @@ namespace Worsen.Domain.Hunter
         private readonly IReadOnlyLevelState _level;
         private IReadOnlyFloorState _floor;
         private IReadOnlyDictionary<int, bool> _closedDoors;
+        private IReadOnlyInteractableSet _interactables;
+        private IReadOnlyActiveEffects _effects;
+        private readonly IHunterArchetypeController _archetype;
+        public bool Dormant => (_archetype as Archetypes.Ticking.IHunterDormancyRules)?.Dormant ?? false;
+        public void RefreshDormancy()
+        {
+            if (!Dormant) return;
+            _state.PursuitSuppressed = true; _state.RetreatRemaining = 0f; _state.ChaseActive = false;
+            _state.PlayerVisible = false; _state.PlayerHeard = false; _state.HasHint = false;
+            _state.BeliefConfidence = _state.BeliefInitialConfidence = 0f;
+            _state.LungePhase = HunterLungePhase.None; _state.PhaseSeconds = 0f; _state.AttackBecameActive = false;
+            _state.FiredRangedAttacks.Clear(); _state.Feedback.Clear();
+            _state.SearchActive = false; _state.SearchRoute.Clear(); _state.PendingNoiseDecision = false;
+            _state.DeliberationFactPending = false;
+            _state.DeliberationRemaining = 0f; _state.LightReactionRemaining = 0f; _state.LightMemoryRemaining = 0f;
+            _state.Action = HunterAction.Patrol; _state.SensorInitialized = false; _state.PlannedFacts = ulong.MaxValue;
+        }
+        public IReadOnlyList<Vector3> ReplayPath => _archetype.ReplayPath;
+        private HunterArchetypeContext ArchetypeContext => new HunterArchetypeContext(_state, _player, _level,
+            _floor, _closedDoors, _interactables, _effects, _state.DeltaTime, _state.Tick,
+            !_state.CatchActive && _state.LungePhase == HunterLungePhase.None,
+            Effective(HunterTunable.ChaseSpeedMultiplier) * _state.RunSpeedMultiplier, _state.UnavailableRooms);
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { _effects = effects; }
+        public void SetInteractables(IReadOnlyInteractableSet interactables) { _interactables = interactables; }
+        public void CommitReplay(int reachedPoints, bool unreachable = false) { _archetype.CommitReplay(reachedPoints, unreachable); }
+        public bool TryTakeArchetypeFact(out HunterArchetypeFact fact) => _archetype.TryTakeFact(out fact);
         public HunterController(HunterBehaviorState state, HunterProfile profile, System.Random random,
-            IReadOnlyPlayerState player, IReadOnlyLevelState level)
+            IReadOnlyPlayerState player, IReadOnlyLevelState level, IHunterArchetypeController archetype = null)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile));
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _level = level ?? throw new ArgumentNullException(nameof(level));
+            _archetype = archetype ?? new Archetypes.Default.DefaultHunterController();
         }
         public void Reset(EntityId id, Vector3 position, Vector3 forward)
         {
@@ -96,8 +127,37 @@ namespace Worsen.Domain.Hunter
             _state.PlannedFacts = ulong.MaxValue; _state.Action = HunterAction.Patrol;
             _state.ActionFailed = false; _state.ReplanCount = 0; _state.LastRoom = 0;
             _state.LoopDetected = false; _state.RecentRooms.Clear(); _state.DeltaTime = 0f;
+            _state.DuplicateIndex = 0;
+            _archetype.Reset(ArchetypeContext);
+            if (_archetype.NeverLoses) { _state.LossSeconds = float.PositiveInfinity; _state.LossDistance = float.PositiveInfinity; }
+            RefreshDormancy();
         }
         public bool ShouldProbe(long tick) => !_state.CatchActive && (!_state.SensorInitialized || tick % Math.Max(1, _profile.SensorIntervalTicks) == 0);
+        public void ClearBelief()
+        {
+            _state.PlayerVisible = false; _state.PlayerHeard = false; _state.HasHint = false;
+            _state.LastKnownPosition = _state.Position; _state.LastKnownTick = 0;
+            _state.BeliefConfidence = 0f; _state.BeliefInitialConfidence = 0f;
+            _state.BeliefReferenceTick = _state.Tick; _state.BeliefAgeAtReference = 0f;
+            _state.SearchRoute.Clear(); _state.SearchActive = false; _state.SearchIndex = 0;
+            _state.SearchSeconds = 0f; _state.SearchLegBudget = 0f;
+            _state.PredictionRoute.Clear(); _state.PredictionIndex = 0; _state.Predict = false;
+            _state.ObservedPlayerRoom = 0; _state.PreviousPlayerRoom = 0; _state.ObservedPlayerVelocity = Vector3.zero;
+            _state.PendingNoiseDecision = false; _state.PendingNoise = default; _state.PendingNoiseLoudness = 0f;
+            _state.DeliberationRemaining = 0f; _state.DeliberationFactPending = false; _state.DeliberationTarget = _state.Position;
+            _state.CommitmentRemaining = 0f; _state.ThresholdPauseRemaining = 0f; _state.HabitFacts.Clear();
+            _state.ChaseActive = false; _state.LossHabitObserved = false; _state.LastPickupRoom = 0;
+            _state.RecentRooms.Clear(); _state.LoopDetected = false;
+            _state.LightMemoryRemaining = 0f; _state.LightReactionRemaining = 0f; _state.LightExposure = 0f;
+            _state.LightObserved = false; _state.DirectlyIlluminated = false; _state.LastLightPosition = _state.Position;
+            _state.Afterimage = default; _state.AfterimageRemaining = 0f;
+            _state.PursuitSuppressed = false; _state.RetreatRemaining = 0f;
+            _state.NavigationTarget = _state.Position; _state.HasPatrolTarget = false;
+            _state.PlannedFacts = ulong.MaxValue; _state.ActionFailed = false; _state.CurrentGoal = HunterGoal.LocatePrey;
+            if (_state.LungePhase == HunterLungePhase.None) _state.Action = HunterAction.Patrol;
+            // Keep heard-noise deduplication: old Player.RecentNoises must not recreate the erased belief.
+            // Attack phase, direction, serial, contact admission and recovery remain untouched.
+        }
         public HunterTickResult Tick(SightProbe probe, float dt, long tick)
             => Tick(probe, default, dt, tick);
         public HunterTickResult Tick(SightProbe probe, HunterLightObservation light, float dt, long tick)
@@ -105,6 +165,8 @@ namespace Worsen.Domain.Hunter
             if (!(dt > 0f) || float.IsNaN(dt) || float.IsInfinity(dt)) return default;
             _state.AttackBecameActive = false;
             _state.Tick = tick; _state.DeltaTime = dt;
+            _archetype.Tick(ArchetypeContext);
+            RefreshDormancy();
             UpdateFloorMemory(); // Consume removals even during a catch; never replay them afterward.
             if (_state.CatchActive)
                 return new HunterTickResult(_state.Position, 0f, HunterLungePhase.None, Vector3.zero, false, false, true);
@@ -124,6 +186,15 @@ namespace Worsen.Domain.Hunter
                 _state.Feedback.Clear(); return default;
             }
             _state.FootstepCooldown = Mathf.Max(0f, _state.FootstepCooldown - dt);
+            if (Dormant)
+            {
+                TrackRooms();
+                _archetype.TryMovement(out Vector3 dormantTarget, out float dormantSpeed);
+                bool holdDormant = dormantSpeed <= 0f || _state.ThresholdPauseRemaining > 0f;
+                _state.NavigationTarget = dormantTarget;
+                return new HunterTickResult(dormantTarget, holdDormant ? 0f : dormantSpeed,
+                    HunterLungePhase.None, Vector3.zero, false, false, holdDormant);
+            }
             _state.ScreamCooldown = Mathf.Max(0f, _state.ScreamCooldown - dt);
             UpdateLightTimers(dt);
             if (_state.PursuitSuppressed)
@@ -141,12 +212,12 @@ namespace Worsen.Domain.Hunter
             {
                 bool wasVisible = _state.PlayerVisible;
                 Sense(probe, dt, tick);
-                SenseLight(light, tick);
+                if (!_archetype.OwnsPursuit) SenseLight(light, tick);
                 if (_state.PlayerVisible != wasVisible)
                 {
                     _state.Feedback.Enqueue(_state.PlayerVisible ? HunterFeedbackKind.Detected : HunterFeedbackKind.LostTarget);
                     _state.CommitmentRemaining = 0f;
-                    if (!_state.PlayerVisible)
+                    if (!_state.PlayerVisible && !_archetype.OwnsPursuit)
                     {
                         _state.SearchRoute.Clear();
                         _state.SearchRoute.AddRange(HunterNavigationUtility.Search(_level.Graph, _state.LastKnownPosition,
@@ -164,7 +235,8 @@ namespace Worsen.Domain.Hunter
             }
             if (_state.DirectlyIlluminated) _state.LightExposure += dt;
             else _state.LightExposure = 0f;
-            DecayBelief(dt, tick);
+            if (_archetype.NeverLoses) _state.BeliefConfidence = _state.BeliefInitialConfidence = 1f;
+            else DecayBelief(dt, tick);
             TrackRooms();
             bool begin = false;
             float recoveryBefore = _state.LungePhase == HunterLungePhase.Recovery ? _state.PhaseSeconds : 0f;
@@ -196,14 +268,15 @@ namespace Worsen.Domain.Hunter
                     { _state.PlannedFacts = ulong.MaxValue; _state.PhaseSeconds = 0f; }
                 }
             }
-            float stumbleSeconds = wasAttacking && !_state.LungeHitAccepted && _profile.AttackStyle == HunterAttackStyle.Lunge ?
+            float stumbleSeconds = !_archetype.OwnsPursuit && wasAttacking && !_state.LungeHitAccepted && _profile.AttackStyle == HunterAttackStyle.Lunge ?
                 Mathf.Clamp(recoveryBefore + dt - untilRecovery, 0f, _profile.MissStaggerSeconds) -
                 Mathf.Clamp(recoveryBefore, 0f, _profile.MissStaggerSeconds) : 0f;
             Vector3 stumble = _state.LungeDirection * (stumbleSeconds * _profile.MissStumbleMeters / _profile.MissStaggerSeconds);
             if (_state.LungePhase == HunterLungePhase.None && !_state.AttackBecameActive && stumbleSeconds <= 0f)
             {
                 Replan();
-                UpdateTarget(dt);
+                if (!_archetype.TryMovement(out Vector3 movementTarget, out _)) UpdateTarget(dt);
+                else _state.NavigationTarget = movementTarget;
                 if (_state.Action == HunterAction.Lunge && _state.PlayerVisible && !_state.IsDeliberating)
                 {
                     _state.LungePhase = HunterLungePhase.Windup; _state.PhaseSeconds = 0f;
@@ -231,6 +304,8 @@ namespace Worsen.Domain.Hunter
                         EffectiveTurnRate * dt) * Vector3.forward;
             }
             float speed = hold ? 0f : MovementSpeed();
+            if (_state.LungePhase == HunterLungePhase.None && _archetype.TryMovement(out Vector3 target, out float overrideSpeed))
+            { _state.NavigationTarget = target; speed = overrideSpeed; hold = false; face = Vector3.zero; }
             return new HunterTickResult(_state.NavigationTarget, speed * _state.RunSpeedMultiplier, _state.LungePhase,
                 _state.LungeDirection, begin, _state.LungePhase == HunterLungePhase.Active, hold, stumble, face);
         }
@@ -270,7 +345,7 @@ namespace Worsen.Domain.Hunter
         public IReadOnlyList<Bounds> UnavailableRooms => _state.UnavailableRooms;
         public float EffectiveAcceleration => Effective(HunterTunable.Acceleration);
         public float EffectiveTurnRate => Effective(HunterTunable.TurnRate);
-        public bool ActiveChase => _state.ChaseActive || _state.PlayerVisible;
+        public bool ActiveChase => !Dormant && (_state.ChaseActive || _state.PlayerVisible);
         public bool PreferEmergence => _profile.EmergenceBias && !ActiveChase && !_state.CatchActive &&
             _state.LungePhase == HunterLungePhase.None && (_state.Action == HunterAction.Stalk ||
             _state.Action == HunterAction.InvestigateHint || _state.Action == HunterAction.SearchLastKnown);
@@ -342,6 +417,7 @@ namespace Worsen.Domain.Hunter
         public bool ApplyMutation(HunterMutation mutation, out HunterMutationFact fact)
         {
             fact = default;
+            if (_archetype.NeverLoses && (mutation.Tunable == HunterTunable.LossSeconds || mutation.Tunable == HunterTunable.LossDistance)) return false;
             if (!Enum.IsDefined(typeof(HunterTunable), mutation.Tunable) || !Finite(mutation.Value) ||
                 string.IsNullOrWhiteSpace(mutation.TellId) || mutation.Value < 0f) return false;
             bool rule = mutation.Tunable >= HunterTunable.ThresholdPauseEnabled;
@@ -353,7 +429,8 @@ namespace Worsen.Domain.Hunter
                 !Finite(_player.SprintSpeed * mutation.Value * _state.RunSpeedMultiplier)) return false;
             if (Effective(mutation.Tunable) == mutation.Value) return false; // Reapplication is idempotent.
             _state.Mutations[mutation.Tunable] = mutation.Value;
-            _state.LossSeconds = Effective(HunterTunable.LossSeconds); _state.LossDistance = Effective(HunterTunable.LossDistance);
+            _state.LossSeconds = _archetype.NeverLoses ? float.PositiveInfinity : Effective(HunterTunable.LossSeconds);
+            _state.LossDistance = _archetype.NeverLoses ? float.PositiveInfinity : Effective(HunterTunable.LossDistance);
             if (mutation.Tunable == HunterTunable.ThresholdPauseEnabled && mutation.Value == 0f) _state.ThresholdPauseRemaining = 0f;
             fact = new HunterMutationFact(_state.Id, _profile.ArchetypeKey, mutation.TellId, _state.Tick);
             return true;
@@ -395,6 +472,7 @@ namespace Worsen.Domain.Hunter
         }
         public bool HearNoise(NoiseEvent noise, float transmission)
         {
+            if (_archetype.OwnsPursuit) return false;
             if (_state.PursuitSuppressed || noise.Source == _state.Id || noise.Tick > _state.Tick || _state.HeardNoises.Contains(noise) ||
                 !Finite(noise.Position) || !Finite(noise.Loudness) || !Finite(transmission)) return false;
             float age = (_state.Tick - noise.Tick) * _state.DeltaTime;
@@ -444,6 +522,7 @@ namespace Worsen.Domain.Hunter
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _closedDoors = doors; }
         public bool RequestRetreat(IReadOnlyList<int> occludedRooms)
         {
+            if (_archetype.OwnsPursuit) return false;
             if (!_state.IsActive || !_player.IsAlive || _state.PursuitSuppressed || _state.LungePhase != HunterLungePhase.None ||
                 _level.Graph == null || occludedRooms == null || _state.BeliefConfidence <= 0f) return false;
             int start = HunterNavigationUtility.RoomAt(_level.Graph, _state.Position);
@@ -469,7 +548,7 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptRangedContact(EntityId target, int attackSerial, out HunterHit hit)
         {
             hit = default;
-            if (_profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
+            if (Dormant || _profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
                 attackSerial <= 0 || !_state.FiredRangedAttacks.Contains(attackSerial) || attackSerial > _state.AttackSerial || attackSerial < _state.AttackSerial - 8 ||
                 !_state.AcceptedRangedAttacks.Add(attackSerial)) return false;
             _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
@@ -532,7 +611,7 @@ namespace Worsen.Domain.Hunter
         public void CommitPose(Vector3 position, Vector3 velocity, Vector3 forward)
         {
             Vector3 displacement = position - _state.Position; displacement.y = 0f;
-            if (_state.LungePhase == HunterLungePhase.None) _state.StepDistance += displacement.magnitude;
+            if (!_archetype.OwnsPursuit && _state.LungePhase == HunterLungePhase.None) _state.StepDistance += displacement.magnitude;
             _state.Position = position; _state.Velocity = velocity; _state.Forward = forward;
             if (_state.StepDistance >= 2.2f && _state.FootstepCooldown <= 0f)
             { _state.StepDistance = 0f; _state.FootstepCooldown = 0.18f; _state.Feedback.Enqueue(HunterFeedbackKind.Footstep); }
@@ -548,7 +627,7 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptContact(EntityId target, out HunterHit hit)
         {
             hit = default;
-            if (_state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
+            if (Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
                 target != _state.TargetId || !_player.IsAlive || !_state.IsActive) return false;
             _state.LungeHitAccepted = true;
             _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
@@ -557,6 +636,7 @@ namespace Worsen.Domain.Hunter
         }
         public bool ReceiveHint(HintPayload hint)
         {
+            if (_archetype.OwnsPursuit) return false;
             if (_state.PursuitSuppressed || hint.Hunter != _state.Id || hint.Player != _state.TargetId || hint.ObservedTick > hint.DeliveredTick ||
                 hint.DeliveredTick != _state.Tick || !Finite(hint.Position) ||
                 !Finite(hint.AgeSeconds) || !Finite(hint.Radius) || !Finite(hint.Confidence) ||
@@ -600,6 +680,7 @@ namespace Worsen.Domain.Hunter
             float dot = planar.sqrMagnitude <= 0.0001f ? 1f : Vector3.Dot(_state.Forward.normalized, planar.normalized);
             _state.PlayerVisible = (probe.HeadVisible || probe.ChestVisible || probe.HipsVisible) &&
                 distance <= EffectiveSightRange && dot + 0.000001f >= Mathf.Cos(EffectiveSightCone * 0.5f * Mathf.Deg2Rad);
+            _state.PlayerVisible = _archetype.FilterVisibility(_state.PlayerVisible, probe, ArchetypeContext);
             _state.PlayerHeard = false;
             if (_state.PlayerVisible)
             {
@@ -708,6 +789,9 @@ namespace Worsen.Domain.Hunter
                     _state.ExitAvailable ? _profile.ExitGoalUtility : 0f),
                 new GoapGoalDefinition((int)HunterGoal.BreakLoop, (ulong)HunterWorldFacts.LoopBroken,
                     _state.LoopDetected ? _profile.LoopGoalUtility : 0f) };
+            for (int i = 0; i < goals.Length; i++)
+                goals[i] = new GoapGoalDefinition(goals[i].Id, goals[i].Facts,
+                    _archetype.GoalUtility((HunterGoal)goals[i].Id, goals[i].Utility));
             GoapPlanResult plan = GoapPlannerUtility.Select(facts, goals, actions, out int selectedGoal);
             HunterAction chosen = plan.ActionIds.Length > 0 ? (HunterAction)plan.ActionIds[0] : HunterAction.Patrol;
             bool changed = chosen != _state.Action || selectedGoal != (int)_state.CurrentGoal || facts != _state.PlannedFacts || _state.ActionFailed;

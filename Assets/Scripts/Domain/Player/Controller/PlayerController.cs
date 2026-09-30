@@ -9,6 +9,7 @@
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Apply Session-timed healing/speed, clear slows and revive at the retained floor spawn.
+//   - Emit soft/hard landing severity independently of the stumble duration.
 //   - Compose trap and grab speed factors multiplicatively without sharing their lifetimes.
 //   - Consume bounded external velocity once after locomotion, regardless of hit grace.
 //   - Spend shield before health; never regenerate it or clear it at BeginFloorHealth.
@@ -714,7 +715,8 @@ namespace Worsen.Domain.Player
             if (stumble > 0f) StartStumble(Mathf.Max(stumble, _state.StumbleRemaining), 1f);
             _state.MovementState = _state.StumbleRemaining > 0f ? MovementState.Stumble : MovementState.Ground;
             _state.LandingImpactSpeed = -1f;
-            facts.Add(Fact(TraversalKind.Land, true, Vector3.down, _state.StumbleRemaining));
+            facts.Add(new PlayerTraversalFact(_state.Id, _state.Tick, TraversalKind.Land, true,
+                Vector3.down, _state.StumbleRemaining, impact > _profile.HardLandingThreshold ? 1f : 0f));
             AddNoise(_profile.TraversalLoudness, NoiseSourceKind.Landing);
         }
 

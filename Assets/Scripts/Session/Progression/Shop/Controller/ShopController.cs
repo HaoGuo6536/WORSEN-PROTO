@@ -9,6 +9,7 @@
 //   Controller (§2) · Session · Progression.Shop delegated subtree.
 // KEY RESPONSIBILITIES:
 //   - Cycle physical slots, spend uses and release capacity only on the final use.
+//   - Multiply new Golden Cake yield before rounding; carry fractions without re-multiplying them.
 //   - Filter and sample offers without replacement using an injected visit random stream.
 //   - Quote scaled prices, scarce rerolls and explicit unavailability reasons.
 //   - Reserve full-inventory purchases, then replace exactly one slot on confirmation.
@@ -269,10 +270,12 @@ namespace Worsen.Session.Progression.Shop
         public int Interest(int wallet, IReadOnlyActiveEffects active) => Stacks(active, "interest") == 0 ? 0 :
             (int)Math.Min(int.MaxValue - wallet, Math.Min(rules.InterestCap, Math.Floor(wallet * (decimal)rules.InterestFraction)));
 
-        public bool GoldenCredit(int wallet, int baseValue, IReadOnlyActiveEffects active, out int credit)
+        public bool GoldenCredit(int wallet, int baseValue, IReadOnlyActiveEffects active, out int credit, float shrineMultiplier = 1f)
         {
+            if (!float.IsFinite(shrineMultiplier) || shrineMultiplier < 1f || shrineMultiplier > 2f) { credit = 0; return false; }
             decimal yield = ((decimal)baseValue + (decimal)Stacks(active, "golden-touch") * rules.GoldenTouchBonus)
-                * (1m + (decimal)rules.BusinessYieldPerStack * Stacks(active, "business-license")) + state.GoldenRemainder;
+                * (1m + (decimal)rules.BusinessYieldPerStack * Stacks(active, "business-license"))
+                * (decimal)shrineMultiplier + state.GoldenRemainder;
             if (Math.Floor(yield) > int.MaxValue - wallet) { credit = 0; return false; }
             credit = (int)Math.Floor(yield);
             state.GoldenRemainder = yield - credit;
