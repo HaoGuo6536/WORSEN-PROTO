@@ -9,13 +9,10 @@
 //   Definitions (§5) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Describe one reproducible layout and its physical construction commands.
-//   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
-//   - Retain the effective spawn policy and immutable world-object construction plans.
-//   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
-//   - Carry kind-free shrine candidates for admitted floors; Shrine owns selection.
-//   - Bind gap-edge candidates to the first pocket room directly across their gap.
-//   - Retain storeys, directed vertical routes and permissioned navigation link plans.
-//   - Keep theme metadata, optional cages and threshold staging outside required edges.
+//   - Carry geometry commands, effective spawn policy and world-object plans.
+//   - Record footprints, pocket anchors and identified shrine/Passage sites.
+//   - Retain storeys, directed routes and permissioned navigation links.
+//   - Keep themes, organic shapes and the shared gimmick-room budget explicit.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
@@ -45,6 +42,8 @@ namespace Worsen.Domain.Procedural
 
     public sealed class ProceduralLayout
     {
+        public int GimmickBudget { get; internal set; } = int.MaxValue;
+        public IReadOnlyList<ProceduralOrganicRoom> OrganicRooms { get; internal set; } = System.Array.Empty<ProceduralOrganicRoom>();
         public ProceduralThemeData Theme { get; internal set; }
         public string ThemeId => Theme?.Id ?? "castle";
         public IReadOnlyList<ProceduralFreezePlan> FreezeRooms { get; internal set; } = System.Array.Empty<ProceduralFreezePlan>();
@@ -132,13 +131,14 @@ namespace Worsen.Domain.Procedural
     public readonly struct ProceduralRoomModule
     {
         public ProceduralRoomModule(int roomId, ProceduralModuleKind kind, bool alongX,
-            IReadOnlyList<Vector2Int> cells = null, int pocketId = 0)
-        { RoomId = roomId; Kind = kind; AlongX = alongX; Cells = cells; PocketId = pocketId; }
+            IReadOnlyList<Vector2Int> cells = null, int pocketId = 0, bool traversalObstacles = true)
+        { RoomId = roomId; Kind = kind; AlongX = alongX; Cells = cells; PocketId = pocketId; TraversalObstacles = traversalObstacles; }
         public int RoomId { get; }
         public ProceduralModuleKind Kind { get; }
         public bool AlongX { get; }
         public IReadOnlyList<Vector2Int> Cells { get; }
         public int PocketId { get; }
+        public bool TraversalObstacles { get; }
     }
 
     public readonly struct ProceduralShrineSite

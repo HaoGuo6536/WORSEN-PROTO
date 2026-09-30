@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Utility (§2b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Expand module cells into volumes, preserve pocket flags and validate required space.
+//   - Resolve carved or coarse cells, preserve pockets and validate required space.
 // DEPENDENCIES:
 //   - Core graph values and own layout definitions; no engine calls or siblings.
 // USAGE NOTES:
@@ -27,6 +27,8 @@ namespace Worsen.Domain.Procedural
     {
         public static IReadOnlyList<LevelRoom> Volumes(ProceduralLayout layout, LevelRoom room)
         {
+            if (layout.OrganicRooms.Any(r => r.RoomId == room.Id))
+                return room.Cells.Select(c => new LevelRoom(room.Id, c.center, c.size, pocket: room.Pocket)).ToArray();
             var module = layout.Modules?.FirstOrDefault(m => m.RoomId == room.Id) ?? default;
             if (module.Cells == null || module.Cells.Count == 0) return new[] { room };
             return module.Cells.Select(c => new LevelRoom(room.Id,
@@ -56,7 +58,8 @@ namespace Worsen.Domain.Procedural
                         throw new InvalidOperationException("Connected rooms and isolated pockets disagree with traversal edges.");
             }
             foreach (var anchor in layout.Graph.Anchors)
-                if (Pocket(anchor.RoomId) || !Volumes(layout, layout.Graph.Rooms.First(r => r.Id == anchor.RoomId))
+                if (Pocket(anchor.RoomId) || layout.OrganicRooms.Any(r => r.RoomId == anchor.RoomId && !ProceduralOrganicUtility.Clear(r, anchor.Position)) ||
+                    !Volumes(layout, layout.Graph.Rooms.First(r => r.Id == anchor.RoomId))
                     .Any(r => r.Bounds.Contains(anchor.Position)))
                     throw new InvalidOperationException("Required anchor is in a pocket or outside its footprint: " + anchor.Id);
             foreach (var anchor in layout.PocketAnchors)

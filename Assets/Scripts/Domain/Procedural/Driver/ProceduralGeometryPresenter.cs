@@ -8,10 +8,9 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Calculate collision/render blocks and navigation bounds without engine calls.
-//   - Include rotated ramp corners in the bounded navigation volume.
+//   - Calculate collision/render blocks and rotated navigation bounds without engine calls.
 //   - Seal every roof and the upper wall transitions between unequal room heights.
-//   - Tile occupied cells only; omit same-room seams and seal every gap-facing edge.
+//   - Tile coarse or organic footprints without same-room seams.
 //   - Frame gap views visually while retaining an unbroken wall collider/NavMesh barrier.
 //   - Add upper floors with real cutouts, climb staging and permissioned ramp collision.
 // DEPENDENCIES:
@@ -35,7 +34,8 @@ namespace Worsen.Domain.Procedural
             if (layout?.Graph == null || config == null || driver == null) throw new ArgumentNullException();
             Validate(config, driver);
             var blocks = new List<ProceduralBlock>();
-            foreach (var logicalRoom in layout.Graph.Rooms)
+            blocks.AddRange(new ProceduralOrganicShellPresenter().Build(layout, config, driver));
+            foreach (var logicalRoom in layout.Graph.Rooms.Where(r => !layout.OrganicRooms.Any(o => o.RoomId == r.Id)))
             foreach (var room in ProceduralFootprintUtility.Volumes(layout, logicalRoom))
             {
                 int tiles = config.CastleModules ? 3 : 1;
@@ -90,7 +90,8 @@ namespace Worsen.Domain.Procedural
                     Mathf.Abs(alongX ? door.Center.x - center.x : door.Center.z - center.z) < config.RoomSize * 0.5f)
                     openings.Add(door);
             }
-            if (openings.Count > 0 && openings[0].ToRoomId == room.Id)
+            if (openings.Count > 0 && openings[0].ToRoomId == room.Id &&
+                !layout.OrganicRooms.Any(r => r.RoomId == openings[0].FromRoomId))
             {
                 // The first room owns the apertures and shared wall below its roof.
                 // A taller neighbor owns the remaining band so no exterior gap remains.

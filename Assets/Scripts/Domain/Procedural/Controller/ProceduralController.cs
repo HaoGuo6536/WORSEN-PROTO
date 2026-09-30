@@ -9,17 +9,11 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Grow bounded room layouts, match door openings and validate reachability.
-//   - Produce stable room, edge and anchor identities and a comparable manifest.
-//   - Sample diverse geometry-backed candidates; leave required cake selection to Floor.
-//   - Keep player spawns outside cake pickup radii while preserving ordinary routes.
-//   - Publish exact footprint cells and pocket flags, retaining cells at higher ceilings.
-//   - Start each castle floor in its exit hub with a clear approach to the center door.
-//   - Enforce reusable first-contact validation and record deterministic distance relaxation.
-//   - Reserve gaps before growth; separate optional pocket anchors from required candidates.
-//   - Keep the initial hub/loop single-cell; weight subsequent rooms without size fallback.
-//   - Add extension-cell storeys, retain their directed manifest and reject stranded objectives.
-//   - Select independent theme content and stage validated threshold-freeze candidates.
+//   - Grow bounded layouts with stable identities and validated walking routes.
+//   - Sample supported cake sockets; leave required selection to Floor.
+//   - Protect hub spawns and exits while retaining first-contact validation.
+//   - Publish footprints, gaps, pockets and directed storeys in a seeded manifest.
+//   - Apply independently seeded themes, organic refinement and shared gimmick pacing.
 // DEPENDENCIES:
 //   - Core immutable level contracts and LevelGraphUtility; no Domain siblings.
 // USAGE NOTES:
@@ -60,7 +54,8 @@ namespace Worsen.Domain.Procedural
                 throw new ArgumentOutOfRangeException(nameof(optionalWindowMultiplier));
             int connectedCount = RoomCount(roundIndex);
             var footprints = GrowCells(connectedCount, roundIndex, out var gaps);
-            float height = _config.CastleModules ? _config.CastleHeight : _config.RoomHeight;
+            var theme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed));
+            float height = theme?.WallHeight ?? (_config.CastleModules ? _config.CastleHeight : _config.RoomHeight);
             var rooms = footprints.Select((cells, index) => new LevelRoom(index + 1,
                 new Vector3(_config.Origin.x + (cells.Min(c => c.x) + cells.Max(c => c.x)) * _config.RoomSize * 0.5f,
                     height * 0.5f, _config.Origin.y + (cells.Min(c => c.y) + cells.Max(c => c.y)) * _config.RoomSize * 0.5f),
@@ -72,8 +67,6 @@ namespace Worsen.Domain.Procedural
                     new Vector3(_config.RoomSize, height, _config.RoomSize))).ToArray(),
                 pocket: index >= connectedCount)).ToArray();
             var doors = CreateDoors(footprints, connectedCount, optionalWindowMultiplier);
-            var edges = doors.Select((door, index) => new LevelEdge(1001 + index,
-                door.FromRoomId, door.ToRoomId, true, door.IsOptional ? TraversalAccess.Player : TraversalAccess.All)).ToArray();
             int familyOffset = _random.Next(5);
             var modules = rooms.Select(room => new ProceduralRoomModule(room.Id,
                 !_config.CastleModules ? (ProceduralModuleKind)((room.Id - 1) % 3) :
@@ -81,17 +74,26 @@ namespace Worsen.Domain.Procedural
                 (ProceduralModuleKind)((int)ProceduralModuleKind.TorchGallery + (room.Id - 2 + familyOffset) % 5),
                 _random.Next(2) == 0, Array.AsReadOnly(footprints[room.Id - 1].ToArray()),
                 room.Id > connectedCount ? 1 : 0)).ToArray();
+            modules = ProceduralGimmickUtility.Reserve(modules, _config.Challenges, roundIndex,
+                new System.Random(LayoutSeed(runSeed, roundIndex)));
+            doors = doors.Where(d => !d.IsOptional ||
+                (modules[d.FromRoomId - 1].TraversalObstacles && modules[d.ToRoomId - 1].TraversalObstacles)).ToList();
+            var edges = doors.Select((door, index) => new LevelEdge(1001 + index,
+                door.FromRoomId, door.ToRoomId, true, door.IsOptional ? TraversalAccess.Player : TraversalAccess.All)).ToArray();
             if (_config.CastleModules)
                 foreach (var module in modules)
                 {
-                    if (module.Kind != ProceduralModuleKind.BrokenCloister && module.Kind != ProceduralModuleKind.BrokenGallery) continue;
+                    bool broad = module.Kind == ProceduralModuleKind.BrokenCloister || module.Kind == ProceduralModuleKind.BrokenGallery;
+                    float ceiling = theme == null ? (broad ? _config.HighCeilingHeight : height) :
+                        ProceduralGimmickUtility.IsTraversal(module) ? height * Mathf.Ceil((_config.StoreyHeight + 2.8f) / height) : height;
+                    if (ceiling == height) continue;
                     var room = rooms[module.RoomId - 1];
                     rooms[module.RoomId - 1] = new LevelRoom(room.Id,
-                        new Vector3(room.Center.x, _config.HighCeilingHeight * 0.5f, room.Center.z),
-                        new Vector3(room.Size.x, _config.HighCeilingHeight, room.Size.z),
+                        new Vector3(room.Center.x, ceiling * 0.5f, room.Center.z),
+                        new Vector3(room.Size.x, ceiling, room.Size.z),
                         cells: room.Cells.Select(cell => new Bounds(
-                            new Vector3(cell.center.x, _config.HighCeilingHeight * 0.5f, cell.center.z),
-                            new Vector3(cell.size.x, _config.HighCeilingHeight, cell.size.z))).ToArray(),
+                            new Vector3(cell.center.x, ceiling * 0.5f, cell.center.z),
+                            new Vector3(cell.size.x, ceiling, cell.size.z))).ToArray(),
                         pocket: room.Pocket);
                 }
             var allAnchors = CreateAnchors(rooms, modules, doors);
@@ -111,7 +113,8 @@ namespace Worsen.Domain.Procedural
             {
                 Seed = runSeed,
                 RoundIndex = roundIndex,
-                Theme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed)),
+                Theme = theme,
+                GimmickBudget = ProceduralGimmickUtility.Budget(_config.Challenges, roundIndex),
                 Graph = graph,
                 Cells = Array.AsReadOnly(footprints.SelectMany(c => c).ToArray()),
                 CellSize = _config.RoomSize,
@@ -126,10 +129,12 @@ namespace Worsen.Domain.Procedural
             };
             ProceduralStoreyUtility.Apply(layout, _config, _random);
             layout.GapSites = GapSites(layout);
+            ProceduralOrganicUtility.Apply(layout, _config, new System.Random(LayoutSeed(runSeed, roundIndex)));
             layout.Manifest = Manifest(layout);
             _state.Layout = layout; // Retain failed candidates for the existing retry journal.
             layout.HunterSpawnPositions = ProceduralSpawnUtility.Select(layout, _config,
-                ordered.Select(room => Approach(room, modules[room.Id - 1], 1f)).ToArray(),
+                ProceduralOrganicUtility.SpawnCandidates(layout,
+                    ordered.Select(room => Approach(room, modules[room.Id - 1], 1f)).ToArray()),
                 out int minimumRooms, out string spawnReport);
             layout.MinimumHunterSpawnRooms = minimumRooms;
             layout.SpawnValidationReport = spawnReport;
@@ -300,7 +305,7 @@ namespace Worsen.Domain.Procedural
             var portals = doors.Where(door => (door.FromRoomId == room.Id || door.ToRoomId == room.Id) &&
                 room.Bounds.Contains(door.Center)).ToArray();
             int baseId = 10000 + room.Id * 100 + cellIndex * 1000000;
-            bool raised = cellIndex == 0 && (module.Kind == ProceduralModuleKind.OpenStairHall ||
+            bool raised = module.TraversalObstacles && cellIndex == 0 && (module.Kind == ProceduralModuleKind.OpenStairHall ||
                 module.Kind == ProceduralModuleKind.SplitLevelLibrary || module.Kind == ProceduralModuleKind.BrokenGallery);
             var origin = new Vector3(room.Center.x, _config.AnchorHeight, room.Center.z);
             float side = _config.RoomSize * 0.5f - _config.CandidatePerimeterInset;
@@ -480,7 +485,7 @@ namespace Worsen.Domain.Procedural
             foreach (var module in layout.Modules)
             {
                 text.Append("|M:").Append(module.RoomId).Append(',').Append((int)module.Kind).Append(',').Append(module.AlongX ? 1 : 0)
-                    .Append(",pocket=").Append(module.PocketId);
+                    .Append(",pocket=").Append(module.PocketId).Append(",obstacles=").Append(module.TraversalObstacles ? 1 : 0);
                 foreach (var cell in module.Cells) text.Append(";cell=").Append(cell.x).Append(',').Append(cell.y);
             }
             foreach (var cell in layout.GapCells) text.Append("|Gap:").Append(cell.x).Append(',').Append(cell.y);
@@ -497,6 +502,8 @@ namespace Worsen.Domain.Procedural
             foreach (var spawn in layout.HunterSpawnPositions) { text.Append("|H:"); Append(text, spawn); }
             text.Append(ProceduralStoreyUtility.Manifest(layout, _config));
             text.Append(ProceduralThemeUtility.Manifest(layout.Theme));
+            text.Append("|GimmickBudget:").Append(layout.GimmickBudget);
+            text.Append(ProceduralOrganicUtility.Manifest(layout));
             text.Append(ProceduralFreezeUtility.Manifest(layout));
             return text.ToString();
         }

@@ -11,7 +11,7 @@
 //   - Sample ordinary doors with injected randomness, always excluding exit links.
 //   - Keep prop envelopes clear of shell geometry, objective anchors and main routes.
 //   - Produce stable Core snapshots and a culture-independent construction manifest.
-//   - Keep props on occupied cells and emit uniquely identified per-cell torch sockets.
+//   - Keep props on occupied cells; omit crowded organic sockets rather than block routes.
 // DEPENDENCIES:
 //   - Core contracts and own layout/config values; no Presentation dependency.
 // USAGE NOTES:
@@ -76,6 +76,8 @@ namespace Worsen.Domain.Procedural
                     var position = new Vector3(corner % 2 == 0 ? bounds.min.x + driver.KnockablePropInset : bounds.max.x - driver.KnockablePropInset,
                         size.y * 0.5f, corner < 2 ? bounds.min.z + driver.KnockablePropInset : bounds.max.z - driver.KnockablePropInset);
                     var envelope = new Bounds(position, size);
+                    if (!bounds.Contains(envelope.min) || !bounds.Contains(envelope.max)) continue;
+                    if (layout.OrganicRooms.Any(r => r.RoomId == room.Id && !ProceduralOrganicUtility.Clear(r, position))) continue;
                     if (blocks.Any(b => b.HasCollision && Overlaps(b, envelope)) ||
                         portals.Any(p => HorizontalDistance(p, position) < config.DoorWidth * 0.5f + radius + driver.NavSampleRadius) ||
                         layout.Graph.Anchors.Concat(layout.PocketAnchors).Any(a => a.RoomId == room.Id && HorizontalDistance(a.Position, position) < radius + driver.NavSampleRadius)) continue;
@@ -83,7 +85,8 @@ namespace Worsen.Domain.Procedural
                         InteractableKind.KnockableProp, room.Id, position, InteractableStateValue.Inactive), size));
                     count++;
                 }
-                if (count != config.KnockablePropsPerRoom) throw new InvalidOperationException("No safe prop sockets in room " + room.Id);
+                if (count != config.KnockablePropsPerRoom && !layout.OrganicRooms.Any(r => r.RoomId == room.Id))
+                    throw new InvalidOperationException("No safe prop sockets in room " + room.Id);
             }
             return Array.AsReadOnly(result.OrderBy(plan => plan.State.Id).ToArray());
         }

@@ -8,12 +8,12 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Create missing mirrored theme/challenge assets and wire the selected config.
+//   - Create missing theme/challenge/organic assets and wire the selected config.
 // DEPENDENCIES:
 //   - UnityEditor and Domain.Procedural only.
 // USAGE NOTES:
 //   Coordinator-only under the Unity publication lease. Refuses play/import/compile;
-//   changes no scenes and never auto-runs. Hospital remains provisional and disableable.
+//   changes no scenes and never auto-runs. Existing designer overrides are preserved.
 // ============================================================================
 using System;
 using UnityEditor;
@@ -35,9 +35,11 @@ namespace Worsen.Editor.Procedural
             EnsureFolder(folder);
             var themes = LoadOrCreate<ProceduralThemeConfig>(folder + "/ProceduralThemeConfig.asset");
             var challenges = LoadOrCreate<ProceduralChallengeConfig>(folder + "/ProceduralChallengeConfig.asset");
+            var organic = LoadOrCreate<ProceduralOrganicConfig>(folder + "/ProceduralOrganicConfig.asset");
             var settings = new SerializedObject(selected);
             if (settings.FindProperty("_themes").objectReferenceValue == null) settings.FindProperty("_themes").objectReferenceValue = themes;
             if (settings.FindProperty("_challenges").objectReferenceValue == null) settings.FindProperty("_challenges").objectReferenceValue = challenges;
+            if (settings.FindProperty("_organic").objectReferenceValue == null) settings.FindProperty("_organic").objectReferenceValue = organic;
             settings.ApplyModifiedProperties(); AssetDatabase.SaveAssetIfDirty(selected);
         }
         private static T LoadOrCreate<T>(string path) where T : ScriptableObject

@@ -9,7 +9,7 @@
 //   Utility (§2b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Replace one ground candidate with a clear doorway socket and prioritize its hunter.
-//   - Record a reproducible freeze plan only after the first-contact check succeeds.
+//   - Spend a shared gimmick slot only after the first-contact check succeeds.
 // DEPENDENCIES:
 //   - Core graph utility and own generation data only.
 // USAGE NOTES:
@@ -31,6 +31,8 @@ namespace Worsen.Domain.Procedural
             var tuning = config.Challenges;
             if (tuning == null || layout.RoundIndex < tuning.FreezeFirstRound ||
                 layout.Modules.Any(m => m.Kind == ProceduralModuleKind.MerchantRefuge)) return;
+            var occupied = ProceduralGimmickUtility.Rooms(layout);
+            if (occupied.Count >= layout.GimmickBudget) return;
             if (tuning.FreezeFirstRound < 1 || !(tuning.AudibleDistance > 0f) || float.IsInfinity(tuning.AudibleDistance))
                 throw new ArgumentException("Invalid freeze-room settings.");
             for (int i = 0; i < layout.Doors.Count; i++)
@@ -40,7 +42,8 @@ namespace Worsen.Domain.Procedural
                 foreach (int roomId in new[] { door.FromRoomId, door.ToRoomId })
                 {
                     int behind = roomId == door.FromRoomId ? door.ToRoomId : door.FromRoomId;
-                    if (behind == layout.Graph.ExitRoomId || roomId == layout.Graph.ExitRoomId) continue;
+                    if (behind == layout.Graph.ExitRoomId || roomId == layout.Graph.ExitRoomId || occupied.Contains(roomId) ||
+                        layout.OrganicRooms.Any(r => r.RoomId == roomId)) continue;
                     var reduced = LevelGraphUtility.Build(layout.Graph.Rooms.Where(r => r.Id != behind).ToArray(),
                         layout.Graph.Edges.Where(e => e.FromRoomId != behind && e.ToRoomId != behind).ToArray(),
                         layout.Graph.Anchors.Where(a => a.RoomId != behind).ToArray(), layout.Graph.ExitRoomId, layout.Graph.ExitPosition);

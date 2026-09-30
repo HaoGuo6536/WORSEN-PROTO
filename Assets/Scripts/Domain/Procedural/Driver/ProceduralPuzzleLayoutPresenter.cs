@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Select one seeded module and record its independent optional reward anchor.
+//   - Select a seeded module within the shared gimmick budget and record its reward.
 //   - Build cage and vault boxes that native navigation can validate before play.
 // DEPENDENCIES:
 //   - Own configs/layout and Core values only; no engine calls.
@@ -32,6 +32,10 @@ namespace Worsen.Domain.Procedural
         {
             if (c == null || layout.RoundIndex < c.PuzzleFirstRound || layout.Modules.Any(m => m.Kind == ProceduralModuleKind.MerchantRefuge))
                 return Array.Empty<ProceduralPuzzlePlan>();
+            var occupied = ProceduralGimmickUtility.Rooms(layout);
+            int budget = ProceduralGimmickUtility.Budget(c, layout.RoundIndex);
+            if (layout.GimmickBudget != int.MaxValue && occupied.Count >= budget)
+                return Array.Empty<ProceduralPuzzlePlan>();
             foreach (float v in new[] { c.LaneLength, c.LaneWidth, c.CageHeight, c.PanelThickness, c.ContactHeight,
                 c.VaultHeight, c.Clearance, c.NearbyRadius, c.SequenceSeconds, c.SegmentSeconds, c.MovingSpeed })
                 if (!(v > 0f) || float.IsInfinity(v)) throw new ArgumentException("Invalid puzzle dimensions/timing.");
@@ -40,7 +44,8 @@ namespace Worsen.Domain.Procedural
                 c.VaultHeight >= c.CageHeight || c.ContactHeight >= c.VaultHeight)
                 throw new ArgumentException("Puzzle does not fit the cell or base traversal envelope.");
             var kind = (ProceduralPuzzleKind)random.Next(4);
-            foreach (var module in layout.Modules.Where(m => m.PocketId == 0 && m.RoomId != layout.Graph.ExitRoomId))
+            foreach (var module in layout.Modules.Where(m => m.PocketId == 0 && m.RoomId != layout.Graph.ExitRoomId &&
+                (layout.GimmickBudget == int.MaxValue || !occupied.Contains(m.RoomId))))
             foreach (var cell in ProceduralFootprintUtility.Volumes(layout, layout.Graph.Rooms[module.RoomId - 1]))
             foreach (bool alongX in new[] { false, true })
             foreach (float offset in new[] { 0f, -(layout.CellSize - c.LaneLength) * 0.25f, (layout.CellSize - c.LaneLength) * 0.25f })
@@ -50,6 +55,7 @@ namespace Worsen.Domain.Procedural
                 var size = new Vector3(c.LaneWidth + 2f * c.Clearance, c.CageHeight, c.LaneLength + 2f * c.Clearance);
                 if (alongX) size = new Vector3(size.z, size.y, size.x);
                 var envelope = new Bounds(origin + Vector3.up * (c.CageHeight * 0.5f + c.PanelThickness), size);
+                if (!cell.Bounds.Contains(envelope.min) || !cell.Bounds.Contains(envelope.max)) continue;
                 if (blocks.Any(b => b.HasCollision && WorldBounds(b).Intersects(envelope)) ||
                     layout.Interactables.Any(p => p.State.Kind == InteractableKind.KnockableProp &&
                         new Bounds(p.State.Position, p.Size).Intersects(envelope)) ||
@@ -59,6 +65,8 @@ namespace Worsen.Domain.Procedural
                 var reward = new LevelAnchor(id, module.RoomId, CakeAnchorType.Risk, origin + axis * (c.LaneLength * 0.375f));
                 return Array.AsReadOnly(new[] { new ProceduralPuzzlePlan(id, module.RoomId, kind, origin, alongX, reward) });
             }
+            // A maximum is not a quota: a narrow organic floor need not invent a cage.
+            if (layout.OrganicRooms.Count != 0) return Array.Empty<ProceduralPuzzlePlan>();
             throw new InvalidOperationException("No clear optional puzzle lane; retry seed.");
         }
         public Vector3 Point(ProceduralPuzzlePlan plan, ProceduralChallengeConfig c, int index)

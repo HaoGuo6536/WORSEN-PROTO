@@ -12,8 +12,8 @@
 // DEPENDENCIES:
 //   - Unity serialization only.
 // USAGE NOTES:
-//   One optional cage per eligible floor and at most one freeze doorway. Shared by
-//   the layout utility and puzzle sub-driver; all new physical tunables live here.
+//   Traversal, freeze and puzzle rooms share one floor budget. Null references
+//   retain the authored legacy fixtures; deterministic content setup wires pacing.
 // ============================================================================
 using UnityEngine;
 
@@ -22,7 +22,13 @@ namespace Worsen.Domain.Procedural
     [CreateAssetMenu(menuName = "Worsen/Procedural/Challenge Config")]
     public sealed class ProceduralChallengeConfig : ScriptableObject
     {
-        [SerializeField] private int _puzzleFirstRound = 4, _freezeFirstRound = 4;
+        [SerializeField] private int _puzzleFirstRound = 3, _freezeFirstRound = 3;
+        [SerializeField] private int _gimmickFirstRound = 3, _gimmickFullRound = 8;
+        [SerializeField] private int _gimmickInitialBudget = 1, _gimmickMaximumBudget = 3;
+        public int GimmickFirstRound => _gimmickFirstRound;
+        public int GimmickFullRound => _gimmickFullRound;
+        public int GimmickInitialBudget => _gimmickInitialBudget;
+        public int GimmickMaximumBudget => _gimmickMaximumBudget;
         [SerializeField] private float _sequenceSeconds = 6f, _segmentSeconds = 1.5f;
         [SerializeField] private float _movingSpeed = 2f, _nearbyRadius = 6f;
         [SerializeField] private float _laneLength = 8f, _laneWidth = 1.6f;
