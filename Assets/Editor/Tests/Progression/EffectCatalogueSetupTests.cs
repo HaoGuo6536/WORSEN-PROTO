@@ -22,6 +22,7 @@ using Worsen.Editor.Progression;
 using Worsen.Session.Progression;
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EffectCatalogueSetupTests
     {
         [Test]

@@ -34,6 +34,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class OwnerEconomyDecisionsTests
     {
         private ProgressionConfig config;

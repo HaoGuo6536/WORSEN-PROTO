@@ -22,6 +22,7 @@ using Worsen.Core;
 using Worsen.Editor.Audio;
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterRosterAudioSetupTests
     {
         private const string Clip = "| clip:a | Assets/External/Test/a.wav | 1 | -3 | -20 | fixture |\n";
