@@ -16,6 +16,7 @@
 //   - Verify timed bail, cancellation and death without granting cakes or collapse.
 //   - Keep the exit permanently safe; cover warning pulses, optional losses and opt-in collapse hooks.
 //   - Keep pockets dormant until activation and reject room membership inside missing footprint cells.
+//   - Advance pocket collapse through each configured phase boundary, independently of the room interval.
 // DEPENDENCIES:
 //   - Core level/floor values and Domain Floor pure classes.
 //   - Domain Player read-only interface implemented by an immutable fixture.
@@ -787,15 +788,19 @@ namespace Worsen.Tests.Floor
             Assert.That(fixture.Controller.ActivatePocket(2), Is.False, "Repeated bridge facts cannot reset the timer.");
             AssertPhases(fixture.Controller.Tick(.5f, 3), new[] { 2 }, new[] { RoomPhase.Telegraph });
             Assert.That(fixture.Controller.Destruction(2).Progress, Is.Zero);
-            fixture.Controller.Tick(14f, 4);
+            AssertPhases(fixture.Controller.Tick(config.TelegraphDuration, 4), new[] { 2 }, new[] { RoomPhase.Tearing });
+            AssertPhases(fixture.Controller.Tick(config.TearingDuration, 5), new[] { 2 }, new[] { RoomPhase.Encroaching });
+            Assert.That(fixture.Controller.Tick(config.EncroachingDuration - .5f, 6), Is.Empty);
+            Assert.That(fixture.State.RoomPhases[2], Is.EqualTo(RoomPhase.Encroaching));
+            AssertPhases(fixture.Controller.Tick(.5f, 7), new[] { 2 }, new[] { RoomPhase.Closed });
             Assert.That(fixture.State.RoomPhases[2], Is.EqualTo(RoomPhase.Closed));
             Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
             CollectAll(fixture);
-            AssertPhases(fixture.Controller.Tick(0f, 5), new[] { 1 }, new[] { RoomPhase.Telegraph });
-            fixture.Controller.Tick(100f, 6);
+            AssertPhases(fixture.Controller.Tick(0f, 8), new[] { 1 }, new[] { RoomPhase.Telegraph });
+            fixture.Controller.Tick(100f, 9);
             Assert.That(fixture.State.RoomPhases[3], Is.EqualTo(RoomPhase.Open));
             fixture.Controller.Initialize(graph, Players());
-            Assert.That(fixture.Controller.Tick(100f, 7), Is.Empty);
+            Assert.That(fixture.Controller.Tick(100f, 10), Is.Empty);
             Assert.That(fixture.State.RoomPhases[2], Is.EqualTo(RoomPhase.Open));
             Assert.That(fixture.Controller.ActivatePocket(2), Is.True);
         }

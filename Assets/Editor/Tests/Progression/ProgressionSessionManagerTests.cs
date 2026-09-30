@@ -12,11 +12,14 @@
 //   - Verify paired immutable effects events and state retention across repeated initialization.
 //   - Confirm catalogue purchases, explicit new seeds and deterministic replay restarts.
 //   - Require pure intervening floors and full floor-start health at the shop.
+//   - Bind an isolated catalogue and shop config; diagnose missing reflected fields explicitly.
 // DEPENDENCIES:
-//   - Core contracts, Session Progression, NUnit and Unity Test Framework.
+//   - Core contracts, Session Progression/Shop configs, NUnit and Unity Test Framework.
 // USAGE NOTES:
 //   Requires the exclusive Unity lease. Uses a temporary test scene and objects;
 //   it does not generate geometry, edit assets or validate navigation.
+//   Allocate captured event lists in a fresh method after EnterPlayMode reload;
+//   the test runner restores the iterator position, not its compiler-generated closure.
 // ============================================================================
 using System.Collections;
 using System.Collections.Generic;
@@ -26,6 +29,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Worsen.Core;
 using Worsen.Session.Progression;
+using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Tests.Progression
 {
@@ -35,14 +39,17 @@ namespace Worsen.Tests.Progression
         public IEnumerator CanonicalManagerPublishesGenerationOnceAndRetainsUntilExplicitRestart()
         {
             yield return new EnterPlayMode();
+            ExerciseCanonicalManager();
+        }
+
+        private static void ExerciseCanonicalManager()
+        {
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
             var owner = new GameObject("Progression Session test");
             var duplicateOwner = new GameObject("Duplicate Progression Session test");
             var config = ScriptableObject.CreateInstance<ProgressionConfig>();
             var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
-            typeof(EffectCatalogueConfig).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(catalogue,
-                new[] { new EffectCatalogueEntry("wax-ward", EffectKind.Consumable, FearAxis.Agency, "Wax Ward", "Breaks a grab.", price: 4) });
-            typeof(ProgressionConfig).GetField("_effectCatalogue", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, catalogue);
+            var shop = ScriptableObject.CreateInstance<ShopConfig>();
             var snapshots = new List<ProgressionSnapshot>();
             var effectsSnapshots = new List<ProgressionEffectsSnapshot>();
             System.Action<ProgressionSnapshot, IReadOnlyActiveEffects> collectEffects = (snapshot, effects) =>
@@ -51,6 +58,12 @@ namespace Worsen.Tests.Progression
             ProgressionSessionManager manager = null;
             try
             {
+                SetField(catalogue, "_entries", new[] {
+                    new EffectCatalogueEntry("wax-ward", EffectKind.Consumable, FearAxis.Agency, "Wax Ward", "Breaks a grab.", price: 4) });
+                SetField(config, "_effectCatalogue", catalogue);
+                SetField(config, "_shopConfig", shop);
+                Assert.That(config.EffectCatalogue, Is.SameAs(catalogue));
+                Assert.That(config.ShopConfig, Is.SameAs(shop));
                 manager = owner.AddComponent<ProgressionSessionManager>().Initialize(config, 412);
                 manager.SnapshotChanged += snapshots.Add;
                 manager.EffectsSnapshotChanged += collectEffects;
@@ -84,6 +97,10 @@ namespace Worsen.Tests.Progression
                 Assert.That(requests[2].Effects.Health, Is.EqualTo(100f));
                 Assert.That(requests[2].Effects.ActiveThreatBudget, Is.Zero);
                 Assert.That(manager.ConfirmFloorReady(requests[2].GenerationId), Is.True);
+                Assert.That(manager.Snapshot.Offers.Count, Is.EqualTo(1));
+                Assert.That(manager.Snapshot.Offers[0].Id, Is.EqualTo("wax-ward"));
+                Assert.That(manager.Snapshot.Offers[0].Price, Is.EqualTo(manager.Snapshot.Wallet),
+                    "The isolated round-three shop spends the six collected Golden Cakes.");
                 int beforePurchase = snapshots.Count;
                 Assert.That(manager.Purchase("wax-ward", manager.Snapshot.Revision), Is.True);
                 Assert.That(snapshots.Count, Is.EqualTo(beforePurchase + 1));
@@ -137,6 +154,7 @@ namespace Worsen.Tests.Progression
                 Object.DestroyImmediate(owner);
                 Object.DestroyImmediate(config);
                 Object.DestroyImmediate(catalogue);
+                Object.DestroyImmediate(shop);
             }
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
         }
@@ -195,6 +213,13 @@ namespace Worsen.Tests.Progression
                 Object.DestroyImmediate(config);
             }
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
+        }
+
+        private static void SetField(object target, string name, object value)
+        {
+            FieldInfo field = target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "Missing fixture field " + target.GetType().Name + "." + name);
+            field.SetValue(target, value);
         }
 
         private static void CommitFirstGeneration(ProgressionSessionManager manager)

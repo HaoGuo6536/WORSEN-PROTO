@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Register optional gold sockets and avoid duplicate spawns when collapse creates ordinary gold.
+//   - Push cosmetic hand look tags into owned room visuals without changing probes.
 //   - Build tiered candle-lit cakes independently of unchanged pickup triggers; retain authored art overrides.
 //   - Tint owned golden material copies while retaining authored cake textures and alpha.
 //   - Own Lumen glow layers and a candle point light; warnings and exit remain fake-light only.
@@ -103,9 +105,17 @@ namespace Worsen.Domain.Floor
         public void SpawnGoldenCakes(IReadOnlyList<LevelAnchor> anchors)
         {
             OnDisable();
-            foreach (var anchor in anchors) BuildPickup(anchor, PickupKind.GoldenCake);
+            foreach (var anchor in anchors)
+            {
+                if (_state.Pickups.Exists(p => p != null && p.AnchorId == anchor.Id && p.Kind == PickupKind.GoldenCake)) continue;
+                _state.Anchors[anchor.Id] = anchor;
+                BuildPickup(anchor, PickupKind.GoldenCake);
+            }
             if (isActiveAndEnabled) OnEnable();
         }
+
+        public void SetHandLook(string look)
+        { foreach (var room in _state.Rooms.Values) room.SetHandLook(look); }
 
         public void RemoveTrap(int id) { if (_state.Traps.TryGetValue(id, out var trap)) trap.gameObject.SetActive(false); }
         public void PlayTrapTick(int id, float volume) { if (_state.Traps.TryGetValue(id, out var trap)) trap.PlayTick(volume); }

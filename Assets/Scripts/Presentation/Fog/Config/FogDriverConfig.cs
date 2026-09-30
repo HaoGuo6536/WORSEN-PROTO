@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Presentation · Fog.
 // KEY RESPONSIBILITIES:
+//   - Define the provisional cold hospital palette independently of density and progress.
 //   - Bound texture memory, update frequency, portal shape and absorption.
 // DEPENDENCIES:
 //   - UnityEngine serialized values only.
@@ -35,6 +36,10 @@ namespace Worsen.Presentation.Fog
         [SerializeField, Range(0f, 1f)] private float _tendrilStrength = .35f;
         [SerializeField, Min(.1f)] private float _tendrilWavelength = 3f;
         [SerializeField] private Color _bodyColor = Color.black;
+        [SerializeField] private Color _coldBodyColor = new Color(.008f, .018f, .025f, 1f);
+        [SerializeField] private Color _coldThinColor = new Color(.22f, .4f, .5f, 1f);
+        public Color ColdBodyColor => _coldBodyColor;
+        public Color ColdThinColor => _coldThinColor;
         [SerializeField] private Color _thinColor = new Color(.18f, .32f, .45f, 1f);
         [SerializeField, Min(0f)] private float _glowIntensity = .06f;
         [SerializeField, Range(.01f, .9f)] private float _thinThreshold = .25f;

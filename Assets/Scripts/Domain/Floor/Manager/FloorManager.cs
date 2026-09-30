@@ -8,7 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
-//   - Snapshot the real round and collapse hooks; publish white guidance before Golden Sense.
+//   - Spawn solved puzzle gold once and forward freeze priorities and cosmetic hand looks.
+//   - Snapshot round/collapse hooks; publish the Controller's white-first guidance list.
 //   - Publish H1 guidance, trap contacts and shared trap noise without routing foreign effects.
 //   - Spawn gold at collapse start even when Greedy Door delays the physical exit.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
@@ -71,7 +72,8 @@ namespace Worsen.Domain.Floor
 
         private void Awake() { if (_driver == null) _driver = GetComponent<FloorDriver>(); }
         public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random,
-            int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default, bool waxHeart = false)
+            int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default, bool waxHeart = false,
+            IReadOnlyCollection<int> preferredAnchors = null, IReadOnlyCollection<int> earlyCollapseRooms = null, string handLook = null)
         {
             if (level == null || !level.IsReady) throw new InvalidOperationException("Floor requires a ready authored Level.");
             Teardown();
@@ -82,14 +84,28 @@ namespace Worsen.Domain.Floor
             try
             {
                 _controller = new FloorController(_state, _config, random);
-                _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks, waxHeart);
+                _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks, waxHeart,
+                    preferredAnchors, earlyCollapseRooms);
                 _hands = new FloorHandController(_state.Hands, _config);
                 _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps);
+                SetHandLook(handLook);
                 if (isActiveAndEnabled) OnEnable();
                 RefreshCue();
             }
             catch { Teardown(); throw; }
         }
+
+        public bool RegisterPuzzleReward(int puzzleId, int anchorId, Vector3 position)
+            => _controller != null && _controller.RegisterPuzzleReward(puzzleId, anchorId, position);
+
+        public bool SolvePuzzle(int puzzleId, int roomId, int anchorId)
+        {
+            if (_controller == null || !_controller.SolvePuzzle(puzzleId, roomId, anchorId, out var reward)) return false;
+            _driver.SpawnGoldenCakes(new[] { reward });
+            RefreshCue();
+            return true;
+        }
+        public void SetHandLook(string look) => _driver?.SetHandLook(look);
 
         public void Tick(float dt, long tick)
         {
@@ -315,19 +331,17 @@ namespace Worsen.Domain.Floor
                 else foreach (var anchor in _state.ActiveCakeAnchors) paths.Add(_driver.QueryPath(anchor.Id, player.Position, anchor.Position));
             }
             var display = owner.SelectCue(paths, _driver.OpeningProgress(_state.ExitState == ExitState.Open));
-            var targets = new List<GuidanceTarget>();
+            GuidanceTarget? goldenTarget = null;
             bool fallback = _driver.IsDirectionFallback(_state.CueAnchorId) || _driver.IsDirectionHeld(_state.CueAnchorId);
-            // Stable channel order is a public contract: objective first, optional gold second.
-            if (owner.TryWhiteGuidance(fallback, out var white)) targets.Add(white);
             if (player != null && owner.TryGoldenTarget(player.Position, out var golden))
             {
                 var path = _driver.QueryPath(golden.Id, player.Position, golden.Position);
                 if (!float.IsNaN(path.Length) && !float.IsInfinity(path.Length))
-                    targets.Add(new GuidanceTarget(GuidanceKind.GoldenSense, path.Direction, golden.Position, golden.Id,
-                        isFallback: _driver.IsDirectionFallback(golden.Id) || _driver.IsDirectionHeld(golden.Id)));
+                    goldenTarget = new GuidanceTarget(GuidanceKind.GoldenSense, path.Direction, golden.Position, golden.Id,
+                        isFallback: _driver.IsDirectionFallback(golden.Id) || _driver.IsDirectionHeld(golden.Id));
             }
             // A read-only snapshot, including empty, replaces both channels atomically.
-            OnGuidanceChanged?.Invoke(targets.AsReadOnly());
+            OnGuidanceChanged?.Invoke(owner.GuidanceTargets(fallback, goldenTarget));
             if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
         }
     }
