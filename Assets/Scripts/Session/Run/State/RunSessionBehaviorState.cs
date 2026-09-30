@@ -16,7 +16,7 @@
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
 //   - Hold pending input so button edges and look deltas survive between ticks.
 //   - Retain capture lifecycle so closing a run is idempotent.
-//   - Retain the pending escape's bail flag until completion or scene reset.
+
 //
 // DEPENDENCIES:
 //   - Core InputFrame, RunPhase, and SceneKey value types only.
@@ -67,7 +67,7 @@ namespace Worsen.Session.Run
         public double ChaseStartedAt { get; internal set; }
         public double TotalChaseSeconds { get; internal set; }
         public RunEndReason PendingEndReason { get; internal set; }
-        public bool PendingBailed { get; internal set; }
+
         public EntityId DeadPlayer { get; internal set; }
         public Vector3 KillerPosition { get; internal set; }
         public long TelemetryEventId { get; internal set; }

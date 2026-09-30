@@ -11,18 +11,11 @@
 //   Sub-driver (§7e), owned by AudioDriver · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Apply named roster facts in the existing pool, exact timing tells and config-driven zone filters.
-//   - Apply runtime music/effects gains to all pooled, scheduled and ambience sources.
-//   - Stop active enemy voices on player death and reject late enemy feedback while preserving the player's death cue.
-//   - Enforce category limits, timed mix hooks, protected tells and rare false positives.
-//   - Own a bounded source pool, attenuation filters and five non-diegetic bed/music layers.
-//   - Schedule Run 1 into Run 2 without frame-boundary gaps; cancel pending playback on end/reset.
-//   - Refresh spatial loop position/gain without restarting its clip or changing pitch.
-//   - Apply the pure soundscape Presenter and clear playback on disable or reset.
-//   - Supply the seeded cosmetic random source to music loss-episode decisions.
-//   - Stop gameplay loops immediately on death while preserving ambience and one-shots.
-//   - Release each stopped emitter's clip and loop state as well as its voice lease.
-//   - Replace aggregate chase snapshots so obsolete hunters cannot retain music belief.
+//   - Apply roster cues, exact tells, zone filters and confirmed hand versus hunter death cues.
+//   - Enforce category budgets and spatial attenuation through the pure presentation stack.
+//   - Own pooled sources and scheduled adaptive music, releasing playback on reset/teardown.
+//   - Apply runtime gains, pause and living-state guards without altering configs.
+//   - Replace chase snapshots and supply seeded cosmetic timing to music decisions.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -182,9 +175,9 @@ namespace Worsen.Presentation.Audio
         public void ObserveProgressionEvent(ProgressionEventFact fact)
         { if (_state != null) { _rosterPresenter.Mutation(_roster, fact); FlushTells(); } }
         public void ObserveHit(HunterHit fact) { _roster.LastAttacker = fact.Hunter; }
-        public bool PlayDeath()
+        public bool PlayDeath(bool handDeath = false)
         {
-            if (!_roster.LastAttacker.IsValid) return PlayLocal(CueId.Death);
+            if (handDeath || !_roster.LastAttacker.IsValid) return PlayLocal(CueId.Death);
             string key = _roster.Archetypes.TryGetValue(_roster.LastAttacker, out var archetype) ? archetype : "hunter";
             return PlayRoster(new AudioRosterCommand { Hunter = _roster.LastAttacker, Id = key + ".death", Slot = HunterCueSlot.DeathSting, Gain = 1f, Pitch = 1f, Exact = true });
         }

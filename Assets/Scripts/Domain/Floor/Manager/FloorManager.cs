@@ -12,7 +12,7 @@
 //   - Spawn ordinary, bonus and optional rewards through the shared pickup lifecycle.
 //   - Publish fixed-total counters, guidance, pickup/loss facts and exit progress.
 //   - Route staged collapse, traps, hands, hearing and boundary contacts upward.
-//   - Resolve exit contacts and terminal bail/escape facts with paired subscriptions.
+//   - Resolve open-exit contacts with paired subscriptions; locked doors never end a floor.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -20,9 +20,7 @@
 //   Generated required-count overrides apply only when room density is disabled.
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
-//   Door integration must report locked contact and LeaveExit when its last player
-//   collider leaves. OnEscapeResolved carries (exit fact, bailed); consumers must
-//   use it instead of OnExitReached to preserve the penalty through run resolution.
+//   OnExitReached is the sole escape fact, admitted only after normal opening.
 //   OnBoundaryContact carries player, room, outward acceleration (m/s squared),
 //   boundary point and tick. Player's motion owner must enforce the boundary; Floor
 //   never writes a foreign Transform or Rigidbody. Hit throw travels with OnCollapseHand.
@@ -49,7 +47,7 @@ namespace Worsen.Domain.Floor
         public event Action<PickupCollectedFact> OnPickupCollected;
         public event Action<RoomPhaseChangedFact> OnRoomPhaseChanged;
         public event Action<ExitReachedFact> OnExitReached;
-        public event Action<ExitReachedFact, bool> OnEscapeResolved;
+
         public event Action<FloorLethalContactFact> OnLethalContact;
         public event Action<FloorDisplaySnapshot> OnDisplayChanged;
         public event Action<long> OnExitOpened;
@@ -113,16 +111,7 @@ namespace Worsen.Domain.Floor
         {
             if (_controller == null) return;
             var owner = _controller;
-            _driver.RefreshExitContacts();
-            if (!ReferenceEquals(owner, _controller)) return;
-            if (owner.TickExitHold(dt, tick, out var bail))
-            {
-                _driver.PresentBail();
-                var display = owner.Snapshot(_driver.OpeningProgress(true));
-                OnEscapeResolved?.Invoke(bail, true);
-                if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
-                return;
-            }
+
             if (_state.Ended) return;
             var before = _state.ExitState;
             PublishRoomTransitions(_controller.Tick(dt, tick));
@@ -225,13 +214,11 @@ namespace Worsen.Domain.Floor
             if (owner != null && owner.ContactExit(playerId, _state.Tick, out var fact))
             {
                 var display = Snapshot();
-                OnEscapeResolved?.Invoke(fact, false);
-                if (!ReferenceEquals(owner, _controller)) return;
                 OnExitReached?.Invoke(fact);
                 if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
             }
         }
-        public void LeaveExit(EntityId playerId) => _controller?.LeaveExit(playerId);
+
         public void Teardown()
         {
             OnDisable();
@@ -247,17 +234,17 @@ namespace Worsen.Domain.Floor
             _driver.TrapContact -= HandleTrap; _driver.TrapContact += HandleTrap;
 
             _driver.ExitContact -= HandleExit; _driver.ExitContact += HandleExit;
-            _driver.ExitDeparted -= LeaveExit; _driver.ExitDeparted += LeaveExit;
+
         }
         private void OnDisable()
         {
-            _controller?.CancelExitHolds();
+
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup;
             _driver.TrapContact -= HandleTrap;
 
             _driver.ExitContact -= HandleExit;
-            _driver.ExitDeparted -= LeaveExit;
+
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => Collect(Resolve(other), anchor, kind);

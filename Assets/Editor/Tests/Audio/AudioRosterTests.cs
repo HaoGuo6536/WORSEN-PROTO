@@ -86,6 +86,19 @@ namespace Worsen.Tests.Audio
             Assert.That(command.Id, Is.EqualTo("hunter.cake-reaction"));
             Assert.That(_presenter.Habit(_roster, cake, out _), Is.False);
         }
+        [TestCase(false)] [TestCase(true)]
+        public void DeathSelectsHandCueOrRetainedHunterSting(bool handDeath)
+        {
+            var hunter = new EntityId(4);
+            _driver.ObserveHunter(new HunterFeedbackEvent(hunter, "echo", HunterFeedbackKind.LightReaction, Vector3.one, 1));
+            _driver.ObserveHit(new HunterHit(hunter, new EntityId(7), 10, 1, Vector3.one));
+            Assert.That(_driver.PlayDeath(handDeath), Is.True);
+            if (handDeath)
+                Assert.That(Pool.Voices.Any(v => v.Remaining > 0 && v.Cue == (int)CueId.Death && v.Emitter == 0), Is.True);
+            else
+                Assert.That(Pool.Voices.Any(v => v.Remaining > 0 && v.Emitter == 4 && v.Catalogue.Slot == (int)HunterCueSlot.DeathSting), Is.True);
+        }
+
         [Test]
         public void ReplayBorrowsFootstepsButNotThePlayerSlotAndKeepsSuppliedPitch()
         {

@@ -2,7 +2,7 @@
 // FloorBehaviorState.cs
 // ============================================================================
 // PURPOSE:
-//   Owns counters, selected anchors, scheduled room changes and per-player exit holds.
+//   Owns counters, selected anchors, scheduled room changes and terminal outcome state.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
@@ -12,7 +12,7 @@
 //   - Separate optional puzzle/Passage rewards from exit-quota accounting.
 //   - Hold seeded collapse schedules, pocket activation and hand contact state.
 //   - Retain traps, losses, guidance and floor-scoped hooks.
-//   - Retain exit holds and terminal outcome state until reset.
+//   - Retain terminal outcome state until reset.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -63,7 +63,7 @@ namespace Worsen.Domain.Floor
         internal readonly HashSet<int> OptionalCrackedRooms = new HashSet<int>();
         internal readonly HashSet<int> CollectedCakes = new HashSet<int>();
         internal readonly HashSet<int> CollectedGoldenCakes = new HashSet<int>();
-        internal readonly Dictionary<EntityId, double> ExitHolds = new Dictionary<EntityId, double>();
+
         internal readonly List<FloorScheduledTransition> Schedule = new List<FloorScheduledTransition>();
         internal IReadOnlyList<IReadOnlyPlayerState> Players = Array.Empty<IReadOnlyPlayerState>();
         internal LevelGraph Graph;

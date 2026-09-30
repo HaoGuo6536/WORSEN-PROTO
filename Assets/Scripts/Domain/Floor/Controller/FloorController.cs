@@ -12,7 +12,7 @@
 //   - Accept one-shot pickups and optional rewards, publishing counts and hearing facts.
 //   - Schedule route-safe collapse and losses while preserving the exit room.
 //   - Evaluate Greedy Door against original gold in rooms not fully collapsed.
-//   - Compute guidance, trap timing and locked-exit holds from injected inputs.
+//   - Compute guidance and trap timing; admit only normal open-exit contact.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -26,8 +26,7 @@
 //   Faster/Shuffled Collapse are explicit default-off initialization hooks. Shuffle
 //   permutes all ordinary rooms, deferring the occupied shortest routes until vacated.
 //   Unknown occupancy defers collapse, never guesses a safe route. Wax Heart is one charge per floor.
-//   ContactExit begins a locked hold; LeaveExit cancels it. TickExitHold receives
-//   elapsed contact time once per simulation step and returns only bailed escapes.
+//   ContactExit ignores locked contact regardless of elapsed time.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -228,7 +227,6 @@ namespace Worsen.Domain.Floor
                 _state.MutableActiveAnchors.RemoveAll(value => value.Id == anchorId);
                 if (!_state.CollapseStarted && _state.CakeCount == _state.RequiredCakeCount)
                 {
-                    CancelExitHolds();
                     _state.CollapseStarted = true;
                     _state.MutableActiveAnchors.Clear();
                     _state.CollapseElapsed = 0d;
@@ -389,39 +387,10 @@ namespace Worsen.Domain.Floor
         {
             fact = default;
             if (!_state.IsReady || _state.Ended || !LivingPlayer(id)) return false;
-            if (_state.ExitState == ExitState.Locked)
-            {
-                RequirePositive(_config.EarlyBailHoldDuration, nameof(_config.EarlyBailHoldDuration));
-                if (!_state.ExitHolds.ContainsKey(id)) _state.ExitHolds.Add(id, 0d);
-                return false;
-            }
             if (_state.ExitState != ExitState.Open) return false;
             _state.Ended = true;
-            CancelExitHolds();
             fact = new ExitReachedFact(id, tick);
             return true;
-        }
-
-        public void LeaveExit(EntityId id) => _state.ExitHolds.Remove(id);
-        public void CancelExitHolds() => _state.ExitHolds.Clear();
-
-        public bool TickExitHold(float dt, long tick, out ExitReachedFact fact)
-        {
-            if (!Finite(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
-            fact = default;
-            if (!_state.IsReady || _state.Ended || _state.ExitState != ExitState.Locked)
-            { CancelExitHolds(); return false; }
-            foreach (var id in _state.ExitHolds.Keys.OrderBy(value => value.Value).ToArray())
-            {
-                if (!LivingPlayer(id)) { LeaveExit(id); continue; }
-                _state.ExitHolds[id] += dt;
-                if (_state.ExitHolds[id] < _config.EarlyBailHoldDuration) continue;
-                _state.Ended = true;
-                CancelExitHolds();
-                fact = new ExitReachedFact(id, tick);
-                return true;
-            }
-            return false;
         }
 
         // Room occupancy itself is never a kill. Only the hand controller can confirm
@@ -433,7 +402,6 @@ namespace Worsen.Domain.Floor
                 (phase != RoomPhase.Tearing && phase != RoomPhase.Encroaching && phase != RoomPhase.Closed) ||
                 !_state.Players.Any(player => player != null && player.Id == id && !player.IsAlive)) return false;
             _state.Ended = true;
-            CancelExitHolds();
             fact = new FloorLethalContactFact(id, roomId, tick);
             return true;
         }
@@ -480,7 +448,6 @@ namespace Worsen.Domain.Floor
             _state.PocketRooms.Clear(); _state.PocketStarts.Clear();
             _state.PendingCollapseRooms.Clear(); _state.ShuffledCollapse = false; _state.NextShuffledStart = 0d;
             _state.Hands.WaxHeartAvailable = false; _state.Round = 0;
-            CancelExitHolds();
             _state.IsReady = false; _state.Ended = false; _state.Tick = 0;
             _state.CakeCount = 0; _state.GoldenCakeCount = 0; _state.RequiredCakeCount = 0;
             _state.ExitState = ExitState.Locked; _state.CollapseElapsed = 0d; _state.CueElapsed = 0d; _state.NextTransition = 0;
@@ -573,7 +540,7 @@ namespace Worsen.Domain.Floor
             bool quota = collected > 0 && collected >= Mathf.CeilToInt(possible * _config.GreedyDoorShare);
             if (!_state.CakeHooks.GreedyDoor || !_state.GoldenAnchors.Any(a => !OptionalGold(a.Id)) || quota ||
                 (_state.PendingCollapseRooms.Count == 0 && _state.NextTransition == _state.Schedule.Count))
-            { _state.ExitState = ExitState.Open; CancelExitHolds(); }
+            { _state.ExitState = ExitState.Open; }
         }
         private bool OptionalGold(int id) => _state.UnlockedPuzzleRewards.Contains(id) || _state.PassageRewards.Contains(id);
         private void PlanBonusGold(int count, HashSet<int> reachable, IReadOnlyDictionary<int, int> distances)

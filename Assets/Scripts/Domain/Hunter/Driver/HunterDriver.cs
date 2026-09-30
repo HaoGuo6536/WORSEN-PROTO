@@ -8,17 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Driver (section 7a) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Traverse physically clear stair risers and verify rounded-edge tread support.
-//   - Preserve open-turn inertia after bounded capsule/floor prediction at path refresh.
-//   - Sample resolved path progress and report stalls without touching motor decisions.
-//   - Probe occluded retreat rooms and apply swept, non-damaging stumble commands.
-//   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
-//   - Apply ordered recording segments without pathfinding shortcuts or corner smoothing.
-//   - Own the optional Weaver sweep/ceiling sub-driver and admit verified partition links.
-//   - Apply non-turning Ram displacement, atomic Skip placement and Mimic touch probes.
-//   - Expose route evidence and clear physical momentum for externally delivered reactions.
-//   - Observe injected camera sight and own the Stare placement/visibility sub-driver.
+//   - Apply swept movement, stair support, corner prediction and ordered recording segments.
+//   - Honor collider layer exclusions in motor queries without weakening world or sight probes.
+//   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
+//   - Own animation/attack and archetype sub-drivers behind explicit Manager commands.
+//   - Apply charge, teleport and reaction motion and report committed contacts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -403,7 +397,7 @@ namespace Worsen.Domain.Hunter
             int overlaps = Physics.OverlapCapsuleNonAlloc(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
                 _state.CornerOverlaps, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
             if (overlaps == _state.CornerOverlaps.Length) return false;
-            for (int i = 0; i < overlaps; i++) if (!Own(_state.CornerOverlaps[i])) return false;
+            for (int i = 0; i < overlaps; i++) if (!IgnoreMotorCollider(_state.CornerOverlaps[i])) return false;
             const float step = 1f / 30f;
             for (int sample = 0; sample < 48; sample++)
             {
@@ -429,7 +423,7 @@ namespace Worsen.Domain.Hunter
                 delta.magnitude + _config.SkinWidth, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
             if (hits == _state.CornerCastHits.Length) return false;
             for (int i = 0; i < hits; i++)
-                if (!Own(_state.CornerCastHits[i].collider) && Vector3.Dot(_state.CornerCastHits[i].normal, delta.normalized) < -0.0001f) return false;
+                if (!IgnoreMotorCollider(_state.CornerCastHits[i].collider) && Vector3.Dot(_state.CornerCastHits[i].normal, delta.normalized) < -0.0001f) return false;
             return true;
         }
         private bool HasLevelSupport(Vector3 position)
@@ -441,7 +435,7 @@ namespace Worsen.Domain.Hunter
             for (int i = 0; i < hits; i++)
             {
                 RaycastHit hit = _state.CornerCastHits[i];
-                if (!Own(hit.collider) && Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees) return true;
+                if (!IgnoreMotorCollider(hit.collider) && Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees) return true;
             }
             return false;
         }
@@ -533,7 +527,7 @@ namespace Worsen.Domain.Hunter
             Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (RaycastHit hit in hits)
             {
-                if (Own(hit.collider) || Vector3.Dot(hit.normal, delta.normalized) >= -0.0001f) continue;
+                if (IgnoreMotorCollider(hit.collider) || Vector3.Dot(hit.normal, delta.normalized) >= -0.0001f) continue;
                 closest = hit; return true;
             }
             closest = default; return false;
@@ -567,7 +561,7 @@ namespace Worsen.Domain.Hunter
             Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (RaycastHit hit in hits)
             {
-                if (Own(hit.collider)) continue;
+                if (IgnoreMotorCollider(hit.collider)) continue;
                 float rise = hit.point.y - position.y;
                 return hit.collider == edge && rise > _config.SkinWidth && rise <= _config.StepHeight + _config.SkinWidth &&
                     Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees;
@@ -579,12 +573,16 @@ namespace Worsen.Domain.Hunter
             Capsule(position, out Vector3 low, out Vector3 high);
             foreach (Collider other in Physics.OverlapCapsule(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
                 WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
-                if (!Own(other)) return true;
+                if (!IgnoreMotorCollider(other)) return true;
             return false;
         }
         private void Capsule(Vector3 position, out Vector3 low, out Vector3 high)
         { low = position + Vector3.up * _config.Radius; high = position + Vector3.up * (_config.Height - _config.Radius); }
         private bool Own(Collider other) => other == _capsule || other.transform.IsChildOf(transform);
+        // Static physics queries do not apply the queried collider's contact exclusions.
+        // Player temporarily excludes this body's layer during revival collision grace.
+        private bool IgnoreMotorCollider(Collider other) => other == null || Own(other) ||
+            (other.excludeLayers.value & (1 << _capsule.gameObject.layer)) != 0;
         private static int WithoutHunterGate(int mask)
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
         public void Teardown()

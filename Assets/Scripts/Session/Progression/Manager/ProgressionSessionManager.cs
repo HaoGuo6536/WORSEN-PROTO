@@ -57,6 +57,8 @@ namespace Worsen.Session.Progression
         public FearAxis CurrentEventFearAxis => controller?.CurrentEventFearAxis ?? FearAxis.None;
 
         public bool MoreShrines => controller?.MoreShrines ?? false;
+        public float FasterCollapseGoldenCakeMultiplier
+        { get { RequireInitialized(); return config.FasterCollapseGoldenCakeMultiplier; } }
         public event Action<ShrineResolvedFact> ShrineResolved;
         public event Action<NoiseEvent> ShrineNoiseEmitted;
         public IReadOnlyActiveEffects FloorEffects => controller == null ? default(ActiveEffects) : controller.FloorEffects;

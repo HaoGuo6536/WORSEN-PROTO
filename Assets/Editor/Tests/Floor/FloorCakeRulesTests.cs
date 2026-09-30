@@ -342,7 +342,7 @@ namespace Worsen.Tests.Floor
         {
             var c = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));
             Set(c, "_requiredCakeCount", 6); Set(c, "_flowWeight", 1f); Set(c, "_collapseInterval", 12f);
-            Set(c, "_telegraphDuration", 6f); Set(c, "_directionCueInterval", 0.5f); Set(c, "_earlyBailHoldDuration", 1f);
+            Set(c, "_telegraphDuration", 6f); Set(c, "_directionCueInterval", 0.5f);
             Set(c, "_trapStartRound", 3); Set(c, "_optionalTrapShare", 0.33333334f); Set(c, "_roomsPerTrap", 3);
             Set(c, "_maximumTraps", 3); Set(c, "_extraBlinderTraps", 2); Set(c, "_trapTickInterval", 2f);
             Set(c, "_trapAnnounceLoudness", 1f); Set(c, "_greedyDoorShare", 0.4f); return c;

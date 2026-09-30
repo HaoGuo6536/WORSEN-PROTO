@@ -82,8 +82,7 @@ namespace Worsen.Session.Expedition
         [SerializeField] private ShrineConfig _shrineConfig = null;
         [SerializeField] private ShrineDriverConfig _shrineDriverConfig = null;
         [SerializeField] private ExpeditionSpawnDriverConfig _spawnConfig = null;
-        [SerializeField] private ExpeditionConfig _config = null;
-        private bool _ownsConfig;
+
         private ShrineManager _shrines;
         private ExpeditionSpawnDriver _spawnDriver;
 
@@ -119,11 +118,7 @@ namespace Worsen.Session.Expedition
                 _state = new ExpeditionSessionBehaviorState();
                 _controller = new ExpeditionSessionController(_state);
             }
-            if (_config == null)
-            {
-                _config = Resources.Load<ExpeditionConfig>("ScriptableObjects/Session/Expedition/ExpeditionConfig");
-                if (_config == null) { _config = ScriptableObject.CreateInstance<ExpeditionConfig>(); _ownsConfig = true; }
-            }
+
             DontDestroyOnLoad(gameObject);
             return this;
         }
@@ -290,7 +285,10 @@ namespace Worsen.Session.Expedition
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
                 position => _procedural.ValidateHunterSpawn(position, out _), extras);
             if (_state.HunterSpawnShortfall > 0)
-                throw new InvalidOperationException("All retained and Nothing hunters must spawn. Safe spawn shortfall=" + _state.HunterSpawnShortfall);
+                throw new InvalidOperationException("hunter-spawn-capacity-shortfall: required=" +
+                    (spawns.Count + _state.HunterSpawnShortfall) + ", admitted=" + spawns.Count +
+                    ", shortfall=" + _state.HunterSpawnShortfall + ", nothingExtras=" + extras.Count +
+                    ". Procedural must supply safe capacity for the full retained roster plus Nothing stacks.");
             if (_hunterRoster != null && _hunterRoster.Length > 0)
                 _hunterFactory.Configure(_hunterRoster, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
             else _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
@@ -313,7 +311,7 @@ namespace Worsen.Session.Expedition
                 _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState },
                     _run.RandomSource, fasterCollapse: ExpeditionFloorEffectUtility.FasterCollapse(activeEffects),
                     shuffledCollapse: ExpeditionFloorEffectUtility.ShuffledCollapse(activeEffects), round: request.Round,
-                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _config.FasterCollapseGoldenCakeMultiplier), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
+                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _progression.FasterCollapseGoldenCakeMultiplier), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
                     preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook,
                     optionalGoldenCakeCount: _state.PuzzleRewards.Count);
                 foreach (var reward in _state.PuzzleRewards)
@@ -576,7 +574,7 @@ namespace Worsen.Session.Expedition
             int generationId = GenerationId;
             if (PlayerRegistry.TryGet(_state.Player, out var player) && player.ReadOnlyState != null)
                 _progression.RecordHealth(generationId, player.ReadOnlyState.Health);
-            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId, summary.Bailed);
+            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId);
             else _progression.EndRun(generationId);
         }
 
@@ -648,9 +646,7 @@ namespace Worsen.Session.Expedition
         private void OnDestroy()
         {
             ClearScene();
-            if (_ownsConfig && _config != null)
-            { if (Application.isPlaying) Destroy(_config); else DestroyImmediate(_config); }
-            _config = null; _ownsConfig = false;
+
             if (Instance == this) Instance = null;
             AssemblyReady = null; RoomsReady = null; FloorReleased = null;
             ThemePublished = null; RoomThemePublished = null; ThresholdFreezePublished = null;

@@ -185,7 +185,7 @@ namespace Worsen.Tests.Progression
                 var shrines = new ShrineController(new ShrineBehaviorState(), shrineConfig, new System.Random(73));
                 var sites = new[] { new ShrineSite(Vector3.zero, 1, false), new ShrineSite(Vector3.right, 2, false) };
                 Assert.That(session.CurrentEventFearAxis, Is.EqualTo(FearAxis.Unpredictability));
-                var placed = shrines.Assemble(sites, 8, false, Array.Empty<FearAxis>());
+                var placed = shrines.Assemble(sites, 8, false);
                 Assert.That(placed.Count, Is.EqualTo(2));
                 Assert.That(placed.All(p => p.Kind == ShrineKind.Chance), Is.True);
             }
@@ -257,13 +257,19 @@ namespace Worsen.Tests.Progression
             Assert.That(session.EventHistory, Is.Empty);
             Assert.That(session.FloorEffects.Count, Is.Zero); Assert.That(session.Snapshot().Message, Is.Not.EqualTo("something is different"));
         }
-        [Test] public void CatalogueMigrationPreservesTuningAndAddsRequiredModuleIdsOnce()
+        [Test] public void CatalogueMigrationRestoresDefaultsAndAddsRequiredModuleIdsOnce()
         {
             var tuned = new EffectCatalogueEntry("more-shrines", EffectKind.Upgrade, FearAxis.Agency, "Tuned", "Adds one shrine.", price: 99);
             Set(catalogue, "_entries", new[] { tuned });
             EffectCatalogueSetup.AppendMissingEntries(catalogue); int count = catalogue.Entries.Count;
             EffectCatalogueSetup.AppendMissingEntries(catalogue); Assert.That(catalogue.Entries.Count, Is.EqualTo(count));
-            Assert.That(EffectCatalogueUtility.Find(catalogue, "more-shrines").Price, Is.EqualTo(99));
+            var defaults = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+            try
+            {
+                Assert.That(EffectCatalogueUtility.Find(catalogue, "more-shrines").Price,
+                    Is.EqualTo(EffectCatalogueUtility.Find(defaults, "more-shrines").Price));
+            }
+            finally { Object.DestroyImmediate(defaults); }
             foreach (string id in new[] { "blinder-more-traps", "blinder-silent-traps" })
             {
                 var entry = EffectCatalogueUtility.Find(catalogue, id);

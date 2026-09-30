@@ -313,7 +313,7 @@ namespace Worsen.Session.Run
                 floor.OnCakeLost += HandleCakeLost;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
-                floor.OnEscapeResolved += HandleExitReached;
+                floor.OnExitReached += HandleExitReached;
                 floor.OnLethalContact += HandleLethal;
                 floor.OnDisplayChanged += HandleFloorDisplay;
                 floor.OnRoomDestruction += HandleRoomDestruction;
@@ -359,7 +359,7 @@ namespace Worsen.Session.Run
                 floor.OnCakeLost -= HandleCakeLost;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
-                floor.OnEscapeResolved -= HandleExitReached;
+                floor.OnExitReached -= HandleExitReached;
                 floor.OnLethalContact -= HandleLethal;
                 floor.OnDisplayChanged -= HandleFloorDisplay;
                 floor.OnRoomDestruction -= HandleRoomDestruction;
@@ -580,8 +580,8 @@ namespace Worsen.Session.Run
             { controller.Apply(RunEvent.CollapseStarted); PhaseChanged?.Invoke(state.Phase); }
             RoomPhaseChanged?.Invoke(fact);
         }
-        private void HandleExitReached(ExitReachedFact fact, bool bailed)
-        { if (!IsPaused) controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero, bailed); }
+        private void HandleExitReached(ExitReachedFact fact)
+        { if (!IsPaused) controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero); }
         private void HandleLethal(FloorLethalContactFact fact)
         {
             if (IsPaused) return;

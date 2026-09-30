@@ -69,8 +69,39 @@ namespace Worsen.Tests.Expedition
             Assert.That(c.SweetTooth || c.BlindFaith || c.GoldenSense || c.GreedyDoor || c.MoreTraps || c.SilentTraps, Is.False);
             string source = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"));
             Assert.That(source, Does.Contain("round: request.Round"));
-            Assert.That(source, Does.Contain("cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _config.FasterCollapseGoldenCakeMultiplier)"));
+            Assert.That(source, Does.Contain("cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _progression.FasterCollapseGoldenCakeMultiplier)"));
             Assert.That(source, Does.Contain("waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects)"));
+        }
+        [TestCase(1.15f)] [TestCase(1.4f)]
+        public void ProgressionMultiplierAppliesOnlyToActiveFasterCollapse(float multiplier)
+        {
+            var config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            var owner = new GameObject("Multiplier bridge"); owner.SetActive(false);
+            var manager = owner.AddComponent<ProgressionSessionManager>();
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            try
+            {
+                Assert.That(ProgressionSessionManager.Instance, Is.Null);
+                typeof(ProgressionSessionManager).GetField("<Instance>k__BackingField",
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).SetValue(null, manager);
+                typeof(ProgressionConfig).GetField("_fasterCollapseGoldenCakeMultiplier", flags).SetValue(config, multiplier);
+                typeof(ProgressionSessionManager).GetField("config", flags).SetValue(manager, config);
+                typeof(ProgressionSessionManager).GetField("controller", flags).SetValue(manager,
+                    new ProgressionSessionController(new ProgressionSessionBehaviorState(), config, new System.Random(7)));
+                Assert.That(manager.FasterCollapseGoldenCakeMultiplier, Is.EqualTo(multiplier));
+                var active = new ActiveEffects(new[] { new ActiveEffect(new EffectId("faster-collapse"), EffectKind.Curse, 1) });
+                Assert.That(ExpeditionFloorEffectUtility.CakeHooks(active, manager.FasterCollapseGoldenCakeMultiplier).GoldenCakeMultiplier,
+                    Is.EqualTo(multiplier));
+                Assert.That(ExpeditionFloorEffectUtility.CakeHooks(null, manager.FasterCollapseGoldenCakeMultiplier).GoldenCakeMultiplier,
+                    Is.EqualTo(1f));
+            }
+            finally
+            {
+                if (ProgressionSessionManager.Instance == manager)
+                    typeof(ProgressionSessionManager).GetField("<Instance>k__BackingField",
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).SetValue(null, null);
+                Object.DestroyImmediate(owner); Object.DestroyImmediate(config);
+            }
         }
     }
 }
