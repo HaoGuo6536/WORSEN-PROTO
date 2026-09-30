@@ -74,8 +74,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| Mannequin: dark-only or light-only | SPEC-004 §5 | Refuge rooms | Hao Guo, before the brief |
-| Faithless Arrow breaks arrow trust | SPEC-004 §5 | Curse catalogue | Hao Guo |
+| Mannequin: dark-only or light-only | SPEC-004 §5 | Refuge rooms | Decided 2026-09-30 (owner): darkness only; lit rooms are refuges, Wick lamps always freeze it |
+| Faithless Arrow breaks arrow trust | SPEC-004 §5 | Curse catalogue | Decided 2026-09-30 (owner): keep it as an ordinary Mimic curse in the pool |
 | §2.17 "Marionette already listed" does not exist | Spec gap | Unknown candidate | Hao Guo (PLAN-011 §6 item 5) |
 | Ceiling traversal for the Weaver | Technical | New navigation | Prototype spike before committing |
 | Voice lines for the Stare | Assets | Missing content | Placeholder recording allowed; real voice later |

@@ -62,7 +62,7 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| Shrine and event cadence on one floor | SPEC-004 §5 | Double worsening | Hao Guo |
+| Shrine and event cadence on one floor | SPEC-004 §5 | Double worsening | Decided 2026-09-30 (owner): no restriction |
 | Echo's "changed outcome" for each shrine | Design | Undefined results | Hao Guo defines per shrine |
 | Shield health and Protection cost | Open values | Balance | Config; Hao Guo |
 | Interact also used by the worsen verb (PLAN-023) | Controls | Conflict | Context: nearest shrine wins; owner confirms |

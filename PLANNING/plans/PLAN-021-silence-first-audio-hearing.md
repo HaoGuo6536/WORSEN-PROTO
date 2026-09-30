@@ -78,7 +78,7 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
 | Spatializer choice and licence | Vendor | Package change | Coordinator evaluates under lease |
-| Does a false-positive sound also reach hunters? | Spec gap (shared hearing rule) | Trust and AI | Hao Guo; proposal: no, it is not a world sound |
+| Does a false-positive sound also reach hunters? | Spec gap (shared hearing rule) | Trust and AI | Decided 2026-09-30 (owner): no; world noises without a player source do not reach hunters either |
 | Cue removal breaks boilerplate tests and PLAN-007 evidence | Regression | Test churn | Migrate tests; PLAN-011 §3.4 note |
 | Legibility with many active hunters | Mix | Noise | Priority rules; owner playtest |
 

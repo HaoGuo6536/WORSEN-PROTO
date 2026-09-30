@@ -77,7 +77,7 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Which §2.15 hunter is the first pursuer | Owner decision | Everything after step 3 | Decided 2026-09-30: the Echo |
 | Weaver or Skip as partition-ignoring | Owner decision | Navigation work | Decided 2026-09-30: the Weaver |
 | Which systemic threat is third | Owner decision | Director work | Decided 2026-09-30: the Ticking |
-| Mannequin rule direction and Faithless Arrow (SPEC-004 §5) | Open question | Brief content | Hao Guo, if chosen |
+| Mannequin rule direction and Faithless Arrow (SPEC-004 §5) | Open question | Brief content | Decided 2026-09-30 (owner): Mannequin moves only in darkness; Faithless Arrow is an ordinary Mimic curse |
 | Archetype modules may need a SPEC-001 taxonomy amendment | Architecture | Policy change | Amend SPEC-001 and its checks with reason, not relax them |
 | Removing placeholders reopens LIVE PLAN-005 evidence | Governance | History | PLAN-011 §3.4 note |
 

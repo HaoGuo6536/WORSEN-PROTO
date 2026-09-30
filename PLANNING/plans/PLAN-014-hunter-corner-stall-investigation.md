@@ -70,7 +70,7 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| Size of the declared sweep | Open value | Evidence strength | Declare before measuring; Hao Guo |
+| Size of the declared sweep | Open value | Evidence strength | Decided 2026-09-30 (owner): 25 seeds spanning the smallest and largest floors, every current archetype, stall threshold 0.75 s |
 | Cause lies in generation, not hunter code | Ownership | Cross-plan fix | Request to PLAN-026 |
 | New archetypes (PLAN-016/017) reintroduce stalls | Regression | Recurrence | Sweep becomes a regression test for every archetype |
 | Earlier fix attempts unrecorded | Evidence gap | Repeated work | Step 1 before any change |

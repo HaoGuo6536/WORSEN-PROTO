@@ -73,8 +73,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| What the "diegetic frame" is | Art decision | Degradation look | Hao Guo |
-| Does a hand death use the held catch? | Spec gap | Death presentation | Hao Guo; proposal: yes, on the grasping mass |
+| What the "diegetic frame" is | Art decision | Degradation look | Decided 2026-09-30 (owner): an old camcorder: rounded-corner vignette, soft edge blur, tape wobble when degraded, no text |
+| Does a hand death use the held catch? | Spec gap | Death presentation | Decided 2026-09-30 (owner): yes, as a close-up: a hand reaches slowly out of the fog, then quickly grabs the face |
 | The snap may cause discomfort | Comfort | Players | Owner comfort check; a setting if needed (PLAN-020) |
 | Lumen cost with many light layers | Performance | Frame time | Budget and cull |
 

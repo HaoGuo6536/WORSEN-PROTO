@@ -94,11 +94,11 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| Early bail cost: wallet share or permanent curse | Design | Stakes | Hao Guo |
-| Worsen verb design | Design | Scope | Hao Guo; stays unbuilt until approved |
-| Persistent hell form | Design | Persistence | Hao Guo |
-| Keep, rewrite or retire the current general curses | Owner decision | Catalogue | Hao Guo |
-| Shrine and event cadence on the same floor | SPEC-004 §5 | Double worsening | Hao Guo; coordinate with PLAN-025 |
+| Early bail cost: wallet share or permanent curse | Design | Stakes | Decided 2026-09-30 (owner): no early bail; the action and the Bail Bond relic are removed |
+| Worsen verb design | Design | Scope | Decided 2026-09-30 (owner): draft design options for review in SPEC-006 (DRAFT); nothing built until approved |
+| Persistent hell form | Design | Persistence | Decided 2026-09-30 (owner): draft design options for review in SPEC-006 (DRAFT); nothing built until approved |
+| Keep, rewrite or retire the current general curses | Owner decision | Catalogue | Decided 2026-09-30 (owner): retire Thin Skin; No Regen only from round 12; Faster Collapse adds 15% more golden cakes; Nothing??? = 15% lower shop prices plus one extra hunter each shop round; Hidden Count hides the collected/total cake counter; others keep |
+| Shrine and event cadence on the same floor | SPEC-004 §5 | Double worsening | Decided 2026-09-30 (owner): no restriction; both may land on one floor and share an axis |
 | "Lower Gravity" named in §2.16 only | Spec gap | Missing entry | PLAN-011 §6 item 4 |
 
 ## 7. Deferred follow-ups

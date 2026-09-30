@@ -83,8 +83,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 |---|---|---|---|
 | "No relic is a percentage" vs catalogue multipliers | Spec conflict | Catalogue | PLAN-011 §6 item 3; Hao Guo |
 | Input for consumables vs flashlight vs stun | Design | Controls | Hao Guo; Input owner |
-| Prices, floors, reroll counts | Open values | Economy | Config; Hao Guo (SPEC-004 §5) |
-| Extra Life conflicts with "the catch ends the run" | Design | Death flow | Hao Guo |
+| Prices, floors, reroll counts | Open values | Economy | Decided 2026-09-30 (owner): one or two simple upgrades at 4–5 from round 1; the expensive tier stays 8+; other values provisional |
+| Extra Life conflicts with "the catch ends the run" | Design | Death flow | Decided 2026-09-30 (owner): one per run; revives in place with a brief collision grace and temporary damage immunity |
 | 49 entries is a large surface | Scope | Delivery | Ship economy and movement first; add the rest as hooks land |
 
 ## 7. Deferred follow-ups

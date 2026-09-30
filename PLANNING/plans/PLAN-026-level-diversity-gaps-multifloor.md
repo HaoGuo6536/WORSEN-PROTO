@@ -74,10 +74,10 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| First two themes (castle plus hospital proposed) | SPEC-004 §5 | Content scope | Hao Guo |
+| First two themes (castle plus hospital proposed) | SPEC-004 §5 | Content scope | Decided 2026-09-30 (owner): castle, hospital, school and basement (HVAC piping); the first level's theme is random; rooms revamped with organic layouts, varied sizes, hallways and round rooms, built from Blender modular kits |
 | Generation budget for larger, taller floors | SPEC-003 §5 | Load time | Declare before measuring |
 | NavMesh for multi-storey and ceiling movers | Technical | Hunter pathing | Spike first; PLAN-014 sweep |
-| Round from which puzzles and freeze rooms appear | Open value | Pacing | Config; Hao Guo |
+| Round from which puzzles and freeze rooms appear | Open value | Pacing | Decided 2026-09-30 (owner): gimmick rooms (puzzles, freeze, traversal obstacles) none in rounds 1–2, from round 3 at most one per floor, rising to about three by round 8 |
 | SPEC-003 generator built without a registered plan | Governance | Unclear acceptance | Step 1 records the evidence |
 
 ## 7. Deferred follow-ups

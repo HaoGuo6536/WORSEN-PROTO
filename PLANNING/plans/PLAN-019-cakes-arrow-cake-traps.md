@@ -68,7 +68,7 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| Name piped on the cakes | Open design | Lore | Hao Guo |
+| Name piped on the cakes | Open design | Lore | Decided 2026-09-30 (owner): no name; lore details stay out of implementation until later production |
 | Required-subset size and trap floor | Open value | Pacing | Config; Hao Guo |
 | Golden count on the HUD (PLAN-011 §6 item 6) | Spec conflict | Display | Hao Guo |
 | Many requesters edit `FloorController` | Ownership | Merge conflicts | This plan applies all requests, one at a time |

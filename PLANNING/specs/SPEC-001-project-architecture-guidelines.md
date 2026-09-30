@@ -138,6 +138,8 @@ If a script matches two rows, it is two scripts.
 *   **Be verbose, not terse**: PURPOSE is at minimum 2–3 sentences. "Handles combat" is unacceptable. Explain *what*, *why*, and *how* at a high level.
 *   **Keep it current**: When a script's responsibilities or dependencies change, **update the header in the same change**. A stale header is worse than no header.
 *   **Plain language**: Write for an audience that has never seen this codebase. No unexplained shorthand or jargon.
+*   **Focused responsibilities (amended 2026-09-30)**: KEY RESPONSIBILITIES lists at most five bullets. Needing more is the signal to split the script (§13f); if the split must wait, record a waiver in Appendix A. Length alone is never a reason to split.
+*   **No short form (amended 2026-09-30)**: every script keeps the full header, including small files. The header is where people, agents and the responsibility check (§13f) read a script's stated job, so its cost is accepted.
 
 ---
 
@@ -157,6 +159,7 @@ The **Manager** is the entry point and the "brain" of a system, and the only scr
     *   Manipulate engine objects — no `VisualElement`, `Transform`, `Rigidbody`, `Animator`, or material work (delegate to `Driver`). The permitted engine interactions are **creating, destroying, enabling, and wiring its own Driver objects** and the identity resolution above; once created, the Manager talks to Drivers only through their command methods.
     *   Reference a system in a higher layer, or in the same layer against the declared dependency order (§9).
     *   Contain a sequence that spans systems or scenes — that is a Session Manager's job (§8b).
+*   **Bounded engine calls (amended 2026-09-30)**: besides creating and wiring its own Drivers and resolving identities, a Manager may (a) load **its own** Config or Profile with `Resources.Load<T>` where `T` ends in `Config` or `Profile`, and (b) if it is the run's single tick owner (`RunSessionManager`), read `Time.fixedDeltaTime`. A Manager **never creates another Manager**; a SceneRoot (§6b) or a Factory (§1c) creates systems. Reason: many Managers already self-load their Config and the fixed tick has exactly one owner, so allowing these two narrow cases matches the code without widening it; creating Managers from Managers hid ownership (audit L1-08). Enforced by the Manager rules in `tools/ast-grep/rules/`; existing exceptions are Appendix A waivers.
 *   **Multiple Controllers are allowed but not encouraged by default.** Start with one. Split only when a clear, distinct responsibility boundary emerges (e.g. `CombatController` + `CombatAnimationController`). Do not pre-emptively create Controllers "just in case" — that is bloat, not architecture.
 
 ### 1b. System kinds
@@ -285,6 +288,8 @@ Current roster:
 A **SceneRoot** is a scene-owned `MonoBehaviour` whose only job is to assemble a scene: instantiate prefabs, place objects, wire serialized references between the scene's Managers, Drivers, and Orchestrators, and hand the scene to the current Session (§8b) once assembled.
 *   **Rules**: No game logic, no per-frame work, no state beyond what it needs during assembly. It may `Instantiate` and position objects because assembly *is* its concern. One per scene, in `Assets/Scripts/Orchestrator/Scenes/`. When assembly is complete it publishes `SceneReady` (a Core event payload) — Session Managers wait for that, never for `Start` ordering.
 
+**Legacy scenes are a declared compatibility layer (owner decision, 2026-09-30).** `TagArena` and `FloorLoop` stay supported beside `HorrorRun`. Orchestrator branches that handle a missing Expedition (`_expedition == null`) exist only for them; new features target `HorrorRun` first and must keep the legacy scenes' tests passing. Wiring shared by the three SceneRoots belongs in one helper; the current duplication is an Appendix A item.
+
 For generated floors in `HorrorRun`, the scene root binds services once. `ExpeditionSessionManager` replaces geometry and actors for each progression request and publishes `AssemblyReady`; `HorrorRunSceneRoot` relays that fact as `SceneReady`. The canonical `InputOrchestrator` forwards readiness to Run exactly once per generated floor. Progression enables player input only after it confirms that generation, and keeps choices and shops gated. The readiness event remains the hand-off; starting the generation coroutine is not readiness.
 
 ## 7. The Presentation Stack (`Driver/`)
@@ -402,7 +407,7 @@ Every `MonoBehaviour` system belongs to exactly one of two lifecycle tiers, and 
 ### 8b. Sessions & Flows
 A **flow** is any multi-step sequence that spans systems or scenes: overworld encounter → transition → battle scene → combat start → victory → return. Flows are owned by **Session Managers** (§1b) in the Session layer, never by Orchestrators (stateless) and never by a Domain Manager (single-system scope).
 
-The procedural expedition declares the acyclic Session dependency order `Expedition → Progression` and `Expedition → Run`. Progression owns choices, currency, retained modifiers and generation identities; Run owns gameplay ticks. Neither depends on Expedition. Expedition binds scene services only for the current root lifetime and clears those references on teardown. Domain Procedural produces Core `LevelGraph` data; Domain Level consumes it without a dependency on Procedural.
+**Session is also the run-rules layer (amended 2026-09-30).** Rules that live only for the length of a run (worsenings, curses and consumable effects in HorrorEffects; progression, the shop and the economy in Progression) are Session systems rather than Domain systems, because they coordinate several Domain systems and must survive floor rebuilds. Domain keeps single-system game rules. Session systems depend on each other only along these declared edges: `HorrorEffects → Progression`, `Run → Progression`, `Expedition → Progression`, `Expedition → HorrorEffects` and `Expedition → Run`. `Progression`, `Settings` and `SceneFlow` depend on no other Session system. A new edge needs this list amended in the same change (enforced by `tools/checks/architecture.py`, check `session-order`). Progression owns choices, currency, retained modifiers and generation identities; Run owns gameplay ticks. Neither depends on Expedition. Expedition binds scene services only for the current root lifetime and clears those references on teardown. Domain Procedural produces Core `LevelGraph` data; Domain Level consumes it without a dependency on Procedural.
 
 *   **Shape**: a Session Manager is a full system — `[X]SessionManager` + `[X]SessionController` + `[X]SessionBehaviorState` (+ Config). The State holds the current `Phase` (an enum in the system's Definitions) and whatever must survive a scene load. The Controller holds the phase transitions as pure functions (`Phase Next(Phase current, FlowEvent evt)`) and is tested (§11). The Manager sequences: it runs the coroutine/`Awaitable`, calls Domain Managers directly (downward), publishes phase-change events upward for Orchestrators, and waits on the events that come back.
 *   **Scene loading is a Session concern.** Exactly one script — `SceneFlowManager` — calls `SceneManager.Load*`/`Unload*`. Everyone else asks it (`RequestLoad(SceneKey)`) and waits for its `SceneLoaded` event and the SceneRoot's `SceneReady`.
@@ -425,7 +430,7 @@ Every system folder lives under exactly one layer folder (§12), and every layer
 |---|---|---|---|
 | **Core** | `Core/Definitions/`, `Core/Utility/` — types and pure helpers shared by more than one system | nothing (UnityEngine value types only) | — |
 | **Domain** | Game-rule systems: Stats, Combat, EnemyAI, Inventory, Pattern logic, all Entity systems | Core; other Domain systems in the declared, acyclic order (§2c) | events (upward) |
-| **Session** | Flow owners (§8b): `SceneFlowManager`, `EncounterSessionManager`, `SaveManager` | Core, Domain | events (upward) |
+| **Session** | Flow owners and run-rules systems (§8b): `SceneFlowManager`, `ExpeditionSessionManager`, `RunSessionManager`, `ProgressionSessionManager`, `HorrorEffectsManager`, `SettingsManager` | Core, Domain; other Session systems only along the §8b edges | events (upward) |
 | **Presentation** | Systems that only present (§7f): HUDs, menus, audio, camera, VFX, input | Core **only** | events (upward) |
 | **Orchestrator** | `[Target]Orchestrator`s, `[Scene]SceneRoot`s | everything | — (top of the graph) |
 
@@ -647,6 +652,15 @@ GitNexus indexes the repo into a dependency/call graph and exposes it to agents 
 *   Every `*Controller`, `*Presenter`, `*Utility`, and `*SO` with more than N statements has a `*Tests.cs`.
 *   Every `[MenuItem]` path starts with the project root.
 
+### 13f. Responsibility alarms (amended 2026-09-30)
+Size is not a defect; unfocused responsibility is. `tools/checks/architecture.py` reports four alarms and runs in the integration gate and in CI:
+*   `responsibilities`: a header lists more than five KEY RESPONSIBILITIES (§0).
+*   `fan-out`: a class uses types from more than five other project systems, excluding Core and its own system.
+*   `relay-surface`: a Manager declares more than fifteen public events, or more than half of its handlers only re-raise another event, which means it has become a relay instead of a system.
+*   `type-switch`: a method tests three or more `is <X>Config`/`State`/`Profile` types, which means a missing extension point (for example an archetype registry).
+
+The same tool checks assembly references against §9 (`asmdef`) and the §8b Session edges (`session-order`). An alarm is accepted only with a dated Appendix A waiver naming an owner and an exit plan; a waiver whose review date has passed stops applying.
+
 ### 13e. Definition of done for any change
 1. Headers updated on every touched file (§0).
 2. Tests updated or added for every touched pure-layer script (§11).
@@ -676,10 +690,18 @@ GitNexus indexes the repo into a dependency/call graph and exposes it to agents 
 
 Not rules — a ledger of places where the current codebase does not yet match the rules above. Fix each item when you next touch the affected code; do not do a project-wide sweep unless asked. Remove entries as they are resolved.
 
-| Area | Debt | Target |
-|---|---|---|
-| — | *(empty — this project was scaffolded against these rules from the start)* | — |
+Waivers for §13f alarms and the Manager rules are rows in this table, which `tools/checks/architecture.py` parses (keep the header exactly). Review-by dates are real deadlines: after one passes, the alarm blocks again.
+
+| ID | Path | Alarm | Owner | Exit plan | Review by |
+|---|---|---|---|---|---|
+| A-01 | Assets/Scripts/Session/Run/Manager/RunSessionManager.cs | relay-surface | coordinator | 44 public events: split the Run fact relay out of the Manager into typed Core channels or a relay helper (audit L1-03); the Manager keeps the tick. | 2026-12-31 |
+| A-02 | Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs | type-switch | coordinator | An `is XConfig` chain over nine archetypes: register archetypes through a factory or registry and move shared rule contracts to `Hunter/Definitions` (audit L1-02). | 2026-12-31 |
+| A-03 | Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs | manager-creates-manager | coordinator | Create archetype modules through the same factory (audit L1-02). | 2026-12-31 |
+| A-04 | Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs | manager-creates-manager | coordinator | Create `ShrineManager` from the SceneRoot or a factory and bind it per floor (audit L1-03). | 2026-12-31 |
+| A-05 | Assets/Scripts/Orchestrator/Scenes | scene-root-duplication | coordinator | About 100 duplicated wiring lines per SceneRoot: extract the shared wiring into one helper (audit L1-10). | 2026-12-31 |
+
+Further rows come from the first full `architecture.py` run; each states its measured value in the exit plan when added.
 
 **Third-party code is out of scope.** `Assets/Synaptic AI Pro/` and anything else vendored ships as its author wrote it. The enforcement layers are scoped to `Assets/Scripts/` and `Assets/Editor/` and deliberately do not see it; do not "fix" vendor code to match this document.
 
-**Last audit note**: scaffold created and all four §13 gates verified green on 2026-09-14.
+**Last audit note**: the 2026-09-30 audit of `main` at `b6a97e1` found 0 forbidden cross-layer references in 413 runtime files, every file with its header, and 0 `ast-grep` findings. The conformance tests were red (read-only views and missing test files, fixed on `wt/batch10-fix`), and the gates ran after `main` moved; the fail-closed gate in `tools/integration/` replaces that flow. The scaffold's gates were first verified green on 2026-09-14.

@@ -1,6 +1,6 @@
 # PLANNING registry — WORSEN
 
-> Last audited: 2026-09-30 by $docs-plans audit (after the SPEC-004 decomposition)
+> Last audited: 2026-09-30 by $docs-plans (owner decisions recorded in PLAN-011 and the owning plans; SPEC-001 amended; SPEC-005 and SPEC-006 drafted)
 > Current floor-pacing scope: see [the 2026-09-15 user clarification](#floor-pacing-clarification-on-2026-09-15); the former first-sweep duration target is non-blocking.
 > Companion: `../DOCUMENTATION/direction.md` is not present; direction linkage is unavailable until $codebase-documentation has been run.
 
