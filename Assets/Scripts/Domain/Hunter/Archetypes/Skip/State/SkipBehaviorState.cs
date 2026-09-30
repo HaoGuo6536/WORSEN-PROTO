@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Hunter Skip.
 // KEY RESPONSIBILITIES:
-//   - Retain deduplicated route uses, elapsed time and immutable fact queues.
+//   - Retain deduplicated route uses, teleport/contact recovery and immutable fact queues.
 // DEPENDENCIES:
 //   - Hunter context and Core route/fact values only.
 // USAGE NOTES:
@@ -21,7 +21,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Skip
     {
         public HunterArchetypeContext Context;
         public long Floor = -1, LastTick = -1;
-        public float Elapsed;
+        public float Elapsed, ContactRecovery;
         public bool Pending;
         public SkipTraversalUse Candidate, WalkRoute;
         public readonly Dictionary<int, int> Counts = new Dictionary<int, int>();
