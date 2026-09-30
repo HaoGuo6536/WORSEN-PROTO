@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify complete tiled floors/ceilings and clear shared door apertures.
 //   - Require navigation bounds to contain all eight corners of rotated collision boxes.
+//   - Keep one-floor-per-room assertions scoped to the single-cell regression config.
 // DEPENDENCIES:
 //   - Domain.Procedural, NUnit and UnityEngine value types.
 // USAGE NOTES:
@@ -28,7 +29,16 @@ namespace Worsen.Tests.Procedural
         private ProceduralConfig _config;
         private ProceduralDriverConfig _driverConfig;
         [SetUp] public void SetUp()
-        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); var settings = new SerializedObject(_config); settings.FindProperty("_castleModules").boolValue = false; settings.FindProperty("_initialRoomCount").intValue = 5; settings.ApplyModifiedPropertiesWithoutUndo(); }
+        {
+            _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = false;
+            settings.FindProperty("_initialRoomCount").intValue = 5;
+            settings.FindProperty("_twoCellWeight").floatValue = 0f;
+            settings.FindProperty("_threeCellWeight").floatValue = 0f;
+            settings.FindProperty("_gapProbability").floatValue = 0f;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
         [TearDown] public void TearDown()
         { Object.DestroyImmediate(_config); Object.DestroyImmediate(_driverConfig); }
 

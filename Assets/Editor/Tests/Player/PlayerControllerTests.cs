@@ -8,12 +8,15 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Verify queued external motion, total speed limits, grace independence and traversal interruption.
+//   - Lock floor health, delayed regeneration, neutral hooks, posture-only crouch and typed noise.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Verify live look, last-third steering, jump cancellation, boost boundaries and bounded traversal locks.
 //   - Verify auto-ledge decisions, standing-jump air control, stumble timing and deterministic trajectories.
 //   - Verify committed posture/sprint facts, clearance-safe held crouch and replay/reset parity.
 //   - Verify grace boundaries, severity-scaled boosts, reset/cancellation and the snap-disable hook.
+//   - Distinguish float roundoff at integral recovery ticks from genuine fractional durations.
 //   - Verify hold-to-sprint, uphill landing recovery and clearance-safe slide cancellation.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
@@ -54,6 +57,98 @@ namespace Worsen.Tests.Player
             InputButtons held = InputButtons.None, Vector2 look = default)
             => new InputFrame(move, look, held, pressed, InputButtons.None);
         private float Speed => new Vector2(_state.Velocity.x, _state.Velocity.z).magnitude;
+
+        [Test]
+        public void ExternalImpulseAddsOnceOnNextTickAndCommitsCollisionVelocity()
+        {
+            _state.Velocity = Vector3.forward * 2f;
+            _controller.ApplyExternalVelocity(Vector3.right * 3f, ExternalMotionKind.CollapseHandThrow);
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            Assert.That(_state.Velocity, Is.EqualTo(Vector3.forward * 2f));
+            PlayerTickResult result = _controller.Tick(default, default, Dt, 1);
+            Assert.That(_state.Velocity.x, Is.EqualTo(4f).Within(0.00001f));
+            Assert.That(_state.Velocity.z, Is.EqualTo(2f).Within(0.00001f));
+            Assert.That(result.Displacement, Is.EqualTo(_state.Velocity * Dt));
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            var presenter = new PlayerMoverPresenter();
+            Vector3 resolved = presenter.ContactVelocity(_state.Velocity, Vector3.left, false);
+            _controller.CommitPose(new PlayerMoveResult(Vector3.zero, resolved, false, false));
+            _controller.Tick(default, default, Dt, 2);
+            Assert.That(_state.Velocity.x, Is.Zero, "A blocked impulse must not be reapplied.");
+            Assert.That(_state.Velocity.z, Is.EqualTo(2f).Within(0.00001f));
+        }
+
+        [Test]
+        public void ExternalImpulseClampsCombinedThreeDimensionalSpeedAndLeavesGround()
+        {
+            var data = new UnityEditor.SerializedObject(_profile);
+            data.FindProperty("_maximumExternalMotionSpeed").floatValue = 7f;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            _controller.ApplyExternalVelocity(new Vector3(30f, 40f, 0f), ExternalMotionKind.Impulse);
+            _controller.ApplyExternalAcceleration(Vector3.forward * 50f, 1f);
+            _controller.Tick(default, Ground, Dt, 1);
+            Assert.That(_state.Velocity.magnitude, Is.EqualTo(7f).Within(0.00001f));
+            Assert.That(_state.Velocity.x / _state.Velocity.y, Is.EqualTo(0.75f).Within(0.00001f));
+            Assert.That(_state.Grounded, Is.False);
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
+            Assert.That(_state.CoyoteRemaining, Is.Zero);
+        }
+
+        [Test]
+        public void ExternalAccelerationIntegratesExplicitIntervalsDuringGrace()
+        {
+            _controller.ApplyHit(1f, HitSeverity.Light);
+            for (int tick = 1; tick <= 3; tick++)
+            {
+                _controller.ApplyExternalAcceleration(Vector3.right * 6f, 0.1f);
+                _controller.ApplyExternalAcceleration(Vector3.right * 6f, 0.15f);
+                _controller.Tick(default, default, Dt, tick);
+                Assert.That(_state.Velocity.x, Is.EqualTo(tick * 1.5f).Within(0.00001f));
+                Assert.That(_state.GraceActive, Is.True);
+            }
+            _controller.Tick(default, default, Dt, 4);
+            Assert.That(_state.Velocity.x, Is.EqualTo(4.5f).Within(0.00001f));
+            Assert.That(_state.Health, Is.EqualTo(99f));
+        }
+
+        [Test]
+        public void ExternalMotionInterruptsVaultAndCannotEnterAnotherTraversalThatTick()
+        {
+            var ledge = new MovementProbe(false, Vector3.up, vaultHeight: 1f,
+                vaultClearance: 2f, vaultTarget: new Vector3(0f, 1f, 1f));
+            Assert.That(_controller.Tick(default, ledge, Dt, 1).Traversing, Is.True);
+            _controller.ApplyExternalVelocity(Vector3.back * 4f + Vector3.up * 2f, ExternalMotionKind.CollapseHandThrow);
+            PlayerTickResult result = _controller.Tick(default, ledge, Dt, 2);
+            Assert.That(result.Traversing, Is.False);
+            Assert.That(result.Displacement.z, Is.LessThan(0f));
+            Assert.That(_state.VaultRemaining, Is.Zero);
+            Assert.That(_state.PreserveVelocityOnCommit || _state.VaultCompletionPending, Is.False);
+            Assert.That(_state.TraversalSampleActive, Is.True, "Existing progress publication ends the interrupted traversal.");
+        }
+
+        [Test]
+        public void ExternalMotionRejectsInvalidInputsAndClearsAtLifeBoundaries()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalVelocity(Vector3.zero, (ExternalMotionKind)99));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalVelocity(Vector3.up * float.NaN, ExternalMotionKind.Impulse));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalAcceleration(Vector3.one, -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalAcceleration(Vector3.one, float.PositiveInfinity));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalVelocity(Vector3.one * float.MaxValue, ExternalMotionKind.Impulse));
+            _controller.ApplyExternalAcceleration(Vector3.one, 0f);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            _controller.EndRecovery();
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            _controller.ApplyHit(100f);
+            _controller.Tick(default, Ground, Dt, 1);
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            Assert.That(_state.Velocity, Is.EqualTo(Vector3.zero));
+        }
 
         [Test]
         public void DefaultGroundMovementWalksAndSprintHoldRuns()
@@ -1007,6 +1102,27 @@ namespace Worsen.Tests.Player
             Assert.That(_state.LookBackEnabled, Is.True);
         }
 
+        [TestCase(0.1f, 1.2f, 12)]
+        [TestCase(0.02f, 1.2f, 60)]
+        [TestCase(0.1f, 1.20001f, 13)]
+        [TestCase(0.1f, 1.25f, 13)]
+        [TestCase(0.1f, 0.000001f, 1)]
+        [TestCase(0.1f, 0f, 0)]
+        public void RecoveryRoundingOnlySnapsFloatErrorAtIntegralBoundaries(float step, float seconds, long ticks)
+        {
+            SetProfileFloat("_hitGraceSeconds", seconds);
+            SetProfileFloat("_heavyHitBoostSeconds", seconds);
+            _controller.Reset(new EntityId(1), Vector3.zero, 0f, step);
+            _controller.AdvanceRecovery(7);
+            _controller.ApplyHit(1f);
+            Assert.That(_state.GraceWindow.EndTick, Is.EqualTo(7 + ticks));
+            Assert.That(_state.HitBoostEndTick, Is.EqualTo(7 + ticks));
+            if (ticks > 0) Assert.That(_controller.AdvanceRecovery(7 + ticks - 1), Is.Null);
+            _controller.AdvanceRecovery(7 + ticks);
+            Assert.That(_state.GraceActive, Is.False);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+        }
+
         [Test]
         public void InvalidDamageDoesNotStartRecoveryAndLethalHitHasNoLingeringWindow()
         {
@@ -1039,6 +1155,7 @@ namespace Worsen.Tests.Player
         [Test]
         public void RunModifiersClampHealthAndApplySpeedWithoutMutatingProfile()
         {
+            _controller.SetHealthRecoveryEffects(0f); // Isolate injury speed from passive healing.
             _controller.ApplyRunModifiers(200f, 80f, 1.25f);
             Assert.That(_state.Health, Is.EqualTo(80f));
             Assert.That(_state.MaxHealth, Is.EqualTo(80f));
@@ -1101,6 +1218,163 @@ namespace Worsen.Tests.Player
             Assert.That(_state.RecentNoises[0].Tick, Is.EqualTo(25));
             Assert.That(_state.RecentNoises[15].Tick, Is.EqualTo(40));
             Assert.That(_state.RecentNoises[0].Source, Is.EqualTo(_state.Id));
+        }
+
+        [Test]
+        public void RegenerationWaitsAfterHitAndHealsOnlyTheRemainderOfABoundaryTick()
+        {
+            Assert.That(_profile.HealthRegenerationPerSecond, Is.EqualTo(1.5f));
+            Assert.That(_profile.HealthRegenerationDelay, Is.EqualTo(4f));
+            _controller.ApplyHit(50f);
+            _controller.Tick(Frame(), Ground, 3.75f, 225);
+            Assert.That(_state.Health, Is.EqualTo(50f));
+            _controller.Tick(Frame(), Ground, 0.5f, 255);
+            Assert.That(_state.Health, Is.EqualTo(50.375f));
+            Assert.That(_state.HealthState, Is.EqualTo(PlayerHealthState.Healthy));
+            _controller.Tick(Frame(), Ground, 1f, 315);
+            Assert.That(_state.Health, Is.EqualTo(51.875f));
+        }
+
+        [Test]
+        public void AcceptedHitsRestartDelayButAbsorbedAndInvalidHitsDoNot()
+        {
+            _controller.ApplyHit(10f);
+            _controller.Tick(Frame(), Ground, 0.5f, 30);
+            Assert.That(_controller.ApplyHit(10f).AbsorbedByGrace, Is.True);
+            _controller.ApplyHit(float.NaN);
+            Assert.That(_state.RegenerationDelayRemaining, Is.EqualTo(3.5d));
+            _controller.Tick(Frame(), Ground, 1f, 90);
+            Assert.That(_controller.ApplyHit(10f).Changed, Is.True);
+            _controller.Tick(Frame(), Ground, 4f, 330);
+            Assert.That(_state.Health, Is.EqualTo(80f));
+            _controller.Tick(Frame(), Ground, 0.5f, 360);
+            Assert.That(_state.Health, Is.EqualTo(80.75f));
+        }
+
+        [Test]
+        public void RegenerationUsesProfileRateCapsAtEffectiveMaximumAndNeverRevives()
+        {
+            SetProfileFloat("_healthRegenerationPerSecond", 3f);
+            SetProfileFloat("_healthRegenerationDelay", 2f);
+            _controller.BeginFloorHealth(80f, 1f);
+            _controller.ApplyHit(10f);
+            _controller.Tick(Frame(), Ground, 3f, 180);
+            Assert.That(_state.Health, Is.EqualTo(73f));
+            _controller.Tick(Frame(), Ground, 10f, 780);
+            Assert.That(_state.Health, Is.EqualTo(80f));
+            _controller.ApplyHit(80f);
+            _controller.Tick(Frame(), Ground, 100f, 6780);
+            Assert.That(_state.Health, Is.Zero);
+            Assert.That(_state.HealthState, Is.EqualTo(PlayerHealthState.Dead));
+        }
+
+        [TestCase(0f, 50f)]
+        [TestCase(0.5f, 51.5f)]
+        [TestCase(1f, 53f)]
+        public void HealthHooksScaleRegenerationWithoutChangingTheProfile(float multiplier, float expected)
+        {
+            _controller.SetHealthRecoveryEffects(multiplier);
+            _controller.ApplyHit(50f);
+            _controller.Tick(Frame(), Ground, 6f, 360);
+            Assert.That(_state.Health, Is.EqualTo(expected));
+            Assert.That(_profile.HealthRegenerationPerSecond, Is.EqualTo(1.5f));
+        }
+
+        [Test]
+        public void FloorHealthUsesEffectiveMaximumAndHooksDefaultNeutralAfterLifeReset()
+        {
+            _controller.ApplyHit(60f);
+            _controller.BeginFloorHealth(80f, 1.2f);
+            Assert.That(_state.Health, Is.EqualTo(80f));
+            Assert.That(_state.RegenerationDelayRemaining, Is.Zero);
+            Assert.That(_state.MovementSpeedMultiplier, Is.EqualTo(1.2f));
+            _controller.SetHealthRecoveryEffects(0f, 0.5f);
+            Assert.That(_state.Health, Is.EqualTo(80f), "Setting hooks is not itself a floor start.");
+            _controller.BeginFloorHealth(60f, 1f);
+            Assert.That(_state.Health, Is.EqualTo(30f));
+            Assert.That(_state.MaxHealth, Is.EqualTo(60f));
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            Assert.That(_state.RegenerationMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.FloorStartHealthFraction, Is.EqualTo(1f));
+            Assert.That(_state.RegenerationDelayRemaining, Is.Zero);
+            _controller.BeginFloorHealth(120f, 1f);
+            Assert.That(_state.Health, Is.EqualTo(120f));
+            Assert.That(_profile.MaximumHealth, Is.EqualTo(100f));
+        }
+
+        [TestCase(float.NaN, 1f)] [TestCase(-1f, 1f)] [TestCase(float.PositiveInfinity, 1f)]
+        [TestCase(1f, 0f)] [TestCase(1f, 1.1f)] [TestCase(1f, float.NaN)]
+        public void InvalidHealthHooksDoNotPartiallyChangeState(float regeneration, float fraction)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.SetHealthRecoveryEffects(regeneration, fraction));
+            Assert.That(_state.RegenerationMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.FloorStartHealthFraction, Is.EqualTo(1f));
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void CrouchChangesNeitherWalkingNorSprintingSpeedNoiseOrCadence(bool sprint)
+        {
+            var uprightState = new PlayerBehaviorState();
+            var upright = new PlayerController(uprightState, _profile, new System.Random(77));
+            upright.Reset(new EntityId(1), Vector3.zero, 0f);
+            InputButtons held = sprint ? InputButtons.Sprint : InputButtons.None;
+            for (int tick = 1; tick <= 120; tick++)
+            {
+                upright.Tick(Frame(Vector2.up, held: held), Ground, Dt, tick);
+                _controller.Tick(Frame(Vector2.up, held: held | InputButtons.Crouch), Ground, Dt, tick);
+                Assert.That(_state.Crouched, Is.True);
+                Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
+                Assert.That(_state.Velocity, Is.EqualTo(uprightState.Velocity));
+                Assert.That(_state.RecentNoises, Is.EqualTo(uprightState.RecentNoises));
+            }
+            Assert.That(Speed, Is.EqualTo(sprint ? _profile.SprintSpeed : _profile.WalkSpeed));
+            Assert.That(_state.RecentNoises.Count, Is.GreaterThan(1));
+        }
+
+        [TestCase("walk", NoiseSourceKind.Footstep)] [TestCase("sprint", NoiseSourceKind.Footstep)]
+        [TestCase("landing", NoiseSourceKind.Landing)] [TestCase("slide", NoiseSourceKind.Slide)]
+        [TestCase("vault", NoiseSourceKind.Vault)] [TestCase("mantle", NoiseSourceKind.Vault)]
+        [TestCase("ledge", NoiseSourceKind.Vault)] [TestCase("rebound", NoiseSourceKind.Rebound)]
+        public void EveryNoiseEmissionCarriesItsSourceKind(string action, NoiseSourceKind expected)
+        {
+            MovementProbe probe = Ground;
+            InputFrame frame = Frame(Vector2.up);
+            float loudness = _profile.TraversalLoudness;
+            _state.Velocity = Vector3.forward * 8f;
+            if (action == "walk" || action == "sprint")
+            {
+                frame = Frame(Vector2.up, held: action == "sprint" ? InputButtons.Sprint : InputButtons.None);
+                loudness = action == "sprint" ? _profile.SprintLoudness : _profile.WalkingLoudness;
+            }
+            else if (action == "slide") { frame = Frame(pressed: InputButtons.Crouch); loudness = _profile.SlideLoudness; }
+            else if (action == "landing")
+            {
+                frame = Frame(); // Do not emit a separate walking step on the landing tick.
+                _state.MovementState = MovementState.Air;
+                _state.Velocity = Vector3.down;
+            }
+            else if (action == "rebound")
+            {
+                _state.MovementState = MovementState.Air;
+                probe = new MovementProbe(false, Vector3.up, true, 0.5f, Vector3.back, 0f, 1);
+                frame = Frame(pressed: InputButtons.Jump);
+            }
+            else
+            {
+                _state.MovementState = MovementState.Air;
+                float height = action == "mantle" ? 1.5f : 1f;
+                probe = new MovementProbe(false, Vector3.up, vaultCandidate: action != "ledge",
+                    vaultHeight: height, vaultClearance: 1.8f, vaultTarget: new Vector3(0f, height, 1f));
+                frame = Frame(pressed: action == "ledge" ? InputButtons.None : InputButtons.Jump);
+            }
+            _controller.Tick(frame, probe, Dt, 7);
+            Assert.That(_state.RecentNoises.Count, Is.EqualTo(1));
+            NoiseEvent noise = _state.RecentNoises[0];
+            Assert.That(noise.SourceKind, Is.EqualTo(expected));
+            Assert.That(noise.Loudness, Is.EqualTo(loudness));
+            Assert.That(noise.Source, Is.EqualTo(_state.Id));
+            Assert.That(noise.Tick, Is.EqualTo(7));
+            Assert.That(noise.Position, Is.EqualTo(_state.Position));
         }
 
         [Test]

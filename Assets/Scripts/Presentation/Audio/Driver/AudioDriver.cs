@@ -13,6 +13,7 @@
 //   AudioManager alone commands this engine boundary.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply runtime category gains without config writes and freeze audio clocks during pause.
 //   - Admit one catch sting per run through the normal cue path, never at lethal health.
 //   - Advance footstep cadence when a committed contact already supplied its sound.
 //   - Render the continuous exertion envelope through a stable pooled voice using designer timing settings.
@@ -20,16 +21,20 @@
 //   - Own, play and tear down two cue sources, footsteps and two loop sources.
 //   - Resolve the mirrored config and report unavailable clips before playback.
 //   - Preserve fractional health facts and reset voices across run changes and owner disable.
+//   - Forward live aggregate belief/proximity and retain music contact across floor replacement only.
 //
 // DEPENDENCIES:
 //   - Core CueId and MovementState; Unity Audio only, with no gameplay queries.
 //
 // USAGE NOTES:
 //   - Persistent tier; all sources are on owned child objects, never scene targets.
-//   - Own DriverConfig: AudioDriverConfig; no global audio settings are changed.
+//   - Own DriverConfig: AudioDriverConfig; owns AudioListener.pause only during routed pause,
+//     restoring the previous value on resume, reset, disable and teardown.
+//   - No exposed mixer parameters are configured; runtime source gains multiply designer gains.
 //   - Presentation Update uses unscaled time; Session remains the gameplay tick owner.
 //   - Teardown destroys all created sources; disable stops playback immediately.
 //   - ResetRun replaces feedback state, rearming the sting on restart and capture reset.
+//   - Generation changes clear floor-local soundscape state, not expedition contact memory.
 //
 // ============================================================================
 
@@ -91,6 +96,36 @@ namespace Worsen.Presentation.Audio
             ResetRun();
         }
 
+        public void ApplySettings(PlayerSettingsRecord settings)
+        {
+            if (_state == null) return;
+            _presenter.ApplySettings(_state, settings);
+            if (_soundscape != null) _soundscape.SetRuntimeGains(_presenter.ClampGain(_config.MasterGain) * _state.RuntimeMaster,
+                _state.RuntimeMusic, _state.RuntimeEffects);
+            ApplyGains();
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (_state == null) return;
+            _state.Paused = paused;
+            if (paused && !_state.OwnsListenerPause)
+            { _state.PreviousListenerPause = AudioListener.pause; _state.OwnsListenerPause = true; AudioListener.pause = true; }
+            else if (!paused && _state.OwnsListenerPause)
+            { AudioListener.pause = _state.PreviousListenerPause; _state.OwnsListenerPause = false; }
+            if (_soundscape != null) _soundscape.SetPaused(paused);
+        }
+
+        private void ApplyGains()
+        {
+            float gain = _presenter.EffectsGain(_state, _config.MasterGain);
+            _cueSources[_state.VoiceIndex].volume = _state.CueGain * gain;
+            _cueSources[1 - _state.VoiceIndex].volume = _state.OutgoingCueGain * gain;
+            _footsteps.volume = gain;
+            _breath.volume = _state.BreathGain * gain;
+            _hunter.volume = _state.HunterGain * gain;
+        }
+
         public void SetOwnerEnabled(bool ownerEnabled)
         {
             _ownerEnabled = ownerEnabled;
@@ -102,19 +137,20 @@ namespace Worsen.Presentation.Audio
 
         public bool PlayCue(CueId cue)
         {
-            if (_state == null || !_ownerEnabled || !isActiveAndEnabled) return false;
+            if (_state == null || _state.Paused || !_ownerEnabled || !isActiveAndEnabled) return false;
             if (_soundscape != null) return _soundscape.PlayLocal(cue);
             if (!TryFindCue(cue, out AudioCueDefinition definition)) return false;
             if (cue == CueId.Footstep)
             {
-                _footsteps.PlayOneShot(definition.Clip, _presenter.ClampGain(definition.Gain) * _presenter.ClampGain(_config.MasterGain));
+                _footsteps.volume = _presenter.EffectsGain(_state, _config.MasterGain);
+                _footsteps.PlayOneShot(definition.Clip, _presenter.ClampGain(definition.Gain));
                 return true;
             }
             if (!_presenter.TryCue(_state, (int)cue, definition.Priority, definition.Clip.length, definition.Gain, definition.FadeSeconds)) return false;
             int incoming = 1 - _state.VoiceIndex;
             _cueSources[incoming].Stop();
             _cueSources[incoming].clip = definition.Clip;
-            _cueSources[incoming].volume = _state.CueGain * _presenter.ClampGain(_config.MasterGain);
+            _cueSources[incoming].volume = _state.CueGain * _presenter.EffectsGain(_state, _config.MasterGain);
             _cueSources[incoming].Play();
             _state.VoiceIndex = incoming;
             return true;
@@ -170,7 +206,7 @@ namespace Worsen.Presentation.Audio
         public void ObserveProgression(ProgressionSnapshot sample)
         {
             if (_feedback == null) return;
-            if (_feedbackState.Generation >= 0 && _feedbackState.Generation != sample.GenerationId && _soundscape != null) _soundscape.ResetRun();
+            if (_feedbackState.Generation >= 0 && _feedbackState.Generation != sample.GenerationId && _soundscape != null) _soundscape.ResetRun(true);
             _feedback.Progression(_feedbackState, sample); ApplyFeedback();
         }
         public void ObserveFlashlight(FlashlightSample sample) { if (_feedback == null) return; _feedback.Flashlight(_feedbackState, sample); ApplyFeedback(); }
@@ -188,16 +224,18 @@ namespace Worsen.Presentation.Audio
         public bool PlayCueAt(CueId cue, Vector3 position, float gain = 1f, int emitterId = 0) =>
             _soundscape != null ? _soundscape.Play(cue, position, gain, emitterId) : PlayCue(cue);
         public void SetThreat(int id, bool chasing, float closeness) { if (_soundscape != null) _soundscape.SetThreat(id, chasing, closeness); }
+        public void ObserveProximity(ProximitySample sample) { if (_soundscape != null) _soundscape.ObserveProximity(sample); }
         public void RemoveThreat(int id) { if (_soundscape != null) _soundscape.RemoveThreat(id); }
         public void SetAmbience(float openness, float collapse) { if (_soundscape != null) _soundscape.SetAmbience(openness, collapse); }
         public void SetListenerPosition(Vector3 position) { if (_soundscape != null) _soundscape.SetListenerPosition(position); }
         public void SetFootstepGain(float gain) { if (_soundscape != null) _soundscape.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_soundscape != null) _soundscape.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_soundscape != null) _soundscape.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun()
+        public void ResetRun(bool preserveMusicContact = false)
         {
+            SetPaused(false);
             StopSources();
-            if (_soundscape != null) _soundscape.ResetRun();
+            if (_soundscape != null) _soundscape.ResetRun(preserveMusicContact);
             _feedbackState = new AudioFeedbackDriverState();
             if (_state == null) return;
             _presenter.Reset(_state);
@@ -206,6 +244,7 @@ namespace Worsen.Presentation.Audio
 
         public void Teardown()
         {
+            SetPaused(false);
             StopSources();
             if (_soundscape != null) _soundscape.Teardown();
             _soundscape = null;
@@ -225,14 +264,10 @@ namespace Worsen.Presentation.Audio
 
         private void Update()
         {
-            if (_state == null || !_ownerEnabled) return;
+            if (_state == null || _state.Paused || !_ownerEnabled) return;
             bool step = _presenter.Tick(_state, _config.MixSettings, Time.unscaledDeltaTime);
-            float master = _presenter.ClampGain(_config.MasterGain);
-            _cueSources[_state.VoiceIndex].volume = _state.CueGain * master;
-            _cueSources[1 - _state.VoiceIndex].volume = _state.OutgoingCueGain * master;
+            ApplyGains();
             if (_state.OutgoingCueGain <= 0f) _cueSources[1 - _state.VoiceIndex].Stop();
-            _breath.volume = _state.BreathGain * master;
-            _hunter.volume = _state.HunterGain * master;
             if (_soundscape != null) _soundscape.SetAlive(_state.CurrentHealth > 0f);
             if (_soundscape != null && _config.Soundscape != null)
             {
@@ -292,6 +327,7 @@ namespace Worsen.Presentation.Audio
         private void OnEnable() { if (_state != null && _ownerEnabled) { StartLoops(); if (_soundscape != null) _soundscape.SetOwnerEnabled(true); } }
         private void OnDisable()
         {
+            SetPaused(false);
             if (_soundscape != null) _soundscape.SetOwnerEnabled(false);
             StopSources();
             if (_state != null) _presenter.Reset(_state);

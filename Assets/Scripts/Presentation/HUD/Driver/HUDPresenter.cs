@@ -11,7 +11,8 @@
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Format supplied counts, clamp the display-only gauge and validate direction samples.
+//   - Format cake/golden counts and show only occupied consumable slots, never empty capacity.
+//   - Compute a flat arrow bearing; vertical-only targets point up or down.
 //   - Hide all chrome during a confirmed chase without producing chase text or hiding guidance.
 //   - Restore chrome using the supplied duration; a new chase cancels it.
 //   - Clear transient chase suppression immediately at an explicit new-run boundary.
@@ -50,6 +51,9 @@ namespace Worsen.Presentation.HUD
             state.DirectionCaption = "";
         }
 
+        public void SetGoldenCount(HUDDriverState state, int count)
+            => state.GoldenText = count < 0 ? "Golden: —" : "Golden: " + count.ToString(CultureInfo.InvariantCulture);
+
         public void SetDirection(HUDDriverState state, Vector3 direction, bool visible)
         {
             state.WorldDirection = direction;
@@ -82,7 +86,7 @@ namespace Worsen.Presentation.HUD
             if (!state.DirectionVisible)
             {
                 state.ViewDirection = Vector3.zero;
-                state.DirectionDegrees = state.DirectionPitchDegrees = 0f;
+                state.ArrowDegrees = state.DirectionDegrees = state.DirectionPitchDegrees = 0f;
                 return;
             }
             Vector3 world = state.WorldDirection;
@@ -105,14 +109,21 @@ namespace Worsen.Presentation.HUD
             Vector3 local = state.ViewDirection;
             state.DirectionDegrees = (float)(Math.Atan2(local.x, local.z) * 180.0 / Math.PI);
             state.DirectionPitchDegrees = (float)(Math.Atan2(local.y, Math.Sqrt(local.x * local.x + local.z * local.z)) * 180.0 / Math.PI);
+            state.ArrowDegrees = local.x == 0f && local.z == 0f ? (local.y < 0f ? 180f : 0f) : state.DirectionDegrees;
         }
 
         public void SetItemSlots(HUDDriverState state, int emptySlotCount, int maximumDisplayedSlots)
         {
-            int count = Math.Max(0, emptySlotCount);
+            // Compatibility entry point: empty capacity is not an item and must not draw outlines.
+            SetHeldItemCount(state, 0, maximumDisplayedSlots);
+        }
+
+        public void SetHeldItemCount(HUDDriverState state, int heldItemCount, int maximumDisplayedSlots)
+        {
+            int count = Math.Max(0, heldItemCount);
             state.DisplayedSlots = Math.Min(count, Math.Max(1, maximumDisplayedSlots));
             int overflow = count - state.DisplayedSlots;
-            state.SlotOverflowText = overflow > 0 ? "+" + overflow.ToString(CultureInfo.InvariantCulture) + " empty slots" : "";
+            state.SlotOverflowText = overflow > 0 ? "+" + overflow.ToString(CultureInfo.InvariantCulture) + " items" : "";
         }
 
         public void SetChaseMode(HUDDriverState state, bool chasing)

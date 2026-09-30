@@ -12,8 +12,10 @@
 //   Sequence Domain Player/Floor hand outcomes and Progression ward consumption.
 //   Route light/hand damage at the Floor fact tick without rewinding Player recovery.
 //   Apply perk revisions once per registered player and light/noise facts to hunters.
+//   Route bound-floor noise only through Director; it relays each audible noise to hunters.
 // DEPENDENCIES:
 //   Core contracts; Domain Player/Hunter registries and managers; Domain Floor manager.
+//   Domain Director receives environmental noise through the floor-scoped Session binding.
 //   Session Progression consumes wards in the declared HorrorEffects -> Progression direction.
 // USAGE NOTES:
 //   Persistent service initialized explicitly by scene setup. The declared Session dependency
@@ -23,6 +25,7 @@
 //   BindActors after assembly; Tick also discovers newly registered actor identities.
 //   Perk refresh preserves active grab multipliers and never reapplies unchanged perks.
 //   Hazard subscription pairs OnEnable/OnDisable; reconfiguration detaches the old floor.
+//   Without a bound Director, legacy scenes use direct hunter hearing, never both paths.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -30,6 +33,7 @@ using Worsen.Core;
 using Worsen.Domain.Player;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Hunter;
+using Worsen.Domain.Director;
 using Worsen.Session.Progression;
 using EntityId = Worsen.Core.EntityId;
 
@@ -40,6 +44,7 @@ namespace Worsen.Session.HorrorEffects
         private HorrorEffectsController controller;
         private ProgressionSessionManager progression;
         private FloorManager floor;
+        private DirectorManager director;
         private bool hazardsBound;
         public static HorrorEffectsManager Instance { get; private set; }
         public event Action<FlashlightSample> FlashlightChanged;
@@ -97,17 +102,20 @@ namespace Worsen.Session.HorrorEffects
             foreach (PlayerManager player in PlayerRegistry.Items) player.SetGrabSpeedMultiplier(1f);
             controller?.Suspend(); Publish();
         }
-        public void ConfigureHazards(ProgressionSessionManager progressionService, FloorManager floorService)
+        public void ConfigureHazards(ProgressionSessionManager progressionService, FloorManager floorService,
+            DirectorManager directorService = null)
         {
             ClearHazards();
             progression = progressionService;
             floor = floorService;
+            director = directorService;
             BindHazards();
         }
         public void ClearHazards()
         {
             UnbindHazards();
             floor = null;
+            director = null;
             progression = null;
         }
         private void BindHazards()
@@ -156,7 +164,8 @@ namespace Worsen.Session.HorrorEffects
                         foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.SetAfterimage(fact.Light, fact.Value);
                         AfterimageChanged?.Invoke(fact.Light, fact.Value); break;
                     case HorrorEffectKind.Noise:
-                        foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(fact.Noise);
+                        if (director != null) director.HearNoise(fact.Noise);
+                        else foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(fact.Noise);
                         NoiseEmitted?.Invoke(fact.Noise); break;
                     case HorrorEffectKind.FlameDim: FlameDimChanged?.Invoke(fact.Position, fact.Radius, fact.Value); break;
                     case HorrorEffectKind.OptionalRoomCrack:

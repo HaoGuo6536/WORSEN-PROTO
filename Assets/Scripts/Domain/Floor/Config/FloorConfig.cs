@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
 //   - Tune per-room placement, the required share and shared pickup loudness.
 //   - Tune deliberate locked-exit holds independently of cake-driven collapse.
 //   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
@@ -28,6 +29,24 @@ namespace Worsen.Domain.Floor
     public sealed class FloorConfig : ScriptableObject
     {
         [SerializeField, Min(1)] private int _requiredCakeCount = 10;
+        [SerializeField, Min(1)] private int _trapStartRound = 3;
+        [SerializeField, Range(0f, 1f)] private float _optionalTrapShare = 0.33333334f;
+        [SerializeField, Min(1)] private int _roomsPerTrap = 3;
+        [SerializeField, Min(0)] private int _maximumTraps = 3;
+        [SerializeField, Min(0)] private int _extraBlinderTraps = 2;
+        [SerializeField, Min(0.01f)] private float _trapTickInterval = 2f;
+        [SerializeField, Range(0f, 1f)] private float _trapTickLoudness = 0.15f;
+        [SerializeField, Range(0f, 1f)] private float _trapAnnounceLoudness = 1f;
+        [SerializeField, Range(0f, 1f)] private float _greedyDoorShare = 0.4f;
+        public int TrapStartRound => Mathf.Max(1, _trapStartRound);
+        public float OptionalTrapShare => Mathf.Clamp01(_optionalTrapShare);
+        public int RoomsPerTrap => Mathf.Max(1, _roomsPerTrap);
+        public int MaximumTraps => Mathf.Max(0, _maximumTraps);
+        public int ExtraBlinderTraps => Mathf.Max(0, _extraBlinderTraps);
+        public float TrapTickInterval => _trapTickInterval > 0f ? _trapTickInterval : 2f;
+        public float TrapTickLoudness => Mathf.Clamp01(_trapTickLoudness);
+        public float TrapAnnounceLoudness => Mathf.Clamp01(_trapAnnounceLoudness);
+        public float GreedyDoorShare => Mathf.Clamp01(_greedyDoorShare);
         [SerializeField] private bool _useRoomCakeDensity = true;
         [SerializeField, Min(1)] private int _minimumCakesPerRoom = 1;
         [SerializeField, Min(1)] private int _maximumCakesPerRoom = 3;

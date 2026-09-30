@@ -66,14 +66,16 @@ namespace Worsen.Tests.Progression
                 }
                 Assert.That(requests.Count, Is.EqualTo(3));
                 Assert.That(requests[2].IsShop, Is.True);
-                Assert.That(requests[2].Effects.Health, Is.EqualTo(60f));
+                // Health no longer carries between floors (SPEC-004 §2.9): the shop starts full.
+                Assert.That(requests[2].Effects.Health, Is.EqualTo(100f));
                 Assert.That(requests[2].Effects.ActiveThreatBudget, Is.Zero);
                 Assert.That(manager.ConfirmFloorReady(requests[2].GenerationId), Is.True);
                 int beforePurchase = snapshots.Count;
-                Assert.That(manager.Purchase("field-dressing", manager.Snapshot.Revision), Is.True);
-                Assert.That(snapshots.Count, Is.EqualTo(beforePurchase + 1));
-                Assert.That(manager.Snapshot.Wallet, Is.EqualTo(4));
-                Assert.That(manager.Snapshot.Health, Is.EqualTo(95f));
+                // Healing is refused at full health, and the refusal publishes nothing.
+                Assert.That(manager.Purchase("field-dressing", manager.Snapshot.Revision), Is.False);
+                Assert.That(snapshots.Count, Is.EqualTo(beforePurchase));
+                Assert.That(manager.Snapshot.Wallet, Is.EqualTo(6));
+                Assert.That(manager.Snapshot.Health, Is.EqualTo(100f));
                 Assert.That(manager.Purchase("wax-ward", manager.Snapshot.Revision), Is.True);
                 Assert.That(manager.Snapshot.Effects.WaxWardCharges, Is.EqualTo(1));
                 Assert.That(manager.ContinueShop(manager.Snapshot.Revision), Is.True);

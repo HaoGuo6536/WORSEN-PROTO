@@ -11,6 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Build a centered, bounded summary and preserve the established element names.
+//   - Expose detailed outcomes, history and an editable next-run seed without rich-text interpretation.
 //   - Paint panel/button chrome and pair all paint/focus callbacks with release.
 //
 // DEPENDENCIES:
@@ -82,6 +83,12 @@ namespace Worsen.Presentation.Results
             AddRow(body, "TIME SURVIVED", "run-time", "CAKES FOUND", "cake-total");
             AddRow(body, "GOLDEN CAKES", "golden-cake-total", "CHASES", "chase-count");
             AddRow(body, "CHASES ESCAPED", "chase-escapes", "TIME IN CHASE", "chase-time");
+            AddRow(body, "CAUSE OF DEATH", "death-cause", "KILLER", "killer");
+            AddRow(body, "GRABS ESCAPED", "grabs-escaped", "EXIT OPEN TO ESCAPE", "exit-to-escape");
+            AddRow(body, "DEPTH REACHED", "depth-reached", "BEST DEPTH", "best-depth");
+            AddRow(body, "SEED", "run-seed", "", "seed-spacer");
+            body.Add(new TextField("Next run seed (blank = new)") { name = "next-run-seed" });
+            AddLabel(body, "seed-error", "", config.CaptionFontSize, config.BoneColor);
 
             _button = new Button { name = "restart-button", text = "", focusable = true, tabIndex = 0 };
             _button.style.height = config.ButtonHeight;
@@ -152,7 +159,7 @@ namespace Worsen.Presentation.Results
 
         private static Label AddLabel(VisualElement parent, string name, string text, int size, Color color)
         {
-            var label = new Label(text) { name = name, pickingMode = PickingMode.Ignore };
+            var label = new Label(text) { enableRichText = false, name = name, pickingMode = PickingMode.Ignore };
             label.style.fontSize = size;
             label.style.color = color;
             label.style.whiteSpace = WhiteSpace.Normal;

@@ -12,6 +12,7 @@
 //   Owns the rules over RunSessionBehaviorState without touching a Unity scene.
 //
 // KEY RESPONSIBILITIES:
+//   - Gate pause before input/time consumption and derive detailed summaries from committed facts.
 //   - Admit the runtime-generated horror scene to the same fixed-step lifecycle.
 //   - Define phase transitions and gate ticks on scene readiness and run state.
 //   - Combine pending input, retain held controls, and consume edges exactly once.
@@ -76,6 +77,12 @@ namespace Worsen.Session.Run
 
             state.Scene = scene;
             state.SceneIsReady = true;
+            state.Paused = false;
+            state.DeathCause = DeathCause.None;
+            state.KillerArchetypeId = string.Empty;
+            state.GrabsEscaped = state.DepthReached = 0;
+            state.SummarySeed = state.Seed;
+            state.ExitOpenedAt = -1;
             state.Phase = Next(RunPhase.Boot, RunEvent.SceneReady);
             state.Tick = 0;
             state.ElapsedSeconds = 0;
@@ -88,6 +95,32 @@ namespace Worsen.Session.Run
             state.DeadPlayer = EntityId.None;
             state.KillerPosition = Vector3.zero;
             state.TelemetryEventId = 0;
+        }
+
+        public bool SetPaused(bool paused)
+        {
+            if (paused && (!state.SceneIsReady || state.Phase == RunPhase.Boot || state.Phase == RunPhase.Ended || state.PendingEndReason != RunEndReason.Unknown)) return false;
+            if (state.Paused == paused) return false;
+            state.Paused = paused;
+            state.PendingInput = default;
+            return true;
+        }
+
+        public void SetSummaryContext(int seed, int depth)
+        { state.SummarySeed = seed; state.DepthReached = Math.Max(0, depth); }
+
+        public void RecordDeathDetails(EntityId player, DeathCause cause, string archetype = "")
+        {
+            if (state.Phase == RunPhase.Ended || state.PendingEndReason != RunEndReason.Died || state.DeadPlayer != player) return;
+            if (state.DeathCause != DeathCause.None) return;
+            state.DeathCause = cause; state.KillerArchetypeId = archetype ?? string.Empty;
+        }
+
+        public void RecordHand(CollapseHandFact fact)
+        {
+            if (state.Paused || state.Phase == RunPhase.Ended) return;
+            if (fact.Kind == CollapseHandEventKind.Escaped) state.GrabsEscaped++;
+            if (fact.Kind == CollapseHandEventKind.Consumed) RecordDeathDetails(fact.PlayerId, DeathCause.Hand);
         }
 
         public void RecordCollection(PickupCollectedFact fact)
@@ -134,12 +167,16 @@ namespace Worsen.Session.Run
         public bool TryFinish(out RunSummary summary)
         {
             summary = default;
-            if (state.Phase == RunPhase.Ended || state.PendingEndReason == RunEndReason.Unknown) return false;
+            if (state.Paused || state.Phase == RunPhase.Ended || state.PendingEndReason == RunEndReason.Unknown) return false;
             CloseChase();
             state.Phase = RunPhase.Ended;
+            state.Paused = false;
             state.PendingInput = default;
             summary = new RunSummary(state.ElapsedSeconds, state.CakesCollected, state.GoldenCakesCollected,
-                state.ChaseCount, state.ChasesEscaped, state.TotalChaseSeconds, state.PendingEndReason, state.Seed, state.Scene,
+                state.ChaseCount, state.ChasesEscaped, state.TotalChaseSeconds, state.PendingEndReason, state.SummarySeed, state.Scene,
+                state.DeathCause, state.KillerArchetypeId, state.GrabsEscaped,
+                state.PendingEndReason == RunEndReason.Escaped && state.ExitOpenedAt >= 0
+                    ? Math.Max(0, state.ElapsedSeconds - state.ExitOpenedAt) : -1, state.DepthReached,
                 bailed: state.PendingBailed);
             return true;
         }
@@ -173,19 +210,22 @@ namespace Worsen.Session.Run
 
         public void SuspendForSceneLoad()
         {
+            state.Paused = false;
             state.SceneIsReady = false;
             state.PendingInput = default;
         }
 
         public RunPhase Apply(RunEvent fact)
         {
+            if (fact == RunEvent.ExitOpened && state.Phase == RunPhase.FirstSweep)
+                state.ExitOpenedAt = state.ElapsedSeconds;
             state.Phase = Next(state.Phase, fact);
             return state.Phase;
         }
 
         public void ReceiveInput(InputFrame frame)
         {
-            if (!state.SceneIsReady || state.Phase == RunPhase.Ended) return;
+            if (state.Paused || !state.SceneIsReady || state.Phase == RunPhase.Ended) return;
 
             InputFrame pending = state.PendingInput;
             state.PendingInput = new InputFrame(frame.Move, pending.LookDelta + frame.LookDelta,
@@ -195,7 +235,7 @@ namespace Worsen.Session.Run
         public bool TryTick(float deltaTime, out InputFrame frame)
         {
             frame = default;
-            if (!state.SceneIsReady || state.Phase == RunPhase.Boot || state.Phase == RunPhase.Ended)
+            if (state.Paused || !state.SceneIsReady || state.Phase == RunPhase.Boot || state.Phase == RunPhase.Ended)
                 return false;
             if (deltaTime <= 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime))
                 throw new ArgumentOutOfRangeException(nameof(deltaTime), "Tick duration must be finite and positive.");

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Input target. Thin event routing only.
 // KEY RESPONSIBILITIES:
+//   - Route authoritative pause separately from readiness so recordings survive pauses.
 //   - Request one input publication before each simulation tick.
 //   - Route Core input frames and scene lifecycle facts into the run.
 // DEPENDENCIES:
@@ -53,6 +54,8 @@ namespace Worsen.Orchestrator
             _sceneFlow = _sceneFlow.Initialize();
             _input.FramePublished += OnFramePublished;
             _run.BeforeTick += OnBeforeTick;
+            _run.PauseChanged += OnPause;
+            _input.SetPaused(_run.IsPaused);
             _run.CaptureStarted += OnCaptureStarted;
             _run.CaptureEnded += OnCaptureEnded;
             _run.PlayerProbeRecorded += OnProbeRecorded;
@@ -70,6 +73,7 @@ namespace Worsen.Orchestrator
             if (_run != null)
             {
                 _run.BeforeTick -= OnBeforeTick;
+                _run.PauseChanged -= OnPause;
                 _run.CaptureStarted -= OnCaptureStarted;
                 _run.CaptureEnded -= OnCaptureEnded;
                 _run.PlayerProbeRecorded -= OnProbeRecorded;
@@ -88,6 +92,7 @@ namespace Worsen.Orchestrator
         private void OnRunEnded(RunSummary summary) => _input.SetInputEnabled(false);
 
         private void OnBeforeTick() => _input.PublishFrame();
+        private void OnPause(bool paused) => _input.SetPaused(paused);
         private void OnProgressionSnapshot(ProgressionSnapshot snapshot) => _input.SetInputEnabled(snapshot.Phase == ProgressionPhase.Exploring);
         private void OnFramePublished(InputFrame frame) => _run.ReceiveInput(frame);
 

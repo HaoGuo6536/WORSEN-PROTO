@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify portal clearance, elevation, selection, local dimming and threshold chalk.
 //   - Verify default-off Wick/Darker Floors composition without exceeding the light cap.
+//   - Bind exact Core light sockets without lighting other rooms, moons or destroyed torches.
 // DEPENDENCIES:
 //   - NUnit and EnvironmentPresenter; no scene objects required.
 // USAGE NOTES:
@@ -19,11 +20,35 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Presentation.Environment;
+using Worsen.Core;
 
 namespace Worsen.Tests.CastleEnvironment
 {
     public sealed class EnvironmentPresenterTests
     {
+        [Test]
+        public void LightFactsMatchOnlyTheirRoomSocketAndRespectDestruction()
+        {
+            var state = new EnvironmentDriverState();
+            state.Flames.Add(new EnvironmentFlameDriverState { RoomId = 1, SocketPosition = Vector3.one, Moon = true });
+            state.Flames.Add(new EnvironmentFlameDriverState { RoomId = 2, SocketPosition = Vector3.one });
+            state.Flames.Add(new EnvironmentFlameDriverState { RoomId = 1, SocketPosition = Vector3.one });
+            state.Available.AddRange(new[] { true, true, true });
+            var off = new InteractableState(42, InteractableKind.Light, 1, Vector3.one, InteractableStateValue.Inactive);
+            var on = new InteractableState(42, InteractableKind.Light, 1, Vector3.one, InteractableStateValue.Lit);
+            Assert.That(EnvironmentPresenter.ApplyLight(state, off), Is.True);
+            Assert.That(state.Available, Is.EqualTo(new[] { true, true, false }));
+            Assert.That(EnvironmentPresenter.ApplyLight(state, on), Is.True);
+            Assert.That(state.Available[2], Is.True);
+            state.Flames[2].Destruction = 1f;
+            EnvironmentPresenter.ApplyLight(state, on);
+            Assert.That(state.Available[2], Is.False);
+            Assert.That(EnvironmentPresenter.ApplyLight(state,
+                new InteractableState(43, InteractableKind.Light, 1, Vector3.zero, InteractableStateValue.Lit)), Is.False);
+            Assert.That(EnvironmentPresenter.ApplyLight(state,
+                new InteractableState(42, InteractableKind.Door, 1, Vector3.one, InteractableStateValue.Open)), Is.False);
+        }
+
         [TestCase(false, false)] [TestCase(true, false)] [TestCase(false, true)] [TestCase(true, true)]
         public void LampHooksRestoreLitStateAndScaleDarknessWithoutRevivingDestroyedRooms(bool wick, bool darker)
         {

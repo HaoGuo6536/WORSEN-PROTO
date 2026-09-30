@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Domain · Player local results.
 // KEY RESPONSIBILITIES:
+//   - Name Player-owned external impulse kinds without adding a Core event contract.
 //   - Carry collision-swept late steering separately from the captured traversal path.
 //   - Distinguish grace absorption from accepted damage and carry the new Core grace fact.
 //   - Implement only the Player responsibility named by this script.
@@ -16,7 +17,8 @@
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
-//   Cross-system movement and traversal facts are Core types. These results remain inside Player.
+//   Cross-system movement and traversal facts are Core types. ExternalMotionKind is a
+//   Player command argument for downward callers; it is not a published event payload.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using UnityEngine;
@@ -25,6 +27,7 @@ using Worsen.Core;
 namespace Worsen.Domain.Player
 {
     public enum PlayerHealthState { Healthy, Injured, Critical, Dead }
+    public enum ExternalMotionKind { Impulse, CollapseHandThrow }
 
     public readonly struct PlayerTickResult
     {

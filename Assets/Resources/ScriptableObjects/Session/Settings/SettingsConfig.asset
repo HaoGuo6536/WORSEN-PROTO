@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 165c007e659a1b64a8e839fda19b8a25, type: 3}
+  m_Name: SettingsConfig
+  m_EditorClassIdentifier: Worsen.Session::Worsen.Session.Settings.SettingsConfig
+  _mouseSensitivity: 0.1
+  _invertY: 0
+  _fieldOfView: 95
+  _cameraTilt: 1
+  _cameraPunch: 1
+  _reacquireBlur: 1
+  _masterVolume: 1
+  _musicVolume: 1
+  _effectsVolume: 1

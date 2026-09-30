@@ -156,7 +156,7 @@ namespace Worsen.Tests.Floor
         public void HandKillsOnlyThroughOrdinaryDamage(float health, bool dies)
         {
             Step(0f, 1); Step(0.7f, 2); var hit = Step(1.4f, 3);
-            var state = new PlayerBehaviorState { Health = health, MaxHealth = 100f };
+            var state = new PlayerBehaviorState { Health = health, MaxHealth = 100f, RecoveryTickSeconds = 1f / 60f };
             var profile = (PlayerProfile)FormatterServices.GetUninitializedObject(typeof(PlayerProfile));
             var player = new PlayerController(state, profile, new System.Random(1));
             Assert.That(player.ApplyHit(hit.Damage).Died, Is.EqualTo(dies));

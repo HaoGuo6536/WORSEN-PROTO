@@ -11,6 +11,7 @@
 //   - Verify severity/source forwarding, end-exclusive timing and accepted-hit guards.
 //   - Verify grace relays bind once and detach on disable, rebind and destruction.
 //   - Verify light/hand routing through the Floor event subscription outside Player ticks.
+//   - Distinguish contact candidates from damage admission and retain grace in terminal ordering.
 // DEPENDENCIES:
 //   Core facts, Domain Player/Floor, Session Run/HorrorEffects, NUnit and UnityEngine.
 // USAGE NOTES:
@@ -18,6 +19,8 @@
 //   avoid DontDestroyOnLoad, registers only the owned Player, and injects queued
 //   hit/Floor facts. No fake Player health or grace events are raised. Temporary
 //   fixed delta time is restored; Ignore Raycast substitutes for HunterBody.
+//   Lifecycle callbacks are invoked explicitly in Edit Mode; native callback
+//   dispatch is covered separately by RunGameplayForwardingTests in Play Mode.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -167,12 +170,14 @@ namespace Worsen.Tests.Run
             Assert.That(starts.Count, Is.EqualTo(1));
             Assert.That(ends, Is.EqualTo(starts));
             run.gameObject.SetActive(false);
+            Invoke(run, "OnDisable");
             AssertSubscribers(0);
             player.ApplyHit(1f, Vector3.zero);
             player.AdvanceRecovery(144);
             Assert.That(starts.Count, Is.EqualTo(1));
             Assert.That(ends.Count, Is.EqualTo(1));
             run.gameObject.SetActive(true);
+            Invoke(run, "OnEnable");
             AssertSubscribers(1);
             player.ApplyHit(1f, Vector3.zero);
             player.AdvanceRecovery(216);
@@ -182,6 +187,7 @@ namespace Worsen.Tests.Run
             AssertSubscribers(0);
             run.BindGameplay(null, null, null);
             AssertSubscribers(1);
+            Invoke(run, "OnDestroy");
             Object.DestroyImmediate(run.gameObject);
             AssertSubscribers(0);
         }
@@ -230,6 +236,46 @@ namespace Worsen.Tests.Run
             Assert.That(player.ReadOnlyState.Tick, Is.EqualTo(100));
             Assert.That(starts[0].StartTick, Is.EqualTo(100));
             Assert.That(starts[0].EndTick, Is.EqualTo(172));
+        }
+
+        [Test]
+        public void ThreeContactCandidatesProduceTwoAcceptedHitsWithoutRedraining()
+        {
+            int absorbed = 0;
+            player.OnHitAbsorbedByGrace += (_, __, ___) => absorbed++;
+            Route(new HunterHit(new EntityId(-1), player.Id, 50, 0, Vector3.back));
+            AdvanceRun(starts[0].EndTick - 1);
+            Route(new HunterHit(new EntityId(-1), player.Id, 50, run.Tick, Vector3.back));
+            AdvanceRun(starts[0].EndTick);
+            Route(new HunterHit(new EntityId(-1), player.Id, 50, run.Tick, Vector3.back));
+            Invoke(run, "DrainPendingHits");
+            Assert.That(absorbed, Is.EqualTo(1));
+            Assert.That(accepted.Count, Is.EqualTo(2));
+            Assert.That(telemetry.Count, Is.EqualTo(2));
+            Assert.That(player.ReadOnlyState.Health, Is.Zero);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GraceControlsWhetherQueuedLethalCandidateOverridesEscape(bool expired)
+        {
+            Route(new HunterHit(new EntityId(-1), player.Id, 50, 0, Vector3.back));
+            AdvanceRun(starts[0].EndTick - (expired ? 0 : 1));
+            clock.OpenCapture();
+            var order = new List<string>();
+            RunSummary summary = default;
+            run.CaptureEnded += (_, complete) => { Assert.That(complete, Is.True); order.Add("capture"); };
+            run.RunEnded += value => { summary = value; order.Add("results"); };
+            long terminalTick = run.Tick;
+            Invoke(run, "HandleExitOpened", terminalTick);
+            Invoke(run, "HandleExitReached", new ExitReachedFact(player.Id, terminalTick), false);
+            Route(new HunterHit(new EntityId(-1), player.Id, 50, terminalTick, Vector3.back));
+            Invoke(run, "FinishIfRequested");
+            Invoke(run, "DrainPendingHits"); Invoke(run, "FinishIfRequested");
+            Assert.That(summary.EndReason, Is.EqualTo(expired ? RunEndReason.Died : RunEndReason.Escaped));
+            Assert.That(accepted.Count, Is.EqualTo(expired ? 2 : 1));
+            Assert.That(run.Tick, Is.EqualTo(terminalTick));
+            Assert.That(order, Is.EqualTo(new[] { "capture", "results" }));
         }
 
         private HunterHit Hit(long tick, HitSeverity severity = HitSeverity.Heavy, HitSource source = HitSource.Lunge)

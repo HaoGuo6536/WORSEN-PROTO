@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ef82b1571b7d946b9477fcde8b1104, type: 3}
+  m_Name: FogSpikeProfile
+  m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Fog.FogSpikeProfile
+  _roomSize: 12
+  _roomHeight: 4
+  _wallThickness: 0.2
+  _secondsPerRoom: 2
+  _secondsPerCameraSegment: 4
+  _eyeHeight: 1.6
+  _fieldOfView: 70
+  _warmupFrames: 60
+  _sampleFrames: 300
+  _timeoutSeconds: 120
+  _minimumProbeProgress: 0.05
+  _lightIntensity: 2
+  _lightCeilingOffset: 0.5
+  _cameraNearClip: 0.1
+  _cameraFarRoomMultiplier: 8

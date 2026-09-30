@@ -10,6 +10,7 @@
 //   Driver (§7a) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply blur preferences immediately to runtime state and the owned volume.
 //   - Own and apply distortion, vignette, desaturation, grain and optional blur.
 //   - Apply constant degradation and timed blindness only to the owned runtime volume.
 //   - Destroy the runtime profile and its components on teardown.
@@ -108,6 +109,13 @@ namespace Worsen.Presentation.PostFX
         public void SetInjury(float currentHealth, float maxHealth)
         {
             if (_state != null) _presenter.SetInjury(_state, currentHealth, maxHealth);
+        }
+
+        public void SetReacquireBlurEnabled(bool enabled)
+        {
+            if (_state == null) return;
+            _presenter.SetReacquireBlurEnabled(_state, enabled);
+            Apply();
         }
 
         public void PlayReacquireBlur()

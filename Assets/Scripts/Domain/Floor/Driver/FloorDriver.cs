@@ -8,9 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Instance the configured cake slice visual independently of collection triggers.
+//   - Build tiered candle-lit cakes independently of unchanged pickup triggers; retain authored art overrides.
 //   - Tint owned golden material copies while retaining authored cake textures and alpha.
-//   - Own native Lumen fake-light warnings and exit cues without Unity Light objects.
+//   - Own Lumen glow layers and a candle point light; warnings and exit remain fake-light only.
+//   - Relay trap contacts and apply explicit visual/audio commands from the Manager.
 //   - Support staged collapse and an opt-in hinged exit that requires a real crossing.
 //   - Relay locked-door overlaps/departures and present bails without spawning Golden Cakes.
 //   - Report physical opening progress; the legacy marker changes immediately.
@@ -43,6 +44,7 @@ namespace Worsen.Domain.Floor
         private readonly FloorDriverState _state = new FloorDriverState();
         private readonly FloorPresenter _presenter = new FloorPresenter();
         public event Action<Collider, int, PickupKind> PickupContact;
+        public event Action<Collider, int> TrapContact;
 
         public event Action<Collider> ExitContact;
         public event Action<EntityId> ExitDeparted;
@@ -51,7 +53,7 @@ namespace Worsen.Domain.Floor
         public float OpeningProgress(bool open) => _state.ExitDoor != null ? _state.ExitDoor.OpeningProgress : open ? 1f : 0f;
 
         public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors, Func<Collider, EntityId> resolveIdentity = null,
-            float boundaryReach = 0f)
+            float boundaryReach = 0f, IReadOnlyList<FloorTrapSpawn> traps = null)
         {
             Teardown();
             if (_config == null) _config = Resources.Load<FloorDriverConfig>("ScriptableObjects/Domain/Floor/FloorDriverConfig");
@@ -69,6 +71,14 @@ namespace Worsen.Domain.Floor
                 BuildRoom(room, resolveIdentity, boundaryReach, cakes);
             }
             foreach (var anchor in anchors) { _state.Anchors.Add(anchor.Id, anchor); BuildPickup(anchor, PickupKind.Cake); }
+            if (traps != null && traps.Count > 0)
+            {
+                var samples = new FloorCakePresenter().TickSamples(22050, _config.TrapTickDuration, _config.TrapTickFrequency);
+                _state.TrapTickClip = AudioClip.Create("Floor Blinder Tick", samples.Length, 1, 22050, false);
+                _state.TrapTickClip.SetData(samples, 0);
+                foreach (var trap in traps)
+                { _state.Anchors.Add(trap.Anchor.Id, trap.Anchor); BuildPickup(trap.Anchor, PickupKind.Cake, true, trap.Kind == FloorTrapKind.Blind); }
+            }
             BuildExit(graph.ExitPosition, resolveIdentity);
             _state.Ready = true;
             _state.Root.SetActive(true);
@@ -86,10 +96,20 @@ namespace Worsen.Domain.Floor
             _state.ExitMaterial.color = _config.ExitOpenColor;
             if (_state.ExitGlow != null) _state.ExitGlow.SetAppearance(_config.ExitOpenColor, _config.WarningIntensity);
             if (_state.ExitDoor != null) _state.ExitDoor.Open();
+            SpawnGoldenCakes(anchors);
+        }
+
+        public void SpawnGoldenCakes(IReadOnlyList<LevelAnchor> anchors)
+        {
             OnDisable();
             foreach (var anchor in anchors) BuildPickup(anchor, PickupKind.GoldenCake);
             if (isActiveAndEnabled) OnEnable();
         }
+
+        public void RemoveTrap(int id) { if (_state.Traps.TryGetValue(id, out var trap)) trap.gameObject.SetActive(false); }
+        public void PlayTrapTick(int id, float volume) { if (_state.Traps.TryGetValue(id, out var trap)) trap.PlayTick(volume); }
+        public void TickCakeVisuals(float elapsed)
+        { foreach (var visual in _state.CakeVisuals) if (visual != null && visual.gameObject.activeInHierarchy) visual.Tick(elapsed); }
 
         public void RefreshExitContacts()
         {
@@ -177,6 +197,8 @@ namespace Worsen.Domain.Floor
             OnDisable();
             if (_state.Root != null) { _state.Root.SetActive(false); Release(_state.Root); }
             foreach (var material in _state.Materials) if (material != null) Release(material);
+            if (_state.TrapTickClip != null) Release(_state.TrapTickClip);
+            _state.TrapTickClip = null; _state.Traps.Clear(); _state.CakeVisuals.Clear();
             _state.Pickups.Clear(); _state.Rooms.Clear(); _state.Materials.Clear(); _state.Anchors.Clear();
             _state.LastGoodDirections.Clear(); _state.FallbackDirections.Clear(); _state.HeldDirections.Clear();
             _state.Root = null; _state.Exit = null; _state.ExitDoor = null; _state.ExitGlow = null; _state.Ready = false;
@@ -186,6 +208,7 @@ namespace Worsen.Domain.Floor
         {
             if (!_state.Ready || _state.Subscribed) return;
             foreach (var pickup in _state.Pickups) pickup.Contact += HandlePickup;
+            foreach (var trap in _state.Traps.Values) trap.Contact += HandleTrap;
 
             if (_state.Exit != null) { _state.Exit.Contact += HandleExit; _state.Exit.Departed += HandleDeparture; }
             if (_state.ExitDoor != null)
@@ -196,6 +219,7 @@ namespace Worsen.Domain.Floor
         {
             if (!_state.Subscribed) return;
             foreach (var pickup in _state.Pickups) if (pickup != null) pickup.Contact -= HandlePickup;
+            foreach (var trap in _state.Traps.Values) if (trap != null) trap.Contact -= HandleTrap;
 
             if (_state.Exit != null) { _state.Exit.Contact -= HandleExit; _state.Exit.Departed -= HandleDeparture; }
             if (_state.ExitDoor != null)
@@ -204,11 +228,12 @@ namespace Worsen.Domain.Floor
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => PickupContact?.Invoke(other, anchor, kind);
+        private void HandleTrap(Collider other, int anchor) => TrapContact?.Invoke(other, anchor);
 
         private void HandleExit(Collider other) => ExitContact?.Invoke(other);
         private void HandleDeparture(EntityId id) => ExitDeparted?.Invoke(id);
 
-        private void BuildPickup(LevelAnchor anchor, PickupKind kind)
+        private void BuildPickup(LevelAnchor anchor, PickupKind kind, bool trap = false, bool ticks = false)
         {
             var item = new GameObject();
             item.name = kind + " " + anchor.Id;
@@ -253,13 +278,31 @@ namespace Worsen.Domain.Floor
             }
             else
             {
-                var visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                visual.transform.SetParent(item.transform, false);
-                visual.transform.localScale = Vector3.one * (_config.PickupRadius * 2f);
-                visual.GetComponent<Renderer>().sharedMaterial = kind == PickupKind.Cake ? _state.CakeMaterial : _state.GoldenMaterial;
-                Release(visual.GetComponent<Collider>());
+                var visualRoot = new GameObject("Baked Cake"); visualRoot.transform.SetParent(item.transform, false);
+                var visual = visualRoot.AddComponent<FloorCakeVisual>();
+                var flame = MakeMaterial(_config.CandleColor);
+                flame.EnableKeyword("_EMISSION"); flame.SetColor("_EmissionColor", _config.CandleColor * 2f);
+                visual.Configure(_config, kind == PickupKind.Cake ? _state.CakeMaterial : _state.GoldenMaterial,
+                    MakeMaterial(kind == PickupKind.Cake ? _config.FrostingColor : _config.GoldenColor), _state.CakeMaterial, flame, trap);
+                _state.CakeVisuals.Add(visual);
             }
-            var pickup = item.AddComponent<CakePickup>(); pickup.Configure(anchor.Id, kind); _state.Pickups.Add(pickup);
+            var glowColor = kind == PickupKind.GoldenCake ? _config.GoldenColor : _config.FrostingColor;
+            BuildCakeGlow(item.transform, "Inner Cake Glow", Vector3.zero, _config.CakeGlowRadius, glowColor);
+            BuildCakeGlow(item.transform, "Outer Cake Glow", Vector3.up * 0.15f, _config.CakeGlowRadius * 1.5f, glowColor);
+            BuildCakeGlow(item.transform, "Cake Light Pool", Vector3.down * (_config.PickupHeight - 0.03f), _config.CakePoolRadius, glowColor);
+            if (trap)
+            {
+                item.name = "Cake Trap " + anchor.Id;
+                var contact = item.AddComponent<FloorCakeTrap>();
+                contact.Configure(anchor.Id, ticks ? _state.TrapTickClip : null); _state.Traps.Add(anchor.Id, contact);
+            }
+            else
+            { var pickup = item.AddComponent<CakePickup>(); pickup.Configure(anchor.Id, kind); _state.Pickups.Add(pickup); }
+        }
+        private void BuildCakeGlow(Transform parent, string label, Vector3 position, float radius, Color color)
+        {
+            var root = new GameObject(label); root.transform.SetParent(parent, false); root.transform.localPosition = position;
+            root.AddComponent<FloorLumenGlow>().Configure(_config.LumenExitGlowPrefab, radius, color, _config.CakeGlowBrightness, true);
         }
         private void BuildExit(Vector3 position, Func<Collider, EntityId> resolveIdentity)
         {

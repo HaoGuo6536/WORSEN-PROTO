@@ -11,19 +11,35 @@
 //   - Select the nearest effects under fixed budgets and preserve a readable flame minimum.
 //   - Compute local flame falloff and bounded chalk crosses with room ownership.
 //   - Apply default-off Wick and Darker Floors without bypassing destruction or light budgets.
+//   - Match Level light facts to exact room/socket positions and preserve destruction gating.
 // DEPENDENCIES:
-//   - Its own definitions and Unity value math; no other systems.
+//   - Its own definitions/state, Core interactable snapshots and Unity value math.
 // USAGE NOTES:
 //   Room bounds start at the walking surface, not the structural foundation.
 //   Time is explicit and cosmetic variation never consumes the game's random stream.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Presentation.Environment
 {
     public static class EnvironmentPresenter
     {
+        public static bool ApplyLight(EnvironmentDriverState state, InteractableState light)
+        {
+            if (light.Kind != InteractableKind.Light) return false;
+            for (int i = 0; i < state.Flames.Count; i++)
+            {
+                var flame = state.Flames[i];
+                if (flame.Moon || flame.Exit || flame.RoomId != light.RoomId || !flame.SocketPosition.Equals(light.Position)) continue;
+                flame.Lit = light.Value == InteractableStateValue.Lit;
+                state.Available[i] = flame.Lit && flame.Destruction < 1f;
+                return true;
+            }
+            return false;
+        }
+
         public static float LampBrightness(float elapsed, int identity, float gutter, float destruction,
             bool wick, bool darkerFloors, float darkerMultiplier)
             => FlameBrightness(elapsed, identity, wick ? 0f : gutter, destruction)

@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own document binding and the HUDVisualDriver lifetime.
 //   - Preserve supplied facts across document recreation and disable/enable.
-//   - Receive camera aim orientation for a three-dimensional objective compass.
+//   - Receive camera aim, golden count and occupied-item facts for a flat, decluttered HUD.
 //
 // DEPENDENCIES:
 //   Core primitives and own HUD presentation stack; Unity UI Toolkit only at Driver boundaries.
@@ -67,6 +67,20 @@ namespace Worsen.Presentation.HUD
         {
             if (_state == null) return;
             _presenter.SetCount(_state, collected, total);
+            Apply();
+        }
+
+        public void SetGoldenCount(int count)
+        {
+            if (_state == null) return;
+            _presenter.SetGoldenCount(_state, count);
+            Apply();
+        }
+
+        public void SetHeldItemCount(int count)
+        {
+            if (_state == null || _config == null) return;
+            _presenter.SetHeldItemCount(_state, count, _config.MaximumDisplayedSlots);
             Apply();
         }
 

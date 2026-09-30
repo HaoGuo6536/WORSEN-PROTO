@@ -5,6 +5,7 @@
 // PURPOSE:
 //   Stores current flashlight choices and all atmosphere restoration snapshots.
 //   Keeping this data outside the Driver makes effect math and round resets directly testable.
+//   The whole-run gameplay clock and startle history survive generated floor replacement.
 //
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Horror.
@@ -36,6 +37,7 @@ namespace Worsen.Presentation.Horror
     public sealed class HorrorDriverState
     {
         public bool OwnerEnabled;
+        public double RunElapsedSeconds;
         public int StartlesUsed;
         public double LastStartleSeconds = double.NegativeInfinity;
         public double LastIntrusionSeconds = double.NegativeInfinity;

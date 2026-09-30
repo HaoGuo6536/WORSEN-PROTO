@@ -10,6 +10,7 @@
 //   Presenter (§7b) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Override blur admission at runtime and immediately clear disabled blur.
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
 //   - Expire optional blur and intrusion without clearing injury or proximity.
 //   - Keep hunter/hand catches visible: legacy consumption calls never fade to black.
@@ -31,6 +32,14 @@ namespace Worsen.Presentation.PostFX
 {
     public sealed class PostFXPresenter
     {
+        public void SetReacquireBlurEnabled(PostFXDriverState state, bool enabled)
+        {
+            state.ReacquireBlurEnabled = enabled;
+            if (enabled) return;
+            state.BlurRemaining = state.Blur = 0f;
+            state.BlurRadius = 0.5f;
+        }
+
         public void Reset(PostFXDriverState state)
         {
             state.Consumed = false;
@@ -59,7 +68,7 @@ namespace Worsen.Presentation.PostFX
         }
 
         public void PlayReacquireBlur(PostFXDriverState state, PostFXDriverConfig config)
-            => state.BlurRemaining = config.ReacquireBlurEnabled ? Mathf.Max(0f, config.ReacquireBlurSeconds) : 0f;
+            => state.BlurRemaining = (state.ReacquireBlurEnabled ?? config.ReacquireBlurEnabled) ? Mathf.Max(0f, config.ReacquireBlurSeconds) : 0f;
 
         public void PlayIntrusion(PostFXDriverState state, float seconds)
             => state.IntrusionRemaining = Mathf.Max(state.IntrusionRemaining, Mathf.Max(0f, Finite(seconds)));
@@ -88,7 +97,7 @@ namespace Worsen.Presentation.PostFX
             state.IntrusionRemaining = Mathf.Max(0f, state.IntrusionRemaining - dt);
             state.SubtleIntrusionRemaining = Mathf.Max(0f, state.SubtleIntrusionRemaining - dt);
             state.BlindnessRemaining = Mathf.Max(0f, state.BlindnessRemaining - dt);
-            state.BlurRemaining = config.ReacquireBlurEnabled ? Mathf.Max(0f, state.BlurRemaining - dt) : 0f;
+            state.BlurRemaining = (state.ReacquireBlurEnabled ?? config.ReacquireBlurEnabled) ? Mathf.Max(0f, state.BlurRemaining - dt) : 0f;
             state.Chromatic = Mathf.Clamp01(config.BaselineChromatic + state.Proximity * config.PeripheralChromatic);
             state.Distortion = -Mathf.Clamp01(state.Proximity * config.PeripheralDistortion);
             state.Vignette = Mathf.Clamp01(config.FrameVignette + state.Injury * config.InjuryVignette);

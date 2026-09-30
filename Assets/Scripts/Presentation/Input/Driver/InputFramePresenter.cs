@@ -12,6 +12,7 @@
 //   Pure calculations over InputDriverState, owned by PlayerInputDriver.
 //
 // KEY RESPONSIBILITIES:
+//   - Gate paused input and clear every buffered control on either pause edge.
 //   - Buffer independent button press and release edges.
 //   - Normalize movement and scale mouse displacement and gamepad look rate.
 //   - Clear pending input on focus loss or an input gate closing.
@@ -34,7 +35,7 @@ namespace Worsen.Presentation.Input
     {
         public bool IsAcceptingInput(InputDriverState state)
         {
-            return state.InputEnabled && state.OwnerEnabled && state.HasFocus;
+            return !state.Paused && state.InputEnabled && state.OwnerEnabled && state.HasFocus;
         }
 
         public void SetMove(InputDriverState state, Vector2 move)
@@ -99,6 +100,9 @@ namespace Worsen.Presentation.Input
             state.Released = InputButtons.None;
             return frame;
         }
+
+        public void SetPaused(InputDriverState state, bool paused)
+        { state.Paused = paused; Reset(state); }
 
         public void SetInputEnabled(InputDriverState state, bool enabled)
         {

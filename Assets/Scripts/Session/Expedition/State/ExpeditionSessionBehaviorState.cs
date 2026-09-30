@@ -11,6 +11,7 @@
 //   - Retain the pending request and assembly phase across the teardown yield.
 //   - Track immutable room presentation and genuine portal crossings for floor-scoped marks.
 //   - Track factory identities for complete, idempotent cleanup.
+//   - Retain generation fallback evidence and capacity shortfalls after failed assembly.
 // DEPENDENCIES:
 //   - Core progression, scene and entity definitions; System collections.
 // USAGE NOTES:
@@ -35,6 +36,9 @@ namespace Worsen.Session.Expedition
         internal UnityEngine.Vector3 PreviousPosition;
         internal int PreviousRoom;
         public string Failure { get; internal set; } = string.Empty;
+        public bool UsedFallback { get; internal set; }
+        public string LayoutManifest { get; internal set; } = string.Empty;
+        public int HunterSpawnShortfall { get; internal set; }
         internal List<EntityId> Hunters { get; } = new List<EntityId>();
     }
 }

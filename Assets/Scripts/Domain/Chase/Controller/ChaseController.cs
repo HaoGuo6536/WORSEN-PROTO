@@ -11,11 +11,14 @@
 //   - Confirm continuous sight, require both loss conditions, and preserve grace identity.
 //   - Read each hunter's loss rule; a requested retreat drops that source immediately.
 //   - Return accepted catch outcomes and bounded directional proximity facts.
+//   - Preserve legacy gated closeness while publishing live proximity and aggregate belief.
 // DEPENDENCIES:
 //   - Reads injected Player and Hunter read-only views; Core event facts.
 // USAGE NOTES:
 //   Scene-owned state; Run Session supplies each tick after committed hunter poses.
 //   No engine calls or random decisions. Missing sources cannot retain sight.
+//   Music belief includes Confirmed/Lost with a present participating source, or positive finite
+//   belief confidence from a hunter committed at this tick; it never revives death.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -53,6 +56,8 @@ namespace Worsen.Domain.Chase
             ChasePhase previous = _state.Phase;
             EntityId confirmation = EntityId.None;
             bool retainsPursuit = false;
+            bool freshBelief = false;
+            bool presentPursuit = false;
             float nearest = float.PositiveInfinity;
             float closeness = 0f;
             EntityId proximityHunter = EntityId.None;
@@ -68,6 +73,8 @@ namespace Worsen.Domain.Chase
                 source.LossSeconds = policy?.LossSeconds ?? _config.LossSeconds;
                 float lossDistance = policy?.LossDistance ?? _config.LossDistance;
                 bool withdrawing = policy?.PursuitSuppressed ?? false;
+                freshBelief |= !withdrawing && hunter.Tick == tick && hunter.BeliefConfidence > 0f &&
+                    !float.IsInfinity(hunter.BeliefConfidence);
                 if (withdrawing) source.Participating = false;
                 bool visible = _player.IsAlive && hunter.PlayerVisible && !withdrawing;
                 source.SightSeconds = visible ? source.SightSeconds + dt : 0f;
@@ -81,6 +88,7 @@ namespace Worsen.Domain.Chase
                 }
                 if (source.Participating && !(source.NoSightSeconds + 0.000001f >= source.LossSeconds &&
                     distance > lossDistance)) retainsPursuit = true;
+                presentPursuit |= source.Participating;
                 float value = Closeness(distance, Vector3.Dot(hunter.Position - _player.Position, _player.Forward) < 0f);
                 if (value > closeness || (!proximityHunter.IsValid && distance < nearest))
                 { closeness = value; proximityHunter = hunter.Id; nearest = distance; }
@@ -121,7 +129,8 @@ namespace Worsen.Domain.Chase
             _state.Closeness = _state.HasActiveChase ? closeness : 0f;
             var fact = new ChaseFact(_state.ChaseId, _state.PlayerId, _state.HunterId, tick, _state.Phase, reason);
             var proximity = new ProximitySample(_state.PlayerId, proximityHunter, tick, _state.ChaseId,
-                float.IsPositiveInfinity(nearest) ? _config.FarDistance : nearest, _state.Closeness, _state.HasActiveChase);
+                float.IsPositiveInfinity(nearest) ? _config.FarDistance : nearest, _state.Closeness, _state.HasActiveChase,
+                closeness, _player.IsAlive && (freshBelief || presentPursuit && _state.HasActiveChase));
             if (ended) _state.Hunters.Clear();
             return new ChaseTickResult(started, lost, ended, previous != _state.Phase, fact, proximity);
         }
@@ -133,7 +142,9 @@ namespace Worsen.Domain.Chase
             _state.HunterId = hit.Hunter; _state.Hunters.Clear();
             return new ChaseTickResult(false, false, true, true,
                 new ChaseFact(_state.ChaseId, _state.PlayerId, hit.Hunter, hit.Tick, ChasePhase.None, hit.Reason),
-                new ProximitySample(_state.PlayerId, hit.Hunter, hit.Tick, _state.ChaseId, 0f, 0f, false));
+                new ProximitySample(_state.PlayerId, hit.Hunter, hit.Tick, _state.ChaseId, 0f, 0f, false,
+                    Closeness(Vector3.Distance(hit.HunterPosition, _player.Position),
+                        Vector3.Dot(hit.HunterPosition - _player.Position, _player.Forward) < 0f), false));
         }
         private float Closeness(float distance, bool behind)
         {

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Calculate vault, window and slide module geometry with explicit landings.
 //   - Mark partition corners for rebounds and export neutral traversal records.
+//   - Confine legacy partitions to the primary cell of a larger room footprint.
 // DEPENDENCIES:
 //   - Core traversal interfaces/records and Procedural room/configuration values.
 // USAGE NOTES:
@@ -35,7 +36,7 @@ namespace Worsen.Domain.Procedural
             foreach (var module in layout.Modules)
             {
                 if ((int)module.Kind > (int)ProceduralModuleKind.SlidePartition) continue;
-                var room = layout.Graph.Rooms[module.RoomId - 1];
+                var room = ProceduralFootprintUtility.Volumes(layout, layout.Graph.Rooms[module.RoomId - 1])[0];
                 var center = new Vector3(room.Center.x, 0f, room.Center.z);
                 var along = module.AlongX ? Vector3.right : Vector3.forward;
                 var across = module.AlongX ? Vector3.forward : Vector3.right;

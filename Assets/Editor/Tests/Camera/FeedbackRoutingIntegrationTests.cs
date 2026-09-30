@@ -266,7 +266,8 @@ namespace Worsen.Tests.Camera
                     Run.CaptureEnded += CaptureEnded;
                     camera.CatchHoldStarted += CatchStarted;
                     camera.CatchHoldEnded += CatchEnded;
-                    hunter.OnLungeHit += Hit;
+                    // Count damage the Run accepted; lunge candidates absorbed by hit grace are not hits.
+                    Run.HitAccepted += Hit;
                     hunter.GetComponent<HunterDriver>().OnLungeContact += Contact;
                     observer = new GameObject("Feedback late-frame observation").AddComponent<FeedbackFrameObserver>();
                     observer.Sample = () => Guard(Observe);
@@ -665,9 +666,10 @@ namespace Worsen.Tests.Camera
                 {
                     Run.ChaseStarted -= Started; Run.HealthChanged -= Injured; Run.PlayerDied -= Died;
                     Run.ProximityPublished -= Proximity; Run.PlayerMovementPublished -= Movement; Run.CaptureEnded -= CaptureEnded;
+                    Run.HitAccepted -= Hit;
                 }
                 if (hunter != null)
-                { hunter.OnLungeHit -= Hit; hunter.GetComponent<HunterDriver>().OnLungeContact -= Contact; }
+                { hunter.GetComponent<HunterDriver>().OnLungeContact -= Contact; }
             }
             public void Dispose()
             {

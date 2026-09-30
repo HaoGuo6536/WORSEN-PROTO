@@ -7,6 +7,8 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Expedition scene integration.
 // KEY RESPONSIBILITIES:
+//   - Wait for the title and activate its Start interaction before expecting choices.
+//   - Reject inter-floor health carry-over, including shop entry and return to combat.
 //   - Verify native geometry/navigation admission and growing in-place floors.
 //   - Exercise the two-combat shop cadence, unique choices and per-visit consumables.
 //   - Verify a central four-route exit hub and distinct ready animated hunter models.
@@ -34,6 +36,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 using Worsen.Core;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Hunter;
@@ -126,7 +129,8 @@ namespace Worsen.Tests.Expedition
                         player.ApplyHit(40f, player.transform.position + Vector3.forward);
                         Assert.That(progression.Snapshot.Health, Is.EqualTo(60f));
                     }
-                    else Assert.That(player.ReadOnlyState.Health, Is.EqualTo(60f), "Health must persist into the generated player.");
+                    else Assert.That(player.ReadOnlyState.Health, Is.EqualTo(player.ReadOnlyState.MaxHealth),
+                        "Each generated player starts at its effective maximum, not the prior floor's health.");
 
                     int beforeWallet = progression.Snapshot.Wallet;
                     var anchors = floor.ReadOnlyState.ActiveCakeAnchors.ToArray();
@@ -159,17 +163,17 @@ namespace Worsen.Tests.Expedition
                 var medkit = progression.Snapshot.Offers.Single(offer => offer.Id == "field-dressing");
                 Assert.That(medkit.Repeatable, Is.True);
                 Assert.That(medkit.StockRemaining, Is.EqualTo(1));
-                Assert.That(medkit.CanAfford, Is.True);
-                Assert.That(progression.Purchase(medkit.Id, progression.Snapshot.Revision), Is.True);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - medkit.Price));
-                Assert.That(progression.Snapshot.Health, Is.EqualTo(95f));
-                Assert.That(shopPlayer.ReadOnlyState.Health, Is.EqualTo(95f), "Shop healing must reach the live player immediately.");
-                Assert.That(expedition.GenerationId, Is.EqualTo(shopGeneration), "Purchasing must not regenerate the shop.");
+                Assert.That(medkit.CanAfford, Is.False);
+                Assert.That(medkit.UnavailableReason, Does.Contain("full"));
                 Assert.That(progression.Purchase(medkit.Id, progression.Snapshot.Revision), Is.False);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - medkit.Price));
-                var soldDressing = progression.Snapshot.Offers.Single(offer => offer.Id == medkit.Id);
-                Assert.That(soldDressing.StockRemaining, Is.Zero);
-                Assert.That(soldDressing.UnavailableReason, Does.Contain("Sold out"));
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
+                Assert.That(progression.Snapshot.Health, Is.EqualTo(progression.Snapshot.MaxHealth));
+                Assert.That(shopPlayer.ReadOnlyState.Health, Is.EqualTo(shopPlayer.ReadOnlyState.MaxHealth));
+                var ward = progression.Snapshot.Offers.Single(offer => offer.Id == "wax-ward");
+                Assert.That(progression.Purchase(ward.Id, progression.Snapshot.Revision), Is.True);
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - ward.Price));
+                Assert.That(progression.Purchase(ward.Id, progression.Snapshot.Revision), Is.False);
+                Assert.That(expedition.GenerationId, Is.EqualTo(shopGeneration), "Purchasing must not regenerate the shop.");
                 var soles = progression.Snapshot.Offers.Single(offer => offer.Id == "felt-soles");
                 Assert.That(soles.Repeatable, Is.False);
                 Assert.That(progression.Purchase(soles.Id, progression.Snapshot.Revision), Is.True);
@@ -186,7 +190,7 @@ namespace Worsen.Tests.Expedition
                 AssertFloor(progression, expedition, run, procedural, floor, sceneHandle, false, captures);
                 Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
                 var doomedPlayer = One<PlayerManager>();
-                Assert.That(doomedPlayer.ReadOnlyState.Health, Is.EqualTo(95f));
+                Assert.That(doomedPlayer.ReadOnlyState.Health, Is.EqualTo(doomedPlayer.ReadOnlyState.MaxHealth));
                 Assert.That(progression.Snapshot.ThreatCount, Is.EqualTo(3));
                 Assert.That(progression.Snapshot.CurseCount, Is.EqualTo(3));
                 Assert.That(progression.Snapshot.Effects.Traits.HasFlag(ProgressionTraits.FeltSoles), Is.True);
@@ -373,6 +377,12 @@ namespace Worsen.Tests.Expedition
         {
             var load = SceneManager.LoadSceneAsync(ScenePath, LoadSceneMode.Single);
             Assert.That(load, Is.Not.Null, "Run Worsen/Scenes/3 — Build HorrorRun before this fixture.");
+            yield return Until(() => load.isDone && Object.FindObjectsByType<Worsen.Presentation.Menu.MenuDriver>(FindObjectsSortMode.None)
+                .Any(menu => Observe<Worsen.Presentation.Menu.MenuDriverState>(menu, "_state").TitleVisible),
+                "Saved HorrorRun did not show its title.");
+            var title = One<Worsen.Presentation.Menu.MenuDriver>().GetComponent<UIDocument>().rootVisualElement.Q<Button>("start-run");
+            Assert.That(title, Is.Not.Null);
+            using (var click = NavigationSubmitEvent.GetPooled()) { click.target = title; title.SendEvent(click); }
             yield return Until(() => load.isDone && ProgressionSessionManager.Instance != null &&
                 ProgressionSessionManager.Instance.Snapshot.Phase == ProgressionPhase.ChooseThreat &&
                 Object.FindObjectsByType<HorrorRunSceneRoot>(FindObjectsSortMode.None).Length == 1,

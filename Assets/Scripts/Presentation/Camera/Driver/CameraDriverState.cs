@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain runtime lens and comfort overrides across transient view resets.
 //   - Keep unshaken aim separate from cosmetic banking and deterministic shake envelopes.
 //   - Store consumed sample identity and head offsets.
 //   - Latch catch start/target poses, approach/hold clocks and timing facts until reset.
@@ -32,6 +33,9 @@ namespace Worsen.Presentation.Camera
     public sealed class CameraDriverState
     {
         public bool HasMovement;
+        public float? BaseFieldOfView;
+        public bool? TiltEnabled;
+        public bool PunchEnabled = true;
         public EntityId PlayerId;
         public long MovementTick = -1;
         public long TraversalTick = -1;
