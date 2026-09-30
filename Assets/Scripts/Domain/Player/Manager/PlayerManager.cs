@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Sequence Player input, probes, resolved movement and committed facts.
 //   - Route health, shield, consumables, active effects and external motion.
+//   Contact/chase perk APIs admit facts only; Session owns foreign-system routing.
 //   - Preserve the caught pose and revive there without restarting the floor.
 //   - Push independent hunter pass-through and publish immunity through grace facts.
 //   - Own initialization, read-only state access and symmetric recovery cleanup.
@@ -67,6 +68,8 @@ namespace Worsen.Domain.Player
         public event Action<GraceWindowFact> OnGraceStarted;
         public event Action<GraceWindowFact> OnGraceEnded;
         public event Action<EntityId, HitSeverity, HitSource> OnHitAbsorbedByGrace;
+        public event Action<NoiseEvent> OnHeartbeat;
+        public event Action<EntityId, int, int, long> OnDoorLatched;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<PlayerDriver>(); }
         public void Initialize(PlayerProfile profile, EntityContext context)
@@ -94,6 +97,7 @@ namespace Worsen.Domain.Player
             MovementProbe probe = _driver.Probe(_profile.LedgeReach, _profile.LedgeMinimumHeight,
                 _profile.LedgeMaximumHeight, _profile.LedgeChestHeight);
             PlayerTickResult result = _controller.Tick(frame, probe, dt, tick);
+            if (_controller.TakeHeartbeat(out NoiseEvent heartbeat)) OnHeartbeat?.Invoke(heartbeat);
             PlayerMoveResult movement = !_state.IsAlive
                 ? new PlayerMoveResult(_state.Position, Vector3.zero, _state.Grounded, false)
                 : result.Traversing
@@ -145,6 +149,27 @@ namespace Worsen.Domain.Player
         public void SetConsumableSpeedMultiplier(float multiplier) => _controller?.SetConsumableSpeedMultiplier(multiplier);
 
         public void ClearSlows() => _controller?.ClearSlows();
+        public void ReceiveChase(ChaseFact fact) => _controller?.ReceiveChase(fact);
+        public bool TryReboundFromHunter(EntityId hunter, Vector3 contactNormal)
+        {
+            if (_controller == null || !_controller.TryReboundFromHunter(hunter, contactNormal, out var fact)) return false;
+            OnTraversal?.Invoke(fact);
+            return true;
+        }
+        public bool TryLatchDoor(int roomId, int doorId)
+        {
+            if (_controller == null || !_controller.TryLatchDoor(roomId, doorId)) return false;
+            OnDoorLatched?.Invoke(Id, roomId, doorId, _state.Tick);
+            return true;
+        }
+        public bool ApplyRamHit(float damage, Vector3 killerPosition, Vector3 knockback, bool glancing)
+        {
+            if (_controller == null) return false;
+            if (_controller.TryDeflectGlancingRam(glancing, knockback)) return true;
+            bool changed = ApplyHit(damage, killerPosition);
+            if (changed) _controller.ApplyExternalVelocity(knockback, ExternalMotionKind.Impulse);
+            return changed;
+        }
         public bool ReviveInPlace(float healthFraction)
         {
             if (_controller == null || !_controller.ReviveInPlace(healthFraction)) return false;
