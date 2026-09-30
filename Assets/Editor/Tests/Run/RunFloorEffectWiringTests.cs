@@ -13,6 +13,8 @@
 // USAGE NOTES:
 //   Edit Mode boundary tests; reflection injects controllers and publisher events.
 //   No scene, asset, navigation, Unity clock setting or Library mutation occurs.
+//   The fixture claims the canonical Run identity without persistent initialization,
+//   and explicitly restores it and resets actor registries on teardown.
 // ============================================================================
 using System;
 using System.Collections;
@@ -47,7 +49,9 @@ namespace Worsen.Tests.Run
         [SetUp]
         public void Setup()
         {
+            ResetRegistries();
             Assert.That(PlayerRegistry.Items, Is.Empty); Assert.That(HunterRegistry.Items, Is.Empty);
+            Assert.That(RunSessionManager.Instance, Is.Null);
             player = Component<PlayerManager>();
             var profile = Config<PlayerProfile>(); var mover = Config<PlayerMoverDriverConfig>();
             Set(mover, "_hunterBodyLayer", "Ignore Raycast"); Set(player.GetComponent<PlayerDriver>(), "_config", mover);
@@ -57,6 +61,7 @@ namespace Worsen.Tests.Run
             run = Component<RunSessionManager>(); var state = new RunSessionBehaviorState(7);
             var clock = new RunSessionController(state, new System.Random(7)); clock.StartScene(SceneKey.HorrorRun);
             Set(run, "state", state); Set(run, "controller", clock); run.gameObject.SetActive(true);
+            typeof(RunSessionManager).GetProperty("Instance").SetValue(null, run);
             level = new LevelView(); floor = Component<FloorManager>();
             var fs = new FloorBehaviorState(); var fc = Config<FloorConfig>(); Set(fc, "_useRoomCakeDensity", false);
             var logic = new FloorController(fs, fc, new System.Random(7)); logic.Initialize(level.Graph, new[] { motion }, 1);
@@ -70,23 +75,31 @@ namespace Worsen.Tests.Run
         public void Cleanup()
         {
             if (run != null) run.DetachGameplay();
+            if (ReferenceEquals(RunSessionManager.Instance, run))
+                typeof(RunSessionManager).GetProperty("Instance").SetValue(null, null);
             if (player != null) Register(typeof(PlayerRegistry), "Unregister", player);
             foreach (var h in hunters) Register(typeof(HunterRegistry), "Unregister", h);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear(); hunters.Clear();
+            ResetRegistries();
         }
-        [Test]
-        public void BoundaryUsesExactlyTheFloorTickDeltaEvenDuringGrace()
+        [TestCase(false)] [TestCase(true)]
+        public void BoundaryUsesExactlyTheFloorTickDeltaEvenDuringGrace(bool grace)
         {
-            Assert.That(player.ApplyHit(1f, Vector3.back), Is.True);
+            if (grace) Assert.That(player.ApplyHit(1f, Vector3.back), Is.True);
+            int contacts = 0;
             floor.OnRoomDestruction += sample => {
-                if (sample.RoomId == 1) Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick);
+                if (sample.RoomId == 1) { contacts++; Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick); }
             };
+            float floorDelta = Time.fixedDeltaTime;
+            long previousTick = run.Tick;
             Call(run, "FixedUpdate");
-            Assert.That(motion.GraceActive, Is.True);
-            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * Time.fixedDeltaTime).Within(.00001f));
+            Assert.That(run.Tick, Is.EqualTo(previousTick + 1), "The canonical Run must execute its tick.");
+            Assert.That(contacts, Is.EqualTo(1));
+            Assert.That(motion.GraceActive, Is.EqualTo(grace));
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * floorDelta).Within(.00001f));
             Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick);
-            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * Time.fixedDeltaTime).Within(.00001f), "No stale delta outside the Floor tick.");
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * floorDelta).Within(.00001f), "No stale delta outside the Floor tick.");
         }
         [Test]
         public void TypedRelaysAndSubscriptionsPairAcrossRebindDisableAndTeardown()
@@ -133,6 +146,11 @@ namespace Worsen.Tests.Run
             director.Tick(.02f, 0); director.Tick(.02f, 1);
             Assert.That(ds.Noises, Is.Empty); Assert.That(deliveries, Is.EqualTo(2));
             Assert.That(Heard(hunters[0]).Count, Is.EqualTo(3)); Assert.That(Heard(hunters[1]).Count, Is.EqualTo(3));
+        }
+        private static void ResetRegistries()
+        {
+            typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            typeof(HunterRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         }
         private void AddHunter(int id)
         {

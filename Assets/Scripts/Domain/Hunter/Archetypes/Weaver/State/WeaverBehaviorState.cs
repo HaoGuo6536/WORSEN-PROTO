@@ -9,6 +9,7 @@
 //   BehaviorState (§3) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
 //   - Store injected observations and bounded facts without engine operations.
+//   - Expose scalar observations through IReadOnlyWeaverState, never mutable queues.
 // DEPENDENCIES:
 //   - Hunter observations, Core Weaver facts and UnityEngine values only.
 // USAGE NOTES:
@@ -19,7 +20,7 @@ using UnityEngine;
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Weaver
 {
-    public sealed class WeaverBehaviorState
+    public sealed class WeaverBehaviorState : IReadOnlyWeaverState
     {
         public HunterArchetypeContext Context;
         public WeaverObservation Observation;
@@ -33,5 +34,11 @@ namespace Worsen.Domain.Hunter.Archetypes.Weaver
         public Vector3 Target, Aim, Origin, PreviousPosition;
         public float WarningRemaining, WarningDuration, Radius, Cooldown, SkitterRemaining;
         public bool Warning, Fire, Hold, Ceiling = true;
+        WeaverAction IReadOnlyWeaverState.Action => Action;
+        long IReadOnlyWeaverState.LastTick => LastTick;
+        bool IReadOnlyWeaverState.Warning => Warning;
+        bool IReadOnlyWeaverState.Fire => Fire;
+        bool IReadOnlyWeaverState.Hold => Hold;
+        bool IReadOnlyWeaverState.Ceiling => Ceiling;
     }
 }
