@@ -1,0 +1,8 @@
+id: driver-no-instance-read
+snapshots:
+  class Driver { void Tick() { var state = RunManager.Instance; } }:
+    labels:
+    - source: RunManager.Instance
+      style: primary
+      start: 41
+      end: 60
