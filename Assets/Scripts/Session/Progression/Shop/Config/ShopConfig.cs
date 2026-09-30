@@ -45,6 +45,8 @@ namespace Worsen.Session.Progression.Shop
         [SerializeField, Range(0, 1)] private float _loyaltyDiscount = 0.1f;
 
         [SerializeField, Min(0)] private int _goldenTouchBonus = 1;
+        [SerializeField, Min(1f)] private float _gildedGreedMultiplier = 2f;
+        public float GildedGreedMultiplier => _gildedGreedMultiplier;
         [SerializeField, Range(0, 1)] private float _interestFraction = 0.1f;
         [SerializeField, Min(0)] private int _interestCap = 5;
         [SerializeField, Range(0, 1)] private float _refundFraction = 0.5f;

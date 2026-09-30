@@ -33,6 +33,8 @@ namespace Worsen.Session.Progression
 
         public static bool Eligible(EffectCatalogueEntry entry, int round, IReadOnlyActiveEffects active)
         {
+            if (ProgressionRosterUtility.Retired(entry.Id) ||
+                (entry.Kind == EffectKind.Threat && !ProgressionRosterUtility.Admits(entry.Id, round))) return false;
             if (round < entry.AvailabilityRound || (entry.Kind != EffectKind.Threat && active.Stacks(new EffectId(entry.Id)) >= entry.StackCap)) return false;
             if (!string.IsNullOrEmpty(entry.PrerequisiteEffectId) && !active.Has(new EffectId(entry.PrerequisiteEffectId))) return false;
             if (entry.RequiredHunterIds.Count == 0) return true;
