@@ -3,21 +3,24 @@
 // ============================================================================
 // PURPOSE:
 //   Rebuilds the Player prefab and mirrored archetype/config wiring without replacing tuning values.
-//   This is part of the solo movement prototype. Explicit inputs keep its
-//   behavior reproducible and its ownership visible during integration.
+//   Generated blocky arms replace the optional capsule hands when their FBX exists.
+//   Missing art retains hidden capsules; rebuilding replaces limb children instead
+//   of accumulating meshes, bones or colliders.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Player.
 // KEY RESPONSIBILITIES:
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Preserve existing Player tuning and rebuild idempotent limb references.
+//   - Split the imported Hold rest pose into independent skinned arm roots.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
+//   - BlockyCharacterSetup supplies the configured Generic first-person model.
 // USAGE NOTES:
 //   Run only under the coordinator Unity lease. Reuses asset GUIDs and existing prefab objects; no shared scene or project settings are changed.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using Worsen.Domain.Player;
@@ -39,6 +42,7 @@ namespace Worsen.Editor.Player
                 throw new InvalidOperationException("Player assets require an idle Edit Mode editor.");
             PlayerProfile profile = EnsureAsset<PlayerProfile>(ProfilePath);
             PlayerMoverDriverConfig config = EnsureAsset<PlayerMoverDriverConfig>(ConfigPath);
+            GameObject arms = BlockyCharacterSetup.LoadArmsIfPresent();
             EnsureFolder("Assets/Prefabs/Player");
             bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null;
             GameObject root = exists ? PrefabUtility.LoadPrefabContents(PrefabPath) : new GameObject("Player");
@@ -54,11 +58,7 @@ namespace Worsen.Editor.Player
                 capsule.radius = config.Radius;
                 capsule.center = Vector3.up * config.Height * 0.5f;
                 GameObject visuals = Child(root.transform, "Player Visuals");
-                PlayerLimbStandIn limbs = GetOrAdd<PlayerLimbStandIn>(visuals);
-                Wire(limbs, "_leftHand", Limb(visuals.transform, "Left Hand", new Vector3(0.13f, 0.22f, 0.13f)));
-                Wire(limbs, "_rightHand", Limb(visuals.transform, "Right Hand", new Vector3(0.13f, 0.22f, 0.13f)));
-                Wire(limbs, "_leftFoot", Limb(visuals.transform, "Left Foot", new Vector3(0.14f, 0.14f, 0.3f)));
-                Wire(limbs, "_rightFoot", Limb(visuals.transform, "Right Foot", new Vector3(0.14f, 0.14f, 0.3f)));
+                PlayerLimbStandIn limbs = RebuildLimbs(visuals, arms);
                 Wire(driver, "_config", config);
                 Wire(driver, "_capsule", capsule);
                 Wire(driver, "_body", body);
@@ -77,6 +77,65 @@ namespace Worsen.Editor.Player
                 if (exists) PrefabUtility.UnloadPrefabContents(root);
                 else UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        public static PlayerLimbStandIn RebuildLimbs(GameObject visuals, GameObject arms)
+        {
+            foreach (Transform child in visuals.transform.Cast<Transform>().ToArray())
+                if (new[] { "Left Hand", "Right Hand", "Left Foot", "Right Foot", "Blocky Arms" }.Contains(child.name))
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+            PlayerLimbStandIn limbs = GetOrAdd<PlayerLimbStandIn>(visuals);
+            GameObject left, right;
+            if (arms == null)
+            {
+                left = Limb(visuals.transform, "Left Hand", new Vector3(0.13f, 0.22f, 0.13f));
+                right = Limb(visuals.transform, "Right Hand", new Vector3(0.13f, 0.22f, 0.13f));
+            }
+            else
+            {
+                // Keep the exported skin; no BakeMesh/static approximation. The player
+                // uses the authored Hold rest pose, not an Animator that could overwrite
+                // camera placement. Original Hold/Sway clip paths remain on the source FBX.
+                GameObject model = UnityEngine.Object.Instantiate(arms, visuals.transform, false);
+                model.name = "Blocky Arms";
+                foreach (Animator animator in model.GetComponentsInChildren<Animator>(true))
+                    UnityEngine.Object.DestroyImmediate(animator);
+                foreach (Collider collider in model.GetComponentsInChildren<Collider>(true))
+                    UnityEngine.Object.DestroyImmediate(collider);
+                left = ArmRoot(model, visuals.transform, "Left");
+                right = ArmRoot(model, visuals.transform, "Right");
+                UnityEngine.Object.DestroyImmediate(model);
+            }
+            Wire(limbs, "_leftHand", left);
+            Wire(limbs, "_rightHand", right);
+            Wire(limbs, "_leftFoot", Limb(visuals.transform, "Left Foot", new Vector3(0.14f, 0.14f, 0.3f)));
+            Wire(limbs, "_rightFoot", Limb(visuals.transform, "Right Foot", new Vector3(0.14f, 0.14f, 0.3f)));
+            var serialized = new SerializedObject(limbs);
+            serialized.FindProperty("_showHands").boolValue = arms != null;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return limbs;
+        }
+
+        private static GameObject ArmRoot(GameObject model, Transform parent, string side)
+        {
+            Transform[] bones = model.GetComponentsInChildren<Transform>(true);
+            Transform shoulder = bones.Single(t => t.name == side + "Shoulder");
+            Transform hand = bones.Single(t => t.name == side + "Hand");
+            SkinnedMeshRenderer renderer = model.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+                .Single(r => r.name == side + "Arm");
+            GameObject root = new GameObject(side + " Hand");
+            root.transform.SetParent(parent, false);
+            root.transform.position = hand.position;
+            shoulder.SetParent(root.transform, true);
+            renderer.transform.SetParent(root.transform, true);
+            // FBX can include zero-weight foreign bones. Keep those slots valid after
+            // removing the common Root; weighted slots retain their original transforms.
+            renderer.bones = renderer.bones.Select(b => b != null && b.IsChildOf(shoulder) ? b : shoulder).ToArray();
+            renderer.rootBone = shoulder;
+            renderer.updateWhenOffscreen = true;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            root.SetActive(false);
+            return root;
         }
 
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
