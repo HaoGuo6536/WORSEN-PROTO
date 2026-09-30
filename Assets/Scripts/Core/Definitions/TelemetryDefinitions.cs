@@ -13,6 +13,7 @@
 //   - Distinguish accepted projectile and ground-spike damage while preserving prior values.
 //   - Carry explicit values across system and layer boundaries.
 //   - Preserve replay and measurement identity without engine object references.
+//   - Reserve appended round, progression and navigation observation kinds.
 //
 // DEPENDENCIES:
 //   - Core definitions and pure UnityEngine value types only.
@@ -20,6 +21,7 @@
 // USAGE NOTES:
 //   EventId zero has no deduplication identity. Unknown outcomes remain unclassified.
 //   These values contain no engine operations or gameplay decision logic.
+//   Telemetry kind names are CSV values; append only, never rename or reorder.
 //
 // ============================================================================
 
@@ -29,10 +31,12 @@ namespace Worsen.Core
 {
     public enum InputSource { Live, Playback }
     public enum ChaseEndReason { Unknown, Lunge, Cornered, Lost, Projectile, GroundSpike }
+    /// <summary>Stable observation names serialized verbatim in telemetry CSV rows.</summary>
     public enum TelemetrySampleKind
     {
         HorizontalSpeed, ChaseStarted, ChaseEnded, InputLockStarted, InputLockEnded,
-        LookBackStarted, LookBackEnded, VaultAttempt, VaultFailed, Proximity, Heat, FloorTime, AcceptedHit
+        LookBackStarted, LookBackEnded, VaultAttempt, VaultFailed, Proximity, Heat, FloorTime, AcceptedHit,
+        RoundStarted, RoundEnded, WalletChanged, ProgressionChoice, FloorSeed, HunterStall
     }
     public readonly struct MovementResolution
     {

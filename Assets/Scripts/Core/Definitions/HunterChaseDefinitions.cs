@@ -12,6 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Carry tick-stamped identity and immutable values between owning systems.
 //   - Keep event payloads independent of Domain and Presentation implementations.
+//   - Carry hit severity and source without altering legacy damage or chase reasons.
 //
 // DEPENDENCIES:
 //   - Core definitions and pure UnityEngine value types only.
@@ -19,6 +20,7 @@
 // USAGE NOTES:
 //   Distances are metres and durations are seconds; ticks identify committed steps.
 //   Constructors carry supplied values and perform no engine or gameplay operations.
+//   Legacy hunter hits default to Heavy/Lunge, including unmigrated ranged callers.
 //
 // ============================================================================
 
@@ -39,9 +41,12 @@ namespace Worsen.Core
         public bool ChestVisible { get; }
         public bool HipsVisible { get; }
     }
+    /// <summary>An accepted hunter hit with independent damage, reason and recovery metadata.</summary>
     public readonly struct HunterHit
     {
-        public HunterHit(EntityId hunter, EntityId target, int damage, long tick, Vector3 hunterPosition, ChaseEndReason reason = ChaseEndReason.Lunge)
+        public HunterHit(EntityId hunter, EntityId target, int damage, long tick, Vector3 hunterPosition,
+            ChaseEndReason reason = ChaseEndReason.Lunge, HitSeverity severity = HitSeverity.Heavy,
+            HitSource source = HitSource.Lunge)
         {
             Hunter = hunter;
             Target = target;
@@ -49,6 +54,8 @@ namespace Worsen.Core
             Tick = tick;
             HunterPosition = hunterPosition;
             Reason = reason;
+            Severity = severity;
+            Source = source;
         }
         public EntityId Hunter { get; }
         public EntityId Target { get; }
@@ -56,6 +63,8 @@ namespace Worsen.Core
         public long Tick { get; }
         public Vector3 HunterPosition { get; }
         public ChaseEndReason Reason { get; }
+        public HitSeverity Severity { get; }
+        public HitSource Source { get; }
     }
     public readonly struct HunterSighting
     {
