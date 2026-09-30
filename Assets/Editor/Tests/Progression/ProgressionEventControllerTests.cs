@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Cover cadence, shops, exactly-once application, frozen views and run reset.
 //   - Check tell-only mutations and a single generic selection/shelter message.
-//   - Verify catalogue migration and the existing shrine count/exclusion inputs.
+//   - Verify catalogue migration and unrestricted same-axis shrine/event coexistence.
 // DEPENDENCIES:
 //   - NUnit, Progression, Hunter profile data, Shrine pure logic and catalogue setup.
 // USAGE NOTES:
@@ -172,7 +172,7 @@ namespace Worsen.Tests.Progression
             }
             finally { Object.DestroyImmediate(echo); }
         }
-        [Test] public void ShrineAssemblyConsumesOnlyTheCurrentEventFloorExclusion()
+        [Test] public void ShrineAndEventCanShareTheSameFloorAndFearAxis()
         {
             Pool(ProgressionEventKind.HiddenMutation);
             var session = Session(73);
@@ -181,14 +181,13 @@ namespace Worsen.Tests.Progression
             try
             {
                 Set(shrineConfig, "_availability", new[] {
-                    new ShrineAvailability(ShrineKind.Chance, 1, FearAxis.Unpredictability),
-                    new ShrineAvailability(ShrineKind.Protection, 1, FearAxis.Stakes) });
+                    new ShrineAvailability(ShrineKind.Chance, 1, FearAxis.Unpredictability) });
                 var shrines = new ShrineController(new ShrineBehaviorState(), shrineConfig, new System.Random(73));
                 var sites = new[] { new ShrineSite(Vector3.zero, 1, false), new ShrineSite(Vector3.right, 2, false) };
-                var placed = shrines.Assemble(sites, 8, false, session.ShrineExcludedAxes);
+                Assert.That(session.CurrentEventFearAxis, Is.EqualTo(FearAxis.Unpredictability));
+                var placed = shrines.Assemble(sites, 8, false, Array.Empty<FearAxis>());
                 Assert.That(placed.Count, Is.EqualTo(2));
-                Assert.That(placed.All(p => p.Kind == ShrineKind.Protection), Is.True);
-                Advance(session); Assert.That(session.ShrineExcludedAxes, Is.Empty);
+                Assert.That(placed.All(p => p.Kind == ShrineKind.Chance), Is.True);
             }
             finally { Object.DestroyImmediate(shrineConfig); }
         }
@@ -242,9 +241,8 @@ namespace Worsen.Tests.Progression
                 if (round == 8)
                 {
                     Assert.That(session.RetainedMutations["weaver"].Count, Is.EqualTo(1));
-                    Assert.That(session.ShrineExcludedAxes, Is.EqualTo(new[] { FearAxis.Unpredictability }));
+                    Assert.That(session.CurrentEventFearAxis, Is.EqualTo(FearAxis.Unpredictability));
                 }
-                if (round == 9) Assert.That(session.ShrineExcludedAxes, Is.Empty);
                 // Shop readiness is a message delivery boundary, unlike generation.
                 if (session.GenerationRequest().IsShop)
                 {
@@ -256,7 +254,7 @@ namespace Worsen.Tests.Progression
             }
             Assert.That(messages, Is.EqualTo(1));
             session.StartRun(73); Assert.That(session.RetainedMutations, Is.Empty);
-            Assert.That(session.EventHistory, Is.Empty); Assert.That(session.ShrineExcludedAxes, Is.Empty);
+            Assert.That(session.EventHistory, Is.Empty);
             Assert.That(session.FloorEffects.Count, Is.Zero); Assert.That(session.Snapshot().Message, Is.Not.EqualTo("something is different"));
         }
         [Test] public void CatalogueMigrationPreservesTuningAndAddsRequiredModuleIdsOnce()

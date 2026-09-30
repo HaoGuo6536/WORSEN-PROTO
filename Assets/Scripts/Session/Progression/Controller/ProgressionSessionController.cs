@@ -8,19 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
-//   - Commit seeded events before generation, combine expiring hazards and expose retained mutations.
-//   - Consume revision-guarded selected item uses, arm one ward and spend one revival per run.
-//   - Apply the current shrine yield to later Golden Cake credit through the shared remainder path.
-//   - Retain current-floor health for reporting, but refill it after choices before each generation.
-//   - Advance independent selection and shop clocks using completed combat floors.
-//   - Debit the configured bail penalty once, inside generation-guarded completion.
-//   - Commit catalogue purchases and deferred replacements with one wallet debit.
-//   - Delegate shop draws, inventory and economy to the owned Shop subtree.
-//   - Resolve generation-guarded shrines, temporary effects and paid shelter bargains.
-//   - Keep temporary upgrades out of retained summaries and permanent inventory sizing.
-//   - Leave catalogue health/sprint effects to Player; legacy baselines stay unmodified.
-//   - Produce immutable snapshots and deterministic per-round generation inputs.
-//   - Commit at most three eligible hunter/curse choices and skip exhausted menus.
+//   - Commit gated choices, seeded events and generation-scoped floor transitions.
+//   - Delegate shop transactions and retain consumed Extra Life independently of purchases.
+//   - Resolve shrines, temporary effects and economy without mutating foreign state.
+//   - Grow Nothing??? stacks and the retained roster once per shop round.
+//   - Publish immutable effects and refill legacy health before each generation.
 // DEPENDENCIES:
 //   - Own Config and BehaviorState; Core progression value contracts.
 //   - Delegated Progression.Shop controller/state/config; no foreign system state.
@@ -33,8 +25,7 @@
 //   that visit resets the shop clock and walking away adds no bargain-specific cost.
 //   Events use another stream and never draw layout randomness. Mutation messages
 //   occupy one selection/shelter phase, not one snapshot read; later phases do not replay them.
-//   CompleteFloor defaults to a normal escape. The flagged overload is the only
-//   bail entry; ApplyBailPenalty is the extension point for a future curse cost.
+//   CompleteFloor admits normal escapes only; no wallet penalty or early-bail action exists.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -60,8 +51,7 @@ namespace Worsen.Session.Progression
         public IReadOnlyList<ProgressionEventFact> EventHistory => events.History;
         public IReadOnlyDictionary<string, IReadOnlyList<HunterMutation>> RetainedMutations => events.RetainedMutations;
         public FearAxis CurrentEventFearAxis => state.EventFearAxis;
-        public IReadOnlyCollection<FearAxis> ShrineExcludedAxes => Array.AsReadOnly(state.EventFearAxis == FearAxis.None
-            ? Array.Empty<FearAxis>() : new[] { state.EventFearAxis });
+
         public bool MoreShrines => Active().Has(new EffectId("more-shrines"));
         public bool TryTakeProgressionEvent(out ProgressionEventFact fact) => events.TryTakeFact(out fact);
         public IReadOnlyList<ShrineResolvedFact> ShrineHistory => shrines.History;
@@ -85,7 +75,7 @@ namespace Worsen.Session.Progression
             }
             shopRules = (config.ShopConfig ?? shopConfig)?.Rules ?? new ShopRules();
             events = new ProgressionEventController(state, config, this.shopCatalogue, new System.Random(0));
-            shop = new ShopController(state.Shop, shopRules, this.shopCatalogue, new System.Random(0));
+            shop = new ShopController(state.Shop, shopRules, this.shopCatalogue, new System.Random(0), config.NothingShopPriceMultiplier);
             shrines = new ShrineProgressionController(state.Shrines, config.ShrineConfig?.Rules ?? new ShrineProgressionRules(),
                 this.shopCatalogue, new System.Random(0));
             var combined = new List<ProgressionEntryConfig>(config.Curses);
@@ -181,12 +171,9 @@ namespace Worsen.Session.Progression
             return true;
         }
 
-        public bool CompleteFloor(int generationId) => CompleteFloor(generationId, false);
-
-        public bool CompleteFloor(int generationId, bool bailed)
+        public bool CompleteFloor(int generationId)
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
-            if (bailed) ApplyBailPenalty();
             events.EndCombatFloor();
             shrines.EndFloor();
             state.Wallet += shop.Interest(state.Wallet, Active());
@@ -195,12 +182,6 @@ namespace Worsen.Session.Progression
             return true;
         }
 
-        private void ApplyBailPenalty()
-        {
-            // Future permanent-curse costs belong here, inside the same completion guard.
-            int debit = shop.BailDebit(state.Wallet, config.EarlyBailWalletFraction, Active());
-            state.Wallet -= debit;
-        }
 
         public bool ContinueShop(int revision)
         {
@@ -295,7 +276,14 @@ namespace Worsen.Session.Progression
         private int SelectionRerollsRemaining() => Math.Max(0, shop.SelectionRerolls(Active()) -
             (state.Phase == ProgressionPhase.ChooseThreat ? state.ThreatRerollsUsed : state.CurseRerollsUsed));
 
-        private ActiveEffects Active() => events.Combined(shrines.Combined(new ActiveEffects(state.ActiveEffectEntries.Values)));
+        private ActiveEffects Active()
+        {
+            var combined = events.Combined(shrines.Combined(new ActiveEffects(state.ActiveEffectEntries.Values)));
+            if (!state.ExtraLifeConsumed) return combined;
+            var remaining = new List<ActiveEffect>();
+            foreach (var effect in combined) if (effect.Id.Value != "extra-life") remaining.Add(effect);
+            return new ActiveEffects(remaining);
+        }
 
         public bool ActivateShrine(int generationId, ShrineActivatedFact fact, float shieldCapacity,
             float collectedFraction, out ShrineResolvedFact resolution)
@@ -363,6 +351,7 @@ namespace Worsen.Session.Progression
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || state.ExtraLifeConsumed ||
                 !Active().Has(new EffectId("extra-life"))) return false;
             state.ExtraLifeConsumed = true;
+            state.ActiveEffectEntries.Remove("extra-life");
             state.Revision++;
             return true;
         }
@@ -454,7 +443,8 @@ namespace Worsen.Session.Progression
             state.ThreatRerollsUsed = state.CurseRerollsUsed = 0;
             if (state.IsShop)
             {
-                shop = new ShopController(state.Shop, shopRules, shopCatalogue, new System.Random(state.RoundSeed));
+                AdvanceNothingAtShop();
+                shop = new ShopController(state.Shop, shopRules, shopCatalogue, new System.Random(state.RoundSeed), config.NothingShopPriceMultiplier);
                 shop.BeginVisit(state.Round, Active());
             }
             state.OfferedThreatIds.Clear();
@@ -470,6 +460,21 @@ namespace Worsen.Session.Progression
                 events.ShowPendingMessage();
                 state.Revision++;
             }
+        }
+
+        private void AdvanceNothingAtShop()
+        {
+            if (!state.ActiveEffectEntries.TryGetValue("nothing", out var effect)) return;
+            // The acquisition stack marks ownership; each later shop adds one without a catalogue cap.
+            state.ActiveEffectEntries["nothing"] = new ActiveEffect(effect.Id, effect.Kind, checked(effect.StackCount + 1));
+            if (state.ActiveThreatIds.Count == 0) return;
+            // Reuse committed seed data, never the layout or event random stream.
+            string id = state.ActiveThreatIds[(int)((uint)state.RoundSeed % (uint)state.ActiveThreatIds.Count)];
+            state.ActiveThreatIds.Add(id);
+            state.ThreatCount = state.ActiveThreatIds.Count;
+            int count = state.ActiveEffectEntries.TryGetValue(id, out var threat) ? threat.StackCount : 0;
+            state.ActiveEffectEntries[id] = new ActiveEffect(new EffectId(id), EffectKind.Threat, count + 1);
+            state.SelectionCounts[id] = Count(id) + 1;
         }
 
         private void BeginGeneration()
@@ -627,7 +632,8 @@ namespace Worsen.Session.Progression
         private static void ValidateConfig(ProgressionConfig value)
         {
             if (value.ShopInterval < 2 || value.SelectionInterval < 1 || value.GoldenCakeValue < 1 ||
-                !Finite(value.EarlyBailWalletFraction) || value.EarlyBailWalletFraction < 0f || value.EarlyBailWalletFraction > 1f ||
+                !Finite(value.NothingShopPriceMultiplier) || value.NothingShopPriceMultiplier < 0f || value.NothingShopPriceMultiplier > 1f ||
+                !Finite(value.FasterCollapseGoldenCakeMultiplier) || value.FasterCollapseGoldenCakeMultiplier < 1f ||
                 !Finite(value.InitialMaximumHealth) || !Finite(value.MinimumMaximumHealth) || !Finite(value.MaximumMaximumHealth) ||
                 value.MinimumMaximumHealth <= 0f || value.InitialMaximumHealth < value.MinimumMaximumHealth ||
                 value.InitialMaximumHealth > value.MaximumMaximumHealth || !Finite(value.MinimumMultiplier) ||

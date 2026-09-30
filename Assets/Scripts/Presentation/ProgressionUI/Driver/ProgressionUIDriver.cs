@@ -11,14 +11,11 @@
 //   Driver (§7a) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Relay admitted Bargain cards without confusing them with ordinary curse choices.
 //   - Bind and rebuild the current document without losing presentation state.
-//   - Route one admitted UI action and maintain symmetric callback ownership.
-//   - Relay displayed reroll, replace-slot and cancel actions without Session references.
+//   - Route admitted cards, rerolls and replacements with symmetric callback ownership.
 //   - Forward navigation feedback and explain unavailable offers without dispatching purchase requests.
 //   - Hard-cut on catch completion; warn on unscaled fallback and clear pending state on disable.
 //   - Own panel/card sub-drivers and scheduled keyboard focus.
-//   - Forward explicit Hidden Count changes without inspecting curse rules.
 //
 // DEPENDENCIES:
 //   Core ProgressionSnapshot/Phase; own Presenter, DriverState and drawing stack.
@@ -92,12 +89,6 @@ namespace Worsen.Presentation.ProgressionUI
             if (_presenter.Present(_state, snapshot)) Apply(focus);
         }
 
-        public void SetHiddenCount(bool hidden)
-        {
-            if (_state == null) return;
-            _presenter.SetHiddenCount(_state, hidden);
-            Apply(false);
-        }
 
         public void PrepareCatch(EntityId player)
         {

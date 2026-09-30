@@ -8,18 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Progression (Session system).
 // KEY RESPONSIBILITIES:
-//   - Publish committed progression events once before generation and expose shrine/mutation inputs.
-//   - Publish selected slots with uses and transact consumable/Extra Life admission once.
+//   - Own persistent state, seeded run initialization and catalogue/shop configuration.
+//   - Relay choices, purchases, consumptions, health and normal floor completion.
 //   - Commit shrine costs and transient Player shield grants before publishing outcomes.
-//   - Publish belief-drop/world-effect intent and delayed shared-hearing noise facts.
-//   - Own persistent state and explicitly seeded new-run/replay initialization.
-//   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
-//   - Own the delegated shop through the controller; route rerolls and replacements.
-//   - Load catalogue/shop assets, with an owned default catalogue when not yet wired.
-//   - Forward the bail flag through the normal guarded floor-completion transaction.
-//   - Publish Core snapshots and newly committed generation requests once.
-//   - Pair each progression/inventory revision with a frozen active-effects view.
-//   - Publish read-only before/after transactions for observational consumers.
+//   - Publish event, shrine and generation facts once through the controller boundary.
+//   - Publish paired immutable progression/effect views and before/after transactions.
 // DEPENDENCIES:
 //   - Domain Hunter immutable mutation values form the read-only Expedition restoration view.
 //   - Progression Config, Controller and BehaviorState; Core progression types.
@@ -31,7 +24,7 @@
 //   GenerationRequested reports that a request was committed, not an engine call.
 //   TransactionCommitted reports accepted actions before other publication;
 //   operation and choice identity describe facts without changing any rule.
-//   Integration must supply bailed=true for an early escape; legacy calls remain penalty-free.
+//   Integration must report only normal escapes; early bail is not a supported action.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -62,7 +55,7 @@ namespace Worsen.Session.Progression
         public IReadOnlyList<ProgressionEventFact> EventHistory => controller?.EventHistory ?? Array.Empty<ProgressionEventFact>();
         public IReadOnlyDictionary<string, IReadOnlyList<HunterMutation>> RetainedMutations => controller?.RetainedMutations;
         public FearAxis CurrentEventFearAxis => controller?.CurrentEventFearAxis ?? FearAxis.None;
-        public IReadOnlyCollection<FearAxis> ShrineExcludedAxes => controller?.ShrineExcludedAxes ?? Array.Empty<FearAxis>();
+
         public bool MoreShrines => controller?.MoreShrines ?? false;
         public event Action<ShrineResolvedFact> ShrineResolved;
         public event Action<NoiseEvent> ShrineNoiseEmitted;
@@ -136,8 +129,7 @@ namespace Worsen.Session.Progression
         public bool ConfirmFloorReady(int generationId) => Change(() => controller.ConfirmFloorReady(generationId));
         public bool FailGeneration(int generationId, string reason) => Change(() => controller.FailGeneration(generationId, reason));
         public bool CompleteFloor(int generationId) => Change(() => controller.CompleteFloor(generationId));
-        public bool CompleteFloor(int generationId, bool bailed) => Change(() => controller.CompleteFloor(generationId, bailed),
-            reason: bailed ? "EarlyBail" : nameof(CompleteFloor));
+
         public bool RecordGoldenCollected(int generationId, int anchorId) => Change(() => controller.RecordGoldenCollected(generationId, anchorId));
         public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId));
         public bool CycleConsumable(int generationId, int direction) => Change(() => controller.CycleConsumable(generationId, direction));
