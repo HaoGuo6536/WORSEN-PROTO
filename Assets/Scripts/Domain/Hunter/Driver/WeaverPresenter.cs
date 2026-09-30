@@ -6,7 +6,7 @@
 //   Keeping these calculations pure lets room height and probe ordering be
 //   checked without a running physics world.
 // ARCHITECTURAL ROLE:
-//   Presenter (§7b) · Domain · Hunter archetype presentation stack.
+//   Presenter (§7b) · Domain · Hunter shared swept-shot presentation stack.
 // KEY RESPONSIBILITIES:
 //   - Clamp the body below a ceiling and generate an ordered candidate ring.
 // DEPENDENCIES:
@@ -15,7 +15,7 @@
 //   Stateless. The Driver supplies measured body height and all configuration.
 // ============================================================================
 using UnityEngine;
-namespace Worsen.Domain.Hunter.Archetypes.Weaver
+namespace Worsen.Domain.Hunter
 {
     public sealed class WeaverPresenter
     {

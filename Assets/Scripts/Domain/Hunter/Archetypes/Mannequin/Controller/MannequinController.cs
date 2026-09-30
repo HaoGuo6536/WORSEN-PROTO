@@ -14,7 +14,7 @@
 //   - Read capped neutral curse hooks and publish Core light/silence facts.
 //   - Admit the distinct catch fact once per life for the Manager to publish.
 // DEPENDENCIES:
-//   - Hunter default seam, injected camera/world views, Core effects and facts.
+//   - Parent Hunter neutral rules, injected camera/world views, Core effects and facts.
 // USAGE NOTES:
 //   Unknown room/camera data holds safely. Light overrides are locally predicted
 //   and must be routed by Session to Level; no engine calls occur here.
@@ -22,10 +22,10 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
+
 namespace Worsen.Domain.Hunter.Archetypes.Mannequin
 {
-    public sealed class MannequinController : DefaultHunterController, IHunterObservationRules
+    public sealed class MannequinController : HunterArchetypeController, IHunterObservationRules
     {
         private readonly MannequinConfig _config;
         private readonly System.Random _random;

@@ -6,16 +6,17 @@
 //   probe geometry is used for warning and launch so a ray cannot approve a web
 //   that is wider than the clearance actually tested.
 // ARCHITECTURAL ROLE:
-//   DriverConfig (§7d) · Domain · Hunter archetype presentation stack.
+//   DriverConfig (§7d) · Domain · Hunter shared swept-shot presentation stack.
 // KEY RESPONSIBILITIES:
 //   - Bound deterministic candidate sweeps and author physical offsets.
 // DEPENDENCIES:
 //   - UnityEngine asset authoring only.
 // USAGE NOTES:
-//   Shared immutable asset in the Weaver Resources directory; no runtime writes.
+//   Shared by Weaver and Blinder. Existing Resources paths and script identity
+//   are retained for asset compatibility; no tunings or runtime writes change.
 // ============================================================================
 using UnityEngine;
-namespace Worsen.Domain.Hunter.Archetypes.Weaver
+namespace Worsen.Domain.Hunter
 {
     [CreateAssetMenu(menuName = "Worsen/Hunter/Weaver Driver Config")]
     public sealed class WeaverDriverConfig : ScriptableObject

@@ -11,7 +11,7 @@
 //   - Apply swept movement, stair support, corner prediction and ordered recording segments.
 //   - Honor collider layer exclusions in motor queries without weakening world or sight probes.
 //   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
-//   - Own animation/attack and archetype sub-drivers behind explicit Manager commands.
+//   - Own animation/attack, shared sweep and injected placement sub-drivers.
 //   - Apply charge, teleport and reaction motion; probe silent interception contacts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -25,7 +25,7 @@ using System;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+
 namespace Worsen.Domain.Hunter
 {
     [RequireComponent(typeof(CapsuleCollider), typeof(Rigidbody))]
@@ -37,11 +37,10 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterAnimationDriver _animation;
         [SerializeField] private HunterAttackDriver _attacks;
         private WeaverWebDriver _weaver;
-        private Archetypes.Stare.StareDriver _stare;
-        public void ConfigureStare()
+        private IHunterPlacementDriver _stare;
+        public void ConfigureStare(IHunterPlacementDriver placement)
         {
-            _stare = GetComponent<Archetypes.Stare.StareDriver>();
-            if (_stare == null) _stare = gameObject.AddComponent<Archetypes.Stare.StareDriver>();
+            _stare = placement ?? throw new ArgumentNullException(nameof(placement));
             _stare.Initialize();
         }
         public void SetStarePresent(bool present) { if (_stare != null) _stare.SetPresent(present); }

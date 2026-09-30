@@ -10,7 +10,7 @@
 //   - Reset per floor, deduplicate deliveries and apply capped catalogue hooks.
 //   - Keep motion slow and silent while allowing normal shared hits on body contact.
 // DEPENDENCIES:
-//   - Own state/config, Hunter profile, Default/dormancy seam and injected Core views.
+//   - Own state/config, Hunter profile, parent neutral/dormancy seam and injected Core views.
 // USAGE NOTES:
 //   Session supplies committed uses, not overlap occupancy or guessed room changes.
 //   Seeded randomness selects among equally well-used routes in stable id order.
@@ -20,11 +20,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
-using Worsen.Domain.Hunter.Archetypes.Ticking;
+
 namespace Worsen.Domain.Hunter.Archetypes.Skip
 {
-    public sealed class SkipController : DefaultHunterController, IHunterDormancyRules, IHunterContactRules
+    public sealed class SkipController : HunterArchetypeController, IHunterDormancyRules, IHunterContactRules
     {
         public static readonly EffectId ShorterCooldown = new EffectId("skip-shorter-cooldown");
         public static readonly EffectId QuickerLearner = new EffectId("skip-quicker-learner");

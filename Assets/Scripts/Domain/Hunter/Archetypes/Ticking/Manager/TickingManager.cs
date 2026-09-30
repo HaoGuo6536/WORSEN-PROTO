@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1), Entity system facet · Domain · Hunter Ticking.
 // KEY RESPONSIBILITIES:
-//   - Resolve trigger identities, route winding and sequence bounded placement.
+//   - Register the clock module, resolve trigger identities and sequence bounded placement.
 //   - Inject verified rear-pocket targets before the shared movement decision.
 //   - Expose immutable Core facts with the owning hunter identity for duplicates.
 // DEPENDENCIES:
@@ -26,15 +26,23 @@ using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Ticking
 {
     [RequireComponent(typeof(TickingDriver))]
-    public sealed class TickingManager : MonoBehaviour, IEntityHandle
+    public sealed class TickingManager : HunterArchetypeManager, IHunterTickingModule
     {
+        public static void Register(HunterArchetypeFactory factory)
+            => factory.Register<TickingConfig, TickingManager>((config, profile, random) => new TickingController(config, random));
+        public override IHunterTickingModule Ticking => this;
+        protected override void Configure() => Initialize((TickingController)Rules, Shared, (TickingConfig)Profile.ArchetypeRules, Hunter, Player);
+        public override bool PrepareTick(float dt, long tick) { PrepareTick(); return true; }
+        public override void AfterReaction(HunterTickResult result) => PublishTick();
+        public override void TeardownModule() => Teardown();
         private TickingDriver _driver;
         private TickingController _controller;
         private HunterController _shared;
         private TickingConfig _config;
         private IReadOnlyHunterState _hunter;
         private IReadOnlyPlayerState _player;
-        public EntityId Id => _hunter?.Id ?? EntityId.None;
+        public override EntityId Id => _hunter?.Id ?? EntityId.None;
+
         public event Action<TickingSoundFact> OnSound;
         public event Action<TickingGuidanceFact> OnGuidance;
         public event Action<TickingNoiseFact> OnNoise;
@@ -65,7 +73,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             }
             if (_controller.HasKey) _driver.ShowKey(_controller.KeyPosition, _controller.KeySerial);
             else _driver.ClearKey();
-            PublishFacts();
+            PublishClockFacts();
         }
         public void PrepareTick()
         {
@@ -82,9 +90,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             if (_controller == null) return;
             IEntityHandle handle = other.GetComponentInParent<IEntityHandle>();
             if (handle == null || !_controller.TakeKey(handle.Id, serial)) return;
-            _shared.RefreshDormancy(); _driver.ClearKey(); PublishFacts();
+            _shared.RefreshDormancy(); _driver.ClearKey(); PublishClockFacts();
         }
-        private void PublishFacts()
+        private void PublishClockFacts()
         {
             while (_controller.TakeSound(out TickingSoundFact fact))
             {

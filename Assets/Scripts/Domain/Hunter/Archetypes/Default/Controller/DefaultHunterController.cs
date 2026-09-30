@@ -3,8 +3,8 @@
 // ============================================================================
 // PURPOSE:
 //   Leaves shared Hunter decisions untouched for the five existing profiles.
-//   Archetypes override only the hooks they need, while the shared controller
-//   continues to own planning, attack commitment, habits and mutations.
+//   Common neutral hooks live in the parent HunterArchetypeController so sibling
+//   plug-ins do not depend on this legacy compatibility module.
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
@@ -19,18 +19,8 @@ using UnityEngine;
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Default
 {
-    public class DefaultHunterController : IHunterArchetypeController
+    public class DefaultHunterController : HunterArchetypeController
     {
-        public virtual bool OwnsPursuit => false;
-        public virtual bool NeverLoses => false;
-        public virtual IReadOnlyList<Vector3> ReplayPath => null;
-        public virtual void Reset(HunterArchetypeContext context) { }
-        public virtual void Tick(HunterArchetypeContext context) { }
-        public virtual bool FilterVisibility(bool visible, SightProbe probe, HunterArchetypeContext context) => visible;
-        public virtual float GoalUtility(HunterGoal goal, float utility) => utility;
-        public virtual bool TryMovement(out Vector3 target, out float speed)
-        { target = default; speed = 0f; return false; }
-        public virtual void CommitReplay(int reachedPoints, bool unreachable = false) { }
-        public virtual bool TryTakeFact(out HunterArchetypeFact fact) { fact = default; return false; }
+        public override bool AllowsLegacyTraits => GetType() == typeof(DefaultHunterController);
     }
 }

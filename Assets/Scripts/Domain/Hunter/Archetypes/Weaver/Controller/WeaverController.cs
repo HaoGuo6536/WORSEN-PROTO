@@ -13,7 +13,7 @@
 //   - Require fresh radius-matched sweep evidence both before warning and launch.
 //   - Publish slow/cue facts and deterministic doorway nests with capped curses.
 // DEPENDENCIES:
-//   - Own state/config, Hunter planner/default module and injected Core views.
+//   - Own state/config, parent Hunter planner/neutral rules and injected Core views.
 // USAGE NOTES:
 //   Time and randomness are injected. Floor navigation continues under a ceiling
 //   body; warnings and shared catches force a drop. Outward DTOs await Core promotion.
@@ -23,11 +23,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
+
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Weaver
 {
-    public sealed class WeaverController : DefaultHunterController
+    public sealed class WeaverController : HunterArchetypeController
     {
         public static readonly EffectId StickierWebs = new EffectId("weaver-stickier-webs");
         public static readonly EffectId WiderWebs = new EffectId("weaver-wider-webs");

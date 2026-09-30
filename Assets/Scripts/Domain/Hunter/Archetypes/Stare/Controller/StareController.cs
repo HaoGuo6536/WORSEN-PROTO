@@ -11,7 +11,7 @@
 //   - Propose front-edge placements, pause to meet a held look and seed Find me.
 //   - Publish spatial voice ids and presence facts, never engine/audio commands.
 // DEPENDENCIES:
-//   - Default Hunter seam, optional dormancy/observation rules and Core effects.
+//   - Parent Hunter neutral, dormancy and observation rules plus Core effects.
 // USAGE NOTES:
 //   Placement must be acknowledged after navigation/occlusion checks. No valid
 //   placement means no cue/window. Find me stays put so searching remains possible.
@@ -20,11 +20,10 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
-using Worsen.Domain.Hunter.Archetypes.Ticking;
+
 namespace Worsen.Domain.Hunter.Archetypes.Stare
 {
-    public sealed class StareController : DefaultHunterController, IHunterDormancyRules, IHunterObservationRules
+    public sealed class StareController : HunterArchetypeController, IHunterDormancyRules, IHunterObservationRules
     {
         private readonly StareConfig _config;
         private readonly System.Random _random;

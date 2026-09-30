@@ -5,17 +5,17 @@
 //   Stores per-life physical web and ceiling-offset handles. Originals are kept
 //   so teardown can restore the reused placeholder without changing its asset.
 // ARCHITECTURAL ROLE:
-//   DriverState (§7c) · Domain · Hunter archetype presentation stack.
+//   DriverState (§7c) · Domain · Hunter shared swept-shot presentation stack.
 // KEY RESPONSIBILITIES:
 //   - Retain body/visual baselines and bounded projectile/nest records.
 // DEPENDENCIES:
-//   - UnityEngine passive references and Weaver-local values only.
+//   - UnityEngine passive references and parent-owned sweep values only.
 // USAGE NOTES:
 //   No engine operations or events; owned exclusively by WeaverWebDriver.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
-namespace Worsen.Domain.Hunter.Archetypes.Weaver
+namespace Worsen.Domain.Hunter
 {
     public sealed class WeaverDriverState
     {

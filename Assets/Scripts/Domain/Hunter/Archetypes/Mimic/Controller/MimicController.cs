@@ -10,7 +10,7 @@
 //   - Publish pose/hold/cue facts and return damage through the normal HunterHit path.
 //   - Enable Faithless Arrow windows only while its ordinary catalogue curse is held.
 // DEPENDENCIES:
-//   - Own state/config, Default/dormancy seam and injected Core world/effect views.
+//   - Own state/config, parent neutral/dormancy seam and injected Core world/effect views.
 // USAGE NOTES:
 //   Explicit time and seeded randomness only. Floor owns fake-cake rendering and
 //   exclusion; Session pairs BiteStarted with accepted damage before Player holds.
@@ -19,12 +19,11 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
-using Worsen.Domain.Hunter.Archetypes.Ticking;
+
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Mimic
 {
-    public sealed class MimicController : DefaultHunterController, IHunterDormancyRules
+    public sealed class MimicController : HunterArchetypeController, IHunterDormancyRules
     {
         public static readonly EffectId MoreMimics = new EffectId("mimic-more-mimics");
         public static readonly EffectId GoldenMimic = new EffectId("mimic-golden-mimic");

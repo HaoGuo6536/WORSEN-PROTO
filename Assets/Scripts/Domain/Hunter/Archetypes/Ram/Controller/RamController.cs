@@ -10,7 +10,7 @@
 //   - Lock heading before warning, account swept motion and emit breakable impacts.
 //   - Apply capped neutral curse hooks and admit one normal HunterHit per charge.
 // DEPENDENCIES:
-//   - Own state/config, Default Hunter seam, HunterProfile and injected Core views.
+//   - Own state/config, parent Hunter neutral rules, HunterProfile and injected Core views.
 // USAGE NOTES:
 //   Time is injected; this deterministic rule consumes no random numbers.
 //   Wall hits always stagger, including Partition Breaker. Second Charge winds up
@@ -19,11 +19,11 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
+
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Ram
 {
-    public sealed class RamController : DefaultHunterController, IHunterAttackRules
+    public sealed class RamController : HunterArchetypeController, IHunterAttackRules
     {
         public static readonly EffectId LongerCharge = new EffectId("ram-longer-charge");
         public static readonly EffectId ShorterWindup = new EffectId("ram-shorter-windup");
