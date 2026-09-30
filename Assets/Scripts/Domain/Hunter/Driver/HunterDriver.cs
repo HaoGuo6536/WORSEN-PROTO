@@ -14,18 +14,21 @@
 //   - Sample resolved path progress and report stalls without touching motor decisions.
 //   - Probe occluded retreat rooms and apply swept, non-damaging stumble commands.
 //   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
+//   - Apply ordered recording segments without pathfinding shortcuts or corner smoothing.
+//   - Own the optional Weaver sweep/ceiling sub-driver and admit verified partition links.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
 //   Scene-owned, no independent simulation loop. Teardown destroys only owned transient effects.
 //   Stall observation uses the default navigation query agent (type 0), matching
-//   existing AllAreas path queries. It does not measure avoidance or change paths.
+//   configured-area path queries. It does not measure avoidance or change paths.
 // ============================================================================
 using System;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
+using Worsen.Domain.Hunter.Archetypes.Weaver;
 namespace Worsen.Domain.Hunter
 {
     [RequireComponent(typeof(CapsuleCollider), typeof(Rigidbody))]
@@ -36,6 +39,7 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private Rigidbody _body;
         [SerializeField] private HunterAnimationDriver _animation;
         [SerializeField] private HunterAttackDriver _attacks;
+        private WeaverWebDriver _weaver;
         private readonly HunterRoutePresenter _routePresenter = new HunterRoutePresenter();
         private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
         private HunterDriverState _state;
@@ -120,9 +124,25 @@ namespace Worsen.Domain.Hunter
         { if (_attacks != null) _attacks.BeginWarning(style, serial, target, range, radius, split, ring); }
         public void FireAttack(float speed, float radius) { if (_attacks != null) _attacks.Fire(speed, radius); }
         public void TickAttacks(float dt, long tick) { if (_attacks != null) _attacks.Tick(dt, tick); }
-        public void Initialize()
+        public void ConfigureWeaver(WeaverDriverConfig config)
+        {
+            _weaver = GetComponent<WeaverWebDriver>();
+            if (_weaver == null) _weaver = gameObject.AddComponent<WeaverWebDriver>();
+            _weaver.Initialize(config, _config);
+        }
+        public float WeaverShotHeight => _weaver.ShotHeight;
+        public WeaverObservation ProbeWeaver(Vector3 target, float radius, float range, long tick)
+            => _weaver.Probe(target, radius, range, tick, _state.TargetFilter);
+        public void SetWeaverCeiling(float height, bool ceiling) { _weaver.SetCeiling(height, ceiling); }
+        public bool LaunchWeb(Vector3 origin, Vector3 target, float radius, float speed, float range, int serial)
+            => _weaver.Launch(origin, target, radius, speed, range, serial, _state.TargetFilter);
+        public void AddWeaverNest(WeaverFact fact) { _weaver.AddNest(fact); }
+        public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<Collider, int>> TickWebs(float dt)
+            => _weaver.TickWebs(dt, _state.TargetFilter);
+        public void Initialize(HunterMotorDriverConfig configOverride = null)
         {
             Teardown();
+            if (configOverride != null) _config = configOverride;
             if (_config == null) _config = Resources.Load<HunterMotorDriverConfig>("ScriptableObjects/Domain/Hunter/HunterMotorDriverConfig");
             if (_config == null) throw new InvalidOperationException("Generate and wire HunterMotorDriverConfig before initialization.");
             if (_capsule == null) _capsule = GetComponent<CapsuleCollider>();
@@ -176,15 +196,46 @@ namespace Worsen.Domain.Hunter
         }
         public bool ValidateReactionTarget(Vector3 target)
         {
-            if (!NavMesh.SamplePosition(Position, out NavMeshHit start, 0.5f, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(target, out NavMeshHit end, 0.75f, NavMesh.AllAreas) ||
+            if (!NavMesh.SamplePosition(Position, out NavMeshHit start, 0.5f, _config.NavigationAreaMask) ||
+                !NavMesh.SamplePosition(target, out NavMeshHit end, 0.75f, _config.NavigationAreaMask) ||
                 Mathf.Abs(end.position.y - target.y) > _config.StepHeight ||
-                NavMesh.Raycast(start.position, end.position, out _, NavMesh.AllAreas)) return false;
+                NavMesh.Raycast(start.position, end.position, out _, _config.NavigationAreaMask)) return false;
             return _routePresenter.Allowed(new[] { Position, end.position }, _state.UnavailableRooms) &&
                 ClearSegment(Position + Vector3.up * _config.EyeHeight, end.position + Vector3.up * _config.EyeHeight);
         }
         public void Animate(float dt, int phase, float progress)
         { if (_animation != null) _animation.Apply(dt, Velocity.magnitude, phase, progress); }
+        public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt)
+            => MoveRecording(points, dt, out _);
+        public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt, out bool unreachable)
+        {
+            unreachable = false;
+            if (_state == null || !(dt > 0f) || points == null) return 0;
+            Vector3 start = Position, position = start;
+            int reached = 0;
+            _state.PathAvailable = true;
+            foreach (Vector3 point in points)
+            {
+                // Validate, never substitute sampled positions or a NavMesh route.
+                if (!NavMesh.SamplePosition(position, out NavMeshHit a, _config.GroundProbeDistance + _config.SkinWidth, _config.NavigationAreaMask) ||
+                    !NavMesh.SamplePosition(point, out NavMeshHit b, _config.GroundProbeDistance + _config.SkinWidth, _config.NavigationAreaMask) ||
+                    Vector3.ProjectOnPlane(a.position - position, Vector3.up).sqrMagnitude > _config.SkinWidth * _config.SkinWidth ||
+                    Vector3.ProjectOnPlane(b.position - point, Vector3.up).sqrMagnitude > _config.SkinWidth * _config.SkinWidth ||
+                    NavMesh.Raycast(a.position, b.position, out _, _config.NavigationAreaMask))
+                { _state.PathAvailable = false; unreachable = true; break; }
+                if (!_routePresenter.Allowed(new[] { position, point }, _state.UnavailableRooms) ||
+                    !ClearCornerSegment(position, point - position))
+                { _state.PathAvailable = false; break; }
+                Vector3 direction = point - position; direction.y = 0f;
+                if (direction.sqrMagnitude > 0f) _state.Steering.Forward = direction.normalized;
+                position = point; reached++;
+            }
+            _state.Steering.Position = position; _state.Steering.Velocity = (position - start) / dt;
+            _state.VerticalSpeed = 0f; _state.PathCooldown = 0f;
+            transform.SetPositionAndRotation(position, Quaternion.LookRotation(_state.Steering.Forward, Vector3.up));
+            _body.position = position; Physics.SyncTransforms();
+            return reached;
+        }
         private bool CanSee(Vector3 point, Func<Collider, bool> isTarget)
         {
             Vector3 origin = Position + Vector3.up * _config.EyeHeight;
@@ -208,6 +259,15 @@ namespace Worsen.Domain.Hunter
                 Vector3.SqrMagnitude(target - _state.LastTarget) > _config.CornerTolerance * _config.CornerTolerance);
             if (refresh)
                 RequestPath(target);
+            if (!stopped && !lungeActive && _state.PathAvailable && _weaver != null &&
+                _weaver.TryCrossPartition(_state.Steering.Corners, _state.Steering.CornerIndex, out Vector3 linkEnd))
+            {
+                // Kinematic endpoint transfer only; no global/layer collision changes.
+                transform.position = linkEnd; _body.position = linkEnd;
+                _presenter.Reset(_state.Steering, linkEnd, Forward);
+                _state.PathCooldown = 0f; _state.VerticalSpeed = 0f;
+                Physics.SyncTransforms(); return;
+            }
             Vector3 start = Position;
             _state.Steering.Position = start;
             if (refresh) _state.ClearCornerArc = HasClearCornerArc(speed, acceleration, turnRate);
@@ -316,14 +376,14 @@ namespace Worsen.Domain.Hunter
         {
             _state.LastTarget = target; _state.PathCooldown = _config.PathRepathSeconds;
             _state.PathAvailable = false;
-            bool sampledStart = NavMesh.SamplePosition(Position, out NavMeshHit start, _config.PathSampleRadius, NavMesh.AllAreas);
+            bool sampledStart = NavMesh.SamplePosition(Position, out NavMeshHit start, _config.PathSampleRadius, _config.NavigationAreaMask);
             if (_state.RepathActive && sampledStart && _presenter.CanReleaseGap(_state.Steering,
                 _state.RepathEntry, _state.RepathExit, Position, start.position)) _state.RepathActive = false;
             if (!_state.RepathActive && _presenter.HasActiveSegmentProgress(_state.Steering, Position, _config.CornerTolerance))
             {
                 Vector3 entry = _state.Steering.Corners[_state.Steering.CornerIndex - 1];
                 Vector3 exit = _state.Steering.Corners[_state.Steering.CornerIndex];
-                if (NavMesh.Raycast(entry, exit, out _, NavMesh.AllAreas))
+                if (NavMesh.Raycast(entry, exit, out _, _config.NavigationAreaMask))
                 {
                     _state.RepathEntry = entry; _state.RepathExit = exit;
                     _state.RepathActive = true; _state.RepathReverse = false;
@@ -331,7 +391,7 @@ namespace Worsen.Domain.Hunter
             }
             if (sampledStart)
             {
-                if (NavMesh.SamplePosition(target, out NavMeshHit end, _config.PathSampleRadius, NavMesh.AllAreas))
+                if (NavMesh.SamplePosition(target, out NavMeshHit end, _config.PathSampleRadius, _config.NavigationAreaMask))
                 {
                     if (_state.RepathActive)
                     {
@@ -339,7 +399,7 @@ namespace Worsen.Domain.Hunter
                         if (!_state.PathAvailable && CanLeaveRejectedGap(start.position)) _state.RepathActive = false;
                     }
                     if (!_state.RepathActive)
-                        _state.PathAvailable = NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, _state.Path) &&
+                        _state.PathAvailable = NavMesh.CalculatePath(start.position, end.position, _config.NavigationAreaMask, _state.Path) &&
                             _state.Path.status == NavMeshPathStatus.PathComplete;
                 }
             }
@@ -361,8 +421,8 @@ namespace Worsen.Domain.Hunter
         private bool RevalidateGap(Vector3 target)
         {
             float verticalTolerance = _config.GroundProbeDistance + _config.SkinWidth;
-            if (!NavMesh.SamplePosition(_state.RepathEntry, out NavMeshHit entry, _config.PathSampleRadius, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(_state.RepathExit, out NavMeshHit exit, _config.PathSampleRadius, NavMesh.AllAreas) ||
+            if (!NavMesh.SamplePosition(_state.RepathEntry, out NavMeshHit entry, _config.PathSampleRadius, _config.NavigationAreaMask) ||
+                !NavMesh.SamplePosition(_state.RepathExit, out NavMeshHit exit, _config.PathSampleRadius, _config.NavigationAreaMask) ||
                 !_presenter.IsNavigationAnchor(_state.RepathEntry, entry.position, verticalTolerance) ||
                 !_presenter.IsNavigationAnchor(_state.RepathExit, exit.position, verticalTolerance)) return false;
             Vector3[] forwardTail = ValidatedGapTail(entry.position, exit.position, target);
@@ -372,16 +432,16 @@ namespace Worsen.Domain.Hunter
         }
         private bool CanLeaveRejectedGap(Vector3 sample)
         {
-            return NavMesh.SamplePosition(_state.RepathEntry, out NavMeshHit entry, _config.PathSampleRadius, NavMesh.AllAreas) &&
+            return NavMesh.SamplePosition(_state.RepathEntry, out NavMeshHit entry, _config.PathSampleRadius, _config.NavigationAreaMask) &&
                 _presenter.CanLeaveRejectedGap(Position, sample, _state.RepathEntry, entry.position,
-                    !NavMesh.Raycast(sample, entry.position, out _, NavMesh.AllAreas), _config.GroundProbeDistance + _config.SkinWidth);
+                    !NavMesh.Raycast(sample, entry.position, out _, _config.NavigationAreaMask), _config.GroundProbeDistance + _config.SkinWidth);
         }
         private Vector3[] ValidatedGapTail(Vector3 entry, Vector3 exit, Vector3 target)
         {
-            if (NavMesh.CalculatePath(entry, exit, NavMesh.AllAreas, _state.Path) &&
+            if (NavMesh.CalculatePath(entry, exit, _config.NavigationAreaMask, _state.Path) &&
                 _state.Path.status == NavMeshPathStatus.PathComplete &&
                 _presenter.IsDirectSegmentPath(_state.Path.corners, entry, exit, _config.GroundProbeDistance + _config.SkinWidth) &&
-                NavMesh.CalculatePath(exit, target, NavMesh.AllAreas, _state.Path) &&
+                NavMesh.CalculatePath(exit, target, _config.NavigationAreaMask, _state.Path) &&
                 _state.Path.status == NavMeshPathStatus.PathComplete) return _state.Path.corners;
             return null;
         }
@@ -456,6 +516,7 @@ namespace Worsen.Domain.Hunter
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
         public void Teardown()
         {
+            if (_weaver != null) _weaver.Teardown();
             if (_state != null && _state.IKDriver != null)
             {
                 _state.IKDriver.Unbind();

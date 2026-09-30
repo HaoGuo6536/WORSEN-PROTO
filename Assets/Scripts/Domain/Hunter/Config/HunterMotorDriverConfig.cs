@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep authored data and system-local value contracts separate from execution.
 //   - Supply provisional, observation-only stall window and distance thresholds.
+//   - Restrict every navigation query to authored actor areas (Walkable by default).
 // DEPENDENCIES:
 //   - The owning Hunter system and pure UnityEngine values only.
 // USAGE NOTES:
@@ -26,6 +27,8 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private float _eyeHeight = 1.5f;
         [SerializeField] private Vector3 _targetSampleHeights = new Vector3(1.55f, 1f, 0.5f);
         [SerializeField] private float _pathSampleRadius = 2f;
+        [SerializeField] private int _navigationAreaMask = 1;
+        public int NavigationAreaMask => _navigationAreaMask;
         [SerializeField] private float _pathRepathSeconds = 0.15f;
         [SerializeField] private float _cornerTolerance = 0.25f;
         [SerializeField, Min(0.001f)] private float _stallDuration = 0.75f;

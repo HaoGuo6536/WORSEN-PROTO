@@ -8,6 +8,7 @@
 //   Registry (§8) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Hold registered identities and provide lookup and read-only enumeration.
+//   - Admit any number of bodies sharing an archetype; reject colliding entity identities.
 // DEPENDENCIES:
 //   - HunterManager and Core identities only.
 // USAGE NOTES:
@@ -30,7 +31,13 @@ namespace Worsen.Domain.Hunter
                 if (candidate != null && candidate.Id == id) { hunter = candidate; return true; }
             hunter = null; return false;
         }
-        internal static void Register(HunterManager hunter) { if (!Hunters.Contains(hunter)) Hunters.Add(hunter); }
+        internal static void Register(HunterManager hunter)
+        {
+            if (hunter == null || !hunter.Id.IsValid) throw new System.ArgumentException("A registered Hunter needs an identity.");
+            if (TryGet(hunter.Id, out HunterManager existing) && existing != hunter)
+                throw new System.InvalidOperationException("Duplicate Hunter entity identity.");
+            if (!Hunters.Contains(hunter)) Hunters.Add(hunter);
+        }
         internal static void Unregister(HunterManager hunter) { Hunters.Remove(hunter); }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Reset() { Hunters.Clear(); }
