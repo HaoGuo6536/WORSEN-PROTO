@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Verify complete tiled floors/ceilings and clear shared door apertures.
+//   - Require navigation bounds to contain all eight corners of rotated collision boxes.
 // DEPENDENCIES:
 //   - Domain.Procedural, NUnit and UnityEngine value types.
 // USAGE NOTES:
@@ -77,6 +78,19 @@ namespace Worsen.Tests.Procedural
                     .Any(block => new Bounds(block.Center, block.Size).Intersects(standing)), Is.False);
             }
         }
+        [TestCase(false)] [TestCase(true)]
+        public void NavigationBoundsContainEveryRotatedRampCorner(bool alongX)
+        {
+            var rotation = Quaternion.LookRotation((alongX ? Vector3.forward : Vector3.right) * 4.8f + Vector3.up * 2.4f, Vector3.up);
+            var block = new ProceduralBlock(1, ProceduralSurfaceKind.Floor, new Vector3(20f, 1f, -30f),
+                new Vector3(2f, 0.3f, Mathf.Sqrt(4.8f * 4.8f + 2.4f * 2.4f)), role: ProceduralBlockRole.StairRamp, rotation: rotation);
+            var bounds = new ProceduralGeometryPresenter().NavigationBounds(new[] { block }, 0.01f);
+            for (int x = -1; x <= 1; x += 2)
+            for (int y = -1; y <= 1; y += 2)
+            for (int z = -1; z <= 1; z += 2)
+                Assert.That(bounds.Contains(block.Center + rotation * new Vector3(x * block.Size.x, y * block.Size.y, z * block.Size.z) * 0.5f), Is.True);
+        }
+
         private ProceduralLayout Generate(int seed)
             => new ProceduralController(new ProceduralBehaviorState(), _config,
                 new System.Random(ProceduralController.LayoutSeed(seed, 3))).Generate(seed, 3);

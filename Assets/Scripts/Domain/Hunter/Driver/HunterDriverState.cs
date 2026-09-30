@@ -11,6 +11,7 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Cache a bounded, physically verified corner-arc prediction until the next path refresh.
+//   - Retain independent observation-only stall history for this life.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -25,6 +26,7 @@ namespace Worsen.Domain.Hunter
     public sealed class HunterDriverState
     {
         public readonly HunterSteeringDriverState Steering = new HunterSteeringDriverState();
+        public readonly HunterStallDriverState Stall = new HunterStallDriverState();
         public readonly HunterSteeringDriverState CornerPreview = new HunterSteeringDriverState();
         public readonly RaycastHit[] CornerCastHits = new RaycastHit[32];
         public readonly Collider[] CornerOverlaps = new Collider[16];

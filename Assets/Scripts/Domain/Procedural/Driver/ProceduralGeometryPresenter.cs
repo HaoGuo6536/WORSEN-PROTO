@@ -9,6 +9,7 @@
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Calculate collision/render blocks and navigation bounds without engine calls.
+//   - Include rotated ramp corners in the bounded navigation volume.
 //   - Seal every roof and the upper wall transitions between unequal room heights.
 // DEPENDENCIES:
 //   - Core room values and Procedural layout/configuration only.
@@ -54,8 +55,13 @@ namespace Worsen.Domain.Procedural
         {
             if (blocks == null || blocks.Count == 0 || !Finite(padding) || padding < 0f)
                 throw new ArgumentException("Navigation bounds need nonempty geometry and finite nonnegative padding.");
-            var bounds = new Bounds(blocks[0].Center, blocks[0].Size);
-            foreach (var block in blocks) bounds.Encapsulate(new Bounds(block.Center, block.Size));
+            var bounds = new Bounds(blocks[0].Center, Vector3.zero);
+            foreach (var block in blocks)
+            for (int x = -1; x <= 1; x += 2)
+            for (int y = -1; y <= 1; y += 2)
+            for (int z = -1; z <= 1; z += 2)
+                bounds.Encapsulate(block.Center + block.Rotation *
+                    new Vector3(x * block.Size.x, y * block.Size.y, z * block.Size.z) * 0.5f);
             bounds.Expand(padding * 2f);
             return bounds;
         }

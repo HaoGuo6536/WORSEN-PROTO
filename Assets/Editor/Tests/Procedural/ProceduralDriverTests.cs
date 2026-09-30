@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Check native door/cake clearance, enclosed ceilings and complete paths.
+//   - Verify visual-only treads have no collider and invisible ramp/landing poses match their plans.
 //   - Verify regeneration and teardown remove owned geometry/navigation.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit, UnityEditor configuration and UnityEngine.AI.
@@ -329,6 +330,49 @@ namespace Worsen.Tests.Procedural
                 }
             }
             finally { Object.DestroyImmediate(pickupConfig); }
+        }
+
+        [Test]
+        public void StairPhysicsUsesOnlyTheRampAndLandingsWhileTraversalMarkersRemainSolid()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            _manager.Initialize(_config, _driverConfig, 8, 3);
+            var layout = new ProceduralController(new ProceduralBehaviorState(), _config,
+                new System.Random(ProceduralController.LayoutSeed(8, 3))).Generate(8, 3);
+            var blocks = new ProceduralGeometryPresenter().Build(layout, _config, _driverConfig);
+            var root = _owner.transform.Find("Generated Castle Rooms - Round 3");
+            Assert.That(blocks.Any(b => b.Role == ProceduralBlockRole.StairRamp), Is.True);
+            for (int index = 0; index < blocks.Count; index++)
+            {
+                var block = blocks[index];
+                var item = root.GetChild(index);
+                Assert.That(Vector3.Distance(item.position, block.Center), Is.LessThan(0.001f));
+                Assert.That(Vector3.Distance(item.forward, block.Rotation * Vector3.forward), Is.LessThan(0.001f));
+                Assert.That(Vector3.Distance(item.up, block.Rotation * Vector3.up), Is.LessThan(0.001f));
+                Assert.That(item.localScale, Is.EqualTo(block.Size));
+                Assert.That(item.GetComponent<Renderer>().enabled, Is.EqualTo(block.HasRenderer));
+                Assert.That(item.GetComponents<Collider>().Count(c => c.enabled), Is.EqualTo(block.HasCollision ? 1 : 0));
+                var marker = item.GetComponent<ProceduralTraversalSurface>();
+                if (block.SurfaceId == 0) Assert.That(marker, Is.Null);
+                else
+                {
+                    Assert.That(marker.SurfaceId, Is.EqualTo(block.SurfaceId));
+                    Assert.That(marker.Kind, Is.EqualTo(block.TraversalKind));
+                    Assert.That(marker.EndpointA, Is.EqualTo(block.EndpointA));
+                    Assert.That(marker.EndpointB, Is.EqualTo(block.EndpointB));
+                }
+                if (block.Role != ProceduralBlockRole.StairRamp) continue;
+                Assert.That(Vector3.Angle(item.up, Vector3.up), Is.LessThan(NavMesh.GetSettingsByID(_driverConfig.NavMeshAgentTypeId).agentSlope));
+                foreach (float progress in new[] { 0.1f, 0.5f, 0.9f })
+                {
+                    var point = Vector3.Lerp(block.EndpointA, block.EndpointB, progress);
+                    Assert.That(item.GetComponent<Collider>().Raycast(new Ray(point + Vector3.up, Vector3.down), out var hit, 2f), Is.True);
+                    Assert.That(Vector3.Distance(hit.point, point), Is.LessThan(0.001f));
+                }
+            }
         }
 
         private void ReleaseActor()
