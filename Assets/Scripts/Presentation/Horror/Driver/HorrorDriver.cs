@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Smooth per-floor collapse facts into distance fog and multiplicative torch-budget output.
 //   - Own finite-lived Weaver visuals; leave all hunter sound admission to Audio.
 //   - Own the micro-event sub-driver and republish decisions and lighting hook changes.
 //   - Render external light authority independently of camera shake and bank.
@@ -55,7 +56,7 @@ namespace Worsen.Presentation.Horror
         private HorrorWebDriver _web;
         public event Action<int, int, Vector3, float> MicroEventSelected;
         public event Action<float, bool> LightingHooksChanged;
-        public float TorchCountMultiplier => _state?.TorchCountMultiplier ?? 1f;
+        public float TorchCountMultiplier => _state != null ? HorrorCollapsePresenter.TorchMultiplier(_state, _config) : 1f;
         public bool Wick => _state != null && _state.Wick;
         public bool IsReady => _state != null && _atmosphere != null && _atmosphere.IsReady
             && _state.CueMaterial != null && _config.AttackGrowl != null;
@@ -148,6 +149,16 @@ namespace Worsen.Presentation.Horror
             ApplyAtmosphere();
         }
 
+        public void SetCollapseRooms(IReadOnlyList<GeneratedRoomSample> rooms, int? exitRoom)
+        {
+            if (_state == null) return;
+            HorrorCollapsePresenter.BeginFloor(_state, rooms, exitRoom);
+            ApplyAtmosphere();
+            LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
+        }
+        public void ObserveCollapse(RoomDestructionSample sample)
+        { if (_state != null) HorrorCollapsePresenter.Observe(_state, sample, _config); }
+
         public void SetAttack(HunterAttackSample sample)
         {
             if (_state == null || !_state.OwnerEnabled || !isActiveAndEnabled || !sample.Hunter.IsValid) return;
@@ -182,17 +193,19 @@ namespace Worsen.Presentation.Horror
             if (_state.ActiveEffects != null) SetActiveEffects(_state.ActiveEffects);
             if (_micro != null) _micro.Tick(_config, _outputCamera, _state.RunElapsedSeconds, deltaSeconds);
             if (_web != null) _web.Tick(deltaSeconds);
+            if (HorrorCollapsePresenter.Tick(_state, _config, deltaSeconds))
+            { ApplyAtmosphere(); LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick); }
             return true;
         }
 
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
         {
             if (_state == null) return;
-            float previous = _state.TorchCountMultiplier; bool wick = _state.Wick;
+            float previous = TorchCountMultiplier; bool wick = _state.Wick;
             _presenter.SetActiveEffects(_state, _config, effects);
             ApplyAtmosphere();
-            if (previous != _state.TorchCountMultiplier || wick != _state.Wick)
-                LightingHooksChanged?.Invoke(_state.TorchCountMultiplier, _state.Wick);
+            if (previous != TorchCountMultiplier || wick != _state.Wick)
+                LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
         }
         public void SetMicroEventWorld(IReadOnlyInteractableSet world, IReadOnlyList<Vector3> unreachableAnchors)
         { if (_micro != null) _micro.SetWorld(world, unreachableAnchors); }
@@ -246,6 +259,7 @@ namespace Worsen.Presentation.Horror
             if (_micro != null) _micro.ResetFloor();
             _atmosphere.ClearAfterimage();
             ApplyAtmosphere();
+            LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
         }
 
         public void Teardown()
@@ -271,7 +285,9 @@ namespace Worsen.Presentation.Horror
         private void ApplyAtmosphere()
         {
             if (_state == null || _outputCamera == null || _atmosphere == null) return;
-            _presenter.CalculateAtmosphere(_state, _config.Settings, _outputCamera.farClipPlane);
+            var settings = _config.Settings;
+            if (_state.HasCollapseFloor) settings.FogNearMeters = HorrorCollapsePresenter.FogNear(_state, _config);
+            _presenter.CalculateAtmosphere(_state, settings, _outputCamera.farClipPlane);
             _atmosphere.Apply(_state.FogCurveStart, _state.FogCurveEnd, _state.FlashlightRange,
                 _state.FlashlightIntensity, _state.FlashlightEnabled);
             if (_state.HasAuthoritativeFlashlight) _atmosphere.SetFlashlightPose(_state.AuthoritativeFlashlight);

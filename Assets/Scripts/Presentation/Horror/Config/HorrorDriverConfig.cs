@@ -14,7 +14,8 @@
 //   - Tune rare micro-event admission and exact catalogue lighting-effect bindings.
 //   - Expose darkness, fog hooks, earned-startle budget and attack cue tuning.
 //   - Hold the imported growl, optional ambience loop and a build-included warning material.
-//   - Reference project-owned Lumen fake-light prefabs and default to black 8–24 meter fog.
+//   - Tune collapse-phase fog near distance, partial room weight and smoothed torch loss.
+//   - Reference project-owned Lumen fake-light prefabs; retain legacy black 8–24 meter fog.
 //   - Keep a soft, wall-limited close fill that dims when the flashlight is switched off.
 //
 // DEPENDENCIES:
@@ -36,6 +37,19 @@ namespace Worsen.Presentation.Horror
     [CreateAssetMenu(fileName = "HorrorDriverConfig", menuName = "Worsen/Horror/Driver Config")]
     public sealed class HorrorDriverConfig : ScriptableObject
     {
+        [Header("Deep dark in collapse (provisional)")]
+        [SerializeField, Min(0f)] private float _sweepFogNearMeters = 24f;
+        [SerializeField, Min(0f)] private float _collapsedFogNearMeters = 10f;
+        [SerializeField, Range(0f, 1f)] private float _encroachingCollapseWeight = 0.5f;
+        [SerializeField, Min(0f)] private float _collapseSmoothingSeconds = 2f;
+        [SerializeField, Range(0f, 1f)] private float _sweepTorchCountMultiplier = 1f;
+        [SerializeField, Range(0f, 1f)] private float _collapsedTorchCountMultiplier = 0.4f;
+        public float SweepFogNearMeters => _sweepFogNearMeters;
+        public float CollapsedFogNearMeters => _collapsedFogNearMeters;
+        public float EncroachingCollapseWeight => _encroachingCollapseWeight;
+        public float CollapseSmoothingSeconds => _collapseSmoothingSeconds;
+        public float SweepTorchCountMultiplier => _sweepTorchCountMultiplier;
+        public float CollapsedTorchCountMultiplier => _collapsedTorchCountMultiplier;
         [Header("Weaver placeholders (provisional)")]
         [SerializeField] private Material _webMaterial = null;
         [SerializeField, Min(.001f)] private float _webLineWidth = .015f;
