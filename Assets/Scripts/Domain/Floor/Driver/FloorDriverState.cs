@@ -3,19 +3,20 @@
 // ============================================================================
 // PURPOSE:
 //   Retains owned generated objects and lifecycle data for symmetric scene teardown.
-//   This is the scene-owned Floor collection and collapse loop. Explicit data
-//   inputs make its seeded behavior reproducible and its ownership reviewable.
+//   It also retains target-local guidance history so a failed refresh cannot lose
+//   a good direction or borrow the direction of another candidate cake.
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Retain the owned native Lumen fallback-exit effect for lifecycle routing.
-//   - Implement the Floor responsibility named by this file.
+//   - Retain last good directions and fallback/held flags keyed by target anchor id.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
-//   - Floor reads injected Level and Player views; no Session or Presentation dependency.
+//   - Floor-owned sub-driver references and UnityEngine value types only.
 // USAGE NOTES:
-//   Passive engine references only. FloorDriver destroys every owned object and material before clearing them.
+//   Passive data only. FloorDriver destroys owned objects and clears guidance at teardown.
+//   Anchor id zero is the exit; flags describe each target's latest query.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using System.Collections.Generic;
@@ -40,5 +41,8 @@ namespace Worsen.Domain.Floor
         public Material ExitMaterial;
         public bool Ready;
         public bool Subscribed;
+        public readonly Dictionary<int, Vector3> LastGoodDirections = new Dictionary<int, Vector3>();
+        public readonly HashSet<int> FallbackDirections = new HashSet<int>();
+        public readonly HashSet<int> HeldDirections = new HashSet<int>();
     }
 }
