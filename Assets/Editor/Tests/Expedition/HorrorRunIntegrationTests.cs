@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Expedition scene integration.
 // KEY RESPONSIBILITIES:
+//   - Wait for the title and activate its Start interaction before expecting choices.
 //   - Reject inter-floor health carry-over, including shop entry and return to combat.
 //   - Verify native geometry/navigation admission and growing in-place floors.
 //   - Exercise the two-combat shop cadence, unique choices and per-visit consumables.
@@ -35,6 +36,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 using Worsen.Core;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Hunter;
@@ -375,6 +377,12 @@ namespace Worsen.Tests.Expedition
         {
             var load = SceneManager.LoadSceneAsync(ScenePath, LoadSceneMode.Single);
             Assert.That(load, Is.Not.Null, "Run Worsen/Scenes/3 — Build HorrorRun before this fixture.");
+            yield return Until(() => load.isDone && Object.FindObjectsByType<Worsen.Presentation.Menu.MenuDriver>(FindObjectsSortMode.None)
+                .Any(menu => Observe<Worsen.Presentation.Menu.MenuDriverState>(menu, "_state").TitleVisible),
+                "Saved HorrorRun did not show its title.");
+            var title = One<Worsen.Presentation.Menu.MenuDriver>().GetComponent<UIDocument>().rootVisualElement.Q<Button>("start-run");
+            Assert.That(title, Is.Not.Null);
+            using (var click = NavigationSubmitEvent.GetPooled()) { click.target = title; title.SendEvent(click); }
             yield return Until(() => load.isDone && ProgressionSessionManager.Instance != null &&
                 ProgressionSessionManager.Instance.Snapshot.Phase == ProgressionPhase.ChooseThreat &&
                 Object.FindObjectsByType<HorrorRunSceneRoot>(FindObjectsSortMode.None).Length == 1,

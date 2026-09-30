@@ -11,6 +11,7 @@
 //   Sub-driver (§7e), owned by AudioDriver · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply runtime music/effects gains to all pooled, scheduled and ambience sources.
 //   - Stop active enemy voices on player death and reject late enemy feedback while preserving the player's death cue.
 //   - Own a bounded source pool, four torch voices, attenuation filters and five looping layers.
 //   - Schedule Run 1 into Run 2 without frame-boundary gaps; cancel pending playback on end/reset.
@@ -69,6 +70,7 @@ namespace Worsen.Presentation.Audio
             _presenter.Reset(_state, config.VoiceCount, new System.Random(76103));
             _root = new GameObject("Owned Soundscape Sources"); _root.transform.SetParent(transform, false);
             _voices = new AudioSource[_state.Voices.Length]; _filters = new AudioLowPassFilter[_voices.Length];
+            _state.VoiceGains = new float[_voices.Length];
             for (int i = 0; i < _voices.Length; i++)
             { _voices[i] = CreateSource("Effect " + i, false, null, config.EffectsGroup); _filters[i] = _voices[i].gameObject.AddComponent<AudioLowPassFilter>(); _filters[i].cutoffFrequency = 22000f; }
             _layers = new[] { CreateSource("Tension", true, config.TensionStem, config.MusicGroup),
@@ -103,7 +105,7 @@ namespace Worsen.Presentation.Audio
         }
         public bool Play(CueId cue, Vector3 position, float gain, int emitter)
         {
-            if (_state == null || !_state.OwnerEnabled || !isActiveAndEnabled) return false;
+            if (_state == null || _state.Paused || !_state.OwnerEnabled || !isActiveAndEnabled) return false;
             if (cue == CueId.Footstep) cue = ResolveFootstep(position);
             if (!_banks.TryGetValue(cue, out AudioSoundDefinition bank) || !_durations.TryGetValue(cue, out float[] durations) || durations.Length == 0)
             {
@@ -113,9 +115,10 @@ namespace Worsen.Presentation.Audio
             if (!_state.Alive && (_presenter.IsEnemyCue(cue) || bank.Loop && !bank.Ambience)) return false;
             if (!_presenter.TryPlay(_state, bank, emitter, durations, gain, out AudioPlaybackSample request)) return false;
             AudioSource source = _voices[request.Voice]; source.transform.position = position;
+            _state.VoiceGains[request.Voice] = request.Gain;
             if (request.ReuseLoop)
             {
-                source.volume = request.Gain * _master * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
+                source.volume = request.Gain * _master * _state.RuntimeEffects * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
                 return true;
             }
             source.Stop(); source.clip = bank.Clips[request.Clip]; source.loop = bank.Loop;
@@ -125,7 +128,7 @@ namespace Worsen.Presentation.Audio
             source.priority = Mathf.Clamp(256 - bank.Priority * 2, 0, 256);
             source.pitch = request.Pitch;
             source.outputAudioMixerGroup = bank.Ambience ? _config.AmbienceGroup : _config.EffectsGroup;
-            source.volume = request.Gain * _master * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
+            source.volume = request.Gain * _master * _state.RuntimeEffects * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
             _filters[request.Voice].cutoffFrequency = 22000f;
             source.Play(); return true;
         }
@@ -193,6 +196,27 @@ namespace Worsen.Presentation.Audio
                     _filters[i].cutoffFrequency = Mathf.Lerp(22000f, 900f, Mathf.Clamp01(occlusion));
         }
         public void SetMasterGain(float gain) { _master = Mathf.Clamp01(gain); }
+        public void SetPaused(bool paused) { if (_state != null) _state.Paused = paused; }
+        public void SetRuntimeGains(float master, float music, float effects)
+        {
+            if (_state == null) return;
+            _master = master; _state.RuntimeMusic = music; _state.RuntimeEffects = effects;
+            ApplyGains();
+        }
+        private void ApplyGains()
+        {
+            float music = _master * _state.RuntimeMusic * _config.MusicGain * (1f - _state.Duck);
+            _layers[0].volume = _music.TensionGain * music; _layers[1].volume = _music.StressGain * music; _layers[2].volume = _music.DangerGain * music;
+            _layers[3].volume = _state.InteriorGain * _master * _state.RuntimeEffects * _config.AmbienceGain;
+            _layers[4].volume = _state.ExteriorGain * _master * _state.RuntimeEffects * _config.AmbienceGain;
+            if (_runSources != null) foreach (AudioSource source in _runSources) source.volume = _state.Alive ? music * _config.RunGain : 0f;
+            for (int i = 0; i < _voices.Length; i++)
+                if (_banks.TryGetValue((CueId)_state.Voices[i].Cue, out AudioSoundDefinition bank))
+                    _voices[i].volume = _state.VoiceGains[i] * _master * _state.RuntimeEffects * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
+            if (_banks.TryGetValue(CueId.TorchLoop, out AudioSoundDefinition torch))
+                for (int i = 0; i < _torches.Length; i++)
+                    _torches[i].volume = _world.Slots[i].Gain * torch.Gain * _master * _state.RuntimeEffects * _config.AmbienceGain * (_world.Slots[i].AcrossPortal ? .5f : 1f);
+        }
         public void ResetRun()
         {
             if (_state == null) return;
@@ -202,17 +226,15 @@ namespace Worsen.Presentation.Audio
         }
         private void Update()
         {
-            if (_state == null || !_state.OwnerEnabled) return;
+            if (_state == null || _state.Paused || !_state.OwnerEnabled) return;
             _presenter.Tick(_state, Time.unscaledDeltaTime, _config.AttackSeconds, _config.ReleaseSeconds, _config.ChaseHoldSeconds);
             _musicPresenter.Tick(_music, _state.Threats.Values, _state.Alive, Time.unscaledDeltaTime,
                 AudioSettings.dspTime, _config.RunIntro != null ? (double)_config.RunIntro.samples / _config.RunIntro.frequency : 0, _config, _state.CosmeticRandom);
-            float music = _master * _config.MusicGain * (1f - _state.Duck);
-            _layers[0].volume = _music.TensionGain * music; _layers[1].volume = _music.StressGain * music; _layers[2].volume = _music.DangerGain * music;
+            float music = _master * _state.RuntimeMusic * _config.MusicGain * (1f - _state.Duck);
             _layers[0].pitch = _layers[1].pitch = _music.ImpactPitch;
             ApplyRunSequence(music);
-            _layers[3].volume = _state.InteriorGain * _master * _config.AmbienceGain;
-            _layers[4].volume = _state.ExteriorGain * _master * _config.AmbienceGain;
             UpdateWorld(Time.unscaledDeltaTime);
+            ApplyGains();
         }
         private void UpdateWorld(float dt)
         {
@@ -229,7 +251,7 @@ namespace Worsen.Presentation.Audio
                 }
                 if (slot.Id == 0) source.Stop();
                 source.transform.position = slot.Position;
-                source.volume = slot.Gain * bank.Gain * _master * _config.AmbienceGain * (slot.AcrossPortal ? .5f : 1f);
+                source.volume = slot.Gain * bank.Gain * _master * _state.RuntimeEffects * _config.AmbienceGain * (slot.AcrossPortal ? .5f : 1f);
                 _torchFilters[i].cutoffFrequency = slot.AcrossPortal ? 1800f : 22000f;
             }
             if (_worldPresenter.TickAccent(_world, _state.ListenerPosition, _state.Alive, dt, _config.AccentMinimumSeconds, _config.AccentMaximumSeconds, out AudioFeedbackCommand accent))

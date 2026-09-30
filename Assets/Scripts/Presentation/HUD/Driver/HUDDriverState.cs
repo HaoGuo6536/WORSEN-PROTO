@@ -10,7 +10,7 @@
 //   DriverState (§7c) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Store only transient UI text, direction, slot counts, gauge fill, and fade progress.
+//   - Store quiet golden/count text, flat arrow rotation, occupied slots and fade progress.
 //   - Retain presenter-computed chrome visibility separately from guidance visibility.
 //   - Retain a supplied camera orientation and full three-dimensional compass direction.
 //
@@ -29,6 +29,8 @@ namespace Worsen.Presentation.HUD
     public sealed class HUDDriverState
     {
         public string CountText = "Cakes: —";
+        public string GoldenText = "Golden: —";
+        public float ArrowDegrees;
         public string ExitText = "Exit: —";
         public string DirectionCaption = "";
         public string SlotOverflowText = "";

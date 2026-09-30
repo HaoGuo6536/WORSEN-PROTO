@@ -12,6 +12,9 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Pair traversal, stumble and cake-loss relays; route pickup noise to bound active hunters.
+//   - Drop gameplay facts raised during pause rather than replaying them on resume.
+//   - Own authoritative pause, gate queued damage before ticks, and publish detailed end facts.
 //   - Forward hit severity/source, advance recovery without rewinding, and relay Player grace facts.
 //   - Relay committed pickup, hand, destruction and hunter sound facts without audio decisions.
 //   - Publish committed hunter attack telegraphs and prepare independently seeded generated floors.
@@ -67,6 +70,7 @@ namespace Worsen.Session.Run
         public static RunSessionManager Instance { get; private set; }
 
         public event Action BeforeTick;
+        public event Action<bool> PauseChanged;
         public event Action<InputFrame, float, long> TickAdvanced;
         public event Action<RunPhase> PhaseChanged;
         public event Action<PlayerMovementSample> PlayerMovementPublished;
@@ -79,6 +83,9 @@ namespace Worsen.Session.Run
         public event Action<RoomDestructionSample> RoomDestructionPublished;
         public event Action<CollapseHandFact> CollapseHandPublished;
         public event Action<PlayerTraversalFact> PlayerTraversalPublished;
+        public event Action<EntityId, long, TraversalKind, float, bool> TraversalProgressed;
+        public event Action<EntityId, long, float> PlayerStumbled;
+        public event Action<int, int, PickupKind, long> CakeLost;
         public event Action<InputProbeRecord> PlayerProbeRecorded;
         public event Action<RunCaptureMetadata> CaptureStarted;
         public event Action<long, bool> CaptureEnded;
@@ -97,6 +104,11 @@ namespace Worsen.Session.Run
         public event Action<RunSummary> RunEnded;
 
         public RunPhase Phase => state == null ? RunPhase.Boot : state.Phase;
+        public bool IsPaused => state != null && state.Paused;
+        public bool CanPause => state != null && state.SceneIsReady && state.Phase != RunPhase.Boot && state.Phase != RunPhase.Ended && state.PendingEndReason == RunEndReason.Unknown;
+        public void SetPaused(bool paused)
+        { if (controller != null && controller.SetPaused(paused)) PauseChanged?.Invoke(state.Paused); }
+        public void SetSummaryContext(int seed, int depth) => controller?.SetSummaryContext(seed, depth);
         public long Tick => state == null ? 0 : state.Tick;
         public int Seed => state == null ? 0 : state.Seed;
         public double ElapsedSeconds => state == null ? 0 : state.ElapsedSeconds;
@@ -163,6 +175,7 @@ namespace Worsen.Session.Run
 
         public void HandleSceneReady(SceneKey scene)
         {
+            SetPaused(false);
             if (controller == null)
                 throw new InvalidOperationException("Initialize the Run Session before announcing scene readiness.");
 
@@ -202,6 +215,7 @@ namespace Worsen.Session.Run
             {
                 player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
                 player.OnGraceStarted += HandleGraceStarted; player.OnGraceEnded += HandleGraceEnded;
+                player.OnTraversalProgress += HandleTraversalProgress; player.OnStumbled += HandleStumbled;
             }
             foreach (HunterManager hunter in hunters)
             { hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback; }
@@ -215,6 +229,8 @@ namespace Worsen.Session.Run
             if (floor != null)
             {
                 floor.OnPickupCollected += HandlePickup;
+                floor.OnPickupNoise += HandlePickupNoise;
+                floor.OnCakeLost += HandleCakeLost;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
                 floor.OnEscapeResolved += HandleExitReached;
@@ -237,6 +253,7 @@ namespace Worsen.Session.Run
                 {
                     player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath;
                     player.OnGraceStarted -= HandleGraceStarted; player.OnGraceEnded -= HandleGraceEnded;
+                    player.OnTraversalProgress -= HandleTraversalProgress; player.OnStumbled -= HandleStumbled;
                 }
             foreach (HunterManager hunter in hunters) if (hunter != null)
             { hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HandleHunterFeedback; }
@@ -250,6 +267,8 @@ namespace Worsen.Session.Run
             if (floor != null)
             {
                 floor.OnPickupCollected -= HandlePickup;
+                floor.OnPickupNoise -= HandlePickupNoise;
+                floor.OnCakeLost -= HandleCakeLost;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
                 floor.OnEscapeResolved -= HandleExitReached;
@@ -265,10 +284,11 @@ namespace Worsen.Session.Run
             }
         }
 
-        private void OnDisable() => UnsubscribeGameplay();
+        private void OnDisable() { SetPaused(false); UnsubscribeGameplay(); }
 
         public void DetachGameplay()
         {
+            SetPaused(false);
             UnsubscribeGameplay();
             players.Clear(); hunters.Clear(); pendingHits.Clear();
             chase = null; floor = null; director = null;
@@ -276,7 +296,7 @@ namespace Worsen.Session.Run
 
         private void FixedUpdate()
         {
-            if (Instance != this || state == null || !state.SceneIsReady || state.Phase == RunPhase.Ended)
+            if (Instance != this || state == null || state.Paused || !state.SceneIsReady || state.Phase == RunPhase.Ended)
                 return;
             DrainPendingHits();
             if (FinishIfRequested()) return;
@@ -310,12 +330,29 @@ namespace Worsen.Session.Run
             FinishIfRequested();
         }
 
-        private void HandleHunterFeedback(HunterFeedbackEvent fact) => HunterFeedbackPublished?.Invoke(fact);
-        private void HandleRoomDestruction(RoomDestructionSample sample) => RoomDestructionPublished?.Invoke(sample);
-        private void HandleCollapseHand(CollapseHandFact fact) => CollapseHandPublished?.Invoke(fact);
-        private void QueueHit(HunterHit hit) => pendingHits.Add(hit);
+        private void HandleTraversalProgress(EntityId player, long tick, TraversalKind kind, float progress, bool active)
+        { if (!IsPaused) TraversalProgressed?.Invoke(player, tick, kind, progress, active); }
+        private void HandleStumbled(EntityId player, long tick, float duration)
+        { if (!IsPaused) PlayerStumbled?.Invoke(player, tick, duration); }
+        private void HandleCakeLost(int anchorId, int roomId, PickupKind kind, long tick)
+        { if (!IsPaused) CakeLost?.Invoke(anchorId, roomId, kind, tick); }
+        private void HandlePickupNoise(NoiseEvent noise)
+        {
+            if (IsPaused) return;
+            foreach (HunterManager hunter in hunters)
+                if (hunter != null && hunter.isActiveAndEnabled && hunter.ReadOnlyState?.IsActive == true)
+                    hunter.HearNoise(noise);
+        }
+        private void HandleHunterFeedback(HunterFeedbackEvent fact)
+        { if (!IsPaused) HunterFeedbackPublished?.Invoke(fact); }
+        private void HandleRoomDestruction(RoomDestructionSample sample)
+        { if (!IsPaused) RoomDestructionPublished?.Invoke(sample); }
+        private void HandleCollapseHand(CollapseHandFact fact)
+        { if (IsPaused) return; controller.RecordHand(fact); CollapseHandPublished?.Invoke(fact); }
+        private void QueueHit(HunterHit hit) { if (!IsPaused) pendingHits.Add(hit); }
         private void DrainPendingHits()
         {
+            if (IsPaused) return;
             var hits = pendingHits.ToArray();
             pendingHits.Clear();
             foreach (HunterHit hit in hits) ApplyAcceptedHit(hit);
@@ -329,61 +366,77 @@ namespace Worsen.Session.Run
             int chaseId = state.ActiveChaseId;
             if (!target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source)) return;
             if (target.ReadOnlyState.Health >= previousHealth) return;
+            if (!target.ReadOnlyState.IsAlive)
+            {
+                HunterManager killer = hunters.Find(hunter => hunter != null && hunter.Id == hit.Hunter);
+                controller.RecordDeathDetails(hit.Target, hit.Source == HitSource.Hand ? DeathCause.Hand :
+                    hit.Source == HitSource.Trap ? DeathCause.Trap : DeathCause.Hunter, killer != null ? killer.ArchetypeKey : string.Empty);
+            }
             HitAccepted?.Invoke(hit);
             Emit(TelemetrySampleKind.AcceptedHit, hit.Target, hit.Tick, hit.Damage,
                 chaseId == 0 ? "pre-confirmation" : "accepted", hit.Reason, chaseId);
             if (chase != null) chase.RecordCatch(hit);
         }
-        private void HandleHealth(EntityId player, float health, float maximum) => HealthChanged?.Invoke(player, health, maximum);
-        private void HandleGraceStarted(GraceWindowFact fact) => OnGraceStarted?.Invoke(fact);
-        private void HandleGraceEnded(GraceWindowFact fact) => OnGraceEnded?.Invoke(fact);
-        private void HandleDeath(EntityId player, Vector3 killer) => controller.RequestEnd(RunEndReason.Died, player, killer);
+        private void HandleHealth(EntityId player, float health, float maximum)
+        { if (!IsPaused) HealthChanged?.Invoke(player, health, maximum); }
+        private void HandleGraceStarted(GraceWindowFact fact) { if (!IsPaused) OnGraceStarted?.Invoke(fact); }
+        private void HandleGraceEnded(GraceWindowFact fact) { if (!IsPaused) OnGraceEnded?.Invoke(fact); }
+        private void HandleDeath(EntityId player, Vector3 killer)
+        { if (!IsPaused) controller.RequestEnd(RunEndReason.Died, player, killer); }
         private void HandleChaseStarted(ChaseFact fact)
         {
+            if (IsPaused) return;
             controller.RecordChaseStarted(fact);
             Emit(TelemetrySampleKind.ChaseStarted, fact.Player, fact.Tick, chaseId: fact.ChaseId);
             ChaseStarted?.Invoke(fact);
         }
         private void HandleChaseEnded(ChaseFact fact)
         {
+            if (IsPaused) return;
             Emit(TelemetrySampleKind.ChaseEnded, fact.Player, fact.Tick, outcome: fact.EndReason, chaseId: fact.ChaseId);
             controller.RecordChaseEnded(fact);
             ChaseEnded?.Invoke(fact);
         }
-        private void HandleChasePhase(ChaseFact fact) => ChasePhaseChanged?.Invoke(fact);
+        private void HandleChasePhase(ChaseFact fact) { if (!IsPaused) ChasePhaseChanged?.Invoke(fact); }
         private void HandleProximity(ProximitySample sample)
         {
+            if (IsPaused) return;
             Emit(TelemetrySampleKind.Proximity, sample.Player, sample.Tick, sample.Distance, chaseId: sample.ChaseId);
             ProximityPublished?.Invoke(sample);
         }
         private void HandlePickup(PickupCollectedFact fact)
         {
+            if (IsPaused) return;
             controller.RecordCollection(fact);
             if (PlayerRegistry.TryGet(fact.PlayerId, out var player))
                 PickupCollected?.Invoke(fact, player.ReadOnlyState.Position);
         }
         private void HandleExitOpened(long tick)
-        { controller.Apply(RunEvent.ExitOpened); PhaseChanged?.Invoke(state.Phase); }
+        { if (IsPaused) return; controller.Apply(RunEvent.ExitOpened); PhaseChanged?.Invoke(state.Phase); }
         private void HandleRoomPhase(RoomPhaseChangedFact fact)
         {
+            if (IsPaused) return;
             if (fact.Phase == RoomPhase.Telegraph && state.Phase == RunPhase.ExitOpen)
             { controller.Apply(RunEvent.CollapseStarted); PhaseChanged?.Invoke(state.Phase); }
             RoomPhaseChanged?.Invoke(fact);
         }
-        private void HandleExitReached(ExitReachedFact fact, bool bailed) =>
-            controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero, bailed);
+        private void HandleExitReached(ExitReachedFact fact, bool bailed)
+        { if (!IsPaused) controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero, bailed); }
         private void HandleLethal(FloorLethalContactFact fact)
         {
+            if (IsPaused) return;
             PlayerManager target = players.Find(player => player != null && player.Id == fact.PlayerId);
             if (target != null && target.ReadOnlyState.IsAlive)
             {
                 target.AdvanceRecovery(Math.Max(Tick, target.ReadOnlyState.Tick));
                 target.ApplyHit(target.ReadOnlyState.Health, target.ReadOnlyState.Position);
             }
+            if (target != null && !target.ReadOnlyState.IsAlive) controller.RecordDeathDetails(fact.PlayerId, DeathCause.Hand);
         }
-        private void HandleFloorDisplay(FloorDisplaySnapshot snapshot) => FloorDisplayChanged?.Invoke(snapshot);
-        private void HandleIntrusion(IntrusionSample sample) => IntrusionPublished?.Invoke(sample);
-        private void HandlePressure(DirectorPressureSample sample) => Emit(TelemetrySampleKind.Heat, sample.Player, sample.Tick, sample.HeatSeconds);
+        private void HandleFloorDisplay(FloorDisplaySnapshot snapshot) { if (!IsPaused) FloorDisplayChanged?.Invoke(snapshot); }
+        private void HandleIntrusion(IntrusionSample sample) { if (!IsPaused) IntrusionPublished?.Invoke(sample); }
+        private void HandlePressure(DirectorPressureSample sample)
+        { if (!IsPaused) Emit(TelemetrySampleKind.Heat, sample.Player, sample.Tick, sample.HeatSeconds); }
         private void Emit(TelemetrySampleKind kind, EntityId player, long tick, float value = 0,
             string detail = "", ChaseEndReason outcome = ChaseEndReason.Unknown, int chaseId = -1)
         {
@@ -416,6 +469,7 @@ namespace Worsen.Session.Run
             if (Instance == this) CloseCapture(false);
             if (Instance == this) Instance = null;
             BeforeTick = null;
+            PauseChanged = null;
             TickAdvanced = null;
             PhaseChanged = null;
             PlayerMovementPublished = null;
@@ -424,6 +478,7 @@ namespace Worsen.Session.Run
             OnGraceStarted = null; OnGraceEnded = null;
             RoomDestructionPublished = null; CollapseHandPublished = null;
             PlayerTraversalPublished = null;
+            TraversalProgressed = null; PlayerStumbled = null; CakeLost = null;
             PlayerProbeRecorded = null;
             CaptureStarted = null;
             CaptureEnded = null;

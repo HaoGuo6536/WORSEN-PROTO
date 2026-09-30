@@ -13,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Draw responsive panels and shelter-only health text and gauge with Painter2D.
 //   - Apply presenter health visibility to both readouts without deriving phase rules here.
+//   - Suppress the legacy in-run status panel; HUD owns the only in-run counts.
 //   - Keep long retained lists in their own scroll area and keyboard focus visible.
 //   - Preserve readable text and native keyboard/mouse buttons in a scrollable modal.
 //
@@ -141,7 +142,7 @@ namespace Worsen.Presentation.ProgressionUI
             if (_root == null) return;
             bool visible = state.HasSnapshot && !state.Hidden && state.Phase != ProgressionPhase.Dormant;
             _root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-            _status.style.display = state.ModalVisible ? DisplayStyle.None : DisplayStyle.Flex;
+            _status.style.display = DisplayStyle.None;
             _modal.style.display = state.ModalVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _round.text = state.RoundText;
             _wallet.text = state.WalletText;

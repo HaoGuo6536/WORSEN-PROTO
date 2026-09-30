@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain source gain bases and runtime category overrides independently of voice playback.
 //   - Store per-emitter cooldowns, pooled voice leases and threat samples.
 //   - Keep musical envelopes and presentation random source outside the Presenter.
 //
@@ -36,6 +37,9 @@ namespace Worsen.Presentation.Audio
         public readonly List<long> ExpiredKeys = new List<long>();
         public readonly HashSet<int> MissingWarnings = new HashSet<int>();
         public AudioVoiceSample[] Voices;
+        public float[] VoiceGains;
+        public float RuntimeMusic = 1f, RuntimeEffects = 1f;
+        public bool Paused;
         public System.Random CosmeticRandom;
         public float Time;
         public float ChaseHold;

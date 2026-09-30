@@ -11,6 +11,7 @@
 //   BehaviorState (§3) · Session · Run.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain pause admission and detailed outcome bookkeeping without engine clocks.
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
 //   - Hold pending input so button edges and look deltas survive between ticks.
 //   - Retain capture lifecycle so closing a run is idempotent.
@@ -43,6 +44,13 @@ namespace Worsen.Session.Run
         public RunPhase Phase { get; internal set; } = RunPhase.Boot;
         public SceneKey Scene { get; internal set; } = SceneKey.None;
         public bool SceneIsReady { get; internal set; }
+        public bool Paused { get; internal set; }
+        public DeathCause DeathCause { get; internal set; }
+        public string KillerArchetypeId { get; internal set; } = string.Empty;
+        public int GrabsEscaped { get; internal set; }
+        public double ExitOpenedAt { get; internal set; } = -1;
+        public int DepthReached { get; internal set; }
+        public int SummarySeed { get; internal set; }
         public long Tick { get; internal set; }
         public double ElapsedSeconds { get; internal set; }
         public InputFrame PendingInput { get; internal set; }

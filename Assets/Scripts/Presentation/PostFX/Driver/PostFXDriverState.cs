@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Preserve the runtime blur override independently of effect resets.
 //   - Retain proximity, injury and explicit effect countdowns.
 //   - Retain independent loud/subtle intrusion and default-off blindness countdowns.
 //   - Carry primitive volume values without holding a live volume.
@@ -29,6 +30,7 @@ namespace Worsen.Presentation.PostFX
     public sealed class PostFXDriverState
     {
         public bool Consumed;
+        public bool? ReacquireBlurEnabled;
         public float ConsumptionElapsed, ConsumptionDuration, Blackout, Exposure;
         public Color SceneTint = Color.white;
         public float Proximity;
