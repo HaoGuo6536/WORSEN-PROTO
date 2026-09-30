@@ -10,6 +10,8 @@
 //   Presenter (§7b) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Enforce one voice per budget slot (per hunter), protected from cross-category stealing.
+//   - Use Core variation metadata; timing tells never receive scheduling jitter.
 //   - Identify enemy-owned voices for death cleanup without muting player death/UI/world sounds.
 //   - Respect cue cooldowns and priorities without stealing equally important voices.
 //   - Refresh loop gain while retaining its initially chosen voice and random variation.
@@ -26,6 +28,7 @@
 
 using System;
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Presentation.Audio
 {
@@ -59,34 +62,37 @@ namespace Worsen.Presentation.Audio
             state.CosmeticRandom = random; state.Time = state.ChaseHold = state.TensionGain = state.ChaseGain = state.DangerGain = 0f;
             state.InteriorGain = state.ExteriorGain = state.Openness = state.Collapse = state.Duck = 0f;
             state.FootstepGain = 1f; state.MusicStarted = false; state.Alive = true;
+            state.InRun = false;
         }
 
         public bool TryPlay(AudioSoundscapeDriverState state, AudioSoundDefinition sound, int emitter,
-            float[] clipDurations, float requestedGain, out AudioPlaybackSample result)
+            float[] clipDurations, float requestedGain, out AudioPlaybackSample result, float timingJitter = 0f)
         {
             result = default;
             if (clipDurations == null || clipDurations.Length == 0 || state.Voices == null) return false;
+            var catalogue = new AudioCueCataloguePresenter();
+            if (!catalogue.Admits(sound.Cue, state.InRun) || !catalogue.TryGet(sound.Cue, out var entry)) return false;
             int cue = (int)sound.Cue;
             long key = ((long)cue << 32) | (uint)emitter;
-            int count = 0;
+            int sameSlot = -1;
             for (int i = 0; i < state.Voices.Length; i++)
             {
                 AudioVoiceSample voice = state.Voices[i];
-                if (voice.Remaining <= 0f || voice.Cue != cue) continue;
-                if (sound.Loop && voice.Loop && voice.Emitter == emitter)
+                if (voice.Remaining <= 0f || !catalogue.SameVoice(entry, emitter, voice.Catalogue, voice.Emitter)) continue;
+                if (sound.Loop && voice.Loop && voice.Emitter == emitter && voice.Cue == cue)
                 {
                     result = new AudioPlaybackSample { Voice = i, ReuseLoop = true, Gain = voice.BaseGain * Unit(requestedGain) };
                     return true;
                 }
-                count++;
+                if (voice.Priority > sound.Priority || voice.Priority == sound.Priority && voice.Cue == cue) return false;
+                sameSlot = i;
             }
-            if (count >= Mathf.Max(1, sound.MaxConcurrent)) return false;
             if (state.Cooldowns.TryGetValue(key, out float until) && until > state.Time) return false;
-            int index = -1;
-            for (int i = 0; i < state.Voices.Length; i++)
+            int index = sameSlot;
+            for (int i = 0; sameSlot < 0 && i < state.Voices.Length; i++)
             {
                 if (state.Voices[i].Remaining <= 0f) { index = i; break; }
-                if (state.Voices[i].Priority >= sound.Priority) continue;
+                if (state.Voices[i].Catalogue.Protected || state.Voices[i].Priority >= sound.Priority) continue;
                 if (index < 0 || state.Voices[i].Priority < state.Voices[index].Priority ||
                     (state.Voices[i].Priority == state.Voices[index].Priority && state.Voices[i].Remaining < state.Voices[index].Remaining)) index = i;
             }
@@ -105,16 +111,18 @@ namespace Worsen.Presentation.Audio
             }
             float minimum = Mathf.Clamp(Positive(sound.PitchMinimum), 0.5f, 2f);
             float maximum = Mathf.Clamp(Positive(sound.PitchMaximum), minimum, 2f);
-            float pitch = Mathf.Lerp(minimum, maximum, (float)state.CosmeticRandom.NextDouble());
-            float variation = Unit(sound.GainVariation);
-            float baseGain = Unit(sound.Gain) * Mathf.Lerp(1f - variation, 1f, (float)state.CosmeticRandom.NextDouble());
+            var spec = new CueVariationSpec(minimum, maximum, Unit(sound.GainVariation), entry.TimingIsTell ? 0f : Positive(timingJitter), playable - 1, entry.TimingIsTell);
+            float pitch = Mathf.Lerp(spec.MinimumPitch, spec.MaximumPitch, (float)state.CosmeticRandom.NextDouble());
+            float baseGain = Unit(Unit(sound.Gain) + Mathf.Lerp(-spec.VolumeJitter, spec.VolumeJitter, (float)state.CosmeticRandom.NextDouble()));
+            // A committed fact cannot play in the past. Clip negative symmetric offsets at zero.
+            float delay = Mathf.Max(0f, Mathf.Lerp(-spec.TimingJitter, spec.TimingJitter, (float)state.CosmeticRandom.NextDouble()));
             float gain = baseGain * Unit(requestedGain);
             state.Voices[index] = new AudioVoiceSample { Cue = cue, Emitter = emitter, Priority = sound.Priority,
-                Remaining = sound.Loop ? float.MaxValue : clipDurations[selected] / pitch, Loop = sound.Loop, BaseGain = baseGain };
+                Remaining = sound.Loop ? float.MaxValue : clipDurations[selected] / pitch + delay, Loop = sound.Loop, BaseGain = baseGain, Catalogue = entry };
             state.LastClips[cue] = selected;
             state.Cooldowns[key] = state.Time + Positive(sound.Cooldown);
             if (sound.Priority >= 75) state.Duck = Mathf.Max(state.Duck, 0.45f);
-            result = new AudioPlaybackSample { Voice = index, Clip = selected, Gain = gain, Pitch = pitch };
+            result = new AudioPlaybackSample { Voice = index, Clip = selected, Gain = gain, Pitch = pitch, Delay = delay };
             return true;
         }
 

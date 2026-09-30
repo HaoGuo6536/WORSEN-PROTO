@@ -5,7 +5,7 @@
 // PURPOSE:
 //   Applies pooled spatial effects, adaptive impact/danger loops and a scheduled run sequence.
 //   It receives room anchors and portal evidence as facts, and never reads enemy state.
-//   Four dedicated torch sources fade between nearest admissible anchors; quiet accents use the listener room only.
+//   Every world voice uses shared acoustic attenuation without duplicate Unity rolloff.
 //
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by AudioDriver · Presentation · Audio.
@@ -13,7 +13,8 @@
 // KEY RESPONSIBILITIES:
 //   - Apply runtime music/effects gains to all pooled, scheduled and ambience sources.
 //   - Stop active enemy voices on player death and reject late enemy feedback while preserving the player's death cue.
-//   - Own a bounded source pool, four torch voices, attenuation filters and five looping layers.
+//   - Enforce category limits, timed mix hooks, protected tells and rare false positives.
+//   - Own a bounded source pool, attenuation filters and five non-diegetic bed/music layers.
 //   - Schedule Run 1 into Run 2 without frame-boundary gaps; cancel pending playback on end/reset.
 //   - Refresh spatial loop position/gain without restarting its clip or changing pitch.
 //   - Apply the pure soundscape Presenter and clear playback on disable or reset.
@@ -53,23 +54,31 @@ namespace Worsen.Presentation.Audio
         private AudioSource[] _runSources;
         private AudioChaseMusicDriverState _music;
         private AudioChaseMusicPresenter _musicPresenter;
-        private AudioSource[] _torches;
-        private AudioLowPassFilter[] _torchFilters;
-        private AudioWorldDriverState _world;
-        private AudioWorldPresenter _worldPresenter;
+        private AudioLowPassFilter[] _layerFilters;
+        private AudioLowPassFilter[] _runFilters;
+        private AudioWorldMixPresenter _worldPresenter;
+        private readonly AudioCueCataloguePresenter _catalogue = new AudioCueCataloguePresenter();
+        private bool _ownsConfig;
         private GameObject _root;
         private readonly Dictionary<CueId, AudioSoundDefinition> _banks = new Dictionary<CueId, AudioSoundDefinition>();
         private readonly Dictionary<CueId, float[]> _durations = new Dictionary<CueId, float[]>();
         private float _master = 1f;
-        private readonly RaycastHit[] _groundHits = new RaycastHit[12];
+        public float EffectsSourceGain => _master * (_state != null ? _state.RuntimeEffects : 1f);
+        public float BreathGain => _state != null ? _state.WorldMix.BreathGain : 0f;
+        public bool Heartbeat => _state != null && _state.WorldMix.Heartbeat;
+        public float HeartbeatGain => _state != null ? _state.WorldMix.HeartbeatStrength * _config.HeartbeatGain : 0f;
+        public AudioClip HeartbeatClip => _config.HeartbeatClip != null ? _config.HeartbeatClip :
+            _banks.TryGetValue(CueId.Land, out var bank) && bank.Clips != null && bank.Clips.Length > 0 ? bank.Clips[0] : null;
+        public AudioSoundscapeDriverConfig Config => _config;
         public float ChaseGain => _music != null ? _music.StressGain : 0f;
         public float DangerGain => _music != null ? _music.DangerGain : 0f;
         public int OwnedVoiceCount => _voices != null ? _voices.Length : 0;
-        public void Initialize(AudioSoundscapeDriverConfig config)
+        public void Initialize(AudioSoundscapeDriverConfig config, AudioDriverConfig legacy = null)
         {
-            if (_state != null || config == null) return;
+            if (_state != null) return;
+            if (config == null) { config = ScriptableObject.CreateInstance<AudioSoundscapeDriverConfig>(); _ownsConfig = true; }
             _config = config; _state = new AudioSoundscapeDriverState();
-            _world = new AudioWorldDriverState(); _worldPresenter = new AudioWorldPresenter(); _presenter = new AudioSoundscapePresenter();
+            _worldPresenter = new AudioWorldMixPresenter(); _presenter = new AudioSoundscapePresenter();
             _presenter.Reset(_state, config.VoiceCount, new System.Random(76103));
             _root = new GameObject("Owned Soundscape Sources"); _root.transform.SetParent(transform, false);
             _voices = new AudioSource[_state.Voices.Length]; _filters = new AudioLowPassFilter[_voices.Length];
@@ -79,26 +88,36 @@ namespace Worsen.Presentation.Audio
             _layers = new[] { CreateSource("Tension", true, config.TensionStem, config.MusicGroup),
                 CreateSource("Chase", true, config.ChaseStem, config.MusicGroup), CreateSource("Danger", true, config.DangerStem, config.MusicGroup),
                 CreateSource("Interior", true, config.InteriorAmbience, config.AmbienceGroup), CreateSource("Exterior", true, config.ExteriorAmbience, config.AmbienceGroup) };
-            foreach (AudioSoundDefinition bank in config.Sounds)
-            {
-                _banks[bank.Cue] = bank;
-                float[] durations = new float[bank.Clips != null ? bank.Clips.Length : 0];
-                for (int i = 0; i < durations.Length; i++) durations[i] = bank.Clips[i] != null ? bank.Clips[i].length : 0f;
-                _durations[bank.Cue] = durations;
-            }
-            _torches = new AudioSource[4]; _torchFilters = new AudioLowPassFilter[4];
-            for (int i = 0; i < 4; i++)
-            {
-                _torches[i] = CreateSource("Torch " + i, true, null, config.AmbienceGroup);
-                _torches[i].spatialBlend = 1f; _torches[i].rolloffMode = AudioRolloffMode.Linear;
-                _torches[i].minDistance = 1.8f; _torches[i].maxDistance = config.TorchAudibleDistance;
-                _torchFilters[i] = _torches[i].gameObject.AddComponent<AudioLowPassFilter>();
-            }
+            foreach (AudioSoundDefinition bank in config.Sounds) RegisterBank(bank);
+            if (_ownsConfig && legacy != null) foreach (var cue in legacy.Cues)
+                RegisterBank(new AudioSoundDefinition { Cue = cue.Cue, Clips = new[] { cue.Clip }, Gain = cue.Gain,
+                    Priority = cue.Priority, PitchMinimum = 1f, PitchMaximum = 1f, MaxConcurrent = 1 });
+            _layerFilters = AddFilters(_layers);
             _music = new AudioChaseMusicDriverState { ImpactPitch = config.ImpactMinimumPitch };
             _musicPresenter = new AudioChaseMusicPresenter();
             if (config.RunIntro != null || config.RunLoop != null || config.RunEnd != null)
                 _runSources = new[] { CreateSource("Run Intro", false, config.RunIntro, config.MusicGroup),
                     CreateSource("Run Loop", true, config.RunLoop, config.MusicGroup), CreateSource("Run End", false, config.RunEnd, config.MusicGroup) };
+            _runFilters = AddFilters(_runSources);
+        }
+        private void RegisterBank(AudioSoundDefinition bank)
+        {
+            if (!_catalogue.TryGet(bank.Cue, out var entry)) return;
+            bank.Cue = _catalogue.Canonical(bank.Cue);
+            if (_banks.ContainsKey(bank.Cue)) return;
+            bank.Spatial = entry.Noise.HasValue;
+            bank.Loop = bank.Cue == CueId.SlideLoop || bank.Cue == CueId.PlayerCritical;
+            bank.Ambience = false;
+            _banks[bank.Cue] = bank;
+            float[] durations = new float[bank.Clips != null ? bank.Clips.Length : 0];
+            for (int i = 0; i < durations.Length; i++) durations[i] = bank.Clips[i] != null ? bank.Clips[i].length : 0f;
+            _durations[bank.Cue] = durations;
+        }
+        private AudioLowPassFilter[] AddFilters(AudioSource[] sources)
+        {
+            var filters = new AudioLowPassFilter[sources != null ? sources.Length : 0];
+            for (int i = 0; i < filters.Length; i++) filters[i] = sources[i].gameObject.AddComponent<AudioLowPassFilter>();
+            return filters;
         }
         public void SetOwnerEnabled(bool value)
         {
@@ -106,56 +125,67 @@ namespace Worsen.Presentation.Audio
             _state.OwnerEnabled = value;
             if (value && isActiveAndEnabled) StartLayers(); else ResetRun();
         }
-        public bool Play(CueId cue, Vector3 position, float gain, int emitter)
+        public bool Play(CueId cue, Vector3 position, float gain, int emitter, bool presentationOnly = false)
         {
             if (_state == null || _state.Paused || !_state.OwnerEnabled || !isActiveAndEnabled) return false;
-            if (cue == CueId.Footstep) cue = ResolveFootstep(position);
-            if (!_banks.TryGetValue(cue, out AudioSoundDefinition bank) || !_durations.TryGetValue(cue, out float[] durations) || durations.Length == 0)
+            if (!_catalogue.Admits(cue, _state.InRun)) return false;
+            if (presentationOnly && (!_catalogue.FalsePositiveExempt(cue) || _state.WorldMix.InChase)) return false;
+            cue = _catalogue.Canonical(cue);
+            if (cue == CueId.PlayerCritical) return false; // The dedicated breathing source owns this slot.
+            if (!_banks.TryGetValue(cue, out AudioSoundDefinition bank) || !_durations.TryGetValue(cue, out float[] durations) || !System.Array.Exists(durations, duration => duration > 0f))
             {
                 if (_state.MissingWarnings.Add((int)cue)) Debug.LogWarning("Soundscape cue '" + cue + "' is not wired to a playable bank.", this);
                 return false;
             }
             if (!_state.Alive && (_presenter.IsEnemyCue(cue) || bank.Loop && !bank.Ambience)) return false;
-            if (!_presenter.TryPlay(_state, bank, emitter, durations, gain, out AudioPlaybackSample request)) return false;
+            if (!_presenter.TryPlay(_state, bank, emitter, durations, gain, out AudioPlaybackSample request, _config.TimingJitterSeconds)) return false;
             AudioSource source = _voices[request.Voice]; source.transform.position = position;
+            _state.Voices[request.Voice].Position = position;
+            _state.Voices[request.Voice].PresentationOnly = presentationOnly;
             _state.VoiceGains[request.Voice] = request.Gain;
             if (request.ReuseLoop)
             {
-                source.volume = request.Gain * _master * _state.RuntimeEffects * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
+                ApplyVoiceGain(request.Voice);
                 return true;
             }
             source.Stop(); source.clip = bank.Clips[request.Clip]; source.loop = bank.Loop;
             source.spatialBlend = bank.Spatial ? 1f : 0f; source.dopplerLevel = 0f;
-            source.rolloffMode = AudioRolloffMode.Linear;
+            source.rolloffMode = AudioRolloffMode.Custom;
+            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, AnimationCurve.Linear(0f, 1f, 1f, 1f));
             source.minDistance = Mathf.Max(0.1f, bank.MinimumDistance); source.maxDistance = Mathf.Max(source.minDistance + 0.1f, bank.MaximumDistance);
             source.priority = Mathf.Clamp(256 - bank.Priority * 2, 0, 256);
             source.pitch = request.Pitch;
             source.outputAudioMixerGroup = bank.Ambience ? _config.AmbienceGroup : _config.EffectsGroup;
-            source.volume = request.Gain * _master * _state.RuntimeEffects * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
-            _filters[request.Voice].cutoffFrequency = 22000f;
-            source.Play(); return true;
+            ApplyVoiceGain(request.Voice);
+            if (request.Delay > 0f) source.PlayScheduled(AudioSettings.dspTime + request.Delay); else source.Play();
+            return true;
         }
         public bool PlayLocal(CueId cue) => _state != null && Play(cue, _state.ListenerPosition, 1f, 0);
         public CueId ResolveFootstep(Vector3 position)
         {
-            if (_config == null) return CueId.Footstep;
-            int count = Physics.RaycastNonAlloc(position + Vector3.up * .25f, Vector3.down, _groundHits, 2.5f, _config.FootstepGroundMask, QueryTriggerInteraction.Ignore);
-            int nearest = -1;
-            for (int i = 0; i < count; i++)
-            {
-                Collider collider = _groundHits[i].collider;
-                if (collider == null || collider.attachedRigidbody != null || _groundHits[i].normal.y < .35f) continue;
-                if (nearest < 0 || _groundHits[i].distance < _groundHits[nearest].distance) nearest = i;
-            }
-            if (nearest < 0) return CueId.Footstep;
-            Collider surface = _groundHits[nearest].collider;
-            Renderer renderer = surface.GetComponent<Renderer>();
-            string material = renderer != null && renderer.sharedMaterial != null ? renderer.sharedMaterial.name : string.Empty;
-            return _presenter.FootstepSurface(surface.name + " " + material);
+            return CueId.Footstep; // Surface variants wait until they affect hunter hearing.
         }
-        public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms) { if (_world != null) _worldPresenter.SetRooms(_world, rooms); }
-        public void SetTorchPositions(int roomId, Vector3[] positions) { if (_world != null) _worldPresenter.SetTorches(_world, roomId, positions); }
-        public void ObserveDestruction(RoomDestructionSample sample) { if (_world != null && sample.Phase == RoomPhase.Closed) _world.ConsumedRooms.Add(sample.RoomId); }
+        public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms) { } // Topology is supplied separately.
+        public void SetTorchPositions(int roomId, Vector3[] positions) { } // Continuous torch bed removed.
+        public void ObserveDestruction(RoomDestructionSample sample) { if (_state != null) _state.WorldMix.Rooms[sample.RoomId] = sample; }
+        public void SetWorld(LevelGraph graph, IReadOnlyDictionary<int, bool> doors) { if (_state != null) _worldPresenter.SetWorld(_state.WorldMix, graph, doors); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_state != null) { _worldPresenter.SetEffects(_state.WorldMix, effects); ApplyGains(); } }
+        public void SetInRun(bool inRun)
+        {
+            if (_state == null) return;
+            _state.InRun = inRun;
+            for (int i = 0; i < _state.Voices.Length; i++)
+                if (_state.Voices[i].Remaining > 0f && (_state.Voices[i].Catalogue.Category == CueCategory.Interface) == inRun) StopVoice(i);
+        }
+        public void SetDeafening(float seconds) { if (_state != null) _worldPresenter.Deafening(_state.WorldMix, seconds); }
+        public void SetMuffledDark(float seconds) { if (_state != null) _worldPresenter.MuffledDark(_state.WorldMix, seconds); }
+        public void ObserveGrace() { if (_state != null) _worldPresenter.Grace(_state.WorldMix, _config); }
+        public void TickEmbodiment(float injuryBreath, float dt)
+        {
+            if (_state == null) return;
+            _worldPresenter.Tick(_state.WorldMix, _config, _state.InRun, _state.Alive, injuryBreath, dt);
+            foreach (var command in _state.WorldMix.Commands) Play(command.Cue, command.Position, command.Gain, command.Emitter);
+        }
         public void SetThreat(int id, bool chasing, float closeness)
         { if (_state != null) _state.Threats[id] = new AudioThreatSample { Chasing = chasing, Closeness = closeness }; }
         public void RemoveThreat(int id) { if (_state != null) _state.Threats.Remove(id); }
@@ -163,11 +193,13 @@ namespace Worsen.Presentation.Audio
         {
             if (_state == null) return;
             _state.Threats.Clear();
+            _state.WorldMix.InChase = sample.InChase;
+            _state.WorldMix.Closeness = sample.ActualCloseness;
             if (sample.Hunter.IsValid) SetThreat(sample.Hunter.Value, sample.HasBelief, sample.ActualCloseness);
         }
         public void SetAmbience(float openness, float collapse)
         { if (_state != null) { _state.Openness = openness; _state.Collapse = collapse; } }
-        public void SetListenerPosition(Vector3 position) { if (_state != null) _state.ListenerPosition = position; }
+        public void SetListenerPosition(Vector3 position) { if (_state != null) { _state.ListenerPosition = position; _state.WorldMix.Listener = position; } }
         public void SetFootstepGain(float gain) { if (_state != null) _state.FootstepGain = Mathf.Clamp01(gain); }
         public void SetAlive(bool alive)
         {
@@ -185,6 +217,7 @@ namespace Worsen.Presentation.Audio
         public void StopCueEmitter(CueId cue, int emitter)
         {
             if (_state == null) return;
+            cue = _catalogue.Canonical(cue);
             for (int i = 0; i < _state.Voices.Length; i++)
                 if (_state.Voices[i].Cue == (int)cue && _state.Voices[i].Emitter == emitter) StopVoice(i);
         }
@@ -199,12 +232,21 @@ namespace Worsen.Presentation.Audio
         }
         public void SetEmitterOcclusion(int emitter, float occlusion)
         {
-            if (_state == null) return;
-            for (int i = 0; i < _state.Voices.Length; i++)
-                if (_state.Voices[i].Emitter == emitter && _state.Voices[i].Remaining > 0f)
-                    _filters[i].cutoffFrequency = Mathf.Lerp(22000f, 900f, Mathf.Clamp01(occlusion));
+            // Compatibility entry point: graph/door state is now the sole occlusion authority.
         }
         public void SetMasterGain(float gain) { _master = Mathf.Clamp01(gain); }
+        public void ApplySettings(PlayerSettingsRecord settings, float designerMaster)
+        {
+            var volume = new AudioVolumePresenter();
+            bool wired = _config.Mixer != null && _config.EffectsGroup != null && _config.MusicGroup != null &&
+                _config.AmbienceGroup != null && _config.EffectsGroup.audioMixer == _config.Mixer &&
+                _config.MusicGroup.audioMixer == _config.Mixer && _config.AmbienceGroup.audioMixer == _config.Mixer;
+            bool master = wired && _config.Mixer.SetFloat(_config.MasterParameter, volume.Decibels(settings.MasterVolume));
+            bool music = wired && _config.Mixer.SetFloat(_config.MusicParameter, volume.Decibels(settings.MusicVolume));
+            bool effects = wired && _config.Mixer.SetFloat(_config.EffectsParameter, volume.Decibels(settings.EffectsVolume));
+            SetRuntimeGains(volume.Linear(designerMaster) * volume.SourceGain(settings.MasterVolume, master),
+                volume.SourceGain(settings.MusicVolume, music), volume.SourceGain(settings.EffectsVolume, effects));
+        }
         public void SetPaused(bool paused) { if (_state != null) _state.Paused = paused; }
         public void SetRuntimeGains(float master, float music, float effects)
         {
@@ -214,22 +256,31 @@ namespace Worsen.Presentation.Audio
         }
         private void ApplyGains()
         {
-            float music = _master * _state.RuntimeMusic * _config.MusicGain * (1f - _state.Duck);
+            float mask = _worldPresenter.Mask(_state.WorldMix, false, _config);
+            float music = _master * _state.RuntimeMusic * _config.MusicGain * (1f - _state.Duck) * mask;
             _layers[0].volume = _music.TensionGain * music; _layers[1].volume = _music.StressGain * music; _layers[2].volume = _music.DangerGain * music;
-            _layers[3].volume = _state.InteriorGain * _master * _state.RuntimeEffects * _config.AmbienceGain;
-            _layers[4].volume = _state.ExteriorGain * _master * _state.RuntimeEffects * _config.AmbienceGain;
+            _layers[3].volume = _state.InteriorGain * _master * _state.RuntimeEffects * _config.AmbienceGain * mask;
+            _layers[4].volume = _state.ExteriorGain * _master * _state.RuntimeEffects * _config.AmbienceGain * mask;
             if (_runSources != null) foreach (AudioSource source in _runSources) source.volume = _state.Alive ? music * _config.RunGain : 0f;
-            for (int i = 0; i < _voices.Length; i++)
-                if (_banks.TryGetValue((CueId)_state.Voices[i].Cue, out AudioSoundDefinition bank))
-                    _voices[i].volume = _state.VoiceGains[i] * _master * _state.RuntimeEffects * (bank.Ambience ? _config.AmbienceGain : _config.EffectsGain);
-            if (_banks.TryGetValue(CueId.TorchLoop, out AudioSoundDefinition torch))
-                for (int i = 0; i < _torches.Length; i++)
-                    _torches[i].volume = _world.Slots[i].Gain * torch.Gain * _master * _state.RuntimeEffects * _config.AmbienceGain * (_world.Slots[i].AcrossPortal ? .5f : 1f);
+            for (int i = 0; i < _voices.Length; i++) ApplyVoiceGain(i);
+            float cutoff = _worldPresenter.Cutoff(_state.WorldMix, false, _config);
+            foreach (var filter in _layerFilters) filter.cutoffFrequency = cutoff;
+            foreach (var filter in _runFilters) filter.cutoffFrequency = cutoff;
+        }
+        private void ApplyVoiceGain(int i)
+        {
+            var voice = _state.Voices[i];
+            _voices[i].volume = voice.Remaining <= 0f ? 0f : _state.VoiceGains[i] * EffectsSourceGain * _config.EffectsGain *
+                _worldPresenter.Gain(_state.WorldMix, voice.Catalogue, voice.Position, _config);
+            _filters[i].cutoffFrequency = _worldPresenter.Cutoff(_state.WorldMix, voice.Catalogue.Protected, _config);
         }
         public void ResetRun(bool preserveMusicContact = false)
         {
             if (_state == null) return;
-            StopSources(); _world = new AudioWorldDriverState();
+            StopSources();
+            var prior = _state.WorldMix;
+            _state.WorldMix = new AudioWorldMixDriverState { FalsePositiveDue = preserveMusicContact ? prior.FalsePositiveDue : -1f,
+                Time = preserveMusicContact ? prior.Time : 0f };
             _presenter.Reset(_state, _config.VoiceCount, preserveMusicContact ? _state.CosmeticRandom : new System.Random(76103));
             _music = new AudioChaseMusicDriverState { ImpactPitch = _config.ImpactMinimumPitch,
                 HasContact = preserveMusicContact && _music.HasContact,
@@ -245,29 +296,11 @@ namespace Worsen.Presentation.Audio
             float music = _master * _state.RuntimeMusic * _config.MusicGain * (1f - _state.Duck);
             _layers[0].pitch = _layers[1].pitch = _music.ImpactPitch;
             ApplyRunSequence(music);
-            UpdateWorld(Time.unscaledDeltaTime);
+            if (_worldPresenter.FalsePositive(_state.WorldMix, _config, _state.InRun, _state.Alive, _state.CosmeticRandom, out var falsePositive))
+                Play(falsePositive.Cue, falsePositive.Position, falsePositive.Gain, falsePositive.Emitter, true);
+            for (int i = 0; i < _state.Voices.Length; i++)
+                if (_state.Voices[i].Remaining <= 0f || _state.WorldMix.InChase && _state.Voices[i].PresentationOnly) StopVoice(i);
             ApplyGains();
-        }
-        private void UpdateWorld(float dt)
-        {
-            _worldPresenter.SelectTorches(_world, _state.ListenerPosition, _config.TorchAudibleDistance);
-            _banks.TryGetValue(CueId.TorchLoop, out AudioSoundDefinition bank);
-            _worldPresenter.TickTorches(_world, dt, bank.Clips != null ? bank.Clips.Length : 0);
-            for (int i = 0; i < 4; i++)
-            {
-                AudioTorchSlot slot = _world.Slots[i]; AudioSource source = _torches[i];
-                if (slot.Changed)
-                {
-                    source.Stop(); source.clip = bank.Clips[slot.Clip]; source.pitch = slot.Pitch;
-                    if (source.clip != null) source.Play();
-                }
-                if (slot.Id == 0) source.Stop();
-                source.transform.position = slot.Position;
-                source.volume = slot.Gain * bank.Gain * _master * _state.RuntimeEffects * _config.AmbienceGain * (slot.AcrossPortal ? .5f : 1f);
-                _torchFilters[i].cutoffFrequency = slot.AcrossPortal ? 1800f : 22000f;
-            }
-            if (_worldPresenter.TickAccent(_world, _state.ListenerPosition, _state.Alive, dt, _config.AccentMinimumSeconds, _config.AccentMaximumSeconds, out AudioFeedbackCommand accent))
-                Play(accent.Cue, accent.Position, accent.Gain, accent.Emitter);
         }
         private AudioSource CreateSource(string label, bool loop, AudioClip clip, AudioMixerGroup group)
         {
@@ -304,15 +337,17 @@ namespace Worsen.Presentation.Audio
         private void StopSources()
         {
             StopRunSources();
-            if (_torches != null) foreach (AudioSource source in _torches) if (source != null) { source.Stop(); source.volume = 0f; }
-            if (_voices != null) foreach (AudioSource source in _voices) if (source != null) source.Stop();
+
+            if (_voices != null) foreach (AudioSource source in _voices) if (source != null) { source.Stop(); source.clip = null; source.loop = false; }
             if (_layers != null) foreach (AudioSource source in _layers) if (source != null) { source.Stop(); source.volume = 0f; }
         }
         public void Teardown()
         {
             StopSources();
             if (_root != null) { if (Application.isPlaying) Destroy(_root); else DestroyImmediate(_root); }
-            _root = null; _torches = null; _torchFilters = null; _world = null; _worldPresenter = null; _voices = null; _filters = null; _layers = null; _state = null; _config = null; _presenter = null;
+            if (_ownsConfig && _config != null) { if (Application.isPlaying) Destroy(_config); else DestroyImmediate(_config); }
+            _ownsConfig = false;
+            _root = null; _worldPresenter = null; _voices = null; _filters = null; _layers = null; _state = null; _config = null; _presenter = null;
             _banks.Clear(); _durations.Clear();
             _runSources = null; _music = null; _musicPresenter = null;
         }

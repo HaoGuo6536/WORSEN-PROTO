@@ -10,6 +10,8 @@
 //   DriverConfig (§7d) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Tune shared hearing, bodily masking, false positives and timed mix effects.
+//   - Expose mixer parameters without writing designer assets at runtime.
 //   - Expose reusable clip banks and independent effects, ambience and music gains.
 //   - Tune smooth attack, randomized loss release and occasional early danger fades.
 //   - Tune normal/stress impact speed and the louder confirmed-chase danger bed.
@@ -26,6 +28,7 @@
 
 using UnityEngine;
 using UnityEngine.Audio;
+using Worsen.Core;
 
 namespace Worsen.Presentation.Audio
 {
@@ -33,6 +36,59 @@ namespace Worsen.Presentation.Audio
     public sealed class AudioSoundscapeDriverConfig : ScriptableObject
     {
         [SerializeField] private AudioSoundDefinition[] _sounds = new AudioSoundDefinition[0];
+        [Header("Silence-first world mix (provisional)")]
+        [SerializeField, Min(.01f)] private float _hearingReferenceMeters = 2f;
+        [SerializeField, Min(0f)] private float _hearingRolloff = 1f;
+        [SerializeField, Range(0f, 1f)] private float _portalRetention = .7f;
+        [SerializeField, Range(0f, 1f)] private float _closedDoorRetention = .35f;
+        [SerializeField, Range(0f, 1f)] private float _hearingThreshold = .01f;
+        [SerializeField, Min(1f)] private float _keenEarsRangeMultiplier = 1.5f;
+        [SerializeField, Min(90f)] private float _falsePositiveMinimumSeconds = 90f;
+        [SerializeField, Min(0f)] private float _falsePositiveExtraSeconds = 90f;
+        [SerializeField, Min(1f)] private float _falsePositiveDistance = 12f;
+        [SerializeField, Range(0f, 1f)] private float _falsePositiveGain = .3f;
+        [SerializeField, Min(0f)] private float _timingJitterSeconds = .025f;
+        [SerializeField, Range(0f, 1f)] private float _pursuitBreathGain = .45f;
+        [SerializeField, Range(0f, 1f)] private float _heartbeatGain = .3f;
+        [SerializeField, Min(.1f)] private float _heartbeatSlowSeconds = 1.1f;
+        [SerializeField, Min(.1f)] private float _heartbeatFastSeconds = .4f;
+        [SerializeField, Min(.01f)] private float _heartbeatPulseSeconds = .12f;
+        [SerializeField, Min(0f)] private float _graceSpikeSeconds = .65f;
+        [SerializeField, Range(0f, 1f)] private float _heartbeatMask = .12f;
+        [SerializeField, Range(0f, 1f)] private float _deafenedGain = .25f;
+        [SerializeField, Range(10f, 22000f)] private float _muffledCutoff = 900f;
+        [SerializeField, Min(.1f)] private float _collapseSlowSeconds = 2f;
+        [SerializeField, Min(.1f)] private float _collapseFastSeconds = .3f;
+        [SerializeField, Range(0f, 1f)] private float _exitOpeningThreshold = .01f;
+        [SerializeField] private AudioClip _heartbeatClip = null;
+        [SerializeField] private AudioMixer _mixer = null;
+        [SerializeField] private string _masterParameter = "MasterVolume";
+        [SerializeField] private string _musicParameter = "MusicVolume";
+        [SerializeField] private string _effectsParameter = "EffectsVolume";
+        public HearingModelSettings Hearing => new HearingModelSettings(_hearingReferenceMeters, _hearingRolloff, _portalRetention, _closedDoorRetention, _hearingThreshold);
+        public float KeenEarsRangeMultiplier => _keenEarsRangeMultiplier;
+        public float FalsePositiveMinimumSeconds => Mathf.Max(90f, _falsePositiveMinimumSeconds);
+        public float FalsePositiveExtraSeconds => _falsePositiveExtraSeconds;
+        public float FalsePositiveDistance => _falsePositiveDistance;
+        public float FalsePositiveGain => _falsePositiveGain;
+        public float TimingJitterSeconds => _timingJitterSeconds;
+        public float PursuitBreathGain => _pursuitBreathGain;
+        public float HeartbeatGain => _heartbeatGain;
+        public float HeartbeatSlowSeconds => _heartbeatSlowSeconds;
+        public float HeartbeatFastSeconds => _heartbeatFastSeconds;
+        public float HeartbeatPulseSeconds => _heartbeatPulseSeconds;
+        public float GraceSpikeSeconds => _graceSpikeSeconds;
+        public float HeartbeatMask => _heartbeatMask;
+        public float DeafenedGain => _deafenedGain;
+        public float MuffledCutoff => _muffledCutoff;
+        public float CollapseSlowSeconds => _collapseSlowSeconds;
+        public float CollapseFastSeconds => _collapseFastSeconds;
+        public float ExitOpeningThreshold => _exitOpeningThreshold;
+        public AudioClip HeartbeatClip => _heartbeatClip;
+        public AudioMixer Mixer => _mixer;
+        public string MasterParameter => _masterParameter;
+        public string MusicParameter => _musicParameter;
+        public string EffectsParameter => _effectsParameter;
         [SerializeField, Range(8, 48)] private int _voiceCount = 24;
         [SerializeField, Range(0f, 1f)] private float _effectsGain = 0.8f;
         [SerializeField, Range(0f, 1f)] private float _musicGain = 0.52f;

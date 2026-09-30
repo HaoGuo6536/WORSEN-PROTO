@@ -10,6 +10,7 @@
 //   Definitions (§5) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain protected category leases and causal timing jitter in playback requests.
 //   - Retain per-voice randomized base gain for continuous loop modulation.
 //   - Describe spatial attenuation, clip alternatives and bounded overlap.
 //   - Carry pure threat and playback values.
@@ -61,6 +62,9 @@ namespace Worsen.Presentation.Audio
         public int Priority;
         public float Remaining;
         public float BaseGain;
+        public AudioCueCatalogueEntry Catalogue;
+        public Vector3 Position;
+        public bool PresentationOnly;
         public bool Loop;
     }
 
@@ -70,6 +74,7 @@ namespace Worsen.Presentation.Audio
         public int Clip;
         public float Gain;
         public float Pitch;
+        public float Delay;
         public bool ReuseLoop;
     }
 }

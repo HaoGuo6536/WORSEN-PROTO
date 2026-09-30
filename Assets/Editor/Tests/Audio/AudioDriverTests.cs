@@ -10,7 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Verify five owned sources, disabled playback admission and full teardown.
+//   - Verify pooled fallback source ownership, disabled admission and full teardown.
 //   - Verify priority rejection and visible missing-clip diagnostics.
 //   - Exercise direct component disable/re-enable with real Play Mode callbacks.
 //
@@ -86,9 +86,10 @@ namespace Worsen.Tests.Audio
             CreateFixture();
             _driver.Initialize(_config);
             _driver.Initialize(_config);
-            Assert.That(_owner.GetComponentsInChildren<AudioSource>().Length, Is.EqualTo(5));
+            Assert.That(_owner.GetComponentsInChildren<AudioSource>().Length, Is.EqualTo(31));
             Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
             _driver.SetOwnerEnabled(true);
+            _driver.SetWorld(AudioWorldMixPresenterTests.Graph(), null);
             Assert.That(_driver.PlayCue(CueId.Presence), Is.True);
             Assert.That(System.Array.Exists(_owner.GetComponentsInChildren<AudioSource>(), source => !source.loop && source.clip == _clip && source.volume > 0f), Is.True);
             _driver.SetOwnerEnabled(false);
@@ -110,8 +111,8 @@ namespace Worsen.Tests.Audio
             Assert.That(_driver.PlayCue(CueId.Presence), Is.True);
             Assert.That(_driver.PlayCue(CueId.Chase), Is.True);
             Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
-            Assert.That(_driver.PlayCue(CueId.Lose), Is.True);
-            Assert.That(_driver.PlayCue(CueId.Chase), Is.True);
+            Assert.That(_driver.PlayCue(CueId.Lose), Is.False);
+            Assert.That(_driver.PlayCue(CueId.Chase), Is.False);
             Assert.That(_driver.PlayCue(CueId.Death), Is.True);
             _driver.ResetRun();
             Assert.That(_driver.PlayCue(CueId.Presence), Is.True);
@@ -126,7 +127,7 @@ namespace Worsen.Tests.Audio
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _driver.Initialize(_config);
             _driver.SetOwnerEnabled(true);
-            LogAssert.Expect(LogType.Warning, "Audio cue 'Presence' has no playable clip; playback was not started. Rebuild Audio config or assign a clip.");
+            LogAssert.Expect(LogType.Warning, "Soundscape cue 'Presence' is not wired to a playable bank.");
             Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
             Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
         }

@@ -13,7 +13,7 @@
 //   - Verify enemy one-shots stop at death, late feedback is rejected and the player's own death cue survives.
 //   - Verify pool ownership, attenuation, pitch and disabled admission.
 //   - Verify health-zero cleanup, death cue admission, revival and cue-isolated stops.
-//   - Verify the exertion envelope preserves source playback position and bounded pitch until release.
+//   - Verify removed layers cannot bypass the budget; retained loops reuse sources.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -43,7 +43,7 @@ namespace Worsen.Tests.Audio
                 ConfigureFixtureBanks(bank, clip);
                 var driver = owner.AddComponent<AudioSoundscapeDriver>(); driver.Initialize(bank); driver.SetOwnerEnabled(true);
                 Assert.That(driver.Play(CueId.EnemyScream, Vector3.zero, 1, 2), Is.True);
-                Assert.That(driver.Play(CueId.MistAdvance, Vector3.zero, 1, 3), Is.True);
+                Assert.That(driver.Play(CueId.DoorOpen, Vector3.zero, 1, 3), Is.True);
                 Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(2));
                 driver.SetAlive(false); Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(1));
                 Assert.That(driver.Play(CueId.EnemyScream, Vector3.zero, 1, 4), Is.False);
@@ -72,25 +72,9 @@ namespace Worsen.Tests.Audio
                 }
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 var driver = owner.AddComponent<AudioSoundscapeDriver>(); driver.Initialize(bank); driver.SetOwnerEnabled(true);
-                var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState { HasMovement = true, IsSprinting = true };
-                presenter.TickExertion(state, .2f, .8f, 1f, 0);
-                AudioFeedbackCommand command = state.Commands[0];
-                Assert.That(driver.Play(command.Cue, command.Position, command.Gain, command.Emitter), Is.True);
-                AudioSource active = null;
-                foreach (AudioSource source in owner.GetComponentsInChildren<AudioSource>()) if (source.clip == clip) active = source;
-                Assert.That(active, Is.Not.Null); Assert.That(active.loop, Is.True); Assert.That(active.pitch, Is.InRange(.98f, 1.02f));
-                float pitch = active.pitch, gain = active.volume; active.timeSamples = 4800;
-                presenter.TickExertion(state, .2f, .8f, 1f, 0); command = state.Commands[0];
-                Assert.That(driver.Play(command.Cue, command.Position, command.Gain, command.Emitter), Is.True);
-                Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(1)); Assert.That(active.pitch, Is.EqualTo(pitch));
-                Assert.That(active.volume, Is.EqualTo(gain * 2f).Within(.000001f)); Assert.That(active.timeSamples, Is.GreaterThanOrEqualTo(4800));
-                state.IsSprinting = false; presenter.TickExertion(state, 1f, .8f, 1f, 0);
-                Assert.That(state.Commands[0].StopEmitter, Is.True); driver.StopEmitter(state.Commands[0].Emitter);
+                Assert.That(driver.Play(CueId.SprintExertion, Vector3.zero, 1f, 1), Is.False);
+                Assert.That(driver.Play(CueId.PlayerCritical, Vector3.zero, 1f, 1), Is.False, "Dedicated breathing owns this slot.");
                 Assert.That(CountAssignedSources(owner, clip), Is.Zero);
-                state.IsSprinting = true; presenter.TickExertion(state, .2f, .8f, 1f, 0); command = state.Commands[0];
-                Assert.That(driver.Play(command.Cue, command.Position, command.Gain, command.Emitter), Is.True);
-                driver.SetAlive(false); Assert.That(CountAssignedSources(owner, clip), Is.Zero);
-                Assert.That(driver.Play(command.Cue, command.Position, command.Gain, command.Emitter), Is.False);
                 driver.Teardown();
             }
             finally { Object.DestroyImmediate(owner); Object.DestroyImmediate(bank); Object.DestroyImmediate(clip); }
@@ -106,9 +90,11 @@ namespace Worsen.Tests.Audio
                 ConfigureFixtureBanks(bank, clip);
                 var driver = owner.AddComponent<AudioSoundscapeDriver>(); driver.Initialize(bank); driver.SetOwnerEnabled(true);
                 Assert.That(driver.Play(CueId.SlideLoop, Vector3.zero, .5f, 7), Is.True);
+                driver.SetWorld(AudioWorldMixPresenterTests.Graph(), null);
+                Assert.That(driver.Play(CueId.SlideLoop, Vector3.zero, .5f, 7), Is.True);
                 AudioSource active = null;
                 foreach (AudioSource candidate in owner.GetComponentsInChildren<AudioSource>()) if (candidate.clip == clip) active = candidate;
-                Assert.That(active, Is.Not.Null); float gain = active.volume, pitch = active.pitch;
+                Assert.That(active, Is.Not.Null); Assert.That(active.volume, Is.GreaterThan(0f)); float gain = active.volume, pitch = active.pitch;
                 Assert.That(driver.Play(CueId.SlideLoop, Vector3.right, 1f, 7), Is.True);
                 Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(1));
                 Assert.That(active.clip, Is.SameAs(clip)); Assert.That(active.pitch, Is.EqualTo(pitch));
@@ -131,16 +117,16 @@ namespace Worsen.Tests.Audio
                 var serialized = new SerializedObject(config); serialized.FindProperty("_soundscape").objectReferenceValue = bank;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 var driver = owner.AddComponent<AudioDriver>(); driver.Initialize(config); driver.SetOwnerEnabled(true);
-                Assert.That(driver.PlayCueAt(CueId.ProjectileTravel, Vector3.zero, 1, 7), Is.True);
+                Assert.That(driver.PlayCueAt(CueId.EnemyWindup, Vector3.zero, 1, 7), Is.True);
                 Assert.That(driver.PlayCueAt(CueId.SlideLoop, Vector3.zero, 1, 8), Is.True);
-                Assert.That(driver.PlayCueAt(CueId.PlayerCritical, Vector3.zero, 1, 9), Is.True);
-                Assert.That(driver.PlayCueAt(CueId.MistAdvance, Vector3.zero, 1, 10), Is.True);
+                Assert.That(driver.PlayCueAt(CueId.PlayerCritical, Vector3.zero, 1, 9), Is.False);
+                Assert.That(driver.PlayCueAt(CueId.DoorOpen, Vector3.zero, 1, 10), Is.True);
                 driver.SetInjury(0, 100);
-                Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(1), "Only room mist survives immediate health-zero cleanup.");
+                Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(1), "Only the committed door one-shot survives cleanup.");
                 Assert.That(driver.PlayCueAt(CueId.ProjectileTravel, Vector3.zero, 1, 11), Is.False);
                 Assert.That(driver.PlayCueAt(CueId.Death, Vector3.zero, 1, 12), Is.True);
                 driver.SetInjury(100, 100);
-                Assert.That(driver.PlayCueAt(CueId.ProjectileTravel, Vector3.zero, 1, 13), Is.True);
+                Assert.That(driver.PlayCueAt(CueId.EnemyWindup, Vector3.zero, 1, 13), Is.True);
                 driver.Teardown();
             }
             finally { Object.DestroyImmediate(owner); Object.DestroyImmediate(config); Object.DestroyImmediate(bank); Object.DestroyImmediate(clip); }
@@ -155,9 +141,9 @@ namespace Worsen.Tests.Audio
             {
                 ConfigureFixtureBanks(bank, clip);
                 var driver = owner.AddComponent<AudioSoundscapeDriver>(); driver.Initialize(bank); driver.SetOwnerEnabled(true);
-                Assert.That(driver.Play(CueId.ProjectileTravel, Vector3.zero, 1, 7), Is.True);
-                Assert.That(driver.Play(CueId.MistAdvance, Vector3.zero, 1, 7), Is.True);
-                driver.StopCueEmitter(CueId.MistAdvance, 7);
+                Assert.That(driver.Play(CueId.SlideLoop, Vector3.zero, 1, 7), Is.True);
+                Assert.That(driver.Play(CueId.DoorOpen, Vector3.zero, 1, 7), Is.True);
+                driver.StopCueEmitter(CueId.DoorOpen, 7);
                 Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(1));
                 driver.SetAlive(false); Assert.That(CountAssignedSources(owner, clip), Is.Zero);
                 driver.Teardown();
@@ -171,7 +157,7 @@ namespace Worsen.Tests.Audio
         }
         private static void ConfigureFixtureBanks(AudioSoundscapeDriverConfig config, AudioClip clip)
         {
-            CueId[] cues = { CueId.ProjectileTravel, CueId.SlideLoop, CueId.PlayerCritical, CueId.MistAdvance, CueId.Death, CueId.SprintExertion, CueId.EnemyScream };
+            CueId[] cues = { CueId.EnemyWindup, CueId.SlideLoop, CueId.PlayerCritical, CueId.DoorOpen, CueId.Death, CueId.SprintExertion, CueId.EnemyScream };
             var serialized = new SerializedObject(config); var list = serialized.FindProperty("_sounds"); list.arraySize = cues.Length;
             for (int i = 0; i < cues.Length; i++)
             {
@@ -199,7 +185,7 @@ namespace Worsen.Tests.Audio
                 actor.transform.position = point + Vector3.up * .2f; actor.transform.localScale = Vector3.one * .1f; actor.AddComponent<Rigidbody>().isKinematic = true;
                 Physics.SyncTransforms();
                 var driver = root.AddComponent<AudioSoundscapeDriver>(); driver.Initialize(config);
-                Assert.That(driver.ResolveFootstep(point + Vector3.up * .35f), Is.EqualTo(CueId.FootstepWood));
+                Assert.That(driver.ResolveFootstep(point + Vector3.up * .35f), Is.EqualTo(CueId.Footstep), "Surface-only variants are merged pending hearing parity.");
                 floor.GetComponent<Collider>().isTrigger = true; Physics.SyncTransforms();
                 Assert.That(driver.ResolveFootstep(point + Vector3.up * .35f), Is.EqualTo(CueId.Footstep));
                 driver.Teardown();
@@ -216,7 +202,7 @@ namespace Worsen.Tests.Audio
             try
             {
                 var serialized = new SerializedObject(bank); var list = serialized.FindProperty("_sounds"); list.arraySize = 1;
-                var item = list.GetArrayElementAtIndex(0); item.FindPropertyRelative("Cue").intValue = (int)CueId.TorchLoop;
+                var item = list.GetArrayElementAtIndex(0); item.FindPropertyRelative("Cue").intValue = (int)CueId.SlideLoop;
                 var clips = item.FindPropertyRelative("Clips"); clips.arraySize = 1; clips.GetArrayElementAtIndex(0).objectReferenceValue = clip;
                 item.FindPropertyRelative("Gain").floatValue = .5f; item.FindPropertyRelative("PitchMinimum").floatValue = .94f; item.FindPropertyRelative("PitchMaximum").floatValue = 1.06f;
                 item.FindPropertyRelative("MaxConcurrent").intValue = 3; item.FindPropertyRelative("Spatial").boolValue = true; item.FindPropertyRelative("Loop").boolValue = true;
@@ -225,9 +211,9 @@ namespace Worsen.Tests.Audio
                 var main = new SerializedObject(config); main.FindProperty("_soundscape").objectReferenceValue = bank;
                 main.FindProperty("_breathLoop").objectReferenceValue = clip; main.FindProperty("_hunterLoop").objectReferenceValue = clip; main.ApplyModifiedPropertiesWithoutUndo();
                 var driver = owner.AddComponent<AudioDriver>(); driver.Initialize(config); driver.SetOwnerEnabled(true);
-                Assert.That(owner.GetComponentsInChildren<AudioSource>().Length, Is.EqualTo(38));
-                Assert.That(driver.PlayCueAt(CueId.TorchLoop, Vector3.right, 1f, 51), Is.True);
-                Assert.That(driver.PlayCueAt(CueId.TorchLoop, Vector3.up, 1f, 51), Is.True);
+                Assert.That(owner.GetComponentsInChildren<AudioSource>().Length, Is.EqualTo(31));
+                Assert.That(driver.PlayCueAt(CueId.SlideLoop, Vector3.right, 1f, 51), Is.True);
+                Assert.That(driver.PlayCueAt(CueId.SlideLoop, Vector3.up, 1f, 51), Is.True);
                 int found = 0;
                 foreach (AudioSource source in owner.GetComponentsInChildren<AudioSource>())
                     if (source.spatialBlend == 1f && source.clip == clip)

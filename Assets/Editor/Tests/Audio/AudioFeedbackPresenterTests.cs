@@ -11,9 +11,9 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Keep lethal health silent and admit one sting only at catch hold start, reset per run.
-//   - Verify ordinary pickups never become combo stings, and health owns damage sounds.
+//   - Verify ordinary pickups never become combo stings, and removed cues stay silent.
 //   - Verify per-action mapping and duplicate suppression.
-//   - Verify silent posture seeding, slide suppression, exertion fades and critical/death priority.
+//   - Verify silence-first posture/health/projectile removal and retained traversal facts.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -38,11 +38,11 @@ namespace Worsen.Tests.Audio
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState(); var player = new EntityId(1);
             presenter.Health(state, player, 100, 100);
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.AttackHit, Vector3.zero, 10)); Assert.That(state.Commands, Is.Empty);
-            presenter.Health(state, player, 90, 100); Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
-            presenter.Health(state, player, 80, 100); Assert.That(state.Commands.Count, Is.EqualTo(1), "A separate accepted injury still produces its own cue.");
+            presenter.Health(state, player, 90, 100); Assert.That(state.Commands, Is.Empty);
+            presenter.Health(state, player, 80, 100); Assert.That(state.Commands, Is.Empty, "Embodiment replaces injury stings.");
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.AttackHit, Vector3.zero, 11)); Assert.That(state.Commands, Is.Empty);
             presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Hit, Vector3.zero, 1, 10, 12)); Assert.That(state.Commands, Is.Empty);
-            presenter.Health(state, player, 70, 100); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
+            presenter.Health(state, player, 70, 100); Assert.That(state.Commands, Is.Empty);
             presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Consumed, Vector3.zero, 1, 100, 13)); Assert.That(state.Commands, Is.Empty);
             presenter.Health(state, player, 0, 100); Assert.That(state.Commands, Is.Empty);
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.Scream, Vector3.zero, 14)); Assert.That(state.Commands, Is.Empty);
@@ -70,8 +70,8 @@ namespace Worsen.Tests.Audio
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState();
             for (int hunter = 1; hunter <= 2; hunter++)
             {
-                presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(hunter), "rusher", HunterFeedbackKind.AttackSwing, Vector3.zero, 10));
-                Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.EnemyAttack)); Assert.That(state.Commands[0].Emitter, Is.EqualTo(hunter));
+                presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(hunter), "rusher", HunterFeedbackKind.AttackWindup, Vector3.zero, 10));
+                Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.EnemyWindup)); Assert.That(state.Commands[0].Emitter, Is.EqualTo(hunter));
                 presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(hunter), "rusher", HunterFeedbackKind.AttackMiss, Vector3.zero, 11)); Assert.That(state.Commands, Is.Empty);
             }
         }
@@ -95,7 +95,7 @@ namespace Worsen.Tests.Audio
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState();
             presenter.Movement(state, PostureSample(1, true, false)); Assert.That(state.Commands, Is.Empty);
             presenter.Movement(state, PostureSample(2, false, false));
-            Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PostureRustle));
+            Assert.That(state.Commands, Is.Empty);
             presenter.Movement(state, PostureSample(2, true, false)); Assert.That(state.Commands, Is.Empty);
             presenter.Movement(state, PostureSample(3, false, false)); Assert.That(state.Commands, Is.Empty);
             presenter.Movement(state, PostureSample(4, true, false, MovementState.Slide));
@@ -103,7 +103,7 @@ namespace Worsen.Tests.Audio
             presenter.Movement(state, PostureSample(5, false, false));
             Assert.That(state.Commands.Exists(command => command.Cue == CueId.PostureRustle), Is.False);
             presenter.Movement(state, PostureSample(6, true, false));
-            Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PostureRustle));
+            Assert.That(state.Commands, Is.Empty);
         }
         [Test]
         public void ExertionRampsOneEmitterReleasesAndDoesNotInferSprintFromVelocity()
@@ -113,16 +113,8 @@ namespace Worsen.Tests.Audio
             presenter.TickExertion(state, .2f, .8f, 1f, 0); Assert.That(state.Commands, Is.Empty);
             presenter.Movement(state, PostureSample(2, false, true)); Assert.That(state.Commands, Is.Empty);
             presenter.TickExertion(state, .2f, .8f, 1f, 0);
-            Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.SprintExertion));
-            Assert.That(state.Commands[0].Gain, Is.EqualTo(.25f).Within(.00001f)); int emitter = state.Commands[0].Emitter;
-            presenter.TickExertion(state, .2f, .8f, 1f, 0);
-            Assert.That(state.Commands[0].Emitter, Is.EqualTo(emitter)); Assert.That(state.Commands[0].Gain, Is.EqualTo(.5f).Within(.00001f));
-            presenter.Movement(state, PostureSample(3, false, false));
-            presenter.TickExertion(state, .2f, .8f, 1f, 0);
-            Assert.That(state.Commands[0].Gain, Is.EqualTo(.3f).Within(.00001f));
-            presenter.TickExertion(state, .4f, .8f, 1f, 0);
-            Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].StopEmitter, Is.True); Assert.That(state.Commands[0].Emitter, Is.EqualTo(emitter));
-            presenter.TickExertion(state, .2f, .8f, 1f, 0); Assert.That(state.Commands, Is.Empty);
+            Assert.That(state.Commands, Is.Empty, "Pursuit breathing replaces the extra sprint envelope.");
+            Assert.That(state.ExertionGain, Is.Zero);
         }
         [Test]
         public void CriticalHealthSuppressesExertionAndDeathClearsItsEnvelope()
@@ -132,14 +124,14 @@ namespace Worsen.Tests.Audio
             presenter.Movement(state, PostureSample(1, false, true));
             presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.Commands, Is.Empty);
             presenter.Health(state, id, 100, 100);
-            presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.ExertionGain, Is.EqualTo(1f));
+            presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.ExertionGain, Is.Zero);
             presenter.Health(state, id, 20, 100);
-            presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.Commands[0].StopEmitter, Is.True);
+            presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.Commands, Is.Empty);
             presenter.Health(state, id, 100, 100);
             presenter.TickExertion(state, 1f, .8f, 1f, 0);
             presenter.Health(state, id, 0, 100);
             presenter.TickExertion(state, .001f, .8f, 1f, 0);
-            Assert.That(state.ExertionGain, Is.Zero); Assert.That(state.IsSprinting, Is.False); Assert.That(state.Commands[0].StopEmitter, Is.True);
+            Assert.That(state.ExertionGain, Is.Zero); Assert.That(state.IsSprinting, Is.False); Assert.That(state.Commands, Is.Empty);
         }
         private static PlayerMovementSample PostureSample(long tick, bool crouched, bool sprinting, MovementState movement = MovementState.Ground) =>
             new PlayerMovementSample(new EntityId(1), tick, Vector3.forward * tick, Vector3.forward * 12f, Vector3.up, 0, Vector2.zero, false, movement, 0, 0, crouched, sprinting);
@@ -148,7 +140,7 @@ namespace Worsen.Tests.Audio
         {
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState { Generation = 5, Revision = 2 };
             presenter.Movement(state, PostureSample(99, false, true));
-            presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.ExertionActive, Is.True);
+            presenter.TickExertion(state, 1f, .8f, 1f, 0); Assert.That(state.ExertionActive, Is.False);
             var effects = new ProgressionEffects(1, 1, 1, 1, 100, 100, 1);
             presenter.Progression(state, new ProgressionSnapshot(3, 6, 1, 0, 0, 0, 0, ProgressionPhase.ChooseThreat, 100, 100, null, null, null, effects, "", false, false));
             Assert.That(state.ExertionActive, Is.False); Assert.That(state.ExertionGain, Is.Zero); Assert.That(state.IsSprinting, Is.False);
@@ -186,17 +178,16 @@ namespace Worsen.Tests.Audio
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState(); var id = new EntityId(1);
             p.Health(s, id, 100, 100); Assert.That(s.Commands, Is.Empty);
-            p.Health(s, id, 20, 100); Assert.That(s.Commands.Count, Is.EqualTo(1));
-            Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit)); Assert.That(s.IsCritical, Is.True);
+            p.Health(s, id, 20, 100); Assert.That(s.Commands, Is.Empty); Assert.That(s.IsCritical, Is.True);
             p.Health(s, id, 20, 100); Assert.That(s.Commands, Is.Empty);
-            p.Health(s, id, 40, 100); Assert.That(s.Commands.Count, Is.EqualTo(1)); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.Heal)); Assert.That(s.IsCritical, Is.False);
+            p.Health(s, id, 40, 100); Assert.That(s.Commands, Is.Empty); Assert.That(s.IsCritical, Is.False);
         }
         [Test]
         public void FlashlightInitializationAndRepeatedSamplesAreSilent()
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState();
             p.Flashlight(s, new FlashlightSample(new EntityId(1), 1, true, Vector3.zero, Vector3.forward, 20, 40)); Assert.That(s.Commands, Is.Empty);
-            p.Flashlight(s, new FlashlightSample(new EntityId(1), 2, false, Vector3.zero, Vector3.forward, 20, 40)); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.FlashlightOff));
+            p.Flashlight(s, new FlashlightSample(new EntityId(1), 2, false, Vector3.zero, Vector3.forward, 20, 40)); Assert.That(s.Commands, Is.Empty);
             p.Flashlight(s, new FlashlightSample(new EntityId(1), 3, false, Vector3.zero, Vector3.forward, 20, 40)); Assert.That(s.Commands, Is.Empty);
         }
         [Test]
@@ -204,7 +195,7 @@ namespace Worsen.Tests.Audio
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState(); var id = new EntityId(1);
             p.Movement(s, new PlayerMovementSample(id, 1, Vector3.zero, Vector3.forward, Vector3.up, 0, Vector2.zero, false, MovementState.Slide, 0));
-            Assert.That(s.Commands.Count, Is.EqualTo(2)); Assert.That(s.Commands[1].Cue, Is.EqualTo(CueId.SlideLoop));
+            Assert.That(s.Commands.Count, Is.EqualTo(1)); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.SlideLoop));
             p.Traversal(s, new PlayerTraversalFact(id, 1, TraversalKind.Slide, true, Vector3.forward, 1)); Assert.That(s.Commands, Is.Empty);
             p.Movement(s, new PlayerMovementSample(id, 2, Vector3.forward, Vector3.forward, Vector3.up, 0, Vector2.zero, false, MovementState.Ground, 0));
             Assert.That(s.Commands[0].StopEmitter, Is.True); Assert.That(s.Commands[1].Cue, Is.EqualTo(CueId.SlideEnd));
@@ -218,32 +209,32 @@ namespace Worsen.Tests.Audio
             p.Pickup(s, fact, Vector3.zero); Assert.That(s.Commands, Is.Empty);
             p.Hunter(s, new HunterFeedbackEvent(id, "rusher", HunterFeedbackKind.AttackMiss, Vector3.zero, 15)); Assert.That(s.Commands, Is.Empty);
             p.Hunter(s, new HunterFeedbackEvent(id, "rusher", HunterFeedbackKind.AttackMiss, Vector3.zero, 15)); Assert.That(s.Commands, Is.Empty);
-            p.Hunter(s, new HunterFeedbackEvent(id, "hexer", HunterFeedbackKind.ProjectileLaunched, Vector3.zero, 16, 1, 7)); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.ProjectileLaunch));
+            p.Hunter(s, new HunterFeedbackEvent(id, "hexer", HunterFeedbackKind.ProjectileLaunched, Vector3.zero, 16, 1, 7)); Assert.That(s.Commands, Is.Empty);
         }
         [Test]
         public void SplitProjectilesAndDifferentHuntersOwnIndependentMovingLoops()
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState();
             p.Hunter(s, new HunterFeedbackEvent(new EntityId(1), "hexer", HunterFeedbackKind.ProjectileLaunched, Vector3.zero, 1, 2, 1));
-            int first = s.Commands[1].Emitter;
+            Assert.That(s.Commands, Is.Empty);
             p.Hunter(s, new HunterFeedbackEvent(new EntityId(2), "hexer", HunterFeedbackKind.ProjectileLaunched, Vector3.one, 1, 2, 1));
-            int second = s.Commands[1].Emitter; Assert.That(second, Is.Not.EqualTo(first));
+            Assert.That(s.Commands, Is.Empty);
             p.Hunter(s, new HunterFeedbackEvent(new EntityId(1), "hexer", HunterFeedbackKind.ProjectileMoved, Vector3.right, 2, 2, 1));
-            Assert.That(s.Commands.Count, Is.EqualTo(1)); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.ProjectileTravel)); Assert.That(s.Commands[0].Emitter, Is.EqualTo(first));
+            Assert.That(s.Commands, Is.Empty);
             p.Hunter(s, new HunterFeedbackEvent(new EntityId(1), "hexer", HunterFeedbackKind.ProjectileImpact, Vector3.right, 3, 2, 1));
-            Assert.That(s.Commands[0].StopEmitter, Is.True); Assert.That(s.Commands[0].Emitter, Is.EqualTo(first));
-            Assert.That(s.FlyingProjectiles.Count, Is.EqualTo(1));
+            Assert.That(s.Commands, Is.Empty); Assert.That(s.FlyingProjectiles, Is.Empty);
             p.Hunter(s, new HunterFeedbackEvent(new EntityId(1), "hexer", HunterFeedbackKind.ProjectileMoved, Vector3.right * 2, 4, 2, 1)); Assert.That(s.Commands, Is.Empty);
         }
         [Test]
         public void CollapseRepeatsCracksOnlyAtProgressIntervalsAndReleasesMistOnConsumption()
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState();
-            p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, 0), Vector3.zero); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.RoomCrack));
+            p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, 0), Vector3.zero); Assert.That(s.Commands, Is.Empty);
             p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, .01f), Vector3.zero); Assert.That(s.Commands, Is.Empty);
-            p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, .21f), Vector3.zero); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.RoomCrack));
-            p.Room(s, new RoomDestructionSample(3, RoomPhase.Encroaching, .5f), Vector3.zero); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.MistAdvance));
-            p.Room(s, new RoomDestructionSample(3, RoomPhase.Closed, 1), Vector3.zero); Assert.That(s.Commands[0].StopEmitter, Is.True); Assert.That(s.Commands[1].Cue, Is.EqualTo(CueId.RoomConsumed));
+            p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, .21f), Vector3.zero); Assert.That(s.Commands, Is.Empty);
+            p.Room(s, new RoomDestructionSample(3, RoomPhase.Encroaching, .5f), Vector3.zero); Assert.That(s.Commands, Is.Empty);
+            p.Room(s, new RoomDestructionSample(3, RoomPhase.Closed, 1), Vector3.zero); Assert.That(s.Commands, Is.Empty);
+            Assert.That(s.Rooms[3].Phase, Is.EqualTo(RoomPhase.Closed), "World-mix scheduling owns the sole room cue.");
         }
         [Test]
         public void RestartDoesNotPretendThatAStoredWardBroke()
