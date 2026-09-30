@@ -11,12 +11,15 @@
 //   - Store layout growth, room dimensions and candidate budgets/type preferences.
 //   - Keep broad cloister/gallery rooms enclosed beneath a higher ceiling.
 //   - Tune first-contact path separation, bounded retries and world-object density.
+//   - Weight post-hub footprints and gate reserved gaps and optional pocket chains.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
 //   Designer data only. The controller rejects invalid combinations rather
 //   than silently building an incomplete or unbounded map. Legacy cake-line fields
 //   remain serialized for compatibility; Floor owns actual cake selection.
+//   Room-count budgets govern the connected component. PocketRoomCount is a separate
+//   optional budget. The fixed four/six-room walking loop remains single-cell.
 // ============================================================================
 using UnityEngine;
 
@@ -28,6 +31,26 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private int _initialRoomCount = 7;
         [SerializeField] private int _roomsPerRound = 2;
         [SerializeField] private int _maximumRoomCount = 15;
+        [SerializeField, Min(1)] private int _multiCellStartRound = 1;
+        [SerializeField, Min(0f)] private float _oneCellWeight = 0.55f;
+        [SerializeField, Min(0f)] private float _twoCellWeight = 0.3f;
+        [SerializeField, Min(0f)] private float _threeCellWeight = 0.15f;
+        [SerializeField, Range(0f, 1f)] private float _lShapeWeight = 0.4f;
+        [SerializeField, Min(1)] private int _gapStartRound = 2;
+        [SerializeField, Range(0f, 1f)] private float _gapProbability = 0.35f;
+        [SerializeField, Range(1, 8)] private int _maximumGapCells = 3;
+        [SerializeField, Range(0f, 1f)] private float _pocketProbability = 0.5f;
+        [SerializeField, Range(1, 3)] private int _pocketRoomCount = 2;
+        public int MultiCellStartRound => _multiCellStartRound;
+        public float OneCellWeight => _oneCellWeight;
+        public float TwoCellWeight => _twoCellWeight;
+        public float ThreeCellWeight => _threeCellWeight;
+        public float LShapeWeight => _lShapeWeight;
+        public int GapStartRound => _gapStartRound;
+        public float GapProbability => _gapProbability;
+        public int MaximumGapCells => _maximumGapCells;
+        public float PocketProbability => _pocketProbability;
+        public int PocketRoomCount => _pocketRoomCount;
         [SerializeField] private float _roomSize = 12f;
         [SerializeField] private float _roomHeight = 4f;
         [SerializeField] private float _doorWidth = 3.2f;

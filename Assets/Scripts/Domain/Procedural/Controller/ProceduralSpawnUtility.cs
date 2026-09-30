@@ -11,6 +11,7 @@
 //   - Measure shortest hunter-walkable portal hops, never straight-line distance.
 //   - Trace a planar sight segment through known room walls and portal apertures.
 //   - Relax only distance, one hop at a time, with an explicit audit trail.
+//   - Traverse open same-room cell seams without inventing an occluding interior wall.
 // DEPENDENCIES:
 //   - Core graph values and Procedural layout/config only; no physics or siblings.
 // USAGE NOTES:
@@ -18,6 +19,8 @@
 //   treat every portal as open, and widen optional apertures to the ordinary width
 //   if larger. Ambiguous corner crossings count as visible. This can reject safe
 //   positions but never relies on a torch, prop or closed door for initial cover.
+//   Gap-facing sealed view windows conservatively count as visible beyond that wall,
+//   even if a later wall could occlude the segment; invisible collision is not cover.
 //   Exit exclusion, player-room exclusion and occlusion never relax. Exhaustion
 //   throws with the relaxation trail so the bounded generation journal records it.
 // ============================================================================
@@ -36,8 +39,8 @@ namespace Worsen.Domain.Procedural
         {
             if (layout?.Graph == null || minimumRooms < 1 || !(doorWidth > 0f) || float.IsInfinity(doorWidth))
                 throw new ArgumentException("Spawn validation requires a graph, positive width and hop minimum.");
-            var room = layout.Graph.Rooms.FirstOrDefault(r => r.Bounds.Contains(candidate));
-            var player = layout.Graph.Rooms.FirstOrDefault(r => r.Bounds.Contains(layout.PlayerSpawnPosition));
+            var room = ProceduralFootprintUtility.At(layout, candidate);
+            var player = ProceduralFootprintUtility.At(layout, layout.PlayerSpawnPosition);
             if (room.Id == 0 || player.Id == 0) { reason = "outside-room"; return false; }
             if (room.Id == layout.Graph.ExitRoomId || room.Id == player.Id)
             { reason = "exit-or-player-room"; return false; }
@@ -69,9 +72,10 @@ namespace Worsen.Domain.Procedural
         {
             Vector3 start = layout.PlayerSpawnPosition, delta = end - start;
             float previous = -1f;
-            for (int step = 0; step < layout.Graph.Rooms.Count; step++)
+            int limit = layout.Cells?.Count ?? layout.Graph.Rooms.Count;
+            for (int step = 0; step < limit; step++)
             {
-                if (current.Id == target) return true;
+                if (current.Id == target && current.Bounds.Contains(end)) return true;
                 var bounds = current.Bounds;
                 float tx = delta.x == 0f ? float.PositiveInfinity :
                     ((delta.x > 0f ? bounds.max.x : bounds.min.x) - start.x) / delta.x;
@@ -83,6 +87,9 @@ namespace Worsen.Domain.Procedural
                 if (t <= previous || t >= 1f) return true;
                 Vector3 crossing = start + delta * t;
                 bool alongX = tz < tx;
+                var nextCell = ProceduralFootprintUtility.At(layout, crossing + delta.normalized * 0.001f);
+                if (nextCell.Id == current.Id)
+                { current = nextCell; previous = t; continue; }
                 int next = 0;
                 foreach (var door in layout.Doors)
                 {
@@ -96,8 +103,15 @@ namespace Worsen.Domain.Procedural
                     if (Mathf.Abs(plane) < 0.0001f && Mathf.Abs(along) <= width * 0.5f + 0.0001f)
                     { next = neighbor; break; }
                 }
-                if (next == 0) return false;
-                current = layout.Graph.Rooms.First(r => r.Id == next);
+                if (next == 0)
+                {
+                    var beyond = current.Center + (alongX ? Vector3.forward * Math.Sign(delta.z) :
+                        Vector3.right * Math.Sign(delta.x)) * layout.CellSize;
+                    return layout.GapCells.Any(c => Mathf.Abs(beyond.x - layout.Origin.x - c.x * layout.CellSize) < 0.001f &&
+                        Mathf.Abs(beyond.z - layout.Origin.y - c.y * layout.CellSize) < 0.001f);
+                }
+                if (nextCell.Id != next) return true; // Numerical ambiguity cannot manufacture cover.
+                current = nextCell;
                 previous = t;
             }
             return true;

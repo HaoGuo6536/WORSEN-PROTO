@@ -14,6 +14,7 @@
 //   - Preserve authored traversal face counts, positions and endpoint records.
 //   - Require roof coverage over every floor and sealed walls between unequal heights.
 //   - Reject floating wall components and keep hub spawns clear of the central door.
+//   - Retain authored one-cell coordinates here; footprint tests cover larger shells.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core values, NUnit and temporary Unity config instances.
 // USAGE NOTES:
@@ -34,7 +35,14 @@ namespace Worsen.Tests.Procedural
         private ProceduralConfig _config;
         private ProceduralDriverConfig _driver;
         [SetUp] public void SetUp()
-        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); }
+        {
+            _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_twoCellWeight").floatValue = 0f;
+            settings.FindProperty("_threeCellWeight").floatValue = 0f;
+            settings.FindProperty("_gapProbability").floatValue = 0f;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
         [TearDown] public void TearDown()
         { Object.DestroyImmediate(_config); Object.DestroyImmediate(_driver); }
 

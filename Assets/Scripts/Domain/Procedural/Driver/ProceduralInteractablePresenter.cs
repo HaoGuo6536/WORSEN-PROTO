@@ -11,6 +11,7 @@
 //   - Sample ordinary doors with injected randomness, always excluding exit links.
 //   - Keep prop envelopes clear of shell geometry, objective anchors and main routes.
 //   - Produce stable Core snapshots and a culture-independent construction manifest.
+//   - Keep props on occupied cells and suppress legacy light sockets over L-shaped voids.
 // DEPENDENCIES:
 //   - Core contracts and own layout/config values; no Presentation dependency.
 // USAGE NOTES:
@@ -66,17 +67,22 @@ namespace Worsen.Domain.Procedural
             {
                 var portals = layout.Doors.Where(d => d.FromRoomId == room.Id || d.ToRoomId == room.Id).Select(d => d.Center).ToArray();
                 AddLights(result, room, portals);
-                int start = random.Next(4), count = 0;
-                for (int index = 0; index < 4 && count < config.KnockablePropsPerRoom; index++)
+                var volumes = ProceduralFootprintUtility.Volumes(layout, room);
+                result.RemoveAll(p => p.State.RoomId == room.Id && p.State.Kind == InteractableKind.Light &&
+                    (!volumes.Any(v => v.Bounds.Contains(p.State.Position)) || !blocks.Any(b =>
+                        b.Kind == ProceduralSurfaceKind.Wall && new Bounds(b.Center, b.Size + Vector3.one * 0.65f).Contains(p.State.Position))));
+                int start = random.Next(volumes.Count * 4), count = 0;
+                for (int index = 0; index < volumes.Count * 4 && count < config.KnockablePropsPerRoom; index++)
                 {
-                    int corner = (start + index) % 4;
-                    var position = new Vector3(corner % 2 == 0 ? room.Bounds.min.x + driver.KnockablePropInset : room.Bounds.max.x - driver.KnockablePropInset,
-                        size.y * 0.5f, corner < 2 ? room.Bounds.min.z + driver.KnockablePropInset : room.Bounds.max.z - driver.KnockablePropInset);
+                    int socket = (start + index) % (volumes.Count * 4), corner = socket % 4;
+                    var bounds = volumes[socket / 4].Bounds;
+                    var position = new Vector3(corner % 2 == 0 ? bounds.min.x + driver.KnockablePropInset : bounds.max.x - driver.KnockablePropInset,
+                        size.y * 0.5f, corner < 2 ? bounds.min.z + driver.KnockablePropInset : bounds.max.z - driver.KnockablePropInset);
                     var envelope = new Bounds(position, size);
                     if (blocks.Any(b => b.HasCollision && Overlaps(b, envelope)) ||
                         portals.Any(p => HorizontalDistance(p, position) < config.DoorWidth * 0.5f + radius + driver.NavSampleRadius) ||
-                        layout.Graph.Anchors.Any(a => a.RoomId == room.Id && HorizontalDistance(a.Position, position) < radius + driver.NavSampleRadius)) continue;
-                    result.Add(new ProceduralInteractablePlan(new InteractableState(500000 + room.Id * 10 + corner,
+                        layout.Graph.Anchors.Concat(layout.PocketAnchors).Any(a => a.RoomId == room.Id && HorizontalDistance(a.Position, position) < radius + driver.NavSampleRadius)) continue;
+                    result.Add(new ProceduralInteractablePlan(new InteractableState(500000 + room.Id * 100 + socket,
                         InteractableKind.KnockableProp, room.Id, position, InteractableStateValue.Inactive), size));
                     count++;
                 }

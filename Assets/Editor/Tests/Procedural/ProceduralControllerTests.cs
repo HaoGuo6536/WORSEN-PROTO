@@ -12,6 +12,7 @@
 //   - Check candidate support, clearance, stable identities and rejected invalid graphs.
 //   - Keep presentation room bounds aligned with enclosed playable room volumes.
 //   - Expect a validated spawn subset, not every non-player room, under first-contact rules.
+//   - Retain the single-cell/no-gap regression fixture; footprint coverage is separate.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core contracts, NUnit and UnityEditor serialized setup.
 // USAGE NOTES:
@@ -36,6 +37,9 @@ namespace Worsen.Tests.Procedural
             var settings = new SerializedObject(_config);
             settings.FindProperty("_castleModules").boolValue = false;
             settings.FindProperty("_initialRoomCount").intValue = 5;
+            settings.FindProperty("_twoCellWeight").floatValue = 0f;
+            settings.FindProperty("_threeCellWeight").floatValue = 0f;
+            settings.FindProperty("_gapProbability").floatValue = 0f;
             settings.ApplyModifiedPropertiesWithoutUndo();
         }
         [TearDown] public void TearDown() => UnityEngine.Object.DestroyImmediate(_config);
