@@ -3,12 +3,13 @@
 // ============================================================================
 // PURPOSE:
 //   Defines the expedition's unique curse and upgrade catalog, consumable stock and caps.
-//   Designers can tune prices and effect traits
+//   Designers can tune prices, the early-bail wallet fraction and effect traits
 //   without changing wallet, selection or round-transition code.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Keep all balance values and offer descriptions in designer-owned data.
+//   - Set the fraction lost on a bail; the currency debit is rounded down.
 //   - Supply safe defaults for a shop after every two completed combat floors.
 //   - Describe five hunter identities and hunter-dependent plus general curse traits.
 // DEPENDENCIES:
@@ -82,6 +83,7 @@ namespace Worsen.Session.Progression
         [SerializeField, Min(2)] private int _shopInterval = 2;
         [SerializeField, Min(1)] private int _maximumActiveThreats = 5;
         [SerializeField, Min(1)] private int _goldenCakeValue = 1;
+        [SerializeField, Range(0f, 1f)] private float _earlyBailWalletFraction = 0.75f;
         [SerializeField, Min(1f)] private float _initialMaximumHealth = 100f;
         [SerializeField, Min(1f)] private float _minimumMaximumHealth = 30f;
         [SerializeField, Min(1f)] private float _maximumMaximumHealth = 200f;
@@ -135,6 +137,7 @@ namespace Worsen.Session.Progression
         public int ShopInterval => _shopInterval;
         public int MaximumActiveThreats => _maximumActiveThreats;
         public int GoldenCakeValue => _goldenCakeValue;
+        public float EarlyBailWalletFraction => _earlyBailWalletFraction;
         public float InitialMaximumHealth => _initialMaximumHealth;
         public float MinimumMaximumHealth => _minimumMaximumHealth;
         public float MaximumMaximumHealth => _maximumMaximumHealth;

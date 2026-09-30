@@ -11,6 +11,7 @@
 //   - Verify shops after two combat floors and three committed eligible hunter/curse choices.
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
 //   - Verify stock, automatic ward use, exhaustion and retained ownership.
+//   - Verify rounded bail debits, wallet bounds and generation-scoped replay protection.
 // DEPENDENCIES:
 //   - Core contracts, Session Progression, NUnit and Unity asset allocation.
 // USAGE NOTES:
@@ -582,6 +583,59 @@ namespace Worsen.Tests.Progression
             }
             Assert.That(hunters.Count, Is.EqualTo(5));
             Assert.That(curses.Count, Is.EqualTo(22));
+        }
+
+        [TestCase(0, 0.75f, 0)] [TestCase(1, 0.75f, 1)]
+        [TestCase(7, 0.75f, 2)] [TestCase(8, 0.75f, 2)]
+        [TestCase(7, 0.5f, 4)] [TestCase(7, 0f, 7)] [TestCase(7, 1f, 0)]
+        [TestCase(int.MaxValue, 1f, 0)]
+        public void BailDebitsRoundedDownFractionOnceWithoutNegativeWallet(int wallet, float fraction, int remaining)
+        {
+            SetConfigField("_earlyBailWalletFraction", fraction);
+            SetConfigField("_goldenCakeValue", Math.Max(1, wallet));
+            int first = OpenCombatFloor();
+            if (wallet > 0) Assert.That(controller.RecordGoldenCollected(first, 1), Is.True);
+            Assert.That(controller.CompleteFloor(first), Is.True, "Build the wallet on a prior normal floor.");
+            int generation = OpenCombatFloor();
+            Assert.That(state.Wallet, Is.EqualTo(wallet));
+            Assert.That(controller.CompleteFloor(generation - 1, true), Is.False);
+            Assert.That(state.Wallet, Is.EqualTo(wallet));
+            Assert.That(controller.CompleteFloor(generation, true), Is.True);
+            Assert.That(state.Wallet, Is.EqualTo(remaining));
+            Assert.That(state.CompletedCombatFloors, Is.EqualTo(2));
+            Assert.That(controller.CompleteFloor(generation, true), Is.False);
+            Assert.That(controller.CompleteFloor(generation), Is.False);
+            Assert.That(state.Wallet, Is.EqualTo(remaining));
+            Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
+            Assert.That(controller.CompleteFloor(state.GenerationId, true), Is.False, "Shops cannot bail.");
+            controller.ContinueShop(Revision);
+            OpenCombatFloor();
+            Assert.That(controller.CompleteFloor(generation, true), Is.False, "Old bail cannot debit a replacement floor.");
+            Assert.That(state.Wallet, Is.EqualTo(remaining));
+        }
+
+        [Test]
+        public void NormalEscapeHasNoPenaltyAndDeadOrUnreadyFloorsCannotBail()
+        {
+            Assert.That(config.EarlyBailWalletFraction, Is.EqualTo(0.75f));
+            ChooseLoadout();
+            Assert.That(controller.CompleteFloor(state.GenerationId, true), Is.False);
+            controller.ConfirmFloorReady(state.GenerationId);
+            for (int anchor = 0; anchor < 7; anchor++) controller.RecordGoldenCollected(state.GenerationId, anchor);
+            Assert.That(controller.CompleteFloor(state.GenerationId, false), Is.True);
+            Assert.That(state.Wallet, Is.EqualTo(7));
+            int generation = OpenCombatFloor();
+            controller.RecordHealth(generation, 0f);
+            Assert.That(controller.CompleteFloor(generation, true), Is.False);
+            Assert.That(state.Wallet, Is.Zero);
+            Assert.That(state.CompletedCombatFloors, Is.EqualTo(1));
+        }
+
+        [TestCase(-0.1f)] [TestCase(1.1f)] [TestCase(float.NaN)] [TestCase(float.PositiveInfinity)]
+        public void InvalidBailFractionRejectedBeforeRun(float fraction)
+        {
+            SetConfigField("_earlyBailWalletFraction", fraction);
+            Assert.Throws<ArgumentException>(() => new ProgressionSessionController(state, config, new System.Random(1)));
         }
 
         private void StartOffering(string threat)
