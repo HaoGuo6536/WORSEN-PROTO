@@ -17,6 +17,7 @@
 //   - Supply deliberation, utility, prediction, missed-lunge and shared hearing tuning.
 //   - Author habit entries, a tell-only mutation pool and bounded emergence preferences.
 //   - Require credible Stalk clues and allow bounded walk travel before search-leg expiry.
+//   - Bound ordinary chase lead separately from loop intercepts; commit predictions for the action window.
 //   - Select an optional archetype rules config and per-profile motor override.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
@@ -102,6 +103,7 @@ namespace Worsen.Domain.Hunter
         [Header("Felt intelligence")]
         [SerializeField, Min(0f)] private float _deliberationSeconds = 0.6f;
         [SerializeField, Range(0f, 1f)] private float _predictionChance = 0.75f;
+        [SerializeField, Min(0f)] private float _chasePredictionSeconds = 0.5f;
         [SerializeField, Range(0f, 1f)] private float _parallelCorridorChance = 0.25f;
         [SerializeField, Min(0f)] private float _searchExpansionMeters = 2f;
         [SerializeField, Min(0.1f)] private float _searchLegTimeoutSeconds = 4f;
@@ -110,7 +112,7 @@ namespace Worsen.Domain.Hunter
         [SerializeField, Min(0.1f)] private float _retreatTimeoutSeconds = 12f;
         [SerializeField, Min(0f)] private float _cakeGoalUtility = 40f;
         [SerializeField, Min(0f)] private float _exitGoalUtility = 65f;
-        [SerializeField, Min(0f)] private float _loopGoalUtility = 85f;
+        [SerializeField, Min(0f)] private float _loopGoalUtility = 110f;
         [Header("Shared hearing")]
         [SerializeField, Min(0.01f)] private float _hearingReferenceMeters = 2f;
         [SerializeField, Min(0f)] private float _hearingRolloff = 1f;
@@ -128,6 +130,7 @@ namespace Worsen.Domain.Hunter
         public float MissStumbleMeters => Mathf.Max(0f, _missStumbleMeters);
         public float DeliberationSeconds => Mathf.Max(0f, _deliberationSeconds);
         public float PredictionChance => Mathf.Clamp01(_predictionChance);
+        public float ChasePredictionSeconds => Mathf.Max(0f, _chasePredictionSeconds);
         public float ParallelCorridorChance => Mathf.Clamp01(_parallelCorridorChance);
         public float SearchExpansionMeters => Mathf.Max(0f, _searchExpansionMeters);
         public float SearchLegTimeoutSeconds => Mathf.Max(0.1f, _searchLegTimeoutSeconds);

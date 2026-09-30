@@ -19,6 +19,7 @@
 using System;
 using UnityEditor;
 using UnityEngine;
+using Worsen.Core;
 using Worsen.Domain.Hunter;
 using Worsen.Domain.Hunter.Archetypes.Ticking;
 namespace Worsen.Editor.Hunter

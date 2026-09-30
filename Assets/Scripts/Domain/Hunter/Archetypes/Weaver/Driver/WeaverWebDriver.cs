@@ -12,6 +12,7 @@
 //   - Permit a kinematic partition crossing only on a verified area-3-only segment.
 //   - Return raw contacts synchronously for immediate Manager identity resolution.
 // DEPENDENCIES:
+//   - Core Weaver facts carry immutable nest commands from the owning Hunter.
 //   - Own DriverConfig, Hunter motor config, pure presenters and Unity physics/navigation.
 // USAGE NOTES:
 //   Scene-owned; no Update, time source, global collision ignore or game-system reads.
@@ -25,6 +26,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Weaver
 {
     public sealed class WeaverWebDriver : MonoBehaviour

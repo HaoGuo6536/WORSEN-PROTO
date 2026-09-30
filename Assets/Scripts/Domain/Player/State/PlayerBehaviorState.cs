@@ -9,6 +9,7 @@
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Retain floor spawn pose and independent web/consumable speed factors.
+//   - Keep the web timer and factor independent of grab and trap owners.
 //   - Retain an independent trap speed factor, composed with grabs by the Controller.
 //   - Accumulate external velocity deltas until one movement tick consumes them.
 //   - Store shield HP separately from regenerating and floor-reset health.
@@ -50,7 +51,6 @@ namespace Worsen.Domain.Player
         public Vector3 Position { get; set; }
         internal Vector3 FloorStartPosition;
         internal float FloorStartHeading;
-        internal float WebSpeedMultiplier = 1f;
         internal float ConsumableSpeedMultiplier = 1f;
         public Vector3 Velocity { get; set; }
         public Vector3 PendingExternalVelocity { get; set; }
@@ -98,6 +98,8 @@ namespace Worsen.Domain.Player
         public float ReboundCooldownMultiplier { get; set; } = 1f;
         public float GrabSpeedMultiplier { get; set; } = 1f;
         public float TrapSpeedMultiplier { get; set; } = 1f;
+        public float WebSpeedMultiplier { get; set; } = 1f;
+        public float WebSlowRemaining { get; set; }
         public float StumbleRemaining { get; set; }
         public float StumbleSpeedLimit { get; set; }
         public float StumbleStartedSeconds { get; set; }

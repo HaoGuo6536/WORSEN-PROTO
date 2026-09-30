@@ -11,13 +11,14 @@
 //   - Author habit enable flags, threshold duration and cake reaction radius.
 //   - Define selectable rule/value/tell entries without choosing progression events.
 // DEPENDENCIES:
-//   - Hunter-local rule identifiers and UnityEngine serialization only.
+//   - Core rule identifiers and UnityEngine serialization only.
 // USAGE NOTES:
 //   First entry of each habit kind wins. Missing entries disable that habit.
 //   Pool entries are validated by HunterController when applied, never at selection here.
 // ============================================================================
 using System;
 using UnityEngine;
+using Worsen.Core;
 namespace Worsen.Domain.Hunter
 {
     [Serializable]

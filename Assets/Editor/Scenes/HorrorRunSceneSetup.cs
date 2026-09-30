@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
+//   - Append missing catalogue profiles without replacing authored roster entries or tuning.
 //   - Restore collapse fog references and its renderer feature without replacing distance fog.
 //   - Restore Results and the Settings-source router idempotently, preserving assigned references.
 //   - Wire five animated hunters, spatial sound, Lumen 2, curse rules and physical exit/collapse.
@@ -228,6 +229,28 @@ namespace Worsen.Editor.Scenes
         private static void WireMissing(UnityEngine.Object owner, string field, UnityEngine.Object value)
         { if (Referenced<UnityEngine.Object>(owner, field) == null) Wire(owner, field, value); }
 
+        public static void RestoreHunterRoster(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            var paths = new[] { "Expansion/rusher", "Expansion/lurker", "Expansion/watcher", "Expansion/hexer", "Expansion/thorncaller",
+                "Archetypes/Echo/EchoProfile", "Archetypes/Weaver/WeaverProfile", "Archetypes/Ticking/TickingProfile" };
+            // Resolve first: a missing asset must not leave a partially repaired roster.
+            var roster = paths.Select(path => Require<HunterProfile>(ConfigRoot + "Domain/Hunter/" + path + ".asset")).ToArray();
+            var serialized = new SerializedObject(root); var entries = serialized.FindProperty("_hunterRoster");
+            foreach (var profile in roster)
+            {
+                bool present = false;
+                for (int i = 0; i < entries.arraySize; i++)
+                    if (entries.GetArrayElementAtIndex(i).objectReferenceValue is HunterProfile existing &&
+                        existing.ArchetypeKey == profile.ArchetypeKey) { present = true; break; }
+                if (present) continue;
+                int index = entries.arraySize; entries.InsertArrayElementAtIndex(index);
+                entries.GetArrayElementAtIndex(index).objectReferenceValue = profile;
+            }
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void BuildWorldServices(HorrorRunSceneRoot root, GameObject cake)
         {
             Wire(root, "_level", Add<LevelManager>("Generated Level Graph"));
@@ -243,6 +266,7 @@ namespace Worsen.Editor.Scenes
             var profiles = rootRoster.FindProperty("_hunterRoster"); profiles.arraySize = roster.Length;
             for (int i = 0; i < roster.Length; i++) profiles.GetArrayElementAtIndex(i).objectReferenceValue = roster[i];
             rootRoster.ApplyModifiedPropertiesWithoutUndo();
+            RestoreHunterRoster(root);
             Wire(root, "_chase", Add<ChaseManager>("Chase Service"));
             Wire(root, "_chaseConfig", Require<ChaseConfig>(ConfigRoot + "Domain/Chase/ChaseConfig.asset"));
             Wire(root, "_director", Add<DirectorManager>("Director Service"));

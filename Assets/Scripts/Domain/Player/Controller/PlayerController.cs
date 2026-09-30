@@ -9,6 +9,7 @@
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Apply Session-timed healing/speed, clear slows and revive at the retained floor spawn.
+//   - Compose a separately timed Core web slow with grab/trap factors without disabling slides.
 //   - Emit soft/hard landing severity independently of the stumble duration.
 //   - Compose trap and grab speed factors multiplicatively without sharing their lifetimes.
 //   - Consume bounded external velocity once after locomotion, regardless of hit grace.
@@ -96,6 +97,7 @@ namespace Worsen.Domain.Player
             _state.MovementSpeedMultiplier = 1f;
             _state.FootstepNoiseMultiplier = _state.ReboundCooldownMultiplier = _state.GrabSpeedMultiplier = 1f;
             _state.TrapSpeedMultiplier = 1f;
+            _state.WebSpeedMultiplier = 1f; _state.WebSlowRemaining = 0f;
             _state.SlideTurnRateDegrees = _state.MovementDeltaTime = 0f;
             _state.PreviousHorizontalVelocity = Vector3.zero;
             _state.SprintSpeed = _profile.SprintSpeed;
@@ -254,7 +256,7 @@ namespace Worsen.Domain.Player
                 facts.Add(Fact(TraversalKind.Jump, true, _state.Forward, 0f));
             }
             else if (!cancelSlide && grounded && _state.StumbleRemaining <= 0f && (frame.Pressed & InputButtons.Crouch) != 0
-                && Horizontal(_state.Velocity).magnitude >= _profile.SlideMinimumSpeed
+                && Horizontal(_state.Velocity).magnitude >= _profile.SlideMinimumSpeed * _state.WebSpeedMultiplier
                 && _state.MovementState != MovementState.Slide)
             {
                 Vector3 horizontal = Horizontal(_state.Velocity);
@@ -609,6 +611,8 @@ namespace Worsen.Domain.Player
 
         private void AdvanceTimers(float dt)
         {
+            _state.WebSlowRemaining = Mathf.Max(0f, _state.WebSlowRemaining - dt);
+            if (_state.WebSlowRemaining <= 0f) _state.WebSpeedMultiplier = 1f;
             if (_state.MovementState != MovementState.Vault)
                 _state.StoredMomentumRemaining = Mathf.Max(0f, _state.StoredMomentumRemaining - dt);
             if (_state.StoredMomentumRemaining <= 0f) _state.StoredMomentumSpeed = 0f;
@@ -638,6 +642,19 @@ namespace Worsen.Domain.Player
         public void SetTrapSpeedMultiplier(float multiplier)
         {
             _state.TrapSpeedMultiplier = Finite(multiplier) ? Mathf.Clamp01(multiplier) : 1f;
+            _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
+            _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
+        }
+
+        public void ApplyWebSlow(WebHitFact fact)
+        {
+            if (fact.Player != _state.Id || !_state.IsAlive || !Finite(fact.Duration) || fact.Duration <= 0f ||
+                !Finite(fact.SlowMultiplier) || !Finite(fact.SlowStrengthMultiplier)) return;
+            float multiplier = 1f - (1f - Mathf.Clamp01(fact.SlowMultiplier)) * Mathf.Clamp01(fact.SlowStrengthMultiplier);
+            if (multiplier >= 1f) return;
+            // Overlapping webs retain the strongest slow and longest remaining lifetime.
+            _state.WebSpeedMultiplier = Mathf.Min(_state.WebSpeedMultiplier, multiplier);
+            _state.WebSlowRemaining = Mathf.Max(_state.WebSlowRemaining, fact.Duration);
             _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
         }

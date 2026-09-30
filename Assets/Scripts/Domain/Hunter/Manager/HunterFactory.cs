@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
-//   - Spawn every requested duplicate; archetype catalogue uniqueness is not a body cap.
+//   - Spawn every Core-requested duplicate; archetype catalogue uniqueness is not a body cap.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -57,7 +57,7 @@ namespace Worsen.Domain.Hunter
             _random = random; _player = player; _level = level;
         }
         public EntityId Spawn(SpawnRequest request)
-            => Spawn(new HunterSpawnRequest(request, 0));
+            => Spawn(new HunterSpawnRequest(request, request.DuplicateIndex));
         public EntityId Spawn(HunterSpawnRequest duplicate)
         {
             if (duplicate.DuplicateIndex < 0) throw new ArgumentOutOfRangeException(nameof(duplicate));

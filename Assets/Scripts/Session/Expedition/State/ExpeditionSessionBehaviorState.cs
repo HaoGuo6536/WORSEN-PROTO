@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · Expedition.
 // KEY RESPONSIBILITIES:
+//   - Retain accepted run mutations and floor-scoped per-archetype duplicate counters.
 //   - Retain shield transfer, lamp restoration and physical Golden Cake collection accounting.
 //   - Retain the pending request and assembly phase across the teardown yield.
 //   - Track immutable room presentation and genuine portal crossings for floor-scoped marks.
@@ -41,6 +42,9 @@ namespace Worsen.Session.Expedition
         public string LayoutManifest { get; internal set; } = string.Empty;
         public int HunterSpawnShortfall { get; internal set; }
         internal List<EntityId> Hunters { get; } = new List<EntityId>();
+        internal readonly Dictionary<string, int> NextDuplicate = new Dictionary<string, int>(System.StringComparer.Ordinal);
+        internal readonly Dictionary<string, Dictionary<HunterTunable, HunterMutation>> Mutations =
+            new Dictionary<string, Dictionary<HunterTunable, HunterMutation>>(System.StringComparer.Ordinal);
         internal float CarriedShield;
         internal bool ShieldTransferAllowed;
         internal float WickRemaining;

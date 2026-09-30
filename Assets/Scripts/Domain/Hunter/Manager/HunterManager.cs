@@ -23,10 +23,10 @@
 // USAGE NOTES:
 //   Scene-owned entity; Session is sole tick owner. Subscriptions pair OnEnable/OnDisable.
 //   PLAN-014 stall payload stays Hunter-local pending coordinator-owned Core telemetry.
-//   Habit/mutation DTOs likewise await Core promotion; no audio or Session routing is owned here.
+//   Habit/mutation and archetype DTOs are Core values; Session owns their outward routing.
 //   BeginCatch must follow Session damage acceptance, never an unconfirmed contact.
 //   A Stalk reveal hold (HoldPosition) uses the motor's stopped input to discard inertia.
-//   Weaver facts remain Hunter-local pending coordinator Core promotion and routing.
+//   Mutation restoration uses announce=false; only newly accepted mutations publish tells.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -223,10 +223,10 @@ namespace Worsen.Domain.Hunter
         public void SetRoomPhase(RoomPhaseChangedFact fact)
         { if (_controller == null) return; _controller.SetRoomPhase(fact); _driver.SetUnavailableRooms(_controller.UnavailableRooms); }
         public void SetTraits(ProgressionTraits traits) { _controller?.SetTraits(traits); }
-        public bool ApplyMutation(HunterMutation mutation)
+        public bool ApplyMutation(HunterMutation mutation, bool announce = true)
         {
             if (_controller == null || !_controller.ApplyMutation(mutation, out HunterMutationFact fact)) return false;
-            OnMutation?.Invoke(fact); return true;
+            if (announce) OnMutation?.Invoke(fact); return true;
         }
         public void SetChaseActive(bool active) { _controller?.SetChaseActive(active); }
         public void BeginCatch(Vector3 playerPosition)
@@ -248,6 +248,7 @@ namespace Worsen.Domain.Hunter
         }
         public void SetAfterimage(FlashlightSample sample, float lifetime) { _controller?.SetAfterimage(sample, lifetime); }
         public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise, 1f); }
+        public bool HearFloorWideNoise(NoiseEvent noise) => _controller?.HearNoise(noise, 1f, floorWide: true) ?? false;
         public void ClearBelief() { _controller?.ClearBelief(); }
         public void SetFloorView(IReadOnlyFloorState floor) { _controller?.SetFloorView(floor); }
         public void SetClosedDoors(System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }

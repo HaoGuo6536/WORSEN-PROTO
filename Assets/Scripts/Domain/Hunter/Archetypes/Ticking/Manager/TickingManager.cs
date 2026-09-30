@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Resolve trigger identities, route winding and sequence bounded placement.
 //   - Inject verified rear-pocket targets before the shared movement decision.
-//   - Expose Core/primitive facts with the owning hunter identity for duplicates.
+//   - Expose immutable Core facts with the owning hunter identity for duplicates.
 // DEPENDENCIES:
 //   - Own controller/driver, shared HunterController and injected Player/Hunter views.
 // USAGE NOTES:
@@ -35,9 +35,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
         private IReadOnlyHunterState _hunter;
         private IReadOnlyPlayerState _player;
         public EntityId Id => _hunter?.Id ?? EntityId.None;
-        public event Action<EntityId, string, Vector3, float, long> OnSound;
-        public event Action<GuidanceTarget, bool, long> OnGuidance;
-        public event Action<NoiseEvent> OnNoise;
+        public event Action<TickingSoundFact> OnSound;
+        public event Action<TickingGuidanceFact> OnGuidance;
+        public event Action<TickingNoiseFact> OnNoise;
         private void OnEnable()
         { if (_driver == null) _driver = GetComponent<TickingDriver>(); _driver.OnKeyContact += HandleKey; }
         private void OnDisable()
@@ -92,14 +92,15 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
                 // use the shared four-tunable pursuit, not permanent omniscience.
                 if (fact.Sound == TickingSound.Wake)
                     _shared.ReceiveHint(new HintPayload(Id, _player.Id, fact.Tick, fact.Tick, _player.Position, 0f, 0f, 1f));
-                OnSound?.Invoke(Id, _config.DriverConfig.SoundIds[(int)fact.Sound], fact.Position, fact.Interval, fact.Tick);
+                OnSound?.Invoke(new TickingSoundFact(fact.Sound, fact.Position, fact.Interval, fact.Tick,
+                    Id, _config.DriverConfig.SoundIds[(int)fact.Sound]));
             }
-            while (_controller.TakeNoise(out NoiseEvent noise)) OnNoise?.Invoke(noise);
-            OnGuidance?.Invoke(_controller.Guidance, _controller.HasKey, _hunter.Tick);
+            while (_controller.TakeNoise(out NoiseEvent noise)) OnNoise?.Invoke(new TickingNoiseFact(Id, noise));
+            OnGuidance?.Invoke(new TickingGuidanceFact(_controller.Guidance, _controller.HasKey, _hunter.Tick));
         }
         public void Teardown()
         {
-            if (_controller != null) OnGuidance?.Invoke(_controller.Guidance, false, _hunter.Tick);
+            if (_controller != null) OnGuidance?.Invoke(new TickingGuidanceFact(_controller.Guidance, false, _hunter.Tick));
             if (_driver != null) _driver.ClearKey();
             _controller = null; _shared = null; _config = null; _hunter = null; _player = null;
         }

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Director (Service system).
 // KEY RESPONSIBILITIES:
+//   - Deliver explicit Loud Keys facts floor-wide once, bypassing the ordinary acoustic queue.
 //   - Inject typed dependencies and snapshot registered entities for pure rules.
 //   - Deliver hints downward through HunterRegistry and publish Core facts upward.
 //   - Clear all scene-owned history during explicit teardown.
@@ -54,6 +55,12 @@ namespace Worsen.Domain.Director
         public void SetLevelView(IReadOnlyLevelState level) { _controller?.SetLevelView(level); }
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
         public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise); }
+        public void HearFloorWideNoise(NoiseEvent noise)
+        {
+            foreach (var hunter in HunterRegistry.Items)
+                if (hunter != null && hunter.isActiveAndEnabled && hunter.HearFloorWideNoise(noise))
+                    OnNoiseHintIssued?.Invoke(hunter.Id, noise);
+        }
 
         public void Initialize(DirectorConfig config, System.Random random, IReadOnlyChaseState chase, IReadOnlyFloorState floor)
         {

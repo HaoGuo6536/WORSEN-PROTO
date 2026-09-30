@@ -20,6 +20,7 @@
 // KEY RESPONSIBILITIES:
 //   - Name the archetype to spawn, by a stable designer-facing key.
 //   - Carry the desired world placement as plain value types.
+//   - Preserve a zero-based duplicate index without changing legacy callers.
 //   - Record which entity, if any, requested the spawn (projectile owner,
 //     summoner, spawner), so attribution survives the round trip.
 //
@@ -46,12 +47,14 @@ namespace Worsen.Core
     /// <summary>A Controller request that the Factory bring one entity into existence (§1c).</summary>
     public readonly struct SpawnRequest
     {
-        public SpawnRequest(string archetypeKey, Vector3 position, Quaternion rotation, EntityId owner = default)
+        public SpawnRequest(string archetypeKey, Vector3 position, Quaternion rotation, EntityId owner = default, int duplicateIndex = 0)
         {
+            if (duplicateIndex < 0) throw new System.ArgumentOutOfRangeException(nameof(duplicateIndex));
             ArchetypeKey = archetypeKey;
             Position = position;
             Rotation = rotation;
             Owner = owner;
+            DuplicateIndex = duplicateIndex;
         }
 
         /// <summary>Designer-facing key the Factory resolves to an archetype Content SO (§4b).</summary>
@@ -65,5 +68,6 @@ namespace Worsen.Core
 
         /// <summary>The entity that caused this spawn, or <see cref="EntityId.None"/> if unowned.</summary>
         public EntityId Owner { get; }
+        public int DuplicateIndex { get; }
     }
 }

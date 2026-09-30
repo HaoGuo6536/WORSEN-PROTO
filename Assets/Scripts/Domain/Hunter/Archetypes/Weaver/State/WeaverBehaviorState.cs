@@ -10,12 +10,13 @@
 // KEY RESPONSIBILITIES:
 //   - Store injected observations and bounded facts without engine operations.
 // DEPENDENCIES:
-//   - Hunter-local definitions and UnityEngine values only.
+//   - Hunter observations, Core Weaver facts and UnityEngine values only.
 // USAGE NOTES:
 //   Reset by WeaverController for every life; no independent persistence.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
+using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Weaver
 {
     public sealed class WeaverBehaviorState

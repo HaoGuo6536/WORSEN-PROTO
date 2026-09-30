@@ -10,6 +10,8 @@
 //   - Exercise controller decisions with explicit topology, observations and time.
 //   - Keep seeded direction choices and repeated loss-search sequences reproducible.
 //   - Preserve stationary tracking, distant hint travel and loop history through brief occlusion.
+//   - Bound predictive retargeting by commitment and retain pursuit after a failed guess.
+//   - Select the loop goal over collection and pursuit, without delaying an available attack.
 // DEPENDENCIES:
 //   - Hunter logic, Core values, Player/Level/Floor views, reflection and NUnit.
 // USAGE NOTES:
@@ -294,6 +296,8 @@ namespace Worsen.Tests.Hunter
         {
             Tune("_deliberationSeconds", 0f);
             Tune("_actionCommitmentSeconds", 10f);
+            _floor.ActiveCakeAnchors = new[] { Cake(10, 2, Vector3.forward * 10f) };
+            _floor.ExitState = ExitState.Open;
             _player.Position = Vector3.forward * 10f;
             _player.Velocity = Vector3.forward * speed;
             _controller.Tick(Visible, 0.1f, 0);
@@ -306,7 +310,75 @@ namespace Worsen.Tests.Hunter
             }
             Assert.That(Memory<List<int>>("RecentRooms"), Is.EqualTo(new[] { 1, 3, 1, 3, 1 }));
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.CutOff));
+            Assert.That(_state.CurrentGoal, Is.EqualTo(HunterGoal.BreakLoop));
             Assert.That(_state.CurrentTarget, Is.EqualTo(Vector3.forward * 10f));
+            _player.Position = Vector3.forward * 3f;
+            Assert.That(_controller.Tick(Visible, 0.1f, 5).BeginLunge, Is.True,
+                "A reachable attack must interrupt even a high-utility loop goal.");
+        }
+        [Test] public void ChasePredictionHoldsThroughACutThenRefreshesAtCommitmentExpiry()
+        {
+            Tune("_predictionChance", 1f); Tune("_parallelCorridorChance", 0f);
+            _player.Velocity = Vector3.forward * _player.SprintSpeed;
+            _controller.CommitPose(Vector3.forward * 7f, Vector3.zero, Vector3.forward);
+            _player.Position = Vector3.forward * 12f;
+            var first = _controller.Tick(Visible, 0.1f, 0);
+            Assert.That(first.Target, Is.EqualTo(Vector3.forward * 16f));
+            _player.Position = new Vector3(1, 0, 12); _player.Velocity = Vector3.right * _player.SprintSpeed;
+            for (int tick = 1; tick < 5; tick++)
+                Assert.That(_controller.Tick(Visible, 0.1f, tick).Target, Is.EqualTo(first.Target));
+            Assert.That(_controller.Tick(Visible, 0.1f, 5).Target, Is.Not.EqualTo(first.Target));
+            Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Chase));
+        }
+        [Test] public void PredictionChanceIsSampledAgainOnlyWhenTheCommitmentExpires()
+        {
+            var random = new PredictionRandom();
+            _controller = new HunterController(_state, _profile, random, _player, new LevelFixture());
+            _controller.Reset(new EntityId(-1), Vector3.forward * 7f, Vector3.forward);
+            Tune("_parallelCorridorChance", 0f);
+            _player.Position = Vector3.forward * 12f; _player.Velocity = Vector3.forward;
+            _controller.Tick(Visible, 0.1f, 0);
+            Assert.That(random.Draws, Is.EqualTo(1));
+            for (int tick = 1; tick < 5; tick++) _controller.Tick(Visible, 0.1f, tick);
+            Assert.That(random.Draws, Is.EqualTo(1));
+            _controller.Tick(Visible, 0.1f, 5);
+            Assert.That(random.Draws, Is.EqualTo(2));
+            Assert.That(_state.CurrentTarget, Is.EqualTo(_player.Position), "The second draw declines prediction.");
+        }
+        private sealed class PredictionRandom : System.Random
+        {
+            public int Draws { get; private set; }
+            public override double NextDouble() => ++Draws == 1 ? 0.0 : 0.99;
+        }
+        [TestCase(0f)] [TestCase(0.4f)]
+        public void FailedPredictionRetriesObservedPreyBeforeAbandoningChase(float elapsedBeforeFailure)
+        {
+            Tune("_predictionChance", 1f); Tune("_parallelCorridorChance", 0f);
+            _controller.CommitPose(Vector3.forward * 7f, Vector3.zero, Vector3.forward);
+            _player.Position = Vector3.forward * 12f; _player.Velocity = Vector3.forward;
+            Assert.That(_controller.Tick(Visible, 0.1f, 0).Target, Is.Not.EqualTo(_player.Position));
+            if (elapsedBeforeFailure > 0f) _controller.Tick(Visible, elapsedBeforeFailure, 1);
+            _controller.ReportPathFailure();
+            var retry = _controller.Tick(Visible, 0.1f, 2);
+            Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Chase));
+            Assert.That(retry.Target, Is.EqualTo(_player.Position));
+            Assert.That(retry.Speed, Is.EqualTo(_player.SprintSpeed * _profile.ChaseSpeedMultiplier));
+            _controller.ReportPathFailure(); // The real observed route also failed.
+            _controller.Tick(Visible, 0.4f, 3);
+            Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Patrol));
+        }
+        [Test] public void SightLossInterruptsPredictionAndWalksToObservedPosition()
+        {
+            Tune("_predictionChance", 1f); Tune("_parallelCorridorChance", 0f); Tune("_deliberationSeconds", 0f);
+            _controller.CommitPose(Vector3.forward * 7f, Vector3.zero, Vector3.forward);
+            _player.Position = Vector3.forward * 12f; _player.Velocity = Vector3.forward * _player.SprintSpeed;
+            _controller.Tick(Visible, 0.1f, 0);
+            Vector3 seen = _state.LastKnownPosition;
+            _player.Position = Vector3.right * 50f;
+            var loss = _controller.Tick(default, 0.1f, 1);
+            Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.SearchLastKnown));
+            Assert.That(loss.Target, Is.EqualTo(seen));
+            Assert.That(loss.Speed, Is.EqualTo(_profile.InvestigateSpeed));
         }
         [Test] public void HintTravelDoesNotManufactureLoopHistoryAndCredibleNoiseCanStillStalk()
         {
