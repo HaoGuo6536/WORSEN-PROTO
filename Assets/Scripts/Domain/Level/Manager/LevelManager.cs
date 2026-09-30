@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Level (Service system).
 // KEY RESPONSIBILITIES:
+//   - Publish door-open provenance only after a real closed-to-open change; legacy opens are anonymous.
 //   - Reconcile enabled markers, sequence rebuilds and publish readiness facts.
 //   - Revalidate incomplete removal snapshots after lifecycle callbacks settle.
 //   - Accept a generated graph through explicit initialization, without markers.
@@ -52,6 +53,7 @@ namespace Worsen.Domain.Level
         public IReadOnlyInteractableSet Interactables => _interactables;
         public IReadOnlyDictionary<int, bool> ClosedDoors => _interactables.ClosedDoors;
         public event Action<InteractableState, InteractableState> InteractableChanged;
+        public event Action<InteractableState, bool> DoorOpened;
 
         public IReadOnlyLevelState Initialize()
         {
@@ -81,7 +83,12 @@ namespace Worsen.Domain.Level
             return _state;
         }
 
-        public bool OpenDoor(int id) => Change(id, InteractableKind.Door, InteractableStateValue.Open);
+        public bool OpenDoor(int id, bool openedByPlayer = false)
+        {
+            if (!Change(id, InteractableKind.Door, InteractableStateValue.Open)) return false;
+            if (_interactables.TryGet(id, out var door)) DoorOpened?.Invoke(door, openedByPlayer);
+            return true;
+        }
         public bool CloseDoor(int id) => Change(id, InteractableKind.Door, InteractableStateValue.Inactive);
         public bool SetLit(int id, bool lit) => Change(id, InteractableKind.Light,
             lit ? InteractableStateValue.Lit : InteractableStateValue.Inactive);

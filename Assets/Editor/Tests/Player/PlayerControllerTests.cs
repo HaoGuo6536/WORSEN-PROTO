@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Verify exactly one normalized landing severity fact without changing stumble duration.
 //   - Verify queued external motion, total speed limits, grace independence and traversal interruption.
 //   - Lock floor health, delayed regeneration, neutral hooks, posture-only crouch and typed noise.
 //   - Implement only the Player responsibility named by this script.
@@ -521,7 +522,11 @@ namespace Worsen.Tests.Player
         {
             _state.MovementState = MovementState.Air;
             _state.Velocity = new Vector3(0f, -impact, 10f);
-            _controller.Tick(Frame(), Ground, Dt, 1);
+            var result = _controller.Tick(Frame(), Ground, Dt, 1);
+            var landings = Array.FindAll(result.Facts, fact => fact.Kind == TraversalKind.Land);
+            Assert.That(landings.Length, Is.EqualTo(1));
+            Assert.That(landings[0].Severity, Is.EqualTo(impact > _profile.HardLandingThreshold ? 1f : 0f));
+            Assert.That(landings[0].Duration, Is.EqualTo(stumble));
             Assert.That(Speed, Is.EqualTo(speed).Within(0.0001f));
             Assert.That(_state.MovementState, Is.EqualTo(movement));
             Assert.That(_state.StumbleRemaining, Is.EqualTo(stumble));

@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Verify density budgets exclude unavailable torches and preserve other light types.
 //   - Verify portal clearance, elevation, selection, local dimming and threshold chalk.
 //   - Verify default-off Wick/Darker Floors composition without exceeding the light cap.
 //   - Bind exact Core light sockets without lighting other rooms, moons or destroyed torches.
@@ -27,6 +28,27 @@ namespace Worsen.Tests.CastleEnvironment
 {
     public sealed class EnvironmentPresenterTests
     {
+        [TestCase(1f, 3)]
+        [TestCase(.5f, 1)]
+        [TestCase(0f, 0)]
+        [TestCase(float.NaN, 3)]
+        public void TorchBudgetKeepsUnavailableSocketsOffAndDoesNotScaleMoons(float multiplier, int torches)
+        {
+            var state = new EnvironmentDriverState { TorchCountMultiplier = multiplier };
+            for (int i = 0; i < 6; i++)
+            {
+                state.Positions.Add(Vector3.right * i);
+                state.Available.Add(i != 0 && i != 1);
+                state.Flames.Add(new EnvironmentFlameDriverState { Moon = i == 5, Lit = i != 0, Destruction = i == 1 ? 1f : 0f });
+            }
+            var visible = EnvironmentPresenter.BudgetedLights(state, 6, 20f);
+            Assert.That(visible.Count(i => !state.Flames[i].Moon), Is.EqualTo(torches));
+            Assert.That(visible, Does.Contain(5));
+            Assert.That(visible, Has.No.Member(0));
+            Assert.That(visible, Has.No.Member(1));
+            Assert.That(EnvironmentPresenter.BudgetedLights(state, 1, 20f).Length, Is.LessThanOrEqualTo(1));
+        }
+
         [Test]
         public void FootprintDressingAndLightSlotsAvoidNotchesAndInternalWalls()
         {

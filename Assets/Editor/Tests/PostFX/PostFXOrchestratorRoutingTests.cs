@@ -12,15 +12,16 @@
 //   - Preserve budget and spacing across floors; reset only on committed run starts.
 //   - Verify same-seed restart, rejected restart and paired subscriptions.
 //   - Verify tick forwarding, rebind cleanup, suspension and invalid clock commands.
+//   - Drive Edit Mode lifecycle explicitly; verify active effects and Blind duration.
 // DEPENDENCIES:
-//   Core; Session Run/Progression; Presentation PostFX/Horror/Input; Orchestrators;
-//   NUnit, transient configuration and UnityEngine object lifetime.
+//   Core; Domain Floor; Session Run/Progression; Presentation PostFX/Horror/Input;
+//   Orchestrators; NUnit, transient configuration and UnityEngine object lifetime.
 // USAGE NOTES:
 //   Edit Mode boundary tests for the production clock path, not live scene wiring.
 //   Horror's state/presenter and inactive atmosphere boundary are injected to avoid
 //   global rendering changes. Progression's canonical controller is injected to avoid
 //   DontDestroyOnLoad in Edit Mode; public StartRun/RestartRun still publish real facts.
-//   The scene owner still wires Horror into PostFX; no injected clock is needed in production.
+//   Explicit owner lifecycle enables Horror's injected driver; PostFX initializes normally.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -28,6 +29,7 @@ using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
+using Worsen.Domain.Floor;
 using Worsen.Orchestrator;
 using Worsen.Presentation.Horror;
 using Worsen.Presentation.Input;
@@ -81,22 +83,21 @@ namespace Worsen.Tests.PostFX
             Set(_horrorDriver, "_config", _horrorConfig);
             Set(_horrorDriver, "_presenter", new HorrorPresenter());
             Set(_horrorDriver, "_atmosphere", Component<HorrorAtmosphereDriver>());
-            _horror.gameObject.SetActive(true);
+            Activate(_horror, true);
             _post = Component<PostFXManager>();
             _postDriver = _post.gameObject.AddComponent<PostFXDriver>();
             _postDriver.ConfigureForSetup();
             _postConfig = ScriptableObject.CreateInstance<PostFXDriverConfig>();
             Set(_post, "_driver", _postDriver); Set(_post, "_config", _postConfig);
-            // The driver owns its runtime state; initialize it so admission decisions reach PostFX state.
-            _postDriver.Initialize(_postConfig);
             _post.gameObject.SetActive(true);
+            _post.Initialize();
             _input = Component<InputManager>();
             _horrorRoute = Component<HorrorOrchestrator>();
             _horrorRoute.Configure(_run, _progression, _input, _horror);
-            _horrorRoute.gameObject.SetActive(true);
+            Activate(_horrorRoute, true);
             _postRoute = Component<PostFXOrchestrator>();
-            _postRoute.Configure(_run, _post, horror: _horror, runSeconds: ReadClock);
-            _postRoute.gameObject.SetActive(true);
+            _postRoute.Configure(_run, _post, horror: _horror, runSeconds: ReadClock, progression: _progression);
+            Activate(_postRoute, true);
             _progression.StartRun(731);
             _wholeRunSeconds = 0d; _clockReads = 0;
         }
@@ -104,8 +105,10 @@ namespace Worsen.Tests.PostFX
         [TearDown]
         public void TearDown()
         {
-            if (_postRoute != null) _postRoute.gameObject.SetActive(false);
-            if (_horrorRoute != null) _horrorRoute.gameObject.SetActive(false);
+            if (_postRoute != null) Activate(_postRoute, false);
+            if (_horrorRoute != null) Activate(_horrorRoute, false);
+            if (_post != null) _post.Teardown();
+            if (_horrorDriver != null) _horrorDriver.Teardown();
             for (int i = _objects.Count - 1; i >= 0; i--) Object.DestroyImmediate(_objects[i]);
             _objects.Clear();
             Object.DestroyImmediate(_horrorConfig); Object.DestroyImmediate(_postConfig);
@@ -181,10 +184,10 @@ namespace Worsen.Tests.PostFX
             _horrorRoute.Configure(_run, _progression, _input, _horror);
             Assert.That(Subscribers(_run, "IntrusionPublished"), Is.EqualTo(1));
             Assert.That(Subscribers(_progression, "TransactionCommitted"), Is.EqualTo(1));
-            _postRoute.gameObject.SetActive(false); _horrorRoute.gameObject.SetActive(false);
+            Activate(_postRoute, false); Activate(_horrorRoute, false);
             Assert.That(Subscribers(_run, "IntrusionPublished"), Is.Zero);
             Assert.That(Subscribers(_progression, "TransactionCommitted"), Is.Zero);
-            _postRoute.gameObject.SetActive(true); _horrorRoute.gameObject.SetActive(true);
+            Activate(_postRoute, true); Activate(_horrorRoute, true);
             Assert.That(_horrorState.StartlesUsed, Is.EqualTo(1));
             Intrude(6d, false);
         }
@@ -280,11 +283,11 @@ namespace Worsen.Tests.PostFX
             Assert.That(Subscribers(_run, "TickAdvanced"), Is.EqualTo(1));
             Publish(_run, "TickAdvanced", default(InputFrame), 0.5f, 2L);
             Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.75d));
-            _horrorRoute.gameObject.SetActive(false);
+            Activate(_horrorRoute, false);
             Assert.That(Subscribers(_run, "TickAdvanced"), Is.Zero);
             Publish(_run, "TickAdvanced", default(InputFrame), 1f, 3L);
             Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.75d));
-            _horrorRoute.gameObject.SetActive(true);
+            Activate(_horrorRoute, true);
             Assert.That(Subscribers(_run, "TickAdvanced"), Is.EqualTo(1));
             Publish(_run, "TickAdvanced", default(InputFrame), 0.25f, 4L);
             Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(1d));
@@ -301,7 +304,7 @@ namespace Worsen.Tests.PostFX
             Assert.That(_horror.RunElapsedSeconds, Is.Zero);
             Publish(replacement, "TickAdvanced", default(InputFrame), 0.5f, 1L);
             Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.5d));
-            _horrorRoute.gameObject.SetActive(false);
+            Activate(_horrorRoute, false);
             Assert.That(Subscribers(replacement, "TickAdvanced"), Is.Zero);
         }
 
@@ -346,10 +349,12 @@ namespace Worsen.Tests.PostFX
         {
             Assert.That(_horror.AdvanceRunClock(2f), Is.True);
             _horror.enabled = false;
+            Invoke(_horror, "OnDisable");
             Assert.That(_horror.AdvanceRunClock(1f), Is.False);
             Assert.That(_horrorDriver.AdvanceRunClock(1f), Is.False);
             Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(2d));
             _horror.enabled = true;
+            Invoke(_horror, "OnEnable");
             _horrorDriver.enabled = false;
             Assert.That(_horror.AdvanceRunClock(1f), Is.False);
             _horrorDriver.enabled = true;
@@ -362,6 +367,65 @@ namespace Worsen.Tests.PostFX
             Assert.That(_clockReads, Is.Zero);
         }
 
+        [Test]
+        public void EffectsSynchronizeOnConnectChangeCaptureResetAndRestart()
+        {
+            Assert.That(Post.ActiveEffects, Is.Not.Null);
+            IReadOnlyActiveEffects view = new ActiveEffects(new[] { new ActiveEffect(new EffectId("blinded"), EffectKind.Curse, 1) });
+            Publish(_progression, "EffectsSnapshotChanged", _progression.Snapshot, view);
+            Assert.That(Post.ActiveEffects, Is.SameAs(view));
+            Assert.That(_horrorState.ActiveEffects, Is.SameAs(view));
+            Post.ActiveEffects = null;
+            Publish(_run, "CaptureStarted", default(RunCaptureMetadata));
+            Assert.That(Post.ActiveEffects, Is.Not.Null);
+            int generation = OpenFloor();
+            Assert.That(_progression.EndRun(generation), Is.True);
+            Assert.That(_progression.RestartRun(_progression.Snapshot.Revision), Is.True);
+            Assert.That(Post.ActiveEffects, Is.Not.Null);
+            Assert.That(Post.ActiveEffects.Has(new EffectId("blinded")), Is.False);
+            Assert.That(_horrorState.ActiveEffects, Is.EquivalentTo(Post.ActiveEffects));
+            _postRoute.Configure(_run, _post, progression: _progression);
+            Assert.That(Subscribers(_progression, "EffectsSnapshotChanged"), Is.EqualTo(2));
+            Activate(_postRoute, false); Activate(_horrorRoute, false);
+            Assert.That(Subscribers(_progression, "EffectsSnapshotChanged"), Is.Zero);
+            Invoke(_postRoute, "OnDestroy"); Invoke(_horrorRoute, "OnDestroy");
+            Assert.That(Subscribers(_progression, "EffectsSnapshotChanged"), Is.Zero);
+            var replacement = Component<ProgressionSessionManager>();
+            _postRoute.Configure(_run, _post, progression: replacement);
+            _horrorRoute.Configure(_run, replacement, _input, _horror);
+            Activate(_postRoute, true); Activate(_horrorRoute, true);
+            Assert.That(Subscribers(_progression, "EffectsSnapshotChanged"), Is.Zero);
+            Assert.That(Subscribers(replacement, "EffectsSnapshotChanged"), Is.EqualTo(2));
+            Activate(_postRoute, false); Activate(_horrorRoute, false);
+            Assert.That(Subscribers(replacement, "EffectsSnapshotChanged"), Is.Zero);
+        }
+
+        [TestCase(FloorTrapKind.Blind, 2.5f)]
+        [TestCase(FloorTrapKind.Slow, 0f)]
+        [TestCase(FloorTrapKind.Announce, 0f)]
+        public void BlindTrapUsesConfigAndPairsAcrossRebind(FloorTrapKind kind, float expected)
+        {
+            Publish(_run, "TrapSprung", new FloorTrapSprungFact(1, kind, 1, Vector3.zero, 1, new EntityId(7)));
+            Assert.That(Post.BlindnessRemaining, Is.EqualTo(expected));
+            Set(_postConfig, "_blindTrapSeconds", 4f);
+            Publish(_run, "TrapSprung", new FloorTrapSprungFact(2, FloorTrapKind.Blind, 1, Vector3.zero, 2, new EntityId(7)));
+            Assert.That(Post.BlindnessRemaining, Is.EqualTo(4f));
+            var replacement = Component<RunSessionManager>();
+            _postRoute.Configure(replacement, _post);
+            Assert.That(Subscribers(_run, "TrapSprung"), Is.Zero);
+            Assert.That(Subscribers(replacement, "TrapSprung"), Is.EqualTo(1));
+            Activate(_postRoute, false);
+            Assert.That(Subscribers(replacement, "TrapSprung"), Is.Zero);
+        }
+
+        private static void Invoke(object target, string name)
+            => target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, null);
+        private static void Activate(MonoBehaviour target, bool active)
+        {
+            Invoke(target, "OnDisable");
+            target.gameObject.SetActive(active);
+            if (active) { Invoke(target, "OnDisable"); Invoke(target, "OnEnable"); }
+        }
         private int OpenFloor()
         {
             while (_progression.Snapshot.Phase == ProgressionPhase.ChooseThreat || _progression.Snapshot.Phase == ProgressionPhase.ChooseCurse)

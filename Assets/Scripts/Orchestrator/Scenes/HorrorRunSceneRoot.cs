@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   SceneRoot (§6b) · Orchestrator · HorrorRun scene assembly.
 // KEY RESPONSIBILITIES:
+//   - Bind active effects, micro-event world/HUD inputs, lighting hooks and outcome telemetry.
 //   - Initialize collapse fog and bind PostFX to Horror's whole-run startle clock before play.
 //   - Compose runtime preference consumers and terminal Results with explicit seed selection.
 //   - Bind scene camera catches into persistent audio and release the binding on teardown.
@@ -130,8 +131,8 @@ namespace Worsen.Orchestrator
             _hud.Initialize(); _camera.Initialize(); _postFX.Initialize();
             _camera.GetComponent<CameraOrchestrator>().Configure(_run, _camera);
             _horror.Initialize(_horrorConfig); _progressionUI.Initialize();
-            _postFX.GetComponent<PostFXOrchestrator>().Configure(_run, _postFX, _camera, _horror);
             _progression = _progression.Initialize(_progressionConfig, runSeed);
+            _postFX.GetComponent<PostFXOrchestrator>().Configure(_run, _postFX, _camera, _horror, progression: _progression);
             _expedition = _expedition.Initialize();
             _effects = _effects.Initialize(_effectsConfig);
             _environment.Initialize(_environmentConfig);
@@ -143,13 +144,14 @@ namespace Worsen.Orchestrator
                 _floor, _floorConfig, _director, _directorConfig, SceneKey.HorrorRun, _hunterRoster, _effects);
             _progressionRoute.Configure(_progression, _progressionUI, _run, _camera,
                 _useFixedSeed ? null : (Func<int>)CreateRunSeed, terminalResults: true);
-            _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera);
+            _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera, _expedition, _level, _hud);
             _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment);
             _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
             // Exit rays need the level and the exit door visuals the FloorDriver uses.
-            _environmentRoute.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals);
+            _environmentRoute.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals, _horror);
             _inputRoute.ConfigureProgression(_progression);
             _telemetry.GetComponent<TelemetryOrchestrator>().ConfigureProgression(_progression);
+            _telemetry.GetComponent<TelemetryOrchestrator>().ConfigureHorror(_horror);
             _assembled = true;
             OnEnable();
             if (SettingsManager.Instance != null && SettingsManager.Instance != _settings)
@@ -183,6 +185,7 @@ namespace Worsen.Orchestrator
         private static int CreateRunSeed() => Guid.NewGuid().GetHashCode() & int.MaxValue;
         private void OnDestroy()
         {
+            if (_telemetry != null) _telemetry.GetComponent<TelemetryOrchestrator>()?.ConfigureHorror(null);
             if (_audio != null)
             {
                 _audio.GetComponent<AudioOrchestrator>()?.ClearCatch();

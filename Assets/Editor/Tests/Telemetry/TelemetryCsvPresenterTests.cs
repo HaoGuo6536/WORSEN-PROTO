@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
+//   - Preserve complete micro-event outcome and clock/seed detail with invariant formatting.
 //   - Verify invariant numbers, text escaping and missing-value output.
 //   - Lock legacy column order and blank appended cells for every pre-existing kind.
 // DEPENDENCIES:
@@ -23,6 +24,23 @@ namespace Worsen.Tests.Telemetry
 {
     public sealed class TelemetryCsvPresenterTests
     {
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MicroEventContainsAllOutcomeFields(bool applied)
+        {
+            var previous = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+                var csv = new TelemetryCsvPresenter();
+                string row = csv.MicroEvent(3, 101, new UnityEngine.Vector3(1.25f, 2f, -3f), .7f, applied, 42, 731);
+                Assert.That(row, Does.StartWith("\"raw\",\"42\",\"\",\"\",\"MicroEvent\",\"0.7\""));
+                Assert.That(row, Does.Contain("kind=3;target_id=101;position_x=1.25;position_y=2;position_z=-3;duration=0.7;applied=" + applied + ";seed=731"));
+                Assert.That(row.Split(',').Length, Is.EqualTo(csv.Header.Split(',').Length));
+            }
+            finally { CultureInfo.CurrentCulture = previous; }
+        }
+
         [Test]
         public void EveryLegacyKindKeepsItsFirstTenCellsAndHasOnlyBlankAppendedCells()
         {

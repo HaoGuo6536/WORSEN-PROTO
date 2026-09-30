@@ -22,6 +22,7 @@
 //   - Unity rendering core and Universal Render Pipeline volume APIs.
 //
 // USAGE NOTES:
+//   - Owned transient profiles are also released immediately in Edit Mode fixtures.
 //   - Scene-owned by PostFXManager; no global render settings are written.
 //   - Its dedicated global volume affects cameras whose volume mask includes its layer.
 //   - The scene coordinator must enable post-processing on the output camera.
@@ -165,16 +166,22 @@ namespace Worsen.Presentation.PostFX
             }
             if (_profile != null)
             {
-                foreach (var component in _profile.components) Destroy(component);
-                Destroy(_profile);
+                foreach (var component in _profile.components) DestroyOwned(component);
+                DestroyOwned(_profile);
             }
-            if (_runtimeVolume && _volume != null) Destroy(_volume);
+            if (_runtimeVolume && _volume != null) DestroyOwned(_volume);
             if (_runtimeVolume) _volume = null;
             _runtimeVolume = false;
             _profile = null;
             _chromatic = null; _distortion = null; _vignette = null;
             _color = null; _grain = null; _blur = null;
             _state = null; _presenter = null; _config = null;
+        }
+
+        private static void DestroyOwned(Object target)
+        {
+            if (Application.isPlaying) Destroy(target);
+            else DestroyImmediate(target);
         }
 
         private void LateUpdate()
