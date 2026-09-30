@@ -14,13 +14,14 @@
 // DEPENDENCIES:
 //   - Session.Run and Presentation.PostFX/Horror; Core payloads only.
 //   - CameraManager supplies a configured consumption duration only during Configure.
-//   - Configure supplies a whole-run clock owned by Session or Horror presentation state.
+//   - HorrorManager supplies the whole-run clock unless Configure injects a test clock.
 // USAGE NOTES:
 //   Scene-owned; release subscriptions before the scene volume is destroyed. Setup provides serialized references before activation.
 //   Initialize Camera before Configure to synchronize its configured duration.
 //   Serialized duration preserves older setup paths. No runtime sequence state lives here.
 //   Director slow-player intrusions are provisionally earned; IntrusionSample has no earned flag.
-//   Missing Horror or clock wiring degrades to subtle feedback, never an unbudgeted startle.
+//   Missing or uninitialized Horror degrades to subtle feedback, never an unbudgeted startle.
+//   An explicitly injected clock takes precedence; invalid readings still fail closed.
 //   Run.ElapsedSeconds is floor-local in Expedition and must not be used as the whole-run clock.
 // ============================================================================
 
@@ -77,7 +78,7 @@ namespace Worsen.Orchestrator
         private void OnHealth(EntityId id, float health, float maximum) => _postFX.SetInjury(health, maximum);
         private void OnIntrusion(IntrusionSample sample)
         {
-            bool admitted = _horror != null && _horror.TryStartle(_runSeconds == null ? double.NaN : _runSeconds(), true);
+            bool admitted = _horror != null && _horror.TryStartle(_runSeconds != null ? _runSeconds() : _horror.RunElapsedSeconds, true);
             _postFX.PlayIntrusion(sample.DurationSeconds, admitted);
         }
         private void OnCollapseHand(CollapseHandFact fact)

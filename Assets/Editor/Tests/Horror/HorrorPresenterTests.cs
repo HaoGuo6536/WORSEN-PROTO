@@ -13,6 +13,7 @@
 //   - Prove fog and flashlight modifiers affect their real distance outputs.
 //   - Prove enemy warning timing, geometry and phase-triggered sound decisions.
 //   - Prove seeded startle count, spacing, run reset and default-off fog hooks.
+//   - Prove injected run-clock accumulation, invalid-delta rejection and reset boundaries.
 //
 // DEPENDENCIES:
 //   - HorrorPresenter, PostFX composition, Core attack samples, NUnit and editor config serialization.
@@ -244,6 +245,44 @@ namespace Worsen.Tests.Horror
             Assert.That(arrow[2], Is.EqualTo(new Vector3(0.25f, 0f, 0.75f)));
             Assert.That(arrow[1], Is.EqualTo(Vector3.forward));
             Assert.That(arrow[4], Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
+        public void RunClockAccumulatesInjectedDeltasAndOnlyRunResetZeroesIt()
+        {
+            Assert.That(_state.RunElapsedSeconds, Is.Zero);
+            Assert.That(_presenter.AdvanceRunClock(_state, 0.25f), Is.True);
+            Assert.That(_presenter.AdvanceRunClock(_state, 0.5f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(0.75d));
+            _presenter.ResetRound(_state);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(0.75d));
+            Assert.That(_presenter.AdvanceRunClock(_state, 1.25f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(2d));
+            _presenter.ResetRun(_state);
+            Assert.That(_state.RunElapsedSeconds, Is.Zero);
+            Assert.That(_presenter.AdvanceRunClock(_state, 0.125f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(0.125d));
+        }
+
+        [TestCase(float.NaN)]
+        [TestCase(float.PositiveInfinity)]
+        [TestCase(float.NegativeInfinity)]
+        [TestCase(-1f)]
+        public void InvalidRunClockDeltasAreRejectedWithoutChangingElapsedTime(float deltaSeconds)
+        {
+            _presenter.AdvanceRunClock(_state, 2f);
+            Assert.That(_presenter.AdvanceRunClock(_state, deltaSeconds), Is.False);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(2d));
+        }
+
+        [Test]
+        public void ZeroDeltaIsAcceptedAndLargeFiniteDeltasUseDoubleAccumulation()
+        {
+            Assert.That(_presenter.AdvanceRunClock(_state, 0f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.Zero);
+            Assert.That(_presenter.AdvanceRunClock(_state, float.MaxValue), Is.True);
+            Assert.That(_presenter.AdvanceRunClock(_state, float.MaxValue), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(2d * float.MaxValue));
         }
 
         [Test]
