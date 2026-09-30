@@ -14,6 +14,7 @@
 //   - Forward catch identity and completion; DriverState owns the pending summary.
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward summary display commands and republish one accepted restart click.
+//   - Forward persisted best depth and republish an optional fixed next-run seed.
 //
 // DEPENDENCIES:
 //   - Worsen.Core RunSummary; no Domain, Session or sibling Presentation systems.
@@ -39,6 +40,7 @@ namespace Worsen.Presentation.Results
         private bool _initialized;
 
         public event Action RestartRequested;
+        public event Action<bool, int> RestartWithSeedRequested;
 
         public void Initialize()
         {
@@ -52,6 +54,7 @@ namespace Worsen.Presentation.Results
         }
 
         public void Show(RunSummary summary) { if (_driver != null) _driver.Show(summary); }
+        public void SetBestDepth(int depth) { if (_driver != null) _driver.SetBestDepth(depth); }
         public void PrepareCatch(EntityId player) { if (_driver != null) _driver.PrepareCatch(player); }
         public void EndCatch(EntityId player) { if (_driver != null) _driver.EndCatch(player); }
         public void Hide() { if (_driver != null) _driver.Hide(); }
@@ -65,6 +68,8 @@ namespace Worsen.Presentation.Results
             _driver.enabled = true;
             _driver.RestartClicked -= OnRestartClicked;
             _driver.RestartClicked += OnRestartClicked;
+            _driver.RestartWithSeedClicked -= OnRestartWithSeedClicked;
+            _driver.RestartWithSeedClicked += OnRestartWithSeedClicked;
         }
 
         private void OnDisable()
@@ -72,6 +77,7 @@ namespace Worsen.Presentation.Results
             if (_driver == null) return;
             _driver.RestartClicked -= OnRestartClicked;
             _driver.enabled = false;
+            _driver.RestartWithSeedClicked -= OnRestartWithSeedClicked;
         }
 
         private void OnDestroy()
@@ -80,6 +86,7 @@ namespace Worsen.Presentation.Results
         }
 
         private void OnRestartClicked() => RestartRequested?.Invoke();
+        private void OnRestartWithSeedClicked(bool fixedSeed, int seed) => RestartWithSeedRequested?.Invoke(fixedSeed, seed);
     }
 }
 

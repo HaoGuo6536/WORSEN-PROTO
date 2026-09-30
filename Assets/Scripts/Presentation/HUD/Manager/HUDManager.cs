@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
-//   - Forward counts, exit state, world direction, heading, slots and chase facts.
+//   - Forward cake/golden counts, world direction, occupied slots and chase facts.
 //   - Reset transient chase presentation at an explicitly routed new-run boundary.
 //   - Forward explicitly routed camera orientation to the objective compass.
 //
@@ -49,6 +49,8 @@ namespace Worsen.Presentation.HUD
         }
 
         public void SetCount(int collected, int total) { if (_driver != null) _driver.SetCount(collected, total); }
+        public void SetGoldenCount(int count) { if (_driver != null) _driver.SetGoldenCount(count); }
+        public void SetHeldItemCount(int count) { if (_driver != null) _driver.SetHeldItemCount(count); }
         public void SetExitState(ExitState exitState) { if (_driver != null) _driver.SetExitState(exitState); }
         public void SetDirection(Vector3 worldDirection, bool visible) { if (_driver != null) _driver.SetDirection(worldDirection, visible); }
         public void SetHeading(float headingDegrees) { if (_driver != null) _driver.SetHeading(headingDegrees); }

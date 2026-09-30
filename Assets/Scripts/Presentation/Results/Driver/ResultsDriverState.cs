@@ -12,6 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep display text and the one-request-per-summary latch as passive data.
 //   - Retain the pending death summary, catch identity and bounded fallback state.
+//   - Store detailed outcomes, persisted best depth and validated next-run seed input.
 //
 // DEPENDENCIES:
 //   - Core RunSummary and EntityId values only.
@@ -41,6 +42,10 @@ namespace Worsen.Presentation.Results
         public string Escapes = "—";
         public string ChaseTime = "—";
         public string EndReason = "—";
+        public string Cause = "—", Killer = "—", GrabsEscaped = "—", ExitToEscape = "—", Depth = "—", Seed = "—", BestDepth = "—";
+        public string NextSeedText = "", SeedError = "";
+        public bool SeedValid = true, UseFixedSeed;
+        public int NextSeed;
     }
 }
 

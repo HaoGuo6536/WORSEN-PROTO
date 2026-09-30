@@ -8,7 +8,7 @@
 //   Editor tool (section 10) - test suite (section 11) - Presentation - HUD.
 // KEY RESPONSIBILITIES:
 //   - Ensure bind/unbind leaves no duplicate indicator or obsolete caption.
-//   - Preserve unavailable-target visibility and hide only chrome during a chase.
+//   - Preserve guidance in chases; forbid chrome, hints and empty slot outlines.
 // DEPENDENCIES:
 //   NUnit, HUD presentation, Unity objects and UI Toolkit.
 // USAGE NOTES:
@@ -69,7 +69,13 @@ namespace Worsen.Tests.HUD
                 foreach (Label label in root.Query<Label>().ToList())
                     Assert.That(label.text, Does.Not.Contain("HUNTED"));
                 Assert.That(root.Q("item-slots"), Is.Not.Null);
-                Assert.That(root.Q("controls-hint"), Is.Not.Null);
+                Assert.That(root.Q("controls-hint"), Is.Null);
+                Assert.That(root.Q("objective-title"), Is.Null);
+                Assert.That(root.Q("cake-gauge"), Is.Null);
+                Assert.That(root.Q("exit-state"), Is.Null);
+                Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.None));
+                presenter.SetGoldenCount(state, 4); driver.Apply(state);
+                Assert.That(root.Q<Label>("golden-count").text, Is.EqualTo("Golden: 4"));
                 presenter.SetChaseMode(state, false);
                 presenter.Tick(state, config.RestoreSeconds, config.RestoreSeconds); driver.Apply(state);
                 Assert.That(root.Q("hud-extra").style.display.value, Is.EqualTo(DisplayStyle.Flex));
