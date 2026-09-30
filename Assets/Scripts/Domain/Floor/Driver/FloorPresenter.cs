@@ -4,7 +4,8 @@
 // PURPOSE:
 //   Computes navigation path lengths, horizontal guidance and warning intensity without engine queries.
 //   Guidance uses the sampled path origin so airborne players do not point at their
-//   own mesh projection. Failed refreshes use straight-line or retained directions.
+//   own mesh projection. Failed refreshes hold target-local history before using
+//   a straight line when that target has no usable history.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Floor.
 // KEY RESPONSIBILITIES:
@@ -65,14 +66,19 @@ namespace Worsen.Domain.Floor
             var direction = complete ? FirstDirection(sampledOrigin, corners, skipDistance) : Vector3.zero;
             if (direction.sqrMagnitude == 0f)
             {
-                direction = HorizontalDirection(target - playerOrigin);
-                if (direction.sqrMagnitude > 0f) state.FallbackDirections.Add(anchorId);
-                else if (state.LastGoodDirections.TryGetValue(anchorId, out var previous))
+                if (state.LastGoodDirections.TryGetValue(anchorId, out var previous))
                 {
-                    direction = previous;
-                    state.HeldDirections.Add(anchorId);
+                    direction = HorizontalDirection(previous);
+                    if (direction.sqrMagnitude > 0f) state.HeldDirections.Add(anchorId);
+                }
+                if (direction.sqrMagnitude == 0f)
+                {
+                    direction = HorizontalDirection(target - playerOrigin);
+                    if (direction.sqrMagnitude > 0f) state.FallbackDirections.Add(anchorId);
                 }
             }
+            // An initial straight-line direction is usable target-local history, but
+            // a later failed refresh must never replace it or a successful route.
             if (direction.sqrMagnitude > 0f && !state.HeldDirections.Contains(anchorId))
                 state.LastGoodDirections[anchorId] = direction;
             // SelectCue rejects infinite lengths. Failed paths need an estimate to

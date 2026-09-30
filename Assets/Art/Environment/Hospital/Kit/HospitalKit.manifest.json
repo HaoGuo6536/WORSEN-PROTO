@@ -1,0 +1,603 @@
+{
+  "theme": "hospital",
+  "wallHeight": 3.6,
+  "style": "1970s institutional ward",
+  "palette": {
+    "tile": "#a8c8b0",
+    "paint": "#e4e1d4",
+    "grout": "#8e948f",
+    "light": "#d8f4ff",
+    "vinyl": "#b9b3a5",
+    "rust": "#7a4a2a",
+    "stainless": "#9aa3a8",
+    "rubber": "#303a36",
+    "glass": "#455e58",
+    "curtain": "#8eafa0",
+    "linen": "#ddd9c8",
+    "acoustic": "#e4e1d4",
+    "door_enamel": "#82988b"
+  },
+  "pieces": [
+    {
+      "id": "wall_2m",
+      "file": "Hospital_wall_2m.fbx",
+      "kind": "wall",
+      "size": [
+        2.0,
+        3.6,
+        0.5
+      ],
+      "triangles": 76,
+      "materials": [
+        "hospital_grout",
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_tile"
+      ],
+      "geometrySha256": "9e40da0ab767adcd3c9d41e53eff8df6bf34c0a437679bb41806e80ae3fcaf3c"
+    },
+    {
+      "id": "wall_door_4m",
+      "file": "Hospital_wall_door_4m.fbx",
+      "kind": "door",
+      "size": [
+        4.0,
+        3.6,
+        0.5
+      ],
+      "triangles": 166,
+      "materials": [
+        "hospital_grout",
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_tile"
+      ],
+      "geometrySha256": "1cfb625b2162b133861e8c325b0b75b02ac7bf4e4d83f19c1d2af5ca4d081dae"
+    },
+    {
+      "id": "wall_window_2m",
+      "file": "Hospital_wall_window_2m.fbx",
+      "kind": "window",
+      "size": [
+        2.0,
+        3.6,
+        0.5
+      ],
+      "triangles": 196,
+      "materials": [
+        "hospital_grout",
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_tile"
+      ],
+      "geometrySha256": "93630e1f36a47a6a9b8bae2422ec7c5b4ebb4b5d377463296cf591a1d5cf8186"
+    },
+    {
+      "id": "wall_arc_r4",
+      "file": "Hospital_wall_arc_r4.fbx",
+      "kind": "arc",
+      "size": [
+        2.199962,
+        3.6,
+        0.627778
+      ],
+      "triangles": 72,
+      "materials": [
+        "hospital_paint",
+        "hospital_tile"
+      ],
+      "geometrySha256": "4009ca494eddfe673fcfa31d29cbfa371ba4b57d12e5d130f6c93b5e47dcb723"
+    },
+    {
+      "id": "wall_arc_r6",
+      "file": "Hospital_wall_arc_r6.fbx",
+      "kind": "arc",
+      "size": [
+        2.170602,
+        3.6,
+        0.587355
+      ],
+      "triangles": 72,
+      "materials": [
+        "hospital_paint",
+        "hospital_tile"
+      ],
+      "geometrySha256": "e7828472e30d2391dbc24c17893b2f68b9d11b8a0c860c5f1faa49036bf2aafd"
+    },
+    {
+      "id": "wall_arc_r8",
+      "file": "Hospital_wall_arc_r8.fbx",
+      "kind": "arc",
+      "size": [
+        2.153682,
+        3.6,
+        0.566302
+      ],
+      "triangles": 72,
+      "materials": [
+        "hospital_paint",
+        "hospital_tile"
+      ],
+      "geometrySha256": "f64cb96c9f06259e39658a02481b4679f3f3148b1b46ad8a87986735f3539602"
+    },
+    {
+      "id": "corner_in",
+      "file": "Hospital_corner_in.fbx",
+      "kind": "corner",
+      "size": [
+        0.5,
+        3.6,
+        0.5
+      ],
+      "triangles": 48,
+      "materials": [
+        "hospital_paint",
+        "hospital_tile"
+      ],
+      "geometrySha256": "f391021997a4cef04a7153d3d8a7c392656099ad8081a9d9d6e71a86f22ac274"
+    },
+    {
+      "id": "corner_out",
+      "file": "Hospital_corner_out.fbx",
+      "kind": "corner",
+      "size": [
+        0.5,
+        3.6,
+        0.5
+      ],
+      "triangles": 48,
+      "materials": [
+        "hospital_paint",
+        "hospital_tile"
+      ],
+      "geometrySha256": "d2eac8708c258053bae895089e79c6ee121e9244d9209e873cb165d564756901"
+    },
+    {
+      "id": "pillar",
+      "file": "Hospital_pillar.fbx",
+      "kind": "pillar",
+      "size": [
+        0.6,
+        3.6,
+        0.6
+      ],
+      "triangles": 24,
+      "materials": [
+        "hospital_paint",
+        "hospital_tile"
+      ],
+      "geometrySha256": "9a2281022ecdf9877607a2b30a83979bea24823871d1fbc96a288a3d58f502d4"
+    },
+    {
+      "id": "floor_2x2",
+      "file": "Hospital_floor_2x2.fbx",
+      "kind": "floor",
+      "size": [
+        2.0,
+        0.16,
+        2.0
+      ],
+      "triangles": 12,
+      "materials": [
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "c1748b83cd9b44bb5edae7ce8ecb2f68e2c9cec382e095f11eadeda5fa9a5e69"
+    },
+    {
+      "id": "ceiling_2x2",
+      "file": "Hospital_ceiling_2x2.fbx",
+      "kind": "ceiling",
+      "size": [
+        2.0,
+        0.18,
+        2.0
+      ],
+      "triangles": 132,
+      "materials": [
+        "hospital_acoustic",
+        "hospital_grout",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "977166fa0db33ede3dfec212b7ea8dd537b01dbd96224689ef26a4d4dfebab72"
+    },
+    {
+      "id": "trim_base_2m",
+      "file": "Hospital_trim_base_2m.fbx",
+      "kind": "trim",
+      "size": [
+        2.0,
+        0.18,
+        0.12
+      ],
+      "triangles": 12,
+      "materials": [
+        "hospital_rubber"
+      ],
+      "geometrySha256": "33d3d76725d0f2d8148141d9f74c7cfb2fba25ea5c73dfcc61b371ceb5b6d947"
+    },
+    {
+      "id": "prop_bed",
+      "file": "Hospital_prop_bed.fbx",
+      "kind": "prop",
+      "size": [
+        1.048,
+        1.084,
+        2.05
+      ],
+      "triangles": 636,
+      "materials": [
+        "hospital_linen",
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "94c029127a7c712ff79eff01fe244a0a897d1479dcc59899ae77998159bbe6b8"
+    },
+    {
+      "id": "prop_curtain_rail",
+      "file": "Hospital_prop_curtain_rail.fbx",
+      "kind": "prop",
+      "size": [
+        2.0,
+        2.915,
+        0.11
+      ],
+      "triangles": 404,
+      "materials": [
+        "hospital_curtain",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "9a881a29f0c8f88302aac2acbaee46d29dd4d5a2cd8e66e526b10411783d2d31"
+    },
+    {
+      "id": "prop_cabinet",
+      "file": "Hospital_prop_cabinet.fbx",
+      "kind": "prop",
+      "size": [
+        0.86,
+        1.95,
+        0.514
+      ],
+      "triangles": 196,
+      "materials": [
+        "hospital_glass",
+        "hospital_paint",
+        "hospital_stainless",
+        "hospital_tile"
+      ],
+      "geometrySha256": "17a16e98b060c006be3e311fae5950dc9b1896031c57663a24e75ab647e65c7f"
+    },
+    {
+      "id": "prop_wheelchair",
+      "file": "Hospital_prop_wheelchair.fbx",
+      "kind": "prop",
+      "size": [
+        0.728,
+        1.04,
+        0.95
+      ],
+      "triangles": 800,
+      "materials": [
+        "hospital_curtain",
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "9713073c7fbb0b3c00cb7410cb511a9449b770906d006fa52cb1a8818c0a074c"
+    },
+    {
+      "id": "wall_1m",
+      "file": "Hospital_wall_1m.fbx",
+      "kind": "wall",
+      "size": [
+        1.0,
+        3.6,
+        0.5
+      ],
+      "triangles": 76,
+      "materials": [
+        "hospital_grout",
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_tile"
+      ],
+      "geometrySha256": "38a60e581af8c46f113c8717a63bbcdda4371720988f46765790e19fbee9f5f6"
+    },
+    {
+      "id": "wall_closed_4m",
+      "file": "Hospital_wall_closed_4m.fbx",
+      "kind": "wall",
+      "size": [
+        4.0,
+        3.6,
+        0.5
+      ],
+      "triangles": 76,
+      "materials": [
+        "hospital_grout",
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_tile"
+      ],
+      "geometrySha256": "c65cdbda6cbee4c9f8e00a81dd3f250dba83dc9182ef1de64fdfb6d1362cd32d"
+    },
+    {
+      "id": "door_double_porthole_4m",
+      "file": "Hospital_door_double_porthole_4m.fbx",
+      "kind": "door",
+      "size": [
+        3.601559,
+        2.78,
+        1.5606
+      ],
+      "triangles": 200,
+      "materials": [
+        "hospital_door_enamel",
+        "hospital_glass",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "c55125f25ad57aad39f1a2f377045c4b24e1ff20d9871a19326cd82f3ef439b2"
+    },
+    {
+      "id": "ceiling_drop_panel_2x2",
+      "file": "Hospital_ceiling_drop_panel_2x2.fbx",
+      "kind": "ceiling",
+      "size": [
+        2.0,
+        0.18,
+        2.0
+      ],
+      "triangles": 132,
+      "materials": [
+        "hospital_acoustic",
+        "hospital_grout",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "977166fa0db33ede3dfec212b7ea8dd537b01dbd96224689ef26a4d4dfebab72"
+    },
+    {
+      "id": "light_fluorescent_panel",
+      "file": "Hospital_light_fluorescent_panel.fbx",
+      "kind": "prop",
+      "size": [
+        0.98,
+        0.14,
+        0.98
+      ],
+      "triangles": 60,
+      "materials": [
+        "hospital_light",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "322dcc15498c72cdd6776e5f84c2523acf7d5132d5e2fed54b3fb56be26b2e01"
+    },
+    {
+      "id": "light_fluorescent_dead",
+      "file": "Hospital_light_fluorescent_dead.fbx",
+      "kind": "prop",
+      "size": [
+        0.98,
+        0.14,
+        0.98
+      ],
+      "triangles": 60,
+      "materials": [
+        "hospital_grout",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "82ab307d97fa800864e10444a7362029b44f6868bacd222acd61035f61e1dcce"
+    },
+    {
+      "id": "wall_handrail_2m",
+      "file": "Hospital_wall_handrail_2m.fbx",
+      "kind": "trim",
+      "size": [
+        2.0,
+        0.09,
+        0.175
+      ],
+      "triangles": 68,
+      "materials": [
+        "hospital_curtain",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "2af0d71c930faaff5604827194dc77d9f1060de1f225886bf3b5e20e609cd22d"
+    },
+    {
+      "id": "corner_guard",
+      "file": "Hospital_corner_guard.fbx",
+      "kind": "trim",
+      "size": [
+        0.12,
+        1.8,
+        0.106
+      ],
+      "triangles": 24,
+      "materials": [
+        "hospital_stainless"
+      ],
+      "geometrySha256": "650726281fedd99f49af4359fd2af7f6a78645d3621f180f5444475016cbaecd"
+    },
+    {
+      "id": "curtain_track_bay",
+      "file": "Hospital_curtain_track_bay.fbx",
+      "kind": "prop",
+      "size": [
+        2.6795,
+        3.08,
+        2.055
+      ],
+      "triangles": 556,
+      "materials": [
+        "hospital_curtain",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "426fb0999cc55bb0d34d80917e1c3a9e7f6020d6e8af92db625714a1addd25f9"
+    },
+    {
+      "id": "wall_tile_dado_2m",
+      "file": "Hospital_wall_tile_dado_2m.fbx",
+      "kind": "trim",
+      "size": [
+        2.0,
+        1.8,
+        0.028
+      ],
+      "triangles": 12,
+      "materials": [
+        "hospital_tile"
+      ],
+      "geometrySha256": "604e599345a426ece7f50056f6b29bed34b804fd964422d9130901d03ca46168"
+    },
+    {
+      "id": "window_ward_2m",
+      "file": "Hospital_window_ward_2m.fbx",
+      "kind": "prop",
+      "size": [
+        1.29,
+        1.395,
+        0.071
+      ],
+      "triangles": 72,
+      "materials": [
+        "hospital_glass",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "0a7d297c14c571e998e9ef89a3952f68ebdeaf8ef43a1c7c6f2a55ca356f91f9"
+    },
+    {
+      "id": "prop_iv_stand",
+      "file": "Hospital_prop_iv_stand.fbx",
+      "kind": "prop",
+      "size": [
+        0.638885,
+        2.111961,
+        0.728676
+      ],
+      "triangles": 416,
+      "materials": [
+        "hospital_grout",
+        "hospital_linen",
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "9cb9bd3fe759302bb9f66e9611eb2e60ee444a5cddcc4f7fd5f4694409fa7b49"
+    },
+    {
+      "id": "prop_gurney",
+      "file": "Hospital_prop_gurney.fbx",
+      "kind": "prop",
+      "size": [
+        0.768,
+        1.364,
+        2.05
+      ],
+      "triangles": 636,
+      "materials": [
+        "hospital_linen",
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "58e3ffa94fabe8d670a52c0ba5479eeffd39c0c9be1bd9aad6d8eee7dc55a9ea"
+    },
+    {
+      "id": "prop_nurse_counter",
+      "file": "Hospital_prop_nurse_counter.fbx",
+      "kind": "prop",
+      "size": [
+        2.96,
+        1.26,
+        0.85
+      ],
+      "triangles": 172,
+      "materials": [
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_stainless",
+        "hospital_tile",
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "ba7d9a5b7130dd9bc77cb66b9c2ade473a43f009916209ea08a5524cee8f2de0"
+    },
+    {
+      "id": "prop_waiting_bench",
+      "file": "Hospital_prop_waiting_bench.fbx",
+      "kind": "prop",
+      "size": [
+        1.8,
+        1.02,
+        0.5525
+      ],
+      "triangles": 256,
+      "materials": [
+        "hospital_curtain",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "8f5da4685140ccba5082ef59c31326015f926aea50b3f12b68f6ba6e30d17160"
+    },
+    {
+      "id": "prop_signage_frame",
+      "file": "Hospital_prop_signage_frame.fbx",
+      "kind": "prop",
+      "size": [
+        0.9,
+        0.5,
+        0.0605
+      ],
+      "triangles": 60,
+      "materials": [
+        "hospital_grout",
+        "hospital_paint",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "39359ec0219525c327c08d18e56d8ae0a3575f6aa6d4445da7688a377f8d4550"
+    },
+    {
+      "id": "prop_scrub_sink",
+      "file": "Hospital_prop_scrub_sink.fbx",
+      "kind": "prop",
+      "size": [
+        0.95,
+        1.225,
+        0.62
+      ],
+      "triangles": 168,
+      "materials": [
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "157d750c89606ff273e257f71869ea2899d1b8b1c537fc6b04e223c5be12c21e"
+    },
+    {
+      "id": "prop_xray_screen",
+      "file": "Hospital_prop_xray_screen.fbx",
+      "kind": "prop",
+      "size": [
+        1.42,
+        2.29,
+        0.62
+      ],
+      "triangles": 48,
+      "materials": [
+        "hospital_glass",
+        "hospital_stainless",
+        "hospital_tile"
+      ],
+      "geometrySha256": "4dab4ef7a736469c2af143bb8861d517e36c967a95c6273fcca818145f628097"
+    },
+    {
+      "id": "prop_operating_lamp",
+      "file": "Hospital_prop_operating_lamp.fbx",
+      "kind": "prop",
+      "size": [
+        0.886,
+        0.894,
+        0.6
+      ],
+      "triangles": 144,
+      "materials": [
+        "hospital_paint",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "41abf0068db399c5982b056c13b4647f2563702a779e3739fb1aa479c5e45f62"
+    }
+  ]
+}

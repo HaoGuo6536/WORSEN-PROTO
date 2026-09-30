@@ -23,6 +23,7 @@
 //   Pure and stateless; ticks and floor seeds are supplied by the routing boundary.
 //   Round start means a committed generation request, not successful assembly.
 //   Failed generation ends that round. Shop continuation is an explicit outcome.
+//   Early bail is retired; operation labels never classify an escape as a bail.
 //   Missing floor seed or room/obstacle evidence remains blank, never invented.
 //   Failure evidence stays in CSV Detail; existing named-column/schema widths remain unchanged.
 //
@@ -53,8 +54,7 @@ namespace Worsen.Presentation.Telemetry
                     ("layout_manifest_hash", ManifestHash(layoutManifest)));
             else if (ended || shopEnded)
                 yield return Round(tick, TelemetrySampleKind.RoundEnded, before.Round, before.GenerationId, floorSeed,
-                    shopEnded ? "ShopContinued" : after.Phase == ProgressionPhase.Ended ? "Died" :
-                    operation == "EarlyBail" ? "Bailed" : "Escaped");
+                    shopEnded ? "ShopContinued" : after.Phase == ProgressionPhase.Ended ? "Died" : "Escaped");
             if (before.Wallet != after.Wallet)
                 yield return TelemetryCsvPresenter.Observation(tick, TelemetrySampleKind.WalletChanged,
                     ("round_index", before.Round), ("generation_id", before.GenerationId), ("generation_seed", floorSeed),

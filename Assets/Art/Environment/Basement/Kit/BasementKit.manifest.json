@@ -1,0 +1,446 @@
+{
+  "theme": "basement",
+  "wallHeight": 3.2,
+  "pieces": [
+    {
+      "id": "wall_2m",
+      "file": "Basement_wall_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_door_4m",
+      "file": "Basement_wall_door_4m.fbx",
+      "size": [
+        4.0,
+        3.2,
+        0.31
+      ],
+      "kind": "door"
+    },
+    {
+      "id": "wall_window_2m",
+      "file": "Basement_wall_window_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.256
+      ],
+      "kind": "window"
+    },
+    {
+      "id": "wall_arc_r4",
+      "file": "Basement_wall_arc_r4.fbx",
+      "size": [
+        2.199962,
+        3.2,
+        0.386297
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "wall_arc_r6",
+      "file": "Basement_wall_arc_r6.fbx",
+      "size": [
+        2.170602,
+        3.2,
+        0.341153
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "wall_arc_r8",
+      "file": "Basement_wall_arc_r8.fbx",
+      "size": [
+        2.153682,
+        3.2,
+        0.318441
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "corner_in",
+      "file": "Basement_corner_in.fbx",
+      "size": [
+        0.5,
+        3.2,
+        0.5
+      ],
+      "kind": "corner"
+    },
+    {
+      "id": "corner_out",
+      "file": "Basement_corner_out.fbx",
+      "size": [
+        0.5,
+        3.2,
+        0.5
+      ],
+      "kind": "corner"
+    },
+    {
+      "id": "pillar",
+      "file": "Basement_pillar.fbx",
+      "size": [
+        0.48,
+        3.2,
+        0.48
+      ],
+      "kind": "pillar"
+    },
+    {
+      "id": "floor_2x2",
+      "file": "Basement_floor_2x2.fbx",
+      "size": [
+        2.0,
+        0.1001,
+        2.0
+      ],
+      "kind": "floor"
+    },
+    {
+      "id": "ceiling_2x2",
+      "file": "Basement_ceiling_2x2.fbx",
+      "size": [
+        2.0,
+        0.34,
+        2.0
+      ],
+      "kind": "ceiling"
+    },
+    {
+      "id": "trim_base_2m",
+      "file": "Basement_trim_base_2m.fbx",
+      "size": [
+        2.0,
+        0.12,
+        0.1
+      ],
+      "kind": "trim"
+    },
+    {
+      "id": "pipe_straight_2m",
+      "file": "Basement_pipe_straight_2m.fbx",
+      "size": [
+        2.0,
+        0.36,
+        0.36
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "pipe_elbow",
+      "file": "Basement_pipe_elbow.fbx",
+      "size": [
+        0.57,
+        0.24,
+        0.57
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "pipe_tee",
+      "file": "Basement_pipe_tee.fbx",
+      "size": [
+        2.0,
+        0.36,
+        0.88
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "duct_straight_2m",
+      "file": "Basement_duct_straight_2m.fbx",
+      "size": [
+        2.0,
+        0.52,
+        0.74
+      ],
+      "kind": "duct"
+    },
+    {
+      "id": "duct_elbow",
+      "file": "Basement_duct_elbow.fbx",
+      "size": [
+        0.93,
+        0.44,
+        0.93
+      ],
+      "kind": "duct"
+    },
+    {
+      "id": "prop_valve_wheel",
+      "file": "Basement_prop_valve_wheel.fbx",
+      "size": [
+        0.528,
+        0.528,
+        0.21
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_boiler",
+      "file": "Basement_prop_boiler.fbx",
+      "size": [
+        1.52,
+        2.76,
+        1.65
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "ceiling_joist_2x2",
+      "file": "Basement_ceiling_joist_2x2.fbx",
+      "size": [
+        2.0,
+        0.3,
+        2.0
+      ],
+      "kind": "ceiling"
+    },
+    {
+      "id": "ibeam_2m",
+      "file": "Basement_ibeam_2m.fbx",
+      "size": [
+        2.0,
+        0.3,
+        0.22
+      ],
+      "kind": "ceiling"
+    },
+    {
+      "id": "wall_concrete_formtie_2m",
+      "file": "Basement_wall_concrete_formtie_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_concrete_1m",
+      "file": "Basement_wall_concrete_1m.fbx",
+      "size": [
+        1.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_miter_left_1m",
+      "file": "Basement_wall_miter_left_1m.fbx",
+      "size": [
+        1.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_miter_right_1m",
+      "file": "Basement_wall_miter_right_1m.fbx",
+      "size": [
+        1.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_miter_left_2m",
+      "file": "Basement_wall_miter_left_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_miter_right_2m",
+      "file": "Basement_wall_miter_right_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.256
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "floor_grate_2x2",
+      "file": "Basement_floor_grate_2x2.fbx",
+      "size": [
+        2.0,
+        0.12,
+        2.0
+      ],
+      "kind": "floor"
+    },
+    {
+      "id": "catwalk_2m",
+      "file": "Basement_catwalk_2m.fbx",
+      "size": [
+        1.2,
+        0.12,
+        2.0
+      ],
+      "kind": "floor"
+    },
+    {
+      "id": "catwalk_rail_2m",
+      "file": "Basement_catwalk_rail_2m.fbx",
+      "size": [
+        2.0,
+        1.1025,
+        0.0515
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "pipe_run_wall_2m",
+      "file": "Basement_pipe_run_wall_2m.fbx",
+      "size": [
+        2.0,
+        1.13,
+        0.52
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "duct_run_ceiling_2m",
+      "file": "Basement_duct_run_ceiling_2m.fbx",
+      "size": [
+        2.0,
+        0.88,
+        1.17
+      ],
+      "kind": "duct"
+    },
+    {
+      "id": "cage_lamp",
+      "file": "Basement_cage_lamp.fbx",
+      "size": [
+        0.32,
+        0.645,
+        0.32
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "cage_lamp_dead",
+      "file": "Basement_cage_lamp_dead.fbx",
+      "size": [
+        0.32,
+        0.645,
+        0.32
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_pump",
+      "file": "Basement_prop_pump.fbx",
+      "size": [
+        1.5,
+        1.02,
+        1.075
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_electrical_cabinet",
+      "file": "Basement_prop_electrical_cabinet.fbx",
+      "size": [
+        1.12,
+        2.1,
+        0.525
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_gauge_panel",
+      "file": "Basement_prop_gauge_panel.fbx",
+      "size": [
+        1.05,
+        0.78,
+        0.15
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "puddle_decal_quad",
+      "file": "Basement_puddle_decal_quad.fbx",
+      "size": [
+        1.515098,
+        0.0,
+        1.201522
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_storage_cage",
+      "file": "Basement_prop_storage_cage.fbx",
+      "size": [
+        1.45,
+        2.2,
+        1.05
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_fuel_bunker",
+      "file": "Basement_prop_fuel_bunker.fbx",
+      "size": [
+        1.8,
+        0.9,
+        1.304727
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_steam_vent",
+      "file": "Basement_prop_steam_vent.fbx",
+      "size": [
+        0.9,
+        0.25,
+        0.93
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "pit_liner_2x2",
+      "file": "Basement_pit_liner_2x2.fbx",
+      "size": [
+        2.0,
+        0.135,
+        2.0
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "pit_retaining_2m",
+      "file": "Basement_pit_retaining_2m.fbx",
+      "size": [
+        2.0,
+        1.2,
+        0.15
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_bulkhead_leaf",
+      "file": "Basement_prop_bulkhead_leaf.fbx",
+      "size": [
+        1.53,
+        2.74,
+        0.3
+      ],
+      "kind": "prop"
+    }
+  ]
+}

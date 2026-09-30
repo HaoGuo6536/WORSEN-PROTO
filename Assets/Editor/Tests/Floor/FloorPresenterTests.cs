@@ -198,18 +198,33 @@ namespace Worsen.Tests.Floor
             for (int refresh = 0; refresh < 2; refresh++)
             {
                 var result = presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero,
-                    Vector3.up * 3f, null, 1f);
+                    Vector3.forward * 3f, null, 1f);
 
                 AssertVector(result.Direction, Vector3.right);
                 Assert.That(result.Length, Is.EqualTo(FloorPresenter.FallbackRankOffset + 3f).Within(Tolerance));
                 Assert.That(state.HeldDirections.Contains(101), Is.True);
                 Assert.That(state.FallbackDirections.Contains(101), Is.False);
+                AssertVector(state.LastGoodDirections[101], Vector3.right);
             }
             presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.forward * 4f,
                 new[] { Vector3.zero, Vector3.forward * 4f }, 1f);
             AssertVector(state.LastGoodDirections[101], Vector3.forward);
             Assert.That(state.HeldDirections, Is.Empty);
             Assert.That(state.FallbackDirections, Is.Empty);
+        }
+
+        [Test]
+        public void CorruptHistoryCannotPublishNonfiniteOrZeroHeldGuidance()
+        {
+            foreach (var previous in new[] { Vector3.zero, new Vector3(float.NaN, 0f, 1f), Vector3.up })
+            {
+                var state = new FloorDriverState(); state.LastGoodDirections[101] = previous;
+                var result = new FloorPresenter().PathCandidate(state, 101, Vector3.zero, Vector3.zero,
+                    Vector3.forward * 4f, null, 1f);
+                AssertVector(result.Direction, Vector3.forward);
+                Assert.That(state.FallbackDirections.Contains(101), Is.True);
+                Assert.That(state.HeldDirections, Is.Empty);
+            }
         }
 
         [Test]
