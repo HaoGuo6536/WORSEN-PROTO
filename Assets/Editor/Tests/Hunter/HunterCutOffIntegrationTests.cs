@@ -29,6 +29,7 @@ using Worsen.Domain.Hunter;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
     public sealed class HunterCutOffIntegrationTests
     {
         [UnityTest]

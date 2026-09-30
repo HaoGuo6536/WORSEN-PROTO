@@ -23,6 +23,7 @@ using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ConsumableInventoryTests
     {
         private ProgressionConfig config;

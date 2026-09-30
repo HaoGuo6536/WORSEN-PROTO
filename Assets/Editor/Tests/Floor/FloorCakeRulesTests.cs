@@ -30,6 +30,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorCakeRulesTests
     {
         [Test]

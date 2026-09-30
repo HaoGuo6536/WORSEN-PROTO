@@ -30,6 +30,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDPresenterTests
     {
         [Test]

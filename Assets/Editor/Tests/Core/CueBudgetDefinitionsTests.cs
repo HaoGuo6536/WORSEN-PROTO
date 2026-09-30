@@ -19,6 +19,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.Core
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CueBudgetDefinitionsTests
     {
         [Test]

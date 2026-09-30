@@ -52,12 +52,13 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class FloorTraversalIntegrationTests
     {
         private const string ScenePath = "Assets/Scenes/FloorLoop.unity";
         private bool _restoreBackground, _previousBackground;
 
-        [UnityTest, Timeout(390000)]
+        [UnityTest, Timeout(120000)]
         public IEnumerator UnopposedMovingRouteCollectsCakesChecksPathCuesAndExits()
         {
             yield return new EnterPlayMode();

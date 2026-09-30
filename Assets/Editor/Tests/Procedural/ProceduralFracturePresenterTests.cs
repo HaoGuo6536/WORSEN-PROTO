@@ -21,6 +21,7 @@ using Worsen.Core;
 using Worsen.Domain.Procedural;
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralFracturePresenterTests
     {
         [Test]

@@ -54,6 +54,7 @@ using Worsen.Tests.Player;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
     public sealed class TagArenaDesignSpeedAcceptanceTests
     {
         private const string Arena = "Assets/Scenes/TagArena.unity";

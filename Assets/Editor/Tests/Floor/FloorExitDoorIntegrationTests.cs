@@ -28,6 +28,7 @@ using Worsen.Domain.Floor;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class FloorExitDoorIntegrationTests
     {
         [Test] public void ClosedDoorHasPhysicalLeavesAndSensesContactUntilSwingFinishes()

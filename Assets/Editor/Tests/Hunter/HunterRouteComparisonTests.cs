@@ -62,6 +62,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
     public sealed class HunterRouteComparisonTests
     {
         [UnityTest]

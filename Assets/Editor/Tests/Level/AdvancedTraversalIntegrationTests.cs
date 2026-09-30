@@ -44,6 +44,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class AdvancedTraversalIntegrationTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";

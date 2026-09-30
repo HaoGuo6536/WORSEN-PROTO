@@ -53,6 +53,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
     public sealed class PlayerContinuousChainAcceptanceTests
     {
         private const string Arena = "Assets/Scenes/TagArena.unity";

@@ -36,6 +36,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunFloorEffectWiringTests
     {
         private readonly List<Object> owned = new List<Object>();

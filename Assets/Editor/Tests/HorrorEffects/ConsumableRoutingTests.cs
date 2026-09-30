@@ -28,6 +28,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.HorrorEffects
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ConsumableRoutingTests
     {
         private readonly List<Object> owned = new List<Object>();

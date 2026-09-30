@@ -25,6 +25,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.DebugOverlay
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class DebugOverlayHandTests
     {
         [Test]

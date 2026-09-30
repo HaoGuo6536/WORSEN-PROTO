@@ -33,6 +33,7 @@ using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
     public sealed class ProgressionSessionManagerTests
     {
         [UnityTest]

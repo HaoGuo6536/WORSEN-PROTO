@@ -39,6 +39,7 @@ using Worsen.Session.SceneFlow;
 
 namespace Worsen.Tests.Scenes
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class TagArenaIntegrationTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";

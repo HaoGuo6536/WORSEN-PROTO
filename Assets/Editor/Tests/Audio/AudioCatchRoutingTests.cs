@@ -44,6 +44,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class AudioCatchRoutingTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

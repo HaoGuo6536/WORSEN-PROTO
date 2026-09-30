@@ -30,6 +30,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.HorrorEffects
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorTrapAndThrowTests
     {
         private readonly List<Object> owned = new List<Object>();

@@ -44,6 +44,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionWorldWiringTests
     {
         private readonly List<Object> _owned = new List<Object>();

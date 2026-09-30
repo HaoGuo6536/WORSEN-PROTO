@@ -19,6 +19,7 @@ using Worsen.Presentation.Audio;
 
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioCueCataloguePresenterTests
     {
         private readonly AudioCueCataloguePresenter catalogue = new AudioCueCataloguePresenter();

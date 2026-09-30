@@ -32,6 +32,7 @@ namespace Worsen.Tests.Hunter
 {
     public sealed class WeaverTargetHandle : MonoBehaviour, IEntityHandle
     { public Worsen.Core.EntityId Id => new Worsen.Core.EntityId(1); }
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class WeaverIntegrationTests
     {
         private readonly Vector3 _origin = new Vector3(4200, 100, 4200);

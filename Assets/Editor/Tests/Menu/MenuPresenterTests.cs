@@ -18,6 +18,7 @@ using Worsen.Core;
 using Worsen.Presentation.Menu;
 namespace Worsen.Tests.Menu
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class MenuPresenterTests
     {
         [TearDown] public void TearDown() => PauseFixtureCleanup.Restore();

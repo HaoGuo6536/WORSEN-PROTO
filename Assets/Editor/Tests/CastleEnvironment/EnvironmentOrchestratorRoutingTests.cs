@@ -41,6 +41,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.CastleEnvironment
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class EnvironmentOrchestratorRoutingTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

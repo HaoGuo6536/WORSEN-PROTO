@@ -29,6 +29,7 @@ using Worsen.Presentation.Environment;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralInteractablePresenterTests
     {
         [TestCase(false)] [TestCase(true)]

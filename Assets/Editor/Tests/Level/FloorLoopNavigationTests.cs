@@ -38,6 +38,7 @@ using Worsen.Orchestrator;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class FloorLoopNavigationTests
     {
         private const string ScenePath = "Assets/Scenes/FloorLoop.unity";

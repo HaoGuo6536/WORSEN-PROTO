@@ -22,6 +22,7 @@ using Worsen.Core;
 using Worsen.Domain.Shrine;
 namespace Worsen.Tests.Shrine
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ShrineControllerTests
     {
         private ShrineConfig config;

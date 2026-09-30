@@ -21,6 +21,7 @@ using Worsen.Domain.Player;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerLimbPresenterTests
     {
         [TestCase(-85f, 0f)] [TestCase(0f, 180f)] [TestCase(85f, 180f)]

@@ -26,6 +26,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDGuidanceAndPhantomTests
     {
         private static GuidanceTarget[] Both => new[] {

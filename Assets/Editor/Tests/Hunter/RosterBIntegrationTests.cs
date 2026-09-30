@@ -48,6 +48,7 @@ namespace Worsen.Tests.Hunter
         public float LossDistance => 14f;
         public bool PursuitSuppressed { get; set; }
     }
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
     public sealed class RosterBIntegrationTests
     {
         [TestCase("Ram", 4, 8f, 1f, 1.05f, 2.5f)]

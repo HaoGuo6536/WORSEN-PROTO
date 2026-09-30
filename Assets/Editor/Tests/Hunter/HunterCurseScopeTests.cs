@@ -27,6 +27,7 @@ using Worsen.Domain.Level;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterCurseScopeTests
     {
         private static readonly ProgressionTraits[] Groups = {
