@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Supply evaluation, delayed-hint, relief, and movement-intrusion tuning.
 //   - Bound each player's historical position storage.
+//   - Configure probabilistic retreat requests and occlusion-widened room hints.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other game system.
 // USAGE NOTES:
@@ -37,6 +38,16 @@ namespace Worsen.Domain.Director
         [SerializeField, Min(0.01f)] private float _intrusionDurationSeconds = 2f;
         [SerializeField, Min(0f)] private float _intrusionCooldownSeconds = 10f;
         [SerializeField, Min(2)] private int _historyCapacity = 512;
+        [SerializeField, Min(0f)] private float _retreatPursuitSeconds = 45f;
+        [SerializeField, Min(0.01f)] private float _retreatCooldownSeconds = 60f;
+        [SerializeField, Range(0f, 1f)] private float _retreatProbability = 0.5f;
+        [SerializeField, Min(0f)] private float _occlusionHintRadiusMeters = 12f;
+        [SerializeField, Min(0f)] private float _noiseMaxAgeSeconds = 0.5f;
+        public float RetreatPursuitSeconds => _retreatPursuitSeconds;
+        public float RetreatCooldownSeconds => _retreatCooldownSeconds;
+        public float RetreatProbability => _retreatProbability;
+        public float OcclusionHintRadiusMeters => _occlusionHintRadiusMeters;
+        public float NoiseMaxAgeSeconds => _noiseMaxAgeSeconds;
 
         public float EvaluationIntervalSeconds => _evaluationIntervalSeconds;
         public float HeatThresholdSeconds => _heatThresholdSeconds;

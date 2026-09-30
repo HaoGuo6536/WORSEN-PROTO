@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Describe sampled player movement/chase state and active hunter positions.
 //   - Preserve timestamps on history and separate decision data from publication.
+//   - Carry local region/noise decisions and retreat recipients without changing Core payloads.
 // DEPENDENCIES:
 //   - Core identities and value-only UnityEngine vectors.
 // USAGE NOTES:
@@ -36,12 +37,15 @@ namespace Worsen.Domain.Director
 
     public readonly struct DirectorHunterSample
     {
-        public DirectorHunterSample(EntityId hunterId, EntityId targetId, Vector3 position, bool isActive)
-        { HunterId = hunterId; TargetId = targetId; Position = position; IsActive = isActive; }
+        public DirectorHunterSample(EntityId hunterId, EntityId targetId, Vector3 position, bool isActive,
+            bool isPursuing = false, HearingModelSettings hearing = default)
+        { HunterId = hunterId; TargetId = targetId; Position = position; IsActive = isActive; IsPursuing = isPursuing; Hearing = hearing; }
         public EntityId HunterId { get; }
         public EntityId TargetId { get; }
         public Vector3 Position { get; }
         public bool IsActive { get; }
+        public bool IsPursuing { get; }
+        public HearingModelSettings Hearing { get; }
     }
 
     public readonly struct DirectorPositionSample
@@ -56,10 +60,28 @@ namespace Worsen.Domain.Director
     public readonly struct DirectorTickResult
     {
         public DirectorTickResult(IReadOnlyList<HintPayload> hints, IReadOnlyList<IntrusionSample> intrusions,
-            IReadOnlyList<DirectorPressureSample> pressure)
-        { Hints = hints; Intrusions = intrusions; Pressure = pressure; }
+            IReadOnlyList<DirectorPressureSample> pressure, IReadOnlyList<EntityId> retreats = null,
+            IReadOnlyList<DirectorRegionHint> regions = null, IReadOnlyList<DirectorNoiseHint> noises = null)
+        { Hints = hints; Intrusions = intrusions; Pressure = pressure;
+            Retreats = retreats ?? System.Array.Empty<EntityId>(); Regions = regions ?? System.Array.Empty<DirectorRegionHint>();
+            Noises = noises ?? System.Array.Empty<DirectorNoiseHint>(); }
         public IReadOnlyList<HintPayload> Hints { get; }
         public IReadOnlyList<IntrusionSample> Intrusions { get; }
         public IReadOnlyList<DirectorPressureSample> Pressure { get; }
+        public IReadOnlyList<EntityId> Retreats { get; }
+        public IReadOnlyList<DirectorRegionHint> Regions { get; }
+        public IReadOnlyList<DirectorNoiseHint> Noises { get; }
+    }
+    public readonly struct DirectorRegionHint
+    {
+        public DirectorRegionHint(HintPayload hint, int roomId) { Hint = hint; RoomId = roomId; }
+        public HintPayload Hint { get; }
+        public int RoomId { get; }
+    }
+    public readonly struct DirectorNoiseHint
+    {
+        public DirectorNoiseHint(EntityId hunter, NoiseEvent noise) { Hunter = hunter; Noise = noise; }
+        public EntityId Hunter { get; }
+        public NoiseEvent Noise { get; }
     }
 }

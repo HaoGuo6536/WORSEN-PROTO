@@ -12,6 +12,7 @@
 //   - Hunter controller/state/profile, Core traits, Player/Level read-only views, NUnit.
 // USAGE NOTES:
 //   Pure controller ticks use injected time/randomness and owned temporary configs.
+//   Hearing age isolation uses real topology with a zero-duration deliberation beat.
 // ============================================================================
 using System;
 using System.Linq;
@@ -35,7 +36,12 @@ namespace Worsen.Tests.Hunter
             ProgressionTraits.HexerSplitBolt | ProgressionTraits.HexerHastyScript | ProgressionTraits.HexerLingeringHex,
             ProgressionTraits.ThorncallerThornRing | ProgressionTraits.ThorncallerQuickRoots | ProgressionTraits.ThorncallerReachingRoots
         };
-        private sealed class LevelFixture : IReadOnlyLevelState { public bool IsReady => false; public LevelGraph Graph => null; }
+        private sealed class LevelFixture : IReadOnlyLevelState
+        {
+            public bool IsReady => true;
+            public LevelGraph Graph { get; } = new LevelGraph(new[] { new LevelRoom(1, Vector3.zero, Vector3.one * 100f) },
+                Array.Empty<LevelEdge>(), Array.Empty<LevelAnchor>(), 1, Vector3.zero);
+        }
         private HunterProfile _profile;
         private HunterBehaviorState _state;
         private HunterController _controller;
@@ -49,6 +55,7 @@ namespace Worsen.Tests.Hunter
             serialized.FindProperty("_sensorIntervalTicks").intValue = 1;
             serialized.FindProperty("_screamCooldownSeconds").floatValue = 10f;
             serialized.FindProperty("_noiseMaxAgeSeconds").floatValue = 1f;
+            serialized.FindProperty("_deliberationSeconds").floatValue = 0f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _state = new HunterBehaviorState();
             _player = new PlayerBehaviorState { Id = new EntityId(11), Health = 100, SprintSpeed = 8f, Position = Vector3.forward * 5f };
