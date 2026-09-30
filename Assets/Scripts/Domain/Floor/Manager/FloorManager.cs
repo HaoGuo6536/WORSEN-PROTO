@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
+//   - Publish H1 guidance, trap contacts and shared trap noise without routing foreign effects.
+//   - Spawn gold at collapse start even when Greedy Door delays the physical exit.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
 //   - Resolve door identities, cancel departed holds before timing, and present bails without rewards.
@@ -59,12 +61,15 @@ namespace Worsen.Domain.Floor
         public event Action<int> OnOptionalRoomCracked;
         public event Action<NoiseEvent> OnHandNoise;
         public event Action<NoiseEvent> OnPickupNoise;
+        public event Action<FloorTrapSprungFact> OnTrapSprung;
+        public event Action<NoiseEvent> OnTrapNoise;
+        public event Action<IReadOnlyList<GuidanceTarget>> OnGuidanceChanged;
         public event Action<int, int, PickupKind, long> OnCakeLost;
         public event Action<EntityId, int, Vector3, Vector3, long> OnBoundaryContact;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<FloorDriver>(); }
         public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random,
-            int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false)
+            int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default)
         {
             if (level == null || !level.IsReady) throw new InvalidOperationException("Floor requires a ready authored Level.");
             Teardown();
@@ -75,9 +80,9 @@ namespace Worsen.Domain.Floor
             try
             {
                 _controller = new FloorController(_state, _config, random);
-                _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse);
+                _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks);
                 _hands = new FloorHandController(_state.Hands, _config);
-                _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance);
+                _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps);
                 if (isActiveAndEnabled) OnEnable();
                 RefreshCue();
             }
@@ -99,8 +104,25 @@ namespace Worsen.Domain.Floor
                 return;
             }
             if (_state.Ended) return;
+            var before = _state.ExitState;
             PublishRoomTransitions(_controller.Tick(dt, tick));
             if (!ReferenceEquals(owner, _controller)) return;
+            if (before != _state.ExitState)
+            {
+                _driver.OpenExit(Array.Empty<LevelAnchor>());
+                OnExitOpened?.Invoke(tick);
+                if (!ReferenceEquals(owner, _controller)) return;
+                RefreshCue();
+                if (!ReferenceEquals(owner, _controller)) return;
+            }
+            foreach (var trap in owner.TickTraps(dt))
+            {
+                if (!_driver.PickupAvailable(trap.Anchor.Id)) continue;
+                _driver.PlayTrapTick(trap.Anchor.Id, _config.TrapTickLoudness);
+                OnTrapNoise?.Invoke(new NoiseEvent(EntityId.None, trap.Anchor.Position, _config.TrapTickLoudness, tick, NoiseSourceKind.Trap));
+                if (!ReferenceEquals(owner, _controller)) return;
+            }
+            _driver.TickCakeVisuals((float)_state.Elapsed);
             TickDestruction(dt);
             if (!ReferenceEquals(owner, _controller)) return;
             float previousProgress = _driver.OpeningProgress(_state.ExitState == ExitState.Open);
@@ -115,22 +137,37 @@ namespace Worsen.Domain.Floor
             if (_controller == null || !_driver.PickupAvailable(anchorId)) return;
             var owner = _controller;
             var before = _state.ExitState;
+            bool collapsing = _state.CollapseStarted;
             if (!_controller.Collect(playerId, anchorId, kind, _state.Tick, out var fact, out var noise)) return;
             _driver.RemovePickup(anchorId, kind);
+            if (!collapsing && _state.CollapseStarted) _driver.SpawnGoldenCakes(_state.GoldenAnchors);
             OnPickupNoise?.Invoke(noise);
             if (!ReferenceEquals(owner, _controller)) return;
             OnPickupCollected?.Invoke(fact);
             if (!ReferenceEquals(owner, _controller)) return;
             if (before != _state.ExitState)
             {
-                _driver.OpenExit(_state.SelectedAnchors);
+                _driver.OpenExit(Array.Empty<LevelAnchor>());
                 OnExitOpened?.Invoke(_state.Tick);
                 if (!ReferenceEquals(owner, _controller)) return;
-                PublishRoomTransitions(_controller.Tick(0f, _state.Tick));
-                if (!ReferenceEquals(owner, _controller)) return;
-                RefreshCue();
             }
-            else OnDisplayChanged?.Invoke(Snapshot());
+            if (!collapsing && _state.CollapseStarted)
+            {
+                PublishRoomTransitions(owner.Tick(0f, _state.Tick));
+                if (!ReferenceEquals(owner, _controller)) return;
+            }
+            RefreshCue();
+        }
+
+        public void SpringTrap(EntityId playerId, int trapId)
+        {
+            var owner = _controller;
+            if (owner == null || !_driver.PickupAvailable(trapId) ||
+                !owner.SpringTrap(playerId, trapId, _state.Tick, out var fact, out var noise)) return;
+            _driver.RemoveTrap(trapId);
+            OnTrapSprung?.Invoke(fact);
+            if (!ReferenceEquals(owner, _controller)) return;
+            if (fact.Kind == FloorTrapKind.Announce) OnTrapNoise?.Invoke(noise);
         }
 
         // Compatibility entry: contact without a confirmed lethal hand hit is rejected.
@@ -186,6 +223,7 @@ namespace Worsen.Domain.Floor
         {
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup; _driver.PickupContact += HandlePickup;
+            _driver.TrapContact -= HandleTrap; _driver.TrapContact += HandleTrap;
 
             _driver.ExitContact -= HandleExit; _driver.ExitContact += HandleExit;
             _driver.ExitDeparted -= LeaveExit; _driver.ExitDeparted += LeaveExit;
@@ -195,12 +233,14 @@ namespace Worsen.Domain.Floor
             _controller?.CancelExitHolds();
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup;
+            _driver.TrapContact -= HandleTrap;
 
             _driver.ExitContact -= HandleExit;
             _driver.ExitDeparted -= LeaveExit;
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => Collect(Resolve(other), anchor, kind);
+        private void HandleTrap(Collider other, int anchor) => SpringTrap(Resolve(other), anchor);
 
         private void HandleExit(Collider other) => ContactExit(Resolve(other));
         private static EntityId Resolve(Collider other) => other != null ? other.GetComponentInParent<IEntityHandle>()?.Id ?? EntityId.None : EntityId.None;
@@ -261,14 +301,28 @@ namespace Worsen.Domain.Floor
 
         private void RefreshCue()
         {
+            var owner = _controller;
             var paths = new List<FloorPathCandidate>();
             var player = _controller.CuePlayer();
             if (player != null)
             {
-                if (_state.ExitState == ExitState.Open) paths.Add(_driver.QueryPath(0, player.Position, _state.Graph.ExitPosition));
+                if (_state.CollapseStarted) paths.Add(_driver.QueryPath(0, player.Position, _state.Graph.ExitPosition));
                 else foreach (var anchor in _state.ActiveCakeAnchors) paths.Add(_driver.QueryPath(anchor.Id, player.Position, anchor.Position));
             }
-            OnDisplayChanged?.Invoke(_controller.SelectCue(paths, _driver.OpeningProgress(_state.ExitState == ExitState.Open)));
+            var display = owner.SelectCue(paths, _driver.OpeningProgress(_state.ExitState == ExitState.Open));
+            var targets = new List<GuidanceTarget>();
+            bool fallback = _driver.IsDirectionFallback(_state.CueAnchorId) || _driver.IsDirectionHeld(_state.CueAnchorId);
+            if (owner.TryWhiteGuidance(fallback, out var white)) targets.Add(white);
+            if (player != null && owner.TryGoldenTarget(player.Position, out var golden))
+            {
+                var path = _driver.QueryPath(golden.Id, player.Position, golden.Position);
+                if (!float.IsNaN(path.Length) && !float.IsInfinity(path.Length))
+                    targets.Add(new GuidanceTarget(GuidanceKind.GoldenSense, path.Direction, golden.Position, golden.Id,
+                        isFallback: _driver.IsDirectionFallback(golden.Id) || _driver.IsDirectionHeld(golden.Id)));
+            }
+            // A read-only snapshot, including empty, replaces both channels atomically.
+            OnGuidanceChanged?.Invoke(targets.AsReadOnly());
+            if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
         }
     }
 }

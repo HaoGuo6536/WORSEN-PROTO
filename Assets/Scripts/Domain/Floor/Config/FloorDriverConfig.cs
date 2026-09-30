@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Tune code-built named cakes, candle flicker, layered glow and the placeholder trap tick.
 //   - Reference native Lumen room and exit prefabs; no real-light fallback.
 //   - Reference cake art and an optional medieval panel visual for the physical exit.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
@@ -32,6 +33,32 @@ namespace Worsen.Domain.Floor
     {
         [SerializeField] private float _pickupRadius = 0.55f;
         [SerializeField] private GameObject _cakePrefab;
+        [SerializeField] private string _pipedName = "ADA";
+        [SerializeField, Min(0.01f)] private float _cakeVisualScale = 1f;
+        [SerializeField] private Color _frostingColor = new Color(1f, 0.08f, 0.32f);
+        [SerializeField] private Color _candleColor = new Color(1f, 0.48f, 0.08f);
+        [SerializeField, Min(0f)] private float _candleIntensity = 1.5f;
+        [SerializeField, Min(0.1f)] private float _candleRange = 2.5f;
+        [SerializeField, Range(0f, 1f)] private float _candleFlickerDepth = 0.2f;
+        [SerializeField, Min(0f)] private float _candleFlickerRate = 7f;
+        [SerializeField, Min(0f)] private float _cakeGlowBrightness = 0.7f;
+        [SerializeField, Min(0.1f)] private float _cakeGlowRadius = 0.6f;
+        [SerializeField, Min(0.1f)] private float _cakePoolRadius = 1.2f;
+        [SerializeField, Min(0.01f)] private float _trapTickDuration = 0.06f;
+        [SerializeField, Min(1f)] private float _trapTickFrequency = 900f;
+        public string PipedName => _pipedName;
+        public float CakeVisualScale => Mathf.Max(0.01f, _cakeVisualScale);
+        public Color FrostingColor => _frostingColor;
+        public Color CandleColor => _candleColor;
+        public float CandleIntensity => Mathf.Max(0f, _candleIntensity);
+        public float CandleRange => Mathf.Max(0.1f, _candleRange);
+        public float CandleFlickerDepth => Mathf.Clamp01(_candleFlickerDepth);
+        public float CandleFlickerRate => Mathf.Max(0f, _candleFlickerRate);
+        public float CakeGlowBrightness => Mathf.Max(0f, _cakeGlowBrightness);
+        public float CakeGlowRadius => Mathf.Max(0.1f, _cakeGlowRadius);
+        public float CakePoolRadius => Mathf.Max(0.1f, _cakePoolRadius);
+        public float TrapTickDuration => Mathf.Max(0.01f, _trapTickDuration);
+        public float TrapTickFrequency => Mathf.Max(1f, _trapTickFrequency);
         [SerializeField] private GameObject _lumenRoomWarningPrefab;
         [SerializeField] private GameObject _lumenExitGlowPrefab;
         [SerializeField] private float _pickupHeight = 0.7f;
