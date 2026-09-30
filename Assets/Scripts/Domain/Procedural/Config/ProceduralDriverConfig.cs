@@ -11,11 +11,14 @@
 //   - Configure enclosed shell thickness, materials and bounded navigation checks.
 //   - Tune the flat collision extension beyond both ends of each stair flight.
 //   - Bound knockable corner props and thin doorway mark visuals.
+//   - Separate ordinary hunter masks from opt-in partition-ignoring navigation links.
 // DEPENDENCIES:
 //   - UnityEngine materials and serialization; no other gameplay system.
 // USAGE NOTES:
 //   Assign imported or project materials through deterministic scene setup.
 //   Missing materials use declared dark, rough runtime materials owned by Driver.
+//   Enable partition links only after Hunter replaces AllAreas queries with these
+//   masks and the coordinator names the configured area in NavMeshAreas.asset.
 // ============================================================================
 using UnityEngine;
 
@@ -39,6 +42,14 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private float _navSampleRadius = 0.75f;
         [SerializeField] private float _navVoxelSize = 0.1f;
         [SerializeField] private float _navBoundsPadding = 1f;
+        [SerializeField] private int _hunterAreaMask = 1;
+        [SerializeField, Range(3, 31)] private int _partitionIgnoringArea = 3;
+        [SerializeField] private int _partitionIgnoringAreaMask = 9;
+        [SerializeField] private bool _enablePartitionIgnoringLinks = false;
+        public int HunterAreaMask => _hunterAreaMask;
+        public int PartitionIgnoringArea => _partitionIgnoringArea;
+        public int PartitionIgnoringAreaMask => _partitionIgnoringAreaMask;
+        public bool EnablePartitionIgnoringLinks => _enablePartitionIgnoringLinks;
         [SerializeField] private float _partitionLength = 7f;
         [SerializeField] private float _partitionThickness = 0.6f;
         [SerializeField] private float _shortcutWidth = 2.4f;

@@ -12,6 +12,7 @@
 //   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
 //   - Retain the effective spawn policy and immutable world-object construction plans.
 //   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
+//   - Retain storeys, directed vertical routes and permissioned navigation link plans.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
@@ -50,6 +51,8 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<Vector2Int> GapCells { get; internal set; } = System.Array.Empty<Vector2Int>();
         public IReadOnlyList<LevelAnchor> PocketAnchors { get; internal set; } = System.Array.Empty<LevelAnchor>();
         public IReadOnlyList<ProceduralGapSite> GapSites { get; internal set; } = System.Array.Empty<ProceduralGapSite>();
+        public IReadOnlyList<ProceduralStoreyPlan> Storeys { get; internal set; } = System.Array.Empty<ProceduralStoreyPlan>();
+        public IReadOnlyList<ProceduralVerticalRoute> VerticalRoutes { get; internal set; } = System.Array.Empty<ProceduralVerticalRoute>();
         public IReadOnlyList<ProceduralDoorPlan> Doors { get; internal set; }
         public IReadOnlyList<ProceduralRoomModule> Modules { get; internal set; }
         public Vector3 PlayerSpawnPosition { get; internal set; }
@@ -74,7 +77,44 @@ namespace Worsen.Domain.Procedural
         public int SurfaceId { get; }
     }
 
-    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding, CollisionOnly }
+    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding, CollisionOnly, PlayerOnly }
+    public enum ProceduralVerticalKind { Ramp, LedgeClimb, ReboundClimb, FloorHole, Shaft, Balcony, CollapsedRamp }
+
+    public readonly struct ProceduralStoreyPlan
+    {
+        public ProceduralStoreyPlan(int roomId, Vector3 origin, float height, ProceduralVerticalKind drop)
+        { RoomId = roomId; Origin = origin; Height = height; Drop = drop; }
+        public int RoomId { get; }
+        public int UpperRegionId => 10000 + RoomId;
+        public Vector3 Origin { get; }
+        public float Height { get; }
+        public ProceduralVerticalKind Drop { get; }
+    }
+
+    public readonly struct ProceduralVerticalRoute
+    {
+        public ProceduralVerticalRoute(int id, int roomId, ProceduralVerticalKind kind, int fromRegion, int toRegion,
+            bool bidirectional, TraversalAccess access, IReadOnlyList<Vector3> points)
+        { Id = id; RoomId = roomId; Kind = kind; FromRegion = fromRegion; ToRegion = toRegion;
+            Bidirectional = bidirectional; Access = access; Points = points; }
+        public int Id { get; }
+        public int RoomId { get; }
+        public ProceduralVerticalKind Kind { get; }
+        public int FromRegion { get; }
+        public int ToRegion { get; }
+        public bool Bidirectional { get; }
+        public TraversalAccess Access { get; }
+        public IReadOnlyList<Vector3> Points { get; }
+    }
+
+    public readonly struct ProceduralNavigationLink
+    {
+        public ProceduralNavigationLink(Vector3 start, Vector3 end, int area)
+        { Start = start; End = end; Area = area; }
+        public Vector3 Start { get; }
+        public Vector3 End { get; }
+        public int Area { get; }
+    }
     public enum ProceduralModuleKind
     {
         VaultPartition, WindowPartition, SlidePartition,
@@ -119,7 +159,7 @@ namespace Worsen.Domain.Procedural
         public ProceduralBlockRole Role { get; }
         public Quaternion Rotation { get; }
         public bool HasCollision => Role != ProceduralBlockRole.VisualOnly;
-        public bool HasRenderer => Role == ProceduralBlockRole.Solid || Role == ProceduralBlockRole.VisualOnly;
+        public bool HasRenderer => Role == ProceduralBlockRole.Solid || Role == ProceduralBlockRole.VisualOnly || Role == ProceduralBlockRole.PlayerOnly;
         public int SurfaceId { get; }
         public TraversalSurfaceKind TraversalKind { get; }
         public Vector3 EndpointA { get; }

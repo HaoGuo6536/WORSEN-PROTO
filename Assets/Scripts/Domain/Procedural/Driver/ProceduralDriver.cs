@@ -15,6 +15,7 @@
 //   - Tear down only the navigation instance, materials and geometry this Driver owns.
 //   - Build physical interactables and apply routed Level state to owned sub-drivers.
 //   - Keep safety slabs inside occupied cells and verify optional pocket isolation.
+//   - Exclude player-only staging/drops from hunter paths and own opt-in partition links.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -46,6 +47,8 @@ namespace Worsen.Domain.Procedural
             Teardown();
             if (transform.lossyScale != Vector3.one) throw new InvalidOperationException("Procedural owner requires unit world scale.");
             var blocks = _presenter.Build(layout, config, driverConfig);
+            ProceduralStoreyUtility.Validate(layout, config);
+            new ProceduralStoreyPresenter().ValidateLandings(layout, blocks);
             var objects = new ProceduralInteractablePresenter();
             layout.Interactables = objects.Build(layout, config, driverConfig, blocks, new System.Random(layout.Seed));
             layout.InteractableManifest = objects.Manifest(layout.Interactables);
@@ -90,6 +93,8 @@ namespace Worsen.Domain.Procedural
         public void Teardown()
         {
             _state.Ready = false;
+            foreach (var link in _state.NavigationLinks) if (NavMesh.IsLinkValid(link)) NavMesh.RemoveLink(link);
+            _state.NavigationLinks.Clear();
             if (_state.NavigationInstance.valid) _state.NavigationInstance.Remove();
             _state.NavigationInstance = default;
             if (_state.NavigationData != null) Release(_state.NavigationData);
@@ -207,11 +212,15 @@ namespace Worsen.Domain.Procedural
 
         private void BuildNavigation(ProceduralLayout layout, IReadOnlyList<ProceduralBlock> blocks, ProceduralDriverConfig config)
         {
+            var navigation = new ProceduralNavigationPresenter();
+            navigation.Validate(config);
             var settings = NavMesh.GetSettingsByID(config.NavMeshAgentTypeId);
             if (settings.agentTypeID != config.NavMeshAgentTypeId || settings.agentRadius <= 0f || settings.agentHeight <= 0f)
                 throw new InvalidOperationException("The configured navigation agent type is unavailable.");
             settings.overrideVoxelSize = true;
             settings.voxelSize = config.NavVoxelSize;
+            settings.ledgeDropHeight = 0f;
+            settings.maxJumpAcrossDistance = 0f;
             var sources = new List<NavMeshBuildSource>(blocks.Count);
             foreach (var block in blocks)
             {
@@ -224,7 +233,7 @@ namespace Worsen.Domain.Procedural
                     shape = NavMeshBuildSourceShape.Box,
                     transform = Matrix4x4.TRS(block.Center, block.Rotation, Vector3.one),
                     size = block.Size,
-                    area = block.Kind == ProceduralSurfaceKind.Floor ? 0 : 1
+                    area = navigation.Area(block)
                 });
             }
             var bounds = _presenter.NavigationBounds(blocks, config.NavBoundsPadding);
@@ -236,6 +245,14 @@ namespace Worsen.Domain.Procedural
             _state.NavigationData.name = "Procedural Navigation - Round " + layout.RoundIndex;
             _state.NavigationInstance = NavMesh.AddNavMeshData(_state.NavigationData);
             if (!_state.NavigationInstance.valid) throw new InvalidOperationException("Runtime navigation data could not be installed.");
+            if (config.EnablePartitionIgnoringLinks)
+                foreach (var plan in navigation.Links(layout, blocks, config))
+                {
+                    var link = NavMesh.AddLink(new NavMeshLinkData { startPosition = plan.Start, endPosition = plan.End,
+                        agentTypeID = config.NavMeshAgentTypeId, area = plan.Area, bidirectional = true, width = 0f, costModifier = -1f });
+                    if (!NavMesh.IsLinkValid(link)) throw new InvalidOperationException("Partition navigation link could not be installed.");
+                    _state.NavigationLinks.Add(link);
+                }
             ValidateNavigation(layout, config);
             ValidateShortcutDetours(blocks, config);
         }
@@ -243,16 +260,19 @@ namespace Worsen.Domain.Procedural
         private static void ValidateNavigation(ProceduralLayout layout, ProceduralDriverConfig config)
         {
             ProceduralFootprintUtility.Validate(layout);
-            var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = 1 };
+            var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = config.HunterAreaMask };
             if (!NavMesh.SamplePosition(layout.PlayerSpawnPosition, out var start, config.NavSampleRadius, filter))
                 throw new InvalidOperationException("Generated player spawn has no walkable navigation.");
             var targets = new List<Vector3> { layout.Graph.ExitPosition };
             foreach (var anchor in layout.Graph.Anchors) targets.Add(anchor.Position);
             foreach (var position in layout.HunterSpawnPositions) targets.Add(position);
+            foreach (var route in layout.VerticalRoutes)
+            { targets.Add(route.Points[0]); targets.Add(route.Points.Last()); }
             var path = new NavMeshPath();
             foreach (var target in targets)
                 if (!NavMesh.SamplePosition(target, out var end, config.NavSampleRadius, filter) ||
-                    !NavMesh.CalculatePath(start.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
+                    !NavMesh.CalculatePath(start.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete ||
+                    !NavMesh.CalculatePath(end.position, start.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
                     throw new InvalidOperationException("Generated navigation cannot reach required position " + target + ".");
             foreach (var pocket in layout.Modules.Where(m => m.PocketId != 0).GroupBy(m => m.PocketId))
             {
@@ -270,7 +290,7 @@ namespace Worsen.Domain.Procedural
 
         private static void ValidateShortcutDetours(IReadOnlyList<ProceduralBlock> blocks, ProceduralDriverConfig config)
         {
-            var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = 1 };
+            var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = config.HunterAreaMask };
             foreach (var block in blocks)
             {
                 if (block.TraversalKind != TraversalSurfaceKind.Vault && block.TraversalKind != TraversalSurfaceKind.SlideGate) continue;

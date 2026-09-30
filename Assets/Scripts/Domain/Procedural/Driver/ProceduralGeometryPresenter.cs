@@ -13,6 +13,7 @@
 //   - Seal every roof and the upper wall transitions between unequal room heights.
 //   - Tile occupied cells only; omit same-room seams and seal every gap-facing edge.
 //   - Frame gap views visually while retaining an unbroken wall collider/NavMesh barrier.
+//   - Add upper floors with real cutouts, climb staging and permissioned ramp collision.
 // DEPENDENCIES:
 //   - Core room values and Procedural layout/configuration only.
 // USAGE NOTES:
@@ -52,6 +53,7 @@ namespace Worsen.Domain.Procedural
             }
             blocks.AddRange(new ProceduralRoutePresenter().Build(layout, config, driver));
             if (config.CastleModules) blocks.AddRange(new ProceduralCastlePresenter().Build(layout, config, driver));
+            blocks.AddRange(new ProceduralStoreyPresenter().Build(layout, config, driver));
             return blocks.AsReadOnly();
         }
 
