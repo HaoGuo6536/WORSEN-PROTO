@@ -3,12 +3,13 @@
 // ============================================================================
 // PURPOSE:
 //   Builds the runtime collision shell and navigation for a generated floor.
-//   The exact same box descriptions feed visible cubes, physical colliders and
-//   navigation sources, so a graph cannot be admitted without usable geometry.
+//   Box roles separate stepped visuals from continuous ramp collision. Collision
+//   and navigation share box poses so admission requires usable physical geometry.
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Create enclosed rooms and bake bounded navigation from explicit owned sources.
+//   - Exclude visual-only treads from physics and navigation; keep ramps and landings invisible.
 //   - Verify native paths to every cake, room, hunter spawn and exit before admission.
 //   - Apply crack textures and bounded masonry splitting with matching colliders.
 //   - Tear down only the navigation instance, materials and geometry this Driver owns.
@@ -94,9 +95,14 @@ namespace Worsen.Domain.Procedural
             item.name = "Room " + block.RoomId + " " + block.Kind;
             item.layer = layer;
             item.transform.SetParent(_state.Root.transform, false);
-            item.transform.SetPositionAndRotation(block.Center, Quaternion.identity);
+            item.transform.SetPositionAndRotation(block.Center, block.Rotation);
             item.transform.localScale = block.Size;
-            item.GetComponent<Renderer>().sharedMaterial = material;
+            var renderer = item.GetComponent<Renderer>();
+            renderer.sharedMaterial = material; renderer.enabled = block.HasRenderer;
+            if (!block.HasCollision)
+            {
+                var collider = item.GetComponent<Collider>(); collider.enabled = false; Release(collider);
+            }
             if (block.SurfaceId != 0) item.AddComponent<ProceduralTraversalSurface>().Configure(block);
             if (!_state.Fragments.TryGetValue(block.RoomId, out var fragments))
             {
@@ -148,6 +154,7 @@ namespace Worsen.Domain.Procedural
             _state.CrackMaterials.Add(roomId, material); _state.OwnedMaterials.Add(material);
             foreach (var fragment in fragments)
             {
+                if (!fragment.GetComponent<Renderer>().enabled) continue;
                 var overlay = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 overlay.name = "Fracture texture overlay"; overlay.transform.SetParent(fragment.transform, false);
                 overlay.transform.localScale = Vector3.one * 1.0015f;
@@ -172,13 +179,19 @@ namespace Worsen.Domain.Procedural
             settings.voxelSize = config.NavVoxelSize;
             var sources = new List<NavMeshBuildSource>(blocks.Count);
             foreach (var block in blocks)
+            {
+                if (!block.HasCollision) continue;
+                if (block.Role == ProceduralBlockRole.StairRamp &&
+                    Vector3.Angle(block.Rotation * Vector3.up, Vector3.up) >= settings.agentSlope)
+                    throw new InvalidOperationException("Generated stair ramp must be below the navigation agent's maximum slope.");
                 sources.Add(new NavMeshBuildSource
                 {
                     shape = NavMeshBuildSourceShape.Box,
-                    transform = Matrix4x4.TRS(block.Center, Quaternion.identity, Vector3.one),
+                    transform = Matrix4x4.TRS(block.Center, block.Rotation, Vector3.one),
                     size = block.Size,
                     area = block.Kind == ProceduralSurfaceKind.Floor ? 0 : 1
                 });
+            }
             var bounds = _presenter.NavigationBounds(blocks, config.NavBoundsPadding);
             _state.NavigationData = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
             if (_state.NavigationData == null) throw new InvalidOperationException("Runtime navigation bake returned no data.");
