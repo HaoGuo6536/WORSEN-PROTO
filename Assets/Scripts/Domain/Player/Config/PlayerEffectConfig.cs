@@ -9,6 +9,7 @@
 //   Config (§4) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Own per-stack operations, caps, traversal floor and hunter speed ceiling.
+//   - Name contact/chase perks and tune delayed footsteps and heartbeat cadence.
 // DEPENDENCIES:
 //   - Player definitions and Unity serialization only.
 // USAGE NOTES:
@@ -47,6 +48,15 @@ namespace Worsen.Domain.Player
         [SerializeField, Min(0.1f)] private float _minimumTraversalSeconds = 0.1f;
         [SerializeField, Min(0f)] private float _standstillSpeed = 0.1f;
         [SerializeField, Min(0f)] private float _storedMomentumWindow = 1f;
+        [SerializeField] private string _secondBounceId = "second-bounce";
+        [SerializeField] private string _echoBootsId = "echo-boots";
+        [SerializeField] private string _loudHeartId = "loud-heart";
+        [SerializeField] private string _sureFootingId = "sure-footing";
+        [SerializeField] private string _latchId = "latch";
+        [SerializeField, Min(0f)] private float _echoBootsDelaySeconds = 3f;
+        [SerializeField, Min(1f)] private float _loudHeartSprintMultiplier = 1.1f;
+        [SerializeField, Min(0.01f)] private float _heartbeatIntervalSeconds = 1f;
+        [SerializeField, Range(0f, 1f)] private float _heartbeatLoudness = 0.5f;
         [SerializeField] private Mapping[] _mappings =
         {
             new Mapping("short-grace", PlayerEffectStat.GraceSeconds, PlayerEffectOperation.Multiply, 0.6f),
@@ -77,6 +87,15 @@ namespace Worsen.Domain.Player
         public float MinimumTraversalSeconds => _minimumTraversalSeconds;
         public float StandstillSpeed => _standstillSpeed;
         public float StoredMomentumWindow => _storedMomentumWindow;
+        public string SecondBounceId => _secondBounceId;
+        public string EchoBootsId => _echoBootsId;
+        public string LoudHeartId => _loudHeartId;
+        public string SureFootingId => _sureFootingId;
+        public string LatchId => _latchId;
+        public float EchoBootsDelaySeconds => _echoBootsDelaySeconds;
+        public float LoudHeartSprintMultiplier => _loudHeartSprintMultiplier;
+        public float HeartbeatIntervalSeconds => _heartbeatIntervalSeconds;
+        public float HeartbeatLoudness => _heartbeatLoudness;
         public IReadOnlyList<Mapping> Mappings => Array.AsReadOnly(_mappings ?? Array.Empty<Mapping>());
     }
 }
