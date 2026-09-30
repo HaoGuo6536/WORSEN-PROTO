@@ -13,6 +13,7 @@
 // USAGE NOTES:
 //   Edit Mode boundary tests; the coordinator runs them in Unity. Reflection injects
 //   owned state and invokes lifecycle/click boundaries, never replaces routing logic.
+//   Finally releases pause globals and Run/Progression singletons after failures too.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace Worsen.Tests.Menu
         [SetUp]
         public void SetUp()
         {
-            Assert.That(ProgressionSessionManager.Instance, Is.Null);
+            Assert.That(ProgressionSessionManager.Instance == null, Is.True, "No live foreign Progression owner.");
             _defaults = ScriptableObject.CreateInstance<SettingsConfig>();
             _progressionConfig = ScriptableObject.CreateInstance<ProgressionConfig>();
             _settings = Component<SettingsManager>();
@@ -80,13 +81,16 @@ namespace Worsen.Tests.Menu
         [TearDown]
         public void TearDown()
         {
-            if (_route != null) Invoke(_route, "OnDisable");
-            if (_menu != null) Invoke(_menu, "OnDisable");
-            if (_input != null) Invoke(_input, "OnDisable");
-            for (int i = _objects.Count - 1; i >= 0; i--) Object.DestroyImmediate(_objects[i]);
-            _objects.Clear();
-            typeof(ProgressionSessionManager).GetProperty("Instance").SetValue(null, null);
-            Object.DestroyImmediate(_defaults); Object.DestroyImmediate(_progressionConfig);
+            try
+            {
+                if (_route != null) Invoke(_route, "OnDisable");
+                if (_menu != null) Invoke(_menu, "OnDisable");
+                if (_input != null) Invoke(_input, "OnDisable");
+                for (int i = _objects.Count - 1; i >= 0; i--) Object.DestroyImmediate(_objects[i]);
+                _objects.Clear();
+                Object.DestroyImmediate(_defaults); Object.DestroyImmediate(_progressionConfig);
+            }
+            finally { PauseFixtureCleanup.Restore(); }
         }
         [Test]
         public void TitleClickStartsProgressionOnceWithSceneSeedAndAcknowledgesMenu()

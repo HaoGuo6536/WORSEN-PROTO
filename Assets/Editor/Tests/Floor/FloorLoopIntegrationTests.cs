@@ -10,6 +10,7 @@
 //   - Verify physical trigger delivery through the ordinary Manager/router paths.
 //   - Verify golden currency reaches Results and restart creates fresh scene state.
 //   - Accept a density-selected required subset instead of a fixed ten-cake minimum.
+//   - Check the decluttered HUD contract: no legacy exit-state label.
 //   - Preserve persistent service identities and event subscription counts.
 // DEPENDENCIES:
 //   - Core, Domain Floor/Player/Hunter/Level, Session Run/SceneFlow and Presentation.
@@ -149,7 +150,7 @@ namespace Worsen.Tests.Floor
                 var hud = One<HUDManager>().GetComponent<UIDocument>().rootVisualElement;
                 Assert.That(hud.Q<Label>("cake-count").text,
                     Is.EqualTo("Cakes: " + anchors.Length + " / " + anchors.Length));
-                Assert.That(hud.Q<Label>("exit-state").text, Is.EqualTo("Exit: OPEN"));
+                Assert.That(hud.Q<Label>("exit-state"), Is.Null, "PLAN-020 removes exit-state HUD chrome.");
 
                 // The last cake may immediately spawn a golden trigger around the
                 // overlapping Player. Explicitly collect a different active anchor.

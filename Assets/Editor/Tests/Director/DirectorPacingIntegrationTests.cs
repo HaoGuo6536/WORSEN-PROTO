@@ -12,6 +12,7 @@
 //   - Observe real Chase transitions and frozen default Director timing twice per seed.
 //   - Record every pose, pressure observation, hint belief and no-proximity interval.
 //   - Distinguish finite motor arrival from emitted hints and censored observation gaps.
+//   - Allow floating-point roundoff in computed hint radii, not gameplay drift.
 // DEPENDENCIES:
 //   - Core; Domain Player, Hunter, Chase, Floor; Session.Run; FloorLoopSceneRoot.
 //   - Presentation.Input device isolation; Unity physics/navigation; Editor asset reads.
@@ -328,7 +329,7 @@ namespace Worsen.Tests.Director
                     Assert.That(hint.Hunter, Is.EqualTo(hunter.Id)); Assert.That(hint.Player, Is.EqualTo(player.Id));
                     Assert.That(hint.DeliveredTick, Is.EqualTo(run.Tick));
                     Assert.That(hint.AgeSeconds, Is.EqualTo(config.HintAgeSeconds).Within(0.0001f));
-                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters));
+                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters).Within(0.0001f));
                     Assert.That(hunterState.LastKnownTick, Is.EqualTo(hint.ObservedTick), "Actual Hunter must accept the delivered hint.");
                     Assert.That(hunterState.PlayerVisible, Is.False);
                     Assert.That(hunterState.BeliefConfidence, Is.GreaterThan(0f));

@@ -9,10 +9,11 @@
 // KEY RESPONSIBILITIES:
 //   - Verify Escape/Start bindings, focus/owner admission and input-buffer clearing.
 // DEPENDENCIES:
-//   NUnit, Input System, Core and Input Driver/Presenter state.
+//   NUnit, Input System, Core, Input Driver/Presenter state and pause cleanup support.
 // USAGE NOTES:
 //   Edit Mode transient objects only. No persistent Manager, asset mutation or IO.
 //   Native device presses and cursor behavior in a build remain coordinator checks.
+//   Reflection invokes lifecycle without SendMessage; teardown clears pause globals.
 // ============================================================================
 using System.Reflection;
 using NUnit.Framework;
@@ -20,6 +21,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Worsen.Core;
 using Worsen.Presentation.Input;
+using Worsen.Tests.Menu;
 namespace Worsen.Tests.Input
 {
     public sealed class InputPauseActionTests
@@ -42,13 +44,17 @@ namespace Worsen.Tests.Input
             _pause = (InputAction)Field("_pause").GetValue(_driver);
             _gameplay = (InputActionMap)Field("_actions").GetValue(_driver);
             _driver.SetOwnerEnabled(true);
-            _driver.SendMessage("OnApplicationFocus", true);
+            Focus(true);
         }
         [TearDown]
         public void TearDown()
         {
-            if (_driver != null) _driver.Teardown();
-            Object.DestroyImmediate(_owner); Object.DestroyImmediate(_config);
+            try
+            {
+                if (_driver != null) _driver.Teardown();
+                Object.DestroyImmediate(_owner); Object.DestroyImmediate(_config);
+            }
+            finally { PauseFixtureCleanup.Restore(); }
         }
         [Test]
         public void PauseIsSeparateAndAvailableWithGameplayDisabledButRespectsFocusAndOwner()
@@ -59,9 +65,9 @@ namespace Worsen.Tests.Input
             Assert.That(_pause.bindings[1].path, Is.EqualTo("<Gamepad>/start"));
             _driver.SetInputEnabled(false);
             Assert.That(_gameplay.enabled, Is.False); Assert.That(_pause.enabled, Is.True);
-            _driver.SendMessage("OnApplicationFocus", false);
+            Focus(false);
             Assert.That(_pause.enabled, Is.False);
-            _driver.SendMessage("OnApplicationFocus", true);
+            Focus(true);
             Assert.That(_pause.enabled, Is.True);
             _driver.SetOwnerEnabled(false);
             Assert.That(_pause.enabled, Is.False);
@@ -80,5 +86,6 @@ namespace Worsen.Tests.Input
             Assert.That(_state.LookDelta, Is.EqualTo(Vector2.zero)); Assert.That(_state.Held, Is.EqualTo(InputButtons.None));
         }
         private static FieldInfo Field(string name) => typeof(PlayerInputDriver).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+        private void Focus(bool focused) => typeof(PlayerInputDriver).GetMethod("OnApplicationFocus", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_driver, new object[] { focused });
     }
 }

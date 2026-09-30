@@ -10,6 +10,7 @@
 //   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Distinguish a historical Player pose from the current pose at delivery.
 //   - Verify default hint age, uncertainty, aged belief and actual investigation.
+//   - Allow floating-point roundoff in the delivered radius, not changed tuning.
 //   - Bound timing by consecutive real Session ticks and detect early/duplicate hints.
 // DEPENDENCIES:
 //   - Core facts; Director, Player, Hunter, Chase; Session.Run; FloorLoopSceneRoot.
@@ -238,7 +239,7 @@ namespace Worsen.Tests.Director
                     Assert.That(hint.DeliveredTick, Is.EqualTo(run.Tick));
                     Assert.That(hint.ObservedTick, Is.LessThan(hint.DeliveredTick));
                     Assert.That(hint.AgeSeconds, Is.EqualTo(config.HintAgeSeconds).Within(0.0001f));
-                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters));
+                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters).Within(0.0001f));
                     Assert.That(hint.Confidence, Is.EqualTo(config.HintConfidence));
                     double deliveredSeconds = hint.DeliveredTick * stepSeconds;
                     Assert.That(deliveredSeconds, Is.InRange(config.HeatThresholdSeconds - 0.00001,
