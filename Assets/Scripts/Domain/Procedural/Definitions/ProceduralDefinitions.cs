@@ -13,6 +13,7 @@
 //   - Retain the effective spawn policy and immutable world-object construction plans.
 //   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
 //   - Carry kind-free shrine candidates for admitted floors; Shrine owns selection.
+//   - Bind gap-edge candidates to the first pocket room directly across their gap.
 //   - Retain storeys, directed vertical routes and permissioned navigation link plans.
 //   - Keep theme metadata, optional cages and threshold staging outside required edges.
 // DEPENDENCIES:
@@ -142,12 +143,14 @@ namespace Worsen.Domain.Procedural
 
     public readonly struct ProceduralShrineSite
     {
-        public ProceduralShrineSite(int roomId, Vector3 position, bool gapEdge, Vector3 facing)
-        { RoomId = roomId; Position = position; GapEdge = gapEdge; Facing = facing; }
+        public ProceduralShrineSite(int roomId, Vector3 position, bool gapEdge, Vector3 facing, int destinationPocketRoomId = 0)
+        { RoomId = roomId; Position = position; GapEdge = gapEdge && destinationPocketRoomId > 0;
+            Facing = facing; DestinationPocketRoomId = destinationPocketRoomId; }
         public int RoomId { get; }
         public Vector3 Position { get; }
         public bool GapEdge { get; }
         public Vector3 Facing { get; }
+        public int DestinationPocketRoomId { get; }
     }
 
     public readonly struct ProceduralGapSite

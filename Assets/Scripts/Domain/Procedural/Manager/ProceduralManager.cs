@@ -15,6 +15,7 @@
 //   - Expose Core interactable snapshots and apply Level's routed state-change facts.
 //   - Publish primitive theme, threshold and optional puzzle facts for external routing.
 //   - Expose kind-free shrine sites only after physical floor admission; reset on teardown.
+//   - Publish opened Passage tiles, lined Core anchors and ordered per-tile collapse facts.
 // DEPENDENCIES:
 //   - Core graph, interactable and destruction contracts; no Domain sibling calls.
 // USAGE NOTES:
@@ -61,16 +62,32 @@ namespace Worsen.Domain.Procedural
         public event Action<int, int, int, Vector3, Vector3> ThresholdFreezePublished;
         public event Action<int, int, Vector3> OptionalPuzzleRewardPublished;
         public event Action<int, int, int> PuzzleSolved;
+        public event Action<int, int, IReadOnlyList<Vector3>> PassageOpened;
+        public event Action<int, int, int, Vector3> PassageTileCollapsed;
+        public IReadOnlyList<LevelAnchor> LinedPocketAnchors => IsReady ? _driver.LinedPocketAnchors : Array.Empty<LevelAnchor>();
 
         private void OnEnable()
-        { if (_driver == null) _driver = GetComponent<ProceduralDriver>(); _driver.PuzzleSolved += OnPuzzleSolved; }
-        private void OnDisable() { if (_driver != null) _driver.PuzzleSolved -= OnPuzzleSolved; }
+        {
+            if (_driver == null) _driver = GetComponent<ProceduralDriver>();
+            _driver.PuzzleSolved += OnPuzzleSolved; _driver.PassageTileCollapsed += OnPassageTileCollapsed;
+        }
+        private void OnDisable()
+        { if (_driver != null) { _driver.PuzzleSolved -= OnPuzzleSolved; _driver.PassageTileCollapsed -= OnPassageTileCollapsed; } }
+        private void OnPassageTileCollapsed(int site, int pocket, int tile, Vector3 position)
+            => PassageTileCollapsed?.Invoke(site, pocket, tile, position);
         private void OnPuzzleSolved(int puzzle, int room, int reward) => PuzzleSolved?.Invoke(puzzle, room, reward);
         private bool IsPuzzleActor(Collider collider) => collider.GetComponentInParent<IEntityHandle>()?.Id == _driver.PuzzlePlayerId;
         public void TickPuzzles(PlayerMovementSample sample, float deltaTime)
         { if (IsReady) _driver.TickPuzzles(sample, deltaTime); }
         public void CompletePuzzleVault(int surfaceId, bool succeeded)
         { if (IsReady) _driver.CompletePuzzleVault(surfaceId, succeeded); }
+
+        public bool ActivatePassage(int siteIndex)
+        {
+            if (!IsReady || !_driver.ActivatePassage(_state.Layout, siteIndex, _config, out var plan)) return false;
+            PassageOpened?.Invoke(siteIndex, plan.PocketRoomId, plan.TilePositions);
+            return true;
+        }
 
         public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null)
         {
