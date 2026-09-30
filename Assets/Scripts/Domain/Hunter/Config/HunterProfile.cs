@@ -21,6 +21,7 @@
 //   - Select an optional archetype rules config and per-profile motor override.
 //   - Expose a provisional depth gate for roster admission, not runtime despawning.
 //   - Expose a provisional selection depth gate; Session owns gate enforcement.
+//   - Supply provisional roster depth, Wick sight and door-break approach tuning.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
@@ -44,6 +45,10 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterMotorDriverConfig _motorOverride = null;
         public HunterArchetypeConfig ArchetypeRules => _archetypeRules;
         public HunterMotorDriverConfig MotorOverride => _motorOverride;
+        [SerializeField, Min(1f)] private float _wickSightMultiplier = 1.3f;
+        [SerializeField, Min(0.1f)] private float _doorBreakReach = 1.5f;
+        public float WickSightMultiplier => Mathf.Max(1f, _wickSightMultiplier);
+        public float DoorBreakReach => Mathf.Max(0.1f, _doorBreakReach);
         [Header("Habits and hidden mutations")]
         [SerializeField] private HunterHabitData[] _habits = {
             new HunterHabitData(HunterHabitKind.ThresholdPause),
