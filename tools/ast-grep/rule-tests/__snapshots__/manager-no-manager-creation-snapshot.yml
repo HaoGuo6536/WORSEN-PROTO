@@ -1,0 +1,26 @@
+id: manager-no-manager-creation
+snapshots:
+  class Owner { void Create() { AddComponent<PlayerManager>(); } }:
+    labels:
+    - source: AddComponent<PlayerManager>()
+      style: primary
+      start: 30
+      end: 59
+  class Owner { void Create() { gameObject.AddComponent<PlayerManager>(); } }:
+    labels:
+    - source: gameObject.AddComponent<PlayerManager>()
+      style: primary
+      start: 30
+      end: 70
+  class Owner { void Create() { gameObject.AddComponent<Worsen.Domain.Player.PlayerManager>(); } }:
+    labels:
+    - source: gameObject.AddComponent<Worsen.Domain.Player.PlayerManager>()
+      style: primary
+      start: 30
+      end: 91
+  class Owner { void Create() { new GameObject("Player").AddComponent<PlayerManager>(); } }:
+    labels:
+    - source: new GameObject("Player").AddComponent<PlayerManager>()
+      style: primary
+      start: 30
+      end: 84
