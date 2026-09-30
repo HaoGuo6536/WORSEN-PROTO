@@ -13,8 +13,10 @@
 //   - Fade destruction and localized cursed flames while preserving route readability.
 //   - Own small chalk threshold crosses and clear them on room/floor teardown.
 //   - Own runtime Lumen grammar sub-drivers; budget exit fans alongside local lamps.
+//   - Bind Core light facts by exact generated socket position; unlit torches consume no budget.
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
+//   - Core interactable snapshots are pushed by the owning Manager, never pulled from Level.
 //   - HorrorLumenPresenter pure light math only (acyclic Environment to Horror dependency).
 // USAGE NOTES:
 //   Scene-owned. No RenderSettings writes; Horror owns global fog and daylight.
@@ -24,6 +26,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DistantLands.Lumen;
+using Worsen.Core;
 
 namespace Worsen.Presentation.Environment
 {
@@ -75,7 +78,7 @@ namespace Worsen.Presentation.Environment
                 if (slot.Torch)
                 {
                     SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
-                    AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false);
+                    AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false, slot.Position);
                 }
                 else
                 {
@@ -133,7 +136,8 @@ namespace Worsen.Presentation.Environment
             }
         }
 
-        private void AddFlame(int roomId, int identity, Transform parent, Vector3 position, bool refuge, bool moon)
+        private void AddFlame(int roomId, int identity, Transform parent, Vector3 position, bool refuge, bool moon,
+            Vector3 socketPosition = default)
         {
             var holder = new GameObject(moon ? "Lumen 2 Moon Pool" : "Lumen 2 Torch Pool");
             holder.transform.SetParent(parent, false); holder.transform.position = position;
@@ -154,7 +158,7 @@ namespace Worsen.Presentation.Environment
             _state.Flames.Add(new EnvironmentFlameDriverState
             {
                 RoomId = roomId, Identity = identity, EffectRoot = effectRoot, Lumen = lumen, Grammar = grammar,
-                Intensity = refuge ? 1.4f : 1f, Moon = moon
+                Intensity = refuge ? 1.4f : 1f, Moon = moon, SocketPosition = socketPosition
             });
             _state.Positions.Add(position); _state.Available.Add(true);
         }
@@ -169,6 +173,13 @@ namespace Worsen.Presentation.Environment
 
         public void SetLightingHooks(bool darkerFloors, bool wick)
         { _state.DarkerFloors = darkerFloors; _state.Wick = wick; _state.UntilRefresh = 0f; }
+
+        public void ApplyLight(InteractableState light)
+        {
+            if (!EnvironmentPresenter.ApplyLight(_state, light)) return;
+            _state.UntilRefresh = 0f;
+            Tick(0f);
+        }
 
         public void SetExitFrame(int roomId, Vector3 position, Quaternion rotation)
         {
@@ -255,7 +266,7 @@ namespace Worsen.Presentation.Environment
             else _state.ConsumedRooms.Remove(id);
             for (int i = 0; i < _state.Flames.Count; i++)
                 if (_state.Flames[i].RoomId == id)
-                { _state.Flames[i].Destruction = Mathf.Clamp01(severity); _state.Available[i] = severity < 1f; }
+                { _state.Flames[i].Destruction = Mathf.Clamp01(severity); _state.Available[i] = severity < 1f && _state.Flames[i].Lit; }
             if (_state.Rooms.TryGetValue(id, out GameObject room)) room.SetActive(_state.OwnerEnabled && severity < 1f);
             _state.UntilRefresh = 0f;
         }

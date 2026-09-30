@@ -4,12 +4,13 @@
 // PURPOSE:
 //   Exercises assembled-room and floor-display routing into the real Environment driver.
 //   Transient geometry facts verify the exit frame is created after its room and
-//   receives locked/open progress without requiring a generated scene or live renderer.
+//   receives continuous opening and Level light state without a generated scene or live renderer.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · CastleEnvironment routing integration.
 // KEY RESPONSIBILITIES:
 //   - Require graph exit identity, world position and authored Floor door rotation.
-//   - Route Locked to zero and Open to one, resetting progress on floor replacement.
+//   - Route partial opening and bail poses even while Locked, resetting on floor release.
+//   - Verify initial and changed torch state reaches the real Driver through Level events.
 //   - Pair subscriptions across reconfiguration and disable.
 // DEPENDENCIES:
 //   Core; Domain Level/Floor config; Session Run/Expedition/HorrorEffects;
@@ -17,7 +18,7 @@
 // USAGE NOTES:
 //   Edit Mode boundary fixture. Reflection publishes existing facts and injects a
 //   transient driver config without asset lookup; rooms and exit rays use real commands.
-//   Vendor rendering stays off in Edit Mode. Continuous opening and live wiring remain
+//   Vendor rendering stays off in Edit Mode. Live rendering and scene wiring remain
 //   coordinator checks; no scene, prefab, shared config or render settings are changed.
 // ============================================================================
 using System;
@@ -89,8 +90,10 @@ namespace Worsen.Tests.CastleEnvironment
             Assert.That(Exit.EffectRoot.transform.position, Is.EqualTo(_level.ReadOnlyState.Graph.ExitPosition));
             Assert.That(Quaternion.Angle(Exit.EffectRoot.transform.rotation,
                 Quaternion.Euler(0f, _floorVisuals.ExitDoorYaw, 0f)), Is.LessThan(0.001f));
-            Display(ExitState.Locked); Assert.That(Exit.OpeningProgress, Is.Zero);
-            Display(ExitState.Open); Assert.That(Exit.OpeningProgress, Is.EqualTo(1f));
+            Display(ExitState.Locked, 0f); Assert.That(Exit.OpeningProgress, Is.Zero);
+            Display(ExitState.Locked, .37f); Assert.That(Exit.OpeningProgress, Is.EqualTo(.37f));
+            Display(ExitState.Locked, .2f); Assert.That(Exit.OpeningProgress, Is.EqualTo(.2f), "Bail pose is not binary exit state.");
+            Display(ExitState.Open, 1f); Assert.That(Exit.OpeningProgress, Is.EqualTo(1f));
             Rooms(); Assert.That(Exit.OpeningProgress, Is.Zero);
         }
 
@@ -100,17 +103,44 @@ namespace Worsen.Tests.CastleEnvironment
             _route.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals);
             Assert.That(Subscribers(_expedition, "RoomsReady"), Is.EqualTo(1));
             Assert.That(Subscribers(_run, "FloorDisplayChanged"), Is.EqualTo(1));
+            Assert.That(Subscribers(_level, "InteractableChanged"), Is.EqualTo(1));
+            Assert.That(Subscribers(_expedition, "FloorReleased"), Is.EqualTo(1));
             Rooms(); _route.gameObject.SetActive(false);
             Assert.That(Subscribers(_expedition, "RoomsReady"), Is.Zero);
             Assert.That(Subscribers(_run, "FloorDisplayChanged"), Is.Zero);
-            Display(ExitState.Open); Assert.That(Exit.OpeningProgress, Is.Zero);
+            Assert.That(Subscribers(_level, "InteractableChanged"), Is.Zero);
+            Assert.That(Subscribers(_expedition, "FloorReleased"), Is.Zero);
+            Display(ExitState.Open, 1f); Assert.That(Exit.OpeningProgress, Is.Zero);
             _route.gameObject.SetActive(true);
-            Display(ExitState.Open); Assert.That(Exit.OpeningProgress, Is.EqualTo(1f));
+            Display(ExitState.Open, 1f); Assert.That(Exit.OpeningProgress, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void TorchFollowsInitialAndChangedLevelStateAndClearsOnRelease()
+        {
+            _level.gameObject.SetActive(true);
+            Vector3 socket = Array.Find(EnvironmentPresenter.BuildSlots(_room.Id, _room.Bounds, null), s => s.Torch).Position;
+            var light = new InteractableState(42, InteractableKind.Light, _room.Id, socket, InteractableStateValue.Inactive);
+            _level.InitializeGenerated(_level.ReadOnlyState.Graph, new[] { light });
+            _environment.SetObserver(socket);
+            Rooms();
+            var flame = State.Flames.Find(f => !f.Moon && !f.Exit && f.SocketPosition.Equals(socket));
+            Assert.That(flame, Is.Not.Null); Assert.That(flame.Lit, Is.False);
+            Assert.That(flame.EffectRoot.activeSelf, Is.False);
+            Assert.That(_level.SetLit(42, true), Is.True);
+            Assert.That(flame.Lit, Is.True); Assert.That(flame.EffectRoot.activeSelf, Is.True);
+            _environment.SetLightingHooks(true, true);
+            Assert.That(_level.SetLit(42, false), Is.True);
+            _environment.SetRoomDestruction(_room.Id, .5f); _driver.Tick(0f);
+            Assert.That(flame.EffectRoot.activeSelf, Is.False, "Wick and destruction updates cannot relight an unlit socket.");
+            Publish(_expedition, "FloorReleased");
+            Assert.That(State.Flames, Is.Empty); Assert.That(State.ExitLightIndex, Is.EqualTo(-1));
+            Assert.That(_environment.RoomCount, Is.Zero);
         }
 
         private void Rooms() => Publish(_expedition, "RoomsReady", (object)new[] {
             new GeneratedRoomSample(_room.Id, _room.Bounds, false, false, Array.Empty<Vector3>()) });
-        private void Display(ExitState exit) => Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(0, 1, 0, exit, false, Vector3.zero));
+        private void Display(ExitState exit, float progress) => Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(0, 1, 0, exit, false, Vector3.zero, progress));
         private T Component<T>() where T : Component
         {
             var owner = new GameObject(typeof(T).Name + " environment routing test");

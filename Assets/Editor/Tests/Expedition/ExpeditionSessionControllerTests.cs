@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Exercise duplicate/stale events, cleanup admission and failed generation.
 //   - Verify roster identity and portal crossing admission for real retained effects.
-//   - Check shop safety, exact threat budgets and invalid loadout rejection.
+//   - Check shop safety, recorded capacity shortfalls, fallback rejection and invalid loadouts.
 //   - Keep effect tuning assertions in HorrorEffects, the configured source.
 // DEPENDENCIES:
 //   - Session Expedition pure Controller/State, Core definitions, NUnit.
@@ -165,9 +165,15 @@ namespace Worsen.Tests.Expedition
         public void HunterBudgetCannotSilentlyShrinkToAvailableSpawns()
         {
             _controller.Queue(Request(threats: 2)); _controller.Begin(1);
-            Assert.Throws<InvalidOperationException>(() => _controller.HunterSpawns("Hunter", new[] { Vector3.zero }));
+            var limited = _controller.HunterSpawns("Hunter", new[] { Vector3.zero });
+            Assert.That(limited.Count, Is.EqualTo(1));
+            Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(1));
+            _controller.RecordPlayer(new EntityId(1)); _controller.RecordHunter(new EntityId(-1));
+            Assert.DoesNotThrow(_controller.Ready);
+            _controller.Queue(Request(2, threats: 2)); _controller.ReleaseActors(); _controller.Begin(2);
             var spawns = _controller.HunterSpawns("Hunter", new[] { Vector3.zero, Vector3.one, Vector3.up });
             Assert.That(spawns.Count, Is.EqualTo(2));
+            Assert.That(_state.HunterSpawnShortfall, Is.Zero);
             Assert.That(spawns[1].Position, Is.EqualTo(Vector3.one));
             Assert.That(spawns[1].ArchetypeKey, Is.EqualTo("Hunter"));
         }
@@ -224,6 +230,37 @@ namespace Worsen.Tests.Expedition
             _controller.Queue(Request()); _controller.Begin(1);
             Assert.Throws<ArgumentException>(() => _controller.PlayerSpawn("Player", new Vector3(float.NaN, 0f, 0f), Quaternion.identity));
             Assert.Throws<ArgumentException>(() => _controller.HunterSpawns("Hunter", new[] { new Vector3(0f, float.PositiveInfinity, 0f) }));
+        }
+
+        [Test]
+        public void LimitedCapacityPreservesRosterOrderAndZeroCapacityIsRecorded()
+        {
+            var effects = new ProgressionEffects(1f, 1f, 1f, 1f, 100f, 100f, 3,
+                activeThreatIds: new[] { "first", "second", "third" });
+            _controller.Queue(new ProgressionGenerationRequest(1, 17, 1, false, effects)); _controller.Begin(1);
+            var spawns = _controller.HunterSpawns("fallback", new[] { Vector3.one, Vector3.up });
+            Assert.That(spawns.Count, Is.EqualTo(2));
+            Assert.That(spawns[0].ArchetypeKey, Is.EqualTo("first"));
+            Assert.That(spawns[1].ArchetypeKey, Is.EqualTo("second"));
+            Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(1));
+            Assert.That(_controller.HunterSpawns("fallback", null), Is.Empty);
+            Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(3));
+            _controller.RecordPlayer(new EntityId(1)); Assert.DoesNotThrow(_controller.Ready);
+        }
+
+        [Test]
+        public void FallbackEvidenceSurvivesFailureAndCannotBecomeSuccess()
+        {
+            _controller.Queue(Request(threats: 0)); _controller.Begin(1);
+            _controller.RecordGenerationOutcome(true, "failed-layout|fallback=NoFloorAwaitingSession");
+            _controller.RecordPlayer(new EntityId(1));
+            Assert.Throws<InvalidOperationException>(_controller.Ready);
+            _controller.ReleaseActors(); _controller.Fail("no floor");
+            Assert.That(_state.UsedFallback, Is.True);
+            Assert.That(_state.LayoutManifest, Does.Contain("failed-layout"));
+            Assert.That(_state.Phase, Is.EqualTo(ExpeditionAssemblyPhase.Failed));
+            _controller.Queue(Request(2));
+            Assert.That(_state.UsedFallback, Is.False); Assert.That(_state.LayoutManifest, Is.Empty);
         }
 
         private void ReadyFloor()
