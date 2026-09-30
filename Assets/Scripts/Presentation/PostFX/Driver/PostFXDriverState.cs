@@ -10,13 +10,14 @@
 //   DriverState (§7c) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain an injected active-effects view and identity-matched grace envelope.
 //   - Preserve the runtime blur override independently of effect resets.
 //   - Retain proximity, injury and explicit effect countdowns.
 //   - Retain independent loud/subtle intrusion and default-off blindness countdowns.
 //   - Carry primitive volume values without holding a live volume.
 //
 // DEPENDENCIES:
-//   - No other project systems.
+//   - Core read-only effects and grace facts; no gameplay implementation dependencies.
 //
 // USAGE NOTES:
 //   - Scene-owned through PostFXDriver; passive data only.
@@ -24,11 +25,16 @@
 // ============================================================================
 
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Presentation.PostFX
 {
     public sealed class PostFXDriverState
     {
+        public IReadOnlyActiveEffects ActiveEffects;
+        public GraceWindowFact Grace;
+        public bool GraceActive;
+        public float GraceWeight;
         public bool Consumed;
         public bool? ReacquireBlurEnabled;
         public float ConsumptionElapsed, ConsumptionDuration, Blackout, Exposure;

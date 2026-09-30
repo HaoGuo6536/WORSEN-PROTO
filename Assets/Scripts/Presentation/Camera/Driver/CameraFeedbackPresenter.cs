@@ -10,6 +10,7 @@
 //   Presenter (Â§7b) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Compose progress-driven vault and comfort-gated landing/stumble without locking look.
 //   - Apply runtime lens/comfort overrides without mutating designer configuration.
 //   - Snap fully behind and forward on committed edges, ignoring rear-view look deltas.
 //   - Keep gameplay aim unshaken while composing bounded cosmetic effects.
@@ -51,6 +52,7 @@ namespace Worsen.Presentation.Camera
             state.PlayerId = default;
             state.MovementTick = -1;
             state.TraversalTick = -1;
+            CameraTraversalPresenter.Reset(state);
             state.EyePosition = Vector3.zero;
             state.Velocity = Vector3.zero;
             state.HeadingDegrees = 0f;
@@ -115,13 +117,13 @@ namespace Worsen.Presentation.Camera
             state.Proximity = Mathf.Clamp01(Finite(closeness));
         }
 
-        public void PlayTraversal(CameraDriverState state, PlayerTraversalFact fact, CameraDriverConfig config = null)
+        public void PlayTraversal(CameraDriverState state, PlayerTraversalFact fact, CameraDriverConfig config = null, float landingSeverity = 0f)
         {
             if (!state.HasMovement || !state.PlayerId.Equals(fact.Id) || fact.Tick <= state.TraversalTick) return;
             state.TraversalTick = fact.Tick;
             if (!fact.Succeeded || state.DeathSnapped) return;
             if (config != null && fact.Kind == TraversalKind.Land)
-                PlayShake(state, config.LandingShakeStrength, config.LandingShakeSeconds);
+                CameraTraversalPresenter.Land(state, config, landingSeverity);
             if (config != null && fact.Kind == TraversalKind.Rebound)
                 PlayShake(state, config.ReboundShakeStrength, config.ReboundShakeSeconds);
             if (fact.Kind != TraversalKind.Rebound) return;
@@ -232,6 +234,7 @@ namespace Worsen.Presentation.Camera
             state.Position = state.EyePosition + state.AimRotation * (Vector3.ClampMagnitude(wave, 1f) * config.MaximumShakeDisplacement * amount);
             state.Rotation = state.AimRotation * Quaternion.Euler(wave.x * config.MaximumShakeDegrees * amount,
                     wave.y * config.MaximumShakeDegrees * amount, state.Roll + wave.z * config.MaximumShakeDegrees * amount);
+            CameraTraversalPresenter.Tick(state, config, dt);
         }
 
         public Quaternion AimRotation(CameraDriverState state)

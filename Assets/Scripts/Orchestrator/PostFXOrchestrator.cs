@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · PostFX target.
 // KEY RESPONSIBILITIES:
+//   - Pair Run grace subscriptions and expose effect-view and timed Blind trap routes.
 //   - Forward confirmed consumption before terminal presentation; preserve ordinary injury.
 //   - Pair subscriptions and clear presentation through the existing capture reset.
 //   - Share Horror's single startle admission with the Director intrusion's visual strength.
@@ -61,6 +62,8 @@ namespace Worsen.Orchestrator
             _run.HealthChanged += OnHealth;
             _run.IntrusionPublished += OnIntrusion;
             _run.CollapseHandPublished += OnCollapseHand;
+            _run.OnGraceStarted += OnGraceStarted;
+            _run.OnGraceEnded += OnGraceEnded;
         }
         private void OnDisable()
         {
@@ -71,8 +74,14 @@ namespace Worsen.Orchestrator
             _run.HealthChanged -= OnHealth;
             _run.IntrusionPublished -= OnIntrusion;
             _run.CollapseHandPublished -= OnCollapseHand;
+            _run.OnGraceStarted -= OnGraceStarted;
+            _run.OnGraceEnded -= OnGraceEnded;
         }
         private void OnMovement(PlayerMovementSample sample) => _postFX.SetLookBack(sample.LookBack);
+        public void OnGraceStarted(GraceWindowFact fact) => _postFX.SetGrace(fact, true);
+        public void OnGraceEnded(GraceWindowFact fact) => _postFX.SetGrace(fact, false);
+        public void OnActiveEffectsChanged(IReadOnlyActiveEffects effects) => _postFX.SetActiveEffects(effects);
+        public void OnBlindTrap(float seconds) => _postFX.SetBlindness(seconds);
         private void OnCaptureStarted(RunCaptureMetadata metadata) => _postFX.ResetEffects();
         private void OnProximity(ProximitySample sample) => _postFX.SetProximity(sample.Closeness);
         private void OnHealth(EntityId id, float health, float maximum) => _postFX.SetInjury(health, maximum);

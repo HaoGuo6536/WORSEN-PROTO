@@ -10,6 +10,7 @@
 //   DriverConfig (Â§7d) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Author progress-based vault height, landing depths and stumble comfort tuning.
 //   - Retain legacy look fields while the fixed-frame rear view disables scanning.
 //   - Tune the held catch framing and timing, slide banking and bounded shake.
 //
@@ -31,6 +32,21 @@ namespace Worsen.Presentation.Camera
     [CreateAssetMenu(fileName = "CameraDriverConfig", menuName = "Worsen/Camera/Driver Config")]
     public sealed class CameraDriverConfig : ScriptableObject
     {
+        [SerializeField] private AnimationCurve _vaultHeight = new AnimationCurve(
+            new Keyframe(0f, 0f), new Keyframe(0.2f, -0.04f), new Keyframe(0.65f, 0.08f), new Keyframe(1f, 0f));
+        [SerializeField, Min(0.001f)] private float _vaultReturnSeconds = 0.18f;
+        [SerializeField, Min(0f)] private float _softLandingDip = 0.04f;
+        [SerializeField, Min(0f)] private float _hardLandingDip = 0.12f;
+        [SerializeField, Min(0.001f)] private float _landingDipSeconds = 0.24f;
+        [SerializeField, Range(0f, 1f)] private float _stumbleStrength = 0.45f;
+        [SerializeField, Min(0f)] private float _stumbleFrequency = 12f;
+        public AnimationCurve VaultHeight => _vaultHeight;
+        public float VaultReturnSeconds => _vaultReturnSeconds;
+        public float SoftLandingDip => _softLandingDip;
+        public float HardLandingDip => _hardLandingDip;
+        public float LandingDipSeconds => _landingDipSeconds;
+        public float StumbleStrength => _stumbleStrength;
+        public float StumbleFrequency => _stumbleFrequency;
         [SerializeField, Range(40f, 140f)] private float _horizontalFieldOfView = 95f;
         [SerializeField, Range(0f, 20f)] private float _speedFieldOfView = 8f;
         [SerializeField, Min(0.1f)] private float _maxDesignSpeed = 14f;

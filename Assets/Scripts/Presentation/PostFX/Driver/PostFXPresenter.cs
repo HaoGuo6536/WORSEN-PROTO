@@ -10,6 +10,7 @@
 //   Presenter (§7b) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Ease identity-matched grace desaturation and read exact configured effect ids.
 //   - Override blur admission at runtime and immediately clear disabled blur.
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
 //   - Expire optional blur and intrusion without clearing injury or proximity.
@@ -17,7 +18,7 @@
 //   - Compose transient effects above constant degradation; blindness is explicit and timed.
 //
 // DEPENDENCIES:
-//   - No other project systems; pure UnityEngine math only.
+//   - Core grace/effects contracts; pure UnityEngine math only.
 //
 // USAGE NOTES:
 //   - Stateless; PostFXDriver owns the supplied state and all volume APIs.
@@ -27,6 +28,7 @@
 // ============================================================================
 
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Presentation.PostFX
 {
@@ -42,6 +44,10 @@ namespace Worsen.Presentation.PostFX
 
         public void Reset(PostFXDriverState state)
         {
+            state.ActiveEffects = null;
+            state.Grace = default;
+            state.GraceActive = false;
+            state.GraceWeight = 0f;
             state.Consumed = false;
             state.ConsumptionElapsed = state.ConsumptionDuration = state.Blackout = state.Exposure = 0f;
             state.SceneTint = Color.white;
@@ -82,6 +88,27 @@ namespace Worsen.Presentation.PostFX
         public void SetBlindness(PostFXDriverState state, float seconds)
             => state.BlindnessRemaining = Mathf.Max(0f, Finite(seconds));
 
+        public void SetGrace(PostFXDriverState state, GraceWindowFact fact, bool active)
+        {
+            if (active)
+            {
+                if (!fact.PlayerId.IsValid || fact.EndTick <= fact.StartTick
+                    || (state.Grace.PlayerId == fact.PlayerId && fact.StartTick < state.Grace.StartTick)) return;
+                state.Grace = fact;
+                state.GraceActive = true;
+            }
+            else if (state.Grace.PlayerId == fact.PlayerId && state.Grace.StartTick == fact.StartTick)
+                state.GraceActive = false;
+        }
+
+        public bool HasBlindness(PostFXDriverState state, PostFXDriverConfig config)
+        {
+            if (state.ActiveEffects == null || config.BlindnessEffectIds == null) return false;
+            foreach (string id in config.BlindnessEffectIds)
+                if (!string.IsNullOrWhiteSpace(id) && state.ActiveEffects.Has(new EffectId(id))) return true;
+            return false;
+        }
+
         public void PlayConsumed(PostFXDriverState state, float seconds)
         {
             seconds = Finite(seconds);
@@ -104,12 +131,17 @@ namespace Worsen.Presentation.PostFX
             float intrusion = state.IntrusionRemaining > 0f ? 1f :
                 state.SubtleIntrusionRemaining > 0f ? Mathf.Clamp01(config.SubtleIntrusionMultiplier) : 0f;
             state.Saturation = -Mathf.Clamp(config.IntrusionDesaturation, 0f, 100f) * intrusion;
+            float ease = state.GraceActive ? config.GraceEaseInSeconds : config.GraceEaseOutSeconds;
+            state.GraceWeight = Mathf.MoveTowards(state.GraceWeight, state.GraceActive ? 1f : 0f,
+                dt / Mathf.Max(0.001f, Finite(ease)));
+            float grace = state.GraceWeight * state.GraceWeight * (3f - 2f * state.GraceWeight);
+            state.Saturation = Mathf.Min(state.Saturation, Mathf.Clamp(Finite(config.GraceSaturation), -100f, 0f) * grace);
             state.Grain = Mathf.Clamp01(config.BaselineGrain + config.IntrusionGrain * intrusion);
             state.Blur = Mathf.Clamp01(state.BlurRemaining / Mathf.Max(0.001f, config.ReacquireBlurSeconds));
             state.BlurRadius = Mathf.Lerp(0.5f, config.BlurRadius, state.Blur);
             state.Blackout = state.Exposure = 0f;
             // A held catch must remain visible even if a blindness hook was still active.
-            state.Blackout = !state.Consumed && state.Injury < 1f && state.BlindnessRemaining > 0f
+            state.Blackout = !state.Consumed && state.Injury < 1f && (state.BlindnessRemaining > 0f || HasBlindness(state, config))
                 ? Mathf.Clamp01(config.BlindnessDarkness) : 0f;
             state.SceneTint = Color.Lerp(Color.white, Color.black, state.Blackout);
             if (!state.Consumed) return;

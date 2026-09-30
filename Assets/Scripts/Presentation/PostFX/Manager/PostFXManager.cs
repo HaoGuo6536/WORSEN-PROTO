@@ -10,13 +10,14 @@
 //   Manager (§1) · Presentation · PostFX (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward Run grace boundaries and the injected active-effects view.
 //   - Forward runtime blur enablement without changing the designer config.
 //   - Initialize the serialized Driver and mirrored config fallback.
 //   - Forward confirmed consumption with a duration supplied by the coordinator.
 //   - Forward budgeted intrusion and blindness hooks; pair Driver lifetime.
 //
 // DEPENDENCIES:
-//   - No other project systems; receives primitive effect facts.
+//   - Core read-only effects and grace facts; no gameplay implementation references.
 //
 // USAGE NOTES:
 //   - Scene-owned Service (§8), explicitly initialized by scene assembly; no singleton.
@@ -26,6 +27,7 @@
 // ============================================================================
 
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Presentation.PostFX
 {
@@ -62,6 +64,8 @@ namespace Worsen.Presentation.PostFX
         public void PlayIntrusion(float seconds) { if (_initialized) _driver.PlayIntrusion(seconds); }
         public void PlayIntrusion(float seconds, bool startle) { if (_initialized) _driver.PlayIntrusion(seconds, startle); }
         public void SetBlindness(float seconds) { if (_initialized) _driver.SetBlindness(seconds); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_initialized) _driver.SetActiveEffects(effects); }
+        public void SetGrace(GraceWindowFact fact, bool active) { if (_initialized) _driver.SetGrace(fact, active); }
         public void PlayConsumed(float seconds) { if (_initialized) _driver.PlayConsumed(seconds); }
         public void ResetEffects() { if (_initialized) _driver.ResetEffects(); }
 
