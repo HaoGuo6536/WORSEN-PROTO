@@ -12,6 +12,7 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Relay shield changes and initial bound-player shield snapshots for late HUD binding.
 //   - Publish pending death before terminal commit; allow an admitted revival without resetting Floor.
 //   - Publish empty counts from the routed Progression inventory, never the legacy Player slots.
 //   - Pair Core hunter fact relays for initial/late spawns, web slowing and floor-wide Loud Keys.
@@ -122,6 +123,12 @@ namespace Worsen.Session.Run
         public event Action<ChaseFact> ChasePhaseChanged;
         public event Action<ProximitySample> ProximityPublished;
         public event Action<EntityId, float, float> HealthChanged;
+        public event Action<EntityId, float> ShieldChanged;
+        public void PublishShieldSnapshot()
+        {
+            foreach (PlayerManager player in players)
+                if (player != null && player.ReadOnlyShieldState != null) ShieldChanged?.Invoke(player.Id, player.ReadOnlyShieldState.Shield);
+        }
         public event Action<EntityId, Vector3> PlayerDied;
         public event Action<EntityId, Vector3> PlayerDeathPending;
         public bool CancelDeathForRevival(EntityId player) => controller != null && controller.CancelDeathForRevival(player);
@@ -219,6 +226,7 @@ namespace Worsen.Session.Run
             foreach (PlayerManager player in players)
             {
                 HealthChanged?.Invoke(player.Id, player.ReadOnlyState.Health, player.ReadOnlyState.MaxHealth);
+                ShieldChanged?.Invoke(player.Id, player.ReadOnlyShieldState.Shield);
             }
             PhaseChanged?.Invoke(state.Phase);
         }
@@ -291,6 +299,7 @@ namespace Worsen.Session.Run
             foreach (PlayerManager player in players)
             {
                 player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
+                player.OnShieldChanged += HandleShield;
                 player.OnGraceStarted += HandleGraceStarted; player.OnGraceEnded += HandleGraceEnded;
                 player.OnTraversalProgress += HandleTraversalProgress; player.OnStumbled += HandleStumbled;
             }
@@ -336,6 +345,7 @@ namespace Worsen.Session.Run
                 if (player != null)
                 {
                     player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath;
+                    player.OnShieldChanged -= HandleShield;
                     player.OnGraceStarted -= HandleGraceStarted; player.OnGraceEnded -= HandleGraceEnded;
                     player.OnTraversalProgress -= HandleTraversalProgress; player.OnStumbled -= HandleStumbled;
                 }
@@ -537,6 +547,8 @@ namespace Worsen.Session.Run
         }
         private void HandleHealth(EntityId player, float health, float maximum)
         { if (!IsPaused) HealthChanged?.Invoke(player, health, maximum); }
+        private void HandleShield(EntityId player, float shield)
+        { if (!IsPaused) ShieldChanged?.Invoke(player, shield); }
         private void HandleGraceStarted(GraceWindowFact fact) { if (!IsPaused) OnGraceStarted?.Invoke(fact); }
         private void HandleGraceEnded(GraceWindowFact fact) { if (!IsPaused) OnGraceEnded?.Invoke(fact); }
         private void HandleDeath(EntityId player, Vector3 killer)
@@ -647,6 +659,7 @@ namespace Worsen.Session.Run
             CaptureEnded = null;
             ChaseStarted = null; ChaseEnded = null; ChasePhaseChanged = null;
             ProximityPublished = null; HealthChanged = null; PlayerDied = null;
+            ShieldChanged = null;
             PlayerDeathPending = null;
             FloorDisplayChanged = null; RoomPhaseChanged = null; IntrusionPublished = null;
             TelemetryPublished = null; EmptyItemSlotsChanged = null; SpeedNormalizedPublished = null; RunEnded = null;

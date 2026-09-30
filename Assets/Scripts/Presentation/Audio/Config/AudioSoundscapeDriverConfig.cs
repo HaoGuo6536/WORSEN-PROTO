@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Bind named roster/tell ids to existing banks or explicit silent placeholders and room filters.
 //   - Tune shared hearing, bodily masking, false positives and timed mix effects.
 //   - Expose mixer parameters without writing designer assets at runtime.
 //   - Expose reusable clip banks and independent effects, ambience and music gains.
@@ -36,6 +37,35 @@ namespace Worsen.Presentation.Audio
     public sealed class AudioSoundscapeDriverConfig : ScriptableObject
     {
         [SerializeField] private AudioSoundDefinition[] _sounds = new AudioSoundDefinition[0];
+        [Header("Roster bindings and sound zones (provisional)")]
+        [SerializeField] private AudioRosterBinding[] _rosterBindings = {
+            new AudioRosterBinding("hunter.presence", CueId.Presence),
+            new AudioRosterBinding("hunter.detection", CueId.Detection),
+            new AudioRosterBinding("hunter.chase", CueId.Chase),
+            new AudioRosterBinding("hunter.attack", CueId.EnemyWindup),
+            new AudioRosterBinding("hunter.death", CueId.Death),
+            new AudioRosterBinding("hunter.turn", CueId.Presence),
+            new AudioRosterBinding("hunter.cake-reaction", CueId.Presence),
+            new AudioRosterBinding("echo.footstep", CueId.Footstep),
+            new AudioRosterBinding("weaver.skitter", CueId.Presence, true),
+            new AudioRosterBinding("weaver.wet-click", CueId.EnemyWindup, true),
+            new AudioRosterBinding("ticking.tick", CueId.Presence, true),
+            new AudioRosterBinding("ticking.winding", CueId.Presence, true),
+            new AudioRosterBinding("ticking.key-appeared", CueId.Presence, true),
+            new AudioRosterBinding("ticking.wake", CueId.Detection),
+            new AudioRosterBinding("echo.quickened-recording", CueId.Presence, true),
+            new AudioRosterBinding("weaver-quickened-skitter", CueId.Presence, true)
+        };
+        [SerializeField] private AudioSoundZone[] _soundZones = {
+            new AudioSoundZone("castle-stone", "castle", 6500f),
+            new AudioSoundZone("hospital-tile", "hospital", 16000f)
+        };
+        [SerializeField, Range(0f, 1f)] private float _rosterClipGain = .5f;
+        [SerializeField, Range(0, 100)] private int _rosterClipPriority = 60;
+        public System.Collections.Generic.IReadOnlyList<AudioRosterBinding> RosterBindings => _rosterBindings;
+        public System.Collections.Generic.IReadOnlyList<AudioSoundZone> SoundZones => _soundZones;
+        public float RosterClipGain => _rosterClipGain;
+        public int RosterClipPriority => _rosterClipPriority;
         [Header("Silence-first world mix (provisional)")]
         [SerializeField, Min(.01f)] private float _hearingReferenceMeters = 2f;
         [SerializeField, Min(0f)] private float _hearingRolloff = 1f;

@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Own finite-lived Weaver visuals; leave all hunter sound admission to Audio.
 //   - Own the micro-event sub-driver and republish decisions and lighting hook changes.
 //   - Render external light authority independently of camera shake and bank.
 //   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
@@ -51,6 +52,7 @@ namespace Worsen.Presentation.Horror
         private HorrorAtmosphereDriver _atmosphere;
         private HorrorAmbienceDriver _ambience;
         private HorrorMicroEventDriver _micro;
+        private HorrorWebDriver _web;
         public event Action<int, int, Vector3, float> MicroEventSelected;
         public event Action<float, bool> LightingHooksChanged;
         public float TorchCountMultiplier => _state?.TorchCountMultiplier ?? 1f;
@@ -74,6 +76,9 @@ namespace Worsen.Presentation.Horror
                 return;
             }
             _state = new HorrorDriverState();
+            var webObject = new GameObject("Owned Weaver visuals");
+            webObject.transform.SetParent(transform, false);
+            _web = webObject.AddComponent<HorrorWebDriver>(); _web.Initialize(_config);
             var microObject = new GameObject("Owned horror micro-events");
             microObject.transform.SetParent(transform, false);
             _micro = microObject.AddComponent<HorrorMicroEventDriver>();
@@ -110,6 +115,7 @@ namespace Worsen.Presentation.Horror
         {
             if (_state == null) return;
             _state.OwnerEnabled = value;
+            if (_web != null) _web.enabled = value && isActiveAndEnabled;
             if (_micro != null) _micro.enabled = value && isActiveAndEnabled;
             if (value && isActiveAndEnabled) OnEnable();
             _atmosphere.SetOwnershipEnabled(value && isActiveAndEnabled);
@@ -152,6 +158,7 @@ namespace Worsen.Presentation.Horror
                 _state.Attacks.Add(sample.Hunter, attack);
             }
             HorrorAttackVisual visual = _presenter.PresentAttack(attack, sample, _config.Settings);
+            visual.PlayGrowl = false; // Audio owns the budgeted windup cue, not this visual boundary.
             if (!_state.Cues.TryGetValue(sample.Hunter, out HorrorAttackCueDriver cue))
             {
                 if (!visual.Visible) return;
@@ -165,12 +172,16 @@ namespace Worsen.Presentation.Horror
             cue.Apply(visual);
         }
 
+        public void ObserveWeaver(WeaverFact fact)
+        { if (_web != null && _state != null && _state.OwnerEnabled && isActiveAndEnabled) _web.Observe(fact); }
+
         public bool AdvanceRunClock(float deltaSeconds)
         {
             if (_state == null || !_state.OwnerEnabled || !isActiveAndEnabled
                 || !_presenter.AdvanceRunClock(_state, deltaSeconds)) return false;
             if (_state.ActiveEffects != null) SetActiveEffects(_state.ActiveEffects);
             if (_micro != null) _micro.Tick(_config, _outputCamera, _state.RunElapsedSeconds, deltaSeconds);
+            if (_web != null) _web.Tick(deltaSeconds);
             return true;
         }
 
@@ -229,6 +240,7 @@ namespace Worsen.Presentation.Horror
         public void ResetRound()
         {
             if (_state == null) return;
+            if (_web != null) _web.Reset();
             ClearCues();
             _presenter.ResetRound(_state);
             if (_micro != null) _micro.ResetFloor();
@@ -238,6 +250,7 @@ namespace Worsen.Presentation.Horror
 
         public void Teardown()
         {
+            if (_web != null) { _web.Teardown(); DestroyOwned(_web.gameObject); _web = null; }
             if (_micro != null)
             { _micro.Selected -= OnMicroEventSelected; _micro.ResetFloor(); DestroyOwned(_micro.gameObject); _micro = null; }
             if (_state != null)
@@ -274,6 +287,7 @@ namespace Worsen.Presentation.Horror
 
         private void OnEnable()
         {
+            if (_web != null) _web.enabled = _state != null && _state.OwnerEnabled;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.Selected += OnMicroEventSelected; }
             if (_micro != null) _micro.enabled = _state != null && _state.OwnerEnabled;
             if (_state != null && _state.OwnerEnabled)
@@ -285,6 +299,7 @@ namespace Worsen.Presentation.Horror
         }
         private void OnDisable()
         {
+            if (_web != null) _web.enabled = false;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.enabled = false; }
             if (_state == null) return;
             _atmosphere.SetOwnershipEnabled(false);
