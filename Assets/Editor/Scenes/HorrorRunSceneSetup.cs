@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
+//   - Restore collapse fog references and its renderer feature without replacing distance fog.
 //   - Restore Results and the Settings-source router idempotently, preserving assigned references.
 //   - Wire five animated hunters, spatial sound, Lumen 2, curse rules and physical exit/collapse.
 //   - Preserve deterministic asset identity when rebuilding the complete expedition.
@@ -43,6 +44,8 @@ using Worsen.Domain.Director;
 using Worsen.Presentation.Input;
 using Worsen.Presentation.DebugOverlay;
 using Worsen.Presentation.Horror;
+using Worsen.Presentation.Fog;
+using Worsen.Editor.Fog;
 using Worsen.Presentation.ProgressionUI;
 using Worsen.Session.Run;
 using Worsen.Session.SceneFlow;
@@ -98,6 +101,7 @@ namespace Worsen.Editor.Scenes
                 BuildOverlay(root, run);
                 BuildPresentation(root, run);
                 BuildWorldServices(root, cake);
+                RestoreFog(root);
                 var ui = Add<ProgressionUIManager>("Progression UI");
                 var uiDriver = ui.GetComponent<ProgressionUIDriver>() ?? ui.gameObject.AddComponent<ProgressionUIDriver>();
                 var uiConfig = Ensure<ProgressionUIDriverConfig>(ConfigRoot + "Presentation/ProgressionUI/ProgressionUIDriverConfig.asset");
@@ -125,6 +129,29 @@ namespace Worsen.Editor.Scenes
                 if (scene.IsValid() && scene.isLoaded && SceneManager.GetActiveScene() != scene) EditorSceneManager.CloseScene(scene, true);
                 if (!saved) Debug.LogError("HorrorRun setup did not complete; inspect the preceding error.");
             }
+        }
+
+        public static void RestoreFog(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            FogSpikeSetup.Install();
+            var fog = Referenced<FogManager>(root, "_fog") ?? root.gameObject.scene.GetRootGameObjects()
+                .SelectMany(value => value.GetComponentsInChildren<FogManager>(true)).SingleOrDefault();
+            if (fog == null)
+            {
+                fog = Add<FogManager>("Collapse Fog");
+                fog.transform.SetParent(root.transform, false);
+            }
+            WireMissing(root, "_fog", fog);
+            var config = Referenced<FogDriverConfig>(root, "_fogConfig") ?? Referenced<FogDriverConfig>(fog, "_config") ?? FogSpikeSetup.Config;
+            WireMissing(root, "_fogConfig", config);
+            WireMissing(fog, "_config", config);
+            WireMissing(fog, "_driver", fog.GetComponent<FogDriver>());
+            var route = Referenced<FogOrchestrator>(root, "_fogRoute") ?? root.gameObject.scene.GetRootGameObjects()
+                .SelectMany(value => value.GetComponentsInChildren<FogOrchestrator>(true)).SingleOrDefault();
+            if (route == null) route = fog.gameObject.AddComponent<FogOrchestrator>();
+            WireMissing(root, "_fogRoute", route);
         }
 
         public static void RestoreMenuAndSettings(HorrorRunSceneRoot root)

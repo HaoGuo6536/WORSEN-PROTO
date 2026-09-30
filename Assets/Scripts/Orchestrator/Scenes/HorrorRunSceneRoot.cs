@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   SceneRoot (§6b) · Orchestrator · HorrorRun scene assembly.
 // KEY RESPONSIBILITIES:
+//   - Initialize collapse fog and bind PostFX to Horror's whole-run startle clock before play.
 //   - Compose runtime preference consumers and terminal Results with explicit seed selection.
 //   - Bind scene camera catches into persistent audio and release the binding on teardown.
 //   - Initialize canonical persistent services and scene presentation.
@@ -41,6 +42,7 @@ using Worsen.Presentation.Input;
 using Worsen.Presentation.DebugOverlay;
 using Worsen.Presentation.HUD;
 using Worsen.Presentation.Horror;
+using Worsen.Presentation.Fog;
 using Worsen.Presentation.ProgressionUI;
 using Worsen.Presentation.Telemetry;
 using Worsen.Session.Run;
@@ -73,6 +75,9 @@ namespace Worsen.Orchestrator
         [SerializeField] private HorrorManager _horror;
         [SerializeField] private HorrorDriverConfig _horrorConfig;
         [SerializeField] private HorrorOrchestrator _horrorRoute;
+        [SerializeField] private FogManager _fog = null;
+        [SerializeField] private FogDriverConfig _fogConfig = null;
+        [SerializeField] private FogOrchestrator _fogRoute = null;
         [SerializeField] private ProgressionUIManager _progressionUI;
         [SerializeField] private ProgressionUIOrchestrator _progressionRoute;
         [SerializeField] private ProgressionSessionManager _progression;
@@ -123,12 +128,14 @@ namespace Worsen.Orchestrator
             _telemetry = _telemetry.Initialize();
             _hud.Initialize(); _camera.Initialize(); _postFX.Initialize();
             _camera.GetComponent<CameraOrchestrator>().Configure(_run, _camera);
-            _postFX.GetComponent<PostFXOrchestrator>().Configure(_run, _postFX, _camera);
             _horror.Initialize(_horrorConfig); _progressionUI.Initialize();
+            _postFX.GetComponent<PostFXOrchestrator>().Configure(_run, _postFX, _camera, _horror);
             _progression = _progression.Initialize(_progressionConfig, runSeed);
             _expedition = _expedition.Initialize();
             _effects = _effects.Initialize(_effectsConfig);
             _environment.Initialize(_environmentConfig);
+            _fog.Initialize(_fogConfig);
+            _fogRoute.Configure(_expedition, _level, _floor, _fog);
             _run.ConfigureCapture(_sourceRevision, _configSnapshotHash);
             _expedition.ConfigureScene(_run, _progression, _procedural, _proceduralConfig, _proceduralDriverConfig,
                 _level, _playerFactory, _playerProfile, _hunterFactory, _hunterProfile, _chase, _chaseConfig,

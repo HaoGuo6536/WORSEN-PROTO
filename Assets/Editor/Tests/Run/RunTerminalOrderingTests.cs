@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
 //   - Prevent a pending escape from bypassing already queued lethal contact.
+//   - Let the first hit's grace expire before expecting a second hit to kill.
 //   - Supply the unified escape route's explicit non-bail flag.
 //   - Close completed capture before announcing Results and input shutdown.
 // DEPENDENCIES:
@@ -66,6 +67,8 @@ namespace Worsen.Tests.Run
                 Assert.That(player.ReadOnlyState.Health, Is.EqualTo(50));
                 Assert.That(run.Phase, Is.EqualTo(RunPhase.FirstSweep));
                 Assert.That(order, Is.Empty, "A surviving accepted hit must keep capture and gameplay running.");
+                long graceEnd = ((PlayerBehaviorState)player.ReadOnlyState).GraceWindow.EndTick;
+                while (run.Tick < graceEnd) Invoke(run, "FixedUpdate");
                 long beforeTerminal = run.Tick;
                 Invoke(run, "HandleExitOpened", beforeTerminal);
                 Invoke(run, "HandleExitReached", new ExitReachedFact(id, beforeTerminal), false);

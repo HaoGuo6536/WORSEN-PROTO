@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
-//   - Verify queued damage waits, input clears, clocks exclude pause and reset is safe.
+//   - Verify pre-pause damage waits, paused contacts drop, input clears and clocks exclude pause.
 //   - Verify accepted hunter/trap deaths, lethal hands and escape summary fields.
 // DEPENDENCIES:
 //   NUnit, Core, Domain Player/Hunter and Session Run.
@@ -71,8 +71,10 @@ namespace Worsen.Tests.Run
         {
             int before = 0; _run.BeforeTick += () => before++;
             var input = new InputFrame(Vector2.up, Vector2.one, InputButtons.Sprint, InputButtons.Jump, InputButtons.None);
-            _run.ReceiveInput(input); _run.SetPaused(true);
+            _run.ReceiveInput(input);
             Invoke(_run, "QueueHit", new HunterHit(_hunterId, _player.Id, 10, 0, Vector3.right));
+            _run.SetPaused(true);
+            Invoke(_run, "QueueHit", new HunterHit(_hunterId, _player.Id, 100, 0, Vector3.left));
             _run.ReceiveInput(input); Invoke(_run, "FixedUpdate");
             Assert.That(before, Is.Zero); Assert.That(_run.Tick, Is.Zero);
             Assert.That(_run.ElapsedSeconds, Is.Zero); Assert.That(_player.ReadOnlyState.Health, Is.EqualTo(100));
