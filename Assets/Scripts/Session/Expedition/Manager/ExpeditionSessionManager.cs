@@ -269,16 +269,25 @@ namespace Worsen.Session.Expedition
         private void AssembleFloor()
         {
             var request = _state.Request;
+            var roster = new List<string>();
+            if (_hunterRoster != null && _hunterRoster.Length > 0)
+            { foreach (var profile in _hunterRoster) if (profile != null) roster.Add(profile.ArchetypeKey); }
+            else roster.Add(_hunterProfile.ArchetypeKey);
+            var extras = request.IsShop ? Array.Empty<string>() : ExpeditionFloorEffectUtility.ExtraHunters(
+                _progression.EffectsSnapshot.ActiveEffects, roster, _progression.Snapshot.Seed, request.Round);
+            int requiredHunterCount = _controller.RequiredHunterCount(extras.Count);
             try
             {
                 _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
-                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier, themeSeed: _progression.Snapshot.Seed);
+                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier, themeSeed: _progression.Snapshot.Seed,
+                    requiredHunterCount: requiredHunterCount);
             }
             finally { _controller.RecordGenerationOutcome(_procedural.UsedFallback, _procedural.LayoutManifest); }
             if (_state.UsedFallback || !_procedural.GenerationSucceeded)
                 throw new InvalidOperationException("Procedural generation did not succeed; fallback layouts are not playable floors.");
             if (!_procedural.IsReady || _procedural.Graph == null)
                 throw new InvalidOperationException("Procedural generation returned without a ready graph.");
+            _controller.RequireHunterCapacity(extras.Count, _procedural.ValidatedHunterSpawnCapacity);
             _level.InitializeGenerated(_procedural.Graph, _procedural.Interactables);
             BindWorld();
             _controller.RecordRooms(_procedural.PresentationRooms);
@@ -293,12 +302,6 @@ namespace Worsen.Session.Expedition
             player.RestoreShield(_controller.CarriedShield);
             _controller.AdmitShieldTransfer();
 
-            var roster = new List<string>();
-            if (_hunterRoster != null && _hunterRoster.Length > 0)
-            { foreach (var profile in _hunterRoster) if (profile != null) roster.Add(profile.ArchetypeKey); }
-            else roster.Add(_hunterProfile.ArchetypeKey);
-            var extras = request.IsShop ? Array.Empty<string>() : ExpeditionFloorEffectUtility.ExtraHunters(
-                _progression.EffectsSnapshot.ActiveEffects, roster, _progression.Snapshot.Seed, request.Round);
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
                 position => _procedural.ValidateHunterSpawn(position, out _), extras);
             if (_state.HunterSpawnShortfall > 0)
@@ -330,7 +333,10 @@ namespace Worsen.Session.Expedition
                     shuffledCollapse: ExpeditionFloorEffectUtility.ShuffledCollapse(activeEffects), round: request.Round,
                     cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _progression.FasterCollapseGoldenCakeMultiplier), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
                     preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook,
-                    optionalGoldenCakeCount: _state.PuzzleRewards.Count);
+                    optionalGoldenCakeCount: checked(_state.PuzzleRewards.Count + _procedural.FuturePassageGoldenAnchorCount));
+                _floor.SetActiveEffects(activeEffects);
+                foreach (var id in _state.Hunters)
+                    if (HunterRegistry.TryGet(id, out var actor) && actor.TryGetBlinderTrapPolicy(out var policy)) _floor.ReceiveBlinderTrapPolicy(policy);
                 foreach (var reward in _state.PuzzleRewards)
                     if (!_floor.RegisterPuzzleReward(reward.Key, reward.Value.Anchor, reward.Value.Position))
                         throw new InvalidOperationException("Floor rejected optional puzzle reward " + reward.Key + ".");
@@ -382,6 +388,8 @@ namespace Worsen.Session.Expedition
             _procedural.ApplyInteractableState(after);
             if (WickActive && after.Kind == InteractableKind.Light && after.Value != InteractableStateValue.Lit)
                 _level.SetLit(after.Id, true);
+            if (!WickActive && before.Kind == InteractableKind.Light && before.Value == InteractableStateValue.Lit &&
+                after.Value != InteractableStateValue.Lit) _run.ObserveLightExtinguished(after.RoomId);
             if (after.Kind == InteractableKind.Door) RouteClosedDoors();
         }
 
@@ -478,6 +486,17 @@ namespace Worsen.Session.Expedition
             if (_controller.ObserveCrossing(sample, out int door, out Vector3 position))
             {
                 _effects?.RecordDoorCrossed(door, position);
+                if (PlayerRegistry.TryGet(sample.Id, out var player))
+                    foreach (var room in _level.ReadOnlyState.Graph.Rooms)
+                    {
+                        if (!room.ContainsXZ(sample.Position)) continue;
+                        foreach (var source in _level.ReadOnlyState.Graph.Rooms)
+                            foreach (var item in _level.Interactables.InRoom(source.Id))
+                                if (item.Kind == InteractableKind.Door && item.Value == InteractableStateValue.Open &&
+                                    Vector3.ProjectOnPlane(item.Position - position, Vector3.up).sqrMagnitude < .01f &&
+                                    player.TryLatchDoor(room.Id, item.Id)) _level.CloseDoor(item.Id);
+                        break;
+                    }
                 if (_hunterWorld != null && _hunterWorld.TryDoorway(sample.Id, sample.Tick, position, sample.Position, out var use)) RecordSkipUse(use);
             }
         }
@@ -617,13 +636,26 @@ namespace Worsen.Session.Expedition
                     {
                         int first = random.Next(pool.Count);
                         for (int n = 0; n < pool.Count && !applied; n++)
-                        { var entry = pool[(first + n) % pool.Count]; if (entry != null) applied = hunter.ApplyMutation(entry.Mutation); }
+                        {
+                            var entry = pool[(first + n) % pool.Count];
+                            if (entry != null) applied = ApplyTypeMutation(hunter, entry.Mutation);
+                        }
                     }
                     if (!applied) Unresolved(fact, "purgatory-mutation-unavailable:" + key);
                 }
                 return;
             }
             Unresolved(fact, "purgatory-no-safe-live-spawn");
+        }
+
+        private bool ApplyTypeMutation(HunterManager hunter, HunterMutation mutation)
+        {
+            if (!hunter.ApplyMutation(mutation)) return false;
+            foreach (var matching in HunterRegistry.Items)
+                if (matching != null && matching.Id != hunter.Id && matching.ArchetypeKey == hunter.ArchetypeKey &&
+                    !matching.HasMutation(mutation) && !matching.ApplyMutation(mutation, announce: false))
+                    throw new InvalidOperationException("Purgatory type-wide mutation rejected by " + matching.Id);
+            return true;
         }
 
         private bool LateSpawnRoomAvailable(Vector3 candidate, Vector3 player)
@@ -677,6 +709,7 @@ namespace Worsen.Session.Expedition
             if (snapshot.GenerationId != GenerationId || snapshot.Round != _state.Request.Round ||
                 snapshot.Revision != _progression.Snapshot.Revision) return;
             _effects?.UpdateEffects(snapshot.Effects);
+            _floor?.SetActiveEffects(activeEffects);
             if (PlayerRegistry.TryGet(_state.Player, out var currentPlayer)) currentPlayer.SetActiveEffects(activeEffects);
             foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetActiveEffects(activeEffects);
             if (_state.Phase != ExpeditionAssemblyPhase.Ready || !_state.Request.IsShop ||

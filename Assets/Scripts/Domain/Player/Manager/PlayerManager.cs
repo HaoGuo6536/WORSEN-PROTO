@@ -150,6 +150,8 @@ namespace Worsen.Domain.Player
 
         public void ClearSlows() => _controller?.ClearSlows();
         public void ReceiveChase(ChaseFact fact) => _controller?.ReceiveChase(fact);
+        public void ReceiveMimic(MimicFact fact) => _controller?.ReceiveMimic(fact);
+        public void ReceiveHeraldDeafen(HeraldDeafenFact fact) => _controller?.ReceiveHeraldDeafen(fact);
         public bool TryReboundFromHunter(EntityId hunter, Vector3 contactNormal)
         {
             if (_controller == null || !_controller.TryReboundFromHunter(hunter, contactNormal, out var fact)) return false;
@@ -165,7 +167,7 @@ namespace Worsen.Domain.Player
         public bool ApplyRamHit(float damage, Vector3 killerPosition, Vector3 knockback, bool glancing)
         {
             if (_controller == null) return false;
-            if (_controller.TryDeflectGlancingRam(glancing, knockback)) return true;
+            if (_controller.TryDeflectGlancingRam(glancing, knockback)) return false;
             bool changed = ApplyHit(damage, killerPosition);
             if (changed) _controller.ApplyExternalVelocity(knockback, ExternalMotionKind.Impulse);
             return changed;

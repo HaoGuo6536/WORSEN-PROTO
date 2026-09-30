@@ -26,6 +26,8 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         [SerializeField, Min(1f)] private float _failureCheckSeconds = 15f;
         [SerializeField, Range(0f, 1f)] private float _failureChance = .02f;
         [SerializeField, Min(.1f)] private float _failureSeconds = 1.25f;
+        [SerializeField, Min(0f)] private float _afterglowSeconds = 3f;
+        public float AfterglowSeconds => Mathf.Max(0f, _afterglowSeconds);
         [SerializeField, Min(1f)] private float _longerStridesMultiplier = 1.2f;
         [SerializeField, Range(.1f, 1f)] private float _fewerLampsMultiplier = .8f;
         public bool MovesInDarkness => true;

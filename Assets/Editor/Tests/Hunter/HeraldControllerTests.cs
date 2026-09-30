@@ -116,7 +116,7 @@ namespace Worsen.Tests.Hunter
             Assert.That(Scream().Sound, Is.EqualTo(HeraldSound.Discovery)); Assert.That(state.PlayerVisible, Is.True);
             Assert.That(result.Speed, Is.GreaterThan(0f));
         }
-        [Test] public void EveryScreamReachesAllOtherHuntersViaRealFloorWideDirectorDeliveryOnce()
+        [Test] public void EveryScreamIsExcludedFromFloorWideHunterHearing()
         {
             Assert.That(HunterRegistry.Items, Is.Empty);
             var objects = new List<GameObject>(); var states = new List<HunterBehaviorState>(); var actors = new List<HunterManager>();
@@ -139,12 +139,12 @@ namespace Worsen.Tests.Hunter
                 }
                 Step(); Deliver(); Step(4f); Deliver(); Step(4f); Deliver();
                 player.Position = Vector3.forward; Step(); Step(.8f); Deliver();
-                Assert.That(deliveries, Is.EqualTo(12));
+                Assert.That(deliveries, Is.Zero);
                 foreach (var state in states)
-                    Assert.That(((System.Collections.IList)typeof(HunterBehaviorState).GetField("HeardNoises", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(state)).Count, Is.EqualTo(4));
-                // Same tick/location from a second Herald is not deduplicated as the first.
+                    Assert.That(((System.Collections.IList)typeof(HunterBehaviorState).GetField("HeardNoises", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(state)).Count, Is.Zero);
+                // A second Herald does not turn sound into admitted gameplay provenance.
                 director.HearFloorWideNoise(new NoiseEvent(new EntityId(-2), hunter.LastKnownPosition, 1f, tick, NoiseSourceKind.Scream));
-                Assert.That(deliveries, Is.EqualTo(15));
+                Assert.That(deliveries, Is.Zero);
             }
             finally
             { foreach (var actor in actors) Registry("Unregister", actor); foreach (var go in objects) Object.DestroyImmediate(go); Object.DestroyImmediate(directorObject); }

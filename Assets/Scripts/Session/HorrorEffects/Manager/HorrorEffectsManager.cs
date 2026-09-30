@@ -16,7 +16,7 @@
 // DEPENDENCIES:
 //   Domain Level closes/breaks doors. Own Driver observes head bones and physics sweeps.
 //   Core contracts; Domain Player/Hunter registries and managers; Domain Floor manager.
-//   Domain Director receives environmental noise through the floor-scoped Session binding.
+//   Domain Director receives allowlisted gameplay noise through the floor-scoped binding.
 //   Session Progression consumes wards in the declared HorrorEffects -> Progression direction.
 // USAGE NOTES:
 //   Persistent service initialized explicitly by scene setup. The declared Session dependency
@@ -218,7 +218,7 @@ namespace Worsen.Session.HorrorEffects
                         foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.SetAfterimage(fact.Light, fact.Value);
                         AfterimageChanged?.Invoke(fact.Light, fact.Value); break;
                     case HorrorEffectKind.Noise:
-                        // Legacy curse echoes and world noises are presentation-only.
+                        DeliverNoise(fact.Noise);
                         NoiseEmitted?.Invoke(fact.Noise); break;
                     case HorrorEffectKind.FlameDim: FlameDimChanged?.Invoke(fact.Position, fact.Radius, fact.Value); break;
                     case HorrorEffectKind.OptionalRoomCrack:
@@ -333,13 +333,15 @@ namespace Worsen.Session.HorrorEffects
             foreach (var fact in consumables.DrainNoiseFacts())
             {
                 var noise = fact.Noise;
-                if (HorrorNoiseUtility.HunterAudible(fact))
-                {
-                    if (director != null) director.HearNoise(noise);
-                    else foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(noise);
-                }
+                DeliverNoise(noise);
                 NoiseEmitted?.Invoke(noise);
             }
+        }
+        private void DeliverNoise(NoiseEvent noise)
+        {
+            if (!HunterHearingUtility.Allows(noise)) return;
+            if (director != null) director.HearNoise(noise);
+            else foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(noise);
         }
         private void OnEnable() { BindHazards(); BindWorld(); }
         private void OnDisable() { UnbindHazards(); UnbindWorld(); Suspend(); }

@@ -10,6 +10,7 @@
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
 //   - Freeze while observed, illuminated or under Wick; move only in darkness.
+//   - Enforce authoritative room safety windows after a light goes out.
 //   - Read capped neutral curse hooks and publish Core light/silence facts.
 //   - Admit the distinct catch fact once per life for the Manager to publish.
 // DEPENDENCIES:
@@ -35,12 +36,24 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         public bool Silent => true;
         public float SpeedMultiplier => _state.Speed;
         public float LossMultiplier => 1f;
+        public void SetEffects(IReadOnlyActiveEffects effects)
+        {
+            _state.Effects = effects;
+            if (!(effects?.Has(new EffectId("afterglow")) ?? false)) _state.Afterglow.Clear();
+        }
+        public float BeginAfterglow(int roomId)
+        {
+            if (roomId <= 0 || !(_state.Effects?.Has(new EffectId("afterglow")) ?? false)) return 0f;
+            _state.Afterglow[roomId] = _config.AfterglowSeconds;
+            return _config.AfterglowSeconds;
+        }
         public void Observe(HunterPlayerView view, bool clear, bool illuminated, IReadOnlyHunterWorldView world, bool wick)
         { _state.View = view; _state.Clear = clear; _state.Illuminated = illuminated; _state.World = world; _state.Wick = wick; }
         public override void Reset(HunterArchetypeContext context)
         {
             _state.Hold = true; _state.Wick = false; _state.View = default; _state.World = null;
             _state.CatchPublished = false;
+            _state.Afterglow.Clear(); _state.Effects = context.Effects;
             _state.Room = _state.FailureRoom = 0; _state.FailureRemaining = 0;
             _state.CheckRemaining = _config.FailureCheckSeconds; _state.LampStacks = -1;
             _state.LastTick = -1; _state.Speed = 1f; _state.BrokenRooms.Clear(); _state.Facts.Clear();
@@ -52,6 +65,12 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         {
             if (!(context.DeltaTime > 0f) || float.IsInfinity(context.DeltaTime) || context.Tick <= _state.LastTick) return;
             _state.LastTick = context.Tick; _state.Hold = true;
+            SetEffects(context.Effects);
+            foreach (int id in new System.Collections.Generic.List<int>(_state.Afterglow.Keys))
+            {
+                _state.Afterglow[id] = Mathf.Max(0f, _state.Afterglow[id] - context.DeltaTime);
+                if (_state.Afterglow[id] <= 0f) _state.Afterglow.Remove(id);
+            }
             int lamps = Stacks(context, "mannequin-fewer-lamps", 3);
             if (lamps != _state.LampStacks)
             {
@@ -66,8 +85,11 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
                 room == 0 || _state.World == null || !_state.World.TryGetRoomLit(room, out bool lit)) return;
             bool entered = room != _state.Room; _state.Room = room;
             if (entered && lit && Stacks(context, "mannequin-broken-lights", 1) > 0 && _state.BrokenRooms.Add(room))
+            {
+                BeginAfterglow(room);
                 _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.RoomLightOverride,
                     context.Tick, room, permanent: true));
+            }
             if (_state.BrokenRooms.Contains(room)) lit = false;
             if (_state.FailureRemaining > 0f && _state.FailureRoom == room) lit = false;
             bool observed = _state.Clear && HunterViewUtility.Contains(_state.View,
@@ -82,13 +104,14 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
                     if (_random.NextDouble() < _config.FailureChance)
                     {
                         _state.FailureRoom = room; _state.FailureRemaining = _config.FailureSeconds;
+                        BeginAfterglow(room);
                         lit = false;
                         _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.RoomLightOverride,
                             context.Tick, room, lit, _config.FailureSeconds));
                     }
                 }
             }
-            _state.Hold = observed || lit || _state.Illuminated;
+            _state.Hold = observed || lit || _state.Illuminated || _state.Afterglow.ContainsKey(room);
         }
         public bool TryCatch()
         {

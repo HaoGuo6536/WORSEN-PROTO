@@ -80,6 +80,7 @@ namespace Worsen.Domain.Hunter
         public event Action<RamFact> OnRamFact;
         public event Action<SkipFact> OnSkipFact;
         public event Action<MimicFact> OnMimicFact;
+        public event Action<EntityId, EntityId, Vector3> OnBodyContact;
         public bool BeginSkipFloor(long generation) => _skip?.BeginFloor(generation) ?? false;
         public bool RecordSkipUse(SkipTraversalUse use) => _skip?.RecordUse(use) ?? false;
         public event Action<BlinderHitFact> OnBlinderHit;
@@ -292,7 +293,7 @@ namespace Worsen.Domain.Hunter
                 result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
             if (!(_ram?.OwnsPursuit ?? false)) _driver.ApplyDecisionMotion(result.StumbleDisplacement, result.DeliberationFacing);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
-            if (_skip != null && !_state.CatchActive) _driver.ProbeBodyContact();
+            if (!_state.CatchActive) _driver.ProbeBodyContact();
             if (_mimic != null && _mimic.Posed && !_state.CatchActive) _driver.ProbeMimicTouch(_mimic.TouchRadius);
             PublishRosterFacts();
             if (_weaver != null)
@@ -330,12 +331,23 @@ namespace Worsen.Domain.Hunter
             if (_controller == null || _controller.PlayerRevivalProtected) return;
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle == null) return;
+            Vector3 normal = _driver.ContactNormal(collider);
             if (_ram != null)
-            { if (_ram.TryHit(handle.Id, out HunterHit charge)) OnLungeHit?.Invoke(charge); return; }
+            { if (_ram.TryHit(handle.Id, normal, out HunterHit charge)) OnLungeHit?.Invoke(charge);
+                else OnBodyContact?.Invoke(Id, handle.Id, normal); return; }
             if (_mimic != null)
-            { if (_mimic.Touch(handle.Id, out HunterHit bite)) OnLungeHit?.Invoke(bite); PublishRosterFacts(); return; }
+            {
+                if (_mimic.Touch(handle.Id, out HunterHit bite))
+                    OnLungeHit?.Invoke(new HunterHit(bite.Hunter, bite.Target, bite.Damage, bite.Tick, bite.HunterPosition,
+                        bite.Reason, bite.Severity, bite.Source, normal));
+                else OnBodyContact?.Invoke(Id, handle.Id, normal);
+                PublishRosterFacts(); return;
+            }
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
-            if (_controller.TryAcceptContact(handle.Id, out HunterHit hit)) OnLungeHit?.Invoke(hit);
+            if (_controller.TryAcceptContact(handle.Id, out HunterHit hit))
+                OnLungeHit?.Invoke(new HunterHit(hit.Hunter, hit.Target, hit.Damage, hit.Tick, hit.HunterPosition,
+                    hit.Reason, hit.Severity, hit.Source, normal));
+            else OnBodyContact?.Invoke(Id, handle.Id, normal);
         }
         private void HandleRangedContact(Collider collider, int serial)
         {
@@ -360,6 +372,8 @@ namespace Worsen.Domain.Hunter
             if (_controller == null || !_controller.ApplyMutation(mutation, out HunterMutationFact fact)) return false;
             if (announce) OnMutation?.Invoke(fact); return true;
         }
+        public bool HasMutation(HunterMutation mutation) => _controller != null &&
+            Enum.IsDefined(typeof(HunterTunable), mutation.Tunable) && _controller.Effective(mutation.Tunable) == mutation.Value;
         public void SetChaseActive(bool active) { _controller?.SetChaseActive(active); }
         public void BeginCatch(Vector3 playerPosition)
         {
@@ -384,14 +398,16 @@ namespace Worsen.Domain.Hunter
             _controller.SetCatchActive(false); _driver.SetLook(_controller.LookTarget, false, false);
         }
         public void SetAfterimage(FlashlightSample sample, float lifetime) { _controller?.SetAfterimage(sample, lifetime); }
-        public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise, 1f); }
-        public bool HearFloorWideNoise(NoiseEvent noise) => _controller?.HearNoise(noise, 1f, floorWide: true) ?? false;
+        public void HearNoise(NoiseEvent noise) { if (HunterHearingUtility.Allows(noise)) _controller?.HearNoise(noise, 1f); }
+        public bool HearFloorWideNoise(NoiseEvent noise) => HunterHearingUtility.Allows(noise) &&
+            (_controller?.HearNoise(noise, 1f, floorWide: true) ?? false);
         public void ClearBelief() { _controller?.ClearBelief(); }
         public void SetFloorView(IReadOnlyFloorState floor) { _controller?.SetFloorView(floor); }
         public void SetClosedDoors(System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
         public void SetInteractables(IReadOnlyInteractableSet interactables) { _controller?.SetInteractables(interactables); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
-        { _controller?.SetActiveEffects(effects); _blinder?.SetEffects(effects); }
+        { _controller?.SetActiveEffects(effects); _blinder?.SetEffects(effects); _mannequin?.SetEffects(effects); }
+        public float BeginAfterglow(int roomId) => _mannequin?.BeginAfterglow(roomId) ?? 0f;
         public bool RequestRetreat() => _controller != null &&
             _controller.RequestRetreat(_driver.ProbeOccludedRooms(_level.Graph, _player.Position));
         public void ReceiveRegionHint(HintPayload hint, int roomId) { _controller?.ReceiveRegionHint(hint, roomId); }

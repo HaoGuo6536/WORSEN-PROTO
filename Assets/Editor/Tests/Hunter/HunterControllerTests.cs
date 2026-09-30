@@ -66,6 +66,17 @@ namespace Worsen.Tests.Hunter
         private int ReplanCount => (int)typeof(HunterBehaviorState).GetField("ReplanCount",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(_state);
 
+        [TestCase(NoiseOrigin.Pacification)] [TestCase(NoiseOrigin.World)]
+        [TestCase(NoiseOrigin.Presentation)] [TestCase(NoiseOrigin.FalsePositive)]
+        public void DisallowedNoiseIsRejectedByDirectFloorWideAndRecentPlayerIngress(NoiseOrigin origin)
+        {
+            var noise = new NoiseEvent(_player.Id, Vector3.forward, 1f, 0, NoiseSourceKind.Firecracker, origin);
+            _player.RecentNoises = new[] { noise }; _controller.Tick(default, Dt, 0);
+            Assert.That(_controller.HearNoise(noise, 1f), Is.False);
+            Assert.That(_controller.HearNoise(noise, 1f, floorWide: true), Is.False);
+            Assert.That(_state.BeliefConfidence, Is.Zero);
+        }
+
         [TestCase(HunterAction.InvestigateHint, 1f)]
         [TestCase(HunterAction.InvestigateHint, 1.5f)]
         [TestCase(HunterAction.SearchLastKnown, 1f)]
@@ -119,7 +130,7 @@ namespace Worsen.Tests.Hunter
         public void FreshNoiseStalksObservedPositionAtScaledDefaultSpeed(float multiplier)
         {
             Vector3 noisePosition = Vector3.right * 6f;
-            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, noisePosition, 1f, 0) };
+            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, noisePosition, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement) };
             _controller.ApplyRunSpeedMultiplier(multiplier);
             HunterTickResult result = _controller.Tick(default, Dt, 0);
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Stalk));
@@ -343,7 +354,7 @@ namespace Worsen.Tests.Hunter
         [TestCase(31, false)]
         public void HearingUsesNoiseAgeAndNeverRefreshesAnOldNoise(long tick, bool heard)
         {
-            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0) };
+            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement) };
             _controller.Tick(default, Dt, tick);
             Assert.That(_state.BeliefConfidence > 0f, Is.EqualTo(heard));
             _controller.Tick(default, Dt, 480);
@@ -358,15 +369,15 @@ namespace Worsen.Tests.Hunter
         public void HearingAgeEqualitySurvivesFloatDeltaRoundingAtLargeTickOrigin(int tickRate, int elapsedTicks, bool heard)
         {
             const long noiseTick = 1000000000;
-            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, noiseTick) };
+            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, noiseTick, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement) };
             _controller.Tick(default, 1f / tickRate, noiseTick + elapsedTicks);
             Assert.That(_state.BeliefConfidence > 0f, Is.EqualTo(heard));
             if (heard) Assert.That(_state.LastKnownTick, Is.EqualTo(noiseTick));
         }
         [Test] public void FutureAndOutOfRangeNoisesDoNotCreateBelief()
         {
-            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, Vector3.forward, 1f, 1),
-                new NoiseEvent(_player.Id, Vector3.forward * 18f, 1f, 0) };
+            _player.RecentNoises = new[] { new NoiseEvent(_player.Id, Vector3.forward, 1f, 1, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement),
+                new NoiseEvent(_player.Id, Vector3.forward * 18f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement) };
             _controller.Tick(default, Dt, 0); Assert.That(_state.BeliefConfidence, Is.Zero);
         }
         [Test] public void HiddenTargetUsesLastKnownPositionAndMemoryExpiresAtEightSeconds()

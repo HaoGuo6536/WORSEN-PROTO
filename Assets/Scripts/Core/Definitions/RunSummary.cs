@@ -22,8 +22,7 @@
 //   Constructors carry supplied values and perform no engine or gameplay operations.
 //   None/empty means no reported killer; -1 means exit-to-escape timing is unavailable.
 //   Depth zero means not reported. Legacy EndReason is never reinterpreted.
-//   Bailed is a temporary always-false source-compatibility shim for the separately
-//   owned Floor fixture. No constructor or runtime state can represent early bail.
+//   No constructor or runtime state can represent early bail.
 //
 // ============================================================================
 
@@ -70,6 +69,6 @@ namespace Worsen.Core
         public int GrabsEscaped { get; }
         public double SecondsFromExitOpenToEscape { get; }
         public int DepthReached { get; }
-        public bool Bailed => false;
+
     }
 }

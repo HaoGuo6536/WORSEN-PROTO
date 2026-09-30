@@ -177,12 +177,12 @@ namespace Worsen.Tests.Hunter
         [Test] public void ExternalNoiseIsMuffledAndCannotRevealItsSourcesCurrentPosition()
         {
             Tick(0, false, false);
-            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0), 0.35f), Is.True);
+            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement), 0.35f), Is.True);
             Assert.That(_state.LastKnownPosition, Is.EqualTo(Vector3.zero), "Turn before committing the sound clue.");
             for (int tick = 1; tick <= 30; tick++) Tick(tick, false, false);
             Assert.That(_state.LastKnownPosition, Is.EqualTo(Vector3.forward * 5f));
             Assert.That(_state.PlayerVisible, Is.False);
-            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 100), 1f), Is.False);
+            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 100, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement), 1f), Is.False);
         }
         [TestCase(ProgressionTraits.LurkerStolenSilence, "lurker")]
         [TestCase(ProgressionTraits.HexerHastyScript, "hexer")]
@@ -208,7 +208,7 @@ namespace Worsen.Tests.Hunter
             if (archetype == "lurker") Assert.That(_controller.EffectiveSightCone, Is.GreaterThan(cone));
             else Assert.That(_controller.EffectiveSightCone, Is.EqualTo(cone));
             Tick(40, false, false);
-            var old = new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0);
+            var old = new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement);
             Assert.That(_controller.HearNoise(old, 1f), Is.False);
             _controller.SetTraits(ProgressionTraits.RusherBloodScent);
             Assert.That(_controller.HearNoise(old, 1f), Is.EqualTo(archetype == "rusher"));

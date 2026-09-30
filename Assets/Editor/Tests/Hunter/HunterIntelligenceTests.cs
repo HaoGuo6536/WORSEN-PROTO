@@ -219,7 +219,7 @@ namespace Worsen.Tests.Hunter
         {
             if (exit) _floor.ExitState = ExitState.Open;
             _controller.Tick(default, 0.1f, 0);
-            var noise = new NoiseEvent(_player.Id, Vector3.right * 2f, loudness, 0);
+            var noise = new NoiseEvent(_player.Id, Vector3.right * 2f, loudness, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement);
             Assert.That(_controller.HearNoise(noise, 1f), Is.EqualTo(audible));
             Assert.That(_state.BeliefConfidence, Is.Zero);
             if (audible) Assert.That(_controller.Tick(default, 0.1f, 1).HoldPosition, Is.True);
@@ -281,7 +281,7 @@ namespace Worsen.Tests.Hunter
         {
             Tune("_deliberationSeconds", 0f);
             _controller.Tick(default, 0.1f, 0);
-            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.right * 2f, 0.18f, 0), 1f), Is.True);
+            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.right * 2f, 0.18f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement), 1f), Is.True);
             Assert.That(_controller.Tick(default, 0.1f, 1).Speed, Is.EqualTo(_profile.InvestigateSpeed));
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.SearchLastKnown));
             _player.Velocity = Vector3.forward * _player.SprintSpeed;
@@ -394,7 +394,7 @@ namespace Worsen.Tests.Hunter
             }
             Assert.That(Memory<List<int>>("RecentRooms"), Is.Empty);
             _controller.CommitPose(Vector3.zero, Vector3.zero, Vector3.forward);
-            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.right * 2f, 0.8f, 5), 1f), Is.True);
+            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.right * 2f, 0.8f, 5, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement), 1f), Is.True);
             Assert.That(_controller.Tick(default, 0.1f, 6).Speed,
                 Is.EqualTo(_player.SprintSpeed * _profile.ChaseSpeedMultiplier * _profile.StalkSpeedMultiplier));
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Stalk));
@@ -403,9 +403,9 @@ namespace Worsen.Tests.Hunter
         {
             _controller.Tick(default, 0.1f, 0);
             _controller.SetClosedDoors(new Dictionary<int, bool> { [1] = true });
-            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 10f, 1f, 0), 1f), Is.False);
+            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 10f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement), 1f), Is.False);
             _controller.SetClosedDoors(null);
-            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 10f, 1f, 0), 1f), Is.True);
+            Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 10f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement), 1f), Is.True);
         }
     }
 }

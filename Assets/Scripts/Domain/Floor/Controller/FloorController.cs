@@ -119,6 +119,7 @@ namespace Worsen.Domain.Floor
             float goldenMultiplier = cakeHooks.GoldenCakeMultiplier == 0f ? 1f : cakeHooks.GoldenCakeMultiplier;
             RequirePositive(goldenMultiplier, nameof(cakeHooks.GoldenCakeMultiplier));
             int goldenAtGeneration = checked(baseGolden + optionalGoldenCakeCount);
+            _state.OptionalGoldenCakeCount = optionalGoldenCakeCount;
             _state.TotalGoldenCakes = Math.Max(goldenAtGeneration, Mathf.CeilToInt(goldenAtGeneration * goldenMultiplier));
             PlanBonusGold(_state.TotalGoldenCakes - goldenAtGeneration, reachable, distances);
             _state.TotalCakes = _state.SpawnedAnchors.Count;
@@ -380,13 +381,13 @@ namespace Worsen.Domain.Floor
             _state.CueAnchorId = available ? nearestId : -1;
             _state.Display = new FloorDisplaySnapshot(_state.CollectedCakes.Count, _state.RequiredCakeCount,
                 _state.GoldenCakeCount, _state.ExitState, available, direction, NormalizedProgress(openingProgress),
-                _state.TotalCakes, _state.TotalGoldenCakes, _state.CakeHooks.HiddenCount);
+                _state.TotalCakes, _state.TotalGoldenCakes, _state.CakeHooks.HiddenCount, _state.OptionalGoldenCakeCount);
             return _state.Display;
         }
 
         public FloorDisplaySnapshot Snapshot(float openingProgress = 0f) => new FloorDisplaySnapshot(_state.CollectedCakes.Count, _state.RequiredCakeCount,
             _state.GoldenCakeCount, _state.ExitState, _state.Display.HasCue && !_state.Ended, _state.Display.CueDirection, NormalizedProgress(openingProgress),
-            _state.TotalCakes, _state.TotalGoldenCakes, _state.CakeHooks.HiddenCount);
+            _state.TotalCakes, _state.TotalGoldenCakes, _state.CakeHooks.HiddenCount, _state.OptionalGoldenCakeCount);
 
         public bool ContactExit(EntityId id, long tick, out ExitReachedFact fact)
         {
@@ -448,6 +449,8 @@ namespace Worsen.Domain.Floor
             _state.BonusGoldenAnchors.Clear(); _state.TotalCakes = 0; _state.TotalGoldenCakes = 0;
             _state.PuzzleRewards.Clear(); _state.UnlockedPuzzleRewards.Clear(); _state.RouteSafeCollapse = false;
             _state.PassageRewards.Clear();
+            _state.OptionalGoldenCakeCount = 0; _state.ActiveEffects = null;
+            _state.BlinderPolicies.Clear(); _state.AddedBlinderTraps = 0;
             _state.CakeHooks = default; _state.CollapseStarted = false; _state.CueAnchorId = -1;
             _state.TrapTickElapsed = 0d; _state.Elapsed = 0d;
             _state.PocketRooms.Clear(); _state.PocketStarts.Clear();
@@ -490,14 +493,16 @@ namespace Worsen.Domain.Floor
             if (trap.Anchor.Id == 0 || _state.MutableRoomPhases[trap.Anchor.RoomId] == RoomPhase.Closed || !_state.SprungTraps.Add(trapId)) return false;
             fact = new FloorTrapSprungFact(trapId, trap.Kind, trap.Anchor.RoomId, trap.Anchor.Position, tick, playerId);
             if (trap.Kind == FloorTrapKind.Announce)
-                noise = new NoiseEvent(playerId, trap.Anchor.Position, _config.TrapAnnounceLoudness, tick, NoiseSourceKind.Trap);
+                noise = new NoiseEvent(playerId, trap.Anchor.Position, _config.TrapAnnounceLoudness, tick,
+                    NoiseSourceKind.Trap, NoiseOrigin.PlayerTriggeredCakeTrap);
             return true;
         }
 
         public IReadOnlyList<FloorTrapSpawn> TickTraps(float dt)
         {
             if (!Finite(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
-            if (!_state.IsReady || _state.Ended || _state.CakeHooks.SilentTraps) return Array.Empty<FloorTrapSpawn>();
+            if (!_state.IsReady || _state.Ended || _state.CakeHooks.SilentTraps ||
+                _state.BlinderPolicies.Values.Any(p => p.SilentTraps)) return Array.Empty<FloorTrapSpawn>();
             _state.TrapTickElapsed += dt;
             if (_state.TrapTickElapsed < _config.TrapTickInterval) return Array.Empty<FloorTrapSpawn>();
             _state.TrapTickElapsed %= _config.TrapTickInterval;
@@ -511,7 +516,44 @@ namespace Worsen.Domain.Floor
             if (TryWhiteGuidance(whiteFallback, out var white)) targets.Add(white);
             if (_state.IsReady && !_state.Ended && !_state.CakeHooks.BlindFaith && golden.HasValue)
                 targets.Add(golden.Value);
+            var player = CuePlayer();
+            if (_state.IsReady && !_state.Ended && _state.ExitState == ExitState.Open && player != null &&
+                (_state.ActiveEffects?.Has(new EffectId("exit-sense")) ?? false))
+                targets.Add(new GuidanceTarget(GuidanceKind.ExitThroughWalls,
+                    (_state.Graph.ExitPosition - player.Position).normalized, _state.Graph.ExitPosition));
             return targets.AsReadOnly();
+        }
+
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) => _state.ActiveEffects = effects;
+        public IReadOnlyList<FloorTrapSpawn> ReceiveBlinderTrapPolicy(BlinderTrapPolicyFact fact)
+        {
+            var added = new List<FloorTrapSpawn>();
+            if (!_state.IsReady || _state.Ended || !fact.Hunter.IsValid || fact.Tick < 0 ||
+                !Finite(fact.Duration) || fact.Duration <= 0f ||
+                _state.BlinderPolicies.TryGetValue(fact.Hunter, out var previous) && previous.Tick > fact.Tick) return added;
+            _state.BlinderPolicies[fact.Hunter] = fact;
+            int desired = _state.BlinderPolicies.Values.Max(p => Math.Max(0, Math.Min(3, p.MoreTrapsStacks))) * _config.ExtraBlinderTraps;
+            if (_state.Round < _config.TrapStartRound) return added;
+            // Existing traps persist until sprung/closed. Duplicate type instances never multiply placement.
+            foreach (var anchor in _state.SpawnedAnchors.OrderBy(a => a.Id).ToArray())
+            {
+                if (_state.AddedBlinderTraps >= desired) break;
+                if (_state.SelectedAnchors.Any(a => a.Id == anchor.Id) || _state.GoldenAnchors.Any(a => a.Id == anchor.Id) ||
+                    _state.CollectedCakes.Contains(anchor.Id) || _state.MutableRoomPhases[anchor.RoomId] != RoomPhase.Open) continue;
+                var trap = new FloorTrapSpawn(anchor, FloorTrapKind.Blind);
+                _state.MutableTraps.Add(trap); added.Add(trap); _state.AddedBlinderTraps++;
+                _state.SpawnedAnchors.Remove(anchor); _state.RemainingRewards.Remove(anchor.Id); _state.TotalCakes--;
+            }
+            return added.AsReadOnly();
+        }
+        public bool TryBlinderHit(FloorTrapSprungFact trap, out BlinderHitFact hit)
+        {
+            hit = default;
+            if (trap.Kind != FloorTrapKind.Blind || !_state.SprungTraps.Contains(trap.TrapId) || _state.BlinderPolicies.Count == 0) return false;
+            var policy = _state.BlinderPolicies.Values.OrderByDescending(p => p.Duration).ThenBy(p => p.Hunter.Value).First();
+            hit = new BlinderHitFact(policy.Hunter, trap.PlayerId, trap.Tick, trap.TrapId,
+                policy.Duration, _state.BlinderPolicies.Values.Any(p => p.MuffledDark), trap: true);
+            return true;
         }
 
         public bool TryWhiteGuidance(bool fallback, out GuidanceTarget target)

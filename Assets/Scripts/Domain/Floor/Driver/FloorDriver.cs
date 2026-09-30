@@ -110,6 +110,24 @@ namespace Worsen.Domain.Floor
         { foreach (var room in _state.Rooms.Values) room.SetHandLook(look); }
 
         public void RemoveTrap(int id) { if (_state.Traps.TryGetValue(id, out var trap)) trap.gameObject.SetActive(false); }
+        public void SpawnTraps(IReadOnlyList<FloorTrapSpawn> traps)
+        {
+            OnDisable();
+            if (_state.TrapTickClip == null)
+            {
+                var samples = new FloorCakePresenter().TickSamples(22050, _config.TrapTickDuration, _config.TrapTickFrequency);
+                _state.TrapTickClip = AudioClip.Create("Floor Blinder Tick", samples.Length, 1, 22050, false);
+                _state.TrapTickClip.SetData(samples, 0);
+            }
+            foreach (var trap in traps)
+            {
+                if (_state.Traps.ContainsKey(trap.Anchor.Id)) continue;
+                RemovePickup(trap.Anchor.Id, PickupKind.Cake);
+                _state.Anchors[trap.Anchor.Id] = trap.Anchor;
+                BuildPickup(trap.Anchor, PickupKind.Cake, true, trap.Kind == FloorTrapKind.Blind);
+            }
+            if (isActiveAndEnabled) OnEnable();
+        }
         public void PlayTrapTick(int id, float volume) { if (_state.Traps.TryGetValue(id, out var trap)) trap.PlayTick(volume); }
         public void TickCakeVisuals(float elapsed)
         { foreach (var visual in _state.CakeVisuals) if (visual != null && visual.gameObject.activeInHierarchy) visual.Tick(elapsed); }

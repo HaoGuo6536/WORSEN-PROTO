@@ -18,8 +18,8 @@
 //   No engine operations or randomness; all observations are supplied by the owner.
 //   Lost sight is still a chase. Only None ends it; duplicate starts never rearm.
 //   Heartbeats have a separate delivery channel, not a forged movement source kind.
-//   Until Core adds Heartbeat, their NoiseEvent category is Other; Session must
-//   route this explicit Player channel, never enable generic Other/world hearing.
+//   Heartbeat uses the player-authored provenance on its explicit Session channel;
+//   it never enters movement history or grants generic Other/world hearing.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -81,7 +81,8 @@ namespace Worsen.Domain.Player
             _state.NextHeartbeatTick = checked(_player.Tick + Math.Max(1, Ticks(Checked(_config.HeartbeatIntervalSeconds, 0.01f))));
             float loudness = Checked(_config.HeartbeatLoudness, 0f);
             if (loudness > 1f) throw new ArgumentOutOfRangeException(nameof(_config));
-            _state.Heartbeat = new NoiseEvent(_player.Id, _player.Position, loudness, _player.Tick);
+            _state.Heartbeat = new NoiseEvent(_player.Id, _player.Position, loudness, _player.Tick,
+                NoiseSourceKind.Heartbeat, NoiseOrigin.PlayerMovement);
         }
 
         public bool TakeHeartbeat(out NoiseEvent noise)

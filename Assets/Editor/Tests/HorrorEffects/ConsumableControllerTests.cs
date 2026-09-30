@@ -93,6 +93,8 @@ namespace Worsen.Tests.HorrorEffects
             Assert.That(noise[0].Position, Is.EqualTo(Vector3.forward));
             Assert.That(noise[0].Loudness, Is.EqualTo(config.FirecrackerLoudness));
             Assert.That(HorrorNoiseUtility.Origin(noise[0]), Is.EqualTo(HorrorNoiseOrigin.Firecracker));
+            Assert.That(noise[0].Origin, Is.EqualTo(NoiseOrigin.Firecracker));
+            Assert.That(HunterHearingUtility.Allows(noise[0]), Is.True);
             Assert.That(HorrorNoiseUtility.HunterAudible(noise[0]), Is.True);
             Assert.That(items.AdvanceThrows(.1f), Is.Empty);
         }

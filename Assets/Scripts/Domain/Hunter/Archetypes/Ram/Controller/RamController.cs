@@ -108,12 +108,18 @@ namespace Worsen.Domain.Hunter.Archetypes.Ram
             _state.Motion = Vector3.zero;
         }
         public bool TryHit(EntityId target, out HunterHit hit)
+            => TryHit(target, Direction, out hit);
+        public bool TryHit(EntityId target, Vector3 contactNormal, out HunterHit hit)
         {
             hit = default;
             if (Phase != RamPhase.Charge || _state.Hit || !_state.Context.CanReplay ||
                 !_state.Context.Player.IsAlive || target != _state.Context.Player.Id) return false;
             _state.Hit = true;
-            hit = new HunterHit(_state.Context.Hunter.Id, target, _profile.LungeDamage, _state.Context.Tick, _state.Context.Hunter.Position);
+            Vector3 normal = Vector3.ProjectOnPlane(contactNormal, Vector3.up).normalized;
+            bool glancing = normal.sqrMagnitude > 0f && Mathf.Abs(Vector3.Dot(Direction, normal)) < _config.GlancingDotThreshold;
+            hit = new HunterHit(_state.Context.Hunter.Id, target, _profile.LungeDamage, _state.Context.Tick,
+                _state.Context.Hunter.Position, contactNormal: contactNormal, ram: true, glancing: glancing,
+                knockback: (glancing ? normal : Direction) * _config.KnockbackSpeed);
             return true;
         }
         public override bool TryMovement(out Vector3 target, out float speed)

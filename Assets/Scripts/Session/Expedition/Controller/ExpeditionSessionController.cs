@@ -76,6 +76,19 @@ namespace Worsen.Session.Expedition
             return new SpawnRequest(archetype, position, rotation);
         }
 
+        public int RequiredHunterCount(int extraHunters)
+        {
+            RequireGenerating();
+            if (extraHunters < 0) throw new ArgumentOutOfRangeException(nameof(extraHunters));
+            return _state.Request.IsShop ? 0 : checked(_state.Request.Effects.ActiveThreatBudget + extraHunters);
+        }
+        public void RequireHunterCapacity(int extraHunters, int validatedCapacity)
+        {
+            int required = RequiredHunterCount(extraHunters);
+            if (validatedCapacity < required)
+                throw new InvalidOperationException("hunter-spawn-capacity-shortfall: required=" + required + ", validated=" + validatedCapacity);
+        }
+
         public IReadOnlyList<SpawnRequest> HunterSpawns(string archetype, IReadOnlyList<Vector3> positions,
             Func<Vector3, bool> validate = null, IReadOnlyList<string> extraHunters = null)
         {
@@ -84,7 +97,7 @@ namespace Worsen.Session.Expedition
             if (!_state.Request.IsShop && _state.Request.Effects.ActiveThreatIds != null && _state.Request.Effects.ActiveThreatIds.Count != requested)
                 throw new InvalidOperationException("Selected hunter identities must exactly match their budget.");
             int retained = requested;
-            if (!_state.Request.IsShop) requested = checked(requested + (extraHunters?.Count ?? 0));
+            requested = RequiredHunterCount(extraHunters?.Count ?? 0);
             _state.RequestedHunterCount = requested;
             var valid = new List<Vector3>();
             if (positions != null) foreach (var position in positions)
