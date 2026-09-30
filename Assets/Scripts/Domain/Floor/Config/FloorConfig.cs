@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Tune per-room placement, the required share and shared pickup loudness.
 //   - Tune deliberate locked-exit holds independently of cake-driven collapse.
 //   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
 //   - Keep rules, passive state and engine operations in their owning roles.
@@ -16,6 +17,7 @@
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
 //   Mirrored asset: ScriptableObjects/Domain/Floor/FloorConfig. Runtime getters only.
+//   Room density supersedes legacy required-count overrides unless explicitly disabled.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using UnityEngine;
@@ -26,6 +28,12 @@ namespace Worsen.Domain.Floor
     public sealed class FloorConfig : ScriptableObject
     {
         [SerializeField, Min(1)] private int _requiredCakeCount = 10;
+        [SerializeField] private bool _useRoomCakeDensity = true;
+        [SerializeField, Min(1)] private int _minimumCakesPerRoom = 1;
+        [SerializeField, Min(1)] private int _maximumCakesPerRoom = 3;
+        [SerializeField, Min(0)] private int _minimumExitRoomCakes = 0;
+        [SerializeField, Range(0f, 1f)] private float _requiredCakeFraction = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _pickupNoiseLoudness = 0.6f;
         [SerializeField, Min(0.01f)] private float _earlyBailHoldDuration = 1f;
         [SerializeField, Min(0f)] private float _flowWeight = 5f;
         [SerializeField, Min(0f)] private float _precisionWeight = 3f;
@@ -68,6 +76,12 @@ namespace Worsen.Domain.Floor
         public float HandReach => _handReach > 0f ? _handReach : 1.7f;
         public float HandEscapeDistance => Mathf.Max(HandReach + 0.2f, _handEscapeDistance > 0f ? _handEscapeDistance : 2.1f);
         public int RequiredCakeCount => _requiredCakeCount;
+        public bool UseRoomCakeDensity => _useRoomCakeDensity;
+        public int MinimumCakesPerRoom => _minimumCakesPerRoom;
+        public int MaximumCakesPerRoom => _maximumCakesPerRoom;
+        public int MinimumExitRoomCakes => _minimumExitRoomCakes;
+        public float RequiredCakeFraction => _requiredCakeFraction;
+        public float PickupNoiseLoudness => _pickupNoiseLoudness;
         public float EarlyBailHoldDuration => _earlyBailHoldDuration;
         public float FlowWeight => _flowWeight;
         public float PrecisionWeight => _precisionWeight;

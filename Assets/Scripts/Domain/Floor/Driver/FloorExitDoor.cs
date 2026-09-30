@@ -12,6 +12,7 @@
 //   - Keep visible door movement and physical passage in agreement.
 //   - Fit rotated imported art in an aligned wrapper so width and depth stay correct.
 //   - Fade a native Lumen threshold effect with the same opening progress.
+//   - Expose continuous normalized progress, including the committed bail pose.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
 //   - Report locked overlaps and last-collider departures, including missing exit callbacks.
 // DEPENDENCIES:
@@ -40,6 +41,7 @@ namespace Worsen.Domain.Floor
         public event Action<EntityId> Departed;
         public bool FullyOpen => _state.FullyOpen;
         public bool Opening => _state.Opening;
+        public float OpeningProgress => _config == null ? 0f : _presenter.OpeningProgress(_state.Elapsed, _config.ExitDoorOpeningDuration);
         public void Configure(FloorDriverConfig config, Material wood, Material stone, Material seal,
             Func<Collider, EntityId> resolveIdentity = null)
         {
@@ -102,7 +104,7 @@ namespace Worsen.Domain.Floor
             float dt=Mathf.Max(0f,clock-_state.LastClock);_state.LastClock=clock;
             if (!_state.Opening || _state.FullyOpen) return;
             _state.Elapsed += dt;
-            float progress=_presenter.OpeningProgress(_state.Elapsed,_config.ExitDoorOpeningDuration);
+            float progress=OpeningProgress;
             float angle=_presenter.HingeAngle(progress,_config.ExitDoorOpeningAngle);
             _state.LeftHinge.localRotation=Quaternion.Euler(0f,-angle,0f);
             _state.RightHinge.localRotation=Quaternion.Euler(0f,angle,0f);

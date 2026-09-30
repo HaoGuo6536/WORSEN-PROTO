@@ -9,7 +9,7 @@
 //   Editor tool (§11 tests) · Domain · Floor visual and physical integration.
 // KEY RESPONSIBILITIES:
 //   - Compare imported leaf bounds with collision before and after opening.
-//   - Check grounded supports, bounded footprint and trigger opening timing.
+//   - Check grounded supports, bounded footprint and the bail-enabled threshold.
 // DEPENDENCIES:
 //   NUnit, UnityEditor AssetDatabase, UnityEngine and Floor-owned door/config types.
 // USAGE NOTES:
@@ -49,7 +49,7 @@ namespace Worsen.Tests.Floor
                 root.transform.position = new Vector3(51000f, 0f, 51000f);
                 var door = root.AddComponent<FloorExitDoor>();
                 door.Configure(config, material, material, material);
-                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.False);
+                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.True, "Locked overlap arms early bail.");
                 AssertFitted(root);
                 var supports = root.GetComponentsInChildren<BoxCollider>().Where(item => item.name.Contains("Support") || item.name.Contains("Grounded Foot")).ToArray();
                 Assert.That(supports.Length, Is.EqualTo(4));
@@ -62,7 +62,7 @@ namespace Worsen.Tests.Floor
                 }
                 Assert.That(root.GetComponentsInChildren<Transform>().Any(item => item.name.StartsWith("Stone ")), Is.False);
                 door.Open(); door.Tick(config.ExitDoorOpeningDuration * 0.5f);
-                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.False);
+                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.True, "Observe gates crossing until fully open.");
                 AssertFitted(root);
                 door.Tick(config.ExitDoorOpeningDuration);
                 Assert.That(door.FullyOpen, Is.True);

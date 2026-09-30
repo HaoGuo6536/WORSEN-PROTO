@@ -12,12 +12,13 @@
 //   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
 //   - Resolve door identities, cancel departed holds before timing, and present bails without rewards.
 //   - Publish cake loss, hand noise and rubber-band acceleration facts for upward routing.
+//   - Publish every accepted pickup's noise and continuous visual exit progress.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
-//   Generated maps may supply a required-count override; configuration assets remain unchanged.
+//   Generated required-count overrides apply only when room density is disabled.
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
 //   Door integration must report locked contact and LeaveExit when its last player
@@ -57,6 +58,7 @@ namespace Worsen.Domain.Floor
         public event Action<RoomDestructionSample> OnRoomDestruction;
         public event Action<int> OnOptionalRoomCracked;
         public event Action<NoiseEvent> OnHandNoise;
+        public event Action<NoiseEvent> OnPickupNoise;
         public event Action<int, int, PickupKind, long> OnCakeLost;
         public event Action<EntityId, int, Vector3, Vector3, long> OnBoundaryContact;
 
@@ -90,8 +92,8 @@ namespace Worsen.Domain.Floor
             if (!ReferenceEquals(owner, _controller)) return;
             if (owner.TickExitHold(dt, tick, out var bail))
             {
-                var display = owner.Snapshot();
                 _driver.PresentBail();
+                var display = owner.Snapshot(_driver.OpeningProgress(true));
                 OnEscapeResolved?.Invoke(bail, true);
                 if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
                 return;
@@ -101,8 +103,11 @@ namespace Worsen.Domain.Floor
             if (!ReferenceEquals(owner, _controller)) return;
             TickDestruction(dt);
             if (!ReferenceEquals(owner, _controller)) return;
+            float previousProgress = _driver.OpeningProgress(_state.ExitState == ExitState.Open);
             _driver.TickWarnings((float)_state.CollapseElapsed);
             if (_controller.ConsumeCueDue()) RefreshCue();
+            else if (_driver.OpeningProgress(_state.ExitState == ExitState.Open) != previousProgress)
+                OnDisplayChanged?.Invoke(Snapshot());
         }
 
         public void Collect(EntityId playerId, int anchorId, PickupKind kind)
@@ -110,8 +115,10 @@ namespace Worsen.Domain.Floor
             if (_controller == null || !_driver.PickupAvailable(anchorId)) return;
             var owner = _controller;
             var before = _state.ExitState;
-            if (!_controller.Collect(playerId, anchorId, kind, _state.Tick, out var fact)) return;
+            if (!_controller.Collect(playerId, anchorId, kind, _state.Tick, out var fact, out var noise)) return;
             _driver.RemovePickup(anchorId, kind);
+            OnPickupNoise?.Invoke(noise);
+            if (!ReferenceEquals(owner, _controller)) return;
             OnPickupCollected?.Invoke(fact);
             if (!ReferenceEquals(owner, _controller)) return;
             if (before != _state.ExitState)
@@ -123,7 +130,7 @@ namespace Worsen.Domain.Floor
                 if (!ReferenceEquals(owner, _controller)) return;
                 RefreshCue();
             }
-            else OnDisplayChanged?.Invoke(_controller.Snapshot());
+            else OnDisplayChanged?.Invoke(Snapshot());
         }
 
         // Compatibility entry: contact without a confirmed lethal hand hit is rejected.
@@ -136,7 +143,7 @@ namespace Worsen.Domain.Floor
             foreach (var candidate in _state.Players) if (candidate != null && candidate.Id == playerId) { player = candidate; break; }
             if (player == null || !_hands.ConfirmDeath(playerId, roomId, player.IsAlive, _state.Tick, out var consumed)) return;
             if (!owner.ContactLethalRoom(playerId, roomId, _state.Tick, out var fact)) return;
-            var display = owner.Snapshot();
+            var display = Snapshot();
             _driver.ApplyHandFact(consumed); OnCollapseHand?.Invoke(consumed);
             if (!ReferenceEquals(owner, _controller)) return;
             OnLethalContact?.Invoke(fact);
@@ -159,7 +166,7 @@ namespace Worsen.Domain.Floor
             var owner = _controller;
             if (owner != null && owner.ContactExit(playerId, _state.Tick, out var fact))
             {
-                var display = owner.Snapshot();
+                var display = Snapshot();
                 OnEscapeResolved?.Invoke(fact, false);
                 if (!ReferenceEquals(owner, _controller)) return;
                 OnExitReached?.Invoke(fact);
@@ -250,6 +257,8 @@ namespace Worsen.Domain.Floor
             }
         }
 
+        private FloorDisplaySnapshot Snapshot() => _controller.Snapshot(_driver.OpeningProgress(_state.ExitState == ExitState.Open));
+
         private void RefreshCue()
         {
             var paths = new List<FloorPathCandidate>();
@@ -259,7 +268,7 @@ namespace Worsen.Domain.Floor
                 if (_state.ExitState == ExitState.Open) paths.Add(_driver.QueryPath(0, player.Position, _state.Graph.ExitPosition));
                 else foreach (var anchor in _state.ActiveCakeAnchors) paths.Add(_driver.QueryPath(anchor.Id, player.Position, anchor.Position));
             }
-            OnDisplayChanged?.Invoke(_controller.SelectCue(paths));
+            OnDisplayChanged?.Invoke(_controller.SelectCue(paths, _driver.OpeningProgress(_state.ExitState == ExitState.Open)));
         }
     }
 }

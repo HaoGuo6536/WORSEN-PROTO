@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Verify deterministic placement, counters, cues and ordered room transitions.
+//   - Verify bounded density, optional scoring, pickup hearing and display payloads.
 //   - Reject invalid contacts and verify a fresh initialization clears prior life.
 //   - Verify timed bail, cancellation and death without granting cakes or collapse.
 //   - Keep the exit permanently safe; cover warning pulses, optional losses and opt-in collapse hooks.
@@ -659,6 +660,119 @@ namespace Worsen.Tests.Floor
             Assert.That(seen.Count, Is.EqualTo(2), "The opt-in shuffle actually permutes equal-distance rooms.");
         }
 
+        [Test]
+        public void DensityIsBoundedSeededAndIndependentOfRoomAndAnchorOrder()
+        {
+            var anchors = Enumerable.Range(1, 4).SelectMany(room => Enumerable.Range(0, 5)
+                .Select(type => Anchor(room * 100 + type + 1, room, (CakeAnchorType)type))).ToArray();
+            var edges = new[] { new LevelEdge(1, 1, 2, true), new LevelEdge(2, 2, 3, true), new LevelEdge(3, 3, 4, true) };
+            var graph = Graph(new[] { 1, 2, 3, 4 }, edges, anchors, 4);
+            var reversed = Graph(new[] { 4, 3, 2, 1 }, edges.Reverse().ToArray(), anchors.Reverse().ToArray(), 4);
+            var selections = new HashSet<string>();
+            bool emptyExit = false;
+            for (int seed = 0; seed < 64; seed++)
+            {
+                var first = Start(graph, DensityConfig(), seed);
+                var second = Start(reversed, DensityConfig(), seed);
+                var placed = Placed(first);
+                CollectionAssert.AreEqual(placed.Select(a => a.Id), Placed(second).Select(a => a.Id));
+                CollectionAssert.AreEqual(first.State.ActiveCakeAnchors, second.State.ActiveCakeAnchors);
+                foreach (int room in new[] { 1, 2, 3 }) Assert.That(placed.Count(a => a.RoomId == room), Is.InRange(1, 3));
+                Assert.That(placed.Count(a => a.RoomId == 4), Is.InRange(0, 3));
+                emptyExit |= placed.All(a => a.RoomId != 4);
+                Assert.That(first.State.RequiredCakeCount, Is.EqualTo(Math.Max(1, Mathf.CeilToInt(placed.Length * 0.6f))));
+                Assert.That(placed.Select(a => a.Id).Distinct().Count(), Is.EqualTo(placed.Length));
+                Assert.That(first.State.ActiveCakeAnchors.All(a => placed.Any(p => p.Id == a.Id)), Is.True);
+                selections.Add(string.Join(",", placed.Select(a => a.Id)));
+            }
+            Assert.That(selections.Count, Is.GreaterThan(1));
+            Assert.That(emptyExit, Is.True);
+        }
+
+        [Test]
+        public void DensityUsesWeightsAndNeverPlacesUnreachableOrZeroWeightSockets()
+        {
+            var config = DensityConfig();
+            Set(config, "_flowWeight", 0f); Set(config, "_precisionWeight", 0f);
+            Set(config, "_detourWeight", 0f); Set(config, "_verticalWeight", 0f);
+            var graph = Graph(new[] { 1, 2, 3 }, new[] { new LevelEdge(1, 1, 2, true) },
+                new[] { Anchor(101, 1), Anchor(102, 1, CakeAnchorType.Risk), Anchor(103, 3, CakeAnchorType.Risk) }, 2);
+            var fixture = Start(graph, config);
+            Assert.That(Placed(fixture).Select(a => a.Id), Is.EqualTo(new[] { 102 }));
+            Assert.That(fixture.State.RequiredCakeCount, Is.EqualTo(1));
+        }
+
+        [TestCase(0f)] [TestCase(0.6f)] [TestCase(1f)]
+        public void DensityHasAtLeastOneRequiredAndLegacyGeneratedOverrideCannotBypassIt(float fraction)
+        {
+            var config = DensityConfig(); Set(config, "_requiredCakeFraction", fraction);
+            var state = new FloorBehaviorState(); var controller = new FloorController(state, config, new System.Random(7));
+            controller.Initialize(SingleRoom(5), Players(), 5);
+            int placed = Placed(new Fixture(state, controller)).Length;
+            Assert.That(placed, Is.InRange(1, 3));
+            Assert.That(state.RequiredCakeCount, Is.EqualTo(Math.Max(1, Mathf.CeilToInt(placed * fraction))));
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void PlacedOptionalCakesScoreWithoutGatingAndUnusedSocketsCannotBeCollected(bool optionalFirst)
+        {
+            var config = DensityConfig(); Set(config, "_minimumCakesPerRoom", 3); Set(config, "_minimumExitRoomCakes", 3);
+            var graph = SingleRoom(5); var fixture = Start(graph, config);
+            var placed = Placed(fixture);
+            var required = fixture.State.ActiveCakeAnchors.ToArray();
+            int optional = placed.Single(a => required.All(r => r.Id != a.Id)).Id;
+            foreach (var unused in graph.Anchors.Where(a => placed.All(p => p.Id != a.Id)))
+                Assert.That(fixture.Controller.Collect(new EntityId(1), unused.Id, PickupKind.Cake, 1, out _), Is.False);
+            if (!optionalFirst) CollectAll(fixture);
+            Assert.That(fixture.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 2, out var fact), Is.True);
+            Assert.That(fact.CakeCount, Is.EqualTo(optionalFirst ? 1 : 3));
+            Assert.That(fixture.Controller.Snapshot().Collected, Is.EqualTo(optionalFirst ? 0 : 2));
+            Assert.That(fixture.State.ExitState, Is.EqualTo(optionalFirst ? ExitState.Locked : ExitState.Open));
+            if (optionalFirst) CollectAll(fixture);
+            Assert.That(fixture.State.ExitState, Is.EqualTo(ExitState.Open));
+            Assert.That(fixture.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 3, out fact), Is.True);
+            Assert.That(fact.CakeCount, Is.EqualTo(3), "Golden facts must not reset ordinary scoring to the required count.");
+            Assert.That(fixture.Controller.Snapshot().Golden, Is.EqualTo(1));
+            Assert.That(fixture.Controller.SelectCue(null).Golden, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void EveryAcceptedPickupReturnsTypedNoiseWithIdentityPositionLoudnessAndTick()
+        {
+            var config = Config(1); Set(config, "_pickupNoiseLoudness", 0.65f);
+            var fixture = Start(SingleRoom(1), config);
+            foreach (var kind in new[] { PickupKind.Cake, PickupKind.GoldenCake })
+            {
+                Assert.That(fixture.Controller.Collect(new EntityId(1), 101, kind, 42, out _, out var noise), Is.True);
+                Assert.That(noise.SourceKind, Is.EqualTo(NoiseSourceKind.CakePickup));
+                Assert.That(noise.Source, Is.EqualTo(new EntityId(1)));
+                Assert.That(noise.Position, Is.EqualTo(Anchor(101, 1).Position));
+                Assert.That(noise.Loudness, Is.EqualTo(0.65f)); Assert.That(noise.Tick, Is.EqualTo(42));
+                Assert.That(fixture.Controller.Collect(new EntityId(1), 101, kind, 43, out _, out noise), Is.False);
+                Assert.That(noise.Source, Is.EqualTo(EntityId.None));
+            }
+        }
+
+        [TestCase(-1f, 0f)] [TestCase(0.5f, 0.5f)] [TestCase(2f, 1f)] [TestCase(float.NaN, 0f)]
+        public void DisplayNormalizesOpeningProgressAndOldConstructionDefaultsClosed(float value, float expected)
+        {
+            var fixture = Start(SingleRoom(1), Config(1));
+            Assert.That(fixture.Controller.Snapshot(value).OpeningProgress, Is.EqualTo(expected));
+            Assert.That(fixture.Controller.SelectCue(null, value).OpeningProgress, Is.EqualTo(expected));
+            Assert.That(new FloorDisplaySnapshot(0, 1, 0, ExitState.Locked, false, Vector3.zero).OpeningProgress, Is.Zero);
+        }
+
+        private static FloorConfig DensityConfig()
+        {
+            var config = Config(1); Set(config, "_useRoomCakeDensity", true);
+            Set(config, "_minimumCakesPerRoom", 1); Set(config, "_maximumCakesPerRoom", 3);
+            Set(config, "_minimumExitRoomCakes", 0); Set(config, "_requiredCakeFraction", 0.6f);
+            return config;
+        }
+
+        private static LevelAnchor[] Placed(Fixture fixture) => ((IEnumerable<LevelAnchor>)typeof(FloorBehaviorState)
+            .GetField("SpawnedAnchors", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(fixture.State)).ToArray();
+
         private static LevelGraph CollapsibleRoom() => Graph(new[] { 1, 2 },
             new[] { new LevelEdge(1, 1, 2, true) }, new[] { Anchor(101, 1) }, 2);
 
@@ -680,6 +794,7 @@ namespace Worsen.Tests.Floor
         {
             var config = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));
             Set(config, "_requiredCakeCount", required);
+            Set(config, "_useRoomCakeDensity", false); // These older fixtures explicitly exercise authored-count mode.
             Set(config, "_earlyBailHoldDuration", 1f);
             Set(config, "_flowWeight", 5f);
             Set(config, "_precisionWeight", 3f);

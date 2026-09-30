@@ -2,12 +2,14 @@
 // FloorController.cs
 // ============================================================================
 // PURPOSE:
-//   Selects weighted anchors, counts contacts once and schedules deterministic room collapse.
+//   Selects placed cakes and a weighted required subset, then schedules deterministic collapse.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Leave unused sockets empty; score optional cakes without advancing required progress.
+//   - Return a shared hearing noise for every accepted ordinary or golden pickup.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Exclude the exit from collapse, accelerate warning pulses and snatch only remaining rewards.
 //   - Resolve uninterrupted locked-exit holds without collecting cakes or opening collapse.
@@ -16,8 +18,8 @@
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
-//   A positive requiredCakeCount override lets generated maps use every anchor;
-//   the default preserves the authored-floor configuration without editing assets.
+//   Density mode ignores legacy requiredCakeCount overrides. Explicitly disabling
+//   density preserves authored count fixtures; only that mode spawns every eligible socket.
 //   Reads injected Player views only. Shared graph utility supplies directed distances to the exit; unreachable rooms close first and cannot contain required cakes.
 //   No persistent singleton or competing simulation tick is created.
 //   Faster/Shuffled Collapse are explicit default-off initialization hooks. Shuffle
@@ -54,8 +56,15 @@ namespace Worsen.Domain.Floor
             RequirePositive(_config.CollapseInterval, nameof(_config.CollapseInterval));
             RequirePositive(_config.TelegraphDuration, nameof(_config.TelegraphDuration));
             RequirePositive(_config.DirectionCueInterval, nameof(_config.DirectionCueInterval));
-            int required = requiredCakeCount == -1 ? _config.RequiredCakeCount : requiredCakeCount;
+            int required = _config.UseRoomCakeDensity ? 1 : requiredCakeCount == -1 ? _config.RequiredCakeCount : requiredCakeCount;
             if (required < 1) throw new ArgumentException("At least one cake is required.");
+            if (!Finite(_config.PickupNoiseLoudness) || _config.PickupNoiseLoudness < 0f || _config.PickupNoiseLoudness > 1f)
+                throw new ArgumentException("Pickup loudness must be finite and normalized.");
+            if (_config.UseRoomCakeDensity && (_config.MinimumCakesPerRoom < 1 ||
+                _config.MaximumCakesPerRoom < _config.MinimumCakesPerRoom ||
+                _config.MinimumExitRoomCakes < 0 || _config.MinimumExitRoomCakes > _config.MaximumCakesPerRoom ||
+                !Finite(_config.RequiredCakeFraction) || _config.RequiredCakeFraction < 0f || _config.RequiredCakeFraction > 1f))
+                throw new ArgumentException("Cake density requires ordered room bounds and a finite normalized required fraction.");
             foreach (CakeAnchorType type in Enum.GetValues(typeof(CakeAnchorType)))
                 if (!Finite(Weight(type)) || Weight(type) < 0f) throw new ArgumentException("Anchor weights must be finite and nonnegative.");
             Reset();
@@ -79,20 +88,23 @@ namespace Worsen.Domain.Floor
                 .OrderBy(anchor => anchor.Id).ToList();
             if (candidates.Count < required)
                 throw new InvalidOperationException("Floor requires " + required + " weighted reachable anchors; graph has " + candidates.Count + ".");
-            _state.SpawnedAnchors.AddRange(candidates);
-            while (_state.SelectedAnchors.Count < required)
+            if (_config.UseRoomCakeDensity)
             {
-                double total = candidates.Sum(anchor => (double)Weight(anchor.Type));
-                double sample = _random.NextDouble() * total;
-                int selected = candidates.Count - 1;
-                for (int index = 0; index < candidates.Count; index++)
+                foreach (var room in candidates.GroupBy(anchor => anchor.RoomId).OrderBy(group => group.Key))
                 {
-                    sample -= Weight(candidates[index].Type);
-                    if (sample < 0d) { selected = index; break; }
+                    var pool = room.ToList();
+                    int maximum = Math.Min(_config.MaximumCakesPerRoom, pool.Count);
+                    int minimum = Math.Min(room.Key == graph.ExitRoomId ? _config.MinimumExitRoomCakes : _config.MinimumCakesPerRoom, maximum);
+                    int count = _random.Next(minimum, maximum + 1);
+                    for (int index = 0; index < count; index++) _state.SpawnedAnchors.Add(DrawAnchor(pool));
                 }
-                _state.SelectedAnchors.Add(candidates[selected]);
-                candidates.RemoveAt(selected);
+                // An exit-only sweep may roll zero, but must still have one reachable goal.
+                if (_state.SpawnedAnchors.Count == 0) _state.SpawnedAnchors.Add(DrawAnchor(candidates));
+                required = Math.Max(1, Mathf.CeilToInt(_state.SpawnedAnchors.Count * _config.RequiredCakeFraction));
+                candidates = _state.SpawnedAnchors.OrderBy(anchor => anchor.Id).ToList();
             }
+            else _state.SpawnedAnchors.AddRange(candidates);
+            while (_state.SelectedAnchors.Count < required) _state.SelectedAnchors.Add(DrawAnchor(candidates));
             _state.MutableActiveAnchors.AddRange(_state.SelectedAnchors);
             foreach (var anchor in _state.SpawnedAnchors) _state.RemainingRewards.Add(anchor.Id, PickupKind.Cake);
             foreach (var room in graph.Rooms)
@@ -140,8 +152,12 @@ namespace Worsen.Domain.Floor
         }
 
         public bool Collect(EntityId playerId, int anchorId, PickupKind kind, long tick, out PickupCollectedFact fact)
+            => Collect(playerId, anchorId, kind, tick, out fact, out _);
+
+        public bool Collect(EntityId playerId, int anchorId, PickupKind kind, long tick, out PickupCollectedFact fact, out NoiseEvent noise)
         {
             fact = default;
+            noise = default;
             if (!_state.IsReady || _state.Ended || !LivingPlayer(playerId)) return false;
             var anchor = _state.SpawnedAnchors.FirstOrDefault(value => value.Id == anchorId);
             if (anchor.Id == 0 || _state.MutableRoomPhases[anchor.RoomId] == RoomPhase.Closed ||
@@ -169,7 +185,8 @@ namespace Worsen.Domain.Floor
                 _state.RemainingRewards.Remove(anchorId);
             }
             else return false;
-            fact = new PickupCollectedFact(playerId, anchorId, kind, _state.CakeCount, _state.GoldenCakeCount, tick);
+            fact = new PickupCollectedFact(playerId, anchorId, kind, _state.CollectedCakes.Count, _state.GoldenCakeCount, tick);
+            noise = new NoiseEvent(playerId, anchor.Position, _config.PickupNoiseLoudness, tick, NoiseSourceKind.CakePickup);
             return true;
         }
 
@@ -212,7 +229,7 @@ namespace Worsen.Domain.Floor
             return true;
         }
 
-        public FloorDisplaySnapshot SelectCue(IReadOnlyList<FloorPathCandidate> paths)
+        public FloorDisplaySnapshot SelectCue(IReadOnlyList<FloorPathCandidate> paths, float openingProgress = 0f)
         {
             bool available = false;
             var direction = Vector3.zero;
@@ -227,12 +244,12 @@ namespace Worsen.Domain.Floor
                 nearest = path.Length; nearestId = path.AnchorId; available = true; direction = path.Direction;
             }
             _state.Display = new FloorDisplaySnapshot(_state.CakeCount, _state.RequiredCakeCount,
-                _state.GoldenCakeCount, _state.ExitState, available, direction);
+                _state.GoldenCakeCount, _state.ExitState, available, direction, NormalizedProgress(openingProgress));
             return _state.Display;
         }
 
-        public FloorDisplaySnapshot Snapshot() => new FloorDisplaySnapshot(_state.CakeCount, _state.RequiredCakeCount,
-            _state.GoldenCakeCount, _state.ExitState, _state.Display.HasCue && !_state.Ended, _state.Display.CueDirection);
+        public FloorDisplaySnapshot Snapshot(float openingProgress = 0f) => new FloorDisplaySnapshot(_state.CakeCount, _state.RequiredCakeCount,
+            _state.GoldenCakeCount, _state.ExitState, _state.Display.HasCue && !_state.Ended, _state.Display.CueDirection, NormalizedProgress(openingProgress));
 
         public bool ContactExit(EntityId id, long tick, out ExitReachedFact fact)
         {
@@ -330,6 +347,20 @@ namespace Worsen.Domain.Floor
         }
 
         private bool LivingPlayer(EntityId id) => id.IsValid && _state.Players.Any(player => player != null && player.Id == id && player.IsAlive);
+        private static float NormalizedProgress(float value) => Finite(value) ? Mathf.Clamp01(value) : 0f;
+        private LevelAnchor DrawAnchor(List<LevelAnchor> candidates)
+        {
+            double sample = _random.NextDouble() * candidates.Sum(anchor => (double)Weight(anchor.Type));
+            int selected = candidates.Count - 1;
+            for (int index = 0; index < candidates.Count; index++)
+            {
+                sample -= Weight(candidates[index].Type);
+                if (sample < 0d) { selected = index; break; }
+            }
+            var anchor = candidates[selected];
+            candidates.RemoveAt(selected);
+            return anchor;
+        }
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         private static void RequirePositive(float value, string name) { if (!Finite(value) || value <= 0f) throw new ArgumentException(name + " must be finite and positive."); }
         private float Weight(CakeAnchorType type)

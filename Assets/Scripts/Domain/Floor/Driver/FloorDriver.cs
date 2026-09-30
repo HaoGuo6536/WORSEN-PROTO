@@ -13,6 +13,7 @@
 //   - Own native Lumen fake-light warnings and exit cues without Unity Light objects.
 //   - Support staged collapse and an opt-in hinged exit that requires a real crossing.
 //   - Relay locked-door overlaps/departures and present bails without spawning Golden Cakes.
+//   - Report physical opening progress; the legacy marker changes immediately.
 //   - Sample dedicated fog triggers and reach for rewards; Controller owns completed-room losses.
 //   - Supply complete path corners and expose target-local fallback/held flags.
 //   - Keep rules, passive state and engine operations in their owning roles.
@@ -47,6 +48,7 @@ namespace Worsen.Domain.Floor
         public event Action<EntityId> ExitDeparted;
         public int OwnedPickupCount => _state.Pickups.Count;
         public int OwnedRoomCount => _state.Rooms.Count;
+        public float OpeningProgress(bool open) => _state.ExitDoor != null ? _state.ExitDoor.OpeningProgress : open ? 1f : 0f;
 
         public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors, Func<Collider, EntityId> resolveIdentity = null,
             float boundaryReach = 0f)

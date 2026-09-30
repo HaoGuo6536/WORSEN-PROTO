@@ -14,6 +14,7 @@
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
+//   The two fixed hazard sockets explicitly use legacy authored-count mode.
 //   Scene-owned through FloorManager/FloorDriver. Time is supplied by the owner.
 //   No persistent singleton, global settings, or independent update loop.
 // ============================================================================
@@ -176,6 +177,7 @@ namespace Worsen.Tests.Floor
                 _config = ScriptableObject.CreateInstance<FloorConfig>();
                 _visual = ScriptableObject.CreateInstance<FloorDriverConfig>();
                 typeof(FloorConfig).GetField("_requiredCakeCount", BindingFlags.NonPublic|BindingFlags.Instance).SetValue(_config,2);
+                typeof(FloorConfig).GetField("_useRoomCakeDensity", BindingFlags.NonPublic|BindingFlags.Instance).SetValue(_config,false);
                 Root = new GameObject("Collapse isolated fixture"); Root.SetActive(false);
                 Driver = Root.AddComponent<FloorDriver>(); Manager = Root.AddComponent<FloorManager>();
                 typeof(FloorDriver).GetField("_config",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(Driver,_visual);
