@@ -124,3 +124,6 @@ InitTestScene*.unity*
 /Assets/HDRPDefaultResources.meta
 # Local tool caches
 /.vscode/
+/Assets/Plugins/SteamAudio/
+/Assets/Plugins/SteamAudio.meta
+/Assets/Plugins.meta
