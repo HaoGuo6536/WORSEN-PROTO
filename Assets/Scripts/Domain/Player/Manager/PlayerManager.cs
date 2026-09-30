@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Expose read-only shield HP, grants and explicit floor-replacement restoration.
 //   - Route active-effect views to the Controller and publish effect/regen health changes.
 //   - Expose read-only Low Profile protection; Floor owns consulting it before grabs.
 //   - Publish normalized traversal progress and stumble starts using Core/primitive event payloads.
@@ -25,6 +26,8 @@
 //   Disable/teardown cancels recovery; death publishes an empty grace interval rather than a lingering effect.
 //   SetActiveEffects follows Initialize; null clears on the next tick. Config resolves via the Driver.
 //   No other Domain system or Presentation system is referenced.
+//   Floor assembly captures ReadOnlyShieldState.Shield before despawn and restores
+//   it after Initialize. BeginFloorHealth and health regeneration do not modify it.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -44,6 +47,9 @@ namespace Worsen.Domain.Player
         private PlayerProfile _profile;
         public EntityId Id => _state?.Id ?? EntityId.None;
         public IReadOnlyPlayerState ReadOnlyState => _state;
+        public IReadOnlyPlayerShieldState ReadOnlyShieldState => _state;
+        public float ShieldCapacity => _controller?.ShieldCapacity ?? 0f;
+        public event Action<EntityId, float> OnShieldChanged;
         public bool IsUngrabbable => _state?.IsUngrabbable ?? false;
         public PlayerMovementSample LastMovementSample => _state?.LastMovementSample ?? default;
         public InputProbeRecord LastProbeRecord => _state?.LastProbeRecord ?? default;
@@ -113,7 +119,9 @@ namespace Worsen.Domain.Player
         public bool ApplyHit(float damage, Vector3 killerPosition, HitSeverity severity = HitSeverity.Heavy, HitSource source = HitSource.Lunge)
         {
             if (_controller == null) return false;
+            float previousShield = _state.Shield;
             PlayerHitResult result = _controller.ApplyHit(damage, severity);
+            if (previousShield != _state.Shield) OnShieldChanged?.Invoke(Id, _state.Shield);
             _driver.SetGraceActive(_state.GraceActive);
             if (result.GraceStarted.HasValue)
             {
@@ -124,6 +132,19 @@ namespace Worsen.Domain.Player
             if (result.Changed) OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
             if (result.Died) OnDied?.Invoke(Id, killerPosition);
             return result.Changed;
+        }
+
+        public bool GrantShield(float hitPoints)
+        {
+            if (_controller == null || !_controller.GrantShield(hitPoints)) return false;
+            OnShieldChanged?.Invoke(Id, _state.Shield);
+            return true;
+        }
+        public bool RestoreShield(float hitPoints)
+        {
+            if (_controller == null || !_controller.RestoreShield(hitPoints)) return false;
+            OnShieldChanged?.Invoke(Id, _state.Shield);
+            return true;
         }
 
         public void AdvanceRecovery(long tick)

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · ProgressionUI target.
 // KEY RESPONSIBILITIES:
+//   - Route shelter Bargain choices to Progression; Continue remains the free walk-away route.
 //   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
 //   - Route display snapshots and UI decisions through paired subscriptions.
 //   - Route rerolls and pending inventory replacements to their Progression owner.
@@ -55,6 +56,7 @@ namespace Worsen.Orchestrator
             if (_camera != null) _camera.CatchHoldEnded += OnCatchEnded;
             _ui.ChooseThreatRequested += OnThreat;
             _ui.ChooseCurseRequested += OnCurse;
+            _ui.BargainRequested += OnBargain;
             _ui.PurchaseRequested += OnPurchase;
             _ui.RerollRequested += OnReroll;
             _ui.ReplacementRequested += OnReplacement;
@@ -70,6 +72,7 @@ namespace Worsen.Orchestrator
             if (_ui == null) return;
             _ui.ChooseThreatRequested -= OnThreat;
             _ui.ChooseCurseRequested -= OnCurse;
+            _ui.BargainRequested -= OnBargain;
             _ui.PurchaseRequested -= OnPurchase;
             _ui.RerollRequested -= OnReroll;
             _ui.ReplacementRequested -= OnReplacement;
@@ -84,6 +87,7 @@ namespace Worsen.Orchestrator
         private void OnCapture(RunCaptureMetadata metadata) => _ui.ResetCatch();
         private void OnThreat(string id, int revision) => _progression.ChooseThreat(id, revision);
         private void OnCurse(string id, int revision) => _progression.ChooseCurse(id, revision);
+        private void OnBargain(string id, int revision) => _progression.TakeBargain(id, revision);
         private void OnPurchase(string id, int revision) => _progression.Purchase(id, revision);
         private void OnCancelReplacement(int revision) => _progression.CancelReplacement(revision);
         private void OnReplacement(int slot, int revision) => _progression.ReplaceInventorySlot(slot, revision);

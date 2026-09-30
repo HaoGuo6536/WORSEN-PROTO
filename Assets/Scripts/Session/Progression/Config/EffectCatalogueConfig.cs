@@ -9,6 +9,7 @@
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Store copy, fear axes, availability, requirements, caps and future shop prices.
+//   - Give Bargain a separate curse value, defaulting to one rather than shop price.
 // DEPENDENCIES:
 //   - Core effect/threat definitions and Unity serialization only.
 // USAGE NOTES:
@@ -37,6 +38,7 @@ namespace Worsen.Session.Progression
         [SerializeField] private string _prerequisiteEffectId;
         [SerializeField, Min(1)] private int _stackCap;
         [SerializeField, Min(0)] private int _price;
+        [SerializeField, Min(1)] private int _value = 1;
         [SerializeField] private bool _onlyRaisesHunterNumbers;
         [SerializeField, TextArea] private string _changeStatement;
         public string Id => _id;
@@ -49,14 +51,16 @@ namespace Worsen.Session.Progression
         public string PrerequisiteEffectId => _prerequisiteEffectId;
         public int StackCap => _stackCap;
         public int Price => _price;
+        public int Value => _value;
         public bool OnlyRaisesHunterNumbers => _onlyRaisesHunterNumbers;
         public string ChangeStatement => _changeStatement;
         public EffectCatalogueEntry(string id, EffectKind kind, FearAxis axis, string title, string copy,
             int floor = 1, int cap = 1, int price = 0, string prerequisite = null,
-            string[] hunters = null, bool numbersOnly = false, string change = null)
+            string[] hunters = null, bool numbersOnly = false, string change = null, int value = 1)
         {
             _id = id; _kind = kind; _axis = axis; _title = title; _cardCopy = copy;
             _availabilityRound = floor; _stackCap = cap; _price = price;
+            _value = value;
             _prerequisiteEffectId = prerequisite; _requiredHunterIds = hunters == null ? Array.Empty<string>() : (string[])hunters.Clone();
             _onlyRaisesHunterNumbers = numbersOnly; _changeStatement = change ?? copy;
         }

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Spend shield before health; never regenerate it or clear it at BeginFloorHealth.
 //   - Snapshot active effects each tick; combine Player config rules through PlayerEffectUtility.
 //   - Release vault momentum once, suppress slide noise and expose sliding grab protection.
 //   - Reset floor health to its effective maximum and regenerate living players after accepted hits.
@@ -34,6 +35,8 @@
 //   Effects do not retime published grace or admitted traversal intervals. Heavy Legs cancels a live boost.
 //   Floor reset reconciles next-tick effects once, preserving intervening damage and never reviving deaths.
 //   No other Domain system or Presentation system is referenced.
+//   Reset clears shield for a new life; assembly must restore the previous floor's
+//   captured Shield after replacing a living Player, never after starting a new run.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -49,6 +52,7 @@ namespace Worsen.Domain.Player
         private readonly PlayerProfile _profile;
         private readonly PlayerEffectConfig _effectConfig;
         public float MaximumMovementSpeed => EffectiveMaximumSpeed();
+        public float ShieldCapacity => _state.IsAlive ? float.MaxValue - _state.Shield : 0f;
         public float SlideWallSpeedRetention => Effect(PlayerEffectStat.SlideRetention, _profile.SlideWallSpeedRetention);
         public PlayerController(PlayerBehaviorState state, PlayerProfile profile, System.Random random, PlayerEffectConfig effectConfig = null)
         {
@@ -85,6 +89,7 @@ namespace Worsen.Domain.Player
             _state.SprintSpeed = _profile.SprintSpeed;
             _state.MaxDesignSpeed = _profile.MaxDesignSpeed;
             _state.Health = _profile.MaximumHealth;
+            _state.Shield = 0f;
             _state.MaxHealth = _profile.MaximumHealth;
             _state.RegenerationDelayRemaining = 0d;
             _state.RegenerationMultiplier = _state.FloorStartHealthFraction = 1f;
@@ -319,7 +324,9 @@ namespace Worsen.Domain.Player
                 severity == HitSeverity.Light ? _profile.LightHitBoostSeconds : _profile.HeavyHitBoostSeconds));
             float boost = severity == HitSeverity.Light ? _profile.LightHitSpeedBoost : _profile.HeavyHitSpeedBoost;
             if (!Finite(boost) || boost < 0f || !Finite(1f + boost)) throw new ArgumentOutOfRangeException(nameof(boost));
-            _state.Health = Mathf.Max(0f, _state.Health - damage);
+            float absorbed = Math.Min(_state.Shield, damage);
+            _state.Shield -= absorbed;
+            _state.Health = Mathf.Max(0f, _state.Health - (damage - absorbed));
             _state.RegenerationDelayRemaining = Math.Max(0d, _profile.HealthRegenerationDelay);
             _state.HealthState = HealthTier(_state.Health);
             _state.GraceWindow = new GraceWindowFact(_state.Id, _state.Tick, _state.IsAlive ? graceEnd : _state.Tick, severity);
@@ -330,6 +337,20 @@ namespace Worsen.Domain.Player
             if (!_state.IsAlive) { _state.IsSprinting = false; _state.Velocity = Vector3.zero; _state.LookBack = false; _state.HeadLookDelta = Vector2.zero; }
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
             return new PlayerHitResult(true, !_state.IsAlive, graceStarted: _state.GraceWindow);
+        }
+
+        public bool GrantShield(float hitPoints)
+        {
+            if (!Finite(hitPoints) || hitPoints <= 0f || hitPoints > ShieldCapacity) return false;
+            _state.Shield += hitPoints;
+            return true;
+        }
+
+        public bool RestoreShield(float hitPoints)
+        {
+            if (!_state.IsAlive || !Finite(hitPoints) || hitPoints < 0f) return false;
+            _state.Shield = hitPoints;
+            return true;
         }
 
         public GraceWindowFact? AdvanceRecovery(long tick)

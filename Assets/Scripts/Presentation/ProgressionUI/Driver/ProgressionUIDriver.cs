@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
+//   - Relay admitted Bargain cards without confusing them with ordinary curse choices.
 //   - Bind and rebuild the current document without losing presentation state.
 //   - Route one admitted UI action and maintain symmetric callback ownership.
 //   - Relay displayed reroll, replace-slot and cancel actions without Session references.
@@ -54,6 +55,7 @@ namespace Worsen.Presentation.ProgressionUI
 
         public event Action<string, int> ThreatChosen;
         public event Action<string, int> CurseChosen;
+        public event Action<string, int> BargainChosen;
         public event Action<string, int> PurchaseClicked;
         public event Action<int> RerollClicked;
         public event Action<int, int> ReplacementClicked;
@@ -223,6 +225,7 @@ namespace Worsen.Presentation.ProgressionUI
             }
             if (action == ProgressionUIAction.ChooseThreat) ThreatChosen?.Invoke(id, revision);
             else if (action == ProgressionUIAction.ChooseCurse) CurseChosen?.Invoke(id, revision);
+            else if (action == ProgressionUIAction.TakeBargain) BargainChosen?.Invoke(id, revision);
             else if (action == ProgressionUIAction.Purchase) PurchaseClicked?.Invoke(id, revision);
             else if (action == ProgressionUIAction.Reroll) RerollClicked?.Invoke(revision);
             else if (action == ProgressionUIAction.CancelReplacement) CancelReplacementClicked?.Invoke(revision);
