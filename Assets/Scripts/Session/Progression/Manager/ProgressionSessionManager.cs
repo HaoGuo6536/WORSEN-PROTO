@@ -10,8 +10,11 @@
 // KEY RESPONSIBILITIES:
 //   - Own persistent state and explicitly seeded new-run/replay initialization.
 //   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
+//   - Own the delegated shop through the controller; route rerolls and replacements.
+//   - Load catalogue/shop assets, with an owned default catalogue when not yet wired.
 //   - Forward the bail flag through the normal guarded floor-completion transaction.
 //   - Publish Core snapshots and newly committed generation requests once.
+//   - Pair each progression/inventory revision with a frozen active-effects view.
 //   - Publish read-only before/after transactions for observational consumers.
 // DEPENDENCIES:
 //   - Progression Config, Controller and BehaviorState; Core progression types.
@@ -29,6 +32,7 @@ using System;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 using Worsen.Core;
+using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Session.Progression
 {
@@ -37,11 +41,16 @@ namespace Worsen.Session.Progression
         private ProgressionSessionBehaviorState state;
         private ProgressionSessionController controller;
         private ProgressionConfig config;
+        private EffectCatalogueConfig shopCatalogue;
+        private ShopConfig shopConfig;
+        private bool ownsCatalogue;
         public static ProgressionSessionManager Instance { get; private set; }
         public event Action<ProgressionSnapshot> SnapshotChanged;
+        public event Action<ProgressionSnapshot, IReadOnlyActiveEffects> EffectsSnapshotChanged;
         public event Action<ProgressionGenerationRequest> GenerationRequested;
         public event Action<ProgressionSnapshot, ProgressionSnapshot, string, string> TransactionCommitted;
         public ProgressionSnapshot Snapshot => controller == null ? default : controller.Snapshot();
+        public ProgressionEffectsSnapshot EffectsSnapshot => controller == null ? default : controller.EffectsSnapshot();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -56,8 +65,15 @@ namespace Worsen.Session.Progression
             if (controller == null)
             {
                 config = configuration ?? throw new ArgumentNullException(nameof(configuration));
+                shopConfig = config.ShopConfig ?? Resources.Load<ShopConfig>("ScriptableObjects/Session/Progression/Shop/ShopConfig");
+                shopCatalogue = config.EffectCatalogue ?? Resources.Load<EffectCatalogueConfig>("ScriptableObjects/Session/Progression/EffectCatalogueConfig");
+                if (shopCatalogue == null)
+                {
+                    shopCatalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+                    ownsCatalogue = true;
+                }
                 state = new ProgressionSessionBehaviorState();
-                controller = new ProgressionSessionController(state, config, new System.Random(seed));
+                controller = new ProgressionSessionController(state, config, new System.Random(seed), shopConfig, shopCatalogue);
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
@@ -69,7 +85,7 @@ namespace Worsen.Session.Progression
             RequireInitialized();
             ProgressionSnapshot previous = controller.Snapshot();
             int previousGeneration = state.GenerationId;
-            controller = new ProgressionSessionController(state, config, new System.Random(seed));
+            controller = new ProgressionSessionController(state, config, new System.Random(seed), shopConfig, shopCatalogue);
             controller.StartRun(seed);
             TransactionCommitted?.Invoke(previous, controller.Snapshot(), nameof(StartRun), string.Empty);
             Publish(previousGeneration);
@@ -90,6 +106,11 @@ namespace Worsen.Session.Progression
         public bool ChooseThreat(string id, int revision) => Change(() => controller.ChooseThreat(id, revision), id);
         public bool ChooseCurse(string id, int revision) => Change(() => controller.ChooseCurse(id, revision), id);
         public bool Purchase(string id, int revision) => Change(() => controller.Purchase(id, revision), id);
+        public bool RerollShop(int revision) => Change(() => controller.RerollShop(revision));
+        public bool RerollSelection(int revision) => Change(() => controller.RerollSelection(revision));
+        public bool ReplaceInventorySlot(int slot, int revision) => Change(() => controller.ReplaceInventorySlot(slot, revision),
+            Snapshot.PendingOfferId, nameof(Purchase));
+        public bool CancelReplacement(int revision) => Change(() => controller.CancelReplacement(revision));
         public bool ContinueShop(int revision) => Change(() => controller.ContinueShop(revision));
         public bool ConfirmFloorReady(int generationId) => Change(() => controller.ConfirmFloorReady(generationId));
         public bool FailGeneration(int generationId, string reason) => Change(() => controller.FailGeneration(generationId, reason));
@@ -108,16 +129,25 @@ namespace Worsen.Session.Progression
             int revision = state.Revision;
             int generation = state.GenerationId;
             bool accepted = action();
-            if (accepted) TransactionCommitted?.Invoke(previous, controller.Snapshot(), reason, choiceId);
+            if (accepted)
+            {
+                var current = controller.Snapshot();
+                TransactionCommitted?.Invoke(previous, current,
+                    reason == nameof(Purchase) && !string.IsNullOrEmpty(current.PendingOfferId) ? "ReservePurchase" : reason, choiceId);
+            }
             if (state.Revision != revision) Publish(generation);
             return accepted;
         }
 
         private void Publish(int previousGeneration)
         {
-            ProgressionSnapshot snapshot = controller.Snapshot();
+            ProgressionEffectsSnapshot paired = controller.EffectsSnapshot();
+            ProgressionSnapshot snapshot = paired.Progression;
             ProgressionGenerationRequest request = controller.GenerationRequest();
             SnapshotChanged?.Invoke(snapshot);
+            // A legacy listener can synchronously commit a replacement revision.
+            if (state.Revision != snapshot.Revision) return;
+            EffectsSnapshotChanged?.Invoke(snapshot, paired.ActiveEffects);
             if (request.GenerationId != previousGeneration && state.GenerationId == request.GenerationId &&
                 state.Phase == ProgressionPhase.Generating)
                 GenerationRequested?.Invoke(request);
@@ -133,11 +163,14 @@ namespace Worsen.Session.Progression
         {
             if (Instance == this) Instance = null;
             SnapshotChanged = null;
+            EffectsSnapshotChanged = null;
             GenerationRequested = null;
             TransactionCommitted = null;
             controller = null;
             state = null;
             config = null;
+            if (ownsCatalogue && shopCatalogue != null) Destroy(shopCatalogue);
+            shopCatalogue = null; shopConfig = null; ownsCatalogue = false;
         }
     }
 }

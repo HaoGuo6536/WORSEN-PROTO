@@ -11,7 +11,7 @@
 //   Definitions (§5) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Name local UI actions and immutable display cards.
+//   - Name local choice, pedestal, reroll and replacement actions and display cards.
 //
 // DEPENDENCIES:
 //   Core progression snapshots and own ProgressionUI stack only.
@@ -23,7 +23,7 @@
 
 namespace Worsen.Presentation.ProgressionUI
 {
-    public enum ProgressionUIAction { ChooseThreat, ChooseCurse, Purchase, Continue, Restart }
+    public enum ProgressionUIAction { ChooseThreat, ChooseCurse, Purchase, Continue, Restart, Reroll, ReplaceSlot, CancelReplacement }
 
     public readonly struct ProgressionUICard
     {

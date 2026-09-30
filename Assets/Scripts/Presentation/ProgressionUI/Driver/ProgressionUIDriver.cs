@@ -13,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Bind and rebuild the current document without losing presentation state.
 //   - Route one admitted UI action and maintain symmetric callback ownership.
+//   - Relay displayed reroll, replace-slot and cancel actions without Session references.
 //   - Forward navigation feedback and explain unavailable offers without dispatching purchase requests.
 //   - Hard-cut on catch completion; warn on unscaled fallback and clear pending state on disable.
 //   - Own panel/card sub-drivers and scheduled keyboard focus.
@@ -55,6 +56,9 @@ namespace Worsen.Presentation.ProgressionUI
         public event Action<string, int> ThreatChosen;
         public event Action<string, int> CurseChosen;
         public event Action<string, int> PurchaseClicked;
+        public event Action<int> RerollClicked;
+        public event Action<int, int> ReplacementClicked;
+        public event Action<int> CancelReplacementClicked;
         public event Action<int> ContinueClicked;
         public event Action<int> RestartClicked;
         public event Action<CueId> Feedback;
@@ -218,8 +222,8 @@ namespace Worsen.Presentation.ProgressionUI
         private void OnCardActivated(string id, int revision)
         {
             if (_state == null) return;
-            var action = _state.Phase == ProgressionPhase.ChooseThreat ? ProgressionUIAction.ChooseThreat :
-                _state.Phase == ProgressionPhase.ChooseCurse ? ProgressionUIAction.ChooseCurse : ProgressionUIAction.Purchase;
+            var action = ProgressionUIAction.Purchase;
+            foreach (var card in _state.Cards) if (card.Id == id) { action = card.Kind; break; }
             if (!Admit(action, id, revision))
             {
                 if (_presenter.DescribeRejectedCard(_state, id, revision)) { Apply(false); Feedback?.Invoke(CueId.ShopReject); }
@@ -227,7 +231,10 @@ namespace Worsen.Presentation.ProgressionUI
             }
             if (action == ProgressionUIAction.ChooseThreat) ThreatChosen?.Invoke(id, revision);
             else if (action == ProgressionUIAction.ChooseCurse) CurseChosen?.Invoke(id, revision);
-            else PurchaseClicked?.Invoke(id, revision);
+            else if (action == ProgressionUIAction.Purchase) PurchaseClicked?.Invoke(id, revision);
+            else if (action == ProgressionUIAction.Reroll) RerollClicked?.Invoke(revision);
+            else if (action == ProgressionUIAction.CancelReplacement) CancelReplacementClicked?.Invoke(revision);
+            else if (action == ProgressionUIAction.ReplaceSlot && int.TryParse(id, out int slot)) ReplacementClicked?.Invoke(slot, revision);
         }
         private void OnContinue(int revision) { if (Admit(ProgressionUIAction.Continue, "", revision)) ContinueClicked?.Invoke(revision); }
         private void OnRestart(int revision) { if (Admit(ProgressionUIAction.Restart, "", revision)) RestartClicked?.Invoke(revision); }

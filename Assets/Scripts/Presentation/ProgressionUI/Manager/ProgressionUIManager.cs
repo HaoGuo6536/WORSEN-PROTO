@@ -12,6 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own Driver configuration and symmetric enable/disable event routing.
+//   - Forward priced rerolls and inventory replacement/cancel intents to the Orchestrator.
 //   - Republish Core audio feedback for UI navigation and intent; purchases sound only after Session commits.
 //   - Forward catch gates and completion without delaying authoritative death.
 //   - Expose snapshot, hide and lifecycle commands without game rules.
@@ -43,6 +44,9 @@ namespace Worsen.Presentation.ProgressionUI
         public event Action<string, int> ChooseThreatRequested;
         public event Action<string, int> ChooseCurseRequested;
         public event Action<string, int> PurchaseRequested;
+        public event Action<int> RerollRequested;
+        public event Action<int, int> ReplacementRequested;
+        public event Action<int> CancelReplacementRequested;
         public event Action<int> ContinueRequested;
         public event Action<int> RestartRequested;
         public event Action<CueId> Feedback;
@@ -94,6 +98,9 @@ namespace Worsen.Presentation.ProgressionUI
             _driver.ThreatChosen += OnThreatChosen;
             _driver.CurseChosen += OnCurseChosen;
             _driver.PurchaseClicked += OnPurchaseClicked;
+            _driver.RerollClicked += OnReroll;
+            _driver.ReplacementClicked += OnReplacement;
+            _driver.CancelReplacementClicked += OnCancelReplacement;
             _driver.ContinueClicked += OnContinueClicked;
             _driver.RestartClicked += OnRestartClicked;
             _driver.Feedback += OnFeedback;
@@ -104,6 +111,9 @@ namespace Worsen.Presentation.ProgressionUI
             _driver.ThreatChosen -= OnThreatChosen;
             _driver.CurseChosen -= OnCurseChosen;
             _driver.PurchaseClicked -= OnPurchaseClicked;
+            _driver.RerollClicked -= OnReroll;
+            _driver.ReplacementClicked -= OnReplacement;
+            _driver.CancelReplacementClicked -= OnCancelReplacement;
             _driver.ContinueClicked -= OnContinueClicked;
             _driver.RestartClicked -= OnRestartClicked;
             _driver.Feedback -= OnFeedback;
@@ -112,6 +122,9 @@ namespace Worsen.Presentation.ProgressionUI
         private void OnThreatChosen(string id, int revision) => ChooseThreatRequested?.Invoke(id, revision);
         private void OnCurseChosen(string id, int revision) => ChooseCurseRequested?.Invoke(id, revision);
         private void OnPurchaseClicked(string id, int revision) => PurchaseRequested?.Invoke(id, revision);
+        private void OnReroll(int revision) => RerollRequested?.Invoke(revision);
+        private void OnReplacement(int slot, int revision) => ReplacementRequested?.Invoke(slot, revision);
+        private void OnCancelReplacement(int revision) => CancelReplacementRequested?.Invoke(revision);
         private void OnContinueClicked(int revision) => ContinueRequested?.Invoke(revision);
         private void OnRestartClicked(int revision) => RestartRequested?.Invoke(revision);
     }

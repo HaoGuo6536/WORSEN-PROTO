@@ -8,8 +8,9 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
-//   - Verify Manager events and state retention across repeated initialization.
-//   - Confirm shops, purchases, explicit new seeds and deterministic replay restarts.
+//   - Verify paired immutable effects events and state retention across repeated initialization.
+//   - Confirm catalogue purchases, explicit new seeds and deterministic replay restarts.
+//   - Require pure intervening floors and full floor-start health at the shop.
 // DEPENDENCIES:
 //   - Core contracts, Session Progression, NUnit and Unity Test Framework.
 // USAGE NOTES:
@@ -18,6 +19,7 @@
 // ============================================================================
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -36,13 +38,21 @@ namespace Worsen.Tests.Progression
             var owner = new GameObject("Progression Session test");
             var duplicateOwner = new GameObject("Duplicate Progression Session test");
             var config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+            typeof(EffectCatalogueConfig).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(catalogue,
+                new[] { new EffectCatalogueEntry("wax-ward", EffectKind.Consumable, FearAxis.Agency, "Wax Ward", "Breaks a grab.", price: 4) });
+            typeof(ProgressionConfig).GetField("_effectCatalogue", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, catalogue);
             var snapshots = new List<ProgressionSnapshot>();
+            var effectsSnapshots = new List<ProgressionEffectsSnapshot>();
+            System.Action<ProgressionSnapshot, IReadOnlyActiveEffects> collectEffects = (snapshot, effects) =>
+                effectsSnapshots.Add(new ProgressionEffectsSnapshot(snapshot, new ActiveEffects(effects)));
             var requests = new List<ProgressionGenerationRequest>();
             ProgressionSessionManager manager = null;
             try
             {
                 manager = owner.AddComponent<ProgressionSessionManager>().Initialize(config, 412);
                 manager.SnapshotChanged += snapshots.Add;
+                manager.EffectsSnapshotChanged += collectEffects;
                 manager.GenerationRequested += requests.Add;
                 manager.StartRun(412);
                 Assert.That(manager.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
@@ -51,11 +61,15 @@ namespace Worsen.Tests.Progression
                 Assert.That(manager.Snapshot.Seed, Is.EqualTo(412));
                 for (int round = 1; round <= 2; round++)
                 {
-                    Assert.That(manager.ChooseThreat(manager.Snapshot.Choices[0].Id, manager.Snapshot.Revision), Is.True);
-                    int revision = manager.Snapshot.Revision;
-                    string curse = manager.Snapshot.Choices[0].Id;
-                    Assert.That(manager.ChooseCurse(curse, revision), Is.True);
-                    Assert.That(manager.ChooseCurse(curse, revision), Is.False);
+                    if (round == 1)
+                    {
+                        Assert.That(manager.ChooseThreat(manager.Snapshot.Choices[0].Id, manager.Snapshot.Revision), Is.True);
+                        int revision = manager.Snapshot.Revision;
+                        string curse = manager.Snapshot.Choices[0].Id;
+                        Assert.That(manager.ChooseCurse(curse, revision), Is.True);
+                        Assert.That(manager.ChooseCurse(curse, revision), Is.False);
+                    }
+                    else Assert.That(manager.Snapshot.Phase, Is.EqualTo(ProgressionPhase.Generating));
                     Assert.That(requests.Count, Is.EqualTo(round));
                     int generation = requests[requests.Count - 1].GenerationId;
                     Assert.That(manager.ConfirmFloorReady(generation), Is.True);
@@ -66,17 +80,15 @@ namespace Worsen.Tests.Progression
                 }
                 Assert.That(requests.Count, Is.EqualTo(3));
                 Assert.That(requests[2].IsShop, Is.True);
-                // Health no longer carries between floors (SPEC-004 §2.9): the shop starts full.
                 Assert.That(requests[2].Effects.Health, Is.EqualTo(100f));
                 Assert.That(requests[2].Effects.ActiveThreatBudget, Is.Zero);
                 Assert.That(manager.ConfirmFloorReady(requests[2].GenerationId), Is.True);
                 int beforePurchase = snapshots.Count;
-                // Healing is refused at full health, and the refusal publishes nothing.
-                Assert.That(manager.Purchase("field-dressing", manager.Snapshot.Revision), Is.False);
-                Assert.That(snapshots.Count, Is.EqualTo(beforePurchase));
-                Assert.That(manager.Snapshot.Wallet, Is.EqualTo(6));
-                Assert.That(manager.Snapshot.Health, Is.EqualTo(100f));
                 Assert.That(manager.Purchase("wax-ward", manager.Snapshot.Revision), Is.True);
+                Assert.That(snapshots.Count, Is.EqualTo(beforePurchase + 1));
+                Assert.That(manager.Snapshot.Wallet, Is.Zero);
+                Assert.That(manager.Snapshot.Health, Is.EqualTo(100f));
+                Assert.That(manager.Snapshot.Inventory[0].Id, Is.EqualTo("wax-ward"));
                 Assert.That(manager.Snapshot.Effects.WaxWardCharges, Is.EqualTo(1));
                 Assert.That(manager.ContinueShop(manager.Snapshot.Revision), Is.True);
                 Assert.That(manager.Snapshot.Round, Is.EqualTo(4));
@@ -104,17 +116,25 @@ namespace Worsen.Tests.Progression
                 Assert.That(requests[4].GenerationId, Is.GreaterThan(lastGeneration));
                 Assert.That(requests[4].Seed, Is.EqualTo(requests[0].Seed));
                 Assert.That(manager.ConfirmFloorReady(lastGeneration), Is.False);
+                Assert.That(effectsSnapshots.Count, Is.EqualTo(snapshots.Count));
+                for (int index = 0; index < snapshots.Count; index++)
+                    Assert.That(effectsSnapshots[index].Progression.Revision, Is.EqualTo(snapshots[index].Revision));
+                Assert.That(effectsSnapshots[0].ActiveEffects.Count, Is.Zero, "The initial revision remains empty after restart and later selections.");
+                Assert.That(effectsSnapshots[1].ActiveEffects.Count, Is.EqualTo(1), "The selected threat stays frozen on its revision.");
+                Assert.That(manager.EffectsSnapshot.ActiveEffects.Count, Is.EqualTo(2), "Restart retained only the newly chosen threat and curse.");
             }
             finally
             {
                 if (manager != null)
                 {
                     manager.SnapshotChanged -= snapshots.Add;
+                    manager.EffectsSnapshotChanged -= collectEffects;
                     manager.GenerationRequested -= requests.Add;
                 }
                 Object.DestroyImmediate(duplicateOwner);
                 Object.DestroyImmediate(owner);
                 Object.DestroyImmediate(config);
+                Object.DestroyImmediate(catalogue);
             }
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
         }

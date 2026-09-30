@@ -10,7 +10,7 @@
 //   - Wait for the title and activate its Start interaction before expecting choices.
 //   - Reject inter-floor health carry-over, including shop entry and return to combat.
 //   - Verify native geometry/navigation admission and growing in-place floors.
-//   - Exercise the two-combat shop cadence, unique choices and per-visit consumables.
+//   - Exercise independent cadence, catalogue pedestals and held inventory across floors.
 //   - Verify a central four-route exit hub and distinct ready animated hunter models.
 //   - Verify canonical input routing and immediate capture-boundary HUD reset.
 // DEPENDENCIES:
@@ -158,29 +158,19 @@ namespace Worsen.Tests.Expedition
                 Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
                 var shopPlayer = One<PlayerManager>();
                 int shopGeneration = expedition.GenerationId;
-                Assert.That(progression.Snapshot.Offers.Select(offer => offer.Id), Is.EquivalentTo(new[] {
-                    "shuttered-lens", "felt-soles", "climber-wraps", "pilgrim-chalk", "field-dressing", "wax-ward" }));
-                var medkit = progression.Snapshot.Offers.Single(offer => offer.Id == "field-dressing");
-                Assert.That(medkit.Repeatable, Is.True);
-                Assert.That(medkit.StockRemaining, Is.EqualTo(1));
-                Assert.That(medkit.CanAfford, Is.False);
-                Assert.That(medkit.UnavailableReason, Does.Contain("full"));
-                Assert.That(progression.Purchase(medkit.Id, progression.Snapshot.Revision), Is.False);
+                Assert.That(progression.Snapshot.Offers.Count, Is.EqualTo(4));
+                Assert.That(progression.Snapshot.Offers.Select(offer => offer.Id), Does.Not.Contain("field-dressing"));
+                Assert.That(progression.Purchase("field-dressing", progression.Snapshot.Revision), Is.False);
                 Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
                 Assert.That(progression.Snapshot.Health, Is.EqualTo(progression.Snapshot.MaxHealth));
                 Assert.That(shopPlayer.ReadOnlyState.Health, Is.EqualTo(shopPlayer.ReadOnlyState.MaxHealth));
-                var ward = progression.Snapshot.Offers.Single(offer => offer.Id == "wax-ward");
-                Assert.That(progression.Purchase(ward.Id, progression.Snapshot.Revision), Is.True);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - ward.Price));
-                Assert.That(progression.Purchase(ward.Id, progression.Snapshot.Revision), Is.False);
+                var bought = progression.Snapshot.Offers.First(offer => offer.CanAfford && offer.Kind == EffectKind.Consumable);
+                Assert.That(progression.Purchase(bought.Id, progression.Snapshot.Revision), Is.True);
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - bought.Price));
+                Assert.That(progression.Purchase(bought.Id, progression.Snapshot.Revision), Is.False);
                 Assert.That(expedition.GenerationId, Is.EqualTo(shopGeneration), "Purchasing must not regenerate the shop.");
-                var soles = progression.Snapshot.Offers.Single(offer => offer.Id == "felt-soles");
-                Assert.That(soles.Repeatable, Is.False);
-                Assert.That(progression.Purchase(soles.Id, progression.Snapshot.Revision), Is.True);
-                int equippedWallet = progression.Snapshot.Wallet;
-                Assert.That(progression.Snapshot.Effects.Traits.HasFlag(ProgressionTraits.FeltSoles), Is.True);
-                Assert.That(progression.Purchase(soles.Id, progression.Snapshot.Revision), Is.False);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(equippedWallet));
+                Assert.That(progression.Snapshot.Inventory.Count, Is.EqualTo(3));
+                Assert.That(progression.Snapshot.Inventory[0].Id, Is.EqualTo(bought.Id));
                 AssertInputGate(input, false);
                 Assert.That(progression.ContinueShop(progression.Snapshot.Revision), Is.True);
 
@@ -191,9 +181,9 @@ namespace Worsen.Tests.Expedition
                 Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
                 var doomedPlayer = One<PlayerManager>();
                 Assert.That(doomedPlayer.ReadOnlyState.Health, Is.EqualTo(doomedPlayer.ReadOnlyState.MaxHealth));
-                Assert.That(progression.Snapshot.ThreatCount, Is.EqualTo(3));
-                Assert.That(progression.Snapshot.CurseCount, Is.EqualTo(3));
-                Assert.That(progression.Snapshot.Effects.Traits.HasFlag(ProgressionTraits.FeltSoles), Is.True);
+                Assert.That(progression.Snapshot.ThreatCount, Is.EqualTo(2));
+                Assert.That(progression.Snapshot.CurseCount, Is.EqualTo(2));
+                Assert.That(progression.EffectsSnapshot.ActiveEffects.Has(new EffectId(bought.Id)), Is.True);
                 int previousGeneration = expedition.GenerationId;
                 doomedPlayer.ApplyHit(doomedPlayer.ReadOnlyState.MaxHealth + 1f, doomedPlayer.transform.position + Vector3.forward);
                 // Health can end progression synchronously; Run finalizes its summary on its next fixed tick.
@@ -238,21 +228,22 @@ namespace Worsen.Tests.Expedition
         private static void ChooseCombatFloor(ProgressionSessionManager progression, InputManager input, int round)
         {
             Assert.That(progression.Snapshot.Round, Is.EqualTo(round));
+            if (round == 2)
+            {
+                Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.Generating).Or.EqualTo(ProgressionPhase.Exploring));
+                return;
+            }
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
             AssertInputGate(input, false);
             string[] roster = { "watcher", "rusher", "lurker", "hexer", "thorncaller" };
             var retainedThreats = progression.Snapshot.Effects.ActiveThreatIds.ToArray();
-            string[] eligible = roster.Except(retainedThreats).ToArray();
+            string[] eligible = roster;
             string[] offered = progression.Snapshot.Choices.Select(choice => choice.Id).ToArray();
             Assert.That(offered.Length, Is.EqualTo(Math.Min(3, eligible.Length)), "Offer three hunters while enough remain.");
             Assert.That(offered.Distinct().Count(), Is.EqualTo(offered.Length));
-            Assert.That(offered.All(id => eligible.Contains(id)), Is.True, "Only unselected members of the full five-hunter roster are eligible.");
-            string nextThreat = progression.Snapshot.Choices.First().Id;
-            if (retainedThreats.Length > 0)
-            {
-                Assert.That(progression.ChooseThreat(retainedThreats[0], progression.Snapshot.Revision), Is.False);
-                Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
-            }
+            Assert.That(offered.All(id => eligible.Contains(id)), Is.True, "Previously selected hunters remain eligible.");
+            // Keep this factory fixture on distinct bodies; duplicate factory support belongs to PLAN-016.
+            string nextThreat = progression.Snapshot.Choices.First(choice => !retainedThreats.Contains(choice.Id)).Id;
             Assert.That(progression.ChooseThreat(nextThreat, progression.Snapshot.Revision), Is.True);
             Assert.That(progression.Snapshot.Effects.ActiveThreatIds, Is.EquivalentTo(retainedThreats.Concat(new[] { nextThreat })));
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseCurse));
@@ -261,7 +252,8 @@ namespace Worsen.Tests.Expedition
             Assert.That(progression.Snapshot.Choices.Count, Is.InRange(1, 3));
             Assert.That(progression.Snapshot.Choices.All(choice => choice.SelectedCount == 0
                 && !retainedCurses.Any(item => item.Id == choice.Id)), Is.True);
-            string nextCurse = progression.Snapshot.Choices.First().Id;
+            // Keep this geometry/factory fixture independent of new Player health curse tuning.
+            string nextCurse = progression.Snapshot.Choices.First(choice => choice.Id.StartsWith(nextThreat + "-", StringComparison.Ordinal)).Id;
             if (retainedCurses.Length > 0)
                 Assert.That(progression.ChooseCurse(retainedCurses[0].Id, progression.Snapshot.Revision), Is.False);
             Assert.That(progression.ChooseCurse(nextCurse, progression.Snapshot.Revision), Is.True);

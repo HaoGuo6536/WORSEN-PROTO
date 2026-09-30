@@ -9,9 +9,9 @@
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
 //   - Require full effective health per generation without losing maximum-health effects.
-//   - Verify shops after two combat floors and three committed eligible hunter/curse choices.
+//   - Verify independent selection/shop cadence and committed eligible choices.
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
-//   - Verify stock, automatic ward use, exhaustion and retained ownership.
+//   - Verify catalogue pedestals, retired healing, automatic ward use and curse exhaustion.
 //   - Verify rounded bail debits, wallet bounds and generation-scoped replay protection.
 // DEPENDENCIES:
 //   - Core contracts, Session Progression, NUnit and Unity asset allocation.
@@ -33,6 +33,7 @@ namespace Worsen.Tests.Progression
     public sealed class ProgressionSessionControllerTests
     {
         private ProgressionConfig config;
+        private EffectCatalogueConfig catalogue;
         private ProgressionSessionBehaviorState state;
         private ProgressionSessionController controller;
 
@@ -40,11 +41,17 @@ namespace Worsen.Tests.Progression
         public void SetUp()
         {
             config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+            typeof(EffectCatalogueConfig).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(catalogue, new[] {
+                new EffectCatalogueEntry("golden-touch", EffectKind.Upgrade, FearAxis.Stakes, "Golden Touch", "Each cake is worth one more.", price: 3),
+                new EffectCatalogueEntry("firecracker", EffectKind.Consumable, FearAxis.Information, "Firecracker", "Draws hunters.", price: 4),
+                new EffectCatalogueEntry("wax-ward", EffectKind.Consumable, FearAxis.Agency, "Wax Ward", "Breaks a grab.", price: 4) });
+            SetConfigField("_effectCatalogue", catalogue);
             state = new ProgressionSessionBehaviorState();
             controller = new ProgressionSessionController(state, config, new System.Random(731));
             controller.StartRun(731);
         }
-        [TearDown] public void TearDown() => UnityEngine.Object.DestroyImmediate(config);
+        [TearDown] public void TearDown() { UnityEngine.Object.DestroyImmediate(config); UnityEngine.Object.DestroyImmediate(catalogue); }
         private int Revision => controller.Snapshot().Revision;
 
         [Test]
@@ -83,11 +90,11 @@ namespace Worsen.Tests.Progression
         public void CursesAreUniqueOfferedOnlyAndExhaustionStartsGeneration()
         {
             var chosen = new HashSet<string>();
-            for (int combat = 0; combat < config.Curses.Count + 3; combat++)
+            for (int combat = 0; combat < 200 && chosen.Count < config.Curses.Count; combat++)
             {
                 SkipPendingShop();
                 if (state.Phase == ProgressionPhase.ChooseThreat)
-                    Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, Revision), Is.True);
+                    Assert.That(controller.ChooseThreat(controller.Snapshot().Choices.OrderBy(choice => choice.SelectedCount).First().Id, Revision), Is.True);
                 ProgressionSnapshot choices = controller.Snapshot();
                 if (choices.Phase == ProgressionPhase.ChooseCurse)
                 {
@@ -125,6 +132,7 @@ namespace Worsen.Tests.Progression
             controller.ChooseCurse(selected, Revision);
             controller.ConfirmFloorReady(state.GenerationId);
             controller.CompleteFloor(state.GenerationId);
+            AdvanceToSelection();
             controller.ChooseThreat(controller.Snapshot().Choices[0].Id, Revision);
             ProgressionTraits before = controller.Snapshot().Effects.Traits;
             Assert.That(controller.ChooseCurse(selected, Revision), Is.False);
@@ -183,66 +191,52 @@ namespace Worsen.Tests.Progression
         {
             ReachFirstShop(20);
             int revision = Revision;
-            Assert.That(controller.Purchase("felt-soles", revision), Is.True);
-            Assert.That(controller.Snapshot().Effects.Traits.HasFlag(ProgressionTraits.FeltSoles), Is.True);
-            Assert.That(controller.Purchase("felt-soles", revision), Is.False);
-            Assert.That(controller.Purchase("felt-soles", Revision), Is.False);
-            Assert.That(state.Wallet, Is.EqualTo(17));
+            int price = Offer("golden-touch").Price;
+            Assert.That(controller.Purchase("golden-touch", revision), Is.True);
+            Assert.That(controller.EffectsSnapshot().ActiveEffects.Stacks(new EffectId("golden-touch")), Is.EqualTo(1));
+            Assert.That(controller.Purchase("golden-touch", revision), Is.False);
+            Assert.That(controller.Purchase("golden-touch", Revision), Is.False);
+            Assert.That(state.Wallet, Is.EqualTo(20 - price));
             ReachNextShop();
-            ProgressionOffer offer = Offer("felt-soles");
-            Assert.That(offer.Purchased, Is.True);
-            Assert.That(offer.StockRemaining, Is.Zero);
-            Assert.That(offer.CanAfford, Is.False);
-            Assert.That(offer.UnavailableReason, Does.Contain("Already owned"));
-            Assert.That(controller.Purchase("felt-soles", Revision), Is.False);
-            Assert.That(state.Wallet, Is.EqualTo(17));
+            Assert.That(controller.Snapshot().Offers.Select(offer => offer.Id), Does.Not.Contain("golden-touch"));
+            Assert.That(controller.Purchase("golden-touch", Revision), Is.False);
+            Assert.That(state.Wallet, Is.EqualTo(20 - price));
         }
 
         [Test]
-        public void AllFourUniqueItemsExposeTheirDistinctTraits()
+        public void CataloguePurchasesPublishTheirKindsAndInventoryInsteadOfRetiredTraits()
         {
             ReachFirstShop(20);
-            foreach (string id in new[] { "shuttered-lens", "felt-soles", "climber-wraps", "pilgrim-chalk" })
-                Assert.That(controller.Purchase(id, Revision), Is.True);
-            var traits = controller.Snapshot().Effects.Traits;
-            foreach (var trait in new[] { ProgressionTraits.ShutteredLens, ProgressionTraits.FeltSoles,
-                ProgressionTraits.ClimberWraps, ProgressionTraits.PilgrimChalk }) Assert.That(traits.HasFlag(trait), Is.True);
-            Assert.That(state.Wallet, Is.EqualTo(8));
+            var offered = controller.Snapshot().Offers.ToArray();
+            foreach (var offer in offered) Assert.That(controller.Purchase(offer.Id, Revision), Is.True);
+            Assert.That(controller.EffectsSnapshot().ActiveEffects.Single(effect => effect.Id.Value == "golden-touch").Kind, Is.EqualTo(EffectKind.Upgrade));
+            Assert.That(controller.Snapshot().Inventory.Count(slot => !string.IsNullOrEmpty(slot.Id)), Is.EqualTo(2));
+            Assert.That(state.Wallet, Is.EqualTo(20 - offered.Sum(offer => offer.Price)));
         }
 
         [Test]
-        public void DressingRejectsFullHealthAndRestocksOnNextVisit()
+        public void RetiredDressingIsNeverOfferedOrPurchasedEvenWhenInjured()
         {
             ReachFirstShop(10);
-            Assert.That(Offer("field-dressing").CanAfford, Is.False);
-            Assert.That(Offer("field-dressing").UnavailableReason, Does.Contain("full"));
+            Assert.That(controller.Snapshot().Offers.Select(offer => offer.Id), Does.Not.Contain("field-dressing"));
             Assert.That(controller.Purchase("field-dressing", Revision), Is.False);
             Assert.That(state.Wallet, Is.EqualTo(10));
             ReachNextShop(60f);
             Assert.That(state.Health, Is.EqualTo(state.MaximumHealth), "Prior combat damage no longer reaches the shop.");
-            // Inject an otherwise unreachable injured shop state to retain the legacy purchase/stock contract.
             typeof(ProgressionSessionBehaviorState).GetProperty(nameof(state.Health)).SetValue(state, 60f);
-            Assert.That(controller.Purchase("field-dressing", Revision), Is.True);
-            Assert.That(state.Health, Is.EqualTo(95f));
             Assert.That(controller.Purchase("field-dressing", Revision), Is.False);
-            Assert.That(Offer("field-dressing").UnavailableReason, Does.Contain("Sold out"));
-            ReachNextShop();
-            Assert.That(Offer("field-dressing").StockRemaining, Is.EqualTo(1));
-            Assert.That(state.Health, Is.EqualTo(state.MaximumHealth));
-            typeof(ProgressionSessionBehaviorState).GetProperty(nameof(state.Health)).SetValue(state, 95f);
-            Assert.That(controller.Purchase("field-dressing", Revision), Is.True);
-            Assert.That(state.Health, Is.EqualTo(100f));
-            Assert.That(state.Wallet, Is.EqualTo(6));
+            Assert.That(state.Health, Is.EqualTo(60f));
+            Assert.That(state.Wallet, Is.EqualTo(10));
         }
 
         [Test]
         public void WardCarriesOneChargeConsumesOnceAndRejectsWrongGeneration()
         {
-            ReachFirstShop(12);
+            ReachFirstShop(30);
             Assert.That(controller.Purchase("wax-ward", Revision), Is.True);
             Assert.That(controller.TryConsumeWaxWard(state.GenerationId), Is.False, "Shop has no eligible grabs.");
             ReachNextShop();
-            Assert.That(Offer("wax-ward").UnavailableReason, Does.Contain("already carry"));
+            Assert.That(controller.Snapshot().Offers.Select(offer => offer.Id), Does.Not.Contain("wax-ward"));
             Assert.That(controller.Purchase("wax-ward", Revision), Is.False);
             controller.ContinueShop(Revision);
             int generation = OpenCombatFloor();
@@ -337,8 +331,8 @@ namespace Worsen.Tests.Progression
             controller.CompleteFloor(firstGeneration);
             controller.CompleteFloor(OpenCombatFloor());
             controller.ConfirmFloorReady(state.GenerationId);
-            controller.Purchase("felt-soles", Revision);
-            controller.Purchase("wax-ward", Revision);
+            Assert.That(controller.Purchase("golden-touch", Revision), Is.True);
+            Assert.That(controller.Purchase("wax-ward", Revision), Is.True);
             controller.ContinueShop(Revision);
             int oldGeneration = OpenCombatFloor();
             controller.EndRun(oldGeneration);
@@ -378,7 +372,7 @@ namespace Worsen.Tests.Progression
                 if (controller.Snapshot().Phase == ProgressionPhase.Shop)
                 {
                     controller.Purchase("wax-ward", Revision);
-                    controller.Purchase("field-dressing", Revision);
+                    controller.Purchase("firecracker", Revision);
                     controller.ContinueShop(Revision);
                     other.ContinueShop(other.Snapshot().Revision);
                 }
@@ -428,10 +422,12 @@ namespace Worsen.Tests.Progression
             Assert.That(state.CurseCount, Is.LessThanOrEqualTo(config.Curses.Count));
             Assert.That(state.HunterSpeedMultiplier, Is.EqualTo(1f));
             Assert.That(float.IsNaN(state.Health), Is.False);
-            Assert.That(controller.Snapshot().Effects.ActiveThreatBudget, Is.LessThanOrEqualTo(config.MaximumActiveThreats));
+            Assert.That(state.ThreatCount, Is.GreaterThan(config.MaximumActiveThreats));
+            Assert.That(controller.EffectsSnapshot().ActiveEffects.Where(effect => effect.Kind == EffectKind.Threat)
+                .Sum(effect => effect.StackCount), Is.EqualTo(state.ThreatCount));
         }
 
-        [TestCase("_shopInterval", 0)] [TestCase("_goldenCakeValue", -1)] [TestCase("_maximumActiveThreats", 0)]
+        [TestCase("_shopInterval", 0)] [TestCase("_goldenCakeValue", -1)] [TestCase("_selectionInterval", 0)]
         public void InvalidConfigurationRejectedBeforeRun(string field, int value)
         {
             SetConfigField(field, value);
@@ -460,8 +456,7 @@ namespace Worsen.Tests.Progression
             controller.ChooseCurse(before.Choices[0].Id, Revision);
             controller.ConfirmFloorReady(state.GenerationId);
             controller.CompleteFloor(state.GenerationId);
-            foreach (var choice in controller.Snapshot().Choices) Assert.That(choice.Id, Is.Not.EqualTo("hexer"));
-            Assert.That(controller.ChooseThreat("hexer", Revision), Is.False);
+            AdvanceToSelection();
             string second = controller.Snapshot().Choices[0].Id;
             Assert.That(controller.ChooseThreat(second, Revision), Is.True);
             Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "hexer", second }));
@@ -499,13 +494,18 @@ namespace Worsen.Tests.Progression
             StartOffering("hexer");
             int generation = OpenCombatFloor("hexer");
             Assert.That(controller.CompleteFloor(generation), Is.True);
+            Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.Generating), "The intervening combat floor has no selection.");
+            AdvanceToSelection();
+            Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat), "The obsolete body cap must not suppress selection.");
+            string next = controller.Snapshot().Choices[0].Id;
+            Assert.That(controller.ChooseThreat(next, Revision), Is.True);
             Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.ChooseCurse));
             Assert.That(controller.ChooseThreat("thorncaller", Revision), Is.False);
             foreach (var choice in controller.Snapshot().Choices)
                 foreach (var curse in config.Curses)
                     if (curse.Id == choice.Id && !string.IsNullOrEmpty(curse.RequiredThreatId))
-                        Assert.That(curse.RequiredThreatId, Is.EqualTo("hexer"));
-            Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "hexer" }));
+                        Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Does.Contain(curse.RequiredThreatId));
+            Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "hexer", next }));
         }
 
         [Test]
@@ -569,7 +569,7 @@ namespace Worsen.Tests.Progression
             Assert.That(menus.Count, Is.GreaterThan(1));
             Assert.That(config.Threats.Count, Is.EqualTo(5));
             Assert.That(config.Curses.Count, Is.EqualTo(22));
-            Assert.That(config.Offers.Count, Is.EqualTo(6), "The shop catalog remains unchanged.");
+            Assert.That(config.Offers, Is.Empty, "Legacy offers are retired; pedestals use the catalogue.");
         }
 
         [TestCase(1)] [TestCase(29)] [TestCase(731)]
@@ -579,22 +579,22 @@ namespace Worsen.Tests.Progression
             controller = new ProgressionSessionController(state, config, new System.Random(seed));
             controller.StartRun(seed);
             var hunters = new HashSet<string>(); var curses = new HashSet<string>();
-            for (int combat = 0; combat < config.Curses.Count + 2; combat++)
+            for (int combat = 0; combat < 200 && curses.Count < config.Curses.Count; combat++)
             {
                 SkipPendingShop();
+                bool selection = state.Phase == ProgressionPhase.ChooseThreat;
                 string added = null;
                 if (state.Phase == ProgressionPhase.ChooseThreat)
                 {
                     var offered = controller.Snapshot().Choices;
-                    Assert.That(offered.Count, Is.EqualTo(Math.Min(3, config.Threats.Count - hunters.Count)));
+                    Assert.That(offered.Count, Is.EqualTo(3));
                     Assert.That(offered.Select(choice => choice.Id).Distinct().Count(), Is.EqualTo(offered.Count));
-                    foreach (var choice in offered) Assert.That(hunters.Contains(choice.Id), Is.False);
-                    added = offered[0].Id;
+                    added = offered.OrderBy(choice => choice.SelectedCount).First().Id;
                     Assert.That(controller.ChooseThreat(added, Revision), Is.True); hunters.Add(added);
                 }
                 var eligible = config.Curses.Where(entry => !curses.Contains(entry.Id) &&
                     (string.IsNullOrEmpty(entry.RequiredThreatId) || hunters.Contains(entry.RequiredThreatId))).ToArray();
-                if (eligible.Length > 0)
+                if (selection && eligible.Length > 0)
                 {
                     Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.ChooseCurse));
                     var offered = controller.Snapshot().Choices;
@@ -705,6 +705,16 @@ namespace Worsen.Tests.Progression
             if (!state.IsShop) return;
             if (state.Phase == ProgressionPhase.Generating) controller.ConfirmFloorReady(state.GenerationId);
             Assert.That(controller.ContinueShop(Revision), Is.True);
+        }
+        private void AdvanceToSelection()
+        {
+            while (state.Phase != ProgressionPhase.ChooseThreat)
+            {
+                SkipPendingShop();
+                if (state.Phase == ProgressionPhase.ChooseThreat) break;
+                Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
+                Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
+            }
         }
         private void ReachFirstShop(int credits, float health = 100f)
         {

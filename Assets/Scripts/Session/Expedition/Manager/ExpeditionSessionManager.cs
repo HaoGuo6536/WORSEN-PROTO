@@ -9,6 +9,7 @@
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
 //   - Start each spawned Player at its effective maximum, never the previous floor's current health.
+//   - Route immutable active effects before floor health and on current-floor revisions.
 //   - Bind scene-owned services explicitly and release every binding on disable.
 //   - Defer new assembly until old factory objects finish deferred destruction.
 //   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
@@ -137,7 +138,7 @@ namespace Worsen.Session.Expedition
         {
             if (_subscribed || _run == null || _progression == null || _floor == null) return;
             _progression.GenerationRequested += HandleGeneration;
-            _progression.SnapshotChanged += HandleSnapshot;
+            _progression.EffectsSnapshotChanged += HandleSnapshot;
             _run.HealthChanged += HandleHealth;
             _run.RunEnded += HandleRunEnded;
             _floor.OnPickupCollected += HandlePickup;
@@ -155,7 +156,7 @@ namespace Worsen.Session.Expedition
             if (_progression != null)
             {
                 _progression.GenerationRequested -= HandleGeneration;
-                _progression.SnapshotChanged -= HandleSnapshot;
+                _progression.EffectsSnapshotChanged -= HandleSnapshot;
             }
             if (_run != null) { _run.HealthChanged -= HandleHealth; _run.RunEnded -= HandleRunEnded; }
             if (_floor != null)
@@ -231,6 +232,7 @@ namespace Worsen.Session.Expedition
                 _procedural.PlayerSpawnPosition, _procedural.PlayerSpawnRotation)));
             if (!PlayerRegistry.TryGet(_state.Player, out var player) || player.ReadOnlyState == null)
                 throw new InvalidOperationException("Generated player failed to register.");
+            player.SetActiveEffects(_progression.EffectsSnapshot.ActiveEffects);
             player.BeginFloorHealth(request.Effects.MaximumHealth, request.Effects.MovementSpeedMultiplier);
 
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions);
@@ -343,11 +345,18 @@ namespace Worsen.Session.Expedition
             else _progression.EndRun(generationId);
         }
 
-        private void HandleSnapshot(ProgressionSnapshot snapshot)
+        private void HandleSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects activeEffects)
         {
-            if (snapshot.GenerationId == GenerationId) _effects?.UpdateEffects(snapshot.Effects);
+            if (snapshot.GenerationId != GenerationId || snapshot.Round != _state.Request.Round ||
+                snapshot.Revision != _progression.Snapshot.Revision) return;
+            _effects?.UpdateEffects(snapshot.Effects);
+            if (PlayerRegistry.TryGet(_state.Player, out var currentPlayer)) currentPlayer.SetActiveEffects(activeEffects);
             if (_state.Phase != ExpeditionAssemblyPhase.Ready || !_state.Request.IsShop ||
                 snapshot.GenerationId != GenerationId || snapshot.Phase != ProgressionPhase.Shop) return;
+            // Unchanged baseline publication must not cancel Player's pending floor-start effects.
+            if (snapshot.Effects.Health == _state.Request.Effects.Health &&
+                snapshot.Effects.MaximumHealth == _state.Request.Effects.MaximumHealth &&
+                snapshot.Effects.MovementSpeedMultiplier == _state.Request.Effects.MovementSpeedMultiplier) return;
             if (PlayerRegistry.TryGet(_state.Player, out var player))
                 player.ApplyRunModifiers(snapshot.Effects.Health, snapshot.Effects.MaximumHealth, snapshot.Effects.MovementSpeedMultiplier);
         }

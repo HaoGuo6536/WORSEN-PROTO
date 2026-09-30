@@ -9,7 +9,8 @@
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
 //   - Check the shipped roster, all curse families and the first reachable shop.
-//   - Fail when setup leaves the obsolete placeholder catalog serialized.
+//   - Require a pure combat floor between the opening selection and first shop.
+//   - Check hunter content independently of ignored legacy shop serialization.
 // DEPENDENCIES:
 //   - UnityEditor asset loading, NUnit, Core contracts and Session Progression.
 // USAGE NOTES:
@@ -34,7 +35,7 @@ namespace Worsen.Tests.Progression
             Assert.That(config.ShopInterval, Is.EqualTo(2));
             Assert.That(config.Threats.Count, Is.EqualTo(5));
             Assert.That(config.Curses.Count, Is.EqualTo(22));
-            Assert.That(config.Offers.Count, Is.EqualTo(6));
+
             int general = 0;
             foreach (var curse in config.Curses)
             {
@@ -52,8 +53,12 @@ namespace Worsen.Tests.Progression
             controller.StartRun(731);
             for (int combat = 0; combat < 2; combat++)
             {
-                Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
-                Assert.That(controller.ChooseCurse(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
+                if (combat == 0)
+                {
+                    Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
+                    Assert.That(controller.ChooseCurse(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
+                }
+                else Assert.That(controller.Snapshot().Phase, Is.EqualTo(ProgressionPhase.Generating));
                 int generation = controller.GenerationRequest().GenerationId;
                 Assert.That(controller.ConfirmFloorReady(generation), Is.True);
                 Assert.That(controller.CompleteFloor(generation), Is.True);

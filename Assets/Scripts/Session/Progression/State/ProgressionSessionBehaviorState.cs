@@ -8,10 +8,12 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · Progression.
 // KEY RESPONSIBILITIES:
-//   - Store round identity, wallet, health and bounded loadout effects.
-//   - Retain run-wide ownership, committed hunter/curse offers and per-visit stock.
+//   - Store round identity, wallet, baseline health and legacy loadout effects.
+//   - Retain committed hunter/curse offers and stage-specific selection reroll counts.
+//   - Retain catalogue stacks separately from lifetime purchase/selection counts.
+//   - Own delegated shop state without moving the wallet out of Progression.
 // DEPENDENCIES:
-//   - Core progression types and System collections only.
+//   - Core progression types, System collections and the owned Shop state.
 // USAGE NOTES:
 //   Persistent only through ProgressionSessionManager. No scene references,
 //   subscriptions or engine calls are stored here. Foreign systems receive
@@ -19,6 +21,7 @@
 // ============================================================================
 using System.Collections.Generic;
 using Worsen.Core;
+using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Session.Progression
 {
@@ -46,8 +49,9 @@ namespace Worsen.Session.Progression
         public float FlashlightRangeMultiplier { get; internal set; } = 1f;
         public string Message { get; internal set; } = string.Empty;
         internal Dictionary<string, int> SelectionCounts { get; } = new Dictionary<string, int>();
-        internal HashSet<string> PurchasedOfferIds { get; } = new HashSet<string>();
-        internal Dictionary<string, int> VisitPurchaseCounts { get; } = new Dictionary<string, int>();
+        internal Dictionary<string, ActiveEffect> ActiveEffectEntries { get; } = new Dictionary<string, ActiveEffect>();
+        internal ShopBehaviorState Shop { get; } = new ShopBehaviorState();
+        internal int ThreatRerollsUsed, CurseRerollsUsed;
         internal List<string> ActiveThreatIds { get; } = new List<string>();
         internal List<string> OfferedThreatIds { get; } = new List<string>();
         internal List<string> OfferedCurseIds { get; } = new List<string>();
