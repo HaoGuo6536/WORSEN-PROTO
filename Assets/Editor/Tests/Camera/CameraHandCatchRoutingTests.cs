@@ -33,6 +33,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Camera
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CameraHandCatchRoutingTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

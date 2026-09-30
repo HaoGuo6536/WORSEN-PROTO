@@ -17,6 +17,7 @@ using Worsen.Core;
 using Worsen.Session.HorrorEffects;
 namespace Worsen.Tests.HorrorEffects
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorNoiseUtilityTests
     {
         [TestCase(NoiseSourceKind.Firecracker, 0, HorrorNoiseOrigin.Firecracker, true)]
