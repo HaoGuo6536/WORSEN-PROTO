@@ -11,7 +11,7 @@
 //   - Measure shortest hunter-walkable portal hops, never straight-line distance.
 //   - Trace a planar sight segment through known room walls and portal apertures.
 //   - Relax only distance, one hop at a time, with an explicit audit trail.
-//   - Traverse open same-room cell seams without inventing an occluding interior wall.
+//   - Traverse open cell seams and reject sockets behind circular enclosures.
 // DEPENDENCIES:
 //   - Core graph values and Procedural layout/config only; no physics or siblings.
 // USAGE NOTES:
@@ -42,6 +42,8 @@ namespace Worsen.Domain.Procedural
             var room = ProceduralFootprintUtility.At(layout, candidate);
             var player = ProceduralFootprintUtility.At(layout, layout.PlayerSpawnPosition);
             if (room.Id == 0 || player.Id == 0) { reason = "outside-room"; return false; }
+            if (layout.OrganicRooms.Any(r => r.RoomId == room.Id && !ProceduralOrganicUtility.Clear(r, candidate)))
+            { reason = "outside-round-enclosure"; return false; }
             if (room.Id == layout.Graph.ExitRoomId || room.Id == player.Id)
             { reason = "exit-or-player-room"; return false; }
             int hops = LevelGraphUtility.TopologicalDistancesFrom(layout.Graph,

@@ -8,13 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Store layout growth, room dimensions and candidate budgets/type preferences.
-//   - Keep broad cloister/gallery rooms enclosed beneath a higher ceiling.
-//   - Tune first-contact path separation, bounded retries and world-object density.
-//   - Weight post-hub footprints and gate reserved gaps and optional pocket chains.
-//   - Gate upper storeys in extension cells and mirror the base Player ledge envelope.
-//   - Opt into swappable themes and optional movement/threshold challenge content.
-//   - Reserve shrine approach space and separation without choosing shrine kinds/counts.
+//   - Store growth, room dimensions and candidate budgets/type preferences.
+//   - Tune first-contact separation, retries and world-object density.
+//   - Weight footprints, gaps, pockets and accessible upper storeys.
+//   - Bind template catalogues, organic fallback and shared challenge pacing.
+//   - Reserve kind-free shrine approach space and separation.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
@@ -33,8 +31,20 @@ namespace Worsen.Domain.Procedural
     {
         [SerializeField] private ProceduralThemeConfig _themes = null;
         [SerializeField] private ProceduralChallengeConfig _challenges = null;
+        [SerializeField] private ProceduralOrganicConfig _organic = null;
+        [SerializeField] private ProceduralRoomCatalogueData _roomCatalogue = null;
+        [SerializeField, Min(1)] private int _templatePlacementBudget = 2048;
+        [SerializeField, Min(1.6f)] private float _templateExitClearance = 1.6f;
+        [SerializeField, Min(3.2f)] private float _templateExitSpawnDistance = 3.2f;
+        [SerializeField, Min(1f)] private float _templateExitCakeClearance = 1.5f;
+        public ProceduralRoomCatalogueData RoomCatalogue => _roomCatalogue;
+        public int TemplatePlacementBudget => _templatePlacementBudget;
+        public float TemplateExitClearance => _templateExitClearance;
+        public float TemplateExitSpawnDistance => _templateExitSpawnDistance;
+        public float TemplateExitCakeClearance => _templateExitCakeClearance;
         public ProceduralThemeConfig Themes => _themes;
         public ProceduralChallengeConfig Challenges => _challenges;
+        public ProceduralOrganicConfig Organic => _organic;
         [SerializeField] private int _initialRoomCount = 7;
         [SerializeField] private int _roomsPerRound = 2;
         [SerializeField] private int _maximumRoomCount = 15;

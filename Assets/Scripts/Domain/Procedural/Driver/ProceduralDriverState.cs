@@ -11,9 +11,8 @@
 //   - Track generated root, owned materials, fragment bases and navigation data.
 //   - Retain per-room fissure materials and one shared procedural crack texture.
 //   - Index owned world-object sub-drivers by immutable interactable identity.
-//   - Retain only this floor's opt-in partition links for symmetric teardown.
-//   - Own optional puzzle modules and the explicitly bound player identity.
-//   - Retain navigation sources and temporary Passage sequences for runtime rebakes.
+//   - Retain opt-in links, navigation sources and Passage sequences for teardown/rebakes.
+//   - Retain puzzle modules, actor identity and this floor's optional kit bindings.
 // DEPENDENCIES:
 //   - Passive UnityEngine and navigation references only.
 // USAGE NOTES:
@@ -30,6 +29,8 @@ namespace Worsen.Domain.Procedural
     public sealed class ProceduralDriverState
     {
         public GameObject Root;
+        public ProceduralRoomCatalogueData Catalogue;
+        public string ThemeId;
         public EntityId PuzzlePlayer;
         public readonly List<ProceduralPuzzleModule> Puzzles = new List<ProceduralPuzzleModule>();
         public readonly List<Material> OwnedMaterials = new List<Material>();
