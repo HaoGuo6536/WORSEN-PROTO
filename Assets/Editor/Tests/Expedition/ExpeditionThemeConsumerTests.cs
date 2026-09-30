@@ -30,6 +30,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionThemeConsumerTests
     {
         private static ExpeditionSessionController Ready(out ExpeditionSessionBehaviorState state)

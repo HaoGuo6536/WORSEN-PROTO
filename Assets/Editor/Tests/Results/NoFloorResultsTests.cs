@@ -29,6 +29,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Results
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class NoFloorResultsTests
     {
         private readonly List<GameObject> _owned = new List<GameObject>();

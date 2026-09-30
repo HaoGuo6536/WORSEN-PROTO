@@ -25,6 +25,7 @@ using Worsen.Domain.Level;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterBeliefClearTests
     {
         [TestCase(false)] [TestCase(true)]

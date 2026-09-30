@@ -23,6 +23,7 @@ using Worsen.Editor.Hunter;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterPrefabGeneratorTests
     {
         private string _folder;

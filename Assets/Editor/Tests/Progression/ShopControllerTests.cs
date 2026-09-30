@@ -26,6 +26,7 @@ using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ShopControllerTests
     {
         private EffectCatalogueConfig catalogue;

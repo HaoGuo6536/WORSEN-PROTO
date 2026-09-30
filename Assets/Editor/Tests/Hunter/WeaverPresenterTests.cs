@@ -18,6 +18,7 @@ using UnityEngine;
 using Worsen.Domain.Hunter.Archetypes.Weaver;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class WeaverPresenterTests
     {
         [TestCase(0f, 5f, false, 3.05f)]

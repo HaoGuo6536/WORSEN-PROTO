@@ -22,6 +22,7 @@ using Worsen.Presentation.Fog;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Fog
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FogThemeConsumerTests
     {
         [Test]

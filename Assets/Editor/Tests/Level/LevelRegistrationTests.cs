@@ -40,6 +40,7 @@ using Worsen.Domain.Level;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
     public sealed class LevelRegistrationTests
     {
         private GameObject _root;

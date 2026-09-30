@@ -25,6 +25,7 @@ using Worsen.Editor.Menu;
 using Worsen.Presentation.Menu;
 namespace Worsen.Tests.Menu
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class MenuPauseOwnershipTests
     {
         private readonly List<GameObject> _owned = new List<GameObject>();

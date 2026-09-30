@@ -27,6 +27,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionSessionControllerTests
     {
         private ExpeditionSessionBehaviorState _state;

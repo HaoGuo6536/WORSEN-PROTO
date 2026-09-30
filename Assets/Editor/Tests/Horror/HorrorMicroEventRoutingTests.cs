@@ -26,6 +26,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorMicroEventRoutingTests
     {
         [Test] public void DoorApplicationPublishesActualOutcomeAndDoorRemainsReopenable()

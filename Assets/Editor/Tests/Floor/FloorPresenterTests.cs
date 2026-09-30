@@ -25,6 +25,7 @@ using Worsen.Domain.Floor;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorPresenterTests
     {
         private const float Tolerance = 0.0001f;

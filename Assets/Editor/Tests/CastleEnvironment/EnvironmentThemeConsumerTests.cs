@@ -23,6 +23,7 @@ using Worsen.Presentation.Environment;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.CastleEnvironment
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EnvironmentThemeConsumerTests
     {
         [Test]

@@ -22,6 +22,7 @@ using Worsen.Domain.Procedural;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralPuzzleLayoutPresenterTests
     {
         [Test]

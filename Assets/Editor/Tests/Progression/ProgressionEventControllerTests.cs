@@ -30,6 +30,7 @@ using Worsen.Editor.Progression;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionEventControllerTests
     {
         private ProgressionConfig config;

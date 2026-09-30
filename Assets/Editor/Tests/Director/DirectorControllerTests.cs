@@ -32,6 +32,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Director
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class DirectorControllerTests
     {
         private sealed class LevelFixture : IReadOnlyLevelState

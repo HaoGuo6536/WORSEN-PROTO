@@ -33,6 +33,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class PlayerHitRecoveryIntegrationTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

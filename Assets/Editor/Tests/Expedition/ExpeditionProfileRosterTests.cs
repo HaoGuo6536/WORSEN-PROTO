@@ -33,6 +33,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionProfileRosterTests
     {
         [Test] public void RosterRepairPreservesAssignedProfilesAndFactorySpawnsSelectedDuplicates()

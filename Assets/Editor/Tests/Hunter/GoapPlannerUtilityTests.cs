@@ -24,6 +24,7 @@ using Worsen.Domain.Hunter;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class GoapPlannerUtilityTests
     {
         private const ulong Visible = 1, Near = 2, Caught = 4, Hint = 8;

@@ -26,6 +26,7 @@ using Worsen.Domain.Level;
 using Worsen.Domain.Player;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterFactoryRosterTests
     {
         private sealed class LevelFixture : IReadOnlyLevelState { public bool IsReady => false; public LevelGraph Graph => null; }

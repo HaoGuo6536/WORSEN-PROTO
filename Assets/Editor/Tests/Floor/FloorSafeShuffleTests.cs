@@ -27,6 +27,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorSafeShuffleTests
     {
         private FloorConfig config;

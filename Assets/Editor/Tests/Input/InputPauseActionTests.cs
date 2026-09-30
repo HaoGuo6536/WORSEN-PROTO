@@ -24,6 +24,7 @@ using Worsen.Presentation.Input;
 using Worsen.Tests.Menu;
 namespace Worsen.Tests.Input
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class InputPauseActionTests
     {
         private GameObject _owner;

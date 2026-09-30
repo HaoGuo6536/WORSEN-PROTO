@@ -32,6 +32,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorPresenterTests
     {
         private HorrorPresenter _presenter;
