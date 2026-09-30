@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
+//   Tune the provisional trap slow lifetime and its independent movement factor.
 //   Expose beam, delayed noise, optional-room and traversal perk tuning.
 // DEPENDENCIES:
 //   Core value contracts and the HorrorEffects system's own data only.
@@ -22,6 +23,10 @@ namespace Worsen.Session.HorrorEffects
     public sealed class HorrorEffectsConfig : ScriptableObject
     {
         [SerializeField, Min(0.1f)] private float flashlightRange = 18f;
+        [SerializeField, Min(0f)] private float trapSlowSeconds = 2f;
+        [SerializeField, Range(0f, 1f)] private float trapSlowMultiplier = 0.6f;
+        public float TrapSlowSeconds => trapSlowSeconds;
+        public float TrapSlowMultiplier => trapSlowMultiplier;
         [SerializeField, Range(1f, 179f)] private float flashlightCone = 52f;
         [SerializeField, Range(0.1f, 1f)] private float shutteredConeMultiplier = 0.58f;
         [SerializeField, Min(0.1f)] private float afterimageLifetime = 1.8f;

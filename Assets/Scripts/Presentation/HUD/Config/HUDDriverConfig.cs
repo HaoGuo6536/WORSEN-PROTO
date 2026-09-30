@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Distinguish the Golden Sense arrow using a designer-owned color.
 //   - Expose restoration, display limits and the vector interface palette and geometry.
 //   - Keep shared asset values read-only at runtime.
 //   - Size the white three-dimensional compass independently of inventory slots.
@@ -45,6 +46,8 @@ namespace Worsen.Presentation.HUD
         [SerializeField, Min(20f)] private float _slotSize = 32f;
         [SerializeField, Min(0f)] private float _slotGap = 8f;
         [SerializeField, Min(48f)] private float _compassSize = 84f;
+        [SerializeField] private Color _goldenSenseColor = new Color(1f, 0.75f, 0.15f, 1f);
+        public Color GoldenSenseColor => _goldenSenseColor;
         public Color PanelColor => _panelColor;
         public Color TextColor => _textColor;
         public Color MutedColor => _mutedColor;

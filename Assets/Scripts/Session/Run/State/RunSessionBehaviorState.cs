@@ -11,6 +11,7 @@
 //   BehaviorState (§3) · Session · Run.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain the exact in-flight Floor tick delta for synchronous boundary acceleration.
 //   - Retain pause admission and detailed outcome bookkeeping without engine clocks.
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
 //   - Hold pending input so button edges and look deltas survive between ticks.
@@ -52,6 +53,7 @@ namespace Worsen.Session.Run
         public int DepthReached { get; internal set; }
         public int SummarySeed { get; internal set; }
         public long Tick { get; internal set; }
+        internal float FloorDeltaSeconds;
         public double ElapsedSeconds { get; internal set; }
         public InputFrame PendingInput { get; internal set; }
         public bool CaptureIsOpen { get; internal set; }

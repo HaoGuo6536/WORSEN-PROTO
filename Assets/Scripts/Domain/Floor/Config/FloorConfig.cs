@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Scale collapse durations by a provisional 0.75 for Faster Collapse (not hand timers).
 //   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
 //   - Tune per-room placement, the required share and shared pickup loudness.
 //   - Tune deliberate locked-exit holds independently of cake-driven collapse.
@@ -80,14 +81,16 @@ namespace Worsen.Domain.Floor
         [SerializeField, Range(0f, 1f)] private float _handNoiseLoudness = 0.8f;
         [SerializeField, Min(0.1f)] private float _warningPulseStartRate = 0.5f;
         [SerializeField, Min(0.1f)] private float _warningPulseEndRate = 4f;
-        [SerializeField, Min(1f)] private float _fasterCollapseMultiplier = 1.5f;
+        [SerializeField, Range(0.01f, 1f)] private float _fasterCollapseDurationMultiplier = 0.75f;
         public float HandThrowSpeed => _handThrowSpeed > 0f ? _handThrowSpeed : 8f;
         public float BoundaryContactAcceleration => Mathf.Max(0f, _boundaryContactAcceleration);
         public float BoundarySpringAcceleration => _boundarySpringAcceleration > 0f ? _boundarySpringAcceleration : 18f;
         public float HandNoiseLoudness => Mathf.Clamp01(_handNoiseLoudness);
         public float WarningPulseStartRate => _warningPulseStartRate > 0f ? _warningPulseStartRate : 0.5f;
         public float WarningPulseEndRate => Mathf.Max(WarningPulseStartRate, _warningPulseEndRate > 0f ? _warningPulseEndRate : 4f);
-        public float FasterCollapseMultiplier => _fasterCollapseMultiplier >= 1f ? _fasterCollapseMultiplier : 1.5f;
+        public float FasterCollapseDurationMultiplier => _fasterCollapseDurationMultiplier > 0f &&
+            _fasterCollapseDurationMultiplier <= 1f ? _fasterCollapseDurationMultiplier : 0.75f;
+        public float FasterCollapseMultiplier => 1f / FasterCollapseDurationMultiplier;
         public float TearingDuration => _tearingDuration > 0f ? _tearingDuration : 2f;
         public float EncroachingDuration => _encroachingDuration > 0f ? _encroachingDuration : 6f;
         public float HandWarningDuration => _handWarningDuration > 0f ? _handWarningDuration : 0.7f;

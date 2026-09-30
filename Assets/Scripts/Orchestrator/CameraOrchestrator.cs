@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Camera target.
 // KEY RESPONSIBILITIES:
-//   - Expose progress/stumble relay handlers pending the Run owner's event additions.
+//   - Pair progress/stumble relays and dispatch each landing once with explicit severity.
 //   - Forward accepted-hit and hand feedback; only confirmed consumption starts fog drag.
 //   - Pair event subscriptions with component lifetime and preserve ordinary death snaps.
 // DEPENDENCIES:
@@ -35,11 +35,14 @@ namespace Worsen.Orchestrator
         { OnDisable(); _run = run; _camera = camera; if (isActiveAndEnabled) OnEnable(); }
         private void OnEnable()
         {
+            OnDisable();
             if (_run == null || _camera == null) return;
             _run = RunSessionManager.Instance ?? _run;
             _camera.Initialize();
             _run.PlayerMovementPublished += OnMovement;
             _run.PlayerTraversalPublished += OnTraversal;
+            _run.TraversalProgressed += OnTraversalProgressed;
+            _run.PlayerStumbled += OnPlayerStumbled;
             _run.CaptureStarted += OnCaptureStarted;
             _run.ChaseStarted += OnChaseStarted;
             _run.ProximityPublished += OnProximity;
@@ -52,6 +55,8 @@ namespace Worsen.Orchestrator
             if (_run == null) return;
             _run.PlayerMovementPublished -= OnMovement;
             _run.PlayerTraversalPublished -= OnTraversal;
+            _run.TraversalProgressed -= OnTraversalProgressed;
+            _run.PlayerStumbled -= OnPlayerStumbled;
             _run.CaptureStarted -= OnCaptureStarted;
             _run.ChaseStarted -= OnChaseStarted;
             _run.ProximityPublished -= OnProximity;
@@ -60,7 +65,12 @@ namespace Worsen.Orchestrator
             _run.CollapseHandPublished -= OnCollapseHand;
         }
         private void OnMovement(PlayerMovementSample sample) => _camera.SetMovement(sample);
-        private void OnTraversal(PlayerTraversalFact fact) => _camera.PlayTraversal(fact);
+        private void OnDestroy() => OnDisable();
+        private void OnTraversal(PlayerTraversalFact fact)
+        {
+            if (fact.Kind == TraversalKind.Land) OnLanding(fact, fact.Severity);
+            else _camera.PlayTraversal(fact);
+        }
         public void OnTraversalProgressed(EntityId id, long tick, TraversalKind kind, float progress, bool active)
             => _camera.SetTraversalProgress(id, tick, kind, progress, active);
         public void OnPlayerStumbled(EntityId id, long tick, float duration) => _camera.PlayStumble(id, tick, duration);

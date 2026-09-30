@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Keep the torch-budget multiplier separate from authoritative lit/destruction flags.
 //   - Store generated roots, flame outputs, local dimming and owned chalk marks.
 //   - Retain optional lighting hooks and runtime-only Lumen profiles for paired cleanup.
 //   - Store exact torch socket positions and Level-authoritative lit state independently of budgets.
@@ -41,6 +42,7 @@ namespace Worsen.Presentation.Environment
         public bool OwnerEnabled = true;
         public bool DarkerFloors;
         public bool Wick;
+        public float TorchCountMultiplier = 1f;
         public int ExitLightIndex = -1;
         public int ActiveLumenCount;
         public int ActiveLightCount;

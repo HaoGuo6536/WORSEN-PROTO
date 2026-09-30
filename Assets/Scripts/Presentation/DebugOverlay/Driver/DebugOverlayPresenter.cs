@@ -12,12 +12,13 @@
 //   Pure calculations update a supplied DebugOverlayDriverState for the Driver.
 //
 // KEY RESPONSIBILITIES:
+//   - Format retained warning/grab/escape/hit/release/consumption facts per room and tick.
 //   - Use culture-independent number formatting so debug captures are comparable.
 //   - Distinguish a real zero-speed sample from missing or invalid telemetry.
 //   - Clear player presentation without discarding the current run status.
 //
 // DEPENDENCIES:
-//   - No other project systems. System.Globalization supplies number formatting.
+//   - Core hand facts only. System.Globalization supplies number formatting.
 //
 // USAGE NOTES:
 //   - The caller owns all state; this Presenter holds no state and makes no engine calls.
@@ -26,6 +27,8 @@
 // ============================================================================
 
 using System.Globalization;
+using System.Text;
+using Worsen.Core;
 
 namespace Worsen.Presentation.DebugOverlay
 {
@@ -46,6 +49,21 @@ namespace Worsen.Presentation.DebugOverlay
                 : "Speed: —";
             state.MovementText = "Movement: " + (string.IsNullOrWhiteSpace(movement) ? "unknown" : movement);
         }
+
+        public void SetCollapseHand(DebugOverlayDriverState state, CollapseHandFact fact)
+        {
+            // Ward cancellation and lethal consumption may be nested inside the original event.
+            if (state.Hands.TryGetValue(fact.RoomId, out var previous) &&
+                (previous.Tick > fact.Tick || previous.Tick == fact.Tick && previous.Kind > fact.Kind)) return;
+            state.Hands[fact.RoomId] = fact;
+            var text = new StringBuilder("Hands:");
+            foreach (var entry in state.Hands)
+                text.Append("\nRoom ").Append(entry.Key.ToString(CultureInfo.InvariantCulture)).Append(": ")
+                    .Append(entry.Value.Kind.ToString()).Append(" @ ").Append(entry.Value.Tick.ToString(CultureInfo.InvariantCulture));
+            state.HandsText = text.ToString();
+        }
+
+        public void ResetHands(DebugOverlayDriverState state) { state.Hands.Clear(); state.HandsText = "Hands: —"; }
 
         public void SetPlayerUnavailable(DebugOverlayDriverState state)
         {

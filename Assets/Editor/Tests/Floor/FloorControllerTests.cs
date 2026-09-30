@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
+//   - Require the 0.75 duration default and live route protection rather than shell-only shuffling.
 //   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Verify deterministic placement, counters, cues and ordered room transitions.
 //   - Verify bounded density, optional scoring, pickup hearing and display payloads.
@@ -640,7 +641,7 @@ namespace Worsen.Tests.Floor
             var fast = new FloorController(new FloorBehaviorState(), Config(1), new System.Random(1));
             fast.Initialize(CollapsibleRoom(), Players(), fasterCollapse: true);
             fast.Collect(new EntityId(1), 101, PickupKind.Cake, 0, out _);
-            normal.Controller.Tick(4f, 1); fast.Tick(4f, 1);
+            normal.Controller.Tick(4.5f, 1); fast.Tick(4.5f, 1);
             Assert.That(normal.Controller.Destruction(1).Phase, Is.EqualTo(RoomPhase.Telegraph));
             Assert.That(fast.Destruction(1).Phase, Is.EqualTo(RoomPhase.Tearing));
 
@@ -655,11 +656,12 @@ namespace Worsen.Tests.Floor
                 controller.Collect(new EntityId(1), 101, PickupKind.Cake, 0, out _);
                 var sequence = controller.Tick(100f, 1).Where(value => value.Phase == RoomPhase.Closed).Select(value => value.RoomId).ToArray();
                 seen.Add(sequence[0]);
-                Assert.That(sequence.Take(2), Is.EquivalentTo(new[] { 1, 2 }));
-                Assert.That(sequence[2], Is.EqualTo(3));
+                Assert.That(sequence, Is.EqualTo(new[] { 2 }), "The occupied 1 -> 3 -> 4 route must remain open.");
+                Assert.That(state.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
+                Assert.That(state.RoomPhases[3], Is.EqualTo(RoomPhase.Open));
                 Assert.That(state.RoomPhases[4], Is.EqualTo(RoomPhase.Open));
             }
-            Assert.That(seen.Count, Is.EqualTo(2), "The opt-in shuffle actually permutes equal-distance rooms.");
+            Assert.That(seen.Count, Is.EqualTo(1), "Only the off-route room is eligible; broader seeded variation is tested separately.");
         }
 
         [Test]

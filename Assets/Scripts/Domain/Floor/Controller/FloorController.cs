@@ -8,7 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Replace optional spawns with seeded traps; apply unwired cake hooks without foreign effects.
+//   - Replace optional spawns with seeded traps; apply injected cake hooks without foreign effects.
+//   - Recheck live escape routes before shuffled transitions, including activated pockets.
 //   - Start collapse independently of Greedy Door unlocking; keep guidance chase-independent.
 //   - Leave unused sockets empty; score optional cakes without advancing required progress.
 //   - Return a shared hearing noise for every accepted ordinary or golden pickup.
@@ -27,7 +28,8 @@
 //   their delay uses the floor clock, independently of the cake-driven collapse clock.
 //   No persistent singleton or competing simulation tick is created.
 //   Faster/Shuffled Collapse are explicit default-off initialization hooks. Shuffle
-//   only permutes equal exit-distance shells, preserving a descending escape path.
+//   permutes all ordinary rooms, deferring the occupied shortest routes until vacated.
+//   Unknown occupancy defers collapse, never guesses a safe route. Wax Heart is one charge per floor.
 //   ContactExit begins a locked hold; LeaveExit cancels it. TickExitHold receives
 //   elapsed contact time once per simulation step and returns only bailed escapes.
 // ============================================================================
@@ -54,7 +56,7 @@ namespace Worsen.Domain.Floor
         }
 
         public void Initialize(LevelGraph graph, IReadOnlyList<IReadOnlyPlayerState> players, int requiredCakeCount = -1,
-            bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default)
+            bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default, bool waxHeart = false)
         {
             if (graph == null || players == null) throw new ArgumentNullException();
             RequirePositive(_config.CollapseInterval, nameof(_config.CollapseInterval));
@@ -75,6 +77,9 @@ namespace Worsen.Domain.Floor
             _state.Graph = graph;
             _state.CakeHooks = cakeHooks;
             _state.FasterCollapse = fasterCollapse;
+            _state.ShuffledCollapse = shuffledCollapse;
+            _state.Hands.WaxHeartAvailable = waxHeart;
+            _state.Round = round;
             _state.Players = players.ToArray();
             var distances = LevelGraphUtility.DistancesTo(graph, graph.ExitRoomId, TraversalAccess.Player);
             var reachable = new HashSet<int>();
@@ -125,19 +130,14 @@ namespace Worsen.Domain.Floor
                 .ThenBy(room => room.Id).ToArray();
             if (shuffledCollapse)
             {
-                for (int first = 0; first < order.Length;)
+                for (int index = order.Length - 1; index > 0; index--)
                 {
-                    int end = first + 1;
-                    while (end < order.Length && distances[order[end].Id] == distances[order[first].Id]) end++;
-                    for (int index = end - 1; index > first; index--)
-                    {
-                        int other = _random.Next(first, index + 1);
-                        var room = order[index]; order[index] = order[other]; order[other] = room;
-                    }
-                    first = end;
+                    int other = _random.Next(index + 1);
+                    var room = order[index]; order[index] = order[other]; order[other] = room;
                 }
+                _state.PendingCollapseRooms.AddRange(order.Select(room => room.Id));
             }
-            for (int index = 0; index < order.Length; index++)
+            for (int index = 0; !shuffledCollapse && index < order.Length; index++)
             {
                 double duration = _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration;
                 double start = index * Math.Max(_config.CollapseInterval, duration);
@@ -212,15 +212,35 @@ namespace Worsen.Domain.Floor
             _state.Tick = tick;
             _state.Elapsed += dt;
             _state.CueElapsed += dt;
-            if (_state.CollapseStarted) _state.CollapseElapsed += dt * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
-            while (_state.CollapseStarted && _state.NextTransition < _state.Schedule.Count && _state.Schedule[_state.NextTransition].At <= _state.CollapseElapsed)
+            float collapseDt = dt * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
+            if (_state.CollapseStarted) _state.CollapseElapsed += collapseDt;
+            var protectedRooms = _state.ShuffledCollapse ? FloorCollapseUtility.EscapeRooms(_state.Graph, _state.RoomPhases, _state.Players) : null;
+            if (_state.ShuffledCollapse && _state.NextTransition < _state.Schedule.Count &&
+                protectedRooms.Contains(_state.Schedule[_state.NextTransition].RoomId))
             {
+                int room = _state.Schedule[_state.NextTransition].RoomId;
+                _state.CollapseStarts[room] += collapseDt;
+                _state.NextShuffledStart += collapseDt;
+                for (int i = _state.NextTransition; i < _state.Schedule.Count; i++)
+                {
+                    var pending = _state.Schedule[i];
+                    _state.Schedule[i] = new FloorScheduledTransition(pending.RoomId, pending.Phase, pending.At + collapseDt);
+                }
+            }
+            while (_state.CollapseStarted)
+            {
+                if (_state.ShuffledCollapse && _state.NextTransition == _state.Schedule.Count)
+                    ScheduleShuffledRoom(protectedRooms);
+                if (_state.NextTransition == _state.Schedule.Count || _state.Schedule[_state.NextTransition].At > _state.CollapseElapsed ||
+                    (protectedRooms != null && protectedRooms.Contains(_state.Schedule[_state.NextTransition].RoomId))) break;
                 var transition = _state.Schedule[_state.NextTransition++];
                 ApplyTransition(transition.RoomId, transition.Phase, tick, facts);
             }
-            foreach (var pocket in _state.PocketStarts.OrderBy(pair => pair.Value).ThenBy(pair => pair.Key))
+            foreach (var pocket in _state.PocketStarts.OrderBy(pair => pair.Value).ThenBy(pair => pair.Key).ToArray())
             {
-                double age = _state.Elapsed - pocket.Value;
+                if (protectedRooms != null && protectedRooms.Contains(pocket.Key))
+                { _state.PocketStarts[pocket.Key] += dt; continue; }
+                double age = (_state.Elapsed - pocket.Value) * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
                 var phases = new[] { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed };
                 double[] thresholds = { 0d, _config.TelegraphDuration, _config.TelegraphDuration + _config.TearingDuration,
                     _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration };
@@ -236,8 +256,26 @@ namespace Worsen.Domain.Floor
         {
             if (!_state.IsReady || _state.Ended || roomId == _state.Graph.ExitRoomId ||
                 !_state.PocketRooms.Contains(roomId) || _state.PocketStarts.ContainsKey(roomId)) return false;
-            _state.PocketStarts.Add(roomId, _state.Elapsed + _config.PocketCollapseDelay);
+            _state.PocketStarts.Add(roomId, _state.Elapsed + _config.PocketCollapseDelay *
+                (_state.FasterCollapse ? _config.FasterCollapseDurationMultiplier : 1f));
             return true;
+        }
+
+        private void ScheduleShuffledRoom(HashSet<int> protectedRooms)
+        {
+            int index = _state.PendingCollapseRooms.FindIndex(room => !protectedRooms.Contains(room));
+            if (index < 0)
+            { _state.NextShuffledStart = _state.CollapseElapsed; return; }
+            int roomId = _state.PendingCollapseRooms[index];
+            _state.PendingCollapseRooms.RemoveAt(index);
+            double start = _state.NextShuffledStart;
+            double duration = _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration;
+            _state.CollapseStarts.Add(roomId, start);
+            _state.Schedule.Add(new FloorScheduledTransition(roomId, RoomPhase.Telegraph, start));
+            _state.Schedule.Add(new FloorScheduledTransition(roomId, RoomPhase.Tearing, start + _config.TelegraphDuration));
+            _state.Schedule.Add(new FloorScheduledTransition(roomId, RoomPhase.Encroaching, start + _config.TelegraphDuration + _config.TearingDuration));
+            _state.Schedule.Add(new FloorScheduledTransition(roomId, RoomPhase.Closed, start + duration));
+            _state.NextShuffledStart = start + Math.Max(_config.CollapseInterval, duration);
         }
 
         private void ApplyTransition(int roomId, RoomPhase phase, long tick, List<RoomPhaseChangedFact> facts)
@@ -355,6 +393,7 @@ namespace Worsen.Domain.Floor
             bool pocket = _state.PocketStarts.TryGetValue(roomId, out double start);
             if (!pocket && !_state.CollapseStarts.TryGetValue(roomId, out start)) return new RoomDestructionSample(roomId, RoomPhase.Open, 0f);
             double age = Math.Max(0d, (pocket ? _state.Elapsed : _state.CollapseElapsed) - start);
+            if (pocket && _state.FasterCollapse) age *= _config.FasterCollapseMultiplier;
             float progress = 0f;
             if (phase == RoomPhase.Telegraph) progress = (float)(age / _config.TelegraphDuration);
             else if (phase == RoomPhase.Tearing) progress = (float)((age - _config.TelegraphDuration) / _config.TearingDuration);
@@ -366,7 +405,7 @@ namespace Worsen.Domain.Floor
             double slope = (_config.WarningPulseEndRate - _config.WarningPulseStartRate) / duration;
             double cycles = _config.WarningPulseStartRate * warningAge + 0.5d * slope * warningAge * warningAge;
             float rate = warning ? (float)(_config.WarningPulseStartRate + slope * warningAge) : 0f;
-            rate *= !pocket && _state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f;
+            rate *= _state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f;
             return new RoomDestructionSample(roomId, phase, Mathf.Clamp01(progress), rate,
                 warning ? (float)(cycles - Math.Floor(cycles)) : 0f);
         }
@@ -379,6 +418,8 @@ namespace Worsen.Domain.Floor
             _state.CakeHooks = default; _state.CollapseStarted = false; _state.CueAnchorId = -1;
             _state.TrapTickElapsed = 0d; _state.Elapsed = 0d;
             _state.PocketRooms.Clear(); _state.PocketStarts.Clear();
+            _state.PendingCollapseRooms.Clear(); _state.ShuffledCollapse = false; _state.NextShuffledStart = 0d;
+            _state.Hands.WaxHeartAvailable = false; _state.Round = 0;
             CancelExitHolds();
             _state.IsReady = false; _state.Ended = false; _state.Tick = 0;
             _state.CakeCount = 0; _state.GoldenCakeCount = 0; _state.RequiredCakeCount = 0;
@@ -459,7 +500,8 @@ namespace Worsen.Domain.Floor
             int collected = _state.GoldenCakeCount;
             // Lost gold reduces the available pool. Zero collected waits for the full collapse.
             bool quota = collected > 0 && collected >= Mathf.CeilToInt((remaining + collected) * _config.GreedyDoorShare);
-            if (!_state.CakeHooks.GreedyDoor || _state.GoldenAnchors.Count == 0 || quota || _state.NextTransition == _state.Schedule.Count)
+            if (!_state.CakeHooks.GreedyDoor || _state.GoldenAnchors.Count == 0 || quota ||
+                (_state.PendingCollapseRooms.Count == 0 && _state.NextTransition == _state.Schedule.Count))
             { _state.ExitState = ExitState.Open; CancelExitHolds(); }
         }
         private static float NormalizedProgress(float value) => Finite(value) ? Mathf.Clamp01(value) : 0f;

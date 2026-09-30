@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · CastleEnvironment routing integration.
 // KEY RESPONSIBILITIES:
+//   - Synchronize Horror torch density/Wick on connect, floor replacement and rebind.
 //   - Require graph exit identity, world position and authored Floor door rotation.
 //   - Route partial opening and bail poses even while Locked, resetting on floor release.
 //   - Verify initial and changed torch state reaches the real Driver through Level events.
@@ -32,6 +33,7 @@ using Worsen.Domain.Floor;
 using Worsen.Domain.Level;
 using Worsen.Orchestrator;
 using Worsen.Presentation.Environment;
+using Worsen.Presentation.Horror;
 using Worsen.Session.Expedition;
 using Worsen.Session.HorrorEffects;
 using Worsen.Session.Run;
@@ -138,6 +140,33 @@ namespace Worsen.Tests.CastleEnvironment
             Publish(_expedition, "FloorReleased");
             Assert.That(State.Flames, Is.Empty); Assert.That(State.ExitLightIndex, Is.EqualTo(-1));
             Assert.That(_environment.RoomCount, Is.Zero);
+        }
+
+        [Test]
+        public void LightingHooksSynchronizeAndPairAcrossRebindDisableAndDestroy()
+        {
+            var horror = Component<HorrorManager>();
+            var driver = horror.GetComponent<HorrorDriver>();
+            var state = new HorrorDriverState { TorchCountMultiplier = .5f, Wick = true };
+            Set(driver, "_state", state); Set(horror, "_driver", driver);
+            _route.Configure(_run, _expedition, _effects, _environment, horror: horror);
+            Invoke(_route, "OnEnable");
+            Assert.That(State.TorchCountMultiplier, Is.EqualTo(.5f)); Assert.That(State.Wick, Is.True);
+            Rooms();
+            Assert.That(State.TorchCountMultiplier, Is.EqualTo(.5f)); Assert.That(State.Wick, Is.True);
+            Publish(horror, "LightingHooksChanged", .25f, false);
+            Assert.That(State.TorchCountMultiplier, Is.EqualTo(.25f)); Assert.That(State.Wick, Is.False);
+            var replacement = Component<HorrorManager>();
+            _route.Configure(_run, _expedition, _effects, _environment, horror: replacement);
+            Invoke(_route, "OnEnable");
+            Assert.That(Subscribers(horror, "LightingHooksChanged"), Is.Zero);
+            Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.EqualTo(1));
+            Assert.That(State.TorchCountMultiplier, Is.EqualTo(1f)); Assert.That(State.Wick, Is.False);
+            Invoke(_route, "OnDisable");
+            Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.Zero);
+            Invoke(_route, "OnEnable"); Invoke(_route, "OnDestroy");
+            Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.Zero);
+            Set(driver, "_state", null);
         }
 
         private void Rooms() => Publish(_expedition, "RoomsReady", (object)new[] {

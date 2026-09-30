@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
+//   Own trap slow deadlines on the injected clock, separately from grab speed and perk revisions.
 //   Compute beam state, delayed real-location noises, flame dimming and optional-room facts.
 // DEPENDENCIES:
 //   Core value contracts and the HorrorEffects system's own data only.
@@ -194,6 +195,7 @@ namespace Worsen.Session.HorrorEffects
             state.LastHandTicks.Clear();
             state.AppliedActorEffects.Clear();
             state.GrabMultipliers.Clear();
+            ClearTrapSlows();
             state.BoundHunters.Clear();
         }
 
@@ -212,6 +214,23 @@ namespace Worsen.Session.HorrorEffects
         }
 
         public void ReleaseGrab(EntityId playerId) => state.GrabMultipliers.Remove(playerId);
+
+        public bool StartTrapSlow(EntityId playerId, int trapId)
+        {
+            if (!state.Active || !playerId.IsValid || trapId <= 0 || !Finite(config.TrapSlowSeconds) ||
+                config.TrapSlowSeconds <= 0f || !state.ResolvedSlowTraps.Add(trapId)) return false;
+            state.TrapSlowExpires[playerId] = state.Elapsed + config.TrapSlowSeconds;
+            return true;
+        }
+
+        public float TrapSpeedMultiplier(EntityId playerId)
+        {
+            if (!state.Active || !state.TrapSlowExpires.TryGetValue(playerId, out double expires)) return 1f;
+            if (state.Elapsed >= expires) { state.TrapSlowExpires.Remove(playerId); return 1f; }
+            return Finite(config.TrapSlowMultiplier) ? Mathf.Clamp01(config.TrapSlowMultiplier) : 1f;
+        }
+
+        public void ClearTrapSlows() { state.TrapSlowExpires.Clear(); state.ResolvedSlowTraps.Clear(); }
 
         public bool TryGetActorEffects(EntityId playerId, out float footsteps, out float rebound, out float grabSpeed)
         {

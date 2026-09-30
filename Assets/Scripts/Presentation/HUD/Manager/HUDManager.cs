@@ -11,13 +11,14 @@
 //   Manager (§1) · Presentation · HUD (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Expose typed guidance and a fallible, display-only phantom cake command.
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward cake/golden counts, world direction, occupied slots and chase facts.
 //   - Reset transient chase presentation at an explicitly routed new-run boundary.
 //   - Forward explicitly routed camera orientation to the objective compass.
 //
 // DEPENDENCIES:
-//   - Worsen.Core ExitState; no Domain, Session or sibling Presentation systems.
+//   - Worsen.Core ExitState/GuidanceTarget; no Domain, Session or sibling Presentation systems.
 //
 // USAGE NOTES:
 //   - Scene-owned tier (§8); no singleton and no persistence across scene loads.
@@ -27,6 +28,7 @@
 // ============================================================================
 
 using UnityEngine;
+using System.Collections.Generic;
 using Worsen.Core;
 
 namespace Worsen.Presentation.HUD
@@ -49,6 +51,8 @@ namespace Worsen.Presentation.HUD
         }
 
         public void SetCount(int collected, int total) { if (_driver != null) _driver.SetCount(collected, total); }
+        public void SetGuidance(IReadOnlyList<GuidanceTarget> targets) { if (_driver != null) _driver.SetGuidance(targets); }
+        public bool TryShowPhantomCake(float seconds) => isActiveAndEnabled && _initialized && _driver != null && _driver.TryShowPhantomCake(seconds);
         public void SetGoldenCount(int count) { if (_driver != null) _driver.SetGoldenCount(count); }
         public void SetHeldItemCount(int count) { if (_driver != null) _driver.SetHeldItemCount(count); }
         public void SetExitState(ExitState exitState) { if (_driver != null) _driver.SetExitState(exitState); }

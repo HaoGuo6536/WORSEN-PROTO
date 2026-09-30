@@ -10,7 +10,7 @@
 //   Sub-driver (§7e) · Presentation · DebugOverlay, owned by DebugOverlayDriver.
 //
 // KEY RESPONSIBILITIES:
-//   - Place the four established diagnostic labels at the bottom right.
+//   - Place run/player diagnostics and wrapping, per-room hand diagnostics at bottom right.
 //   - Paint vector backing and a small signal glyph, pairing callbacks at release.
 //
 // DEPENDENCIES:
@@ -48,6 +48,7 @@ namespace Worsen.Presentation.DebugOverlay
             _panel.style.width = config.RibbonWidth;
             _panel.style.maxWidth = Length.Percent(config.MaximumScreenFraction * 100f);
             _panel.style.flexDirection = FlexDirection.Row;
+            _panel.style.flexWrap = Wrap.Wrap;
             _panel.style.alignItems = Align.Center;
             _panel.style.paddingLeft = config.Padding * 2f;
             _panel.style.paddingRight = config.Padding;
@@ -58,6 +59,8 @@ namespace Worsen.Presentation.DebugOverlay
             AddField("phase-value", 1.1f, config.MutedColor);
             AddField("speed-value", 1.35f, config.BoneColor);
             AddField("movement-value", 2.2f, config.BoneColor);
+            AddField("hands-value", 1f, config.BoneColor);
+            _panel.Q<Label>("hands-value").style.flexBasis = Length.Percent(100);
         }
 
         internal void Release()

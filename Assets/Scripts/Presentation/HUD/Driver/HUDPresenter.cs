@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Replace both typed guidance channels atomically; phantom cakes never change supplied counts.
 //   - Format cake/golden counts and show only occupied consumable slots, never empty capacity.
 //   - Compute a flat arrow bearing; vertical-only targets point up or down.
 //   - Hide all chrome during a confirmed chase without producing chase text or hiding guidance.
@@ -19,7 +20,7 @@
 //   - Express objective direction in the supplied camera frame, including height and rear targets.
 //
 // DEPENDENCIES:
-//   - Worsen.Core ExitState and UnityEngine vector/math value operations only.
+//   - Worsen.Core ExitState/GuidanceTarget and UnityEngine vector/math value operations only.
 //
 // USAGE NOTES:
 //   - Stateless calculator over caller-owned HUDDriverState. No engine calls.
@@ -28,6 +29,7 @@
 // ============================================================================
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
 using Worsen.Core;
@@ -38,6 +40,14 @@ namespace Worsen.Presentation.HUD
     {
         public void SetCount(HUDDriverState state, int collected, int total)
         {
+            state.Collected = collected; state.Required = total;
+            if (collected < 0 || total <= 0 || collected == int.MaxValue) state.PhantomSeconds = 0f;
+            FormatCount(state);
+        }
+
+        private static void FormatCount(HUDDriverState state)
+        {
+            int collected = state.Collected + (state.PhantomSeconds > 0f ? 1 : 0), total = state.Required;
             state.CountKnown = collected >= 0 && total > 0;
             state.CountFraction = state.CountKnown ? Mathf.Clamp01((float)collected / total) : 0f;
             state.CountText = collected < 0 || total < 0 ? "Cakes: —"
@@ -83,33 +93,52 @@ namespace Worsen.Presentation.HUD
 
         private static void UpdateDirection(HUDDriverState state)
         {
-            if (!state.DirectionVisible)
+            Direction(state.WorldDirection, state.DirectionVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
+                out state.ViewDirection, out state.DirectionDegrees, out state.DirectionPitchDegrees, out state.ArrowDegrees);
+            Direction(state.GoldenSenseDirection, state.GoldenSenseVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
+                out state.GoldenSenseViewDirection, out state.GoldenSenseDegrees, out state.GoldenSensePitchDegrees, out state.GoldenSenseArrowDegrees);
+        }
+
+        public void SetGuidance(HUDDriverState state, IReadOnlyList<GuidanceTarget> targets)
+        {
+            SetDirection(state, Vector3.zero, false);
+            state.GoldenSenseDirection = Vector3.zero; state.GoldenSenseVisible = false;
+            if (targets != null) foreach (var target in targets)
             {
-                state.ViewDirection = Vector3.zero;
-                state.ArrowDegrees = state.DirectionDegrees = state.DirectionPitchDegrees = 0f;
-                return;
+                if (target.Kind == GuidanceKind.WhiteArrow) SetDirection(state, target.WorldDirection, true);
+                else if (target.Kind == GuidanceKind.GoldenSense)
+                {
+                    state.GoldenSenseDirection = target.WorldDirection;
+                    state.GoldenSenseVisible = IsFinite(target.WorldDirection.x) && IsFinite(target.WorldDirection.y) &&
+                        IsFinite(target.WorldDirection.z) && target.WorldDirection.sqrMagnitude > 0f;
+                }
             }
-            Vector3 world = state.WorldDirection;
+            UpdateDirection(state);
+        }
+
+        private static void Direction(Vector3 world, bool visible, float heading, bool hasRotation, Quaternion rotation,
+            out Vector3 view, out float yaw, out float pitch, out float arrow)
+        {
+            view = Vector3.zero; yaw = pitch = arrow = 0f;
+            if (!visible) return;
             double length = Math.Sqrt((double)world.x * world.x + (double)world.y * world.y + (double)world.z * world.z);
             Vector3 direction = new Vector3((float)(world.x / length), (float)(world.y / length), (float)(world.z / length));
-            if (state.HasViewRotation)
+            if (hasRotation)
             {
-                Quaternion rotation = state.ViewRotation;
                 Vector3 imaginary = new Vector3(-rotation.x, -rotation.y, -rotation.z);
                 Vector3 twiceCross = 2f * Vector3.Cross(imaginary, direction);
-                state.ViewDirection = direction + rotation.w * twiceCross + Vector3.Cross(imaginary, twiceCross);
+                view = direction + rotation.w * twiceCross + Vector3.Cross(imaginary, twiceCross);
             }
             else
             {
-                double radians = state.HeadingDegrees * Math.PI / 180.0;
+                double radians = heading * Math.PI / 180.0;
                 float sine = (float)Math.Sin(radians), cosine = (float)Math.Cos(radians);
-                state.ViewDirection = new Vector3(direction.x * cosine - direction.z * sine, direction.y,
+                view = new Vector3(direction.x * cosine - direction.z * sine, direction.y,
                     direction.x * sine + direction.z * cosine);
             }
-            Vector3 local = state.ViewDirection;
-            state.DirectionDegrees = (float)(Math.Atan2(local.x, local.z) * 180.0 / Math.PI);
-            state.DirectionPitchDegrees = (float)(Math.Atan2(local.y, Math.Sqrt(local.x * local.x + local.z * local.z)) * 180.0 / Math.PI);
-            state.ArrowDegrees = local.x == 0f && local.z == 0f ? (local.y < 0f ? 180f : 0f) : state.DirectionDegrees;
+            yaw = (float)(Math.Atan2(view.x, view.z) * 180.0 / Math.PI);
+            pitch = (float)(Math.Atan2(view.y, Math.Sqrt(view.x * view.x + view.z * view.z)) * 180.0 / Math.PI);
+            arrow = view.x == 0f && view.z == 0f ? (view.y < 0f ? 180f : 0f) : yaw;
         }
 
         public void SetItemSlots(HUDDriverState state, int emptySlotCount, int maximumDisplayedSlots)
@@ -135,6 +164,7 @@ namespace Worsen.Presentation.HUD
 
         public void ResetRunView(HUDDriverState state)
         {
+            ClearPhantomCake(state);
             state.ChaseMode = false;
             state.ChromeVisible = true;
             state.ExtraOpacity = 1f;
@@ -142,7 +172,10 @@ namespace Worsen.Presentation.HUD
 
         public void Tick(HUDDriverState state, float deltaTime, float restoreSeconds)
         {
-            if (state.ChaseMode || !IsFinite(deltaTime) || deltaTime <= 0f) return;
+            if (!IsFinite(deltaTime) || deltaTime <= 0f) return;
+            if (state.PhantomSeconds > 0f)
+            { state.PhantomSeconds = Math.Max(0f, state.PhantomSeconds - deltaTime); FormatCount(state); }
+            if (state.ChaseMode) return;
             if (!IsFinite(restoreSeconds) || restoreSeconds <= 0f)
             {
                 state.ExtraOpacity = 1f;
@@ -151,6 +184,14 @@ namespace Worsen.Presentation.HUD
             state.ExtraOpacity = Mathf.Clamp01(state.ExtraOpacity + deltaTime / restoreSeconds);
         }
 
+        public bool TryShowPhantomCake(HUDDriverState state, float seconds)
+        {
+            if (!IsFinite(seconds) || seconds <= 0f || !state.CountKnown || state.Collected == int.MaxValue ||
+                !state.ChromeVisible || state.ExtraOpacity <= 0f) return false;
+            state.PhantomSeconds = seconds; FormatCount(state); return true;
+        }
+
+        public void ClearPhantomCake(HUDDriverState state) { state.PhantomSeconds = 0f; FormatCount(state); }
         private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     }
 }
