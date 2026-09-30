@@ -9,14 +9,15 @@
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
 //   - Check path distance and first useful horizontal direction.
+//   - Regress sampled origins, configurable corner skipping and fallback/held refreshes.
 //   - Check warning periods and complete room-boundary blocker coverage.
 // DEPENDENCIES:
-//   - Worsen.Domain.Floor FloorPresenter and UnityEngine value types only.
+//   - Worsen.Domain.Floor FloorPresenter, DriverState and UnityEngine value types only.
 //   - NUnit provides assertions; no live engine objects are constructed.
 // USAGE NOTES:
 //   Editor-mode pure tests; all timing and geometry are supplied explicitly.
-//   Navigation path completion status is validated by the owning Driver before
-//   these corner calculations; this suite tests insufficient corner data only.
+//   The Driver supplies null on sample/path failure; no navigation or physics is run here.
+//   Supplied DriverState retains each target's direction between explicit refresh calls.
 // ============================================================================
 using NUnit.Framework;
 using UnityEngine;
@@ -80,7 +81,7 @@ namespace Worsen.Tests.Floor
                 new Vector3(-10f, 2f, -5f)
             };
 
-            AssertVector(new FloorPresenter().FirstDirection(origin, corners), new Vector3(0.6f, 0f, 0.8f));
+            AssertVector(new FloorPresenter().FirstDirection(origin, corners, 1f), new Vector3(0.6f, 0f, 0.8f));
         }
 
         [Test]
@@ -89,9 +90,170 @@ namespace Worsen.Tests.Floor
             var presenter = new FloorPresenter();
             var origin = new Vector3(3f, 2f, 7f);
 
-            AssertVector(presenter.FirstDirection(origin, null), Vector3.zero);
-            AssertVector(presenter.FirstDirection(origin, new Vector3[0]), Vector3.zero);
-            AssertVector(presenter.FirstDirection(origin, new[] { origin, new Vector3(3f, 12f, 7f) }), Vector3.zero);
+            AssertVector(presenter.FirstDirection(origin, null, 1f), Vector3.zero);
+            AssertVector(presenter.FirstDirection(origin, new Vector3[0], 1f), Vector3.zero);
+            AssertVector(presenter.FirstDirection(origin, new[] { origin, new Vector3(3f, 12f, 7f) }, 1f), Vector3.zero);
+        }
+
+        [TestCase(0f, 1f, 0f)]
+        [TestCase(-0.5f, 4f, 0.5f)]
+        public void GuidanceUsesSampledOriginInsteadOfAirbornePlayer(float x, float height, float z)
+        {
+            var state = new FloorDriverState();
+            var corners = new[] { Vector3.zero, new Vector3(4f, 0f, 0f), new Vector3(4f, 0f, 6f) };
+            var result = new FloorPresenter().PathCandidate(state, 101, new Vector3(x, height, z),
+                Vector3.zero, corners[2], corners, 1f);
+
+            AssertVector(result.Direction, Vector3.right);
+            Assert.That(result.Length, Is.EqualTo(10f).Within(Tolerance));
+            Assert.That(state.FallbackDirections, Is.Empty);
+            Assert.That(state.HeldDirections, Is.Empty);
+        }
+
+        [Test]
+        public void StairGuidanceSkipsHorizontallyNearCornersRegardlessOfHeight()
+        {
+            var sample = new Vector3(10f, 2f, -5f);
+            var corners = new[] { sample, sample + new Vector3(0f, 3f, 0.5f),
+                sample + new Vector3(3f, 6f, 0f), sample + new Vector3(3f, 8f, 4f) };
+            var result = new FloorPresenter().PathCandidate(new FloorDriverState(), 101,
+                sample + Vector3.up, sample, corners[3], corners, 1f);
+
+            AssertVector(result.Direction, Vector3.right);
+            Assert.That(result.Direction.magnitude, Is.EqualTo(1f).Within(Tolerance));
+        }
+
+        [TestCase(1f, 1f, 0f)]
+        [TestCase(0.25f, 0f, 1f)]
+        public void CornerSkipDistanceIsConfigurableAndIncludesTheBoundary(float skip, float x, float z)
+        {
+            var corners = new[] { Vector3.zero, Vector3.forward, Vector3.right * 4f };
+
+            AssertVector(new FloorPresenter().FirstDirection(Vector3.zero, corners, skip), new Vector3(x, 0f, z));
+        }
+
+        [Test]
+        public void AllNearbyCornersUseTheFinalCornerNotTheFirstNonzeroCorner()
+        {
+            var corners = new[] { Vector3.zero, Vector3.forward * 0.5f, Vector3.left * 0.75f };
+
+            AssertVector(new FloorPresenter().FirstDirection(Vector3.zero, corners, 1f), Vector3.left);
+        }
+
+        [Test]
+        public void FailedSampleOrPathUsesFlaggedStraightLineFromRawPlayer()
+        {
+            var state = new FloorDriverState();
+            var result = new FloorPresenter().PathCandidate(state, 101, new Vector3(10f, 4f, 5f),
+                Vector3.zero, new Vector3(13f, 4f, 9f), null, 1f);
+
+            AssertVector(result.Direction, new Vector3(0.6f, 0f, 0.8f));
+            Assert.That(result.Length, Is.EqualTo(FloorPresenter.FallbackRankOffset + 5f).Within(Tolerance));
+            Assert.That(state.FallbackDirections.Contains(101), Is.True);
+            Assert.That(state.HeldDirections.Contains(101), Is.False);
+        }
+
+        [Test]
+        public void FailedPathRanksAfterAnyCompletePathEvenWhenCloserInAStraightLine()
+        {
+            var presenter = new FloorPresenter();
+            var state = new FloorDriverState();
+            var longRoute = new[] { Vector3.zero, Vector3.right * 400f, new Vector3(400f, 0f, 400f) };
+            var complete = presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero,
+                longRoute[2], longRoute, 1f);
+            var failed = presenter.PathCandidate(state, 102, Vector3.zero, Vector3.zero,
+                Vector3.forward * 3f, null, 1f);
+
+            Assert.That(complete.Length, Is.EqualTo(800f).Within(Tolerance));
+            Assert.That(failed.Length, Is.GreaterThan(complete.Length));
+            Assert.That(state.FallbackDirections.Contains(102), Is.True);
+            Assert.That(state.FallbackDirections.Contains(101), Is.False);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void InvalidPathDataUsesFallback(int kind)
+        {
+            var corners = kind == 0 ? new Vector3[0] : kind == 1 ? new[] { Vector3.zero }
+                : new[] { Vector3.zero, new Vector3(float.NaN, 0f, 1f) };
+            var state = new FloorDriverState();
+            var result = new FloorPresenter().PathCandidate(state, 101, Vector3.zero, Vector3.zero,
+                Vector3.forward * 3f, corners, 1f);
+
+            AssertVector(result.Direction, Vector3.forward);
+            Assert.That(state.FallbackDirections.Contains(101), Is.True);
+            Assert.That(result.Length, Is.EqualTo(FloorPresenter.FallbackRankOffset + 3f).Within(Tolerance));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void FailedPathAndStraightLineHoldLastGoodDirectionAcrossRefreshes(bool previousFallback)
+        {
+            var state = new FloorDriverState();
+            var presenter = new FloorPresenter();
+            presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.right * 4f,
+                previousFallback ? null : new[] { Vector3.zero, Vector3.right * 4f }, 1f);
+            for (int refresh = 0; refresh < 2; refresh++)
+            {
+                var result = presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero,
+                    Vector3.up * 3f, null, 1f);
+
+                AssertVector(result.Direction, Vector3.right);
+                Assert.That(result.Length, Is.EqualTo(FloorPresenter.FallbackRankOffset + 3f).Within(Tolerance));
+                Assert.That(state.HeldDirections.Contains(101), Is.True);
+                Assert.That(state.FallbackDirections.Contains(101), Is.False);
+            }
+            presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.forward * 4f,
+                new[] { Vector3.zero, Vector3.forward * 4f }, 1f);
+            AssertVector(state.LastGoodDirections[101], Vector3.forward);
+            Assert.That(state.HeldDirections, Is.Empty);
+            Assert.That(state.FallbackDirections, Is.Empty);
+        }
+
+        [Test]
+        public void CandidateHistoryDoesNotBorrowAnotherCakeOrExitDirection()
+        {
+            var state = new FloorDriverState();
+            var presenter = new FloorPresenter();
+            presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.right * 4f, null, 1f);
+            presenter.PathCandidate(state, 102, Vector3.zero, Vector3.zero, Vector3.forward * 4f, null, 1f);
+            var held = presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.up, null, 1f);
+            var exit = presenter.PathCandidate(state, 0, Vector3.zero, Vector3.zero, Vector3.up, null, 1f);
+
+            AssertVector(held.Direction, Vector3.right);
+            AssertVector(exit.Direction, Vector3.zero);
+            Assert.That(state.HeldDirections.Contains(0), Is.False);
+            Assert.That(exit.Length, Is.EqualTo(float.PositiveInfinity));
+        }
+
+        [Test]
+        public void ZeroHorizontalPathUsesFallbackThenHoldRatherThanPublishingZero()
+        {
+            var state = new FloorDriverState();
+            var presenter = new FloorPresenter();
+            var vertical = new[] { Vector3.zero, Vector3.up * 3f };
+            var fallback = presenter.PathCandidate(state, 101, Vector3.left, Vector3.zero, Vector3.up * 3f, vertical, 1f);
+            AssertVector(fallback.Direction, Vector3.right);
+            Assert.That(state.FallbackDirections.Contains(101), Is.True);
+            var held = presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.up * 3f, vertical, 1f);
+            AssertVector(held.Direction, Vector3.right);
+            Assert.That(state.HeldDirections.Contains(101), Is.True);
+        }
+
+        [Test]
+        public void ZeroLengthWithoutHistoryIsUnavailableAndNeverNaN()
+        {
+            var state = new FloorDriverState();
+            var presenter = new FloorPresenter();
+            var result = presenter.PathCandidate(state, 101, Vector3.zero, Vector3.zero, Vector3.zero,
+                new[] { Vector3.zero, Vector3.zero }, 1f);
+
+            AssertVector(result.Direction, Vector3.zero);
+            Assert.That(result.Length, Is.EqualTo(float.PositiveInfinity));
+            Assert.That(state.LastGoodDirections, Is.Empty);
+            Assert.That(state.FallbackDirections, Is.Empty);
+            Assert.That(state.HeldDirections, Is.Empty);
         }
 
         [TestCase(0f, 2f)]

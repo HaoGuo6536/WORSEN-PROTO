@@ -3,21 +3,23 @@
 // ============================================================================
 // PURPOSE:
 //   Stores pickup, exit, warning and room-local collapse visual dimensions separately from game rules.
-//   This is the scene-owned Floor collection and collapse loop. Explicit data
-//   inputs make its seeded behavior reproducible and its ownership reviewable.
+//   It also sets how far guidance looks past nearby path corners, independently
+//   of the navigation sample radius and the gameplay refresh cadence.
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Reference native Lumen room and exit prefabs; no real-light fallback.
 //   - Reference cake art and an optional medieval panel visual for the physical exit.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
+//   - Expose the horizontal guidance corner skip distance for designer tuning.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
-//   - Core floor and level contracts; Floor owns all mutable data in this file.
-//   - Floor reads injected Level and Player views; no Session or Presentation dependency.
+//   - UnityEngine serialized values and prefab/material references only.
+//   - Consumed within Floor; no other system dependency.
 // USAGE NOTES:
 //   Consumed by FloorDriver and its owned sub-drivers; no global engine side effects.
 //   Physical exit is opt-in so authored legacy floor fixtures retain their trigger behavior.
+//   Guidance skip distance is provisional and measured horizontally in metres.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using UnityEngine;
@@ -34,6 +36,7 @@ namespace Worsen.Domain.Floor
         [SerializeField] private float _pickupHeight = 0.7f;
         [SerializeField] private Vector3 _exitSize = new Vector3(2f, 3f, 2f);
         [SerializeField] private float _pathSampleRadius = 2f;
+        [SerializeField, Min(0f)] private float _directionCornerSkipDistance = 1f;
         [SerializeField] private float _blockerThickness = 0.3f;
         [SerializeField] private float _warningPulsePeriod = 0.6f;
         [SerializeField] private float _warningIntensity = 5f;
@@ -78,6 +81,7 @@ namespace Worsen.Domain.Floor
         public float PickupHeight => _pickupHeight;
         public Vector3 ExitSize => _exitSize;
         public float PathSampleRadius => _pathSampleRadius;
+        public float DirectionCornerSkipDistance => Mathf.Max(0f, _directionCornerSkipDistance);
         public float BlockerThickness => _blockerThickness;
         public float WarningPulsePeriod => _warningPulsePeriod;
         public float WarningIntensity => _warningIntensity;

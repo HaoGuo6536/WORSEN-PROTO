@@ -3,8 +3,8 @@
 // ============================================================================
 // PURPOSE:
 //   Builds and operates Floor-owned pickups, exits, warning lights and staged room destruction.
-//   This is the scene-owned Floor collection and collapse loop. Explicit data
-//   inputs make its seeded behavior reproducible and its ownership reviewable.
+//   It samples navigation paths for guidance while the pure Presenter computes
+//   sampled-origin directions, straight-line fallbacks and retained directions.
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
@@ -12,12 +12,15 @@
 //   - Tint owned golden material copies while retaining authored cake textures and alpha.
 //   - Own native Lumen fake-light warnings and exit cues without Unity Light objects.
 //   - Support staged collapse and an opt-in hinged exit that requires a real crossing.
+//   - Supply complete path corners and expose target-local fallback/held flags.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
-//   - Floor reads injected Level and Player views; no Session or Presentation dependency.
+//   - FloorPresenter, DriverState, DriverConfig and owned sub-drivers; Unity navigation APIs.
 // USAGE NOTES:
-//   Scene-owned; no global engine settings. Only FloorManager commands this Driver. Its own sub-drivers own trigger callbacks; navigation paths must be complete before cue publication. No fallback anchor generation.
+//   Scene-owned; no global engine settings. Only FloorManager commands this Driver.
+//   Its sub-drivers own trigger callbacks; failed paths use flagged guidance, not fallback anchors.
+//   PathLength remains a complete-path-only query and does not mutate guidance history.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using System;
@@ -118,18 +121,27 @@ namespace Worsen.Domain.Floor
 
         public FloorPathCandidate QueryPath(int anchorId, Vector3 from, Vector3 to)
         {
-            if (!NavMesh.SamplePosition(from, out var start, _config.PathSampleRadius, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(to, out var end, _config.PathSampleRadius, NavMesh.AllAreas))
-                return new FloorPathCandidate(anchorId, float.PositiveInfinity, Vector3.zero);
-            var path = new NavMeshPath();
-            if (!NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
-                return new FloorPathCandidate(anchorId, float.PositiveInfinity, Vector3.zero);
-            var corners = path.corners;
-            float length = _presenter.PathLength(corners);
-            return new FloorPathCandidate(anchorId, length, _presenter.FirstDirection(from, corners));
+            var corners = QueryCorners(from, to, out var sampledStart);
+            return _presenter.PathCandidate(_state, anchorId, from, sampledStart, to, corners,
+                _config.DirectionCornerSkipDistance);
         }
 
-        public float PathLength(Vector3 from, Vector3 to) => QueryPath(0, from, to).Length;
+        public bool IsDirectionFallback(int anchorId) => _state.FallbackDirections.Contains(anchorId);
+        public bool IsDirectionHeld(int anchorId) => _state.HeldDirections.Contains(anchorId);
+        public float PathLength(Vector3 from, Vector3 to) => _presenter.PathLength(QueryCorners(from, to, out _));
+
+        private Vector3[] QueryCorners(Vector3 from, Vector3 to, out Vector3 sampledStart)
+        {
+            sampledStart = from;
+            if (!NavMesh.SamplePosition(from, out var start, _config.PathSampleRadius, NavMesh.AllAreas) ||
+                !NavMesh.SamplePosition(to, out var end, _config.PathSampleRadius, NavMesh.AllAreas))
+                return null;
+            sampledStart = start.position;
+            var path = new NavMeshPath();
+            if (!NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
+                return null;
+            return path.corners;
+        }
 
         public void Teardown()
         {
@@ -137,6 +149,7 @@ namespace Worsen.Domain.Floor
             if (_state.Root != null) { _state.Root.SetActive(false); Release(_state.Root); }
             foreach (var material in _state.Materials) if (material != null) Release(material);
             _state.Pickups.Clear(); _state.Rooms.Clear(); _state.Materials.Clear(); _state.Anchors.Clear();
+            _state.LastGoodDirections.Clear(); _state.FallbackDirections.Clear(); _state.HeldDirections.Clear();
             _state.Root = null; _state.Exit = null; _state.ExitDoor = null; _state.ExitGlow = null; _state.Ready = false;
         }
 
