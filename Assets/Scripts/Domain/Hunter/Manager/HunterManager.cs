@@ -11,7 +11,7 @@
 //   - Own per-life controller, archetype/facet construction and paired driver subscriptions.
 //   - Sequence sensing, navigation, committed motion and presentation commands.
 //   - Gate shared and specialised contacts on Player revival protection before acceptance.
-//   - Route accepted catch/chase, reactions, effects and world inputs.
+//   - Route accepted catch/chase (including Mannequin snap), reactions, effects and world inputs.
 //   - Publish archetype, attack, habit, mutation and navigation evidence facts.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
@@ -91,6 +91,8 @@ namespace Worsen.Domain.Hunter
         public event Action<HeraldDeafenFact> OnHeraldDeafen;
         public event Action<HunterDoorBreakFact> OnDoorBreakCompleted;
         public event Action<MannequinFact> OnMannequinFact;
+        // Accepted catch fact: Audio substitutes snap/crunch for the shared death sting.
+        public event Action<EntityId, Vector3, long> OnMannequinCatch;
         public event Action<StareFact> OnStareFact;
         public void ApplyStun(float seconds, float strength)
         { _controller?.ApplyStun(seconds, strength); if (_state != null && _state.StunRemaining > 0f) _driver.RemoveMomentum(); }
@@ -290,6 +292,7 @@ namespace Worsen.Domain.Hunter
                 result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
             if (!(_ram?.OwnsPursuit ?? false)) _driver.ApplyDecisionMotion(result.StumbleDisplacement, result.DeliberationFacing);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+            if (_skip != null && !_state.CatchActive) _driver.ProbeBodyContact();
             if (_mimic != null && _mimic.Posed && !_state.CatchActive) _driver.ProbeMimicTouch(_mimic.TouchRadius);
             PublishRosterFacts();
             if (_weaver != null)
@@ -360,9 +363,10 @@ namespace Worsen.Domain.Hunter
         public void SetChaseActive(bool active) { _controller?.SetChaseActive(active); }
         public void BeginCatch(Vector3 playerPosition)
         {
-            if (_controller == null) return;
+            if (_controller == null || _state.CatchActive) return;
             _ram?.Won(); _mimic?.Won(); PublishRosterFacts();
             _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
+            if (_mannequin != null && _mannequin.TryCatch()) OnMannequinCatch?.Invoke(Id, _state.Position, _state.Tick);
             _blinder?.BeginCatch(); PublishBlinderFacts(); _herald?.SuspendAttack();
             if (_stare != null)
             { _stare.CatchCue(); while (_stare.TakeFact(out StareFact fact)) OnStareFact?.Invoke(fact); }

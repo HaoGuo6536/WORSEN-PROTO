@@ -3,14 +3,15 @@
 // ============================================================================
 // PURPOSE:
 //   Gates every shared movement and attack on light and camera observation.
-//   It is silent even when winning. Its environment habit is to wait at safe
+//   It is silent except for an accepted snap/crunch catch. It waits at safe
 //   light boundaries, with rare seeded light failures and an optional permanent
 //   room-darkening curse leaving visible evidence behind it.
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
-//   - Freeze while observed or under Wick; invert only the light reading by config.
+//   - Freeze while observed, illuminated or under Wick; move only in darkness.
 //   - Read capped neutral curse hooks and publish Core light/silence facts.
+//   - Admit the distinct catch fact once per life for the Manager to publish.
 // DEPENDENCIES:
 //   - Hunter default seam, injected camera/world views, Core effects and facts.
 // USAGE NOTES:
@@ -39,6 +40,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         public override void Reset(HunterArchetypeContext context)
         {
             _state.Hold = true; _state.Wick = false; _state.View = default; _state.World = null;
+            _state.CatchPublished = false;
             _state.Room = _state.FailureRoom = 0; _state.FailureRemaining = 0;
             _state.CheckRemaining = _config.FailureCheckSeconds; _state.LampStacks = -1;
             _state.LastTick = -1; _state.Speed = 1f; _state.BrokenRooms.Clear(); _state.Facts.Clear();
@@ -67,11 +69,11 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
                 _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.RoomLightOverride,
                     context.Tick, room, permanent: true));
             if (_state.BrokenRooms.Contains(room)) lit = false;
-            if (_state.FailureRemaining > 0f && _state.FailureRoom == room) lit = !_config.MovesInDarkness;
+            if (_state.FailureRemaining > 0f && _state.FailureRoom == room) lit = false;
             bool observed = _state.Clear && HunterViewUtility.Contains(_state.View,
                 context.Hunter.Position + Vector3.up * _config.ObservationHeight,
                 Stacks(context, "mannequin-peripheral-creep", 1) > 0 ? _config.DirectLookHalfAngle : 0f);
-            if (lit == _config.MovesInDarkness && !observed && _state.FailureRemaining <= 0f)
+            if (lit && !observed && !_state.Illuminated && _state.FailureRemaining <= 0f)
             {
                 _state.CheckRemaining -= context.DeltaTime;
                 if (_state.CheckRemaining <= 0f)
@@ -80,13 +82,18 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
                     if (_random.NextDouble() < _config.FailureChance)
                     {
                         _state.FailureRoom = room; _state.FailureRemaining = _config.FailureSeconds;
-                        lit = !_config.MovesInDarkness;
+                        lit = false;
                         _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.RoomLightOverride,
                             context.Tick, room, lit, _config.FailureSeconds));
                     }
                 }
             }
-            _state.Hold = observed || (_config.MovesInDarkness ? lit || _state.Illuminated : !lit && !_state.Illuminated);
+            _state.Hold = observed || lit || _state.Illuminated;
+        }
+        public bool TryCatch()
+        {
+            if (_state.CatchPublished) return false;
+            _state.CatchPublished = true; return true;
         }
         public override bool FilterVisibility(bool visible, SightProbe probe, HunterArchetypeContext context) => !Hold && visible;
         public bool TakeFact(out MannequinFact fact)

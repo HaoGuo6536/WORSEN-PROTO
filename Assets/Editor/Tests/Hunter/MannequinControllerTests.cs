@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
-//   - Cover inverted light rules, silence, deterministic rarity and curse isolation.
+//   - Cover darkness-only rules, catch admission, silence, rarity and curse isolation.
 // DEPENDENCIES:
 //   - Hunter/Mannequin controllers, Core values and NUnit fixtures.
 // USAGE NOTES:
@@ -63,10 +63,10 @@ namespace Worsen.Tests.Hunter
             _shared.CommitPose(Vector3.forward * 3, Vector3.forward, Vector3.forward);
             Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
         }
-        [Test] public void LightReadingInvertsButWickAndMissingWorldStillHold()
+        [Test] public void DarknessPolicyCannotInvertAndWickAndMissingWorldStillHold()
         {
-            EchoControllerTests.Tune(_config, "_movesInDarkness", false);
-            Assert.That(Step().HoldPosition, Is.True); _world.Lit = true; Assert.That(Step().Speed, Is.GreaterThan(0));
+            Assert.That(_config.MovesInDarkness, Is.True);
+            Assert.That(Step().Speed, Is.GreaterThan(0)); _world.Lit = true; Assert.That(Step().HoldPosition, Is.True);
             Assert.That(Step(true).HoldPosition, Is.True);
             _shared.SetWickActive(true); Assert.That(Step().HoldPosition, Is.True);
             _shared.SetWickActive(false); _world.Known = false; Assert.That(Step().HoldPosition, Is.True);
@@ -93,15 +93,25 @@ namespace Worsen.Tests.Hunter
             EchoControllerTests.Tune(_config, "_failureChance", 0f);
             Assert.That(Step(dt: 2f).HoldPosition, Is.True);
         }
-        [Test] public void InvertedSubversionSwitchesLightOnAndStaleViewHolds()
+        [Test] public void SubversionOnlySwitchesRoomLightOffAndStaleViewHolds()
         {
-            EchoControllerTests.Tune(_config, "_movesInDarkness", false);
+            _world.Lit = true;
             EchoControllerTests.Tune(_config, "_failureChance", 1f);
             Assert.That(Step(dt: 15f).HoldPosition, Is.False);
-            bool switchedOn = false;
-            while (_module.TakeFact(out var fact)) if (fact.Kind == MannequinFactKind.RoomLightOverride) switchedOn = fact.Lit;
-            Assert.That(switchedOn, Is.True);
+            bool switchedOff = false;
+            while (_module.TakeFact(out var fact)) if (fact.Kind == MannequinFactKind.RoomLightOverride) switchedOff = !fact.Lit;
+            Assert.That(switchedOff, Is.True);
             _tick++; Assert.That(_shared.Tick(default, .1f, _tick).HoldPosition, Is.True);
+        }
+        [Test] public void DirectIlluminationCannotTriggerRoomFailureAndCatchAdmissionResetsPerLife()
+        {
+            _world.Lit = true; EchoControllerTests.Tune(_config, "_failureChance", 1f);
+            Assert.That(Step(dt: 15f, illuminated: true).HoldPosition, Is.True);
+            while (_module.TakeFact(out var fact)) Assert.That(fact.Kind, Is.Not.EqualTo(MannequinFactKind.RoomLightOverride));
+            Assert.That(_module.TryCatch(), Is.True); Assert.That(_module.TryCatch(), Is.False);
+            _shared.Reset(new EntityId(-2), Vector3.zero, Vector3.forward);
+            Assert.That(_module.TryCatch(), Is.True);
+            Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
         }
         [Test] public void CurseHooksUseExactIdsCapAndLeaveConfigUnchanged()
         {

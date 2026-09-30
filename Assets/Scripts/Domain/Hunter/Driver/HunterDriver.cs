@@ -12,7 +12,7 @@
 //   - Honor collider layer exclusions in motor queries without weakening world or sight probes.
 //   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
 //   - Own animation/attack and archetype sub-drivers behind explicit Manager commands.
-//   - Apply charge, teleport and reaction motion and report committed contacts.
+//   - Apply charge, teleport and reaction motion; probe silent interception contacts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -273,6 +273,14 @@ namespace Worsen.Domain.Hunter
             foreach (Collider other in Physics.OverlapSphere(Position + Vector3.up * radius, radius,
                 WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
                 if (!Own(other) && (_state.TargetFilter?.Invoke(other) ?? false)) OnLungeContact?.Invoke(other);
+        }
+        public void ProbeBodyContact()
+        {
+            if (_state == null) return;
+            Capsule(Position, out Vector3 low, out Vector3 high);
+            foreach (Collider other in Physics.OverlapCapsule(low, high, _config.Radius + _config.SkinWidth,
+                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
+                if (!IgnoreMotorCollider(other) && (_state.TargetFilter?.Invoke(other) ?? false)) OnLungeContact?.Invoke(other);
         }
         public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt, out bool unreachable)
         {
