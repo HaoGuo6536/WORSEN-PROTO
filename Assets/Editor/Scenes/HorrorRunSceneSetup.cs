@@ -308,6 +308,7 @@ namespace Worsen.Editor.Scenes
             var horrorDriver = horror.GetComponent<HorrorDriver>() ?? horror.gameObject.AddComponent<HorrorDriver>();
             var config = Ensure<HorrorDriverConfig>(ConfigRoot + "Presentation/Horror/HorrorDriverConfig.asset");
             ConfigureHorrorAudio(config);
+            Worsen.Editor.Horror.HorrorShaderSetup.Configure(config);
             Wire(config, "_lumenFlashlightPrefab", HorrorLumenStyleSetup.EnsureFlashlight());
             Wire(config, "_lumenNearFillPrefab", HorrorLumenStyleSetup.EnsureNearFill());
             var atmosphere = new SerializedObject(config);

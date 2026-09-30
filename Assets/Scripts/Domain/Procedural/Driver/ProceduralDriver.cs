@@ -19,6 +19,7 @@
 //   Scene-owned and commanded only by ProceduralManager. Does not change global
 //   lighting/fog or remove another owner's navigation data. Missing materials use
 //   dark rough generated surfaces; no authored-map fallback is silently loaded.
+//   Missing serialized shaders abort before generation and log once per owner.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,9 @@ namespace Worsen.Domain.Procedural
         private readonly ProceduralGeometryPresenter _presenter = new ProceduralGeometryPresenter();
         private readonly ProceduralFracturePresenter _fracture = new ProceduralFracturePresenter();
         private ProceduralPassageBridge _passageBridge;
+        // DriverState (§7c): retain one diagnostic across generation retries.
+        private sealed class ShaderReferenceDriverState { public bool Reported; }
+        private readonly ShaderReferenceDriverState _shaderState = new ShaderReferenceDriverState();
         public int OwnedBlockCount => _state.BlockCount;
         public bool IsReady => _state.Ready;
         public EntityId PuzzlePlayerId => _state.PuzzlePlayer;
@@ -66,6 +70,12 @@ namespace Worsen.Domain.Procedural
         {
             Teardown();
             EnsurePassageBridge();
+            if (driverConfig == null || driverConfig.SurfaceShader == null || driverConfig.CrackShader == null)
+            {
+                const string error = "ProceduralDriverConfig requires SurfaceShader and CrackShader. Rebuild Procedural assets.";
+                if (!_shaderState.Reported) { _shaderState.Reported = true; Debug.LogError(error, this); }
+                throw new InvalidOperationException(error);
+            }
             if (transform.lossyScale != Vector3.one) throw new InvalidOperationException("Procedural owner requires unit world scale.");
             var blocks = _presenter.Build(layout, config, driverConfig);
             ProceduralStoreyUtility.Validate(layout, config);
@@ -290,8 +300,7 @@ namespace Worsen.Domain.Procedural
 
         private void AddCracks(int roomId, IReadOnlyList<GameObject> fragments)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Transparent");
-            if (shader == null) return;
+            var shader = _state.Config.CrackShader;
             if (_state.CrackTexture == null) _state.CrackTexture = CreateCrackTexture();
             var material = new Material(shader) { name = "Room " + roomId + " fracture mask", renderQueue = 3001 };
             material.mainTexture = _state.CrackTexture;
@@ -426,8 +435,7 @@ namespace Worsen.Domain.Procedural
         private Material MaterialOrFallback(Material configured, Color color, ProceduralDriverConfig config, float? smoothness = null)
         {
             if (configured != null) return configured;
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            if (shader == null) throw new InvalidOperationException("Generated rooms require a compatible lit material shader.");
+            var shader = config.SurfaceShader;
             var material = new Material(shader) { name = "Procedural dark surface", color = color };
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness ?? config.SurfaceSmoothness);
             if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", smoothness ?? config.SurfaceSmoothness);

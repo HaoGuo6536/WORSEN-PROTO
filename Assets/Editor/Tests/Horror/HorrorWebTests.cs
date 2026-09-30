@@ -11,6 +11,7 @@
 // DEPENDENCIES:
 //   - Core, Horror, Orchestrator, Session publishers, Input, NUnit and Unity objects.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Edit Mode with transient objects; not evidence of material appearance in builds.
 // ============================================================================
 using System;
@@ -51,7 +52,7 @@ namespace Worsen.Tests.Horror
         }
         [Test] public void DriverCreatesLinesAndDoorwaysThenDestroysThemOnExpiryResetAndTeardown()
         {
-            var go = new GameObject("Web test"); var config = ScriptableObject.CreateInstance<HorrorDriverConfig>();
+            var go = new GameObject("Web test"); var config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<HorrorDriverConfig>();
             var driver = go.AddComponent<HorrorWebDriver>();
             try
             {

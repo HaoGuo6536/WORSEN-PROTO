@@ -21,6 +21,7 @@
 //   Visual colliders stay disabled. The dedicated trigger includes the room interior
 //   so penetrating or spawning inside a consumed room cannot evade its boundary.
 //   Pooled query buffers grow on saturation, retry without truncation and return on destroy.
+//   Fallback mist uses the config's serialized shader, never a runtime name lookup.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -36,6 +37,7 @@ namespace Worsen.Domain.Floor
         private readonly RoomCollapseDriverState _state = new RoomCollapseDriverState();
         private readonly RoomCollapsePresenter _presenter = new RoomCollapsePresenter();
         private FloorDriverConfig _config;
+        private bool _missingShaderReported;
         public int RoomId => _state.RoomId;
         public RoomPhase Phase => _state.Phase;
         public int HandCount => _state.Hands.Count;
@@ -45,6 +47,12 @@ namespace Worsen.Domain.Floor
         public void Configure(LevelRoom room, FloorDriverConfig config, Material darkMaterial, FloorLumenGlow warning,
             Func<Collider, EntityId> resolveIdentity = null, float boundaryReach = 0f, int minimumHands = 0)
         {
+            if (config == null || (config.MistMaterial == null && config.MistShader == null))
+            {
+                const string error = "FloorDriverConfig requires MistMaterial or MistShader. Rebuild Floor assets.";
+                if (!_missingShaderReported) { _missingShaderReported = true; Debug.LogError(error, this); }
+                throw new InvalidOperationException(error);
+            }
             _config = config; _state.Bounds = room.Bounds; _state.Room = room; _state.RoomId = room.Id; _state.Warning = warning;
             if (_state.QueryHits == null) _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
             if (_state.QueryOverlaps == null) _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
@@ -275,7 +283,7 @@ namespace Worsen.Domain.Floor
         }
         private Material MakeFogMaterial()
         {
-            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
+            var shader = _config.MistShader;
             var material = new Material(shader); _state.OwnedMaterials.Add(material);
             var texture = new Texture2D(32, 32, TextureFormat.RGBA32, false) { name = "Collapse soft fog falloff" };
             var pixels = new Color[1024];

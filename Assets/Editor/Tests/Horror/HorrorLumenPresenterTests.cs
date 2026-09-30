@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Invert the actual shader cutoff to check meter-space radius agreement.
 //   - Reject invalid angle bounds and retain struck-wall visibility within range.
+//   - Keep the existing Horror API equivalent to the shared Core implementation.
 // DEPENDENCIES:
 //   NUnit, Unity value types, HorrorLumenPresenter.
 // USAGE NOTES:
@@ -24,6 +25,19 @@ namespace Worsen.Tests.Horror
     public sealed class HorrorLumenPresenterTests
     {
         private readonly HorrorLumenPresenter _presenter = new HorrorLumenPresenter();
+
+        [TestCase(-1f)] [TestCase(.5f)] [TestCase(float.NaN)]
+        public void ExistingApiForwardsSharedMathWithoutChangingItsOutputs(float value)
+        {
+            Assert.That(_presenter.ExitRayIntensity(value, .04f, .65f), Is.EqualTo(Worsen.Core.LumenMathUtility.ExitRayIntensity(value, .04f, .65f)));
+            Assert.That(_presenter.FogBoundaryGlow(value, .35f, .08f), Is.EqualTo(Worsen.Core.LumenMathUtility.FogBoundaryGlow(value, .35f, .08f)));
+            Assert.That(_presenter.HunterRim(true, true, value), Is.EqualTo(Worsen.Core.LumenMathUtility.HunterRim(true, true, value)));
+            Assert.That(_presenter.FanYaw(1, 3, value), Is.EqualTo(Worsen.Core.LumenMathUtility.FanYaw(1, 3, value)));
+            Assert.That(_presenter.RayVertices(value, value), Is.EqualTo(Worsen.Core.LumenMathUtility.RayVertices(value, value)));
+            Assert.That(_presenter.RangeMultiplier(value, 2f), Is.EqualTo(Worsen.Core.LumenMathUtility.RangeMultiplier(value, 2f)));
+            Assert.That(_presenter.ConeAngles(value), Is.EqualTo(Worsen.Core.LumenMathUtility.ConeAngles(value)));
+            Assert.That(_presenter.ObstructedRange(18f, value), Is.EqualTo(Worsen.Core.LumenMathUtility.ObstructedRange(18f, value)));
+        }
 
         [Test]
         public void ExitRaysIntensifyMonotonicallyAndFanSymmetrically()

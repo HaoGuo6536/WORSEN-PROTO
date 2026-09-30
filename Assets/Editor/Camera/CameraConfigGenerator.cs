@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Create only the owning system's missing config asset.
 //   - Save only that config asset from the standalone menu action.
-//   - Retain a shader-bound hand material as a config subasset for player builds.
+//   - Retain a shader-bound hand material and fallback shader reference for player builds.
 //   - Leave scene saving, imports and test lease admission to the caller.
 //
 // DEPENDENCIES:
@@ -63,6 +63,12 @@ namespace Worsen.Editor.Camera
             if (config == null) throw new ArgumentNullException(nameof(config));
             if (!AssetDatabase.Contains(config)) throw new InvalidOperationException("Persist Camera config before assigning its hand material.");
             var serialized = new SerializedObject(config);
+            if (config.HandShader == null)
+            {
+                serialized.FindProperty("_handShader").objectReferenceValue = Shader.Find("Universal Render Pipeline/Unlit")
+                    ?? throw new InvalidOperationException("Camera setup requires URP Unlit.");
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
             var property = serialized.FindProperty("_handMaterial");
             if (property.objectReferenceValue is Material retained && AssetDatabase.Contains(retained)) return retained;
             Material material = null;

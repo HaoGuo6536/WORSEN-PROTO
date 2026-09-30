@@ -14,6 +14,7 @@
 // USAGE NOTES:
 //   Traversal, freeze and puzzle rooms share one floor budget. Null references
 //   retain the authored legacy fixtures; deterministic content setup wires pacing.
+//   TileShader is a required serialized build dependency when a puzzle is constructed.
 // ============================================================================
 using UnityEngine;
 
@@ -22,6 +23,8 @@ namespace Worsen.Domain.Procedural
     [CreateAssetMenu(menuName = "Worsen/Procedural/Challenge Config")]
     public sealed class ProceduralChallengeConfig : ScriptableObject
     {
+        [SerializeField] private Shader _tileShader = null;
+        public Shader TileShader => _tileShader;
         [SerializeField] private int _puzzleFirstRound = 3, _freezeFirstRound = 3;
         [SerializeField] private int _gimmickFirstRound = 3, _gimmickFullRound = 8;
         [SerializeField] private int _gimmickInitialBudget = 1, _gimmickMaximumBudget = 3;

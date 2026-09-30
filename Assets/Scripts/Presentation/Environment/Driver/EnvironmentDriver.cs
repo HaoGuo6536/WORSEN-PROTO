@@ -16,11 +16,12 @@
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
 //   - Core interactable snapshots are pushed by the owning Manager, never pulled from Level.
-//   - HorrorLumenPresenter pure light math only (acyclic Environment to Horror dependency).
+//   - Core LumenMathUtility supplies shared light math without a Presentation sibling edge.
 // USAGE NOTES:
 //   Scene-owned. No RenderSettings writes; Horror owns global fog and daylight.
 //   SetObserver is pushed from the owner. Floor replacement disables old roots immediately.
 //   Lumen owns its internal vendor manager; this Driver never accesses its singleton.
+//   Missing serialized shaders disable dressing and report once per owner, not per frame.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -33,7 +34,10 @@ namespace Worsen.Presentation.Environment
     {
         private EnvironmentDriverConfig _config;
         private readonly EnvironmentDriverState _state = new EnvironmentDriverState();
-        private readonly Worsen.Presentation.Horror.HorrorLumenPresenter _lumen = new Worsen.Presentation.Horror.HorrorLumenPresenter();
+        // DriverState (§7c): diagnostics survive floor teardown and retries.
+        private sealed class ShaderReferenceDriverState { public bool Reported; }
+        private readonly ShaderReferenceDriverState _shaderState = new ShaderReferenceDriverState();
+
         public bool IsReady => _config != null;
         public int RoomCount => _state.Rooms.Count;
         public int ActiveLumenCount => _state.ActiveLumenCount;
@@ -43,6 +47,16 @@ namespace Worsen.Presentation.Environment
         public void Initialize(EnvironmentDriverConfig config)
         {
             _config = config != null ? config : Resources.Load<EnvironmentDriverConfig>("ScriptableObjects/Presentation/Environment/EnvironmentDriverConfig");
+            if (_config != null && (_config.ChalkShader == null || _config.PanelShader == null))
+            {
+                if (!_shaderState.Reported)
+                {
+                    _shaderState.Reported = true;
+                    Debug.LogError("EnvironmentDriverConfig requires ChalkShader and PanelShader. Rebuild Environment assets.", this);
+                }
+                BeginFloor(); _config = null;
+                return;
+            }
             if (_config == null) Debug.LogWarning("Environment dressing needs its EnvironmentDriverConfig asset.", this);
             else if (_config.LumenLanternPrefab == null || _config.LumenMoonPrefab == null) Debug.LogWarning("Environment requires the project-owned Lumen torch and moon profiles. Rebuild HorrorRun assets.", this);
         }
@@ -237,10 +251,10 @@ namespace Worsen.Presentation.Environment
         }
 
         public float FogBoundaryGlow(float density) => _config == null ? 0f :
-            _lumen.FogBoundaryGlow(density, _config.ThinFogLimit, _config.FogBoundaryStrength);
+            LumenMathUtility.FogBoundaryGlow(density, _config.ThinFogLimit, _config.FogBoundaryStrength);
         public Color FogBoundaryColor => _config != null ? _config.MoonColor : Color.black;
         public float HunterRim(bool lookBack) => _config == null ? 0f :
-            _lumen.HunterRim(_config.HunterRimEnabled, lookBack, _config.HunterRimStrength);
+            LumenMathUtility.HunterRim(_config.HunterRimEnabled, lookBack, _config.HunterRimStrength);
 
         public void SetObserver(Vector3 position) { _state.Observer = position; }
         public void SetFlameGutter(float amount) { _state.Gutter = Mathf.Clamp01(amount); }
@@ -254,13 +268,12 @@ namespace Worsen.Presentation.Environment
         }
         public void MarkDoor(int doorId, Vector3 position)
         {
-            if (!_state.OwnerEnabled || _state.DoorMarks.ContainsKey(doorId) || _state.DoorMarks.Count >= 128) return;
+            if (_config == null || !_state.OwnerEnabled || _state.DoorMarks.ContainsKey(doorId) || _state.DoorMarks.Count >= 128) return;
             int[] rooms = EnvironmentPresenter.ChalkRooms(position, _state.RoomBounds);
             foreach (int room in rooms) if (_state.ConsumedRooms.Contains(room)) return;
             if (_state.ChalkMaterial == null)
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-                if (shader == null) { Debug.LogWarning("Threshold chalk needs the project URP particle unlit shader.", this); return; }
+                Shader shader = _config.ChalkShader;
                 _state.ChalkMaterial = new Material(shader) { name = "Owned threshold chalk" };
                 _state.ChalkMaterial.SetColor("_BaseColor", Color.white);
             }
@@ -317,7 +330,7 @@ namespace Worsen.Presentation.Environment
                 float gutter = EnvironmentPresenter.CombinedFlameGutter(_state.Gutter, _state.Positions[i],
                     _state.FlameDimPosition, _state.FlameDimRadius, _state.FlameDimMultiplier);
                 if (protectedExit) gutter = 0f;
-                float intensity = flame.Exit ? _lumen.ExitRayIntensity(flame.OpeningProgress,
+                float intensity = flame.Exit ? LumenMathUtility.ExitRayIntensity(flame.OpeningProgress,
                     _config.ExitRayClosedIntensity, _config.ExitRayOpenIntensity) * (1f - flame.Destruction) :
                     flame.Moon ? 1f - flame.Destruction :
                     EnvironmentThemePresenter.LampBrightness(flame.Fluorescent, _state.Elapsed, flame.Identity, gutter,

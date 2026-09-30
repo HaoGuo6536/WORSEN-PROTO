@@ -15,6 +15,7 @@
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   The two fixed hazard sockets explicitly use legacy authored-count mode.
 //   Scene-owned through FloorManager/FloorDriver. Time is supplied by the owner.
 //   No persistent singleton, global settings, or independent update loop.
@@ -235,7 +236,7 @@ namespace Worsen.Tests.Floor
             public Fixture()
             {
                 _config = ScriptableObject.CreateInstance<FloorConfig>();
-                _visual = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                _visual = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
                 typeof(FloorConfig).GetField("_requiredCakeCount", BindingFlags.NonPublic|BindingFlags.Instance).SetValue(_config,2);
                 typeof(FloorConfig).GetField("_useRoomCakeDensity", BindingFlags.NonPublic|BindingFlags.Instance).SetValue(_config,false);
                 Root = new GameObject("Collapse isolated fixture"); Root.SetActive(false);

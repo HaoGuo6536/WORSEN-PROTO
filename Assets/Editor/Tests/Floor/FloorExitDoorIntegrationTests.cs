@@ -14,6 +14,7 @@
 // DEPENDENCIES:
 //   - Core shared values and Floor-owned visual configuration only.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Scene-owned through FloorDriver. Session supplies elapsed time; no Update loop.
 //   No global settings. Reinitialization clears crossing and opening state.
 // ============================================================================
@@ -93,7 +94,7 @@ namespace Worsen.Tests.Floor
             private readonly LevelGraph _graph;
             public Fixture()
             {
-                _config=ScriptableObject.CreateInstance<FloorDriverConfig>();
+                _config=Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
                 typeof(FloorDriverConfig).GetField("_usePhysicalExitDoor",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(_config,true);
                 Root=new GameObject("Physical Exit Fixture");Driver=Root.AddComponent<FloorDriver>();
                 typeof(FloorDriver).GetField("_config",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(Driver,_config);

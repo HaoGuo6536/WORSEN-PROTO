@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Wire theme, challenge, organic fallback and validated room catalogue assets.
+//   - Wire theme, challenge, shader, organic fallback and validated room catalogue assets.
 // DEPENDENCIES:
 //   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor and Domain.Procedural only.
@@ -41,6 +41,12 @@ namespace Worsen.Editor.Procedural
             EnsureFolder(folder);
             var themes = LoadOrCreate<ProceduralThemeConfig>(folder + "/ProceduralThemeConfig.asset");
             var challenges = LoadOrCreate<ProceduralChallengeConfig>(folder + "/ProceduralChallengeConfig.asset");
+            var driver = LoadOrCreate<ProceduralDriverConfig>(folder + "/ProceduralDriverConfig.asset");
+            ProceduralShaderSetup.Configure(driver);
+            ProceduralShaderSetup.Configure(challenges);
+            if (selected.Challenges != null) ProceduralShaderSetup.Configure(selected.Challenges);
+            AssetDatabase.SaveAssetIfDirty(driver); AssetDatabase.SaveAssetIfDirty(challenges);
+            if (selected.Challenges != null) AssetDatabase.SaveAssetIfDirty(selected.Challenges);
             var organic = LoadOrCreate<ProceduralOrganicConfig>(folder + "/ProceduralOrganicConfig.asset");
             var imported = new List<ProceduralTemplateCatalogue>();
             foreach (string theme in new[] { "Castle", "Hospital", "School", "Basement" })

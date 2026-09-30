@@ -18,7 +18,7 @@
 //   No lights, collisions, audio, gameplay or global render settings are changed.
 //   Native fog color is sampled once at catch start; no fading screen overlay exists.
 //   Placeholder dimensions are normalized mesh authoring, scaled by HandSize.
-//   Supply a depth-writing material with _BaseColor; URP/Unlit is the fallback.
+//   Supply a serialized hand material or shader from Camera setup; missing wiring logs once and hides the hand.
 // ============================================================================
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -31,20 +31,24 @@ namespace Worsen.Presentation.Camera
         private Material _material;
         private Color _fog;
         private Transform[] _fingers;
+        private bool _missingMaterialReported;
 
         public void Initialize(CameraDriverConfig config, UnityEngine.Camera output)
         {
             Teardown();
             if (config == null || output == null) return;
+            if (config.HandMaterial == null && config.HandShader == null)
+            {
+                if (!_missingMaterialReported)
+                {
+                    _missingMaterialReported = true;
+                    Debug.LogError("CameraDriverConfig requires HandMaterial or HandShader. Rebuild Camera assets.", this);
+                }
+                return;
+            }
             _config = config;
             _fog = RenderSettings.fogColor;
-            if (config.HandMaterial != null) _material = new Material(config.HandMaterial);
-            else
-            {
-                var shader = Shader.Find("Universal Render Pipeline/Unlit");
-                if (shader == null) { Debug.LogWarning("Hand catch needs a depth-writing unlit material.", this); return; }
-                _material = new Material(shader);
-            }
+            _material = config.HandMaterial != null ? new Material(config.HandMaterial) : new Material(config.HandShader);
             _material.name = "Owned Hand Catch";
             _root = new GameObject("Hand Catch Close-up");
             _root.transform.SetParent(output.transform, false);

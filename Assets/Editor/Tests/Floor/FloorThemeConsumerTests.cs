@@ -12,6 +12,7 @@
 // DEPENDENCIES:
 //   NUnit, Core, Floor, Player read-only state and existing Floor test fixtures.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Edit Mode; temporary objects only. The coordinator runs these in Unity.
 // ============================================================================
 using System;
@@ -58,7 +59,7 @@ namespace Worsen.Tests.Floor
         {
             var root = new GameObject("Puzzle gold fixture");
             var config = ScriptableObject.CreateInstance<FloorConfig>();
-            var visual = ScriptableObject.CreateInstance<FloorDriverConfig>();
+            var visual = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
             var driver = root.AddComponent<FloorDriver>(); FloorCakeRulesTests.Set(driver, "_config", visual);
             var manager = root.AddComponent<FloorManager>();
             try

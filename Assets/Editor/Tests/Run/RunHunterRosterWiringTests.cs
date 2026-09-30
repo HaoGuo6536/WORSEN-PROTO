@@ -379,7 +379,7 @@ namespace Worsen.Tests.Run
         private T Component<T>() where T : Component
         { var go = new GameObject(typeof(T).Name + " roster wiring test"); go.SetActive(false); owned.Add(go); return go.AddComponent<T>(); }
         private T Config<T>() where T : ScriptableObject
-        { var value = ScriptableObject.CreateInstance<T>(); owned.Add(value); return value; }
+        { var value = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<T>(); owned.Add(value); return value; }
         private static FieldInfo Field(object o, string name) => o.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
         private static object Get(object o, string name) => Field(o, name).GetValue(o);
         private static void Set(object o, string name, object value) => Field(o, name).SetValue(o, value);

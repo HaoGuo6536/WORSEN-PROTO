@@ -13,6 +13,7 @@
 // DEPENDENCIES:
 //   - NUnit, Core, Domain.Procedural and Presentation.Environment.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Transient fixtures only; live Lumen rendering remains a coordinator check.
 // ============================================================================
 using System;
@@ -65,7 +66,7 @@ namespace Worsen.Tests.CastleEnvironment
         [TestCase("school", true)] [TestCase("basement", false)]
         public void ThemeFixturesUsePanelsOrCagesWithoutRealLights(string theme, bool fluorescent)
         {
-            var root = new GameObject("Theme socket fixture"); var config = ScriptableObject.CreateInstance<EnvironmentDriverConfig>();
+            var root = new GameObject("Theme socket fixture"); var config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<EnvironmentDriverConfig>();
             var driver = root.AddComponent<EnvironmentDriver>(); Field(driver, "_config").SetValue(driver, config);
             try
             {
