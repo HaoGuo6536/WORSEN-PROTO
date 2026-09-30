@@ -20,6 +20,7 @@
 //   - Bound ordinary chase lead separately from loop intercepts; commit predictions for the action window.
 //   - Select an optional archetype rules config and per-profile motor override.
 //   - Expose a provisional depth gate for roster admission, not runtime despawning.
+//   - Expose a provisional selection depth gate; Session owns gate enforcement.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
