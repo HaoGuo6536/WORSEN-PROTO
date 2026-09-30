@@ -15,7 +15,7 @@
 // ============================================================================
 using NUnit.Framework;
 using UnityEngine;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]

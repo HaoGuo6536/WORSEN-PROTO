@@ -10,13 +10,13 @@
 // KEY RESPONSIBILITIES:
 //   - Supply provisional attack, sound and bounded curse tuning.
 // DEPENDENCIES:
-//   - Hunter config base and Weaver's existing immutable sweep DriverConfig.
+//   - Hunter config base and the parent-owned immutable sweep DriverConfig.
 // USAGE NOTES:
 //   Four-part pursuit tuning and the depth gate are on HunterProfile.
 //   Floor owns trap counts and cadence; More Traps reports capped stacks to it.
 // ============================================================================
 using UnityEngine;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+
 namespace Worsen.Domain.Hunter.Archetypes.Blinder
 {
     [CreateAssetMenu(menuName = "Worsen/Hunter/Blinder Config")]

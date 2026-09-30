@@ -11,14 +11,14 @@
 //   - Retain data only; controller decisions and Manager publication stay outside.
 //   - Expose scalar observations through IReadOnlyBlinderState, never mutable queues.
 // DEPENDENCIES:
-//   - Hunter context, existing sweep values and Core facts.
+//   - Parent Hunter context and shared sweep definitions, plus Core facts.
 // USAGE NOTES:
 //   Owned by one BlinderController; no events or engine operations.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+
 namespace Worsen.Domain.Hunter.Archetypes.Blinder
 {
     public sealed class BlinderBehaviorState : IReadOnlyBlinderState

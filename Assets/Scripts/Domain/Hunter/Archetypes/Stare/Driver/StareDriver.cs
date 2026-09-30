@@ -11,7 +11,7 @@
 //   - Probe reachability, capsule clearance and camera-to-body occlusion.
 //   - Hide/restore only the original placeholder renderers and colliders.
 // DEPENDENCIES:
-//   - Unity physics/navigation and HunterMotorDriverConfig passed by the owner.
+//   - Unity physics/navigation, parent placement port and HunterMotorDriverConfig.
 // USAGE NOTES:
 //   Scene-owned; owner calls Initialize/Teardown. No Update or global side effects.
 // ============================================================================
@@ -20,7 +20,7 @@ using UnityEngine.AI;
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Stare
 {
-    public sealed class StareDriver : MonoBehaviour
+    public sealed class StareDriver : MonoBehaviour, IHunterPlacementDriver
     {
         private StareDriverState _state;
         public void Initialize()

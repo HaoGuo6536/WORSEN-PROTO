@@ -15,7 +15,7 @@
 // DEPENDENCIES:
 //   - Core values; read-only Player, Level and Floor views in Hunter's existing order.
 // USAGE NOTES:
-//   Modules are per entity, constructed by its Manager. Replay paths are consumed
+//   Rules are per entity, constructed through the registered factory. Replay paths are consumed
 //   synchronously and acknowledged before the next tick. Facts own copied paths.
 // ============================================================================
 using System.Collections.Generic;

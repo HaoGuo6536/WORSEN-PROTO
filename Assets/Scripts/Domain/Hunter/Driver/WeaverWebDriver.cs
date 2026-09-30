@@ -2,7 +2,8 @@
 // WeaverWebDriver.cs
 // ============================================================================
 // PURPOSE:
-//   Performs the Weaver's swept-sphere web collision and firing-position probes.
+//   Performs shared swept-sphere collision and firing-position probes for Weaver
+//   and Blinder without either archetype depending on the other's implementation.
 //   The floor motor remains authoritative for navigation while the physical
 //   capsule and visual children move to the room ceiling, dropping for attacks.
 // ARCHITECTURAL ROLE:
@@ -27,7 +28,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
-namespace Worsen.Domain.Hunter.Archetypes.Weaver
+namespace Worsen.Domain.Hunter
 {
     public sealed class WeaverWebDriver : MonoBehaviour
     {

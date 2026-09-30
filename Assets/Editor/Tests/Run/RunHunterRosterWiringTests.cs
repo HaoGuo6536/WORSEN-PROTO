@@ -86,7 +86,7 @@ namespace Worsen.Tests.Run
         }
         [Test] public void AllCoreRelaysAreOnceOnlyAndPairForLateBindRebindDisableAndDetach()
         {
-            var h = Hunter(-1); var ticking = h.gameObject.AddComponent<TickingManager>(); Set(h, "_ticking", ticking);
+            var h = Hunter(-1); var ticking = h.gameObject.AddComponent<TickingManager>(); Set(h, "_module", ticking);
             run.BindAdditionalHunter(h); run.BindAdditionalHunter(h); run.BindGameplay(null, null, null);
             int facts = 0;
             run.HunterArchetypePublished += _ => facts++; run.HunterHabitPublished += _ => facts++;
@@ -116,7 +116,7 @@ namespace Worsen.Tests.Run
         }
         [TestCase(false)] [TestCase(true)] public void LoudKeysNeverReachHuntersWithOrWithoutDirector(bool withDirector)
         {
-            var a = Hunter(-1); var b = Hunter(-2); var ticking = a.gameObject.AddComponent<TickingManager>(); Set(a, "_ticking", ticking);
+            var a = Hunter(-1); var b = Hunter(-2); var ticking = a.gameObject.AddComponent<TickingManager>(); Set(a, "_module", ticking);
             var director = withDirector ? Component<DirectorManager>() : null; int deliveries = 0;
             if (director != null) director.OnNoiseHintIssued += (_, __) => deliveries++;
             run.BindGameplay(null, null, director);
@@ -192,14 +192,18 @@ namespace Worsen.Tests.Run
             foreach (int id in new[] { -1, -2 })
             {
                 var h = Hunter(id);
-                var module = new Worsen.Domain.Hunter.Archetypes.Mannequin.MannequinController(config, new System.Random(1));
-                module.SetEffects(effects); Set(h, "_mannequin", module); run.BindAdditionalHunter(h);
+                var rules = new Worsen.Domain.Hunter.Archetypes.Mannequin.MannequinController(config, new System.Random(1));
+                rules.SetEffects(effects);
+                // The archetype now reaches HunterManager as a registered module (PLAN-027 hunter plug-ins).
+                var module = h.gameObject.AddComponent<Worsen.Domain.Hunter.Archetypes.Mannequin.MannequinModuleManager>();
+                module.InitializeModule(rules, null, null, null, null, null, null);
+                Set(h, "_module", module); run.BindAdditionalHunter(h);
             }
             int windows = 0; run.AfterglowWindowPublished += (room, seconds) => {
                 Assert.That(room, Is.EqualTo(1)); Assert.That(seconds, Is.EqualTo(config.AfterglowSeconds)); windows++; };
             run.ObserveLightExtinguished(1); Assert.That(windows, Is.EqualTo(1));
             foreach (var h in hunters)
-                Assert.That(((IDictionary)Get(Get(Get(h, "_mannequin"), "_state"), "Afterglow")).Contains(1), Is.True);
+                Assert.That(((IDictionary)Get(Get(((Worsen.Domain.Hunter.HunterArchetypeManager)Get(h, "_module")).Rules, "_state"), "Afterglow")).Contains(1), Is.True);
             run.SetPaused(true); run.ObserveLightExtinguished(2); Assert.That(windows, Is.EqualTo(1));
         }
 

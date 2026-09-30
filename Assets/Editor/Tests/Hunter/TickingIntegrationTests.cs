@@ -89,7 +89,7 @@ namespace Worsen.Tests.Hunter
         {
             var root = new GameObject("Ticking manager fixture"); var playerRoot = new GameObject("collector");
             var keyPrefab = new GameObject("key fixture"); var stranger = new GameObject("stranger");
-            TickingManager ticking = null; TickingDriver driver = null;
+            IHunterTickingModule ticking = null; TickingDriver driver = null;
             var config = ScriptableObject.CreateInstance<TickingConfig>(); var driverConfig = ScriptableObject.CreateInstance<TickingDriverConfig>();
             var profile = ScriptableObject.CreateInstance<HunterProfile>(); var motor = ScriptableObject.CreateInstance<HunterMotorDriverConfig>();
             try
