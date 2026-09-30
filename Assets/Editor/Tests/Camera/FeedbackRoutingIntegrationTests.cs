@@ -9,7 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Drive look-back with mouse deltas and require exact rear/forward snaps in the committed frame.
 //   - Observe confirmed sight and two native lunge contacts through Session routing.
-//   - Observe catch hold events and the actual close-up pose before restart.
+//   - Require the death sting at hold start, not death, and observe the close-up before restart.
 //   - Verify scene-local comfort settings without modifying shared designer assets.
 //   - Isolate music routing with disposable test stems; production Pursuit/Danger may be empty.
 //   - Inspect actual pooled cue identity, configured clips, gain/pitch and playback; retain legacy coverage.
@@ -313,7 +313,7 @@ namespace Worsen.Tests.Camera
             {
                 Deaths++; killer = position;
                 Assert.That(id, Is.EqualTo(player.Id)); Assert.That(hits, Is.EqualTo(2));
-                AssertCue(CueId.Death);
+                Assert.That(((AudioFeedbackDriverState)Read(audio, "_feedbackState")).CatchStingIssued, Is.False);
                 events.Add("death tick=" + Run.Tick + " frame=" + Time.frameCount);
             });
             private void CaptureEnded(long tick, bool complete)
@@ -322,6 +322,7 @@ namespace Worsen.Tests.Camera
             {
                 Assert.That(id, Is.EqualTo(player.Id));
                 Assert.That(CatchEnds, Is.Zero);
+                AssertCue(CueId.Death);
                 CatchStarts++;
             });
             private void CatchEnded(EntityId id) => Guard(() =>
