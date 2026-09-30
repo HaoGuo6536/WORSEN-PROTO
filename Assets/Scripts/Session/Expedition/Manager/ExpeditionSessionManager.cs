@@ -12,6 +12,7 @@
 //   - Defer new assembly until old factory objects finish deferred destruction.
 //   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
 //   - Apply run-scoped modifiers and route completed floor facts to progression.
+//   - Forward resolved bail flags with the admitted generation for exactly-once penalties.
 //   - Pass HorrorEffects' configured optional-window multiplier to procedural generation.
 //   - Announce assembled floors for the SceneRoot readiness hand-off.
 // DEPENDENCIES:
@@ -284,7 +285,7 @@ namespace Worsen.Session.Expedition
             int generationId = GenerationId;
             if (PlayerRegistry.TryGet(_state.Player, out var player) && player.ReadOnlyState != null)
                 _progression.RecordHealth(generationId, player.ReadOnlyState.Health);
-            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId);
+            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId, summary.Bailed);
             else _progression.EndRun(generationId);
         }
 

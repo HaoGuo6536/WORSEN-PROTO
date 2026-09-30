@@ -90,3 +90,4 @@ The Interact binding and HUD hint line (PLAN-020, PLAN-023, PLAN-025); empty inv
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Fixes and telemetry | Sealed Sills source and single UseItem owner fixed; progression and stall telemetry recorded. Build order (item 4), live cue check (item 6) and the ambience level remain | Commits 814d976, 1c02f4d |

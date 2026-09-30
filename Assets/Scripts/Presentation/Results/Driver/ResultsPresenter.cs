@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · Results.
 //
 // KEY RESPONSIBILITIES:
+//   - Hold death summaries until the catch ends; flag a bounded missing-event fallback.
 //   - Format times and counts without changing run rules or inventing missing values.
 //   - Accept one restart interaction while visible; rearm only after explicit hiding.
 //
@@ -31,7 +32,55 @@ namespace Worsen.Presentation.Results
 {
     public sealed class ResultsPresenter
     {
-        public void Show(ResultsDriverState state, RunSummary summary)
+        public void Show(ResultsDriverState state, RunSummary summary,
+            float timeoutSeconds = ResultsDriverConfig.DefaultCatchTimeoutSeconds)
+        {
+            if (summary.EndReason == RunEndReason.Died && !state.CatchCompleted)
+            {
+                if (!state.HasPendingSummary)
+                    state.CatchRemaining = float.IsNaN(timeoutSeconds) || float.IsInfinity(timeoutSeconds) || timeoutSeconds <= 0f
+                        ? ResultsDriverConfig.DefaultCatchTimeoutSeconds : timeoutSeconds;
+                state.PendingSummary = summary;
+                state.HasPendingSummary = true;
+                state.Visible = false;
+                return;
+            }
+            state.HasPendingSummary = false;
+            state.PendingSummary = default;
+            state.CatchRemaining = 0f;
+            PresentSummary(state, summary);
+        }
+
+        public void PrepareCatch(ResultsDriverState state, EntityId player)
+        {
+            if (!state.CatchCompleted && !state.CatchPlayer.IsValid) state.CatchPlayer = player;
+        }
+
+        public void EndCatch(ResultsDriverState state, EntityId player)
+        {
+            if (state.CatchCompleted || !player.IsValid ||
+                (state.CatchPlayer.IsValid && state.CatchPlayer != player) ||
+                (!state.CatchPlayer.IsValid && !state.HasPendingSummary)) return;
+            ReleaseCatch(state);
+        }
+
+        public bool Tick(ResultsDriverState state, float dt)
+        {
+            if (!state.HasPendingSummary || float.IsNaN(dt) || float.IsInfinity(dt) || dt <= 0f) return false;
+            state.CatchRemaining = Math.Max(0f, state.CatchRemaining - dt);
+            if (state.CatchRemaining > 0f) return false;
+            state.CatchFallbackFired = true;
+            ReleaseCatch(state);
+            return true;
+        }
+
+        private void ReleaseCatch(ResultsDriverState state)
+        {
+            state.CatchCompleted = true;
+            if (state.HasPendingSummary) Show(state, state.PendingSummary);
+        }
+
+        private void PresentSummary(ResultsDriverState state, RunSummary summary)
         {
             string reason = summary.EndReason == RunEndReason.Escaped ? "Escaped through the exit" :
                 summary.EndReason == RunEndReason.Died ? "You died" : "Unknown outcome";
@@ -62,6 +111,10 @@ namespace Worsen.Presentation.Results
 
         public void Hide(ResultsDriverState state)
         {
+            state.HasPendingSummary = state.CatchCompleted = state.CatchFallbackFired = false;
+            state.PendingSummary = default;
+            state.CatchPlayer = default;
+            state.CatchRemaining = 0f;
             state.Visible = false;
             state.RestartIssued = false;
             state.RunTime = state.Cakes = state.GoldenCakes = state.Chases = state.Escapes =

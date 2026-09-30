@@ -12,6 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Carry tick-stamped identity and immutable values between owning systems.
 //   - Keep event payloads independent of Domain and Presentation implementations.
+//   - Publish normalized visual opening progress independently of logical exit readiness.
 //
 // DEPENDENCIES:
 //   - Core definitions and pure UnityEngine value types only.
@@ -84,7 +85,8 @@ namespace Worsen.Core
     }
     public readonly struct FloorDisplaySnapshot
     {
-        public FloorDisplaySnapshot(int collected, int required, int golden, ExitState exit, bool hasCue, Vector3 cueDirection)
+        public FloorDisplaySnapshot(int collected, int required, int golden, ExitState exit, bool hasCue, Vector3 cueDirection,
+            float openingProgress = 0f)
         {
             Collected = collected;
             Required = required;
@@ -92,6 +94,7 @@ namespace Worsen.Core
             Exit = exit;
             HasCue = hasCue;
             CueDirection = cueDirection;
+            OpeningProgress = openingProgress;
         }
         public int Collected { get; }
         public int Required { get; }
@@ -99,5 +102,6 @@ namespace Worsen.Core
         public ExitState Exit { get; }
         public bool HasCue { get; }
         public Vector3 CueDirection { get; }
+        public float OpeningProgress { get; }
     }
 }

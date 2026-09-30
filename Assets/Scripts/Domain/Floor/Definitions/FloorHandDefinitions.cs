@@ -2,7 +2,7 @@
 // FloorHandDefinitions.cs
 // ============================================================================
 // PURPOSE:
-//   Carries sampled hand proximity and obstruction results without engine identities.
+//   Carries trigger-backed boundary distance, outward direction and penetration without engine identities.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -17,18 +17,35 @@
 //   No persistent singleton, global settings, or independent update loop.
 // ============================================================================
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Domain.Floor
 {
     public enum FloorHandPhase { Idle, Warning, Grabbed, Cooldown }
     public readonly struct FloorHandProbe
     {
-        public FloorHandProbe(int roomId, int handId, Vector3 position, float distance, bool available)
-        { RoomId = roomId; HandId = handId; Position = position; Distance = distance; Available = available; }
+        public FloorHandProbe(int roomId, int handId, Vector3 position, float distance, bool available,
+            Vector3 outward = default, float penetration = 0f, bool closed = false, Vector3? playerPosition = null)
+        { RoomId = roomId; HandId = handId; Position = position; Distance = distance; Available = available;
+          Outward = outward; Penetration = penetration; Closed = closed; PlayerPosition = playerPosition; }
         public int RoomId { get; }
         public int HandId { get; }
         public Vector3 Position { get; }
         public float Distance { get; }
         public bool Available { get; }
+        public Vector3 Outward { get; }
+        public float Penetration { get; }
+        public bool Closed { get; }
+        public Vector3? PlayerPosition { get; }
+    }
+
+    public readonly struct FloorCakeLoss
+    {
+        public FloorCakeLoss(int anchorId, int roomId, PickupKind kind, long tick)
+        { AnchorId = anchorId; RoomId = roomId; Kind = kind; Tick = tick; }
+        public int AnchorId { get; }
+        public int RoomId { get; }
+        public PickupKind Kind { get; }
+        public long Tick { get; }
     }
 }

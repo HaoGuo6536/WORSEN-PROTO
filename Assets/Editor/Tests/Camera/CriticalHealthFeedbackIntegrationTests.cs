@@ -10,8 +10,10 @@
 //   Editor tool (§10) · test suite (§11) · Camera/PostFX and Audio integration.
 // KEY RESPONSIBILITIES:
 //   - Preserve default configs and observe Player -> Run -> Audio/PostFX facts.
+//   - Wait for the published end-exclusive grace tick before each intended accepted hit.
 //   - Distinguish critical breathing from proximity and inspect real AudioSources.
 //   - Verify death fades and canonical persistent Audio reset on one fresh scene.
+//   - Measure injury above the constant frame vignette and restore that baseline on fresh life.
 // DEPENDENCIES:
 //   Core; Domain Player/Hunter/Chase; Session Run/SceneFlow; Audio/PostFX/Input;
 //   TagArena SceneRoot; existing CaptureGateTrace focus admission; NUnit and Unity
@@ -83,12 +85,12 @@ namespace Worsen.Tests.Camera
                 SceneManager.sceneLoaded += trial.Loaded;
                 Assert.That(SceneManager.LoadSceneAsync(Arena, LoadSceneMode.Single), Is.Not.Null);
                 yield return Until(() => trial.SceneCount == 1 && trial.Settled, trial, "Healthy baseline");
-                trial.Damage(50f, 50f);
+                yield return trial.Damage(50f, 50f);
                 yield return Until(() => trial.Settled, trial, "50 health stays below critical breathing threshold");
-                trial.Damage(25f, 25f);
+                yield return trial.Damage(25f, 25f);
                 yield return Until(() => trial.Settled, trial, "25 health reaches actual critical breath source and vignette");
                 trial.AssertCritical();
-                trial.Damage(25f, 0f);
+                yield return trial.Damage(25f, 0f);
                 yield return Until(() => trial.Settled && trial.Ended, trial, "Death reaches zero loop gains and Run end");
                 trial.AssertFirstLife();
                 trace.Mark("critical life ended; request fresh TagArena through canonical SceneFlow");
@@ -145,6 +147,7 @@ namespace Worsen.Tests.Camera
             private bool ready, awaitingDamage, sawCriticalMidpoint;
             private float health = 100f, elapsed, maxFrame, lastBreath, peakBreath;
             private float proximity;
+            private long nextDamageTick;
             private int stageFrames, firstAudioId, firstRunId, firstInputId, firstPostId, firstPlayerObjectId;
             public bool Settled, ReloadRequested;
             public string Failure = "";
@@ -311,8 +314,9 @@ namespace Worsen.Tests.Camera
             private void UnexpectedChase(ChaseFact fact) => Guard(() => Assert.Fail("Disabled-Hunter health fixture unexpectedly started a chase."));
             private void Proximity(ProximitySample sample) { proximity = sample.Closeness; }
 
-            public void Damage(float amount, float expectedHealth)
+            public IEnumerator Damage(float amount, float expectedHealth)
             {
+                yield return Until(() => player.ReadOnlyState.Tick >= nextDamageTick, this, "Hit grace expiry");
                 Assert.That(Failure, Is.Empty);
                 Assert.That(SceneCount == 1 && Settled && current.Unique, Is.True);
                 Assert.That(player.ReadOnlyState.IsAlive && run.Phase == RunPhase.FirstSweep, Is.True);
@@ -321,8 +325,10 @@ namespace Worsen.Tests.Camera
                     " expectedHealth=" + expectedHealth + " tick=" + run.Tick + " frame=" + Time.frameCount +
                     " killerPosition=self " + player.ReadOnlyState.Position.ToString("F4") + " focused=" + Application.isFocused);
                 awaitingDamage = true;
-                try { player.ApplyHit(amount, player.ReadOnlyState.Position); }
-                finally { awaitingDamage = false; }
+                Action<GraceWindowFact> observeGrace = fact => nextDamageTick = fact.EndTick;
+                player.OnGraceStarted += observeGrace;
+                try { Assert.That(player.ApplyHit(amount, player.ReadOnlyState.Position), Is.True); }
+                finally { player.OnGraceStarted -= observeGrace; awaitingDamage = false; }
                 Assert.That(Failure, Is.Empty);
                 Assert.That(player.ReadOnlyState.Health, Is.EqualTo(expectedHealth));
                 Assert.That(health, Is.EqualTo(expectedHealth));
@@ -348,7 +354,7 @@ namespace Worsen.Tests.Camera
                     current.Unique = true; current.SettledFrame = Time.frameCount;
                 }
                 Assert.That(proximity, Is.Zero, "Critical breathing must not be supplied by Hunter proximity.");
-                Assert.That(Vignette(), Is.EqualTo((1f - health / 100f) * postConfig.InjuryVignette).Within(0.0001f));
+                Assert.That(Vignette(), Is.EqualTo(Mathf.Clamp01(postConfig.FrameVignette + (1f - health / 100f) * postConfig.InjuryVignette)).Within(0.0001f));
                 Assert.That(hunterLayer.volume, Is.Zero.Within(0.0001f));
                 Assert.That(dt > 0f && !float.IsNaN(dt) && !float.IsInfinity(dt), Is.True);
                 Assert.That(gain, Is.InRange(0f, 0.4401f));
@@ -403,7 +409,7 @@ namespace Worsen.Tests.Camera
                 Assert.That(sawCriticalMidpoint, Is.True, "Observe a real source fade, not only its eventual property value.");
                 Assert.That(peakBreath, Is.EqualTo(0.44f).Within(0.0001f));
                 Assert.That(player.ReadOnlyState.IsAlive, Is.True);
-                Assert.That(Vignette(), Is.EqualTo(0.3375f).Within(0.0001f));
+                Assert.That(Vignette(), Is.EqualTo(Mathf.Clamp01(postConfig.FrameVignette + 0.3375f)).Within(0.0001f));
             }
             public void AssertFirstLife()
             {
@@ -428,7 +434,8 @@ namespace Worsen.Tests.Camera
                 Assert.That(player.ReadOnlyState.Health, Is.EqualTo(100f));
                 Assert.That(run.Phase, Is.EqualTo(RunPhase.FirstSweep));
                 Assert.That(breath.isPlaying && breath.clip == audioConfig.BreathLoop, Is.True);
-                Assert.That(breath.volume == 0f && hunterLayer.volume == 0f && Vignette() == 0f, Is.True);
+                Assert.That(breath.volume == 0f && hunterLayer.volume == 0f, Is.True);
+                Assert.That(Vignette(), Is.EqualTo(postConfig.FrameVignette).Within(0.0001f));
             }
             private void Snapshot(ScriptableObject config)
             {

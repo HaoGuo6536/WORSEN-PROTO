@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own Driver configuration and symmetric enable/disable event routing.
 //   - Republish Core audio feedback for UI navigation and intent; purchases sound only after Session commits.
-//   - Forward an optional terminal reveal delay without delaying authoritative death.
+//   - Forward catch gates and completion without delaying authoritative death.
 //   - Expose snapshot, hide and lifecycle commands without game rules.
 //
 // DEPENDENCIES:
@@ -29,6 +29,7 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.ProgressionUI
 {
@@ -59,7 +60,9 @@ namespace Worsen.Presentation.ProgressionUI
         }
 
         public void SetSnapshot(ProgressionSnapshot snapshot) { if (_driver != null) _driver.SetSnapshot(snapshot); }
-        public void DeferTerminal(float seconds) { if (_driver != null) _driver.DeferTerminal(seconds); }
+        public void PrepareCatch(EntityId player) { if (_driver != null) _driver.PrepareCatch(player); }
+        public void EndCatch(EntityId player) { if (_driver != null) _driver.EndCatch(player); }
+        public void ResetCatch() { if (_driver != null) _driver.ResetCatch(); }
         public void Hide() { if (_driver != null) _driver.Hide(); }
         public void Teardown()
         {

@@ -10,9 +10,10 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Verify terminal fade timing, invalid triggers, precedence and clean reset.
+//   - Verify hunter and hand death paths remain visible with no terminal fade.
 //   - Cover bounded proximity, fractional injury and independent intrusion/blur expiry.
 //   - Verify look-back release edges, comfort toggles and reset isolation.
+//   - Assert constant degradation, budget-denied subtle intrusion and timed blindness.
 //
 // DEPENDENCIES:
 //   - PostFX presentation math, NUnit and editor config serialization only.
@@ -55,7 +56,7 @@ namespace Worsen.Tests.PostFX
         {
             _presenter.SetProximity(_state, closeness);
             _presenter.Tick(_state, _config, 0f);
-            Assert.That(_state.Chromatic, Is.EqualTo(expectedChromatic).Within(0.00001f));
+            Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic + expectedChromatic).Within(0.00001f));
             Assert.That(_state.Distortion, Is.InRange(-0.12f, 0f));
         }
 
@@ -70,7 +71,7 @@ namespace Worsen.Tests.PostFX
             _presenter.SetInjury(_state, health, maximum);
             _presenter.Tick(_state, _config, 0f);
             Assert.That(_state.Injury, Is.EqualTo(injury).Within(0.00001f));
-            Assert.That(_state.Vignette, Is.EqualTo(injury * 0.45f).Within(0.00001f));
+            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + injury * 0.45f).Within(0.00001f));
         }
 
         [Test]
@@ -85,9 +86,9 @@ namespace Worsen.Tests.PostFX
             Assert.That(_state.Saturation, Is.EqualTo(-70f));
             _presenter.Tick(_state, _config, 0.05f);
             Assert.That(_state.Blur, Is.Zero);
-            Assert.That(_state.Chromatic, Is.EqualTo(0.25f));
-            Assert.That(_state.Vignette, Is.EqualTo(0.225f).Within(0.00001f));
-            Assert.That(_state.Grain, Is.EqualTo(0.5f));
+            Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic + 0.25f));
+            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + 0.225f).Within(0.00001f));
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain + 0.5f));
         }
 
         [Test]
@@ -125,7 +126,7 @@ namespace Worsen.Tests.PostFX
             Assert.That(_state.Saturation, Is.EqualTo(-70f));
             _presenter.Tick(_state, _config, 0.5f);
             Assert.That(_state.Saturation, Is.Zero);
-            Assert.That(_state.Grain, Is.Zero);
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain));
         }
 
         [Test]
@@ -139,30 +140,34 @@ namespace Worsen.Tests.PostFX
             _presenter.Reset(_state);
             _presenter.SetLookBack(_state, _config, false);
             _presenter.Tick(_state, _config, 0f);
-            Assert.That(_state.Chromatic + _state.Vignette + _state.Grain + _state.Blur, Is.Zero);
+            Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic));
+            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette));
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain));
+            Assert.That(_state.Blur, Is.Zero);
             Assert.That(_state.LookBack, Is.False);
         }
 
         [Test]
-        public void ConsumptionFadesGraduallyAndRemainsBlackDespiteLaterFeedback()
+        public void ConsumptionNeverFadesAndPreservesOtherFeedback()
         {
             _presenter.PlayConsumed(_state, 0.9f);
             _presenter.Tick(_state, _config, 0.09f);
             Assert.That(_state.Blackout, Is.Zero);
             _presenter.Tick(_state, _config, 0.36f);
-            Assert.That(_state.Blackout, Is.InRange(0.1f, 0.9f));
+            Assert.That(_state.Blackout, Is.Zero);
             _presenter.PlayConsumed(_state, 2f);
             Assert.That(_state.ConsumptionElapsed, Is.EqualTo(0.45f).Within(0.0001f));
             _presenter.Tick(_state, _config, 0.5f);
-            Assert.That(_state.SceneTint, Is.EqualTo(Color.black));
-            Assert.That(_state.Blackout, Is.EqualTo(1f));
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+            Assert.That(_state.Blackout, Is.Zero);
             _presenter.SetInjury(_state, 100f, 100f);
             _presenter.PlayIntrusion(_state, 2f);
             _presenter.PlayReacquireBlur(_state, _config);
             _presenter.Tick(_state, _config, 0f);
-            Assert.That(_state.SceneTint, Is.EqualTo(Color.black));
-            Assert.That(_state.Grain + _state.Blur, Is.Zero);
-            Assert.That(_state.Exposure, Is.EqualTo(-8f));
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain + _config.IntrusionGrain));
+            Assert.That(_state.Blur, Is.EqualTo(1f));
+            Assert.That(_state.Exposure, Is.Zero);
             _presenter.Reset(_state);
             _presenter.Tick(_state, _config, 0f);
             Assert.That(_state.Consumed, Is.False);
@@ -183,6 +188,69 @@ namespace Worsen.Tests.PostFX
             Assert.That(_state.Consumed, Is.False);
             Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
             Assert.That(_state.Blackout, Is.Zero);
+        }
+
+        [Test]
+        public void HunterDeathInjuryNeverProducesFadeThroughoutCatch()
+        {
+            _presenter.SetInjury(_state, 0f, 100f);
+            for (int step = 0; step < 120; step++)
+            {
+                _presenter.Tick(_state, _config, 1f / 60f);
+                Assert.That(_state.Blackout, Is.Zero);
+                Assert.That(_state.Exposure, Is.Zero);
+                Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+                Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + _config.InjuryVignette));
+            }
+        }
+
+        [Test]
+        public void NoEventsApplyConstantDegradation()
+        {
+            _presenter.Tick(_state, _config, 10f);
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain).And.GreaterThan(0f));
+            Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic).And.GreaterThan(0f));
+            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette).And.GreaterThan(0f));
+            Assert.That(_state.Blackout, Is.Zero);
+        }
+
+        [Test]
+        public void SubtleIntrusionCannotExtendLoudEnvelopeAndReturnsToBaseline()
+        {
+            _presenter.PlayIntrusion(_state, 1f, true);
+            _presenter.PlayIntrusion(_state, 2f, false);
+            _presenter.Tick(_state, _config, 1f);
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain + _config.IntrusionGrain * _config.SubtleIntrusionMultiplier));
+            Assert.That(_state.Saturation, Is.EqualTo(-_config.IntrusionDesaturation * _config.SubtleIntrusionMultiplier));
+            _presenter.Tick(_state, _config, 1f);
+            Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain));
+            Assert.That(_state.Saturation, Is.Zero);
+        }
+
+        [Test]
+        public void BlindnessIsDefaultOffTimedCancellableAndNeverHidesHandCatch()
+        {
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+            _presenter.SetBlindness(_state, 2f);
+            _presenter.Tick(_state, _config, 1f);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.black));
+            _presenter.Tick(_state, _config, 1f);
+            Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
+            _presenter.SetBlindness(_state, 2f);
+            _presenter.SetBlindness(_state, 0f);
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.Blackout, Is.Zero);
+            _presenter.SetBlindness(_state, 2f);
+            _presenter.PlayConsumed(_state, 0.9f);
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.Blackout, Is.Zero);
+            _presenter.Reset(_state);
+            Assert.That(_state.BlindnessRemaining, Is.Zero);
+            _presenter.SetBlindness(_state, 2f);
+            _presenter.SetInjury(_state, 0f, 100f);
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.Blackout, Is.Zero, "Hunter catches remain visible too.");
         }
 
         [Test]

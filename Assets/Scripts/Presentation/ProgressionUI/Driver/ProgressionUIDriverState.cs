@@ -11,6 +11,7 @@
 //   DriverState (§7c) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain catch identity, completion and fallback diagnostics without routing logic.
 //   - Hold the latest terminal snapshot while an explicitly requested visual sequence finishes.
 //   - Retain display copies, revision and pending interaction state.
 //   - Store health visibility independently of modal and document visibility.
@@ -34,6 +35,8 @@ namespace Worsen.Presentation.ProgressionUI
         public bool HealthVisible;
         public int Revision, GenerationId;
         public bool TerminalDeferred, HasDeferredTerminal;
+        public bool CatchCompleted, CatchFallbackFired;
+        public EntityId CatchPlayer;
         public float TerminalRemaining;
         public ProgressionSnapshot DeferredTerminal;
         public int DeferredGenerationId;

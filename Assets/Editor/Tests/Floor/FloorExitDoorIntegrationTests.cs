@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep visible door movement and physical passage in agreement.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
+//   - Keep the locked threshold sensing contact without bypassing open-door crossing rules.
 // DEPENDENCIES:
 //   - Core shared values and Floor-owned visual configuration only.
 // USAGE NOTES:
@@ -29,12 +30,12 @@ namespace Worsen.Tests.Floor
 {
     public sealed class FloorExitDoorIntegrationTests
     {
-        [Test] public void ClosedDoorHasPhysicalLeavesAndDisablesThresholdUntilSwingFinishes()
+        [Test] public void ClosedDoorHasPhysicalLeavesAndSensesContactUntilSwingFinishes()
         {
             using(var f=new Fixture())
             {
                 var trigger=f.Door.GetComponent<BoxCollider>();
-                Assert.That(trigger.enabled,Is.False);
+                Assert.That(trigger.enabled,Is.True,"Locked overlaps must reach the bail hold.");
                 Physics.SyncTransforms();
                 Assert.That(Physics.Raycast(f.Origin+new Vector3(0.25f,1.5f,-1f),Vector3.forward,2f,~0,QueryTriggerInteraction.Ignore),Is.True);
                 var hinges=f.Root.GetComponentsInChildren<Transform>().Where(t=>t.name.Contains("Hinged Door")).ToArray();
@@ -43,7 +44,7 @@ namespace Worsen.Tests.Floor
                 Assert.That(leaves.Length,Is.EqualTo(2));Assert.That(leaves.All(c=>c.enabled&&!c.isTrigger),Is.True);
                 f.Driver.OpenExit(Array.Empty<LevelAnchor>());
                 f.Driver.TickWarnings(0.6f);
-                Assert.That(trigger.enabled,Is.False);Assert.That(f.Door.Opening,Is.True);
+                Assert.That(trigger.enabled,Is.True);Assert.That(f.Door.Opening,Is.True);
                 Assert.That(Quaternion.Angle(Quaternion.identity,hinges[0].localRotation),Is.GreaterThan(1f));
                 f.Driver.TickWarnings(1.2f);
                 Assert.That(trigger.enabled,Is.True);Assert.That(f.Door.FullyOpen,Is.True);
@@ -59,15 +60,15 @@ namespace Worsen.Tests.Floor
                 int contacts=0;f.Driver.ExitContact+=_=>contacts++;
                 f.Actor.transform.position=f.Origin+new Vector3(0f,1f,-0.6f);
                 Physics.SyncTransforms();Invoke(f.Door,"OnTriggerEnter",f.Actor.GetComponent<Collider>());
-                Assert.That(contacts,Is.Zero);
+                Assert.That(contacts,Is.EqualTo(1),"Locked contact is distinct from a completed crossing.");
                 f.Driver.OpenExit(Array.Empty<LevelAnchor>());f.Driver.TickWarnings(1.2f);
                 Invoke(f.Door,"OnTriggerEnter",f.Actor.GetComponent<Collider>());
                 for(int i=0;i<4;i++)Invoke(f.Door,"OnTriggerStay",f.Actor.GetComponent<Collider>());
-                Assert.That(contacts,Is.Zero);
+                Assert.That(contacts,Is.EqualTo(1),"Stationary open overlap must not add a contact.");
                 f.Actor.transform.position=f.Origin+new Vector3(0f,1f,0.6f);Physics.SyncTransforms();
                 Invoke(f.Door,"OnTriggerStay",f.Actor.GetComponent<Collider>());
                 Invoke(f.Door,"OnTriggerStay",f.Actor.GetComponent<Collider>());
-                Assert.That(contacts,Is.EqualTo(1));
+                Assert.That(contacts,Is.EqualTo(2),"One locked contact and exactly one deliberate crossing.");
             }
         }
         [Test] public void ReinitializationReturnsClosedDoorAndClearsPreviousOpening()
@@ -77,7 +78,7 @@ namespace Worsen.Tests.Floor
                 f.Driver.OpenExit(Array.Empty<LevelAnchor>());f.Driver.TickWarnings(1.2f);
                 var old=f.Door;Assert.That(old.FullyOpen,Is.True);
                 f.Initialize();Assert.That(old==null,Is.True);
-                Assert.That(f.Door.FullyOpen,Is.False);Assert.That(f.Door.GetComponent<BoxCollider>().enabled,Is.False);
+                Assert.That(f.Door.FullyOpen,Is.False);Assert.That(f.Door.GetComponent<BoxCollider>().enabled,Is.True);
             }
         }
         private static void Invoke(FloorExitDoor door,string method,Collider actor)

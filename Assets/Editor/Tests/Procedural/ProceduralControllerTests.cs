@@ -8,8 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Check seeded variation, bounded growth, loops and complete straight cake lines.
+//   - Check seeded variation, bounded growth, loops and diverse typed cake candidates.
+//   - Check candidate support, clearance, stable identities and rejected invalid graphs.
 //   - Keep presentation room bounds aligned with enclosed playable room volumes.
+//   - Expect a validated spawn subset, not every non-player room, under first-contact rules.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core contracts, NUnit and UnityEditor serialized setup.
 // USAGE NOTES:
@@ -55,7 +57,8 @@ namespace Worsen.Tests.Procedural
         {
             var layout = Generate(9, round);
             Assert.That(layout.Graph.Rooms.Count, Is.EqualTo(expected));
-            Assert.That(layout.Graph.Anchors.Count, Is.EqualTo(expected * 10));
+            Assert.That(layout.Graph.Anchors.Count, Is.InRange(expected * _config.MinimumCandidatesPerRoom,
+                expected * _config.MaximumCandidatesPerRoom));
         }
 
         [Test]
@@ -80,26 +83,166 @@ namespace Worsen.Tests.Procedural
             }
         }
 
-        [Test]
-        public void EveryRoomHasTwoCompleteEvenlySpacedStraightCakeLines()
+        [TestCase(false, false)] [TestCase(true, false)] [TestCase(true, true)]
+        public void TwentySeedsHaveDiverseBoundedDeterministicCandidates(bool castle, bool refuge)
         {
-            var layout = Generate(64, 4);
-            foreach (var module in layout.Modules)
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = castle;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var types = new System.Collections.Generic.HashSet<CakeAnchorType>();
+            for (int seed = 1; seed <= 20; seed++)
             {
-                var room = layout.Graph.Rooms[module.RoomId - 1];
-                var anchors = layout.Graph.Anchors.Where(anchor => anchor.RoomId == room.Id).ToArray();
-                Assert.That(anchors.Length, Is.EqualTo(10));
-                var lines = anchors.GroupBy(anchor => module.AlongX ? anchor.Position.z : anchor.Position.x).ToArray();
-                Assert.That(lines.Length, Is.EqualTo(2));
-                foreach (var line in lines)
+                var layout = Generate(seed, 3, refuge);
+                Assert.That(layout.Graph.Anchors, Is.EqualTo(Generate(seed, 3, refuge).Graph.Anchors),
+                    "Order, ids, room ids, types and positions must all repeat.");
+                Assert.That(layout.Graph.Anchors.Select(a => a.Id).Distinct().Count(), Is.EqualTo(layout.Graph.Anchors.Count));
+                foreach (var room in layout.Graph.Rooms)
                 {
-                    var positions = line.OrderBy(anchor => module.AlongX ? anchor.Position.x : anchor.Position.z).ToArray();
-                    Assert.That(positions.Length, Is.EqualTo(5));
-                    for (int index = 1; index < positions.Length; index++)
-                        Assert.That(Vector3.Distance(positions[index - 1].Position, positions[index].Position), Is.EqualTo(2f).Within(0.0001f));
+                    var anchors = layout.Graph.Anchors.Where(anchor => anchor.RoomId == room.Id).ToArray();
+                    Assert.That(anchors.Length, Is.InRange(_config.MinimumCandidatesPerRoom, _config.MaximumCandidatesPerRoom));
+                    Assert.That(anchors.Select(a => a.Type).Distinct().Count(), Is.GreaterThan(1), "Seed " + seed + " room " + room.Id);
+                    Assert.That(anchors.Select(a => a.Position).Distinct().Count(), Is.EqualTo(anchors.Length));
+                    Assert.That(anchors.All(anchor => room.Bounds.Contains(anchor.Position)), Is.True);
+                    foreach (var anchor in anchors) types.Add(anchor.Type);
+                    foreach (var actor in new[] { TraversalAccess.Player, TraversalAccess.Hunter })
+                    {
+                        Assert.That(LevelGraphUtility.TopologicalDistancesFrom(layout.Graph, 1, actor)[room.Id], Is.GreaterThanOrEqualTo(0));
+                        Assert.That(LevelGraphUtility.DistancesTo(layout.Graph, layout.Graph.ExitRoomId, actor)[room.Id], Is.GreaterThanOrEqualTo(0));
+                    }
                 }
-                Assert.That(anchors.All(anchor => room.Bounds.Contains(anchor.Position)), Is.True);
             }
+            Assert.That(types, Is.EquivalentTo(castle && !refuge ? (CakeAnchorType[])Enum.GetValues(typeof(CakeAnchorType)) :
+                new[] { CakeAnchorType.Flow, CakeAnchorType.Detour, CakeAnchorType.Risk }));
+        }
+
+        [TestCase(1)] [TestCase(3)] [TestCase(5)]
+        public void FixedCandidateBudgetIsHonoredWithoutRenumberingSockets(int count)
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_minimumCandidatesPerRoom").intValue = count;
+            settings.FindProperty("_maximumCandidatesPerRoom").intValue = count;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var first = Generate(19, 3);
+            Assert.That(first.Graph.Rooms.All(room => first.Graph.Anchors.Count(a => a.RoomId == room.Id) == count), Is.True);
+            settings.FindProperty("_minimumCandidatesPerRoom").intValue = 5;
+            settings.FindProperty("_maximumCandidatesPerRoom").intValue = 5;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var second = Generate(19, 3);
+            foreach (var anchor in first.Graph.Anchors)
+            foreach (var other in second.Graph.Anchors.Where(a => a.RoomId == anchor.RoomId && a.Position == anchor.Position))
+                Assert.That(other.Id, Is.EqualTo(anchor.Id));
+        }
+
+        [Test]
+        public void ZeroPreferenceExcludesTypeAndImpossibleBudgetsThrow()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_flowPreference").floatValue = 0f;
+            settings.FindProperty("_minimumCandidatesPerRoom").intValue = 3;
+            settings.FindProperty("_maximumCandidatesPerRoom").intValue = 3;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Generate(19, 3).Graph.Anchors.Any(a => a.Type == CakeAnchorType.Flow), Is.False);
+            settings.FindProperty("_detourPreference").floatValue = 0f;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            Assert.Throws<InvalidOperationException>(() => Generate(19, 3));
+        }
+
+        [TestCase("_precisionPreference", -1f)] [TestCase("_riskPreference", float.NaN)]
+        [TestCase("_verticalPreference", float.PositiveInfinity)] [TestCase("_candidatePerimeterInset", 0f)]
+        [TestCase("_candidatePerimeterInset", 6f)]
+        public void InvalidCandidateSettingsAreRejected(string field, float value)
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty(field).floatValue = value;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            Assert.Throws<ArgumentException>(() => Generate(1, 1));
+        }
+
+        [TestCase(0, 5)] [TestCase(4, 3)] [TestCase(3, 6)]
+        public void InvalidCandidateCountsAreRejected(int minimum, int maximum)
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_minimumCandidatesPerRoom").intValue = minimum;
+            settings.FindProperty("_maximumCandidatesPerRoom").intValue = maximum;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            Assert.Throws<ArgumentException>(() => Generate(1, 1));
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void GraphValidationStillRejectsUnreachableOrOutOfRoomCake(bool outsideRoom)
+        {
+            var layout = Generate(1, 1);
+            var target = layout.Graph.Anchors.First(a => a.RoomId == 2);
+            var anchors = layout.Graph.Anchors.Select(a => outsideRoom && a.Id == target.Id ?
+                new LevelAnchor(a.Id, a.RoomId, a.Type, a.Position + Vector3.up * 100f) : a).ToArray();
+            var edges = layout.Graph.Edges.Where(e => outsideRoom || (e.FromRoomId != 2 && e.ToRoomId != 2)).ToArray();
+            var graph = LevelGraphUtility.Build(layout.Graph.Rooms, edges, anchors, layout.Graph.ExitRoomId, layout.Graph.ExitPosition);
+            var validate = typeof(ProceduralController).GetMethod("ValidateGraph",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var failure = Assert.Throws<System.Reflection.TargetInvocationException>(() => validate.Invoke(null, new object[] { graph }));
+            Assert.That(failure.InnerException, Is.TypeOf<InvalidOperationException>());
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void CandidateTypesMatchSupportedClearModuleDestinations(bool castle)
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = castle;
+            settings.FindProperty("_initialRoomCount").intValue = 7;
+            settings.FindProperty("_minimumCandidatesPerRoom").intValue = 5;
+            settings.FindProperty("_maximumCandidatesPerRoom").intValue = 5;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            try
+            {
+                for (int seed = 1; seed <= 20; seed++)
+                {
+                    var layout = Generate(seed, 3);
+                    var blocks = new ProceduralGeometryPresenter().Build(layout, _config, driver);
+                    foreach (var anchor in layout.Graph.Anchors)
+                    {
+                        var room = layout.Graph.Rooms.Single(r => r.Id == anchor.RoomId);
+                        var module = layout.Modules.Single(m => m.RoomId == room.Id);
+                        var local = anchor.Position - new Vector3(room.Center.x, 0f, room.Center.z);
+                        if (!module.AlongX) local = new Vector3(local.z, local.y, local.x);
+                        Assert.That(blocks.Any(b => b.HasCollision && b.Kind == ProceduralSurfaceKind.Floor &&
+                            new Bounds(Vector3.zero, b.Size).Contains(Quaternion.Inverse(b.Rotation) *
+                                (anchor.Position - Vector3.up * (_config.AnchorHeight + 0.01f) - b.Center))), Is.True);
+                        var standing = new Bounds(anchor.Position + Vector3.up * 0.91f, new Vector3(0.6f, 1.8f, 0.6f));
+                        foreach (var block in blocks.Where(b => b.HasCollision))
+                        {
+                            var bounds = new Bounds(block.Center, Vector3.zero);
+                            for (int corner = 0; corner < 8; corner++)
+                                bounds.Encapsulate(block.Center + block.Rotation * new Vector3(
+                                    (corner & 1) == 0 ? -block.Size.x : block.Size.x,
+                                    (corner & 2) == 0 ? -block.Size.y : block.Size.y,
+                                    (corner & 4) == 0 ? -block.Size.z : block.Size.z) * 0.5f);
+                            Assert.That(bounds.Intersects(standing), Is.False, "Blocked " + anchor.Type + " seed " + seed);
+                        }
+                        if (anchor.Type == CakeAnchorType.Precision || anchor.Type == CakeAnchorType.Vertical || anchor.Position.y > 1f)
+                        {
+                            Assert.That(anchor.Position.y, Is.EqualTo(_config.UpperDeckHeight + _config.AnchorHeight));
+                            Assert.That(blocks.Any(b => b.RoomId == room.Id && b.Role == ProceduralBlockRole.StairRamp), Is.True);
+                            if (anchor.Type == CakeAnchorType.Vertical)
+                                Assert.That(local.x, Is.EqualTo(-3f).Within(0.001f), "Vertical is above the stair head.");
+                            if (anchor.Type == CakeAnchorType.Precision)
+                                Assert.That(module.Kind == ProceduralModuleKind.SplitLevelLibrary ? local.x : local.z,
+                                    Is.EqualTo(module.Kind == ProceduralModuleKind.SplitLevelLibrary ? 3.45f : 1.65f).Within(0.001f));
+                        }
+                        else if (anchor.Type == CakeAnchorType.Flow)
+                            Assert.That(layout.Doors.Any(d => !d.IsOptional && (d.FromRoomId == room.Id || d.ToRoomId == room.Id) &&
+                                Vector3.Distance(d.Center, anchor.Position - Vector3.up * _config.AnchorHeight) <= _config.CandidatePerimeterInset + 0.001f), Is.True);
+                        else
+                        {
+                            float side = _config.RoomSize * 0.5f - _config.CandidatePerimeterInset;
+                            Assert.That(Mathf.Abs(local.x), Is.EqualTo(side).Within(0.001f));
+                            Assert.That(Mathf.Abs(local.z), Is.EqualTo(side).Within(0.001f));
+                        }
+                    }
+                }
+            }
+            finally { UnityEngine.Object.DestroyImmediate(driver); }
         }
 
         [Test]
@@ -108,7 +251,10 @@ namespace Worsen.Tests.Procedural
             var layout = Generate(7, 3);
             Assert.That(layout.Graph.Rooms[0].Bounds.Contains(layout.PlayerSpawnPosition), Is.True);
             Assert.That(layout.Graph.Rooms[layout.Graph.ExitRoomId - 1].Bounds.Contains(layout.Graph.ExitPosition), Is.True);
-            Assert.That(layout.HunterSpawnPositions.Count, Is.EqualTo(layout.Graph.Rooms.Count - 1));
+            Assert.That(layout.HunterSpawnPositions.Count, Is.InRange(1, layout.Graph.Rooms.Count - 2));
+            foreach (var position in layout.HunterSpawnPositions)
+                Assert.That(ProceduralSpawnUtility.Validate(layout, position, _config.DoorWidth,
+                    layout.MinimumHunterSpawnRooms, out _), Is.True);
             var firstRoom = layout.Graph.Rooms[0];
             var delta = layout.PlayerSpawnPosition - firstRoom.Center;
             Assert.That(layout.Modules[0].AlongX ? Mathf.Abs(delta.z) : Mathf.Abs(delta.x), Is.EqualTo(4f));
@@ -188,8 +334,8 @@ namespace Worsen.Tests.Procedural
             Assert.That(families.Count, Is.EqualTo(5), "Exercise hub starts beside every possible neighboring combat room family.");
         }
 
-        private ProceduralLayout Generate(int seed, int round)
+        private ProceduralLayout Generate(int seed, int round, bool refuge = false)
             => new ProceduralController(new ProceduralBehaviorState(), _config,
-                new System.Random(ProceduralController.LayoutSeed(seed, round))).Generate(seed, round);
+                new System.Random(ProceduralController.LayoutSeed(seed, round))).Generate(seed, round, refuge);
     }
 }

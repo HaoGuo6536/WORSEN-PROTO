@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Configure enclosed shell thickness, materials and bounded navigation checks.
 //   - Tune the flat collision extension beyond both ends of each stair flight.
+//   - Bound knockable corner props and thin doorway mark visuals.
 // DEPENDENCIES:
 //   - UnityEngine materials and serialization; no other gameplay system.
 // USAGE NOTES:
@@ -46,6 +47,12 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private float _slideClearance = 1.05f;
         [SerializeField] private float _landingOffset = 1.05f;
         [SerializeField, Min(0.01f)] private float _stairLandingExtension = 0.6f;
+        [SerializeField] private Vector3 _knockablePropSize = new Vector3(0.3f, 0.4f, 0.3f);
+        [SerializeField, Min(0.01f)] private float _knockablePropInset = 0.5f;
+        [SerializeField, Min(0.001f)] private float _thresholdMarkThickness = 0.015f;
+        public Vector3 KnockablePropSize => _knockablePropSize;
+        public float KnockablePropInset => _knockablePropInset;
+        public float ThresholdMarkThickness => _thresholdMarkThickness;
         public float WallThickness => _wallThickness;
         public float FloorThickness => _floorThickness;
         public float CeilingThickness => _ceilingThickness;

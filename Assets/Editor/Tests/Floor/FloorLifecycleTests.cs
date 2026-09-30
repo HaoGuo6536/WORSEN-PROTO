@@ -12,8 +12,12 @@
 //   - Check teardown and reinitialization release prior objects and subscriptions.
 //   - Prevent terminal callbacks from publishing an old run's display after restart.
 //   - Verify bail flags do not publish normal opening or spawn Golden Cakes.
+//   - Verify unused sockets stay empty and pickup noise/golden/opening data reach subscribers.
+//   - Drive physical door overlaps through Run and cancel last-collider departures before timing.
+//   - Cover legacy-volume departure and use a separate non-exit room for hazard lifecycle tests.
 // DEPENDENCIES:
 //   - Domain Floor components, read-only Level/Player interfaces and Core values.
+//   - Session Run receives the physical bail through its actual Floor subscription.
 //   - UnityEngine creates temporary test objects; NUnit and reflection inspect them.
 // USAGE NOTES:
 //   Unity Edit Mode engine tests only; exclude this fixture from standalone managed
@@ -22,6 +26,7 @@
 //   scenes are saved, and no navigation bake or physics simulation is performed.
 //   Calling the actual trigger method verifies callback routing, not physical contact
 //   detection; a missing navigation mesh may produce an unavailable cue.
+//   Non-ExecuteAlways lifecycle callbacks are invoked explicitly in Edit Mode.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -33,6 +38,7 @@ using Worsen.Core;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Level;
 using Worsen.Domain.Player;
+using Worsen.Session.Run;
 using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 
@@ -141,6 +147,7 @@ namespace Worsen.Tests.Floor
         }
 
         [TestCase("pickup")]
+        [TestCase("noise")]
         [TestCase("room")]
         [TestCase("exit")]
         public void SynchronousEventSubscriberCanTeardownOwnerWithoutResumingTheOldRun(string boundary)
@@ -153,13 +160,15 @@ namespace Worsen.Tests.Floor
                 var teardownEvents = 0;
                 Action teardown = () => { teardownEvents++; fixture.Manager.Teardown(); };
                 Action operation;
-                if (boundary == "pickup")
+                if (boundary == "pickup" || boundary == "noise")
                 {
-                    fixture.Manager.OnPickupCollected += _ => teardown();
+                    if (boundary == "pickup") fixture.Manager.OnPickupCollected += _ => teardown();
+                    else fixture.Manager.OnPickupNoise += _ => teardown();
                     operation = () => fixture.Manager.Collect(new EntityId(1), 101, PickupKind.Cake);
                 }
                 else
                 {
+                    if (boundary == "room") fixture.Initialize(new System.Random(1337), true);
                     fixture.Manager.Collect(new EntityId(1), 101, PickupKind.Cake);
                     if (boundary == "room")
                     {
@@ -224,7 +233,7 @@ namespace Worsen.Tests.Floor
                 var displays = new List<FloorDisplaySnapshot>();
                 var restarts = 0;
                 fixture.Manager.OnDisplayChanged += snapshot => displays.Add(snapshot);
-                fixture.Initialize();
+                fixture.Initialize(new System.Random(1337), terminal == "hand");
                 fixture.Manager.Collect(new EntityId(1), 101, PickupKind.Cake);
                 Assert.That(fixture.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                 Action restart = () => { restarts++; fixture.Initialize(); };
@@ -283,6 +292,166 @@ namespace Worsen.Tests.Floor
             }
         }
 
+        [TestCase("exit")]
+        [TestCase("disable")]
+        [TestCase("destroy")]
+        [TestCase("inactive")]
+        public void PhysicalDoorLastColliderDepartureCancelsHold(string departure)
+        {
+            using (var fixture = new LifecycleFixture(true))
+            {
+                fixture.Initialize();
+                var door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                var first = fixture.ContactCollider;
+                var second = first.gameObject.AddComponent<SphereCollider>();
+                int bails = 0;
+                fixture.Manager.OnEscapeResolved += (_, bailed) => { if (bailed) bails++; };
+                InvokeTrigger(door, "OnTriggerEnter", first);
+                InvokeTrigger(door, "OnTriggerEnter", second);
+                fixture.Manager.Tick(0.6f, 1);
+                InvokeTrigger(door, "OnTriggerExit", first);
+                fixture.Manager.Tick(0.4f, 2);
+                Assert.That(bails, Is.EqualTo(1), "One remaining collider must keep the hold armed.");
+
+                fixture.Initialize();
+                door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                InvokeTrigger(door, "OnTriggerEnter", first);
+                InvokeTrigger(door, "OnTriggerEnter", second);
+                fixture.Manager.Tick(0.6f, 3);
+                InvokeTrigger(door, "OnTriggerExit", first);
+                if (departure == "exit") InvokeTrigger(door, "OnTriggerExit", second);
+                else if (departure == "disable") second.enabled = false;
+                else if (departure == "destroy") Object.DestroyImmediate(second);
+                else first.gameObject.SetActive(false);
+                fixture.Manager.Tick(1f, 4);
+                Assert.That(bails, Is.EqualTo(1), "A missing exit callback must not complete a stale hold.");
+                first.gameObject.SetActive(true);
+                InvokeTrigger(door, "OnTriggerEnter", first);
+                fixture.Manager.Tick(0.6f, 5);
+                Assert.That(bails, Is.EqualTo(1), "Re-entry starts a fresh hold.");
+                fixture.Manager.Tick(0.4f, 6);
+                Assert.That(bails, Is.EqualTo(2));
+            }
+        }
+
+        [TestCase("exit")] [TestCase("disable")] [TestCase("destroy")]
+        [TestCase("inactive")] [TestCase("volume-disabled")] [TestCase("trigger-disabled")]
+        public void LegacyExitLastColliderDepartureCancelsHold(string departure)
+        {
+            using (var fixture = new LifecycleFixture())
+            {
+                fixture.Initialize();
+                var exit = fixture.Root.GetComponentInChildren<FloorExitVolume>();
+                var first = fixture.ContactCollider;
+                var second = first.gameObject.AddComponent<SphereCollider>();
+                int bails = 0;
+                fixture.Manager.OnEscapeResolved += (_, bailed) => { if (bailed) bails++; };
+                InvokeTrigger(exit, "OnTriggerEnter", first); InvokeTrigger(exit, "OnTriggerStay", second);
+                fixture.Manager.Tick(0.6f, 1); InvokeTrigger(exit, "OnTriggerExit", first);
+                fixture.Manager.Tick(0.4f, 2);
+                Assert.That(bails, Is.EqualTo(1), "The remaining collider keeps the hold alive.");
+
+                fixture.Initialize(); exit = fixture.Root.GetComponentInChildren<FloorExitVolume>();
+                InvokeTrigger(exit, "OnTriggerEnter", first); InvokeTrigger(exit, "OnTriggerEnter", second);
+                fixture.Manager.Tick(0.6f, 3); InvokeTrigger(exit, "OnTriggerExit", first);
+                if (departure == "exit") InvokeTrigger(exit, "OnTriggerExit", second);
+                else if (departure == "disable") second.enabled = false;
+                else if (departure == "destroy") Object.DestroyImmediate(second);
+                else if (departure == "inactive") first.gameObject.SetActive(false);
+                else if (departure == "volume-disabled") exit.enabled = false;
+                else exit.GetComponent<BoxCollider>().enabled = false;
+                fixture.Manager.Tick(1f, 4);
+                Assert.That(bails, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void PhysicalBailReachesRunSummaryWithoutNormalOpeningOrGoldenCakes()
+        {
+            using (var fixture = new LifecycleFixture(true))
+            {
+                fixture.Initialize();
+                var runRoot = new GameObject("Bail Run route");
+                try
+                {
+                    var run = runRoot.AddComponent<RunSessionManager>();
+                    var state = new RunSessionBehaviorState(42);
+                    var controller = new RunSessionController(state, new System.Random(42));
+                    SetField(run, "state", state); SetField(run, "controller", controller);
+                    controller.StartScene(SceneKey.HorrorRun);
+                    run.BindGameplay(null, fixture.Manager, null);
+                    Assert.That(SubscriberCount(fixture.Manager, "OnExitReached", run), Is.Zero);
+                    Assert.That(SubscriberCount(fixture.Manager, "OnEscapeResolved", run), Is.EqualTo(1));
+                    int opened = 0;
+                    fixture.Manager.OnExitOpened += _ => opened++;
+                    var door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                    var displays = new List<FloorDisplaySnapshot>();
+                    fixture.Manager.OnDisplayChanged += displays.Add;
+                    Assert.That(door.OpeningProgress, Is.Zero);
+                    InvokeTrigger(door, "OnTriggerEnter", fixture.ContactCollider);
+                    fixture.Manager.Tick(1f, 1);
+                    Assert.That(controller.TryFinish(out var summary), Is.True);
+                    Assert.That(summary.Bailed, Is.True);
+                    Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
+                    Assert.That(door.FullyOpen, Is.True);
+                    Assert.That(displays.Last().OpeningProgress, Is.EqualTo(1f));
+                    Assert.That(displays.Last().Exit, Is.EqualTo(ExitState.Locked));
+                    Assert.That(fixture.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
+                    Assert.That(opened, Is.Zero);
+                    Assert.That(fixture.Driver.OwnedPickupCount, Is.EqualTo(1));
+                    Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true)
+                        .Any(pickup => pickup.Kind == PickupKind.GoldenCake), Is.False);
+                    run.enabled = false;
+                    typeof(RunSessionManager).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(run, null);
+                    Assert.That(SubscriberCount(fixture.Manager, "OnEscapeResolved", run), Is.Zero);
+                    fixture.Manager.enabled = false;
+                    typeof(FloorManager).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(fixture.Manager, null);
+                    Assert.That(SubscriberCount(fixture.Driver, "ExitDeparted", fixture.Manager), Is.Zero);
+                }
+                finally { Object.DestroyImmediate(runRoot); }
+            }
+        }
+
+        [Test]
+        public void DensitySpawnsOnlyPlacedCakesAndPublishesNoiseGoldenCountAndContinuousOpening()
+        {
+            using (var fixture = new LifecycleFixture(true))
+            {
+                fixture.InitializeDensity();
+                var cakes = fixture.Root.GetComponentsInChildren<CakePickup>(true);
+                Assert.That(cakes.Length, Is.EqualTo(3), "Five candidate sockets must not become five pickups.");
+                Assert.That(fixture.Manager.ReadOnlyState.RequiredCakeCount, Is.EqualTo(2));
+                var noises = new List<NoiseEvent>(); var displays = new List<FloorDisplaySnapshot>();
+                fixture.Manager.OnPickupNoise += noises.Add; fixture.Manager.OnDisplayChanged += displays.Add;
+                var required = fixture.Manager.ReadOnlyState.ActiveCakeAnchors.ToArray();
+                var optional = cakes.Single(c => required.All(a => a.Id != c.AnchorId));
+                InvokeTrigger(optional, "OnTriggerEnter", fixture.ContactCollider);
+                Assert.That(displays.Last().Collected, Is.Zero);
+                Assert.That(displays.Last().Exit, Is.EqualTo(ExitState.Locked));
+                foreach (var anchor in required) fixture.Manager.Collect(new EntityId(1), anchor.Id, PickupKind.Cake);
+                fixture.Manager.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake);
+                fixture.Manager.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake);
+                Assert.That(noises.Count, Is.EqualTo(4));
+                Assert.That(noises.All(n => n.SourceKind == NoiseSourceKind.CakePickup && n.Loudness == 0.6f), Is.True);
+                Assert.That(displays.Last().Golden, Is.EqualTo(1));
+                var door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                float previous = 0f;
+                for (int tick = 1; tick <= 12; tick++)
+                {
+                    int before = displays.Count;
+                    fixture.Manager.Tick(0.1f, tick);
+                    Assert.That(displays.Count, Is.EqualTo(before + 1), "Opening publishes between guidance refreshes.");
+                    Assert.That(displays.Last().OpeningProgress, Is.GreaterThan(previous).And.LessThanOrEqualTo(1f));
+                    Assert.That(displays.Last().OpeningProgress, Is.EqualTo(door.OpeningProgress));
+                    previous = displays.Last().OpeningProgress;
+                }
+                Assert.That(previous, Is.EqualTo(1f)); Assert.That(door.FullyOpen, Is.True);
+                fixture.Initialize();
+                Assert.That(displays.Last().OpeningProgress, Is.Zero);
+                Assert.That(displays.Last().Golden, Is.Zero);
+            }
+        }
+
         private static void InvokeTrigger(Component component, string callback, Collider other)
         {
             var method = component.GetType().GetMethod(callback, BindingFlags.Instance | BindingFlags.NonPublic);
@@ -315,13 +484,14 @@ namespace Worsen.Tests.Floor
             private FloorConfig _config;
             private FloorDriverConfig _driverConfig;
 
-            public LifecycleFixture()
+            public LifecycleFixture(bool physicalDoor = false)
             {
                 try
                 {
                     Assert.That(Application.isPlaying, Is.False, "Run Floor lifecycle tests in Edit Mode.");
                     _config = ScriptableObject.CreateInstance<FloorConfig>();
                     _driverConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                    SetField(_driverConfig, "_usePhysicalExitDoor", physicalDoor);
                     SetField(_config, "_requiredCakeCount", 1);
                     Root = new GameObject("Floor lifecycle test owner");
                     Root.SetActive(false);
@@ -339,9 +509,15 @@ namespace Worsen.Tests.Floor
 
             public void Initialize() => Initialize(new System.Random(1337));
 
-            public void Initialize(System.Random random)
+            public void InitializeDensity()
             {
-                Manager.Initialize(_config, new LevelFixture(), new IReadOnlyPlayerState[] { new PlayerFixture() }, random);
+                SetField(_config, "_minimumCakesPerRoom", 3); SetField(_config, "_minimumExitRoomCakes", 3);
+                Manager.Initialize(_config, new LevelFixture(density: true), new IReadOnlyPlayerState[] { new PlayerFixture() }, new System.Random(42), 5);
+            }
+
+            public void Initialize(System.Random random, bool hazardRoom = false)
+            {
+                Manager.Initialize(_config, new LevelFixture(hazardRoom), new IReadOnlyPlayerState[] { new PlayerFixture() }, random);
             }
 
             public void Dispose()
@@ -360,10 +536,16 @@ namespace Worsen.Tests.Floor
         private sealed class LevelFixture : IReadOnlyLevelState
         {
             public bool IsReady => true;
-            public LevelGraph Graph { get; } = LevelGraphUtility.Build(
-                new[] { new LevelRoom(1, new Vector3(0f, 2f, 0f), new Vector3(8f, 4f, 8f)) },
-                new LevelEdge[0], new[] { new LevelAnchor(101, 1, CakeAnchorType.Flow, new Vector3(1f, 0f, 0f)) },
-                1, new Vector3(2f, 0f, 0f));
+            public LevelGraph Graph { get; }
+            public LevelFixture(bool hazardRoom = false, bool density = false)
+            {
+                var rooms = new List<LevelRoom> { new LevelRoom(1, new Vector3(0f, 2f, 0f), new Vector3(8f, 4f, 8f)) };
+                if (hazardRoom) rooms.Add(new LevelRoom(2, new Vector3(8f, 2f, 0f), new Vector3(8f, 4f, 8f)));
+                Graph = LevelGraphUtility.Build(rooms, hazardRoom ? new[] { new LevelEdge(1, 1, 2, true) } : new LevelEdge[0],
+                    Enumerable.Range(101, density ? 5 : 1).Select(id => new LevelAnchor(id, 1,
+                        (CakeAnchorType)(id - 101), new Vector3(1f, 0f, 0f))).ToArray(),
+                    hazardRoom ? 2 : 1, new Vector3(hazardRoom ? 8f : 2f, 0f, 0f));
+            }
         }
 
         private sealed class PlayerFixture : IReadOnlyPlayerState

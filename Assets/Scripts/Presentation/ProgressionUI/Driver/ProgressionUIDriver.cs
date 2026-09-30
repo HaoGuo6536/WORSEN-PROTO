@@ -14,7 +14,7 @@
 //   - Bind and rebuild the current document without losing presentation state.
 //   - Route one admitted UI action and maintain symmetric callback ownership.
 //   - Forward navigation feedback and explain unavailable offers without dispatching purchase requests.
-//   - Advance the terminal reveal gate using unscaled presentation time and clear it on disable.
+//   - Hard-cut on catch completion; warn on unscaled fallback and clear pending state on disable.
 //   - Own panel/card sub-drivers and scheduled keyboard focus.
 //
 // DEPENDENCIES:
@@ -33,6 +33,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.ProgressionUI
 {
@@ -84,9 +85,20 @@ namespace Worsen.Presentation.ProgressionUI
             if (_presenter.Present(_state, snapshot)) Apply(focus);
         }
 
-        public void DeferTerminal(float seconds)
+        public void PrepareCatch(EntityId player)
         {
-            if (_state != null) _presenter.DeferTerminal(_state, seconds);
+            if (_state != null) _presenter.DeferTerminal(_state,
+                _config != null ? _config.CatchTimeoutSeconds : ProgressionUIDriverConfig.DefaultCatchTimeoutSeconds, player);
+        }
+
+        public void EndCatch(EntityId player)
+        {
+            if (_state != null && _presenter.EndCatch(_state, player)) Apply(true);
+        }
+
+        public void ResetCatch()
+        {
+            if (_state != null) _presenter.ClearTerminalDeferral(_state);
         }
 
         public void Hide()
@@ -130,7 +142,11 @@ namespace Worsen.Presentation.ProgressionUI
         private void LateUpdate()
         {
             if (_state == null || _document == null) return;
-            if (_presenter.Tick(_state, Time.unscaledDeltaTime)) Apply(true);
+            if (_presenter.Tick(_state, Time.unscaledDeltaTime))
+            {
+                Debug.LogWarning("Progression UI catch timeout: CatchHoldEnded was not received; releasing the terminal hard cut.", this);
+                Apply(true);
+            }
             if (!_document.isActiveAndEnabled) { HideAndUnbind(); return; }
             if (!ReferenceEquals(_boundRoot, _document.rootVisualElement)) BindAndApply();
         }

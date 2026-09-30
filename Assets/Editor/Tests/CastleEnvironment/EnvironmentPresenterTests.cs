@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
 //   - Verify portal clearance, elevation, selection, local dimming and threshold chalk.
+//   - Verify default-off Wick/Darker Floors composition without exceeding the light cap.
 // DEPENDENCIES:
 //   - NUnit and EnvironmentPresenter; no scene objects required.
 // USAGE NOTES:
@@ -23,6 +24,18 @@ namespace Worsen.Tests.CastleEnvironment
 {
     public sealed class EnvironmentPresenterTests
     {
+        [TestCase(false, false)] [TestCase(true, false)] [TestCase(false, true)] [TestCase(true, true)]
+        public void LampHooksRestoreLitStateAndScaleDarknessWithoutRevivingDestroyedRooms(bool wick, bool darker)
+        {
+            float expected = EnvironmentPresenter.FlameBrightness(2f, 3, wick ? 0f : 1f, 0f) * (darker ? .65f : 1f);
+            Assert.That(EnvironmentPresenter.LampBrightness(2f, 3, 1f, 0f, wick, darker, .65f), Is.EqualTo(expected));
+            Assert.That(EnvironmentPresenter.LampBrightness(2f, 3, 1f, 1f, wick, darker, .65f), Is.Zero);
+            var positions = Enumerable.Range(0, 40).Select(i => Vector3.right * i).ToArray();
+            var available = Enumerable.Repeat(true, 40).ToArray();
+            Assert.That(EnvironmentPresenter.Nearest(Vector3.zero, positions, available, 12, 60f),
+                Is.EqualTo(Enumerable.Range(0, 12).ToArray()));
+        }
+
         [Test]
         public void SlotsKeepPortalClearanceAndRespectElevatedFloor()
         {

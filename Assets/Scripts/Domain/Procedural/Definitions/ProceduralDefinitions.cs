@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Describe one reproducible layout and its physical construction commands.
 //   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
+//   - Retain the effective spawn policy and immutable world-object construction plans.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
@@ -47,11 +48,25 @@ namespace Worsen.Domain.Procedural
         public Vector3 PlayerSpawnPosition { get; internal set; }
         public Quaternion PlayerSpawnRotation { get; internal set; }
         public IReadOnlyList<Vector3> HunterSpawnPositions { get; internal set; }
+        public int MinimumHunterSpawnRooms { get; internal set; }
+        public string SpawnValidationReport { get; internal set; }
+        public IReadOnlyList<ProceduralInteractablePlan> Interactables { get; internal set; }
+            = System.Array.Empty<ProceduralInteractablePlan>();
         public string Manifest { get; internal set; }
+        public string InteractableManifest { get; internal set; } = string.Empty;
         public IReadOnlyList<GeneratedRoomSample> PresentationRooms { get; internal set; }
     }
 
     public enum ProceduralSurfaceKind { Floor, Wall, Ceiling }
+    public readonly struct ProceduralInteractablePlan
+    {
+        public ProceduralInteractablePlan(InteractableState state, Vector3 size, int surfaceId = 0)
+        { State = state; Size = size; SurfaceId = surfaceId; }
+        public InteractableState State { get; }
+        public Vector3 Size { get; }
+        public int SurfaceId { get; }
+    }
+
     public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding }
     public enum ProceduralModuleKind
     {

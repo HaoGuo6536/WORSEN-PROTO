@@ -100,3 +100,4 @@ Specific archetype behaviours (PLAN-016/017); the progression event cadence (PLA
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Walk and Stalk | Investigating hunters walk; Stalk action added. Regression open: MidCuts route gap 7.32 m < 8 m after Stalk. Felt intelligence (changes 3–12) in progress | Commit 3859476; `Logs/AgentValidation/GoalCompletion/authored-routes/` |

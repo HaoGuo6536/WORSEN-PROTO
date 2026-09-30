@@ -12,9 +12,10 @@
 //   - Replace imported real lights with configured Lumen fake-light strengths without exposing vendor commands to gameplay systems.
 //   - Fade destruction and localized cursed flames while preserving route readability.
 //   - Own small chalk threshold crosses and clear them on room/floor teardown.
-//   - Preserve per-light URP shadow resolution from the authored light template.
+//   - Own runtime Lumen grammar sub-drivers; budget exit fans alongside local lamps.
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
+//   - HorrorLumenPresenter pure light math only (acyclic Environment to Horror dependency).
 // USAGE NOTES:
 //   Scene-owned. No RenderSettings writes; Horror owns global fog and daylight.
 //   SetObserver is pushed from the owner. Floor replacement disables old roots immediately.
@@ -30,6 +31,7 @@ namespace Worsen.Presentation.Environment
     {
         private EnvironmentDriverConfig _config;
         private readonly EnvironmentDriverState _state = new EnvironmentDriverState();
+        private readonly Worsen.Presentation.Horror.HorrorLumenPresenter _lumen = new Worsen.Presentation.Horror.HorrorLumenPresenter();
         public bool IsReady => _config != null;
         public int RoomCount => _state.Rooms.Count;
         public int ActiveLumenCount => _state.ActiveLumenCount;
@@ -45,6 +47,9 @@ namespace Worsen.Presentation.Environment
 
         public void BeginFloor()
         {
+            foreach (EnvironmentFlameDriverState flame in _state.Flames) if (flame.Grammar != null) flame.Grammar.Teardown();
+            _state.ExitLightIndex = -1;
+            _state.DarkerFloors = _state.Wick = false;
             foreach (GameObject room in _state.Rooms.Values) RemoveOwned(room);
             foreach (EnvironmentDoorMarkDriverState mark in _state.DoorMarks.Values) RemoveOwned(mark.Root);
             _state.DoorMarks.Clear(); _state.RoomBounds.Clear(); _state.ConsumedRooms.Clear();
@@ -136,23 +141,8 @@ namespace Worsen.Presentation.Environment
             if (moon) holder.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             var effectRoot = new GameObject("Budgeted Flame FX");
             effectRoot.transform.SetParent(holder.transform, false); effectRoot.SetActive(false);
-            LumenEffectPlayer lumen = null;
-            GameObject lumenPrefab = moon ? _config.LumenMoonPrefab : _config.LumenLanternPrefab;
-            if (lumenPrefab != null)
-            {
-                GameObject effect = Instantiate(lumenPrefab, effectRoot.transform);
-                effect.transform.localPosition = Vector3.zero; effect.transform.localRotation = Quaternion.identity;
-                effect.SetActive(true);
-                lumen = effect.GetComponentInChildren<LumenEffectPlayer>(true);
-                if (lumen != null)
-                {
-                    lumen.updateFrequency = LumenEffectPlayer.UpdateFrequency.ViaScripting;
-                    lumen.autoAssignSun = false; lumen.useLumenSunScript = false;
-                    lumen.initializationBehavior = LumenEffectPlayer.InitializationBehavior.Immediate;
-                    lumen.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
-                    lumen.scale = _config.LumenFlareScale; lumen.range = _config.LumenRangeMultiplier; lumen.brightness = _config.LumenBrightness;
-                }
-            }
+            var grammar = effectRoot.AddComponent<EnvironmentLumenDriver>();
+            LumenEffectPlayer lumen = grammar.CreateLamp(_config, moon);
             if (!moon && _config.FirePrefab != null)
             {
                 GameObject fire = Instantiate(_config.FirePrefab, effectRoot.transform);
@@ -163,7 +153,7 @@ namespace Worsen.Presentation.Environment
             }
             _state.Flames.Add(new EnvironmentFlameDriverState
             {
-                RoomId = roomId, Identity = identity, EffectRoot = effectRoot, Lumen = lumen,
+                RoomId = roomId, Identity = identity, EffectRoot = effectRoot, Lumen = lumen, Grammar = grammar,
                 Intensity = refuge ? 1.4f : 1f, Moon = moon
             });
             _state.Positions.Add(position); _state.Available.Add(true);
@@ -173,9 +163,46 @@ namespace Worsen.Presentation.Environment
         {
             var positions = new List<Vector3>();
             for (int i = 0; i < _state.Flames.Count; i++)
-                if (_state.Flames[i].RoomId == roomId && !_state.Flames[i].Moon) positions.Add(_state.Positions[i]);
+                if (_state.Flames[i].RoomId == roomId && !_state.Flames[i].Moon && !_state.Flames[i].Exit) positions.Add(_state.Positions[i]);
             return positions.ToArray();
         }
+
+        public void SetLightingHooks(bool darkerFloors, bool wick)
+        { _state.DarkerFloors = darkerFloors; _state.Wick = wick; _state.UntilRefresh = 0f; }
+
+        public void SetExitFrame(int roomId, Vector3 position, Quaternion rotation)
+        {
+            if (_config == null || !_state.Rooms.TryGetValue(roomId, out GameObject room)) return;
+            if (_state.ExitLightIndex < 0)
+            {
+                var root = new GameObject("Budgeted exit rays");
+                root.SetActive(false); root.transform.SetParent(room.transform, false);
+                var grammar = root.AddComponent<EnvironmentLumenDriver>();
+                _state.ExitLightIndex = _state.Flames.Count;
+                _state.Flames.Add(new EnvironmentFlameDriverState { RoomId = roomId, Exit = true,
+                    EffectRoot = root, Grammar = grammar, Lumen = grammar.CreateExit(_config), Intensity = 1f });
+                _state.Positions.Add(position); _state.Available.Add(true);
+            }
+            var exit = _state.Flames[_state.ExitLightIndex];
+            exit.EffectRoot.transform.SetParent(room.transform, true);
+            exit.EffectRoot.transform.SetPositionAndRotation(position, rotation);
+            exit.RoomId = roomId;
+            _state.Positions[_state.ExitLightIndex] = position;
+            _state.UntilRefresh = 0f;
+        }
+
+        public void SetExitProgress(float progress)
+        {
+            if (_state.ExitLightIndex < 0) return;
+            _state.Flames[_state.ExitLightIndex].OpeningProgress = progress;
+            _state.UntilRefresh = 0f;
+        }
+
+        public float FogBoundaryGlow(float density) => _config == null ? 0f :
+            _lumen.FogBoundaryGlow(density, _config.ThinFogLimit, _config.FogBoundaryStrength);
+        public Color FogBoundaryColor => _config != null ? _config.MoonColor : Color.black;
+        public float HunterRim(bool lookBack) => _config == null ? 0f :
+            _lumen.HunterRim(_config.HunterRimEnabled, lookBack, _config.HunterRimStrength);
 
         public void SetObserver(Vector3 position) { _state.Observer = position; }
         public void SetFlameGutter(float amount) { _state.Gutter = Mathf.Clamp01(amount); }
@@ -249,11 +276,16 @@ namespace Worsen.Presentation.Environment
                 bool effectActive = rank >= 0 && rank < _config.MaximumLumenEffects;
                 float gutter = EnvironmentPresenter.CombinedFlameGutter(_state.Gutter, _state.Positions[i],
                     _state.FlameDimPosition, _state.FlameDimRadius, _state.FlameDimMultiplier);
-                float intensity = flame.Moon ? 1f - flame.Destruction :
-                    EnvironmentPresenter.FlameBrightness(_state.Elapsed, flame.Identity, gutter, flame.Destruction);
+                float intensity = flame.Exit ? _lumen.ExitRayIntensity(flame.OpeningProgress,
+                    _config.ExitRayClosedIntensity, _config.ExitRayOpenIntensity) * (1f - flame.Destruction) :
+                    flame.Moon ? 1f - flame.Destruction :
+                    EnvironmentPresenter.LampBrightness(_state.Elapsed, flame.Identity, gutter,
+                        flame.Destruction, _state.Wick, false, 1f);
+                if (_state.DarkerFloors) intensity *= Mathf.Clamp01(_config.DarkerLightMultiplier);
                 if (flame.EffectRoot.activeSelf != effectActive) flame.EffectRoot.SetActive(effectActive);
                 if (effectActive && flame.Lumen != null)
-                { flame.Lumen.brightness = intensity * flame.Intensity * _config.LumenBrightness; flame.Lumen.RedoEffect(false); _state.ActiveLumenCount++; }
+                { flame.Lumen.brightness = intensity * flame.Intensity * _config.LumenBrightness;
+                    if (Application.isPlaying) flame.Lumen.RedoEffect(false); _state.ActiveLumenCount++; }
             }
         }
 

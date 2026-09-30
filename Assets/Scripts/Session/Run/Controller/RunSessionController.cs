@@ -18,6 +18,7 @@
 //   - Advance the run counter from explicit positive delta time values.
 //   - Close observational capture exactly once across repeated shutdown facts.
 //   - Accumulate run outcomes and confirmed-chase statistics from committed facts.
+//   - Admit flagged first-sweep bails while preserving death priority and normal exit gates.
 //
 // DEPENDENCIES:
 //   - Run state and definitions in this system; Core input and phase values.
@@ -83,6 +84,7 @@ namespace Worsen.Session.Run
             state.ChaseCount = state.ChasesEscaped = state.ActiveChaseId = 0;
             state.ChaseStartedAt = state.TotalChaseSeconds = 0;
             state.PendingEndReason = RunEndReason.Unknown;
+            state.PendingBailed = false;
             state.DeadPlayer = EntityId.None;
             state.KillerPosition = Vector3.zero;
             state.TelemetryEventId = 0;
@@ -118,12 +120,14 @@ namespace Worsen.Session.Run
             state.ActiveChaseId = 0;
         }
 
-        public void RequestEnd(RunEndReason reason, EntityId player, Vector3 killerPosition)
+        public void RequestEnd(RunEndReason reason, EntityId player, Vector3 killerPosition, bool bailed = false)
         {
             if (state.Phase == RunPhase.Ended || reason == RunEndReason.Unknown) return;
-            if (reason == RunEndReason.Escaped && state.Phase != RunPhase.ExitOpen && state.Phase != RunPhase.Collapse) return;
+            if (reason == RunEndReason.Escaped && state.Phase != RunPhase.ExitOpen && state.Phase != RunPhase.Collapse &&
+                !(bailed && state.Phase == RunPhase.FirstSweep)) return;
             if (state.PendingEndReason == RunEndReason.Died) return;
             state.PendingEndReason = reason;
+            state.PendingBailed = reason == RunEndReason.Escaped && (state.PendingBailed || bailed);
             if (reason == RunEndReason.Died) { state.DeadPlayer = player; state.KillerPosition = killerPosition; }
         }
 
@@ -135,7 +139,8 @@ namespace Worsen.Session.Run
             state.Phase = RunPhase.Ended;
             state.PendingInput = default;
             summary = new RunSummary(state.ElapsedSeconds, state.CakesCollected, state.GoldenCakesCollected,
-                state.ChaseCount, state.ChasesEscaped, state.TotalChaseSeconds, state.PendingEndReason, state.Seed, state.Scene);
+                state.ChaseCount, state.ChasesEscaped, state.TotalChaseSeconds, state.PendingEndReason, state.Seed, state.Scene,
+                bailed: state.PendingBailed);
             return true;
         }
 

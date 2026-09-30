@@ -8,9 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   SceneRoot (§6b) · Orchestrator · HorrorRun scene assembly.
 // KEY RESPONSIBILITIES:
+//   - Bind scene camera catches into persistent audio and release the binding on teardown.
 //   - Initialize canonical persistent services and scene presentation.
 //   - Bind the generated-floor flow and publish its first player choice.
 //   - Choose fresh expedition seeds at the composition boundary unless fixed replay is selected.
+//   - Bind progression telemetry before the first run starts so round, wallet and choice rows are captured.
 // DEPENDENCIES:
 //   - Session Expedition/Progression/Run/SceneFlow, Domain factory/service APIs,
 //     and Presentation manager APIs. No game rules are implemented here.
@@ -18,6 +20,7 @@
 //   Scene-owned, explicitly initialized in Start. No per-frame work. Generated
 //   readiness is relayed from Expedition to SceneReady exactly once per floor.
 //   OnDestroy releases Expedition's scene references before their next use.
+//   HorrorRun uses ProgressionUI for terminal presentation; it has no Results service.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -124,8 +127,10 @@ namespace Worsen.Orchestrator
                 _useFixedSeed ? null : (Func<int>)CreateRunSeed);
             _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera);
             _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment);
+            _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
             _environmentRoute.Configure(_run, _expedition, _effects, _environment);
             _inputRoute.ConfigureProgression(_progression);
+            _telemetry.GetComponent<TelemetryOrchestrator>().ConfigureProgression(_progression);
             _assembled = true;
             OnEnable();
             _progression.StartRun(runSeed);
@@ -133,9 +138,12 @@ namespace Worsen.Orchestrator
         private static int CreateRunSeed() => Guid.NewGuid().GetHashCode() & int.MaxValue;
         private void OnDestroy()
         {
-            if (!_assembled) return;
-            if (_audio != null) _audio.GetComponent<AudioOrchestrator>()?.ClearExpansion();
-            if (_expedition != null) _expedition.ClearScene();
+            if (_audio != null)
+            {
+                _audio.GetComponent<AudioOrchestrator>()?.ClearCatch();
+                _audio.GetComponent<AudioOrchestrator>()?.ClearExpansion();
+            }
+            if (_assembled && _expedition != null) _expedition.ClearScene();
         }
     }
 }

@@ -11,6 +11,7 @@
 //   - Drive physical hand warning, grab and hit probes without fake lethal events.
 //   - Require Consumed before death presentation and terminal progression state.
 //   - Keep positive health updates immediate and final health accurate.
+//   - Schedule the hand outside initial hit grace with consistent 60 Hz fact ticks.
 // DEPENDENCIES:
 //   Core, Domain Floor/Player/Level and assembly service types, Session managers,
 //   NUnit and Unity Test Framework. No production Presentation dependency.
@@ -75,13 +76,16 @@ namespace Worsen.Tests.Expedition
                 fixture.Floor.Collect(fixture.Player.Id, 102, PickupKind.Cake);
                 Assert.That(fixture.Floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
 
-                fixture.Floor.Tick(8f, 1);
+                Assert.That(Time.fixedDeltaTime, Is.EqualTo(1f / 60f).Within(0.000001f));
+                // Batched Floor time still carries authoritative 60 Hz timestamps.
+                // The hand hit at tick 606 is outside initial grace [0, 72).
+                fixture.Floor.Tick(8f, 480);
                 Assert.That(fixture.Order.Contains("Warning"), Is.True,
                     "The real room probe must acquire the player at the visible hand.");
-                fixture.Floor.Tick(0.7f, 2);
+                fixture.Floor.Tick(0.7f, 522);
                 Assert.That(fixture.Order.Contains("Grabbed"), Is.True);
                 Assert.That(fixture.Player.ReadOnlyState.Health, Is.EqualTo(25f));
-                fixture.Floor.Tick(1.4f, 3);
+                fixture.Floor.Tick(1.4f, 606);
 
                 Assert.That(fixture.Player.ReadOnlyState.Health, Is.Zero,
                     "HorrorEffects must route the hand hit through Player.ApplyHit.");
@@ -134,6 +138,8 @@ namespace Worsen.Tests.Expedition
                 var playerProfile = Config<PlayerProfile>();
                 var moverConfig = Config<PlayerMoverDriverConfig>();
                 Set(floorConfig, "_requiredCakeCount", 2);
+                // This fixed two-socket scenario needs both sockets as required cakes (legacy count mode).
+                Set(floorConfig, "_useRoomCakeDensity", false);
                 Run = Component<RunSessionManager>("Consumption Run").Initialize(901);
                 Progression = Component<ProgressionSessionManager>("Consumption Progression").Initialize(progressionConfig, 901);
                 expedition = Component<ExpeditionSessionManager>("Consumption Expedition").Initialize();

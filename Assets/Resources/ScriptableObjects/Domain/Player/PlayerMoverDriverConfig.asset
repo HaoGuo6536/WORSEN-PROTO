@@ -17,9 +17,9 @@ MonoBehaviour:
   _slideHeightRatio: 0.5
   _skinWidth: 0.02
   _castIterations: 5
-  _groundProbeDistance: 0.12
-  _groundSnapDistance: 0.2
-  _stepHeight: 0.3
+  _groundProbeDistance: 0.16
+  _groundSnapDistance: 0.25
+  _stepHeight: 0.4
   _slopeLimitDegrees: 50
   _wallProbeDistance: 0.6
   _vaultProbeDistance: 1.15

@@ -3,11 +3,13 @@
 // ============================================================================
 // PURPOSE:
 //   Converts authoritative light dimensions into native Lumen 2 fake-light values.
+//   Also computes restrained exit, thin-fog and silhouette hooks without touching renderers.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7) · Presentation · Horror.
 // KEY RESPONSIBILITIES:
 //   - Account for the vendor shader's homogeneous distance and half-range cutoff.
 //   - Keep visual cone bounds finite and retain illumination at an obstruction.
+//   - Produce monotonic exit intensity and default-off, bounded silhouette treatment.
 // DEPENDENCIES:
 //   Unity value types and math only; no scene, physics or vendor engine calls.
 // USAGE NOTES:
@@ -20,6 +22,30 @@ namespace Worsen.Presentation.Horror
 {
     public sealed class HorrorLumenPresenter
     {
+        public float ExitRayIntensity(float progress, float closed, float open)
+            => Mathf.Lerp(NonNegative(closed), Mathf.Max(NonNegative(closed), NonNegative(open)), Unit(progress));
+
+        public float FogBoundaryGlow(float density, float thinLimit, float strength)
+        {
+            float limit = Unit(thinLimit);
+            if (limit <= 0f || density <= 0f || density >= limit || float.IsNaN(density)) return 0f;
+            return NonNegative(strength) * Mathf.Sin(density / limit * Mathf.PI);
+        }
+
+        public float HunterRim(bool enabled, bool lookBack, float strength)
+            => enabled && lookBack ? Unit(strength) : 0f;
+
+        public float FanYaw(int index, int count, float spread)
+            => count <= 1 ? 0f : Mathf.Lerp(-NonNegative(spread), NonNegative(spread), Unit((float)index / (count - 1)));
+
+        public Vector3[] RayVertices(float width, float length)
+            => new[] { Vector3.zero, new Vector3(-NonNegative(width), 0f, NonNegative(length)),
+                new Vector3(NonNegative(width), 0f, NonNegative(length)) };
+
+        private static float NonNegative(float value)
+            => float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Max(0f, value);
+        private static float Unit(float value) => Mathf.Clamp01(NonNegative(value));
+
         public float RangeMultiplier(float radius, float layerRange)
         {
             radius = FiniteRadius(radius);

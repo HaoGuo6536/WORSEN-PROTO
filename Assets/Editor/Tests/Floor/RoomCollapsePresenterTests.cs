@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies clipped collapse geometry and phase presentation without engine calls.
+//   Boundary tests cover doorway contact, penetration, escape and vertical isolation.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -58,6 +59,34 @@ namespace Worsen.Tests.Floor
             Assert.That(_presenter.HandReveal(_room,outer,0.3f),Is.GreaterThan(0f));
             Assert.That(_presenter.HandReveal(_room,center,0.3f),Is.Zero);
             Assert.That(_presenter.HandReveal(_room,center,1f),Is.EqualTo(1f).Within(0.0001f));
+        }
+        [Test] public void BoundaryReachesDoorwayAndTracksOutwardDirectionWithoutVisualHands()
+        {
+            var outside = _presenter.BoundaryProbe(_room, 1, RoomPhase.Closed, new Vector3(6.2f, 0f, 0f), 2.1f);
+            Assert.That(outside.Available, Is.True); Assert.That(outside.Outward, Is.EqualTo(Vector3.right));
+            Assert.That(outside.Distance, Is.EqualTo(0.2f).Within(0.001f)); Assert.That(outside.Penetration, Is.Zero);
+            var inside = _presenter.BoundaryProbe(_room, 1, RoomPhase.Closed, new Vector3(4f, 0f, 0f), 2.1f, outside.HandId);
+            Assert.That(inside.Penetration, Is.EqualTo(2f)); Assert.That(inside.Position.x, Is.EqualTo(6f));
+            Assert.That(_presenter.BoundaryProbe(_room, 1, RoomPhase.Open, Vector3.zero, 2.1f).Available, Is.False);
+            Assert.That(_presenter.BoundaryProbe(_room, 1, RoomPhase.Closed, Vector3.up * 7f, 2.1f).Available, Is.False);
+            Assert.That(_presenter.BoundaryProbe(_room, 1, RoomPhase.Closed, Vector3.right * 8.2f, 2.1f).Available, Is.False);
+        }
+        [Test] public void CakeReachApproachesRewardAndPulseUsesPublishedCycle()
+        {
+            var cake = Vector3.right * 4f;
+            var early = _presenter.CakeReach(Vector3.zero, cake, RoomPhase.Tearing, 0.5f);
+            var late = _presenter.CakeReach(Vector3.zero, cake, RoomPhase.Encroaching, 0.5f);
+            Assert.That(late.x, Is.GreaterThan(early.x));
+            Assert.That(_presenter.CakeReach(Vector3.zero, cake, RoomPhase.Closed, 1f), Is.EqualTo(cake));
+            Assert.That(_presenter.Pulse(new RoomDestructionSample(1, RoomPhase.Telegraph, 0f, 2f, 0.25f)), Is.EqualTo(1f));
+            Assert.That(_presenter.Pulse(new RoomDestructionSample(1, RoomPhase.Open, 0f)), Is.Zero);
+        }
+        [TestCase(RoomPhase.Tearing)] [TestCase(RoomPhase.Encroaching)]
+        public void CollapsingRoomGrabsAtBoundaryNotThroughoutItsClearInterior(RoomPhase phase)
+        {
+            Assert.That(_presenter.BoundaryProbe(_room, 1, phase, Vector3.right * 5f, 2.1f).Available, Is.True);
+            Assert.That(_presenter.BoundaryProbe(_room, 1, phase, Vector3.zero, 2.1f).Available, Is.False);
+            Assert.That(_presenter.BoundaryProbe(_room, 1, RoomPhase.Closed, Vector3.zero, 2.1f).Available, Is.True);
         }
         [Test] public void FissurePatternIsDeterministicAndHasRealJaggedSegments()
         {

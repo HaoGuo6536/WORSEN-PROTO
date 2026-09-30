@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain grace query filtering, original capsule exclusions and the session warning latch.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 // DEPENDENCIES:
@@ -15,6 +16,7 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Passive scene-owned data. Initialize resets both poses to the supplied spawn position.
+//   A separate Driver-owned session instance holds only the missing-layer warning latch.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using UnityEngine;
@@ -33,5 +35,9 @@ namespace Worsen.Domain.Player
         public float LastStepDuration;
         public bool Grounded;
         public bool Ready;
+        public int HunterBodyLayer = -1;
+        public bool GraceActive;
+        public int OriginalExcludeLayers;
+        public bool MissingHunterLayerWarned;
     }
 }

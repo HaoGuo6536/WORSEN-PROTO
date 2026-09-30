@@ -11,14 +11,17 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Keep display text and the one-request-per-summary latch as passive data.
+//   - Retain the pending death summary, catch identity and bounded fallback state.
 //
 // DEPENDENCIES:
-//   - No other project systems.
+//   - Core RunSummary and EntityId values only.
 //
 // USAGE NOTES:
 //   - Scene-owned through ResultsDriver; does not retain scene objects.
 //
 // ============================================================================
+
+using Worsen.Core;
 
 namespace Worsen.Presentation.Results
 {
@@ -26,6 +29,10 @@ namespace Worsen.Presentation.Results
     {
         public bool Visible;
         public bool RestartIssued;
+        public bool HasPendingSummary, CatchCompleted, CatchFallbackFired;
+        public EntityId CatchPlayer;
+        public RunSummary PendingSummary;
+        public float CatchRemaining;
         public string Title = "RUN COMPLETE";
         public string RunTime = "—";
         public string Cakes = "—";

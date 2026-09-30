@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep unshaken aim separate from cosmetic banking and deterministic shake envelopes.
 //   - Store consumed sample identity and head offsets.
-//   - Latch confirmed consumption and its captured start/target poses until reset.
+//   - Latch catch start/target poses, approach/hold clocks and timing facts until reset.
 //   - Store output pose and lens values for the Driver.
 //
 // DEPENDENCIES:
@@ -43,19 +43,16 @@ namespace Worsen.Presentation.Camera
         public float Pitch;
         public float HeadYaw;
         public float LookYaw;
-        public float LookTweenFrom;
-        public float LookTweenTo;
-        public float LookTweenElapsed;
-        public float LookTweenDuration;
+
         public float DetectionElapsed = -1f;
         public float ReboundElapsed = -1f;
         public float ReboundSign = 1f;
         public float Proximity;
         public bool Consumed;
-        public float ConsumptionElapsed, ConsumptionDuration;
-        public Vector3 ConsumptionStartPosition, ConsumptionTargetPosition;
-        public Quaternion ConsumptionStartRotation = Quaternion.identity;
-        public Quaternion ConsumptionTargetRotation = Quaternion.identity;
+        public float CatchElapsed, CatchApproachDuration, CatchHoldElapsed, CatchHoldDuration;
+        public bool CatchHoldStarted, CatchHoldEnded;
+        public Vector3 CatchStartPosition, CatchTargetPosition;
+        public Quaternion CatchStartRotation = Quaternion.identity;
         public bool DeathSnapped;
         public Quaternion DeathRotation = Quaternion.identity;
         public Vector3 Position;
