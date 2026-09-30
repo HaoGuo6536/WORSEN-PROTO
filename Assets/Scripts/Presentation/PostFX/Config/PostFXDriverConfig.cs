@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Supply the Blind trap duration independently of effect catalogue lifetimes.
 //   - Configure grace easing and exact catalogue ids that enable blindness.
 //   - Expose optional re-acquire blur and bounded effect strength.
 //   - Tune constant degradation, subtle intrusions and duration-driven blindness.
@@ -31,6 +32,8 @@ namespace Worsen.Presentation.PostFX
     public sealed class PostFXDriverConfig : ScriptableObject
     {
         [SerializeField] private string[] _blindnessEffectIds = { "blinded" };
+        [SerializeField, Min(0f)] private float _blindTrapSeconds = 2.5f;
+        public float BlindTrapSeconds => _blindTrapSeconds;
         [SerializeField, Range(-100f, 0f)] private float _graceSaturation = -35f;
         [SerializeField, Min(0.001f)] private float _graceEaseInSeconds = 0.12f;
         [SerializeField, Min(0.001f)] private float _graceEaseOutSeconds = 0.25f;

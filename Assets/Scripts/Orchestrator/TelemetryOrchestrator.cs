@@ -8,11 +8,12 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Telemetry target.
 // KEY RESPONSIBILITIES:
+//   - Record Horror micro-event outcomes with current Run tick/seed; explicitly release scene bindings.
 //   - Forward Core payloads and pair event subscriptions with component lifetime.
 //   - Route accepted progression transactions and generation requests without retaining snapshots.
 //   - Translate Hunter-local stalls into Core observations with the current Run seed.
 // DEPENDENCIES:
-//   - Session.Run/Progression and Presentation.Telemetry; Core payloads downstream.
+//   - Session.Run/Progression and Presentation.Telemetry/Horror; Core payloads downstream.
 //   - Domain.Hunter registry and stall facts are translated at this top-layer boundary.
 // USAGE NOTES:
 //   Persistent on TelemetryManager's root. Setup provides serialized references before activation.
@@ -28,6 +29,7 @@ using Worsen.Domain.Hunter;
 using Worsen.Session.Progression;
 using Worsen.Session.Run;
 using Worsen.Presentation.Telemetry;
+using Worsen.Presentation.Horror;
 
 namespace Worsen.Orchestrator
 {
@@ -37,6 +39,10 @@ namespace Worsen.Orchestrator
         [SerializeField] private TelemetryManager _telemetry;
         [SerializeField] private ProgressionSessionManager _progression;
         private HunterManager[] _hunters = Array.Empty<HunterManager>();
+        private HorrorManager _horror;
+
+        public void ConfigureHorror(HorrorManager horror)
+        { OnDisable(); _horror = horror; if (isActiveAndEnabled) OnEnable(); }
 
         public void ConfigureProgression(ProgressionSessionManager progression)
         {
@@ -58,6 +64,7 @@ namespace Worsen.Orchestrator
             _run.PlayerMovementPublished += OnMovement;
             _run.PlayerTraversalPublished += OnTraversal;
             _run.TelemetryPublished += OnTelemetry;
+            if (_horror != null) _horror.MicroEventOccurred += OnMicroEvent;
             if (_progression != null)
             {
                 _progression.TransactionCommitted += OnProgression;
@@ -67,6 +74,7 @@ namespace Worsen.Orchestrator
         }
         private void OnDisable()
         {
+            if (_horror != null) _horror.MicroEventOccurred -= OnMicroEvent;
             foreach (HunterManager hunter in _hunters) if (hunter != null) hunter.OnStall -= OnStall;
             _hunters = Array.Empty<HunterManager>();
             if (_progression != null)
@@ -95,6 +103,9 @@ namespace Worsen.Orchestrator
             => new TelemetryObservationPresenter().Stall(fact.Hunter, archetypeKey, fact.Tick, fact.Position, fact.RoomId,
                 fact.RemainingDistance, fact.AgentRadius, fact.CapsuleRadius, fact.MotorRadius, fact.Action.ToString(),
                 fact.PathCorners, fact.NearestObstaclePoint, seed);
+        private void OnDestroy() => OnDisable();
+        private void OnMicroEvent(int kind, int target, Vector3 position, float seconds, bool applied)
+            => _telemetry.RecordMicroEvent(kind, target, position, seconds, applied, _run.Tick, _run.Seed);
         private void OnMovement(PlayerMovementSample sample) => _telemetry.RecordMovement(sample);
         private void OnTraversal(PlayerTraversalFact fact) => _telemetry.RecordTraversal(fact);
         private void OnTelemetry(TelemetrySample sample) => _telemetry.Record(sample);

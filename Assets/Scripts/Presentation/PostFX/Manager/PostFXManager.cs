@@ -10,6 +10,7 @@
 //   Manager (§1) · Presentation · PostFX (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Expose the configured Blind trap duration to the routing boundary.
 //   - Forward Run grace boundaries and the injected active-effects view.
 //   - Forward runtime blur enablement without changing the designer config.
 //   - Initialize the serialized Driver and mirrored config fallback.
@@ -39,6 +40,7 @@ namespace Worsen.Presentation.PostFX
         private bool _initialized;
 
         public bool IsReady => _initialized && _driver != null && _driver.IsReady;
+        public float BlindTrapSeconds => _config != null ? _config.BlindTrapSeconds : 0f;
 
         public PostFXManager Initialize()
         {

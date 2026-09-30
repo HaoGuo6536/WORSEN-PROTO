@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Apply a density budget to eligible torches only; moon/exit lights keep the shared cap.
 //   - Apply safe wall slots, remove decorative collision and own every spawned object.
 //   - Replace imported real lights with configured Lumen fake-light strengths without exposing vendor commands to gameplay systems.
 //   - Fade destruction and localized cursed flames while preserving route readability.
@@ -54,6 +55,7 @@ namespace Worsen.Presentation.Environment
             foreach (EnvironmentFlameDriverState flame in _state.Flames) if (flame.Grammar != null) flame.Grammar.Teardown();
             _state.ExitLightIndex = -1;
             _state.DarkerFloors = _state.Wick = false;
+            _state.TorchCountMultiplier = 1f;
             foreach (GameObject room in _state.Rooms.Values) RemoveOwned(room);
             foreach (EnvironmentDoorMarkDriverState mark in _state.DoorMarks.Values) RemoveOwned(mark.Root);
             _state.DoorMarks.Clear(); _state.RoomBounds.Clear(); _state.ConsumedRooms.Clear();
@@ -177,6 +179,8 @@ namespace Worsen.Presentation.Environment
 
         public void SetLightingHooks(bool darkerFloors, bool wick)
         { _state.DarkerFloors = darkerFloors; _state.Wick = wick; _state.UntilRefresh = 0f; }
+        public void SetTorchCountMultiplier(float multiplier)
+        { _state.TorchCountMultiplier = multiplier; _state.UntilRefresh = 0f; }
 
         public void ApplyLight(InteractableState light)
         {
@@ -281,7 +285,7 @@ namespace Worsen.Presentation.Environment
             _state.Elapsed += Mathf.Max(0f, deltaTime); _state.UntilRefresh -= Mathf.Max(0f, deltaTime);
             if (_state.UntilRefresh > 0f) return;
             _state.UntilRefresh = _config.RefreshInterval;
-            int[] visible = EnvironmentPresenter.Nearest(_state.Observer, _state.Positions, _state.Available,
+            int[] visible = EnvironmentPresenter.BudgetedLights(_state,
                 _config.MaximumLumenEffects, _config.EffectDistance);
             _state.ActiveLumenCount = 0; _state.ActiveLightCount = 0;
             for (int i = 0; i < _state.Flames.Count; i++)

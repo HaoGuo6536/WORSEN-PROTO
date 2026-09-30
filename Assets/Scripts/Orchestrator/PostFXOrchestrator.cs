@@ -8,12 +8,13 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · PostFX target.
 // KEY RESPONSIBILITIES:
-//   - Pair Run grace subscriptions and expose effect-view and timed Blind trap routes.
+//   - Pair Run grace/Blind trap and Progression effects; restore effects after capture resets.
 //   - Forward confirmed consumption before terminal presentation; preserve ordinary injury.
 //   - Pair subscriptions and clear presentation through the existing capture reset.
 //   - Share Horror's single startle admission with the Director intrusion's visual strength.
 // DEPENDENCIES:
-//   - Session.Run and Presentation.PostFX/Horror; Core payloads only.
+//   - Session.Run/Progression and Presentation.PostFX/Horror; Core payloads downstream.
+//   - Domain.Floor trap facts are translated into duration-only presentation commands.
 //   - CameraManager supplies a configured consumption duration only during Configure.
 //   - HorrorManager supplies the whole-run clock unless Configure injects a test clock.
 // USAGE NOTES:
@@ -31,6 +32,8 @@ using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 using Worsen.Session.Run;
+using Worsen.Session.Progression;
+using Worsen.Domain.Floor;
 using Worsen.Presentation.PostFX;
 using Worsen.Presentation.Camera;
 using Worsen.Presentation.Horror;
@@ -42,17 +45,20 @@ namespace Worsen.Orchestrator
         [SerializeField] private RunSessionManager _run;
         [SerializeField] private PostFXManager _postFX;
         [SerializeField] private HorrorManager _horror;
+        private ProgressionSessionManager _progression;
         private Func<double> _runSeconds;
         [SerializeField, Range(0.1f, 2f)] private float _consumptionSeconds = 0.9f;
         public void Configure(RunSessionManager run, PostFXManager postFX, CameraManager camera = null,
-            HorrorManager horror = null, Func<double> runSeconds = null)
+            HorrorManager horror = null, Func<double> runSeconds = null, ProgressionSessionManager progression = null)
         {
             OnDisable(); _run = run; _postFX = postFX; _horror = horror; _runSeconds = runSeconds;
+            _progression = progression;
             if (camera != null) _consumptionSeconds = camera.ConsumptionSeconds;
             if (isActiveAndEnabled) OnEnable();
         }
         private void OnEnable()
         {
+            OnDisable();
             if (_run == null || _postFX == null) return;
             _run = RunSessionManager.Instance ?? _run;
             _postFX.Initialize();
@@ -64,9 +70,13 @@ namespace Worsen.Orchestrator
             _run.CollapseHandPublished += OnCollapseHand;
             _run.OnGraceStarted += OnGraceStarted;
             _run.OnGraceEnded += OnGraceEnded;
+            _run.TrapSprung += OnTrapSprung;
+            if (_progression != null) _progression.EffectsSnapshotChanged += OnEffectsSnapshot;
+            OnActiveEffectsChanged(_progression != null ? _progression.EffectsSnapshot.ActiveEffects : null);
         }
         private void OnDisable()
         {
+            if (_progression != null) _progression.EffectsSnapshotChanged -= OnEffectsSnapshot;
             if (_run == null) return;
             _run.PlayerMovementPublished -= OnMovement;
             _run.CaptureStarted -= OnCaptureStarted;
@@ -76,13 +86,22 @@ namespace Worsen.Orchestrator
             _run.CollapseHandPublished -= OnCollapseHand;
             _run.OnGraceStarted -= OnGraceStarted;
             _run.OnGraceEnded -= OnGraceEnded;
+            _run.TrapSprung -= OnTrapSprung;
         }
+        private void OnDestroy() => OnDisable();
+        private void OnEffectsSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects effects) => OnActiveEffectsChanged(effects);
+        private void OnTrapSprung(FloorTrapSprungFact fact)
+        { if (fact.Kind == FloorTrapKind.Blind) OnBlindTrap(_postFX.BlindTrapSeconds); }
         private void OnMovement(PlayerMovementSample sample) => _postFX.SetLookBack(sample.LookBack);
         public void OnGraceStarted(GraceWindowFact fact) => _postFX.SetGrace(fact, true);
         public void OnGraceEnded(GraceWindowFact fact) => _postFX.SetGrace(fact, false);
         public void OnActiveEffectsChanged(IReadOnlyActiveEffects effects) => _postFX.SetActiveEffects(effects);
         public void OnBlindTrap(float seconds) => _postFX.SetBlindness(seconds);
-        private void OnCaptureStarted(RunCaptureMetadata metadata) => _postFX.ResetEffects();
+        private void OnCaptureStarted(RunCaptureMetadata metadata)
+        {
+            _postFX.ResetEffects();
+            OnActiveEffectsChanged(_progression != null ? _progression.EffectsSnapshot.ActiveEffects : null);
+        }
         private void OnProximity(ProximitySample sample) => _postFX.SetProximity(sample.Closeness);
         private void OnHealth(EntityId id, float health, float maximum) => _postFX.SetInjury(health, maximum);
         private void OnIntrusion(IntrusionSample sample)
