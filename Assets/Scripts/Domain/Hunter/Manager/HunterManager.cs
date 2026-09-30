@@ -15,6 +15,7 @@
 //   - Publish habit/mutation facts and route explicit accepted-catch and chase inputs.
 //   - Construct per-life archetype rules and acknowledge recording motion before facts.
 //   - Route Weaver sweep evidence, web contacts and ceiling commands without Player writes.
+//   - Bind the optional Ticking facet for world keys and Core-typed guidance/sound/noise facts.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -45,6 +46,8 @@ namespace Worsen.Domain.Hunter
         private WeaverController _weaver;
         private WeaverConfig _weaverConfig;
         private HunterProfile _profile;
+        private Archetypes.Ticking.TickingManager _ticking;
+        public Archetypes.Ticking.TickingManager Ticking => _ticking;
         private IReadOnlyPlayerState _player;
         private IReadOnlyLevelState _level;
         public HearingModelSettings HearingModel => _profile != null ? _profile.HearingModel : default;
@@ -78,6 +81,7 @@ namespace Worsen.Domain.Hunter
         }
         private void OnDisable()
         {
+            if (_ticking != null) _ticking.Teardown();
             if (_driver != null)
             {
                 _driver.OnLungeContact -= HandleContact;
@@ -99,6 +103,8 @@ namespace Worsen.Domain.Hunter
                 archetype = new Archetypes.Echo.EchoController(echo);
             else if (profile.ArchetypeRules is WeaverConfig weaver)
                 archetype = new WeaverController(new WeaverBehaviorState(), weaver, profile, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Ticking.TickingConfig ticking)
+                archetype = new Archetypes.Ticking.TickingController(ticking, context.Random);
             else if (profile.ArchetypeRules != null) throw new ArgumentException("Unregistered Hunter rules config.");
             _profile = profile; _player = player; _level = level; _driver.Initialize(profile.MotorOverride);
             _weaver = archetype as WeaverController; _weaverConfig = profile.ArchetypeRules as WeaverConfig;
@@ -109,6 +115,13 @@ namespace Worsen.Domain.Hunter
             _state.DuplicateIndex = duplicateIndex;
             _driver.SetTargetFilter(IsTarget);
             _driver.ConfigureAttackFeedback(context.Id, profile.ArchetypeKey);
+            if (_ticking != null) _ticking.Teardown();
+            if (archetype is Archetypes.Ticking.TickingController clock)
+            {
+                if (_ticking == null) _ticking = GetComponent<Archetypes.Ticking.TickingManager>();
+                if (_ticking == null) _ticking = gameObject.AddComponent<Archetypes.Ticking.TickingManager>();
+                _ticking.Initialize(clock, _controller, (Archetypes.Ticking.TickingConfig)profile.ArchetypeRules, _state, player);
+            }
         }
         public void Tick(float dt, long tick)
         {
@@ -124,6 +137,7 @@ namespace Worsen.Domain.Hunter
                 _weaver.Observe(_driver.ProbeWeaver(_weaver.Aim(_driver.WeaverShotHeight),
                     _weaver.Warning ? _weaver.WarnedRadius : _weaver.Radius, _weaverConfig.ShotRange, tick));
             }
+            if (_ticking != null) _ticking.PrepareTick();
             bool sample = _controller.ShouldProbe(tick);
             SightProbe sight = sample ? _driver.ProbeSight(_player.Position, IsTarget) : default;
             HunterLightObservation light = sample ? _driver.ProbeLight(_state.Flashlight, tick,
@@ -143,6 +157,7 @@ namespace Worsen.Domain.Hunter
                 if (_weaver.Fire) _weaver.CommitLaunch(_driver.LaunchWeb(_weaver.WarnedOrigin, _weaver.WarnedTarget,
                     _weaver.WarnedRadius, _weaverConfig.ProjectileSpeed, _weaverConfig.ShotRange, _weaver.Serial + 1));
             }
+            if (_ticking != null) _ticking.PublishTick();
             bool reactionValid = (_state.CurrentAction != HunterAction.AvoidLight && _state.CurrentAction != HunterAction.FlankLight) ||
                 _driver.ValidateReactionTarget(result.Target);
             if (!reactionValid) _controller.ReportPathFailure();
@@ -244,6 +259,7 @@ namespace Worsen.Domain.Hunter
         public void ReceiveHint(HintPayload hint) { _controller?.ReceiveHint(hint); }
         public void Teardown()
         {
+            if (_ticking != null) _ticking.Teardown();
             if (_driver != null) _driver.Teardown();
             HunterRegistry.Unregister(this);
             _controller = null; _state = null; _profile = null; _player = null; _level = null;
