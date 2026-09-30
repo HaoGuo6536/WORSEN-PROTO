@@ -16,6 +16,7 @@
 //   - Relay locked-door overlaps/departures and present bails without spawning Golden Cakes.
 //   - Report physical opening progress; the legacy marker changes immediately.
 //   - Sample dedicated fog triggers and reach for rewards; Controller owns completed-room losses.
+//   - Place room warnings on occupied cells and restrict cake reach to footprint membership.
 //   - Supply complete path corners and expose target-local fallback/held flags.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
@@ -140,7 +141,7 @@ namespace Worsen.Domain.Floor
             var cakes = new List<Vector3>();
             foreach (var pickup in _state.Pickups)
                 if (pickup != null && pickup.gameObject.activeSelf && _state.Anchors.TryGetValue(pickup.AnchorId, out var anchor) &&
-                    anchor.RoomId == sample.RoomId) cakes.Add(pickup.transform.position);
+                    anchor.RoomId == sample.RoomId && room.ContainsXZ(anchor.Position)) cakes.Add(pickup.transform.position);
             room.ApplyDestruction(sample, elapsed, cakes);
         }
         public void ApplyHandFact(CollapseHandFact fact)
@@ -335,8 +336,14 @@ namespace Worsen.Domain.Floor
             var root = new GameObject("Collapse Room " + room.Id); root.transform.SetParent(_state.Root.transform, false);
             root.transform.position = room.Center;
             var roomVolume = root.AddComponent<RoomCollapseVolume>();
-            var warning = root.AddComponent<FloorLumenGlow>();
-            warning.Configure(_config.LumenRoomWarningPrefab, Mathf.Min(room.Size.x, room.Size.z) * 0.48f,
+            var warningRoot = root;
+            if (room.Cells.Count > 1)
+            {
+                warningRoot = new GameObject("Room Warning"); warningRoot.transform.SetParent(root.transform, false);
+                warningRoot.transform.position = room.Cells[0].center;
+            }
+            var warning = warningRoot.AddComponent<FloorLumenGlow>();
+            warning.Configure(_config.LumenRoomWarningPrefab, Mathf.Min(room.Cells[0].size.x, room.Cells[0].size.z) * 0.48f,
                 _config.WarningColor, _config.WarningIntensity, false);
             roomVolume.Configure(room, _config, _state.BlockerMaterial, warning, resolveIdentity, boundaryReach, cakes); _state.Rooms.Add(room.Id, roomVolume);
         }

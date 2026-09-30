@@ -11,6 +11,7 @@
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Verify normal Player damage, outward throws, depth-scaled springs and one-shot wards.
+//   - Verify Low Profile rejects new warnings and releases active contacts without consuming a ward.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 //   - Player Controller, BehaviorState and Profile only for ordinary damage assertions.
@@ -34,6 +35,36 @@ namespace Worsen.Tests.Floor
         private FloorHandController _controller;
         private readonly EntityId _player = new EntityId(1);
         private FloorHandProbe Near => new FloorHandProbe(3, 7, new Vector3(0f, 0f, 2f), 0.5f, true, Vector3.back);
+        private sealed class EffectView : IReadOnlyPlayerEffectState
+        { public bool IsUngrabbable { get; set; } }
+
+        [TestCase(false)] [TestCase(true)]
+        public void LowProfileReleasesWarningOrGrabExactlyOnce(bool grabbed)
+        {
+            Step(0f, 1);
+            if (grabbed) Step(0.7f, 2);
+            var effects = new EffectView { IsUngrabbable = true };
+            Assert.That(_controller.Tick(_player, true, Near, 20f, 3, out var fact, effects), Is.True);
+            Assert.That(fact.Kind, Is.EqualTo(CollapseHandEventKind.Released));
+            Assert.That(fact.SlowMultiplier, Is.EqualTo(1f));
+            Assert.That(fact.Damage, Is.Zero);
+            Assert.That(_controller.Target(_player, out _, out _), Is.False);
+            Assert.That(_controller.Tick(_player, true, Near, 20f, 4, out _, effects), Is.False);
+            Assert.That(_controller.ConfirmDeath(_player, 3, false, 3, out _), Is.False);
+        }
+
+        [Test]
+        public void LowProfileRejectsNewContactAndDoesNotConsumeWaxWard()
+        {
+            var effects = new EffectView { IsUngrabbable = true };
+            _controller.ArmWaxWard(_player);
+            Assert.That(_controller.Tick(_player, true, Near, 20f, 1, out _, effects), Is.False);
+            Assert.That(_controller.Target(_player, out _, out _), Is.False);
+            effects.IsUngrabbable = false;
+            Assert.That(_controller.Tick(_player, true, Near, 0f, 2, out var fact, effects), Is.True);
+            Assert.That(fact.Kind, Is.EqualTo(CollapseHandEventKind.Warning));
+            Assert.That(Step(0.7f, 3).Kind, Is.EqualTo(CollapseHandEventKind.Escaped));
+        }
         [SetUp] public void Setup()
         {
             var config = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));

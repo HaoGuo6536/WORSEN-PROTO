@@ -16,6 +16,7 @@
 //   - Publish cake loss, hand noise and rubber-band acceleration facts for upward routing.
 //   - Publish every accepted pickup's noise and continuous visual exit progress.
 //   - Keep rules, passive state and engine operations in their owning roles.
+//   - Forward explicit pocket activation and read Low Profile protection without mutable casts.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -193,6 +194,7 @@ namespace Worsen.Domain.Floor
             _driver.ApplyHandFact(fact); OnCollapseHand?.Invoke(fact); return true;
         }
         public bool ArmWaxWard(EntityId playerId) => _hands != null && _hands.ArmWaxWard(playerId);
+        public bool ActivatePocket(int roomId) => _controller != null && _controller.ActivatePocket(roomId);
         public bool TelegraphOptionalRoom(int roomId)
         {
             if (_controller == null || !_controller.TelegraphOptionalRoom(roomId)) return false;
@@ -277,8 +279,10 @@ namespace Worsen.Domain.Floor
             {
                 if (player == null) continue;
                 _hands.Target(player.Id, out int roomId, out int handId);
-                var probe = _driver.QueryHand(player.Position, roomId, handId, player.Id);
-                bool changed = _hands.Tick(player.Id, player.IsAlive, probe, dt, _state.Tick, out var fact);
+                var effects = player as IReadOnlyPlayerEffectState;
+                var probe = effects != null && effects.IsUngrabbable ? default :
+                    _driver.QueryHand(player.Position, roomId, handId, player.Id);
+                bool changed = _hands.Tick(player.Id, player.IsAlive, probe, dt, _state.Tick, out var fact, effects);
                 _hands.CopyRoomPhases(_state.MutableRoomHandPhases);
                 if (changed)
                 {
