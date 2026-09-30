@@ -10,16 +10,18 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Carry an explicit motion hold independently of committed attack phases.
 // DEPENDENCIES:
-//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
-//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
+//   - UnityEngine Vector3 value data only; no foreign system dependencies.
 // USAGE NOTES:
 //   System-local values only; constructors assign data without behavior.
+//   Append HunterAction members: existing ordinals may be serialized or recorded.
+//   HoldPosition must be routed to the motor's stopped input, not just zero speed.
 // ============================================================================
 using UnityEngine;
 namespace Worsen.Domain.Hunter
 {
-    public enum HunterAction { Patrol, InvestigateHint, Chase, Lunge, SearchLastKnown, CutOff, InvestigateLight, AvoidLight, FlankLight }
+    public enum HunterAction { Patrol, InvestigateHint, Chase, Lunge, SearchLastKnown, CutOff, InvestigateLight, AvoidLight, FlankLight, Stalk }
     public enum HunterAttackStyle { Lunge, Projectile, GroundSpikes }
     public enum HunterLightResponse { Investigate, Avoid, Flank }
     [System.Flags]
@@ -42,13 +44,15 @@ namespace Worsen.Domain.Hunter
     public enum HunterLungePhase { None, Windup, Active, Recovery }
     public readonly struct HunterTickResult
     {
-        public HunterTickResult(Vector3 target, float speed, HunterLungePhase phase, Vector3 lungeDirection, bool beginLunge, bool activeContact)
-        { Target = target; Speed = speed; Phase = phase; LungeDirection = lungeDirection; BeginLunge = beginLunge; ActiveContact = activeContact; }
+        public HunterTickResult(Vector3 target, float speed, HunterLungePhase phase, Vector3 lungeDirection, bool beginLunge, bool activeContact,
+            bool holdPosition = false)
+        { Target = target; Speed = speed; Phase = phase; LungeDirection = lungeDirection; BeginLunge = beginLunge; ActiveContact = activeContact; HoldPosition = holdPosition; }
         public Vector3 Target { get; }
         public float Speed { get; }
         public HunterLungePhase Phase { get; }
         public Vector3 LungeDirection { get; }
         public bool BeginLunge { get; }
         public bool ActiveContact { get; }
+        public bool HoldPosition { get; }
     }
 }

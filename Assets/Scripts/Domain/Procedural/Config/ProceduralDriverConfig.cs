@@ -9,6 +9,7 @@
 //   DriverConfig (§7d) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Configure enclosed shell thickness, materials and bounded navigation checks.
+//   - Tune the flat collision extension beyond both ends of each stair flight.
 // DEPENDENCIES:
 //   - UnityEngine materials and serialization; no other gameplay system.
 // USAGE NOTES:
@@ -44,6 +45,7 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private float _windowTopHeight = 3.25f;
         [SerializeField] private float _slideClearance = 1.05f;
         [SerializeField] private float _landingOffset = 1.05f;
+        [SerializeField, Min(0.01f)] private float _stairLandingExtension = 0.6f;
         public float WallThickness => _wallThickness;
         public float FloorThickness => _floorThickness;
         public float CeilingThickness => _ceilingThickness;
@@ -66,5 +68,6 @@ namespace Worsen.Domain.Procedural
         public float WindowTopHeight => _windowTopHeight;
         public float SlideClearance => _slideClearance;
         public float LandingOffset => _landingOffset;
+        public float StairLandingExtension => _stairLandingExtension;
     }
 }

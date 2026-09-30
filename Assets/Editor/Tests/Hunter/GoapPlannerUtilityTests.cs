@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify action requirements/effects, optimal cost and deterministic ties.
 //   - Verify explicit bounded/unreachable results and malformed-input rejection.
+//   - Verify Stalk fact requirements, preserved action ordinals and loop-free plans.
 // DEPENDENCIES:
 //   - Hunter pure planner and definitions; NUnit test framework.
 // USAGE NOTES:
@@ -25,6 +26,55 @@ namespace Worsen.Tests.Hunter
     public sealed class GoapPlannerUtilityTests
     {
         private const ulong Visible = 1, Near = 2, Caught = 4, Hint = 8;
+
+        [Test]
+        public void StalkIsAppendedWithoutChangingRecordedActionOrdinals()
+        {
+            var original = new[] { HunterAction.Patrol, HunterAction.InvestigateHint, HunterAction.Chase,
+                HunterAction.Lunge, HunterAction.SearchLastKnown, HunterAction.CutOff, HunterAction.InvestigateLight,
+                HunterAction.AvoidLight, HunterAction.FlankLight };
+            for (int i = 0; i < original.Length; i++) Assert.That((int)original[i], Is.EqualTo(i));
+            Assert.That((int)HunterAction.Stalk, Is.EqualTo(original.Length));
+        }
+
+        [TestCase(HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh, HunterAction.Stalk)]
+        [TestCase(HunterWorldFacts.HasBelief, HunterAction.SearchLastKnown)]
+        [TestCase(HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh | HunterWorldFacts.PlayerVisible, HunterAction.Chase)]
+        public void ApproachPlanUsesStalkOnlyForFreshUnseenBelief(HunterWorldFacts facts, HunterAction expected)
+        {
+            var actions = ApproachActions();
+            bool visible = (facts & HunterWorldFacts.PlayerVisible) != 0;
+            ulong goal = (ulong)(visible ? HunterWorldFacts.CaughtPlayer : HunterWorldFacts.LocatedPlayer);
+            GoapPlanResult result = GoapPlannerUtility.Plan((ulong)facts, goal, 0, actions);
+            Assert.That(result.Status, Is.EqualTo(GoapPlanStatus.Found));
+            Assert.That(result.ActionIds, Is.EqualTo(visible ? new[] { (int)expected, (int)HunterAction.Lunge } : new[] { (int)expected }));
+            Assert.That(result.ActionIds, Is.Unique);
+            Assert.That(result.ExpandedStates, Is.LessThanOrEqualTo(4));
+        }
+
+        [Test]
+        public void StalkingCannotInventSightAndUnreachableCatchTerminates()
+        {
+            GoapPlanResult result = GoapPlannerUtility.Plan((ulong)(HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh),
+                (ulong)HunterWorldFacts.CaughtPlayer, 0, ApproachActions());
+            Assert.That(result.Status, Is.EqualTo(GoapPlanStatus.Unreachable));
+            Assert.That(result.ActionIds, Is.Empty);
+            Assert.That(result.ExpandedStates, Is.EqualTo(2), "Repeated Stalk/search effects must not produce a plan loop.");
+            Assert.That(GoapPlannerUtility.Plan((ulong)HunterWorldFacts.BeliefFresh,
+                (ulong)HunterWorldFacts.LocatedPlayer, 0, ApproachActions()).Status, Is.EqualTo(GoapPlanStatus.Unreachable));
+        }
+
+        private static GoapActionDefinition[] ApproachActions() => new[]
+        {
+            new GoapActionDefinition((int)HunterAction.Stalk, (ulong)(HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh),
+                (ulong)HunterWorldFacts.PlayerVisible, (ulong)HunterWorldFacts.LocatedPlayer, 0, 0.5f),
+            new GoapActionDefinition((int)HunterAction.SearchLastKnown, (ulong)HunterWorldFacts.HasBelief,
+                (ulong)HunterWorldFacts.PlayerVisible, (ulong)HunterWorldFacts.LocatedPlayer, 0, 2f),
+            new GoapActionDefinition((int)HunterAction.Chase, (ulong)HunterWorldFacts.PlayerVisible,
+                (ulong)HunterWorldFacts.InLungeRange, (ulong)HunterWorldFacts.InLungeRange, 0, 2f),
+            new GoapActionDefinition((int)HunterAction.Lunge, (ulong)(HunterWorldFacts.PlayerVisible | HunterWorldFacts.InLungeRange),
+                0, (ulong)HunterWorldFacts.CaughtPlayer, 0, 1f)
+        };
 
         [Test]
         public void AlreadySatisfiedGoalHasNoActionsOrCost()

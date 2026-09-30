@@ -9,10 +9,13 @@
 //   Definitions (§5) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Describe one reproducible layout and its physical construction commands.
+//   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
 //   Data only; these system-local snapshots contain no engine object references.
+//   Block Size is local to Rotation. Ordinary blocks default to visible solid boxes;
+//   stair ramp endpoints describe the centerline of the walkable top face.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -49,6 +52,7 @@ namespace Worsen.Domain.Procedural
     }
 
     public enum ProceduralSurfaceKind { Floor, Wall, Ceiling }
+    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding }
     public enum ProceduralModuleKind
     {
         VaultPartition, WindowPartition, SlidePartition,
@@ -68,13 +72,19 @@ namespace Worsen.Domain.Procedural
     {
         public ProceduralBlock(int roomId, ProceduralSurfaceKind kind, Vector3 center, Vector3 size,
             int surfaceId = 0, TraversalSurfaceKind traversalKind = TraversalSurfaceKind.None,
-            Vector3 endpointA = default, Vector3 endpointB = default)
+            Vector3 endpointA = default, Vector3 endpointB = default,
+            ProceduralBlockRole role = ProceduralBlockRole.Solid, Quaternion? rotation = null)
         { RoomId = roomId; Kind = kind; Center = center; Size = size; SurfaceId = surfaceId;
-            TraversalKind = traversalKind; EndpointA = endpointA; EndpointB = endpointB; }
+            TraversalKind = traversalKind; EndpointA = endpointA; EndpointB = endpointB;
+            Role = role; Rotation = rotation ?? Quaternion.identity; }
         public int RoomId { get; }
         public ProceduralSurfaceKind Kind { get; }
         public Vector3 Center { get; }
         public Vector3 Size { get; }
+        public ProceduralBlockRole Role { get; }
+        public Quaternion Rotation { get; }
+        public bool HasCollision => Role != ProceduralBlockRole.VisualOnly;
+        public bool HasRenderer => Role == ProceduralBlockRole.Solid || Role == ProceduralBlockRole.VisualOnly;
         public int SurfaceId { get; }
         public TraversalSurfaceKind TraversalKind { get; }
         public Vector3 EndpointA { get; }
