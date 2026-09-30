@@ -14,9 +14,10 @@
 //   - Build a responsive named UI Toolkit tree and draw chrome, gauge and icons.
 //   - Pair all vector callbacks when binding, unbinding or replacing a document.
 //   - Paint a faceted white compass needle in three dimensions without a caption or render target.
+//   - Apply chrome visibility and restoration without suppressing the independent compass.
 //
 // DEPENDENCIES:
-//   Own HUDDriverConfig, HUDDriverState and pure HUDGeometryPresenter only.
+//   Own HUDDriverConfig, HUDDriverState, HUDGeometryPresenter and HUDCompassPresenter only.
 //
 // USAGE NOTES:
 //   Scene-owned through HUDDriver, sharing its HUDDriverConfig (§7d).
@@ -37,7 +38,7 @@ namespace Worsen.Presentation.HUD
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
         private readonly HUDCompassPresenter _compass = new HUDCompassPresenter();
         private VisualElement _root, _panel, _gauge, _extra, _directionGroup, _arrow, _slots;
-        private Label _count, _exit, _overflow, _warning;
+        private Label _count, _exit, _overflow;
 
         public void Bind(VisualElement root, HUDDriverConfig config)
         {
@@ -75,15 +76,12 @@ namespace Worsen.Presentation.HUD
             _gauge.generateVisualContent += PaintGauge;
             _exit = Text("exit-state", "Exit: —", _panel);
             _exit.style.fontSize = config.SmallFontSize;
-            _warning = Text("chase-warning", "HUNTED", _panel);
-            _warning.style.color = config.WarningColor;
-            _warning.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _warning.style.marginTop = config.FontSize * 0.5f;
+
 
             _extra = Element("hud-extra", root);
             _extra.style.position = Position.Absolute;
             _extra.style.left = _extra.style.right = _extra.style.top = _extra.style.bottom = 0;
-            _directionGroup = Element("direction-group", _extra);
+            _directionGroup = Element("direction-group", root);
             _directionGroup.style.position = Position.Absolute;
             _directionGroup.style.left = Length.Percent(50);
             _directionGroup.style.marginLeft = -config.PanelWidth * 0.25f;
@@ -121,8 +119,9 @@ namespace Worsen.Presentation.HUD
             _count.text = state.CountText;
             _exit.text = state.ExitText;
             _exit.style.color = state.ExitOpen ? _config.TextColor : _config.MutedColor;
-            _warning.style.display = state.ChaseMode ? DisplayStyle.Flex : DisplayStyle.None;
-            _extra.style.display = state.ChaseMode ? DisplayStyle.None : DisplayStyle.Flex;
+            _panel.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _panel.style.opacity = state.ExtraOpacity;
+            _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _extra.style.opacity = state.ExtraOpacity;
             _directionGroup.style.display = state.DirectionVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _overflow.text = state.SlotOverflowText;
@@ -141,7 +140,7 @@ namespace Worsen.Presentation.HUD
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _gauge = _extra = _directionGroup = _arrow = _slots = null;
-            _count = _exit = _overflow = _warning = null;
+            _count = _exit = _overflow = null;
             _state = null;
             _config = null;
         }
@@ -153,7 +152,7 @@ namespace Worsen.Presentation.HUD
         {
             var painter = context.painter2D;
             painter.fillColor = _config.PanelColor;
-            painter.strokeColor = _state != null && _state.ChaseMode ? _config.WarningColor : _config.MutedColor;
+            painter.strokeColor = _config.MutedColor;
             painter.lineWidth = _config.StrokeWidth;
             Path(painter, _geometry.Panel(new Rect(0, 0, _panel.layout.width, _panel.layout.height), _config.CornerCut));
             painter.Fill();
@@ -166,7 +165,7 @@ namespace Worsen.Presentation.HUD
             painter.fillColor = _config.MutedColor;
             Path(painter, _geometry.Panel(_gauge.contentRect, 0));
             painter.Fill();
-            painter.fillColor = _state != null && _state.ChaseMode ? _config.WarningColor : _config.TextColor;
+            painter.fillColor = _config.TextColor;
             Path(painter, _geometry.Panel(_geometry.Gauge(_gauge.contentRect, _state?.CountFraction ?? 0f), 0));
             painter.Fill();
         }

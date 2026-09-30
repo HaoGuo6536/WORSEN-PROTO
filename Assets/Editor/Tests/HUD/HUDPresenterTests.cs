@@ -4,7 +4,7 @@
 //
 // PURPOSE:
 //   Verifies presentation-only HUD behavior with primitive samples and explicit time.
-//   These tests protect chase readability, interrupted restoration, missing direction
+//   These tests protect chase chrome suppression, interrupted restoration, missing direction
 //   samples and passive empty-slot display without opening a Unity scene.
 //
 // ARCHITECTURAL ROLE:
@@ -13,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify half-second restore timing and immediate chase interruption.
 //   - Keep formatting stable and invalid samples from becoming visible direction arrows.
+//   - Keep guidance visible through chases and keep all formatted text chase-neutral.
 //
 // DEPENDENCIES:
 //   - Worsen.Presentation.HUD, NUnit and Unity value types.
@@ -66,6 +67,8 @@ namespace Worsen.Tests.HUD
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ExtraOpacity, Is.Zero);
             Assert.That(state.ChaseMode, Is.True);
+            Assert.That(state.ChromeVisible, Is.False);
+            Assert.That(state.ViewDirection, Is.EqualTo(Vector3.forward));
         }
 
         [Test]
@@ -77,6 +80,7 @@ namespace Worsen.Tests.HUD
             presenter.SetChaseMode(state, false);
             presenter.Tick(state, 0.25f, 0.5f);
             Assert.That(state.ExtraOpacity, Is.EqualTo(0.5f).Within(0.0001f));
+            Assert.That(state.ChromeVisible, Is.True);
             presenter.SetChaseMode(state, false);
             presenter.Tick(state, 0.25f, 0.5f);
             Assert.That(state.ExtraOpacity, Is.EqualTo(1f));
@@ -92,6 +96,7 @@ namespace Worsen.Tests.HUD
             presenter.Tick(state, 0.3f, 0.5f);
             presenter.SetChaseMode(state, true);
             Assert.That(state.ExtraOpacity, Is.Zero);
+            Assert.That(state.ChromeVisible, Is.False);
             presenter.SetChaseMode(state, false);
             presenter.Tick(state, 0.1f, 0.5f);
             Assert.That(state.ExtraOpacity, Is.EqualTo(0.2f).Within(0.0001f));
@@ -180,6 +185,7 @@ namespace Worsen.Tests.HUD
             Assert.That(state.ChaseMode, Is.False);
             Assert.That(state.ExtraOpacity, Is.EqualTo(1f));
             Assert.That(state.DirectionVisible, Is.True);
+            Assert.That(state.ChromeVisible, Is.True);
             Assert.That(state.CountText, Is.EqualTo("Cakes: 2 / 6"));
             Assert.That(state.ExitText, Is.EqualTo("Exit: LOCKED"));
 
@@ -191,6 +197,22 @@ namespace Worsen.Tests.HUD
             presenter.ResetRunView(state);
             Assert.That(state.ChaseMode, Is.False);
             Assert.That(state.ExtraOpacity, Is.EqualTo(1f));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void PresenterTextNeverReportsChaseState(bool chasing)
+        {
+            var state = new HUDDriverState(); var presenter = new HUDPresenter();
+            presenter.SetCount(state, 3, 7);
+            presenter.SetExitState(state, ExitState.Open);
+            presenter.SetItemSlots(state, 11, 8);
+            presenter.SetDirection(state, Vector3.forward, true);
+            presenter.SetChaseMode(state, chasing);
+            foreach (string text in new[] { state.CountText, state.ExitText, state.DirectionCaption, state.SlotOverflowText })
+                Assert.That(text, Does.Not.Contain("HUNTED"));
+            Assert.That(state.DirectionVisible, Is.True);
+            Assert.That(state.ChromeVisible, Is.EqualTo(!chasing));
         }
 
         [Test]

@@ -11,7 +11,8 @@
 //   Sub-driver (§7e), owned by ProgressionUIDriver · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Draw responsive panels and the health gauge with Painter2D.
+//   - Draw responsive panels and shelter-only health text and gauge with Painter2D.
+//   - Apply presenter health visibility to both readouts without deriving phase rules here.
 //   - Keep long retained lists in their own scroll area and keyboard focus visible.
 //   - Preserve readable text and native keyboard/mouse buttons in a scrollable modal.
 //
@@ -68,12 +69,7 @@ namespace Worsen.Presentation.ProgressionUI
             _round = Text("round-number", _status, config.FontSize);
             _wallet = Text("wallet", _status, config.FontSize * .75f);
             _wallet.style.color = config.MutedColor;
-            _health = Text("health", _status, config.FontSize * .65f);
-            _health.style.marginTop = config.Spacing * .5f;
-            _gauge = Element("health-gauge", _status);
-            _gauge.style.height = config.StrokeWidth * 3;
-            _gauge.style.marginTop = config.Spacing * .3f;
-            _gauge.generateVisualContent += PaintHealth;
+
 
             _modal = Element("progression-modal", root);
             _modal.pickingMode = PickingMode.Position;
@@ -107,6 +103,12 @@ namespace Worsen.Presentation.ProgressionUI
             _subtitle.style.marginTop = config.Spacing * .5f;
             _burdens = Text("retained-counts", _panel, config.FontSize * .65f);
             _burdens.style.marginTop = config.Spacing;
+            _health = Text("health", _panel, config.FontSize * .65f);
+            _health.style.marginTop = config.Spacing * .5f;
+            _gauge = Element("health-gauge", _panel);
+            _gauge.style.height = config.StrokeWidth * 3;
+            _gauge.style.marginTop = config.Spacing * .3f;
+            _gauge.generateVisualContent += PaintHealth;
             CardContainer = Element("progression-cards", _panel);
             CardContainer.style.flexDirection = FlexDirection.Row;
             CardContainer.style.flexWrap = Wrap.Wrap;
@@ -144,9 +146,11 @@ namespace Worsen.Presentation.ProgressionUI
             _round.text = state.RoundText;
             _wallet.text = state.WalletText;
             _health.text = state.HealthText;
+            _health.style.display = state.HealthVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _gauge.style.display = state.HealthVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _title.text = state.Title;
             _subtitle.text = state.RoundText + "  /  " + state.WalletText + "\n" + state.Subtitle;
-            _burdens.text = state.BurdenText + "  /  " + state.HealthText;
+            _burdens.text = state.BurdenText;
             _retained.text = state.RetainedText;
             _message.text = state.Pending ? "Waiting for confirmation..." : state.Message;
             _continue.style.display = state.CanContinue ? DisplayStyle.Flex : DisplayStyle.None;

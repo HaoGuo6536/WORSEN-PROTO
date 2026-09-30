@@ -15,6 +15,7 @@
 //   - Verify stock, permanent ownership, reason preservation, retained list size and audio intent.
 //   - Verify displayed descriptions and authoritative eligibility survive formatting.
 //   - Verify one pending action per revision and recovery on a newer response.
+//   - Hide health throughout exploration and generation while restoring shelter readouts.
 //
 // DEPENDENCIES:
 //   Core progression definitions, ProgressionUI pure Presenter/state, NUnit.
@@ -132,9 +133,46 @@ namespace Worsen.Tests.ProgressionUI
         public void HealthGaugeIsFiniteAndBounded(float health, float maximum, float expected)
         {
             var state = new ProgressionUIDriverState();
-            new ProgressionUIPresenter().Present(state, Snapshot(1, ProgressionPhase.Exploring, "", health, maximum));
+            new ProgressionUIPresenter().Present(state, Snapshot(1, ProgressionPhase.Shop, "", health, maximum));
             Assert.That(state.HealthFraction, Is.EqualTo(expected));
             Assert.That(state.HealthText, Does.Not.Contain("NaN"));
+        }
+
+        [TestCase(ProgressionPhase.Dormant, false)]
+        [TestCase(ProgressionPhase.ChooseThreat, true)]
+        [TestCase(ProgressionPhase.ChooseCurse, true)]
+        [TestCase(ProgressionPhase.Generating, false)]
+        [TestCase(ProgressionPhase.Exploring, false)]
+        [TestCase(ProgressionPhase.Shop, true)]
+        [TestCase(ProgressionPhase.Ended, true)]
+        [TestCase(ProgressionPhase.GenerationFailed, true)]
+        public void HealthIsOnlyFormattedForShelterAndBetweenFloorScreens(ProgressionPhase phase, bool visible)
+        {
+            var state = new ProgressionUIDriverState();
+            new ProgressionUIPresenter().Present(state, Snapshot(1, phase));
+            Assert.That(state.HealthVisible, Is.EqualTo(visible));
+            Assert.That(state.HealthText, Is.EqualTo(visible ? "HEALTH  75 / 100" : ""));
+            Assert.That(state.HealthFraction, Is.EqualTo(visible ? .75f : 0f));
+        }
+
+        [Test]
+        public void FloorTransitionsClearPriorHealthAndShopRestoresItWithoutAcceptingStaleSnapshots()
+        {
+            var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
+            presenter.Present(state, Snapshot(1, ProgressionPhase.Shop));
+            presenter.Present(state, Snapshot(2, ProgressionPhase.Generating));
+            Assert.That(state.HealthVisible, Is.False);
+            Assert.That(state.HealthText, Is.Empty);
+            Assert.That(state.HealthFraction, Is.Zero);
+            presenter.Present(state, Snapshot(3, ProgressionPhase.Exploring, "", 25f));
+            Assert.That(presenter.Present(state, Snapshot(2, ProgressionPhase.Shop)), Is.False);
+            Assert.That(state.HealthVisible, Is.False);
+            Assert.That(state.HealthText, Is.Empty);
+            Assert.That(state.HealthFraction, Is.Zero);
+            presenter.Present(state, Snapshot(4, ProgressionPhase.Shop, "", 25f));
+            Assert.That(state.HealthVisible, Is.True);
+            Assert.That(state.HealthText, Is.EqualTo("HEALTH  25 / 100"));
+            Assert.That(state.HealthFraction, Is.EqualTo(.25f));
         }
 
         [Test]
@@ -222,6 +260,8 @@ namespace Worsen.Tests.ProgressionUI
             Assert.That(presenter.Present(state, Snapshot(2, ProgressionPhase.Ended)), Is.False);
             Assert.That(state.ModalVisible, Is.False);
             Assert.That(presenter.TryIssue(state, ProgressionUIAction.Restart, "", 3), Is.False);
+            Assert.That(state.HealthVisible, Is.False);
+            Assert.That(state.HealthText, Is.Empty);
             Assert.That(presenter.Tick(state, float.NaN), Is.False);
             Assert.That(presenter.Tick(state, -1f), Is.False);
             Assert.That(presenter.Tick(state, 0.45f), Is.False);
@@ -229,6 +269,7 @@ namespace Worsen.Tests.ProgressionUI
             Assert.That(presenter.Tick(state, 0.5f), Is.True);
             Assert.That(state.ModalVisible, Is.True);
             Assert.That(state.Message, Is.EqualTo("Latest result"));
+            Assert.That(state.HealthVisible, Is.True);
             Assert.That(presenter.TryIssue(state, ProgressionUIAction.Restart, "", 3), Is.True);
             Assert.That(presenter.Tick(state, 1f), Is.False);
         }
