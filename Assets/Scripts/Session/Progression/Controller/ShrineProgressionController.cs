@@ -9,7 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep Chance floor-scoped, Bargain single-payment and history run-scoped.
 //   - Schedule Pacification noise on injected time and describe external effect intents.
-//   - Resolve Echo once through its table and expose Purgatory's pure rule scaffold.
+//   - Resolve Echo as an ordinary second use and expose Purgatory's scaled yield.
 // DEPENDENCIES:
 //   - Own state/rules/catalogue, Core values and a separate injected random stream.
 // USAGE NOTES:
@@ -71,7 +71,8 @@ namespace Worsen.Session.Progression
             return new ActiveEffects(result.Values);
         }
         public bool Resolve(int generation, int floor, ShrineActivatedFact activation, int wallet,
-            float shieldCapacity, float collectedFraction, IReadOnlyActiveEffects retained, out ShrineResolvedFact result)
+            float shieldCapacity, float collectedFraction, IReadOnlyActiveEffects retained, out ShrineResolvedFact result,
+            bool extraLifeConsumed = false)
         {
             result = default;
             if (activation.ShrineId < 0 || activation.Tick < 0 || activation.Kind < ShrineKind.Chance ||
@@ -97,6 +98,7 @@ namespace Worsen.Session.Progression
                     for (int i = 0; i < magnitude; i++)
                     {
                         var candidates = Candidates(floor, Combined(retained), false);
+                        if (extraLifeConsumed) candidates.RemoveAll(entry => entry.Id == "extra-life");
                         if (candidates.Count == 0) { if (i == 0) return false; break; }
                         var entry = candidates[random.Next(candidates.Count)];
                         int count = state.FloorEffects.TryGetValue(entry.Id, out var active) ? active.StackCount : 0;
@@ -127,7 +129,7 @@ namespace Worsen.Session.Progression
                     hunters = 1; mutation = random.NextDouble() < Math.Min(1d, rules.MutationChance * magnitude);
                     break;
             }
-            result = new ShrineResolvedFact(generation, activation, kind, changed, cost, shield, drop, wick, yield, hunters, mutation);
+            result = new ShrineResolvedFact(generation, activation, kind, false, cost, shield, drop, wick, yield, hunters, mutation);
             state.History.Add(result);
             return true;
         }

@@ -47,7 +47,10 @@ namespace Worsen.Tests.Progression
 
         private static void Check(EffectCatalogueConfig catalogue)
         {
-            EffectCatalogueUtility.Validate(catalogue, new[] { "watcher", "rusher", "lurker", "hexer", "thorncaller" });
+            EffectCatalogueUtility.Validate(catalogue, Array.Empty<string>());
+            Assert.That(catalogue.Entries.Any(entry => ProgressionRosterUtility.Retired(entry.Id)), Is.False);
+            foreach (var threat in catalogue.Entries.Where(entry => entry.Kind == EffectKind.Threat))
+                Assert.That(threat.AvailabilityRound, Is.EqualTo(ProgressionRosterUtility.FirstRound(threat.Id)), threat.Id);
             AssertIds(catalogue, EffectKind.Curse, "no-look-back silent-presence hidden-count darker-floors random-spawn shuffled-collapse nothing spent-pockets greedy-door short-grace faster-collapse slow-mend no-regen rough-start short-burst heavy-legs", true);
             AssertIds(catalogue, EffectKind.Upgrade, "stored-momentum soft-landing quiet-slide thick-skin wax-heart low-profile steady-hand second-bounce sweet-tooth glimpse latch echo-boots exit-sense blind-faith loud-heart gilded-greed longer-slide higher-jump sticky-fingers bigger-pockets cat-eyes field-kit lucky-reroll bargain-hunter keen-ears trail-reader sure-footing golden-sense stone-nerves web-cutter marked-doors afterglow spare-key mirror-skin ear-plugs extra-life golden-touch shop-reroll loyalty-card interest refund extra-pedestal more-shrines business-license speed-boost quick-start air-control fast-hands long-boost");
             AssertIds(catalogue, EffectKind.Consumable, "firecracker gauze smelling-salts wax-ward doorstop oil-flask glass-vial adrenaline");
@@ -67,6 +70,18 @@ namespace Worsen.Tests.Progression
                 var curses = catalogue.Entries.Where(e => e.Kind == EffectKind.Curse && e.RequiredHunterIds.Contains(hunter)).ToArray();
                 Assert.That(curses.Length, Is.EqualTo(hunter == "echo" ? 3 : 4));
                 Assert.That(curses.All(e => e.Id.StartsWith(hunter + "-", StringComparison.Ordinal)), Is.True);
+            }
+            foreach (var hunter in new[] { "mannequin", "stare", "ram", "mimic", "skip", "blinder", "herald" })
+            {
+                var curses = catalogue.Entries.Where(e => e.Kind == EffectKind.Curse && e.RequiredHunterIds.Contains(hunter)).ToArray();
+                Assert.That(curses.Length, Is.EqualTo(hunter == "herald" ? 5 : 4), hunter);
+                foreach (var curse in curses)
+                {
+                    Assert.That(EffectCatalogueUtility.Eligible(curse, 100, default(ActiveEffects)), Is.False);
+                    var held = new ActiveEffects(new[] { new ActiveEffect(new EffectId(hunter), EffectKind.Threat, 3),
+                        new ActiveEffect(new EffectId(curse.Id), EffectKind.Curse, curse.StackCap) });
+                    Assert.That(EffectCatalogueUtility.Eligible(curse, 100, held), Is.False, curse.Id);
+                }
             }
             foreach (var entry in catalogue.Entries)
             {
