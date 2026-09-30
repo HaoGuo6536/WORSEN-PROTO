@@ -12,11 +12,10 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Clear floor collapse data on round reset without losing retained lighting hooks.
-//   - Resolve exact configured active-effect ids to fog, torch count and Wick outputs.
-//   - Validate authoritative light samples and preserve exact gameplay range.
+//   - Resolve exact configured effect ids to fog, torch count and Wick outputs, and validate authoritative light samples at their exact range.
 //   - Compose default-off fog hooks and gate earned intrusions with an injected random source.
 //   - Advance finite, non-negative run-clock deltas and zero the clock only on ResetRun.
-//   - Compute warning color, contracting ring, directional pose and one growl per windup.
+//   - Compute the warning color, contracting ring, directional pose and one growl per windup.
 //
 // DEPENDENCIES:
 //   - Core HunterAttackSample and pure UnityEngine value math.

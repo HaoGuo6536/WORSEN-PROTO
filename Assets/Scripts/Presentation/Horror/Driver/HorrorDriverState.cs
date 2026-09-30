@@ -11,11 +11,10 @@
 //   DriverState (§7c) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
-//   - Store per-floor room phases and the raw/smoothed collapse fraction separately from run hooks.
-//   - Retain injected effect identity view, torch count multiplier and Wick presentation flag.
-//   - Retain externally authoritative flashlight facts without owning gameplay light rules.
-//   - Retain run startle count/clock separately from floor resets and optional fog hooks.
-//   - Retain the exact camera, daylight, and render values to restore on release.
+//   - Store per-floor room phases and the raw and smoothed collapse fraction, separately from run hooks.
+//   - Retain the injected effect view, torch count multiplier, Wick flag and authoritative flashlight facts, without owning gameplay light rules.
+//   - Retain the run startle count and clock separately from floor resets and optional fog hooks.
+//   - Retain the exact camera, daylight and render values to restore on release.
 //   - Retain owned Lumen effect handles and private profile clones for paired cleanup.
 //
 // DEPENDENCIES:

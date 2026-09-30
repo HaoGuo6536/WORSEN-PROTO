@@ -9,13 +9,11 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (section 3) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
-//   - Retain per-archetype pursuit policy and bounded commitment/deliberation timers.
-//   - Retain the fixed travel budget of the current walking search leg.
-//   - Retain run overrides across Controller.Reset, but clear transient habit/catch state.
+//   - Hold per-life state, separate from shared configuration and foreign systems, preserving observable sensing and committed attacks.
+//   - Retain the per-archetype pursuit policy and bounded commitment, deliberation and walking search-leg budgets.
+//   - Retain run overrides across Controller.Reset while clearing transient habit and catch state.
 //   - Retain the spawn request's duplicate index independently of entity identity.
-//   - Store reaction timers, injected world/camera evidence and once-only door facts.
+//   - Store reaction timers, injected world and camera evidence, and once-only door facts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.

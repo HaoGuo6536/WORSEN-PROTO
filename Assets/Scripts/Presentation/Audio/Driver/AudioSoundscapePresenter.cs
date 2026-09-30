@@ -10,12 +10,10 @@
 //   Presenter (§7b) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Admit named roster banks under hunter slots without charging replay footsteps to Player.
-//   - Enforce one voice per budget slot (per hunter), protected from cross-category stealing.
-//   - Use Core variation metadata; timing tells never receive scheduling jitter.
-//   - Identify enemy-owned voices for death cleanup without muting player death/UI/world sounds.
-//   - Respect cue cooldowns and priorities without stealing equally important voices.
-//   - Refresh loop gain while retaining its initially chosen voice and random variation.
+//   - Admit named roster banks under hunter slots without charging replayed footsteps to the Player.
+//   - Enforce one voice per budget slot per hunter, cooldowns and priorities, without cross-category or equal-priority stealing.
+//   - Use Core variation metadata; timing tells never receive scheduling jitter; loops keep their chosen voice and variation.
+//   - Identify enemy-owned voices for death cleanup without muting player death, UI or world sounds.
 //   - Fade synchronized music layers after a short lost-contact hold.
 //
 // DEPENDENCIES:
