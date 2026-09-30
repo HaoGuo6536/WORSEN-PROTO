@@ -88,3 +88,4 @@ Theme-specific cake looks (PLAN-026); the HUD arrow and count drawing (PLAN-020)
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Arrow | Guidance arrow origin, fallback and hold fixed; traversal cue oracle aligned. Cake density, pickup noise, golden count and exit progress in progress | Commits 1c2c91a, ceb8e49 |
