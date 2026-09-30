@@ -9,7 +9,7 @@
 //   Orchestrator (§6) · Orchestrator · PostFX target.
 // KEY RESPONSIBILITIES:
 //   - Pair HorrorEffects cleanse/revival facts with targeted blindness and catch-latch clearing.
-//   - Pair Run grace/Blind trap and Progression effects; restore effects after capture resets.
+//   - Pair Run grace, Blinder/Blind trap and Progression effects; restore effects after capture resets.
 //   - Forward confirmed consumption before terminal presentation; preserve ordinary injury.
 //   - Pair subscriptions and clear presentation through the existing capture reset.
 //   - Share Horror's single startle admission with the Director intrusion's visual strength.
@@ -82,6 +82,7 @@ namespace Worsen.Orchestrator
             _run.OnGraceStarted += OnGraceStarted;
             _run.OnGraceEnded += OnGraceEnded;
             _run.TrapSprung += OnTrapSprung;
+            _run.BlinderHitPublished += OnBlinderHit;
             if (_progression != null) _progression.EffectsSnapshotChanged += OnEffectsSnapshot;
             OnActiveEffectsChanged(_progression != null ? _progression.EffectsSnapshot.ActiveEffects : null);
         }
@@ -100,11 +101,13 @@ namespace Worsen.Orchestrator
             _run.OnGraceStarted -= OnGraceStarted;
             _run.OnGraceEnded -= OnGraceEnded;
             _run.TrapSprung -= OnTrapSprung;
+            _run.BlinderHitPublished -= OnBlinderHit;
         }
         private void OnDestroy() => OnDisable();
         private void OnEffectsSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects effects) => OnActiveEffectsChanged(effects);
         private void OnTrapSprung(FloorTrapSprungFact fact)
         { if (fact.Kind == FloorTrapKind.Blind) OnBlindTrap(_postFX.BlindTrapSeconds); }
+        private void OnBlinderHit(BlinderHitFact fact) => _postFX.SetBlindness(fact.Duration);
         private void OnMovement(PlayerMovementSample sample) => _postFX.SetLookBack(sample.LookBack);
         public void OnGraceStarted(GraceWindowFact fact) => _postFX.SetGrace(fact, true);
         public void OnGraceEnded(GraceWindowFact fact) => _postFX.SetGrace(fact, false);

@@ -6,7 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
-//   - Check once-only relays, pause, lifecycle pairing and range-free Loud Keys.
+//   - Check once-only relays, pause, lifecycle pairing and silent-to-hunters Loud Keys.
 //   - Check world views, Echo door closure and silent mutation restoration on late hunters.
 // DEPENDENCIES:
 //   - Core, Domain managers and pure controllers, Expedition/Run/Progression, NUnit.
@@ -114,7 +114,7 @@ namespace Worsen.Tests.Run
             foreach (string name in new[] { "OnSound", "OnGuidance", "OnNoise" })
                 Assert.That((Get(ticking, name) as Delegate)?.GetInvocationList().Length ?? 0, Is.Zero, name);
         }
-        [TestCase(false)] [TestCase(true)] public void LoudKeysReachFarHuntersExactlyOnceWithOrWithoutDirector(bool withDirector)
+        [TestCase(false)] [TestCase(true)] public void LoudKeysNeverReachHuntersWithOrWithoutDirector(bool withDirector)
         {
             var a = Hunter(-1); var b = Hunter(-2); var ticking = a.gameObject.AddComponent<TickingManager>(); Set(a, "_ticking", ticking);
             var director = withDirector ? Component<DirectorManager>() : null; int deliveries = 0;
@@ -124,8 +124,8 @@ namespace Worsen.Tests.Run
             a.HearNoise(noise); Assert.That(((IList)Get(a.ReadOnlyState, "HeardNoises")).Count, Is.Zero);
             Publish(ticking, "OnNoise", new TickingNoiseFact(a.Id, noise));
             Publish(ticking, "OnNoise", new TickingNoiseFact(a.Id, noise));
-            foreach (var h in new[] { a, b }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")).Count, Is.EqualTo(1));
-            Assert.That(deliveries, Is.EqualTo(withDirector ? 2 : 0));
+            foreach (var h in new[] { a, b }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")).Count, Is.Zero);
+            Assert.That(deliveries, Is.Zero);
         }
         [Test] public void EveryHunterReceivesViewsEchoClosesDoorAndRespawnRestoresMutationSilently()
         {
@@ -142,6 +142,7 @@ namespace Worsen.Tests.Run
         }
         private void AssertViews(HunterManager hunter)
         {
+            Assert.That(Get(hunter.ReadOnlyState, "WorldView"), Is.Not.Null);
             object c = Get(hunter, "_controller"); Assert.That(Get(c, "_closedDoors"), Is.SameAs(level.ClosedDoors));
             Assert.That(Get(c, "_interactables"), Is.SameAs(level.Interactables)); Assert.That(Get(c, "_floor"), Is.SameAs(floor.ReadOnlyState));
             Assert.That(Get(c, "_effects"), Is.EqualTo(progression.EffectsSnapshot.ActiveEffects));
@@ -152,6 +153,72 @@ namespace Worsen.Tests.Run
             var c = new HunterController(s, p, new System.Random(7), motion, level.ReadOnlyState); c.Reset(new EntityId(id), Vector3.right, Vector3.forward);
             Set(h, "_state", s); Set(h, "_controller", c); Set(h, "_profile", p); h.gameObject.SetActive(true);
             hunters.Add(h); Register(typeof(HunterRegistry), "Register", h); assembly.RecordHunter(h.Id); return h;
+        }
+        [Test] public void ExpansionFactsPairAcrossPauseRebindDisableAndDetach()
+        {
+            var hunter = Hunter(-1); run.BindAdditionalHunter(hunter);
+            AssertRelay<RamFact>(hunter, "OnRamFact", "RamFactPublished");
+            AssertRelay<SkipFact>(hunter, "OnSkipFact", "SkipFactPublished");
+            AssertRelay<MimicFact>(hunter, "OnMimicFact", "MimicFactPublished");
+            AssertRelay<BlinderHitFact>(hunter, "OnBlinderHit", "BlinderHitPublished");
+            AssertRelay<BlinderThrowFact>(hunter, "OnBlinderThrow", "BlinderThrowPublished");
+            AssertRelay<BlinderSoundFact>(hunter, "OnBlinderSound", "BlinderSoundPublished");
+            AssertRelay<BlinderTrapPolicyFact>(hunter, "OnBlinderTrapPolicy", "BlinderTrapPolicyPublished");
+            AssertRelay<HeraldScreamFact>(hunter, "OnHeraldScream", "HeraldScreamPublished");
+            AssertRelay<HeraldBreathFact>(hunter, "OnHeraldBreath", "HeraldBreathPublished");
+            AssertRelay<HeraldDeafenFact>(hunter, "OnHeraldDeafen", "HeraldDeafenPublished");
+            AssertRelay<HunterDoorBreakFact>(hunter, "OnDoorBreakCompleted", "HunterDoorBreakPublished");
+            AssertRelay<MannequinFact>(hunter, "OnMannequinFact", "MannequinFactPublished");
+            AssertRelay<StareFact>(hunter, "OnStareFact", "StareFactPublished");
+        }
+        private void AssertRelay<T>(HunterManager hunter, string publisher, string relay) where T : struct
+        {
+            int count = 0; Action<T> observer = _ => count++;
+            var output = typeof(RunSessionManager).GetEvent(relay); output.AddEventHandler(run, observer);
+            run.BindGameplay(null, null, null); run.BindAdditionalHunter(hunter);
+            Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
+            run.SetPaused(true); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
+            run.SetPaused(false); run.gameObject.SetActive(false);
+            Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
+            run.gameObject.SetActive(true); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
+            run.DetachGameplay(); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
+            Assert.That((Get(hunter, publisher) as Delegate)?.GetInvocationList().Length ?? 0, Is.Zero, publisher);
+            output.RemoveEventHandler(run, observer);
+        }
+        [TestCase(NoiseOrigin.World)] [TestCase(NoiseOrigin.Pacification)]
+        [TestCase(NoiseOrigin.Presentation)] [TestCase(NoiseOrigin.FalsePositive)]
+        public void DisallowedNoiseNeverEntersDirector(NoiseOrigin origin)
+        {
+            var director = Component<DirectorManager>();
+            director.Initialize(Config<DirectorConfig>(), new System.Random(1), new Worsen.Domain.Chase.ChaseBehaviorState(), new FloorBehaviorState());
+            run.BindGameplay(null, null, director);
+            var noise = new NoiseEvent(player.Id, Vector3.zero, 1000f, 1, NoiseSourceKind.Firecracker, origin);
+            run.ForwardGameplayNoise(noise); Call(run, "HandleTrapNoise", noise); Call(run, "HandlePickupNoise", noise);
+            Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises, Is.Empty);
+        }
+        [Test] public void UnspecifiedNoiseRequiresTheCommittedPlayerTrapBoundary()
+        {
+            var director = Component<DirectorManager>();
+            director.Initialize(Config<DirectorConfig>(), new System.Random(1), new Worsen.Domain.Chase.ChaseBehaviorState(), new FloorBehaviorState());
+            run.BindGameplay(null, null, director);
+            var noise = new NoiseEvent(player.Id, Vector3.zero, 1f, 1, NoiseSourceKind.Trap);
+            var noises = ((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises;
+            run.ForwardGameplayNoise(noise); Call(run, "HandlePickupNoise", noise);
+            Call(run, "HandleTrapNoise", new NoiseEvent(EntityId.None, Vector3.zero, 1f, 1, NoiseSourceKind.Trap));
+            Assert.That(noises, Is.Empty);
+            NoiseEvent published = default; run.WorldNoisePublished += value => published = value;
+            Call(run, "HandleTrapNoise", noise);
+            Assert.That(noises.Count, Is.EqualTo(1));
+            Assert.That(published.Origin, Is.EqualTo(NoiseOrigin.PlayerTriggeredCakeTrap));
+        }
+        [TestCase(NoiseOrigin.PlayerMovement)] [TestCase(NoiseOrigin.Firecracker)] [TestCase(NoiseOrigin.PlayerTriggeredCakeTrap)]
+        public void AllowedNoiseEntersDirectorOnce(NoiseOrigin origin)
+        {
+            var director = Component<DirectorManager>();
+            director.Initialize(Config<DirectorConfig>(), new System.Random(1), new Worsen.Domain.Chase.ChaseBehaviorState(), new FloorBehaviorState());
+            run.BindGameplay(null, null, director);
+            run.ForwardGameplayNoise(new NoiseEvent(player.Id, Vector3.zero, 1f, 1, origin: origin));
+            Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises.Count, Is.EqualTo(1));
         }
         private T Component<T>() where T : Component
         { var go = new GameObject(typeof(T).Name + " roster wiring test"); go.SetActive(false); owned.Add(go); return go.AddComponent<T>(); }

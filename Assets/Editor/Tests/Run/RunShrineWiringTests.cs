@@ -110,7 +110,7 @@ namespace Worsen.Tests.Run
             Assert.That(Subscribers(progression, "ShrineNoiseEmitted"), Is.Zero);
         }
         [Test]
-        public void PacificationNoiseUsesDeliveryTickAndQueuesDirectorExactlyOnce()
+        public void PacificationNoiseUsesDeliveryTickButNeverQueuesDirector()
         {
             var director = Component<DirectorManager>();
             director.Initialize(Config<DirectorConfig>(), new System.Random(3),
@@ -119,7 +119,7 @@ namespace Worsen.Tests.Run
             var noises = new List<NoiseEvent>(); progression.ShrineNoiseEmitted += noises.Add;
             for (long tick = 1; tick <= 5; tick++) Call(run, "TickShrines", default(InputFrame), .5f, tick);
             Assert.That(noises.Count, Is.EqualTo(1)); Assert.That(noises[0].Tick, Is.EqualTo(4));
-            Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises.Count, Is.EqualTo(1));
+            Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises.Count, Is.Zero);
         }
         [Test]
         public void ShieldOnlyHitPublishesZeroLossAndStartsGraceOnce()
