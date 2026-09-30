@@ -28,8 +28,8 @@
 //   TickAdvanced is emitted only for accepted gameplay ticks; suspended or ended runs emit none.
 //   No certified unreachable anchors exist yet; silhouettes fail closed. Door visibility uses
 //   the entire owning room conservatively until exact door bounds are published by Level.
-//   The temporary typed reflection adapter tolerates a base without Run's
-//   AfterglowWindowPublished(int roomId, float seconds). Safety is never inferred here.
+//   Run's typed HunterFacts channel supplies authoritative Afterglow windows.
+//   Safety is never inferred here; subscriptions use the same channel on teardown.
 // ============================================================================
 using UnityEngine;
 using System.Collections.Generic;
@@ -79,14 +79,14 @@ namespace Worsen.Orchestrator
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
             PairAfterglow(true);
-            _run.WeaverFactPublished += OnWeaver;
+            _run.HunterFacts.WeaverFactPublished += OnWeaver;
             _run.PlayerDeathPending += OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
             _run.TickAdvanced += OnTickAdvanced;
-            _run.RoomDestructionPublished += OnRoomDestruction;
+            _run.FloorFacts.RoomDestructionPublished += OnRoomDestruction;
             _run.ChaseStarted += OnChaseStarted;
             _run.ChaseEnded += OnChaseEnded;
-            _run.ProximityPublished += OnMicroEventProximity;
+            _run.HunterFacts.ProximityPublished += OnMicroEventProximity;
             _horror.MicroEventSelected += OnMicroEventSelected;
             if (_effects != null) { _effects.FlashlightChanged += OnLight; _effects.AfterimageChanged += OnAfterimage; _run.PlayerMovementPublished += OnMovement; }
             _progression.GenerationRequested += OnGeneration;
@@ -106,13 +106,13 @@ namespace Worsen.Orchestrator
             PairAfterglow(false);
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
-            if (_run != null) _run.WeaverFactPublished -= OnWeaver;
+            if (_run != null) _run.HunterFacts.WeaverFactPublished -= OnWeaver;
             if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded -= OnRevivalCatchEnded;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
-            if (_run != null) _run.RoomDestructionPublished -= OnRoomDestruction;
+            if (_run != null) _run.FloorFacts.RoomDestructionPublished -= OnRoomDestruction;
             if (_run != null) { _run.ChaseStarted -= OnChaseStarted; _run.ChaseEnded -= OnChaseEnded; }
-            if (_run != null) _run.ProximityPublished -= OnMicroEventProximity;
+            if (_run != null) _run.HunterFacts.ProximityPublished -= OnMicroEventProximity;
             if (_horror != null) _horror.InvalidateMicroEventChase();
             if (_horror != null) _horror.MicroEventSelected -= OnMicroEventSelected;
             if (_run != null) _run.PlayerMovementPublished -= OnMovement;
@@ -138,12 +138,8 @@ namespace Worsen.Orchestrator
         private void PairAfterglow(bool subscribe)
         {
             if (_run == null) return;
-            var channel = _run.GetType().GetEvent("AfterglowWindowPublished");
-            if (channel == null) return;
-            if (channel.EventHandlerType != typeof(System.Action<int, float>))
-                throw new System.InvalidOperationException("AfterglowWindowPublished must be Action<int, float>.");
-            System.Action<int, float> receiver = OnAfterglowWindow;
-            if (subscribe) channel.AddEventHandler(_run, receiver); else channel.RemoveEventHandler(_run, receiver);
+            if (subscribe) _run.HunterFacts.AfterglowWindowPublished += OnAfterglowWindow;
+            else _run.HunterFacts.AfterglowWindowPublished -= OnAfterglowWindow;
         }
         private void OnAfterglowWindow(int roomId, float seconds)
         {

@@ -84,7 +84,7 @@ namespace Worsen.Tests.HUD
             Assert.That(((Delegate)Field(_run, "FloorDisplayChanged").GetValue(_run)).GetInvocationList().Length, Is.EqualTo(1));
             Invoke(_route, "OnDisable");
             foreach (string name in new[] { "FloorDisplayChanged", "PlayerMovementPublished", "EmptyItemSlotsChanged", "ChaseStarted", "ChaseEnded", "CaptureStarted" })
-                Assert.That(Field(_run, name).GetValue(_run), Is.Null, name);
+                Assert.That(Worsen.Tests.Run.RunFactRelayTestUtility.Read(_run, name), Is.Null, name);
         }
         [Test]
         public void HiddenCountRoutesToCakeCounterAndFreshCaptureRestoresVisibility()
@@ -109,6 +109,6 @@ namespace Worsen.Tests.HUD
         private static FieldInfo Field(object target, string name) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
         private static void Set(object target, string name, object value) => Field(target, name).SetValue(target, value);
         private static void Invoke(object target, string name) => target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, null);
-        private static void Publish(object target, string name, params object[] args) => (Field(target, name).GetValue(target) as Delegate)?.DynamicInvoke(args);
+        private static void Publish(object target, string name, params object[] args) => (Worsen.Tests.Run.RunFactRelayTestUtility.Read(target, name) as Delegate)?.DynamicInvoke(args);
     }
 }

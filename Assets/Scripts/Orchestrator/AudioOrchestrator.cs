@@ -16,7 +16,7 @@
 // DEPENDENCIES:
 //   - Domain Hunter registry supplies only scoped deliberation publisher references.
 //   - Domain Level supplies Core graph and closed-door snapshots; Floor supplies trap positions.
-//   - Core payloads; Session Run, Progression, HorrorEffects and Expedition.
+//   - Core payloads; Session Run typed fact channels, Progression, HorrorEffects and Expedition.
 //   - Presentation Audio target, Camera catch, ProgressionUI feedback and Environment anchor publishers.
 // USAGE NOTES:
 //   Persistent on the canonical Audio root; base Run reference is persistent.
@@ -96,35 +96,35 @@ namespace Worsen.Orchestrator
             _audio.SetPaused(_run.IsPaused);
             _run.ChaseStarted += OnChase;
             _run.ChaseEnded += OnChaseEnd;
-            _run.ProximityPublished += OnProximity;
+            _run.HunterFacts.ProximityPublished += OnProximity;
             _run.HealthChanged += OnHealth;
             _run.PlayerMovementPublished += OnMovement;
             _run.PlayerTraversalPublished += OnTraversal;
-            _run.HunterFeedbackPublished += OnHunter;
+            _run.HunterFacts.HunterFeedbackPublished += OnHunter;
             _run.HunterArchetypePublished += OnArchetype;
-            _run.HunterHabitPublished += OnHabit;
-            _run.WeaverFactPublished += OnWeaver;
-            _run.TickingSoundPublished += OnTicking;
+            _run.HunterFacts.HunterHabitPublished += OnHabit;
+            _run.HunterFacts.WeaverFactPublished += OnWeaver;
+            _run.HunterFacts.TickingSoundPublished += OnTicking;
             _run.RamFactPublished += OnRam;
-            _run.MimicFactPublished += OnMimic;
-            _run.BlinderSoundPublished += OnBlinder;
-            _run.HeraldScreamPublished += OnHerald;
-            _run.HeraldBreathPublished += OnHeraldBreath;
+            _run.HunterFacts.MimicFactPublished += OnMimic;
+            _run.HunterFacts.BlinderSoundPublished += OnBlinder;
+            _run.HunterFacts.HeraldScreamPublished += OnHerald;
+            _run.HunterFacts.HeraldBreathPublished += OnHeraldBreath;
             _run.MannequinFactPublished += OnMannequin;
-            _run.StareFactPublished += OnStare;
-            _run.BlinderHitPublished += OnBlinderHit;
-            _run.HeraldDeafenPublished += OnHeraldDeafen;
+            _run.HunterFacts.StareFactPublished += OnStare;
+            _run.HunterFacts.BlinderHitPublished += OnBlinderHit;
+            _run.HunterFacts.HeraldDeafenPublished += OnHeraldDeafen;
             _run.HitAccepted += OnHit;
             _run.BeforeTick += RefreshHunters;
             RefreshHunters();
-            _run.PickupCollected += OnPickup;
+            _run.FloorFacts.PickupCollected += OnPickup;
             _run.CollapseHandPublished += OnHand;
-            _run.RoomDestructionPublished += OnDestruction;
-            _run.SpeedNormalizedPublished += OnSpeed;
+            _run.FloorFacts.RoomDestructionPublished += OnDestruction;
+            _run.PlayerFacts.SpeedNormalizedPublished += OnSpeed;
             _run.PhaseChanged += OnPhase;
-            _run.RoomPhaseChanged += OnRoom;
+            _run.FloorFacts.RoomPhaseChanged += OnRoom;
             _run.FloorDisplayChanged += OnFloorDisplay;
-            _run.OnGraceStarted += OnGrace;
+            _run.PlayerFacts.OnGraceStarted += OnGrace;
             _run.TrapSprung += OnTrap;
             if (_level != null) { _level.ReadinessChanged += OnLevelReady; _level.InteractableChanged += OnInteractable; }
             if (_camera != null) _camera.CatchHoldStarted += OnCatchStarted;
@@ -150,34 +150,34 @@ namespace Worsen.Orchestrator
                 _run.PauseChanged -= OnPause;
                 _run.ChaseStarted -= OnChase;
                 _run.ChaseEnded -= OnChaseEnd;
-                _run.ProximityPublished -= OnProximity;
+                _run.HunterFacts.ProximityPublished -= OnProximity;
                 _run.HealthChanged -= OnHealth;
                 _run.PlayerMovementPublished -= OnMovement;
                 _run.PlayerTraversalPublished -= OnTraversal;
-                _run.HunterFeedbackPublished -= OnHunter;
+                _run.HunterFacts.HunterFeedbackPublished -= OnHunter;
                 _run.HunterArchetypePublished -= OnArchetype;
-                _run.HunterHabitPublished -= OnHabit;
-                _run.WeaverFactPublished -= OnWeaver;
-                _run.TickingSoundPublished -= OnTicking;
+                _run.HunterFacts.HunterHabitPublished -= OnHabit;
+                _run.HunterFacts.WeaverFactPublished -= OnWeaver;
+                _run.HunterFacts.TickingSoundPublished -= OnTicking;
                 _run.RamFactPublished -= OnRam;
-                _run.MimicFactPublished -= OnMimic;
-                _run.BlinderSoundPublished -= OnBlinder;
-                _run.HeraldScreamPublished -= OnHerald;
-                _run.HeraldBreathPublished -= OnHeraldBreath;
+                _run.HunterFacts.MimicFactPublished -= OnMimic;
+                _run.HunterFacts.BlinderSoundPublished -= OnBlinder;
+                _run.HunterFacts.HeraldScreamPublished -= OnHerald;
+                _run.HunterFacts.HeraldBreathPublished -= OnHeraldBreath;
                 _run.MannequinFactPublished -= OnMannequin;
-                _run.StareFactPublished -= OnStare;
-                _run.BlinderHitPublished -= OnBlinderHit;
-                _run.HeraldDeafenPublished -= OnHeraldDeafen;
+                _run.HunterFacts.StareFactPublished -= OnStare;
+                _run.HunterFacts.BlinderHitPublished -= OnBlinderHit;
+                _run.HunterFacts.HeraldDeafenPublished -= OnHeraldDeafen;
                 _run.HitAccepted -= OnHit;
                 _run.BeforeTick -= RefreshHunters;
-                _run.PickupCollected -= OnPickup;
+                _run.FloorFacts.PickupCollected -= OnPickup;
                 _run.CollapseHandPublished -= OnHand;
-                _run.RoomDestructionPublished -= OnDestruction;
-                _run.SpeedNormalizedPublished -= OnSpeed;
+                _run.FloorFacts.RoomDestructionPublished -= OnDestruction;
+                _run.PlayerFacts.SpeedNormalizedPublished -= OnSpeed;
                 _run.PhaseChanged -= OnPhase;
-                _run.RoomPhaseChanged -= OnRoom;
+                _run.FloorFacts.RoomPhaseChanged -= OnRoom;
                 _run.FloorDisplayChanged -= OnFloorDisplay;
-                _run.OnGraceStarted -= OnGrace;
+                _run.PlayerFacts.OnGraceStarted -= OnGrace;
                 _run.TrapSprung -= OnTrap;
             }
             if (_level != null) { _level.ReadinessChanged -= OnLevelReady; _level.InteractableChanged -= OnInteractable; }

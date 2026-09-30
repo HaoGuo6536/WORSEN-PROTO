@@ -75,7 +75,7 @@ namespace Worsen.Tests.Run
             Set(run, "state", state); Set(run, "controller", clock);
             run.gameObject.SetActive(true);
             run.BindGameplay(null, null, null);
-            run.OnGraceStarted += starts.Add; run.OnGraceEnded += ends.Add;
+            run.PlayerFacts.OnGraceStarted += starts.Add; run.PlayerFacts.OnGraceEnded += ends.Add;
             run.HitAccepted += accepted.Add; run.TelemetryPublished += telemetry.Add;
             floor = Component<FloorManager>();
             effects = Component<HorrorEffectsManager>();

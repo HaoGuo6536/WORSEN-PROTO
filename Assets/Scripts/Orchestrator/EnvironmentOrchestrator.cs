@@ -15,7 +15,7 @@
 //   - Publish the exit frame after room dressing exists and forward continuous opening progress.
 
 // DEPENDENCIES:
-//   Session Expedition/Run/HorrorEffects; Presentation Environment/Horror; Core values.
+//   Session Expedition/Run (including FloorFacts)/HorrorEffects; Presentation Environment/Horror; Core values.
 //   Domain Level supplies graph/light facts; Procedural supplies boundaries/sockets; Floor supplies door yaw.
 // USAGE NOTES:
 //   Scene-owned, explicitly configured after canonical services initialize.
@@ -59,7 +59,7 @@ namespace Worsen.Orchestrator
             _expedition.FloorReleased += OnFloorReleased;
             if (_level != null) _level.InteractableChanged += OnInteractable;
             _run.PlayerMovementPublished += OnMovement;
-            _run.RoomDestructionPublished += OnDestruction;
+            _run.FloorFacts.RoomDestructionPublished += OnDestruction;
             _run.FloorDisplayChanged += OnFloorDisplay;
             _effects.FlameDimChanged += OnFlame;
             _effects.DoorMarked += OnMark;
@@ -72,7 +72,7 @@ namespace Worsen.Orchestrator
             if (_expedition != null) { _expedition.RoomsReady -= OnRooms; _expedition.FloorReleased -= OnFloorReleased; }
             if (_expedition != null) { _expedition.ThemePublished -= OnTheme; _expedition.RoomThemePublished -= OnRoomTheme; }
             if (_level != null) _level.InteractableChanged -= OnInteractable;
-            if (_run != null) { _run.PlayerMovementPublished -= OnMovement; _run.RoomDestructionPublished -= OnDestruction; _run.FloorDisplayChanged -= OnFloorDisplay; }
+            if (_run != null) { _run.PlayerMovementPublished -= OnMovement; _run.FloorFacts.RoomDestructionPublished -= OnDestruction; _run.FloorDisplayChanged -= OnFloorDisplay; }
             if (_effects != null) { _effects.FlameDimChanged -= OnFlame; _effects.DoorMarked -= OnMark; }
         }
         private void OnTheme(string theme, string light, string sound, string fog, string hands) => _environment.SetTheme(theme, light);

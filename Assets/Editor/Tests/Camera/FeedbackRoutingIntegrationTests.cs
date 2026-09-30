@@ -8,12 +8,10 @@
 //   Editor tool (§10) · test suite (§11) · Camera integration.
 // KEY RESPONSIBILITIES:
 //   - Drive look-back with mouse deltas and require exact rear/forward snaps in the committed frame.
-//   - Observe confirmed sight and two native lunge contacts through Session routing.
-//   - Require the death sting at hold start, not death, and observe the close-up before restart.
+//   - Observe confirmed sight, two native lunges, hold-start sting and the close-up before restart.
 //   - Verify scene-local comfort settings without modifying shared designer assets.
 //   - Preserve pursuit/injury checks and require fresh-run restoration to the degradation baseline.
-//   - Isolate music routing with disposable test stems; production Pursuit/Danger may be empty.
-//   - Inspect actual pooled cue identity, configured clips, gain/pitch and playback; retain legacy coverage.
+//   - Inspect cue identity, clips, gain/pitch and playback with disposable music stems and legacy coverage.
 // DEPENDENCIES:
 //   Core; Player/Hunter; Session.Run; Camera/PostFX/Audio/HUD/Results/Input;
 //   TagArena assembly, UI Toolkit, NUnit and Unity Test Framework. Rendering package
@@ -263,7 +261,7 @@ namespace Worsen.Tests.Camera
                     Assert.That(input.SetSource(InputSource.Live), Is.True);
                     input.FramePublished += Produce;
                     Run.ChaseStarted += Started; Run.HealthChanged += Injured; Run.PlayerDied += Died;
-                    Run.ProximityPublished += Proximity; Run.PlayerMovementPublished += Movement;
+                    Run.HunterFacts.ProximityPublished += Proximity; Run.PlayerMovementPublished += Movement;
                     Run.CaptureEnded += CaptureEnded;
                     camera.CatchHoldStarted += CatchStarted;
                     camera.CatchHoldEnded += CatchEnded;
@@ -666,7 +664,7 @@ namespace Worsen.Tests.Camera
                 if (Run != null)
                 {
                     Run.ChaseStarted -= Started; Run.HealthChanged -= Injured; Run.PlayerDied -= Died;
-                    Run.ProximityPublished -= Proximity; Run.PlayerMovementPublished -= Movement; Run.CaptureEnded -= CaptureEnded;
+                    Run.HunterFacts.ProximityPublished -= Proximity; Run.PlayerMovementPublished -= Movement; Run.CaptureEnded -= CaptureEnded;
                     Run.HitAccepted -= Hit;
                 }
                 if (hunter != null)
