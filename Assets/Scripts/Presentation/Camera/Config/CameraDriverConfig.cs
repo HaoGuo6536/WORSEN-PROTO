@@ -10,8 +10,8 @@
 //   DriverConfig (Â§7d) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Tune mouse-directed free-look, achieved slide banking and bounded shake.
-//   - Tune a bounded consumption drag and expose comfort controls without storing runtime effect state.
+//   - Retain legacy look fields while the fixed-frame rear view disables scanning.
+//   - Tune the held catch framing and timing, slide banking and bounded shake.
 //
 // DEPENDENCIES:
 //   - No other project systems.
@@ -19,6 +19,7 @@
 // USAGE NOTES:
 //   - Asset path mirrors Presentation/Camera under Resources/ScriptableObjects.
 //   - Runtime code reads this asset without changing designer values.
+//   - Legacy look durations/limits and consumption motion fields do not drive the snap or catch.
 //   - Optional third-person detection experiment remains deferred until its chase gate.
 //
 // ============================================================================
@@ -39,9 +40,12 @@ namespace Worsen.Presentation.Camera
         [SerializeField, Range(0f, 2f)] private float _punchIntensity = 1f;
         [SerializeField, Min(0f)] private float _impulseDisplacement = 0.035f;
         [SerializeField, Min(0.001f)] private float _impulseSeconds = 0.2f;
-        [SerializeField, Range(0f, 180f)] private float _lookBackYaw = 160f;
-        [SerializeField, Min(0.001f)] private float _lookBackSeconds = 0.12f;
-        [SerializeField, Min(0.001f)] private float _lookForwardSeconds = 0.15f;
+        [Tooltip("Legacy tuning retained for serialization. The snap always turns fully behind (180 degrees).")]
+        [SerializeField, Range(0f, 180f)] private float _lookBackYaw = 180f;
+        [Tooltip("Zero means instant. Fixed-frame snap ignores legacy nonzero blend durations.")]
+        [SerializeField, Min(0f)] private float _lookBackSeconds = 0f;
+        [SerializeField, Min(0f)] private float _lookForwardSeconds = 0f;
+        [Tooltip("Unused while snapped: rear-view pitch and head yaw cannot scan.")]
         [SerializeField, Range(0f, 85f)] private float _lookBackPitchLimit = 20f;
         [SerializeField, Range(0f, 20f)] private float _lookBackHeadYawLimit = 20f;
         [SerializeField, Range(0f, 89f)] private float _forwardPitchLimit = 85f;
@@ -62,6 +66,16 @@ namespace Worsen.Presentation.Camera
         [SerializeField, Range(0f, 0.1f)] private float _maximumShakeDisplacement = 0.025f;
         [SerializeField, Min(0.01f)] private float _nearClip = 0.05f;
         [SerializeField, Min(1f)] private float _farClip = 500f;
+
+        [SerializeField, Min(0.05f)] private float _catchDistance = 1.2f;
+        [SerializeField, Min(0f)] private float _catchApproachSeconds = 0.15f;
+        [SerializeField, Min(0f)] private float _catchHoldSeconds = 1.4f;
+        [Tooltip("Upper-body focus height above the routed hunter root; hands use the exact grab point.")]
+        [SerializeField, Min(0f)] private float _catchHunterFocusHeight = 1.4f;
+        public float CatchDistance => _catchDistance;
+        public float CatchApproachSeconds => _catchApproachSeconds;
+        public float CatchHoldSeconds => _catchHoldSeconds;
+        public float CatchHunterFocusHeight => _catchHunterFocusHeight;
 
         [SerializeField, Range(0.1f, 2f)] private float _consumptionSeconds = 0.9f;
         [SerializeField, Range(0f, 3f)] private float _consumptionDragDistance = 1.8f;
@@ -84,8 +98,8 @@ namespace Worsen.Presentation.Camera
         public float ImpulseDisplacement => _impulseDisplacement;
         public float ImpulseSeconds => _impulseSeconds;
         public float LookBackYaw => _lookBackYaw;
-        public float LookBackSeconds => _lookBackSeconds;
-        public float LookForwardSeconds => _lookForwardSeconds;
+        public float LookBackSeconds => Mathf.Max(0f, _lookBackSeconds);
+        public float LookForwardSeconds => Mathf.Max(0f, _lookForwardSeconds);
         public float LookBackPitchLimit => _lookBackPitchLimit;
         public float LookBackHeadYawLimit => _lookBackHeadYawLimit;
         public float ForwardPitchLimit => _forwardPitchLimit;

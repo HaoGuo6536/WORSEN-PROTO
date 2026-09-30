@@ -13,6 +13,7 @@
 //   Owns AudioDriver and forwards Core facts into its presentation stack.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward catch identity to the Driver's per-run sting admission, guarded by owner readiness.
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
 //   - Forward cue, movement, fractional injury and proximity commands without gameplay rules.
 //   - Pair owner enable/disable and teardown with the owned Driver lifetime.
@@ -24,6 +25,7 @@
 //   - Persistent (DontDestroyOnLoad); requires a dedicated root GameObject.
 //   - Scene assembly must retain the canonical instance returned by Initialize.
 //   - ResetRun releases all previous run playback; no scene-owned references are cached.
+//   - Restart and capture reset rearm catch admission through the same ResetRun command.
 //
 // ============================================================================
 
@@ -66,6 +68,7 @@ namespace Worsen.Presentation.Audio
         }
 
         public void PlayCue(CueId cue) { if (_initialized && isActiveAndEnabled) _driver.PlayCue(cue); }
+        public void PlayCatchSting(EntityId player) { if (_initialized && isActiveAndEnabled) _driver.PlayCatchSting(player); }
         public void SetProximity(float closeness) { if (_initialized) _driver.SetProximity(closeness); }
         public void SetMovementState(MovementState movement) { if (_initialized) _driver.SetMovementState(movement); }
         public void SetSpeedNormalized(float speed) { if (_initialized) _driver.SetSpeedNormalized(speed); }

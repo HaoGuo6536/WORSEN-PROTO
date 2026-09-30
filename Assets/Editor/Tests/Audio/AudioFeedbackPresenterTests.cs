@@ -10,6 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Keep lethal health silent and admit one sting only at catch hold start, reset per run.
 //   - Verify ordinary pickups never become combo stings, and health owns damage sounds.
 //   - Verify per-action mapping and duplicate suppression.
 //   - Verify silent posture seeding, slide suppression, exertion fades and critical/death priority.
@@ -43,9 +44,26 @@ namespace Worsen.Tests.Audio
             presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Hit, Vector3.zero, 1, 10, 12)); Assert.That(state.Commands, Is.Empty);
             presenter.Health(state, player, 70, 100); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
             presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Consumed, Vector3.zero, 1, 100, 13)); Assert.That(state.Commands, Is.Empty);
-            presenter.Health(state, player, 0, 100); Assert.That(state.Commands.Count, Is.EqualTo(1)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.Death));
+            presenter.Health(state, player, 0, 100); Assert.That(state.Commands, Is.Empty);
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.Scream, Vector3.zero, 14)); Assert.That(state.Commands, Is.Empty);
         }
+        [Test]
+        public void CatchStingAdmitsOnlyOneValidHoldStartUntilRunStateResets()
+        {
+            var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState(); var player = new EntityId(1);
+            presenter.Health(state, player, 100, 100);
+            presenter.Health(state, player, 0, 100);
+            Assert.That(state.Commands, Is.Empty);
+            Assert.That(state.CatchStingIssued, Is.False);
+            Assert.That(presenter.TryCatchSting(state, default), Is.False);
+            Assert.That(presenter.TryCatchSting(state, player), Is.True);
+            Assert.That(presenter.TryCatchSting(state, player), Is.False);
+            Assert.That(presenter.TryCatchSting(state, new EntityId(2)), Is.False);
+            // AudioDriver.ResetRun replaces this state rather than resetting unrelated observations piecemeal.
+            state = new AudioFeedbackDriverState();
+            Assert.That(presenter.TryCatchSting(state, player), Is.True);
+        }
+
         [Test]
         public void SwingOwnsOneWhooshAndSeparateHuntersStillSoundIndependently()
         {

@@ -8,22 +8,23 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · ProgressionUI target.
 // KEY RESPONSIBILITIES:
-//   - Arm terminal reveal deferral on confirmed consumption before the Ended snapshot.
+//   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
 //   - Route display snapshots and UI decisions through paired subscriptions.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
 // DEPENDENCIES:
 //   - Session Progression/Run, Presentation ProgressionUI and Core payloads.
-//   - CameraManager supplies its configured duration only during Configure.
+//   - CameraManager supplies the authoritative catch-completed event.
 // USAGE NOTES:
 //   Scene-owned. Configure reconnects canonical persistent services after scene
 //   assembly; no runtime state or engine rendering operations live here.
 //   Call Configure after Camera.Initialize. Optional Run/Camera arguments preserve
-//   legacy scene callers. Consumed is synchronous before Run finishes the tick;
-//   UI owns the unscaled reveal gate and clears it on a new generation/disable.
+//   legacy scene callers. PlayerDied is synchronous before RunEnded;
+//   UI owns the event gate and unscaled fallback, cleared on restart/disable.
 // ============================================================================
 using UnityEngine;
 using System;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 using Worsen.Session.Progression;
 using Worsen.Presentation.ProgressionUI;
 using Worsen.Session.Run;
@@ -35,21 +36,22 @@ namespace Worsen.Orchestrator
         private ProgressionSessionManager _progression;
         private ProgressionUIManager _ui;
         private RunSessionManager _run;
+        private CameraManager _camera;
         private Func<int> _nextRunSeed;
-        [SerializeField, Range(0.1f, 2f)] private float _consumptionSeconds = 0.9f;
         public void Configure(ProgressionSessionManager progression, ProgressionUIManager ui,
             RunSessionManager run = null, CameraManager camera = null, Func<int> nextRunSeed = null)
         {
             OnDisable(); _progression = progression; _ui = ui; _run = run;
             _nextRunSeed = nextRunSeed;
-            if (camera != null) _consumptionSeconds = camera.ConsumptionSeconds;
+            _camera = camera;
             if (isActiveAndEnabled) OnEnable();
         }
         private void OnEnable()
         {
             if (_progression == null || _ui == null) return;
             _progression.SnapshotChanged += OnSnapshot;
-            if (_run != null) _run.CollapseHandPublished += OnCollapseHand;
+            if (_run != null) { _run.PlayerDied += OnDeath; _run.CaptureStarted += OnCapture; }
+            if (_camera != null) _camera.CatchHoldEnded += OnCatchEnded;
             _ui.ChooseThreatRequested += OnThreat;
             _ui.ChooseCurseRequested += OnCurse;
             _ui.PurchaseRequested += OnPurchase;
@@ -59,19 +61,20 @@ namespace Worsen.Orchestrator
         private void OnDisable()
         {
             if (_progression != null) _progression.SnapshotChanged -= OnSnapshot;
-            if (_run != null) _run.CollapseHandPublished -= OnCollapseHand;
+            if (_run != null) { _run.PlayerDied -= OnDeath; _run.CaptureStarted -= OnCapture; }
+            if (_camera != null) _camera.CatchHoldEnded -= OnCatchEnded;
             if (_ui == null) return;
             _ui.ChooseThreatRequested -= OnThreat;
             _ui.ChooseCurseRequested -= OnCurse;
             _ui.PurchaseRequested -= OnPurchase;
             _ui.ContinueRequested -= OnContinue;
             _ui.RestartRequested -= OnRestart;
+            _ui.ResetCatch();
         }
         private void OnSnapshot(ProgressionSnapshot value) => _ui.SetSnapshot(value);
-        private void OnCollapseHand(CollapseHandFact fact)
-        {
-            if (fact.Kind == CollapseHandEventKind.Consumed) _ui.DeferTerminal(_consumptionSeconds);
-        }
+        private void OnDeath(EntityId player, Vector3 position) => _ui.PrepareCatch(player);
+        private void OnCatchEnded(EntityId player) => _ui.EndCatch(player);
+        private void OnCapture(RunCaptureMetadata metadata) => _ui.ResetCatch();
         private void OnThreat(string id, int revision) => _progression.ChooseThreat(id, revision);
         private void OnCurse(string id, int revision) => _progression.ChooseCurse(id, revision);
         private void OnPurchase(string id, int revision) => _progression.Purchase(id, revision);
@@ -80,6 +83,7 @@ namespace Worsen.Orchestrator
         {
             ProgressionSnapshot snapshot = _progression.Snapshot;
             if (snapshot.Revision != revision || !snapshot.CanRestart) return;
+            _ui.ResetCatch();
             _progression.RestartRun(revision, _nextRunSeed != null ? _nextRunSeed() : snapshot.Seed);
         }
     }

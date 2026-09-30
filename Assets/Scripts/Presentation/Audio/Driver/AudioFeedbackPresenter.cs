@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Scale landing impacts by committed stumble severity and sliding friction by actual turn rate.
 //   - Map authoritative posture changes and fade sustained exertion without restarting its voice.
-//   - Give health sole ownership of player damage/death; never replay a swing for its miss outcome.
+//   - Give health nonlethal damage cues; admit one death sting only at catch hold start.
 //   - Choose presentation commands without changing gameplay.
 //   - Suppress initialization damage and repeated same-event sounds.
 //   - Preserve one ordinary or golden pickup cue without a combo replacement.
@@ -160,7 +160,7 @@ namespace Worsen.Presentation.Audio
                 case CollapseHandEventKind.Warning: cue = CueId.GrabWarning; break;
                 case CollapseHandEventKind.Grabbed: cue = CueId.GrabStart; break;
                 case CollapseHandEventKind.Escaped: cue = CueId.GrabEscape; break;
-                // Accepted health loss owns one hit/death; consumption visuals remain independent.
+                // Health owns nonlethal hits; catch hold start owns the death sting.
                 case CollapseHandEventKind.Hit: case CollapseHandEventKind.Consumed: return;
                 default: return;
             }
@@ -192,11 +192,18 @@ namespace Worsen.Presentation.Audio
             state.IsAlive = health > 0f; state.IsCritical = health > 0f && health <= maximum * .25f;
             if (!state.IsAlive) state.IsSprinting = false;
             if (!had) return;
-            if (health < previous) Add(state, health <= 0f ? CueId.Death : CueId.PlayerHit);
+            if (health < previous && health > 0f) Add(state, CueId.PlayerHit);
             else if (health > previous) Add(state, CueId.Heal);
             // AudioMixPresenter's retained breath source owns critical breathing. Starting
             // PlayerCritical here would play the same breath clip twice at different phases.
         }
+        public bool TryCatchSting(AudioFeedbackDriverState state, EntityId player)
+        {
+            if (!player.IsValid || state.CatchStingIssued) return false;
+            state.CatchStingIssued = true;
+            return true;
+        }
+
         public void Flashlight(AudioFeedbackDriverState state, FlashlightSample sample)
         {
             state.Commands.Clear();

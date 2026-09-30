@@ -7,9 +7,9 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Camera integration.
 // KEY RESPONSIBILITIES:
-//   - Drive held free-look explicitly with mouse degrees; only release is an automatic ease.
+//   - Drive look-back with mouse deltas and require exact rear/forward snaps in the committed frame.
 //   - Observe confirmed sight and two native lunge contacts through Session routing.
-//   - Measure actual LookBack camera endpoints with frame-width timing uncertainty.
+//   - Require the death sting at hold start, not death, and observe the close-up before restart.
 //   - Verify scene-local comfort settings without modifying shared designer assets.
 //   - Isolate music routing with disposable test stems; production Pursuit/Danger may be empty.
 //   - Inspect actual pooled cue identity, configured clips, gain/pitch and playback; retain legacy coverage.
@@ -86,7 +86,7 @@ namespace Worsen.Tests.Camera
                 Assert.That(load, Is.Not.Null);
                 yield return Until(() => trial.SceneCount == 1 && trial.Run != null, trial, "First scene readiness");
                 yield return Until(() => trial.Deaths == 1, trial, "Two native lunge contacts and death");
-                yield return Until(() => trial.DeathRendered && trial.LoopsSilent, trial, "Death camera and layer fade");
+                yield return Until(() => trial.DeathRendered && trial.CatchEnds == 1 && trial.LoopsSilent, trial, "Held catch and layer fade");
                 trial.AssertChase();
                 trial.RestartRequested = true;
                 var button = One<ResultsManager>().GetComponent<UIDocument>().rootVisualElement.Q<Button>("restart-button");
@@ -97,12 +97,12 @@ namespace Worsen.Tests.Camera
                 yield return Until(() => trial.SceneCount == 2 && trial.FreshFrames >= 4, trial, "Results routed restart");
                 trial.AssertReset();
                 trial.BeginLookCycle(false);
-                yield return Until(() => trial.CycleDone, trial, "Default LookBack easing and return blur");
+                yield return Until(() => trial.CycleDone && trial.ReturnBlurExpired, trial, "Default LookBack snap and return blur");
                 trial.AssertLookCycle();
                 trial.InstallComfortClones();
                 yield return Until(() => trial.CloneFrames >= 4, trial, "Comfort settings reach the actual camera");
                 trial.BeginLookCycle(true);
-                yield return Until(() => trial.CycleDone, trial, "Comfort LookBack easing with blur disabled");
+                yield return Until(() => trial.CycleDone && trial.ReturnBlurExpired, trial, "Comfort LookBack snap with blur disabled");
                 trial.AssertLookCycle();
                 trial.BeginSlide();
                 yield return Until(() => trial.SlideFrames >= 4, trial, "Actual slide with tilt disabled");
@@ -159,13 +159,15 @@ namespace Worsen.Tests.Camera
             private RunSessionManager captureRun;
             private readonly List<float> lookTimes = new List<float>();
             private InputButtons previousHeld;
-            private bool requestedBack, committedBack, lookActive, comfortCycle, returning, sawMidpoint, sawBlur;
+            private bool requestedBack, committedBack, lookActive, comfortCycle, returning, sawBlur;
             private bool sliding, slideCommitted;
             private bool cloneReceivedMovement;
-            private float lookElapsed, lookMaxFrame, lookPreviousYaw;
+            private float lookElapsed, lookMaxFrame;
             private long lookStartTick;
             private int lookStartFrame;
             public int SceneCount, Deaths, FreshFrames, CloneFrames, SlideFrames;
+            public int CatchStarts, CatchEnds;
+            public bool ReturnBlurExpired => !(bool)Read(Read(postDriver, "_blur"), "active");
             public bool RestartRequested, DeathRendered, LoopsSilent, CycleDone;
             public string FirstRecording = "", Failure = "";
 
@@ -231,8 +233,8 @@ namespace Worsen.Tests.Camera
                     Assert.That(cameraConfig.DetectionFieldOfView, Is.EqualTo(12f));
                     Assert.That(cameraConfig.DetectionAttackSeconds, Is.EqualTo(0.08f));
                     Assert.That(cameraConfig.DetectionDecaySeconds, Is.EqualTo(0.4f));
-                    Assert.That(cameraConfig.LookBackSeconds, Is.EqualTo(0.12f));
-                    Assert.That(cameraConfig.LookForwardSeconds, Is.EqualTo(0.15f));
+                    Assert.That(cameraConfig.LookBackSeconds, Is.GreaterThanOrEqualTo(0f));
+                    Assert.That(cameraConfig.LookForwardSeconds, Is.GreaterThanOrEqualTo(0f));
                     AssertVolumeWiring();
                     if (SceneCount == 1)
                     {
@@ -261,6 +263,8 @@ namespace Worsen.Tests.Camera
                     Run.ChaseStarted += Started; Run.HealthChanged += Injured; Run.PlayerDied += Died;
                     Run.ProximityPublished += Proximity; Run.PlayerMovementPublished += Movement;
                     Run.CaptureEnded += CaptureEnded;
+                    camera.CatchHoldStarted += CatchStarted;
+                    camera.CatchHoldEnded += CatchEnded;
                     hunter.OnLungeHit += Hit;
                     hunter.GetComponent<HunterDriver>().OnLungeContact += Contact;
                     observer = new GameObject("Feedback late-frame observation").AddComponent<FeedbackFrameObserver>();
@@ -309,11 +313,24 @@ namespace Worsen.Tests.Camera
             {
                 Deaths++; killer = position;
                 Assert.That(id, Is.EqualTo(player.Id)); Assert.That(hits, Is.EqualTo(2));
-                AssertCue(CueId.Death);
+                Assert.That(((AudioFeedbackDriverState)Read(audio, "_feedbackState")).CatchStingIssued, Is.False);
                 events.Add("death tick=" + Run.Tick + " frame=" + Time.frameCount);
             });
             private void CaptureEnded(long tick, bool complete)
             { if (SceneCount == 1) { returnedCapture = complete; FirstRecording = input.LastRecordingPath; } }
+            private void CatchStarted(EntityId id) => Guard(() =>
+            {
+                Assert.That(id, Is.EqualTo(player.Id));
+                Assert.That(CatchEnds, Is.Zero);
+                AssertCue(CueId.Death);
+                CatchStarts++;
+            });
+            private void CatchEnded(EntityId id) => Guard(() =>
+            {
+                Assert.That(id, Is.EqualTo(player.Id));
+                Assert.That(CatchStarts, Is.EqualTo(1));
+                CatchEnds++;
+            });
             private void CaptureStarted(RunCaptureMetadata metadata)
             { events.Add("capture=" + metadata.SessionId + " seed=" + metadata.Seed + " startTick=" + metadata.StartTick +
                 " fixedDt=" + metadata.FixedDeltaTime + " source=" + metadata.SourceRevision + " config=" + metadata.ConfigSnapshotHash +
@@ -325,8 +342,8 @@ namespace Worsen.Tests.Camera
                 if (sliding && sample.MovementState == MovementState.Slide) slideCommitted = true;
                 if (!lookActive || committedBack == sample.LookBack) return;
                 committedBack = sample.LookBack;
-                lookElapsed = lookMaxFrame = 0f; lookPreviousYaw = committedBack ? 0f : 160f;
-                sawMidpoint = false; returning = !committedBack;
+                lookElapsed = lookMaxFrame = 0f;
+                returning = !committedBack;
                 lookStartTick = sample.Tick; lookStartFrame = Time.frameCount;
             }
 
@@ -392,9 +409,14 @@ namespace Worsen.Tests.Camera
                     if (health == 50f) injuryFrames++;
                     if (Deaths == 1)
                     {
-                        Assert.That(Vector3.Angle(output.transform.forward, killer - player.LastMovementSample.EyePosition), Is.LessThan(0.1f));
                         Assert.That((float)Read(Read(cameraDriver, "_listener"), "Gain"), Is.Zero);
-                        DeathRendered = true;
+                        if (CatchStarts == 1)
+                        {
+                            var focus = killer + Vector3.up * cameraConfig.CatchHunterFocusHeight;
+                            Assert.That(Vector3.Angle(output.transform.forward, focus - output.transform.position), Is.LessThan(0.1f));
+                            Assert.That(Vector3.Distance(output.transform.position, focus), Is.EqualTo(cameraConfig.CatchDistance).Within(0.01f));
+                            DeathRendered = true;
+                        }
                         LoopsSilent = ThreatAndGameplayLoopsSilent() && ((AudioSource)Read(audio, "_breath")).volume == 0f;
                     }
                     return;
@@ -415,18 +437,11 @@ namespace Worsen.Tests.Camera
                 lookElapsed += dt; lookMaxFrame = Mathf.Max(lookMaxFrame, dt);
                 float yaw = Mathf.DeltaAngle(player.ReadOnlyState.HeadingDegrees,
                     Mathf.Atan2(output.transform.forward.x, output.transform.forward.z) * Mathf.Rad2Deg);
-                Assert.That(yaw, Is.InRange(-0.05f, 160.05f));
-                Assert.That(returning ? yaw <= lookPreviousYaw + 0.05f : yaw >= lookPreviousYaw - 0.05f, Is.True);
-                if (yaw > 10f && yaw < 150f) sawMidpoint = true;
-                lookPreviousYaw = yaw;
+                Assert.That(Mathf.Abs(yaw), Is.EqualTo(returning ? 0f : 180f).Within(0.05f));
+                Assert.That(Time.frameCount, Is.EqualTo(lookStartFrame), "Snap must render in the committed sample's frame.");
                 bool blur = (bool)Read(Read(postDriver, "_blur"), "active");
                 if (returning && blur) sawBlur = true;
-                bool endpoint = returning ? yaw < 0.02f : Mathf.Abs(yaw - 160f) < 0.02f;
-                if (!endpoint) return;
-                float duration = returning ? 0.15f : 0.12f;
-                Assert.That(lookMaxFrame, Is.LessThanOrEqualTo(0.08f), "Insufficient frame resolution for easing measurement.");
-                if (returning) Assert.That(sawMidpoint, Is.True, "Release must ease from the mouse-directed view.");
-                if (returning) Assert.That(lookElapsed, Is.InRange(duration - 0.01f, duration + lookMaxFrame + 0.001f));
+                Assert.That(lookMaxFrame, Is.LessThanOrEqualTo(0.08f), "Insufficient frame resolution to observe return blur.");
                 events.Add((returning ? "return" : "lookback") + " comfort=" + comfortCycle + " startTick=" + lookStartTick +
                     " startFrame=" + lookStartFrame + " endFrame=" + Time.frameCount + " sampledDt=" + lookElapsed + " maxFrame=" + lookMaxFrame);
                 lookTimes.Add(lookElapsed);
@@ -438,6 +453,7 @@ namespace Worsen.Tests.Camera
             {
                 Assert.That(persistentUnique, Is.True, "First scene must pass post-destruction singleton checks.");
                 Assert.That(starts, Is.EqualTo(2)); Assert.That(hits, Is.EqualTo(2));
+                Assert.That(CatchStarts, Is.EqualTo(1)); Assert.That(CatchEnds, Is.EqualTo(1));
                 Assert.That(contacts, Is.GreaterThanOrEqualTo(2));
                 Assert.That(healthChanges, Is.EqualTo(new[] { 50f, 0f }));
                 Assert.That(detectionFrames > 0 && impulseFrames > 0 && detectionCleared > 0, Is.True,
@@ -638,6 +654,7 @@ namespace Worsen.Tests.Camera
                 "]; complete first input=" + FirstRecording + "; actual source/component integration only; no audio-device, perception or human-comfort claim.";
             private void Detach()
             {
+                if (camera != null) { camera.CatchHoldStarted -= CatchStarted; camera.CatchHoldEnded -= CatchEnded; }
                 if (observer != null) { observer.Sample = null; UnityEngine.Object.Destroy(observer.gameObject); observer = null; }
                 if (input != null) input.FramePublished -= Produce;
                 if (gameplay != null) { gameplay.devices = previousDevices; gameplay = null; }
