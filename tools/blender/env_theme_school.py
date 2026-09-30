@@ -11,6 +11,7 @@
 #   - Author enclosed rooms with gameplay sockets and socket-attached door leaves.
 #   - Save editable sources and render kit, cutaway and darkness reviews.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils, Python standard library only.
+#   Shared door-review studio from env_theme_castle; no Castle geometry reused.
 # USAGE NOTES: Headless --python-exit-code 1; -- --skip-previews for repeat runs.
 #   Writes only School art and Logs in this worktree. No Unity or v1 imports.
 #   Coordinates are Unity XYZ; Blender is (X,-Z,Y). All randomness is local and
@@ -42,6 +43,7 @@ PALETTE = {
     'mortar_upper': '#beb79f', 'mortar_lower': '#355b57', 'rubber': '#292d29',
     'wood': '#796044', 'scuff': '#887057', 'stain': '#969075',
     'glass': '#718c87', 'paper': '#d2c9ab', 'tube': '#eff5d4', 'dead_tube': '#777d6b',
+    'door_laminate': '#c9a23a',
 }
 KINDS = {
     'wall_2m': 'wall', 'wall_door_4m': 'door', 'wall_window_2m': 'window',
@@ -404,18 +406,28 @@ def furniture(p):
         p.rod((0,.19,.035),(0,.19,-.065),.19,'fire_red',16)
         p.rod((0,.19,-.07),(0,.19,-.083),.035,'steel')
     elif n=='prop_classroom_door_leaf':
-        # Narrow vertical safety window, kick plate, handle. Separate leaf lets
-        # the runtime owner hinge/lock it. The authored pose is closed in its socket.
-        # One continuous leaf: left stile -0.70..-0.28, window column -0.28..-0.02,
-        # right stile -0.02..0.70 (it previously started at +0.06, leaving a full-height seam).
-        for x,w in ((-.49,.42),(.34,.72)):
-            p.box((x,1.34,0),(w,2.68,.06),'mustard')
-        p.box((-.15,.57,0),(.26,1.14,.06),'mustard')
-        p.box((-.15,2.51,0),(.26,.34,.06),'mustard')
-        p.face(-.28,-.02,1.14,2.34,-.005,'glass')
-        for y in (1.25,1.45,1.65,1.85,2.05,2.25):
-            p.face(-.28,-.02,y,y+.004,-.006,'mortar_lower')
-        # Kick plate wraps both faces; a handle on each side of the leaf.
+        # One connected extrusion around a deliberate glazing hole. Shared
+        # vertices join stiles/rails without any through-seam or internal faces.
+        xs, ys = (-.7,-.28,-.02,.7), (0,1.14,2.34,2.68)
+        vertices = [(x,y,z) for z in (-.03,.03) for y in ys for x in xs]
+        faces = []
+        cells = {(x,y) for x in range(3) for y in range(3)}-{(1,1)}
+        for x,y in sorted(cells):
+            a = y*4+x
+            ring = (a,a+1,a+5,a+4)
+            faces += [tuple(reversed(ring)),tuple(i+16 for i in ring)]
+            for (dx,dy),(u,v) in zip(((0,-1),(1,0),(0,1),(-1,0)), zip(ring,ring[1:]+ring[:1])):
+                if (x+dx,y+dy) not in cells:
+                    faces.append((u,v,v+16,u+16))
+        p.mesh(vertices,faces,'door_laminate')
+        p.box((-.15,1.74,0),(.26,1.20,.012),'glass')
+        for face in (-1,1):
+            for x in (-.29,-.01):
+                p.box((x,1.74,face*.031),(.02,1.24,.002),'steel')
+            for y in (1.13,2.35):
+                p.box((-.15,y,face*.031),(.26,.02,.002),'steel')
+            for y in (1.25,1.45,1.65,1.85,2.05,2.25):
+                p.box((-.15,y,face*.007),(.26,.004,.002),'steel')
         p.box((0,.195,0),(1.40,.23,.066),'steel')
         for z in (-.05,.05):
             p.box((.52,1.12,z),(.05,.20,.04),'steel')
@@ -579,23 +591,31 @@ def furnish(t):
     d=2*(max(z for x,z in cells)+1)
     def put(pid,x,z,y=0,yaw=0):
         t['pieces'].append(placement(pid,x,y,z,yaw))
+    def on_wall(pid,y,preferred_yaw):
+        width = bpy.data.objects['School_'+pid].dimensions.x
+        solids = [p for p in t['pieces'] if KINDS[p['id']]=='wall'
+                  and bpy.data.objects['School_'+p['id']].dimensions.x >= width+.02]
+        wall = next((p for p in solids if p['rotY']==preferred_yaw),solids[0])
+        a = math.radians(wall['rotY'])
+        inset = bpy.data.objects['School_'+pid].dimensions.y/2+.012
+        put(pid,wall['pos'][0]-math.sin(a)*inset,wall['pos'][2]-math.cos(a)*inset,y,wall['rotY'])
     # Wall furnishings have bottoms above floor, and face into the room.
     if name in {'classroom','locked_classroom','science_lab'}:
-        put('chalk_rail_board_2m',1.2,d-.12,1.3)
+        on_wall('chalk_rail_board_2m',1.3,0)
         put('prop_teacher_desk',1.4,d-1.3)
         if name!='science_lab':
             put('prop_globe',1.8,d-1.3,.82)
-        for x in (2,4,6):
-            for z in (2,4):
-                if (int(x/2),int(z/2)) in cells:
-                    put('prop_lab_bench' if name=='science_lab' else 'prop_desk',x,z)
-                    put('prop_chair',x,z-.72)
+        desks = ((2,6),(5,6),(6,2)) if name=='science_lab' else tuple((x,z) for x in (2,4,6) for z in (2,4))
+        for x,z in desks:
+            if (int(x/2),int(z/2)) in cells:
+                put('prop_lab_bench' if name=='science_lab' else 'prop_desk',x,z)
+                put('prop_chair',x,z-.72)
         if name=='locked_classroom':
             # Frozen tableau is art only; the runtime owns lock/freeze behaviour.
             put('prop_chair',5.3,5.4,yaw=137)
     elif name=='library':
         for x in (1.1,3.2,5.3,7.4):
-            put('prop_bookcase',x,d-.38)
+            put('prop_bookcase',x,d-.55)
         for z in (2,4,6):
             put('prop_bookcase',.35,z,yaw=270)
         for x,z in ((3,3),(5,3),(3,5)):
@@ -605,7 +625,8 @@ def furnish(t):
         for x in range(2,int(w)-1,2):
             put('prop_bleacher',x,d-1.4)
         for z in (3,d-4):
-            put('prop_basketball_hoop',.25,z,2.2,270)
+            inset = bpy.data.objects['School_prop_basketball_hoop'].dimensions.y/2+.012
+            put('prop_basketball_hoop',inset,z,2.2,270)
         if name=='bleacher_traversal':
             put('prop_bleacher',w/2,4,yaw=90)
             put('prop_bleacher',w/2+2,4,yaw=270)
@@ -619,29 +640,30 @@ def furnish(t):
         put('prop_globe',2.5,d-1.7,.82)
         put('prop_chair',2,d-2.6)
         put('prop_bookcase',1.1,d-.38)
-        put('bulletin_board',w-.12,2,1.3,90)
+        on_wall('bulletin_board',1.3,90)
     elif name=='janitor_closet':
         put('prop_mop_bucket',w-1,.7)
         put('prop_bookcase',1.1,d-.28)
     elif name=='washroom':
         for x in (1.2,2.6,4):
             put('prop_toilet',x,d-.5)
-            put('prop_stall_partition',x+.62,d-1)
+            put('prop_stall_partition',x+.62,d-1.1)
         for z in (1.1,2.4):
             put('prop_washbasin',.35,z,yaw=270)
     elif name=='locker_hallway':
         for z in (5,7,9,11):
-            put('locker_bank_2m',.30,z,yaw=270)
-            put('locker_bank_2m',w-.30,z,yaw=90)
+            put('locker_bank_2m',.50,z,yaw=270)
+            put('locker_bank_2m',w-.50,z,yaw=90)
         put('drinking_fountain',.3,d-1,0,270)
-        put('bulletin_board',w-.12,1.2,1.35,90)
+        on_wall('bulletin_board',1.35,90)
     elif name=='stairwell_bend':
         put('stair_flight_2m',1.15,5.1)
         put('stair_banister_2m',2.1,5.1,0,270)
         for x in (5,7):
-            put('locker_bank_2m',x,3.68)
+            put('locker_bank_2m',x,3.50)
         put('drinking_fountain',.3,1.2,0,270)
-    put('prop_fire_bell',.12,.7,2.7,270)
+    # Attach to a real solid wall, not the bounding rectangle of an L room.
+    on_wall('prop_fire_bell',2.7,270)
     # Closed leaves share the socket plane, rather than standing perpendicular
     # to it in the room. Runtime setup owns opening/closing this paired door.
     for door in t['doors']:
@@ -665,9 +687,11 @@ def furnish(t):
         x,z=sorted(cells)[len(cells)//2]; candidates=[(2*x+1,2*z+1)]
     for i,(x,z) in enumerate(candidates):
         dead=i%4==3
-        put('prop_fluorescent_dead' if dead else 'prop_fluorescent',x,z,3.30)
+        fixture = 'prop_fluorescent_dead' if dead else 'prop_fluorescent'
+        bottom = HEIGHT-bpy.data.objects['School_'+fixture].dimensions.z
+        put(fixture,x,z,bottom)
         if not dead:
-            t['anchors']['light'].append([x,3.30,z])
+            t['anchors']['light'].append([x,round(bottom,5),z])
     return t
 
 
@@ -898,6 +922,10 @@ def main():
     rooms=templates(pieces)
     for path,data in ((ART/'Kit/SchoolKit.manifest.json',kit),(ART/'Rooms/SchoolRooms.manifest.json',rooms)):
         path.write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8',newline='\n')
+    if not args.skip_previews:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from env_theme_castle import render_door_reviews
+        render_door_reviews(pieces, KINDS, 'School', REVIEW)
     kit_sheet(pieces,not args.skip_previews)
     room_scenes(rooms,pieces,not args.skip_previews)
     if not args.skip_previews:

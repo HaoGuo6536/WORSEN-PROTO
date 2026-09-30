@@ -9,7 +9,8 @@
 #   - Verify connected footprints, door spans, anchors and complete wall coverage.
 #   - Compare source assemblies and rendered evidence with the room manifest.
 #   - Record and compare deterministic manifest and semantic geometry hashes.
-# DEPENDENCIES: Blender 5.2 bpy/mathutils, bundled FBX parser, standard library.
+# DEPENDENCIES: Blender 5.2 bpy/mathutils, bundled FBX parser/NumPy, stdlib;
+#   shared imported-mesh door checks in validate_env_theme_castle.
 # USAGE NOTES: Same Blender flags as generator. -- --record-baseline records the
 #   first successful run; -- --compare-baseline verifies the second regeneration.
 #   --skip-previews is for intermediate diagnostics and is never final acceptance.
@@ -41,7 +42,7 @@ REQUIRED = {"wall_2m":"wall","wall_door_4m":"door","wall_window_2m":"window",
             "duct_straight_2m":"duct","duct_elbow":"duct","prop_valve_wheel":"prop",
             "prop_boiler":"prop"}
 ALLOWED_KINDS = {"wall","door","window","arc","corner","pillar","floor","ceiling","trim","prop","pipe","duct"}
-SURFACES = {"concrete","damp","rust","steel","galvanised","insulation","sodium","hazard","water"}
+SURFACES = {"concrete","damp","rust","steel","galvanised","insulation","sodium","hazard","water","door_steel"}
 
 
 def require(condition,message):
@@ -536,8 +537,12 @@ def main():
     parser.add_argument("--record-baseline",action="store_true")
     parser.add_argument("--compare-baseline",action="store_true")
     parser.add_argument("--skip-previews",action="store_true")
+    parser.add_argument("--baseline-name",default="determinism-baseline")
     args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
     require(bpy.app.version[:2]==(5,2),"Blender 5.2 required")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from validate_env_theme_castle import check_door_quality, check_door_previews, placement_regressions
+    check_door_quality('basement', REVIEW)
     require(not(args.record_baseline and args.compare_baseline),"select one determinism operation")
     REVIEW.mkdir(parents=True,exist_ok=True)
     (REVIEW/"validation.json").write_text('{"passed":false,"status":"started"}\n',encoding="utf-8")
@@ -545,6 +550,9 @@ def main():
     kit_path,room_path = ART/"Kit/BasementKit.manifest.json",ART/"Rooms/BasementRooms.manifest.json"
     kit,rooms = [json.loads(p.read_text(encoding="utf-8")) for p in (kit_path,room_path)]
     lookup,details,records = kit_validation(kit)
+    placement_regressions(rooms['templates'],lookup,{k:v['points'] for k,v in records.items()})
+    if not args.skip_previews:
+        check_door_previews('basement', REVIEW)
     templates = room_validation(rooms,lookup)
     negative_controls(templates[0],lookup)
     sections = {(name,height):wall_sections(data,height) for name,data in records.items()
@@ -565,7 +573,8 @@ def main():
     images = [] if args.skip_previews else previews(templates)
     fingerprints = {"kitManifestSha256":sha(kit_path),"roomsManifestSha256":sha(room_path),
                     "geometry":{r["id"]:r["semanticSha256"] for r in details}}
-    baseline = REVIEW/"determinism-baseline.json"
+    require(re.fullmatch(r'[a-zA-Z0-9_-]+',args.baseline_name), 'baseline must be a name')
+    baseline = REVIEW/(args.baseline_name+'.json')
     lines = [f"PASS Basement kit: {len(details)} FBXs, {len(REQUIRED)} mandatory IDs; dimensions, pivots, applied transforms, Y-up/-Z-forward, materials, source parity, triangle budgets",
              "PASS Basement seams: straight wall/window/door, floor/ceiling/trim/grate, r4/r6/r8 arcs; clear 3.2 x 2.8 m door",
              f"PASS Basement rooms: {len(templates)} connected templates; boundary doors, inside anchors with 0.6 m clearance, kit IDs, no wall overlap, full enclosure, closedWith alternatives",

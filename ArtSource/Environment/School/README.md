@@ -34,7 +34,7 @@ The validator launches two real regeneration runs with `--skip-previews`, compar
 | bleacher_traversal | 30 | large / rect | Round-3 traversal tableau |
 | locked_classroom | 16 | medium / rect | Round-3 freeze tableau |
 
-The two gimmick values are runtime selection metadata, not implemented gameplay. The freeze-room leaves are authored open; the runtime owner must wire their locked state and trigger. Stair meshes are visual geometry; ramp collision, landing admission and traversal links belong to the runtime owner.
+The two gimmick values are runtime selection metadata, not implemented gameplay. The freeze-room leaves are authored closed; the runtime owner must wire their open/locked state and trigger. Stair meshes are visual geometry; ramp collision, landing admission and traversal links belong to the runtime owner.
 
 ## Socket and placement interpretation
 
@@ -44,7 +44,7 @@ A socket centred on a cell edge has an odd-metre tangent coordinate. Its 4 m fra
 
 The 4 m-wide straight hallway cannot fit a 3.2 m aperture centred at X=1 or X=3 in an end cap. Its sockets are therefore on the long side walls near opposite ends (W at Z=3 and E at Z=13), with enclosed end caps. This preserves the requested cell-centred sockets, actual aperture and two-cell hall width. Connectors must follow each socket's declared side rather than assume hallway ports face down the long axis.
 
-`closedWith` is a list of two normal placement objects, replacing the complete 4 m door-frame placement. It is not additional geometry over the existing door frame. Remove the two adjacent open leaf props as well when sealing a socket. The validator checks the closure's full 4 m coverage.
+`closedWith` is a list of two normal placement objects, replacing the complete 4 m door-frame placement. It is not additional geometry over the existing door frame. Remove the two adjacent leaf props as well when sealing a socket. The validator checks the closure's full 4 m coverage.
 
 Floor anchors avoid furniture bounds plus .2 m clearance and are at least .6 m from every footprint boundary. This is not native capsule/NavMesh reachability evidence. Light anchors correspond only to live tubes; dead fixtures have no light socket.
 
@@ -72,6 +72,12 @@ No Unity Config or assembly references changed.
 
 ## Acceptance limits
 
-Offline kit, room, repeat-generation, compile and lint evidence is under Logs. No Unity process, lease, scene, prefab, C# file or shared checkout was operated or modified. The main index has no target for the new offline generator (UNKNOWN, not a low-risk verdict); no existing callable symbol was changed. Graph refresh is coordinator-owned.
+The classroom leaf is now one connected panel extrusion around its deliberate safety-glazing hole. It retains the coordinator's seam fix, adds glazing/beading on both faces and uses `school_door_laminate` (`#c9a23a`) rather than a wall-paint slot. Hardware stays on both faces. Independent body rasterization at 2.5mm exempts only the explicit window rectangle; it rejects 5/10/80mm through-gaps and missing face hardware. Geometry-bound front/back close-ups are under `Logs/AgentValidation/Art/EnvSchool/doors/`. Repeat-generation checks now compare every imported mesh's semantic hash as well as both manifests.
+
+This is partial art-fixes acceptance. Centred hallway ends require a shared socket offset or another owner-approved contract amendment. Full transformed prop-envelope containment and conservative envelope-versus-wall-triangle/interior checks now run in every theme, with outside/hole/embedded controls. Science-lab benches/chairs now sit wholly inside the L footprint; boards and bells select an adequately wide solid wall rather than a window or door. Shelving, partitions and lockers clear protruding frames. Fluorescent fixture tops meet the ceiling rather than leaving a gap. Support of every non-ceiling placement remains unimplemented pending explicit ceiling/tabletop/subfloor support semantics; a validator pass does not establish that requirement.
+
+Provisional spatial values in `furnish`: wall-mounted detail gap .012m and minimum extra wall-span width .02m; library shelf inset .55m; locker inset .50m (stairwell north placement Z=3.50m); stall partitions Z=depth-1.1m; science-lab workstations (X,Z)=(2,6),(5,6),(6,2)m. Hoop inset is measured half-depth plus .012m; fixture height is derived from measured mesh height, not a tunable constant.
+
+Offline kit, room, repeat-generation, compile and lint evidence is under Logs. No Unity process, lease, scene, prefab, C# file or shared checkout was operated or modified. The main index has no target for the offline generator (UNKNOWN, not a low-risk verdict); no Unity callable symbol was changed. Graph refresh is coordinator-owned.
 
 The PNGs are rendered artifacts, not Unity screenshots. Pixel and scene checks do not establish visual taste, fog readability or player reachability. Owner review should start with `in-darkness.png`, then `school_locker_hallway-three-quarter.png`, `school_classroom-three-quarter.png` and `kit-sheet.png`.

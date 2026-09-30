@@ -11,6 +11,7 @@
 #   - Author enclosed, socketed rooms from the exported kit alone.
 #   - Assemble sources from manifest placements and render review evidence.
 # DEPENDENCIES: Blender 5.2 bpy/bmesh/mathutils, bundled numpy, Python stdlib.
+#   Shared door-review studio from env_theme_castle; no Castle geometry reused.
 # USAGE NOTES:
 #   Blender --background --factory-startup --python-exit-code 1 --python this-file
 #   -- [--skip-previews]. Run only in the assigned unopened hospital worktree.
@@ -44,7 +45,8 @@ SAMPLES = 24
 PALETTE = {'tile': '#a8c8b0', 'paint': '#e4e1d4', 'grout': '#8e948f',
            'light': '#d8f4ff', 'vinyl': '#b9b3a5', 'rust': '#7a4a2a',
            'stainless': '#9aa3a8', 'rubber': '#303a36', 'glass': '#455e58',
-           'curtain': '#8eafa0', 'linen': '#ddd9c8', 'acoustic': '#e4e1d4'}
+           'curtain': '#8eafa0', 'linen': '#ddd9c8', 'acoustic': '#e4e1d4',
+           'door_enamel': '#82988b'}
 COMMON = {'wall_2m': 'wall', 'wall_door_4m': 'door', 'wall_window_2m': 'window',
           'wall_arc_r4': 'arc', 'wall_arc_r6': 'arc', 'wall_arc_r8': 'arc',
           'corner_in': 'corner', 'corner_out': 'corner', 'pillar': 'pillar',
@@ -262,12 +264,16 @@ def door_leaves(m):
     # Open 95 degrees: no leaf intrudes into the mandatory 3.2m clear throat.
     for sign in (-1, 1):
         start = len(m.vertices)
-        m.box((sign*.80, 0, 1.39), (1.56, .075, 2.78), 'tile')
-        m.box((sign*.80, .044, .30), (1.47, .012, .52), 'stainless')
-        m.box((sign*.24, .062, 1.15), (.07, .035, .38), 'stainless')
-        # Nested discs produce a round polished bezel, never a square ward window.
-        m.tube((sign*.80, .038, 2.05), (sign*.80, .064, 2.05), .275, 'stainless', 12)
-        m.tube((sign*.80, .065, 2.05), (sign*.80, .071, 2.05), .225, 'glass', 12)
+        m.box((sign*.80, 0, 1.39), (1.56, .075, 2.78), 'door_enamel')
+        for face in (-1, 1):
+            m.box((sign*.80, face*.044, .30), (1.47, .012, .52), 'stainless')
+            m.box((sign*.24, face*.062, 1.15), (.07, .035, .38), 'stainless')
+            # Flush round insets on BOTH sides of EACH leaf. Flat discs keep
+            # the twelve-sided bezel legible within the architecture budget.
+            for radius, depth, surface in ((.275,.039,'stainless'),(.225,.041,'glass')):
+                points = [(sign*.80+radius*math.cos(i*math.tau/12), face*depth,
+                           2.05+radius*math.sin(i*math.tau/12)) for i in range(12)]
+                m.add(points, [tuple(range(11,-1,-1)) if face > 0 else tuple(range(12))], surface)
         hinge = Vector((sign*1.6, 0, 0))
         rotation = Matrix.Rotation(math.radians(-sign*95), 3, 'Z')
         for i in range(start, len(m.vertices)):
@@ -542,7 +548,8 @@ def assemble_template(name, cells, kind, shape, doors, props, gimmick='none'):
                     dx, dz, _ = SIDES[side]
                     pieces.append(placement('wall_handrail_2m', x-dx*.34, .95, z-dz*.34, angle))
                     if int(center+line) % 4 == 1:
-                        pieces.append(placement('prop_signage_frame', x-dx*.28, 2.05, z-dz*.28, angle))
+                        inset = .25+bpy.data.objects['Hospital_prop_signage_frame'].dimensions.y/2+.001
+                        pieces.append(placement('prop_signage_frame', x-dx*inset, 2.05, z-dz*inset, angle))
                 low += width
     for x, z in sorted(cells):
         pieces.append(placement('floor_2x2', x*2+1, -.16, z*2+1))
@@ -607,7 +614,8 @@ def catalogue():
                   [p('prop_waiting_bench', .8, 3, 270), p('prop_waiting_bench', 5.2, 3, 90), p('prop_wheelchair', 5.1, 4.8, 90)], 'none'))
     # Four cells arranged as a narrow isolation suite; side socket fits the full portal.
     specs.append(('isolation_room', rect(1, 4), 'room', 'rect', [((0, 1), 'W')],
-                  [p('prop_bed', 1, 6.35), p('prop_signage_frame', 1, 7.72, y=2.0)], 'none'))
+                  [p('prop_bed', 1, 6.35), p('prop_signage_frame', 1,
+                    8-.25-bpy.data.objects['Hospital_prop_signage_frame'].dimensions.y/2-.001, y=2.0)], 'none'))
     specs.append(('sluice_utility', rect(3, 2), 'room', 'rect', [((1, 0), 'S'), ((1, 1), 'N')],
                   [p('prop_scrub_sink', .8, 2, 270), p('prop_cabinet', 5.25, 2, 90)], 'none'))
     specs.append(('xray_room', rect(3, 3), 'room', 'rect', [((1, 0), 'S'), ((1, 2), 'N')],
@@ -815,6 +823,10 @@ def main():
     for path, value in ((ART/'Kit/HospitalKit.manifest.json', kit), (ART/'Rooms/HospitalRooms.manifest.json', rooms)):
         path.write_text(json.dumps(value, indent=2)+'\n', encoding='utf-8', newline='\n')
         print(f'GENERATED {path.name}: SHA256 {hashlib.sha256(path.read_bytes()).hexdigest()}')
+    if not args.skip_previews:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from env_theme_castle import render_door_reviews
+        render_door_reviews(objects, KINDS, 'Hospital', OUT)
     for obj in objects.values():
         obj.hide_render = True
         obj.hide_set(True)

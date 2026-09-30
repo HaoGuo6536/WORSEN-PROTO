@@ -11,6 +11,7 @@
 #   - Verify editable source/placement agreement, textures and rendered evidence.
 #   - Exercise rejection controls and compare repeat-generation manifest hashes.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils/io_scene_fbx, bundled numpy, Python stdlib.
+#   Shared door checks in validate_env_theme_castle (no generator imported).
 # USAGE NOTES:
 #   Blender --background --factory-startup --python-exit-code 1 --python this-file
 #   -- [--skip-previews] [--record-baseline NAME | --compare-baseline NAME].
@@ -43,7 +44,7 @@ REQUIRED = {'wall_2m': 'wall', 'wall_door_4m': 'door', 'wall_window_2m': 'window
             'prop_bed': 'prop', 'prop_curtain_rail': 'prop',
             'prop_cabinet': 'prop', 'prop_wheelchair': 'prop'}
 SURFACES = {'tile', 'paint', 'grout', 'light', 'vinyl', 'rust', 'stainless',
-            'rubber', 'glass', 'curtain', 'linen', 'acoustic'}
+            'rubber', 'glass', 'curtain', 'linen', 'acoustic', 'door_enamel'}
 KINDS = {'wall', 'door', 'window', 'arc', 'corner', 'pillar', 'floor', 'ceiling', 'trim', 'prop', 'pipe', 'duct'}
 FIXED_SIZE = {'wall_2m': (2, 3.6, .5), 'wall_door_4m': (4, 3.6, .5),
               'wall_window_2m': (2, 3.6, .5), 'floor_2x2': (2, .16, 2),
@@ -513,6 +514,9 @@ def main():
     parser.add_argument('--skip-previews', action='store_true')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     require(bpy.app.version[:2] == (5, 2), 'Use Blender 5.2')
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from validate_env_theme_castle import check_door_quality, check_door_previews, placement_regressions
+    check_door_quality('hospital', OUT)
     OUT.mkdir(parents=True, exist_ok=True)
     kit_path, room_path = ART/'Kit/HospitalKit.manifest.json', ART/'Rooms/HospitalRooms.manifest.json'
     kit = json.loads(kit_path.read_text(encoding='utf-8'))
@@ -531,6 +535,9 @@ def main():
     for t in rooms['templates']:
         check_fixture_attachments(t, rows, points)
     controls += fixture_rejection_controls(rooms['templates'], rows, points)
+    placement_regressions(rooms['templates'], rows, points)
+    if not args.skip_previews:
+        check_door_previews('hospital', OUT)
     sources(rows, rooms)
     preview_details = [] if args.skip_previews else previews(rooms)
     snapshot = {'kitManifestSha256': sha(kit_path), 'roomManifestSha256': sha(room_path),

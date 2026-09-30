@@ -10,6 +10,7 @@
 #   - Export metre-scale pieces with stable IDs, materials and geometry digests.
 #   - Author grid-enclosed room catalogues and gameplay sockets.
 #   - Assemble exactly the manifest placements and render review evidence.
+#   - Render reusable front/back door inspection scenes for all theme generators.
 # DEPENDENCIES: Blender 5.2 bpy/bmesh/mathutils, bundled NumPy, Python stdlib.
 # USAGE NOTES:
 #   Blender --background --factory-startup --python-exit-code 1 --python FILE
@@ -381,14 +382,21 @@ def prop(piece):
             h = m.rng.uniform(.15, .35)
             m.box((x, y, h/2), (m.rng.uniform(.2, .5), .28, h), 'stone_dark', .045)
     elif piece == 'door_iron_strapped':
+        # Continuous structural panel behind the shallow plank relief. Plank
+        # joints are not through-gaps; hardware never bridges disconnected boxes.
+        m.box((0, 0, 1.37), (3.1, .14, 2.74), 'wood')
         for i in range(10):
             x = -1.55+i*.31
-            m.box((x+.15, 0, 1.37), (.295, .14, 2.74), 'wood', .012)
-        for z in (.4, 1.5, 2.4):
-            m.box((0, .087, z), (3.12, .05, .12), 'metal')
-            for x in (-1.36, -.9, -.45, 0, .45, .9, 1.36):
-                m.rod((x, .105, z), (x, .14, z), .032, 'metal', 6)
-        m.ring((1, .18, 1.2), .11, 'metal')
+            m.box((x+.155, 0, 1.37), (.30, .15, 2.74), 'wood')
+        for face in (-1, 1):
+            for z in (.4, 1.5, 2.4):
+                m.box((0, face*.09, z), (3.06, .04, .12), 'metal')
+                for x in (-1.36, -.9, -.45, 0, .45, .9, 1.36):
+                    m.rod((x, face*.11, z), (x, face*.14, z), .032, 'metal', 6)
+            m.box((0, face*.084, .19), (3.06, .018, .26), 'metal')
+            m.box((1, face*.084, 1.2), (.16, .018, .32), 'metal')
+            m.rod((1, face*.09, 1.29), (1, face*.18, 1.29), .027, 'metal', 6)
+            m.ring((1, face*.18, 1.2), .11, 'metal')
     elif piece == 'prop_candelabra':
         m.rod((0, 0, .15), (0, 0, 1.4), .055, 'metal')
         for x in (-.4, 0, .4):
@@ -516,16 +524,20 @@ def room(name, cells, doors, kind='room', shape='rect', gimmick='none', low=Fals
                 pieces.append(placement(wall, x, z, angle=angle))
     for x, z in cells:
         pieces.append(placement('floor_2x2', x*2+1, z*2+1, -.16))
-        pieces.append(placement('ceiling_2x2', x*2+1, z*2+1, 4.2 if low else 7))
+        # Castle ceiling datum is the top of the complete assembly, at wall
+        # height. Beams/vault crowns terminate at that same datum; no low lids.
+        pieces.append(placement('ceiling_2x2', x*2+1, z*2+1, HEIGHT-.18))
     if low:
         for x, z in cells:
             if z%2 == 0:
-                pieces.append(placement('beam_timber_2m', 2*x+1, 2*z+1, 3.82))
+                pieces.append(placement('beam_timber_2m', 2*x+1, 2*z+1, HEIGHT-.38))
     else:
         for x, z in cells:
             if x%2 == 0 and z%2 == 0 and all((x+a, z+b) in occupied for a, b in ((1, 0), (0, 1), (1, 1))):
-                pieces.append(placement('vault_rib_bay', x*2+2, z*2+2, 4.82))
-                pieces.append(placement('vault_web_bay', x*2+2, z*2+2, 4.88))
+                rib_height = bpy.data.objects['Castle_vault_rib_bay'].dimensions.z
+                web_height = bpy.data.objects['Castle_vault_web_bay'].dimensions.z
+                pieces.append(placement('vault_rib_bay', x*2+2, z*2+2, HEIGHT-rib_height))
+                pieces.append(placement('vault_web_bay', x*2+2, z*2+2, HEIGHT-web_height))
     candidates = [[2*x+1, 0, 2*z+1] for x, z in cells]
     # Cell-centre anchors give >=0.6m clearance even with half-thickness walls.
     cake_count = max(2, math.ceil(count/6))
@@ -535,8 +547,9 @@ def room(name, cells, doors, kind='room', shape='rect', gimmick='none', low=Fals
     for index, (cell, side) in enumerate(usable[::max(1, len(usable)//max(2, count//5))]):
         x, z, angle = edge_position(cell, side)
         dx, dz, _ = SIDES[side]
-        fixture = placement('prop_torch_dead' if index == 2 else 'prop_torch_sconce',
-                            x-dx*.245, z-dz*.245, 2.1, angle)
+        fixture_id = 'prop_torch_dead' if index == 2 else 'prop_torch_sconce'
+        inset = bpy.data.objects['Castle_'+fixture_id].dimensions.y/2+.001
+        fixture = placement(fixture_id, x-dx*inset, z-dz*inset, 2.1, angle)
         pieces.append(fixture)
         pieces.append(placement('prop_soot_streak', x-dx*.012, z-dz*.012, 3.14, angle))
         if index != 2:
@@ -613,7 +626,8 @@ def catalogue():
         if name in ('watch_closet', 'guard_room', 'armoury'):
             p += [placement('prop_weapon_rack', 1, 1, angle=90), placement('prop_barrel', 5, 1)]
         if name in ('guard_room', 'armoury'):
-            p += [placement('door_iron_strapped', 1.5, 1.2, angle=90)]
+            frame = next(v for v in p if v['id'] == 'wall_door_4m')
+            p.append(dict(id='door_iron_strapped', pos=list(frame['pos']), rotY=frame['rotY']))
         if name == 'guard_room':
             p += [placement('prop_trestle_table', 3, 3), placement('prop_bench', 3, 4.2)]
         if name == 'cell_block':
@@ -835,6 +849,93 @@ def previews_and_sources(objects, rooms, skip):
     return scene_records
 
 
+def render_door_reviews(objects, kinds, theme, output):
+    """Theme-independent studio; hospital swing leaves use a CLOSED review pose.
+
+    Only copied review geometry is unposed. Export masters and room placements
+    remain untouched. A hash receipt binds every image to the delivered FBX.
+    """
+    original_scene = bpy.context.window.scene
+    folder = output/'doors'
+    folder.mkdir(parents=True, exist_ok=True)
+    for piece, source in objects.items():
+        if kinds[piece] != 'door' and piece not in ('door_iron_strapped', 'prop_classroom_door_leaf', 'prop_bulkhead_leaf'):
+            continue
+        # Match FBX's explicit BMesh triangulation, not the source viewport's
+        # loop-triangle tessellation (different diagonals on some quads).
+        import bmesh
+        review_mesh = source.data.copy()
+        bm = bmesh.new()
+        bm.from_mesh(review_mesh)
+        bmesh.ops.triangulate(bm, faces=list(bm.faces))
+        bm.to_mesh(review_mesh)
+        bm.free()
+        review_mesh.calc_loop_triangles()
+        geometry = []
+        for triangle in review_mesh.loop_triangles:
+            coords = [(review_mesh.vertices[i].co.x, review_mesh.vertices[i].co.z,
+                       -review_mesh.vertices[i].co.y) for i in triangle.vertices]
+            geometry.append((review_mesh.materials[triangle.material_index].name,
+                             sorted(tuple(round(c,4)+0.0 for c in p) for p in coords)))
+        geometry_hash = hashlib.sha256(json.dumps(sorted(geometry),separators=(',',':')).encode()).hexdigest()
+        scene = bpy.data.scenes.new(theme+' door inspection '+piece)
+        bpy.context.window.scene = scene
+        scene.render.engine = 'CYCLES'
+        scene.cycles.samples, scene.cycles.seed = 24, SEED
+        scene.cycles.use_denoising = True
+        scene.render.resolution_x, scene.render.resolution_y = 1200, 1200
+        scene.render.resolution_percentage = 100
+        scene.render.image_settings.file_format = 'PNG'
+        scene.view_settings.view_transform = 'AgX'
+        scene.world = bpy.data.worlds.new(theme+' door studio')
+        scene.world.use_nodes = True
+        scene.world.node_tree.nodes['Background'].inputs[0].default_value = (.18,.18,.18,1)
+        scene.world.node_tree.nodes['Background'].inputs[1].default_value = .5
+        obj = bpy.data.objects.new(piece+' inspection', review_mesh)
+        scene.collection.objects.link(obj)
+        if piece == 'door_double_porthole_4m':
+            for vertex in obj.data.vertices:
+                x,y,z = vertex.co
+                sign = 1 if x > 0 else -1
+                angle = math.radians(sign*95)
+                vertex.co = (math.cos(angle)*(x-sign*1.6)-math.sin(angle)*y+sign*1.6,
+                             math.sin(angle)*(x-sign*1.6)+math.cos(angle)*y, z)
+        lo = [min(v.co[i] for v in obj.data.vertices) for i in range(3)]
+        hi = [max(v.co[i] for v in obj.data.vertices) for i in range(3)]
+        target = Vector(((lo[0]+hi[0])/2, (lo[1]+hi[1])/2, (lo[2]+hi[2])/2))
+        extent = max(hi[0]-lo[0],hi[2]-lo[2])
+        cam = bpy.data.objects.new('DoorCamera', bpy.data.cameras.new('DoorCamera'))
+        scene.collection.objects.link(cam)
+        scene.camera = cam
+        cam.data.type, cam.data.ortho_scale = 'ORTHO', extent*1.2
+        for side, sign in (('front',1),('back',-1)):
+            lamps = []
+            for x,power in ((-extent*.6,700),(extent*.6,400)):
+                lamp = light(scene.collection, 'Door softbox',
+                             (target.x+x,target.y+sign*extent,target.z+extent*.5),
+                             power, (1,1,1), 'AREA', target, extent)
+                lamps.append(lamp)
+            cam.location = target+Vector((0,sign*extent*3,0))
+            cam.rotation_euler = (target-cam.location).to_track_quat('-Z','Y').to_euler()
+            path = folder/(piece+'-'+side+'.png')
+            scene.render.filepath = str(path)
+            bpy.ops.render.render(write_still=True)
+            exported = ROOT/'Assets/Art/Environment'/theme/'Kit'/(theme+'_'+piece+'.fbx')
+            receipt = {'piece':piece, 'face':side, 'pose':'closed inspection' if piece == 'door_double_porthole_4m' else 'exported',
+                       'imageSha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+                       'geometrySha256':geometry_hash,
+                       'fbxSha256':hashlib.sha256(exported.read_bytes()).hexdigest()}
+            path.with_suffix('.json').write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+            for lamp in lamps:
+                bpy.data.objects.remove(lamp, do_unlink=True)
+        bpy.context.window.scene = original_scene
+        mesh = obj.data
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        bpy.data.objects.remove(cam, do_unlink=True)
+        bpy.data.scenes.remove(scene)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--skip-previews', action='store_true')
@@ -860,6 +961,8 @@ def main():
     for path, value in ((ART/'Kit/CastleKit.manifest.json', kit), (ART/'Rooms/CastleRooms.manifest.json', rooms)):
         path.write_text(json.dumps(value, indent=2)+'\n', encoding='utf-8', newline='\n')
         print('MANIFEST SHA256', path.name, hashlib.sha256(path.read_bytes()).hexdigest())
+    if not args.skip_previews:
+        render_door_reviews(objects, dict(COMMON, **EXTRA), 'Castle', OUTPUT)
     previews_and_sources(objects, rooms, args.skip_previews)
     print(f'GENERATED Castle: {len(rows)} pieces; {len(rooms["templates"])} rooms')
 

@@ -10,6 +10,7 @@
 #   - Verify room schema, topology, sockets, anchors and geometric enclosure.
 #   - Compare source geometry/placements and reject broken preview evidence.
 #   - Record immutable determinism baselines and exercise negative controls.
+#   - Supply shared door, footprint, wall-clearance and ceiling/socket checks.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils/io_scene_fbx, bundled NumPy, stdlib.
 # USAGE NOTES:
 #   Run in Blender with -- [--skip-previews] [--record-baseline NAME |
@@ -444,6 +445,335 @@ def negative_controls(rooms, meshes):
     return controls
 
 
+def door_projection(points, triangles, rectangle, material, glazing=None):
+    """Rasterize BODY triangles, not hardware that could conceal a broken panel.
+
+    Pixel centres are at most 2.5mm apart in both axes. The rectangle is an
+    independent authored leaf envelope; shrinking a defective mesh cannot pass.
+    An optional explicit glazing rectangle is the only permitted exemption.
+    """
+    import numpy as np
+    left, right, bottom, top = rectangle
+    nx, ny = math.ceil((right-left)/.0025), math.ceil((top-bottom)/.0025)
+    xs = left+(np.arange(nx)+.5)*(right-left)/nx
+    ys = bottom+(np.arange(ny)+.5)*(top-bottom)/ny
+    covered = np.zeros((ny, nx), dtype=bool)
+    if glazing:
+        x,y = np.meshgrid(xs,ys)
+        covered |= (x >= glazing[0]) & (x <= glazing[1]) & (y >= glazing[2]) & (y <= glazing[3])
+    for ids, surface in triangles:
+        if surface != material:
+            continue
+        a, b, c = [points[i] for i in ids]
+        area = (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
+        if abs(area) < 1e-10:
+            continue
+        ix = np.flatnonzero((xs >= min(a[0], b[0], c[0])-1e-6) & (xs <= max(a[0], b[0], c[0])+1e-6))
+        iy = np.flatnonzero((ys >= min(a[1], b[1], c[1])-1e-6) & (ys <= max(a[1], b[1], c[1])+1e-6))
+        if not len(ix) or not len(iy):
+            continue
+        x, y = np.meshgrid(xs[ix], ys[iy])
+        u = ((b[0]-x)*(c[1]-y)-(b[1]-y)*(c[0]-x))/area
+        v = ((c[0]-x)*(a[1]-y)-(c[1]-y)*(a[0]-x))/area
+        w = 1-u-v
+        covered[np.ix_(iy, ix)] |= (u >= -1e-6) & (v >= -1e-6) & (w >= -1e-6)
+    require(bool(covered.all()), f'door panel silhouette: {int((~covered).sum())} uncovered 2.5mm samples')
+
+
+def door_face_details(points, triangles, body, hardware, glass=None):
+    body_ids = {i for ids, mat in triangles if mat == body for i in ids}
+    require(body_ids, 'door panel material absent')
+    lo, hi = bounds([points[i] for i in body_ids])
+    for sign in (-1, 1):
+        face = lo[2] if sign < 0 else hi[2]
+        for label, surface, y0, y1, minimum in (
+                ('handle/plate', hardware, 1.0, 1.35, .002),
+                ('kick plate', hardware, .08, .65, .04),
+                *([('glazing', glass, 1.7, 2.4, .02)] if glass else [])):
+            area = 0
+            for ids, mat in triangles:
+                if mat != surface:
+                    continue
+                a, b, c = [points[i] for i in ids]
+                cy = (a[1]+b[1]+c[1])/3
+                if label == 'handle/plate' and abs((a[0]+b[0]+c[0])/3) < .33:
+                    continue
+                plane = 0 if label == 'glazing' else face
+                if not y0 <= cy <= y1 or min(sign*(p[2]-plane) for p in (a,b,c)) < -1e-5:
+                    continue
+                area += abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/2
+            require(area >= minimum, f'door face {sign}: missing {label}')
+
+
+def check_door_quality(theme, output):
+    """Independent FBX checks; called by every theme validator before its gates."""
+    specs = {
+        'castle': ('door_iron_strapped', 'wood', 'metal', None, 3.1, 2.74,
+                   {'stone','stone_dark','mortar'}),
+        'hospital': ('door_double_porthole_4m', 'door_enamel', 'stainless', 'glass', 1.56, 2.78,
+                     {'tile','paint','grout','acoustic'}),
+        'school': ('prop_classroom_door_leaf', 'door_laminate', 'steel', 'glass', 1.56, 2.68,
+                   {'mustard','teal','cream','mortar_upper','mortar_lower'}),
+        'basement': ('prop_bulkhead_leaf', 'door_steel', 'galvanised', None, 1.53, 2.74,
+                     {'concrete','damp','insulation'}),
+    }
+    piece, body, hardware, glass, width, height, forbidden = specs[theme]
+    prefix = theme+'_'
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    path = ROOT/'Assets/Art/Environment'/theme.title()/'Kit'/(theme.title()+'_'+piece+'.fbx')
+    bpy.ops.import_scene.fbx(filepath=str(path), use_anim=False)
+    obj, = bpy.context.scene.objects
+    points = [tuple(v.co) for v in obj.data.vertices]
+    triangles = [(tuple(p.vertices), obj.data.materials[p.material_index].name) for p in obj.data.polygons]
+    require(not {prefix+s for s in forbidden} & {mat for _,mat in triangles}, piece+': wall surface on door')
+    panels = []
+    for sign in ((-1,1) if theme == 'hospital' else (0,)):
+        if sign:
+            # Undo the delivered 95-degree swing around the measured wall-plane
+            # hinge. Test each physical leaf separately, never their combined AABB.
+            yaw = math.radians(sign*95)
+            local = [(math.cos(yaw)*(x-sign*1.6)+math.sin(yaw)*z+sign*.8,
+                      y, -math.sin(yaw)*(x-sign*1.6)+math.cos(yaw)*z) for x,y,z in points]
+            faces = [(ids,mat) for ids,mat in triangles if all(points[i][0]*sign > 0 for i in ids)]
+        else:
+            local, faces = points, triangles
+        glazing = (-.28*1.56/1.4,-.02*1.56/1.4,1.14,2.34) if theme == 'school' else None
+        door_projection(local, faces, (-width/2,width/2,0,height), prefix+body, glazing)
+        door_face_details(local, faces, prefix+body, prefix+hardware, prefix+glass if glass else None)
+        panels.append({'leaf':sign, 'rasterPitchMetres':.0025, 'rectangle':[width,height]})
+    # Remove all hardware on one face; the remaining face cannot satisfy it.
+    controls = []
+    for sign in (-1,1):
+        damaged = [(ids,mat) for ids,mat in faces if mat != prefix+hardware or
+                   sum(local[i][2] for i in ids)*sign <= 0]
+        try:
+            door_face_details(local, damaged, prefix+body, prefix+hardware, prefix+glass if glass else None)
+        except AssertionError:
+            controls.append(f'missing hardware face {sign}')
+        else:
+            raise AssertionError('door hardware negative control accepted')
+    # Genuine geometry counterexamples: even a 5mm through-gap must fail.
+    for gap in (.005,.01,.08):
+        vertices = [(-.5,0,0),(-gap/2,0,0),(-gap/2,1,0),(-.5,1,0),
+                    (gap/2,0,0),(.5,0,0),(.5,1,0),(gap/2,1,0)]
+        faces = [((0,1,2),'body'),((0,2,3),'body'),((4,5,6),'body'),((4,6,7),'body')]
+        try:
+            door_projection(vertices, faces, (-.5,.5,0,1), 'body')
+        except AssertionError:
+            controls.append(f'{gap}m panel gap')
+        else:
+            raise AssertionError('door gap negative control accepted')
+
+    output.mkdir(parents=True, exist_ok=True)
+    report = {'passed':True, 'piece':piece, 'panels':panels, 'negativeControls':controls,
+              'fbxSha256':sha(path), 'scope':'Door geometry only; not room spatial acceptance.'}
+    (output/'door-quality.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    print(f'PASS {theme} door quality: {len(panels)} continuous panels at 2.5mm; both faces detailed; no wall surfaces; {len(controls)} rejection controls')
+
+
+def check_door_previews(theme, output):
+    """Hash-bound front and back evidence, including frames as well as leaves."""
+    import numpy as np
+    art = ROOT/'Assets/Art/Environment'/theme.title()
+    kit = json.loads((art/'Kit'/(theme.title()+'Kit.manifest.json')).read_text())
+    count = 0
+    for row in kit['pieces']:
+        if row['kind'] != 'door' and row['id'] not in ('door_iron_strapped','prop_classroom_door_leaf','prop_bulkhead_leaf'):
+            continue
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.import_scene.fbx(filepath=str(art/'Kit'/row['file']),use_anim=False)
+        obj, = bpy.context.scene.objects
+        obj.data.calc_loop_triangles()
+        geometry = [(obj.data.materials[t.material_index].name,
+                     sorted(tuple(round(c,4)+0.0 for c in obj.data.vertices[i].co) for i in t.vertices))
+                    for t in obj.data.loop_triangles]
+        digest = hashlib.sha256(json.dumps(sorted(geometry),separators=(',',':')).encode()).hexdigest()
+        for side in ('front','back'):
+            path = output/'doors'/(row['id']+'-'+side+'.png')
+            require(path.is_file() and path.with_suffix('.json').is_file(), 'missing door preview '+str(path))
+            receipt = json.loads(path.with_suffix('.json').read_text())
+            require(receipt['face'] == side and receipt['piece'] == row['id'] and
+                    receipt['geometrySha256'] == digest and receipt['imageSha256'] == sha(path),
+                    'stale door preview '+str(path))
+            image = bpy.data.images.load(str(path),check_existing=False)
+            require(tuple(image.size) == (1200,1200), 'door preview size')
+            pixels = np.empty(len(image.pixels),dtype=np.float32)
+            image.pixels.foreach_get(pixels)
+            require(float(pixels.reshape(-1,4)[:,:3].std()) > .025, 'blank door preview')
+            bpy.data.images.remove(image)
+            count += 1
+    print(f'PASS {theme} door previews: {count} current front/back close-ups')
+    return count
+
+
+def check_ceiling_and_leaf_placement(t, rows, points):
+    """Measured seating datum: Castle/Basement top; ward/school soffit bottom."""
+    theme = t['id'].split('_')[0]
+    leaf_ids = {'door_iron_strapped','door_double_porthole_4m','prop_classroom_door_leaf','prop_bulkhead_leaf'}
+    for p in t['pieces']:
+        pid = p['id']
+        if rows[pid]['kind'] == 'ceiling':
+            axis = [v[1] for v in points[pid]]
+            datum = max(axis) if theme in ('castle','basement') else min(axis)
+            require(abs(p['pos'][1]+datum-t['height']) <= .05,
+                    t['id']+': ceiling seating datum '+pid)
+        if pid not in leaf_ids:
+            continue
+        candidates = []
+        for door in t['doors']:
+            x,z = door['cell']; side = door['side']
+            dx,dz = SIDES[side]
+            yaw = {'N':0,'E':90,'S':180,'W':270}[side]
+            cx,cz = 2*x+1+dx, 2*z+1+dz
+            if theme == 'castle':
+                cx,cz = cx+.4*dx,cz+.4*dz
+            offsets = (-.8,.8) if pid in ('prop_classroom_door_leaf','prop_bulkhead_leaf') else (0,)
+            for u in offsets:
+                position = (cx+u*abs(dz),0,cz+u*abs(dx))
+                if close(p['pos'],position,.05) and p['rotY'] == yaw:
+                    candidates.append(position)
+        require(len(candidates) == 1,t['id']+': detached door leaf '+pid)
+
+
+def check_prop_footprints(t, rows, points):
+    """Conservative full-bounds containment, including holes/re-entrant corners.
+
+    A prop's origin being inside is insufficient. Requiring its complete XZ
+    bounding box inside the occupied-cell union also covers every triangle.
+    Socket-attached leaves deliberately straddle the boundary and have their
+    own placement check. This does not replace actual prop/wall collision tests.
+    """
+    cells = {tuple(c) for c in t['footprint']}
+    leaves = {'door_iron_strapped','door_double_porthole_4m','prop_classroom_door_leaf','prop_bulkhead_leaf'}
+    for p in t['pieces']:
+        if rows[p['id']]['kind'] not in ('prop','pipe','duct') or p['id'] in leaves:
+            continue
+        lo, hi = bounds([transform(v,p) for v in points[p['id']]])
+        for x in range(math.floor((lo[0]+1e-5)/2), math.ceil((hi[0]-1e-5)/2)):
+            for z in range(math.floor((lo[2]+1e-5)/2), math.ceil((hi[2]-1e-5)/2)):
+                require((x,z) in cells, f'{t["id"]}: prop footprint {p["id"]} at {p["pos"]} crosses unoccupied cell {(x,z)}')
+
+
+def triangle_inside_box(triangle, lo, hi):
+    """Separating-axis test for positive penetration; mere contact is allowed."""
+    center = Vector(tuple((a+b)/2 for a,b in zip(lo,hi)))
+    half = [(b-a)/2 for a,b in zip(lo,hi)]
+    verts = [Vector(v)-center for v in triangle]
+    edges = [verts[1]-verts[0],verts[2]-verts[1],verts[0]-verts[2]]
+    basis = [Vector((1,0,0)),Vector((0,1,0)),Vector((0,0,1))]
+    axes = basis+[edges[0].cross(edges[1])]+[edge.cross(axis) for edge in edges for axis in basis]
+    for axis in axes:
+        if axis.length < 1e-10:
+            continue
+        axis.normalize()
+        radius = sum(half[i]*abs(axis[i]) for i in range(3))
+        projection = [v.dot(axis) for v in verts]
+        if min(projection) >= radius-1e-5 or max(projection) <= -radius+1e-5:
+            return False
+    return True
+
+
+def load_wall_triangles(theme, rows):
+    walls = {}
+    for pid,row in rows.items():
+        if row['kind'] not in ('wall','window','door','arc') or pid=='door_double_porthole_4m':
+            continue
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        path = ROOT/'Assets/Art/Environment'/theme.title()/'Kit'/row['file']
+        bpy.ops.import_scene.fbx(filepath=str(path),use_anim=False)
+        obj, = bpy.context.scene.objects
+        walls[pid] = ([tuple(v.co) for v in obj.data.vertices], [tuple(f.vertices) for f in obj.data.polygons])
+    return walls
+
+
+def check_prop_wall_bounds(t, rows, points, wall_meshes):
+    """Conservative prop envelope versus actual wall triangles/closed interiors.
+
+    Using actual wall surfaces avoids false clashes against window apertures or
+    a handrail's height-independent bounding box. A hollow prop's envelope may
+    still reject a valid interlock; such placement needs mesh-level review.
+    """
+    leaves = {'door_iron_strapped','door_double_porthole_4m','prop_classroom_door_leaf','prop_bulkhead_leaf'}
+    walls, props = [], []
+    for p in t['pieces']:
+        if p['id'] in leaves:
+            continue
+        kind = rows[p['id']]['kind']
+        if kind not in ('wall','window','door','arc','prop','pipe','duct'):
+            continue
+        if kind in ('wall','window','door','arc'):
+            pts,faces = wall_meshes[p['id']]
+            pts = [transform(v,p) for v in pts]
+            walls.append((*bounds(pts),p,pts,faces,tree_for(pts,faces)))
+        else:
+            props.append((*bounds([transform(v,p) for v in points[p['id']]]),p))
+    for lo,hi,p in props:
+        for low,high,wall,vertices,faces,tree in walls:
+            if not all(min(hi[a],high[a])-max(lo[a],low[a]) > 1e-5 for a in range(3)):
+                continue
+            center = Vector(tuple((a+b)/2 for a,b in zip(lo,hi)))
+            near,normal,_,distance = tree.find_nearest(center)
+            inside = distance > 1e-5 and (center-near).dot(normal) < -1e-5
+            contact = any(triangle_inside_box([vertices[i] for i in face],lo,hi) for face in faces)
+            require(not inside and not contact,
+                    f'{t["id"]}: prop/wall penetration {p["id"]} at {p["pos"]} / {wall["id"]} at {wall["pos"]}')
+
+
+def placement_regressions(templates, rows, points):
+    wall_meshes = load_wall_triangles(templates[0]['id'].split('_')[0],rows)
+    for t in templates:
+        check_ceiling_and_leaf_placement(t,rows,points)
+        check_prop_footprints(t,rows,points)
+        check_prop_wall_bounds(t,rows,points,wall_meshes)
+    base = templates[0]
+    damaged = copy.deepcopy(base)
+    next(p for p in damaged['pieces'] if rows[p['id']]['kind'] == 'ceiling')['pos'][1] -= .10
+    try:
+        check_ceiling_and_leaf_placement(damaged,rows,points)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('ceiling 10cm drift control accepted')
+    leaf = next(pid for pid in ('door_iron_strapped','door_double_porthole_4m','prop_classroom_door_leaf','prop_bulkhead_leaf') if pid in rows)
+    damaged = copy.deepcopy(base)
+    damaged['pieces'].append({'id':leaf,'pos':[99,0,99],'rotY':0})
+    try:
+        check_ceiling_and_leaf_placement(damaged,rows,points)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('orphan leaf control accepted')
+    prop = next(pid for pid,r in rows.items() if r['kind'] == 'prop' and pid != leaf)
+    damaged = copy.deepcopy(base)
+    damaged['pieces'].append({'id':prop,'pos':[99,0,99],'rotY':37})
+    try:
+        check_prop_footprints(damaged,rows,points)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('outside rotated prop control accepted')
+    # A long prop may have both ends in occupied cells while crossing a hole.
+    damaged = {'id':'containment_control', 'footprint':[[0,0],[2,0]],
+               'pieces':[{'id':'probe','pos':[0,0,0],'rotY':0}]}
+    try:
+        check_prop_footprints(damaged, {'probe':{'kind':'prop'}},
+                              {'probe':[(.5,0,.5),(5.5,1,1.5)]})
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('prop spanning footprint hole control accepted')
+    damaged = copy.deepcopy(base)
+    wall = next(p for p in damaged['pieces'] if rows[p['id']]['kind']=='wall')
+    damaged['pieces'].append({'id':prop,'pos':list(wall['pos']),'rotY':wall['rotY']})
+    try:
+        check_prop_wall_bounds(damaged,rows,points,wall_meshes)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('prop embedded in wall control accepted')
+    print(f'PASS {base["id"].split("_")[0]} measured ceilings, socket leaves, full prop containment and conservative wall clearance; drift/orphan/outside/hole/collision controls rejected')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--skip-previews',action='store_true')
@@ -452,6 +782,7 @@ def main():
     group.add_argument('--compare-baseline')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     require(bpy.app.version[:2] == (5,2), 'Use Blender 5.2')
+    check_door_quality('castle', OUT)
     kit_path, rooms_path = ART/'Kit/CastleKit.manifest.json', ART/'Rooms/CastleRooms.manifest.json'
     kit, catalogue = json.loads(kit_path.read_text()), json.loads(rooms_path.read_text())
     rows, rooms = kit['pieces'], catalogue['templates']
@@ -477,6 +808,9 @@ def main():
             and any(t['kind'] in ('hallway','junction') and t['shape'] in ('L','T') for t in rooms), 'hallway catalogue')
     require(1 <= sum(t['gimmick'] != 'none' for t in rooms) <= 2, 'gimmick catalogue')
     controls = negative_controls(rooms,meshes)
+    placement_regressions(rooms, {r['id']:r for r in rows}, {k:v['points'] for k,v in meshes.items()})
+    if not args.skip_previews:
+        check_door_previews('castle', OUT)
     check_sources(rows,rooms)
     preview_count = check_previews(rooms) if not args.skip_previews else None
     snapshot = {'kitManifestSha256': sha(kit_path), 'roomsManifestSha256': sha(rooms_path),

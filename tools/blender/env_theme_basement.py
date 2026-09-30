@@ -9,6 +9,7 @@
 #   - Export applied Y-up/-Z-forward meshes and deterministic kit/room manifests.
 #   - Assemble editable sources and render catalogue and darkness review images.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils and Python standard library only.
+#   Shared door-review studio from env_theme_castle; no Castle geometry reused.
 # USAGE NOTES: --background --factory-startup --python-exit-code 1 --python FILE
 #   [-- --skip-previews]. No Unity calls, external assets, textures or v1 imports.
 #   Authored coordinates are Unity XYZ; Blender uses (X,-Z,Y). Room yaw around
@@ -34,7 +35,7 @@ HEIGHT = 3.2
 # Owner's sRGB colours. Convert to linear, rather than assigning hex as linear RGB.
 PALETTE = {"concrete": "5e6061", "damp": "3a3c3d", "rust": "8a4b22",
            "steel": "161514", "galvanised": "8d9396", "insulation": "bdb6a4",
-           "sodium": "ff9a3c", "hazard": "c8a62a"}
+           "sodium": "ff9a3c", "hazard": "c8a62a", "door_steel": "161514"}
 KINDS = {
     "wall_2m": "wall", "wall_door_4m": "door", "wall_window_2m": "window",
     "wall_arc_r4": "arc", "wall_arc_r6": "arc", "wall_arc_r8": "arc",
@@ -71,8 +72,8 @@ def materials():
         mat.use_nodes = True
         shader = mat.node_tree.nodes.get("Principled BSDF")
         shader.inputs["Base Color"].default_value = color
-        shader.inputs["Roughness"].default_value = .38 if name in {"steel", "galvanised"} else .86
-        shader.inputs["Metallic"].default_value = .75 if name in {"steel", "galvanised", "rust"} else 0
+        shader.inputs["Roughness"].default_value = .38 if name in {"steel", "galvanised", "door_steel"} else .86
+        shader.inputs["Metallic"].default_value = .75 if name in {"steel", "galvanised", "rust", "door_steel"} else 0
         if name == "sodium":
             shader.inputs["Emission Color"].default_value = color
             shader.inputs["Emission Strength"].default_value = 4
@@ -438,13 +439,21 @@ def build(p):
     elif name == "pit_retaining_2m":
         p.box((0,.6,0),(2,1.2,.15),"damp")
     elif name == "prop_bulkhead_leaf":
-        p.box((0,1.37,0),(1.53,2.74,.08),"steel")
-        p.box((0,1.4,-.045),(1.28,2.42,.025),"damp")
-        for x in (-.64,.64):
-            p.box((x,1.4,-.08),(.055,2.5,.065),"rust")
-        for y in (.25,2.5):
-            p.box((0,y,-.08),(1.28,.06,.065),"rust")
-        wheel(p,(.43,1.25,-.12),.14)
+        p.box((0,1.37,0),(1.53,2.74,.08),"door_steel")
+        for face in (-1,1):
+            p.box((0,1.4,face*.045),(1.28,2.42,.025),"galvanised")
+            for x in (-.64,.64):
+                p.box((x,1.4,face*.08),(.055,2.5,.065),"rust")
+            for y in (.25,2.5):
+                p.box((0,y,face*.08),(1.28,.06,.065),"rust")
+            p.box((0,.22,face*.066),(1.42,.30,.018),"galvanised")
+            p.box((.43,1.25,face*.066),(.19,.34,.018),"galvanised")
+            start = len(p.vertices)
+            wheel(p,(.43,1.25,-.12),.14)
+            if face > 0:
+                # Blender Y is negative Unity Z. Mirror only this face's wheel.
+                for vertex in p.vertices[start:]:
+                    vertex.y = -vertex.y
     else:
         raise ValueError(name)
 
@@ -571,17 +580,26 @@ def catalogue():
             if pit:
                 pieces.append(placement("pit_liner_2x2",2*x+1,-1.2,2*z+1))
             if z%2 == 1:
-                pieces.append(placement("duct_run_ceiling_2m",2*x+1,2.28,2*z+1))
+                # Leave the 2mm damp-wall relief clear at exposed run ends.
+                shift = .07 if (x-1,z) not in cells else -.07 if (x+1,z) not in cells else 0
+                pieces.append(placement("duct_run_ceiling_2m",2*x+1+shift,2.28,2*z+1))
         if pit:
             for c,s in boundary(cells):
                 x,_,z,yaw = edge_pose(c,s)
-                pieces.append(placement("pit_retaining_2m",x,-1.2,z,yaw))
+                a = math.radians(yaw)
+                pieces.append(placement("pit_retaining_2m",x-.075*math.sin(a),-1.2,z-.075*math.cos(a),yaw))
         # Dense wall services, kept away from the full door-wall reserves.
         for entry in list(pieces):
             if entry["id"] == "wall_2m":
                 x,y,z = entry["pos"]
                 yaw = entry["rotY"]
                 a = math.radians(yaw)
+                # Do not drive a full-length service module into a perpendicular
+                # corner wall. Leave corner bays for elbows, not straight runs.
+                tangent = (round(math.cos(a)),round(-math.sin(a)))
+                cx,cz = math.floor((x-.1*math.sin(a))/2),math.floor((z-.1*math.cos(a))/2)
+                if any((cx+sign*tangent[0],cz+sign*tangent[1]) not in cells for sign in (-1,1)):
+                    continue
                 pieces.append(placement("pipe_run_wall_2m",x-.28*math.sin(a),.7,z-.28*math.cos(a),yaw))
         # Reserve central cell centres for gameplay. Props occupy selected edge cells.
         blocked = set()
@@ -620,9 +638,10 @@ def catalogue():
             # A narrow central catwalk flanked by perforated maintenance walkways.
             for z in range(1,d-1):
                 pieces.append(placement("catwalk_rail_2m",4.0,0,2*z+1,90))
-                pieces.append(placement("catwalk_rail_2m",6.0,0,2*z+1,90))
+                pieces.append(placement("catwalk_rail_2m",5.8,0,2*z+1,90))
         else:
-            prop("prop_gauge_panel",0,d-2,1.3)
+            cell = min(sorted(cells),key=lambda c:abs(c[0])+abs(c[1]-(d-2)))
+            prop("prop_gauge_panel",*cell,1.3)
         # Non-uniform leaks; no emissive orange outside the sodium lamp material.
         for x,z in sorted(cells):
             if (x+3*z)%7 == 0 and (x,z) not in blocked:
@@ -835,6 +854,10 @@ def main():
     rooms = catalogue()
     for path,value in ((ART/"Kit/BasementKit.manifest.json",kit),(ART/"Rooms/BasementRooms.manifest.json",rooms)):
         path.write_text(json.dumps(value,indent=2)+"\n",encoding="utf-8",newline="\n")
+    if not args.skip_previews:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from env_theme_castle import render_door_reviews
+        render_door_reviews(pieces, KINDS, 'Basement', REVIEW)
     sheet(pieces,not args.skip_previews)
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/"Kit/BasementKit.blend"))
     rooms_source(pieces,rooms,not args.skip_previews)

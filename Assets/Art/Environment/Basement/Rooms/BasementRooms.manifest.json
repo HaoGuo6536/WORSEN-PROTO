@@ -581,7 +581,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -626,7 +626,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -671,7 +671,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             11
           ],
@@ -1391,7 +1391,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            13,
+            12.93,
             2.28,
             3
           ],
@@ -1436,7 +1436,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            13,
+            12.93,
             2.28,
             7
           ],
@@ -1481,20 +1481,11 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            13,
+            12.93,
             2.28,
             11
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
         },
         {
           "id": "pipe_run_wall_2m",
@@ -1529,24 +1520,6 @@
             0.28,
             0.7,
             9.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            11.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            11.0
           ],
           "rotY": 270
         },
@@ -1607,24 +1580,6 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            13.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            13.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             13.72,
             0.7,
             3.0
@@ -1655,15 +1610,6 @@
             13.72,
             0.7,
             9.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            13.72,
-            0.7,
-            11.0
           ],
           "rotY": 90
         },
@@ -2189,7 +2135,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -2234,7 +2180,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -2459,7 +2405,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             3
           ],
@@ -2504,20 +2450,11 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             7
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
         },
         {
           "id": "pipe_run_wall_2m",
@@ -2540,42 +2477,6 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            1.0,
-            0.7,
-            7.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            7.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             7.72,
             0.7,
             3.0
@@ -2588,15 +2489,6 @@
             7.72,
             0.7,
             5.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            7.0
           ],
           "rotY": 90
         },
@@ -2928,7 +2820,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -3018,47 +2910,11 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            5,
+            4.93,
             2.28,
             3
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            3.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            5.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            5.72,
-            0.7,
-            3.0
-          ],
-          "rotY": 90
         },
         {
           "id": "prop_electrical_cabinet",
@@ -3400,7 +3256,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -3526,7 +3382,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            5,
+            4.93,
             2.28,
             3
           ],
@@ -3555,15 +3411,6 @@
           "pos": [
             0.28,
             0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
             3.0
           ],
           "rotY": 270
@@ -3571,36 +3418,9 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            0.28,
-            0.7,
-            5.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            5.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             5.72,
             0.7,
             3.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            5.72,
-            0.7,
-            5.0
           ],
           "rotY": 90
         },
@@ -3909,24 +3729,6 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            1.0,
-            0.7,
-            1.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             3.0,
             0.7,
             1.72
@@ -3941,33 +3743,6 @@
             1.72
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.0,
-            0.7,
-            1.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
         },
         {
           "id": "prop_fuel_bunker",
@@ -4336,7 +4111,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -4381,7 +4156,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -4426,7 +4201,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             11
           ],
@@ -4471,7 +4246,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            2.93,
             2.28,
             3
           ],
@@ -4516,7 +4291,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            2.93,
             2.28,
             7
           ],
@@ -4561,20 +4336,11 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            2.93,
             2.28,
             11
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
         },
         {
           "id": "pipe_run_wall_2m",
@@ -4597,42 +4363,6 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            1.0,
-            0.7,
-            11.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            11.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             3.72,
             0.7,
             3.0
@@ -4647,15 +4377,6 @@
             5.0
           ],
           "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.0,
-            0.7,
-            11.72
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_gauge_panel",
@@ -5112,7 +4833,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -5157,7 +4878,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -5265,7 +4986,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            2.93,
             2.28,
             7
           ],
@@ -5418,29 +5139,11 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            9,
+            8.93,
             2.28,
             3
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
         },
         {
           "id": "pipe_run_wall_2m",
@@ -5450,15 +5153,6 @@
             3.0
           ],
           "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            9.72
-          ],
-          "rotY": 0
         },
         {
           "id": "pipe_run_wall_2m",
@@ -5481,56 +5175,11 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            3.0,
-            0.7,
-            9.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.72,
-            0.7,
-            9.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             7.0,
             0.7,
             3.72
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.0,
-            0.7,
-            3.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.72,
-            0.7,
-            3.0
-          ],
-          "rotY": 90
         },
         {
           "id": "prop_gauge_panel",
@@ -6000,7 +5649,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -6090,7 +5739,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            3.07,
             2.28,
             7
           ],
@@ -6198,7 +5847,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            5,
+            4.93,
             2.28,
             7
           ],
@@ -6306,36 +5955,9 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            9,
+            8.93,
             2.28,
             3
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            3.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.0,
-            0.7,
-            9.72
           ],
           "rotY": 0
         },
@@ -6349,54 +5971,9 @@
           "rotY": 90
         },
         {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            5.0,
-            0.7,
-            9.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            5.72,
-            0.7,
-            9.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.0,
-            0.7,
-            3.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.72,
-            0.7,
-            3.0
-          ],
-          "rotY": 90
-        },
-        {
           "id": "prop_gauge_panel",
           "pos": [
-            1,
+            3,
             1.3,
             7
           ],
@@ -6961,7 +6538,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -7024,7 +6601,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -7726,7 +7303,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            11,
+            10.93,
             2.28,
             3
           ],
@@ -7789,7 +7366,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            11,
+            10.93,
             2.28,
             7
           ],
@@ -7825,209 +7402,200 @@
         {
           "id": "pit_retaining_2m",
           "pos": [
-            1,
+            1.0,
             -1.2,
-            0
+            0.075
           ],
           "rotY": 180
         },
         {
           "id": "pit_retaining_2m",
           "pos": [
-            0,
+            0.075,
             -1.2,
-            1
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            3
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            5
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            7
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            1,
-            -1.2,
-            10
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            9
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            3,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            3,
-            -1.2,
-            10
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            5,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            5,
-            -1.2,
-            10
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            7,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            7,
-            -1.2,
-            10
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            9,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            9,
-            -1.2,
-            10
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            11,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            12,
-            -1.2,
-            1
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            12,
-            -1.2,
-            3
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            12,
-            -1.2,
-            5
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            12,
-            -1.2,
-            7
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            11,
-            -1.2,
-            10
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            12,
-            -1.2,
-            9
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
             1.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            1.0,
+            -1.2,
+            9.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            3.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            3.0,
+            -1.2,
+            9.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.0,
+            -1.2,
+            9.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.0,
+            -1.2,
+            9.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            9.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            9.0,
+            -1.2,
+            9.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.925,
+            -1.2,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.925,
+            -1.2,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.925,
+            -1.2,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.925,
+            -1.2,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.0,
+            -1.2,
+            9.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            11.925,
+            -1.2,
+            9.0
+          ],
+          "rotY": 90
         },
         {
           "id": "pipe_run_wall_2m",
@@ -8053,24 +7621,6 @@
             0.28,
             0.7,
             7.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            9.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            9.0
           ],
           "rotY": 270
         },
@@ -8113,24 +7663,6 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            11.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            11.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             11.72,
             0.7,
             3.0
@@ -8152,15 +7684,6 @@
             11.72,
             0.7,
             7.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            11.72,
-            0.7,
-            9.0
           ],
           "rotY": 90
         },
@@ -8194,7 +7717,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             3
           ],
@@ -8212,7 +7735,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             5
           ],
@@ -8230,7 +7753,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             7
           ],
@@ -8669,7 +8192,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -8822,7 +8345,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            3.07,
             2.28,
             7
           ],
@@ -8984,7 +8507,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             3
           ],
@@ -9047,7 +8570,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             7
           ],
@@ -9056,198 +8579,162 @@
         {
           "id": "pit_retaining_2m",
           "pos": [
-            1,
+            1.0,
             -1.2,
-            0
+            0.075
           ],
           "rotY": 180
         },
         {
           "id": "pit_retaining_2m",
           "pos": [
-            0,
+            0.075,
             -1.2,
-            1
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            3
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            1,
-            -1.2,
-            6
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            5
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            3,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            3,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            2,
-            -1.2,
-            7
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            5,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            6,
-            -1.2,
-            1
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            5,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            7,
-            -1.2,
-            2
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            3
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            5
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            7,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            7
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
             1.0
           ],
           "rotY": 270
         },
         {
-          "id": "pipe_run_wall_2m",
+          "id": "pit_retaining_2m",
           "pos": [
-            0.28,
-            0.7,
+            0.075,
+            -1.2,
             3.0
           ],
           "rotY": 270
         },
         {
-          "id": "pipe_run_wall_2m",
+          "id": "pit_retaining_2m",
           "pos": [
-            0.28,
-            0.7,
+            1.0,
+            -1.2,
+            5.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
             5.0
           ],
           "rotY": 270
         },
         {
-          "id": "pipe_run_wall_2m",
+          "id": "pit_retaining_2m",
           "pos": [
-            7.72,
-            0.7,
-            3.0
+            3.0,
+            -1.2,
+            0.075
           ],
-          "rotY": 90
+          "rotY": 180
         },
         {
-          "id": "pipe_run_wall_2m",
+          "id": "pit_retaining_2m",
           "pos": [
-            7.72,
-            0.7,
-            5.0
+            3.0,
+            -1.2,
+            7.925
           ],
-          "rotY": 90
+          "rotY": 0
         },
         {
-          "id": "pipe_run_wall_2m",
+          "id": "pit_retaining_2m",
           "pos": [
-            7.72,
-            0.7,
+            2.075,
+            -1.2,
             7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.925,
+            -1.2,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.0,
+            -1.2,
+            7.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.0,
+            -1.2,
+            2.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.0,
+            -1.2,
+            7.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pipe_run_wall_2m",
+          "pos": [
+            0.28,
+            0.7,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pipe_run_wall_2m",
+          "pos": [
+            7.72,
+            0.7,
+            5.0
           ],
           "rotY": 90
         },
@@ -9281,7 +8768,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             3
           ],
@@ -9299,7 +8786,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             5
           ],
@@ -9671,7 +9158,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -9716,7 +9203,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -9806,7 +9293,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            3,
+            2.93,
             2.28,
             7
           ],
@@ -9896,83 +9383,11 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             3
           ],
           "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            7.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.0,
-            0.7,
-            7.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            3.72,
-            0.7,
-            7.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.0,
-            0.7,
-            3.72
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            3.0
-          ],
-          "rotY": 90
         },
         {
           "id": "prop_valve_wheel",
@@ -10393,7 +9808,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -10645,7 +10060,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            9,
+            8.93,
             2.28,
             3
           ],
@@ -10666,33 +10081,6 @@
             9,
             2.86,
             5
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            3.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            1.0,
-            0.7,
-            5.72
           ],
           "rotY": 0
         },
@@ -10701,7 +10089,7 @@
           "pos": [
             0.28,
             0.7,
-            5.0
+            3.0
           ],
           "rotY": 270
         },
@@ -10726,36 +10114,9 @@
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            9.0,
-            0.7,
-            0.28
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
             9.72,
             0.7,
             3.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            9.72,
-            0.7,
-            5.0
           ],
           "rotY": 90
         },
@@ -11200,7 +10561,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             3
           ],
@@ -11263,7 +10624,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            1,
+            1.07,
             2.28,
             7
           ],
@@ -11578,7 +10939,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             3
           ],
@@ -11641,7 +11002,7 @@
         {
           "id": "duct_run_ceiling_2m",
           "pos": [
-            7,
+            6.93,
             2.28,
             7
           ],
@@ -11649,210 +11010,165 @@
         },
         {
           "id": "pit_retaining_2m",
-          "pos": [
-            1,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            1
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            3
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            5
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            1,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            0,
-            -1.2,
-            7
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            3,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            3,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            5,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            5,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            7,
-            -1.2,
-            0
-          ],
-          "rotY": 180
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            1
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            3
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            5
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            7,
-            -1.2,
-            8
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "pit_retaining_2m",
-          "pos": [
-            8,
-            -1.2,
-            7
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            1.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            3.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            0.28,
-            0.7,
-            5.0
-          ],
-          "rotY": 270
-        },
-        {
-          "id": "pipe_run_wall_2m",
           "pos": [
             1.0,
-            0.7,
-            7.72
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            1.0,
+            -1.2,
+            7.925
           ],
           "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            0.075,
+            -1.2,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            3.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            3.0,
+            -1.2,
+            7.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            5.0,
+            -1.2,
+            7.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.0,
+            -1.2,
+            0.075
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.0,
+            -1.2,
+            7.925
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pit_retaining_2m",
+          "pos": [
+            7.925,
+            -1.2,
+            7.0
+          ],
+          "rotY": 90
         },
         {
           "id": "pipe_run_wall_2m",
           "pos": [
             0.28,
             0.7,
-            7.0
+            3.0
           ],
           "rotY": 270
         },
         {
           "id": "pipe_run_wall_2m",
           "pos": [
-            7.0,
+            0.28,
             0.7,
-            0.28
+            5.0
           ],
-          "rotY": 180
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            1.0
-          ],
-          "rotY": 90
+          "rotY": 270
         },
         {
           "id": "pipe_run_wall_2m",
@@ -11869,15 +11185,6 @@
             7.72,
             0.7,
             5.0
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "pipe_run_wall_2m",
-          "pos": [
-            7.72,
-            0.7,
-            7.0
           ],
           "rotY": 90
         },
@@ -11911,7 +11218,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             3
           ],
@@ -11929,7 +11236,7 @@
         {
           "id": "catwalk_rail_2m",
           "pos": [
-            6.0,
+            5.8,
             0,
             5
           ],

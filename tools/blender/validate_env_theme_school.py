@@ -9,8 +9,9 @@
 #   - Verify v1 kit gates with the new School's authored dimensions and surfaces.
 #   - Check topology, socket-attached leaves, ceiling height and wall enclosure.
 #   - Verify saved assemblies, preview provenance and dark-scene light sources.
-#   - Regenerate twice and compare both manifest hashes when requested.
-# DEPENDENCIES: Blender 5.2, bundled FBX parser, Python standard library only.
+#   - Regenerate twice and compare manifests and imported geometry when requested.
+# DEPENDENCIES: Blender 5.2, bundled FBX parser/NumPy, Python standard library;
+#   shared imported-mesh door checks in validate_env_theme_castle.
 # USAGE NOTES: -- --determinism performs two real generator runs before validation.
 #   Does not import either generator. Reports/logs are written only under Logs;
 #   regeneration writes only the owned School art via env_theme_school.py.
@@ -546,9 +547,16 @@ def determinism():
         with (REPORT/f'determinism-{run}.log').open('w',encoding='utf-8') as log:
             result=subprocess.run(command,cwd=str(ROOT),stdout=log,stderr=subprocess.STDOUT,check=False)
         require(result.returncode==0,f'determinism generator run {run} failed; see retained log')
-        snapshots.append({p.name:sha(p) for p in paths})
+        snapshot = {p.name:sha(p) for p in paths}
+        snapshot['geometry'] = {}
+        for path in sorted((ART/'Kit').glob('*.fbx')):
+            bpy.ops.wm.read_factory_settings(use_empty=True)
+            bpy.ops.import_scene.fbx(filepath=str(path),use_anim=False)
+            obj, = bpy.context.scene.objects
+            snapshot['geometry'][path.name] = semantic(facts(obj))
+        snapshots.append(snapshot)
         (REPORT/f'determinism-{run}-hashes.json').write_text(json.dumps(snapshots[-1],indent=2)+'\n',encoding='utf-8')
-    require(snapshots[0]==snapshots[1],'repeat-generation manifest hash mismatch')
+    require(snapshots[0]==snapshots[1],'repeat-generation manifest/geometry hash mismatch')
     (REPORT/'determinism.json').write_text(json.dumps({'passed':True,'runs':snapshots},indent=2)+'\n',encoding='utf-8')
     return snapshots
 
@@ -558,15 +566,20 @@ def main():
     parser.add_argument('--determinism',action='store_true')
     args=parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     require(bpy.app.version[:2]==(5,2),'Use Blender 5.2')
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from validate_env_theme_castle import check_door_quality, check_door_previews, placement_regressions
     REPORT.mkdir(parents=True,exist_ok=True)
     (REPORT/'validation.json').write_text('{"passed":false,"status":"validation started"}\n',encoding='utf-8')
     (REPORT/'validation.txt').write_text('INCOMPLETE: validation started\n',encoding='utf-8')
     repeated=determinism() if args.determinism else None
+    check_door_quality('school', REPORT)
     kit=json.loads((ART/'Kit/SchoolKit.manifest.json').read_text(encoding='utf-8'))
     rooms=json.loads((ART/'Rooms/SchoolRooms.manifest.json').read_text(encoding='utf-8'))
     lookup,records,pieces=validate_kit(kit)
     room_details=validate_catalogue(rooms,lookup)
     negatives=negative_controls(rooms,lookup,records)
+    placement_regressions(rooms['templates'],lookup,{k:v['points'] for k,v in records.items()})
+    check_door_previews('school', REPORT)
     validate_sources(rooms,records)
     previews=validate_previews(rooms)
     lines=[f'PASS School kit: {len(pieces)} FBX pieces; all 16 mandatory ids, dimensions, pivots, axes, applied transforms, materials, budgets and source agreement',
@@ -578,7 +591,7 @@ def main():
            f'PASS School negative controls: {negatives} malformed kit/room cases rejected',
            f'PASS School sources/previews: exact room assemblies, {len(previews)} nonblank images, current input hashes; darkness uses only fluorescents and one flashlight']
     if repeated:
-        lines.append('PASS School determinism: two regeneration runs; SchoolKit.manifest.json and SchoolRooms.manifest.json SHA-256 match')
+        lines.append('PASS School determinism: two regeneration runs; both manifest SHA-256 values and every imported geometry hash match')
     result={'passed':True,'pieces':pieces,'rooms':room_details,'previews':previews,'determinism':repeated,
             'manifestHashes':{p.name:sha(p) for p in (ART/'Kit/SchoolKit.manifest.json',ART/'Rooms/SchoolRooms.manifest.json')},
             'limitations':['No Unity execution/import/material remapping/NavMesh checks.','Pixel probes do not establish artistic acceptance.']}

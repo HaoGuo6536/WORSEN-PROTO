@@ -14,7 +14,8 @@
     "glass": "#455e58",
     "curtain": "#8eafa0",
     "linen": "#ddd9c8",
-    "acoustic": "#e4e1d4"
+    "acoustic": "#e4e1d4",
+    "door_enamel": "#82988b"
   },
   "pieces": [
     {
@@ -327,13 +328,13 @@
         2.78,
         1.5606
       ],
-      "triangles": 248,
+      "triangles": 200,
       "materials": [
+        "hospital_door_enamel",
         "hospital_glass",
-        "hospital_stainless",
-        "hospital_tile"
+        "hospital_stainless"
       ],
-      "geometrySha256": "f2f4358a56a25e9f1ccac2c922109555ad688a156bb04f92e8f3582ccdf7c520"
+      "geometrySha256": "c55125f25ad57aad39f1a2f377045c4b24e1ff20d9871a19326cd82f3ef439b2"
     },
     {
       "id": "ceiling_drop_panel_2x2",

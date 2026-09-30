@@ -392,16 +392,16 @@
       "file": "Castle_door_iron_strapped.fbx",
       "kind": "prop",
       "size": [
-        3.12,
+        3.1,
         2.74,
-        0.267
+        0.394
       ],
-      "triangles": 992,
+      "triangles": 1324,
       "materials": [
         "castle_metal",
         "castle_wood"
       ],
-      "geometrySha256": "41fce7fd121a321a1c9682d371456a413f05b28ed941b1d7a807b9a8f1533cad"
+      "geometrySha256": "face999dd861cd72f0e3260ecb01282f9872621fa90753cda8949fac4b194b81"
     },
     {
       "id": "prop_candelabra",
