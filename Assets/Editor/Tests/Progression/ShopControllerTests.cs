@@ -8,7 +8,7 @@
 //   Editor tool (§10), Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
 //   - Cover seeded eligibility, prices, rerolls, receipts, replacement and wallet bounds.
-//   - Cover all eleven economy upgrades and session-level revision protection.
+//   - Cover retained economy upgrades, cheap opening offers and revision protection.
 // DEPENDENCIES:
 //   - Core, Session Progression/Shop, NUnit and temporary Unity config allocation.
 // USAGE NOTES:
@@ -71,7 +71,8 @@ namespace Worsen.Tests.Progression
                 Assert.That(right.Reroll(100, Empty, out _), Is.True);
                 Assert.That(right.Offers(100, Empty).Select(o => o.Id), Is.EqualTo(left.Offers(100, Empty).Select(o => o.Id)));
                 signatures.Add(string.Join(",", ids));
-                Assert.That(Shop(4, seed: seed).Offers(100, Empty).All(o => o.Kind == EffectKind.Consumable), Is.True);
+                Assert.That(Shop(4, seed: seed).Offers(100, Empty).All(o => o.Kind == EffectKind.Consumable ||
+                    EffectCatalogueUtility.Find(catalogue, o.Id).Price < tuning.Rules.ExpensivePrice), Is.True);
             }
             Assert.That(signatures.Count, Is.GreaterThan(1));
             Entries(Entry("expensive", EffectKind.Upgrade, 8));
@@ -136,12 +137,9 @@ namespace Worsen.Tests.Progression
         }
 
         [Test]
-        public void GoldenTouchBusinessLicenseBailBondAndInterestRespectRoundingCapsAndOverflow()
+        public void GoldenTouchBusinessLicenseAndInterestRespectRoundingCapsAndOverflow()
         {
             var shop = Shop();
-            Assert.That(shop.BailDebit(8, .75f, Empty), Is.EqualTo(6));
-            Assert.That(shop.BailDebit(8, .75f, Active("bail-bond")), Is.EqualTo(3));
-            Assert.That(shop.BailDebit(7, .75f, Active("bail-bond")), Is.EqualTo(2));
             Assert.That(shop.Interest(49, Active("interest")), Is.EqualTo(4));
             Assert.That(shop.Interest(100, Active("interest")), Is.EqualTo(5));
             Assert.That(shop.Interest(int.MaxValue, Active("interest")), Is.Zero);
@@ -291,10 +289,10 @@ namespace Worsen.Tests.Progression
         }
 
         [Test]
-        public void SessionWalletEffectsUseActualPurchasesAndBailCompletionIsExactlyOnce()
+        public void SessionWalletEffectsUseActualPurchasesAndNormalCompletionIsExactlyOnce()
         {
             var controller = Session(Entry("golden-touch", EffectKind.Upgrade, 0), Entry("business-license", EffectKind.Upgrade, 0, 2),
-                Entry("interest", EffectKind.Upgrade, 0), Entry("bail-bond", EffectKind.Upgrade, 0));
+                Entry("interest", EffectKind.Upgrade, 0));
             foreach (var offer in controller.Snapshot().Offers) Assert.That(controller.Purchase(offer.Id, controller.Snapshot().Revision), Is.True);
             Assert.That(controller.ContinueShop(controller.Snapshot().Revision), Is.True);
             Assert.That(controller.Snapshot().Wallet, Is.EqualTo(105));
@@ -303,10 +301,10 @@ namespace Worsen.Tests.Progression
             Assert.That(controller.RecordGoldenCollected(generation, 0), Is.False);
             Assert.That(controller.RecordGoldenCollected(generation, 1), Is.True);
             Assert.That(controller.Snapshot().Wallet, Is.EqualTo(110));
-            Assert.That(controller.CompleteFloor(generation, true), Is.True);
-            Assert.That(controller.Snapshot().Wallet, Is.EqualTo(74));
-            Assert.That(controller.CompleteFloor(generation, true), Is.False);
-            Assert.That(controller.Snapshot().Wallet, Is.EqualTo(74));
+            Assert.That(controller.CompleteFloor(generation), Is.True);
+            Assert.That(controller.Snapshot().Wallet, Is.EqualTo(115));
+            Assert.That(controller.CompleteFloor(generation), Is.False);
+            Assert.That(controller.Snapshot().Wallet, Is.EqualTo(115));
         }
     }
 }

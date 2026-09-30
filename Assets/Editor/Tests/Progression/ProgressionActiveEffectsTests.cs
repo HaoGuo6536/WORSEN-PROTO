@@ -162,10 +162,10 @@ namespace Worsen.Tests.Progression
         [Test]
         public void CatalogueHealthEffectDoesNotAlsoChangeTheSessionBaseline()
         {
-            Set(config, "_curses", new[] { new ProgressionEntryConfig("thin-skin", "Thin Skin", "Reduces maximum health.", maximumHealthDelta: -25f) });
-            Set(catalogue, "_entries", new[] { new EffectCatalogueEntry("thin-skin", EffectKind.Curse, FearAxis.Stakes, "Thin Skin", "Reduces maximum health.") });
+            Set(config, "_curses", new[] { new ProgressionEntryConfig("test-health", "Test Health", "Reduces maximum health.", maximumHealthDelta: -25f) });
+            Set(catalogue, "_entries", new[] { new EffectCatalogueEntry("test-health", EffectKind.Curse, FearAxis.Stakes, "Test Health", "Reduces maximum health.") });
             Restart(); OpenFloor();
-            Assert.That(Active.Has(new EffectId("thin-skin")), Is.True);
+            Assert.That(Active.Has(new EffectId("test-health")), Is.True);
             Assert.That(Snapshot.Effects.MaximumHealth, Is.EqualTo(100f));
         }
 
