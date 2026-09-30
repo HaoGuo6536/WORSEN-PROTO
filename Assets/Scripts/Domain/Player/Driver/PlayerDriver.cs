@@ -8,6 +8,9 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
+//   - Maintain walkable uphill support while allowing real jumps to leave the surface.
+//   - Query untagged chest/upper/top ledge geometry and sweep late traversal steering.
 //   - Filter hunter bodies from all capsule/ground queries and this capsule's contacts during grace.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -70,7 +73,8 @@ namespace Worsen.Domain.Player
             ShowMovement(MovementState.Ground);
         }
 
-        public MovementProbe Probe()
+        public MovementProbe Probe(float ledgeReach = 0f, float ledgeMinimumHeight = 0f,
+            float ledgeMaximumHeight = 0f, float ledgeChestHeight = 0f)
         {
             if (!_state.Ready) return default;
             Vector3 feet = _state.Position;
@@ -89,15 +93,22 @@ namespace Worsen.Domain.Player
                 targetAvailable = _presenter.TrySelectTraversalEndpoint(feet, forward,
                     pair.EndpointA, pair.EndpointB, out target);
             float clearance = targetAvailable && !IsBlocked(target, _config.Height) ? _config.Height : 0f;
+            float height = candidate ? vault.collider.bounds.max.y - feet.y : 0f;
+            // Preserve authored route semantics. Only untagged geometry offers an automatic
+            // ledge: positive checked clearance with VaultCandidate=false is replayable data.
+            if (!candidate && !grounded && ledgeReach > 0f && TryLedge(feet, forward, ledgeReach,
+                ledgeMinimumHeight, ledgeMaximumHeight, ledgeChestHeight, out Vector3 ledge))
+            { target = ledge; height = ledge.y - feet.y; clearance = _config.Height; }
             return new MovementProbe(grounded, grounded ? ground.normal : Vector3.up,
                 rebound, rebound ? Mathf.Max(0f, wall.distance - _config.SkinWidth) : 0f,
                 rebound ? wall.normal : Vector3.zero, rebound ? Vector3.Angle(forward, -wall.normal) : 0f,
                 rebound ? wallSurface.SurfaceId : 0, candidate,
-                candidate ? vault.collider.bounds.max.y - feet.y : 0f, clearance, target,
+                height, clearance, target,
                 _state.Height < _config.Height && IsBlocked(feet, _config.Height));
         }
 
-        public PlayerMoveResult Move(Vector3 displacement, Vector3 velocity, bool crouched, float heading, float dt)
+        public PlayerMoveResult Move(Vector3 displacement, Vector3 velocity, bool crouched, float heading, float dt,
+            bool sliding = false, float slideWallRetention = 0f)
         {
             if (!_state.Ready) throw new InvalidOperationException("PlayerDriver.Initialize must precede Move.");
             SetCapsule(crouched);
@@ -105,6 +116,7 @@ namespace Worsen.Domain.Player
             _state.PreviousHeading = _state.Heading;
             _state.Heading = heading;
             Vector3 position = _state.Position;
+            ResolvePenetrations(ref position);
             Vector3 remaining = displacement;
             bool grounded = false;
             bool ceiling = false;
@@ -112,19 +124,31 @@ namespace Worsen.Domain.Player
             {
                 if (!Cast(position, _state.Height, remaining.normalized, remaining.magnitude + _config.SkinWidth, out RaycastHit hit))
                 { position += remaining; break; }
+                if (_presenter.IsInitialOverlap(hit.distance, hit.point))
+                {
+                    // PhysX returns -castDirection for initial overlaps, not a surface normal.
+                    // Depenetrate and retry; never project velocity onto that synthetic plane.
+                    velocity = _presenter.ContactVelocity(velocity, hit.normal, true);
+                    if (!Depenetrate(ref position, hit.collider)) break;
+                    continue;
+                }
                 Vector3 travel = _presenter.TravelBeforeHit(remaining, hit.distance, _config.SkinWidth);
                 position += travel;
                 remaining -= travel;
                 bool floor = _presenter.IsWalkable(hit.normal, _config.SlopeLimitDegrees);
                 if (!floor && _state.Grounded && velocity.y <= 0f && TryStep(position, remaining, out Vector3 stepped))
                 { position = stepped; grounded = true; break; }
-                grounded |= floor && velocity.y <= 0f;
+                grounded |= _presenter.CanGround(velocity, hit.normal, _config.SlopeLimitDegrees);
                 ceiling |= hit.normal.y < -0.5f;
-                remaining = _presenter.ProjectAfterHit(remaining, hit.normal);
-                velocity = _presenter.ProjectAfterHit(velocity, hit.normal);
+                bool slideWall = sliding && !floor && Mathf.Abs(hit.normal.y) < 0.5f;
+                remaining = slideWall ? _presenter.RedirectSlide(remaining, hit.normal, slideWallRetention)
+                    : _presenter.ProjectAfterHit(remaining, hit.normal);
+                velocity = slideWall ? _presenter.RedirectSlide(velocity, hit.normal, slideWallRetention)
+                    : _presenter.ContactVelocity(velocity, hit.normal, false);
             }
-            if (velocity.y <= 0f && FindGround(position,
-                _state.Grounded ? _config.GroundSnapDistance : _config.GroundProbeDistance, displacement, out RaycastHit ground))
+            if (FindGround(position,
+                _state.Grounded ? _config.GroundSnapDistance : _config.GroundProbeDistance, displacement, out RaycastHit ground)
+                && _presenter.CanGround(velocity, ground.normal, _config.SlopeLimitDegrees))
             {
                 if (_state.Grounded || grounded)
                     position = _presenter.GroundSnap(position, ground.distance, _config.SkinWidth, _config.GroundSnapDistance);
@@ -143,13 +167,15 @@ namespace Worsen.Domain.Player
         }
 
         public PlayerMoveResult MoveTraversal(Vector3 from, Vector3 to, float progress, float obstacleHeight,
-            Vector3 velocity, float heading, float dt, float maximumSpeed)
+            Vector3 velocity, float heading, float dt, float maximumSpeed, Vector3 steeringOffset = default)
         {
             Vector3 before = _state.Position;
             Vector3 target = _presenter.TraversalPosition(from, to, progress, obstacleHeight, _config.TraversalLift,
-                _config.TraversalRisePortion, _config.TraversalTraverseEnd);
+                _config.TraversalRisePortion, _config.TraversalTraverseEnd) + steeringOffset;
+            if (IsBlocked(to + steeringOffset, _config.Height)) target = before;
             Vector3 displacement = _presenter.LimitHorizontalDisplacement(target - before, maximumSpeed, dt);
-            PlayerMoveResult resolved = Move(displacement, velocity, false, heading, dt);
+            // Contacts resolve the commanded path velocity, not stale entry momentum.
+            PlayerMoveResult resolved = Move(displacement, displacement / dt, false, heading, dt);
             return new PlayerMoveResult(resolved.Position, (resolved.Position - before) / dt, resolved.Grounded, resolved.Ceiling);
         }
 
@@ -230,6 +256,57 @@ namespace Worsen.Domain.Player
             return false;
         }
 
+        private bool TryLedge(Vector3 feet, Vector3 forward, float reach, float minimumHeight,
+            float maximumHeight, float chestHeight, out Vector3 target)
+        {
+            target = Vector3.zero;
+            if (!Ray(feet + Vector3.up * chestHeight, forward, reach, out RaycastHit chest)
+                || chest.collider.GetComponentInParent<ITraversalSurface>() != null) return false;
+            Vector3 upper = feet + Vector3.up * (maximumHeight + _config.SkinWidth);
+            bool aboveBlocked = Ray(upper, forward, chest.distance + _config.Radius + _config.SkinWidth, out _);
+            Vector3 topOrigin = chest.point + forward * (_config.Radius + _config.SkinWidth);
+            topOrigin.y = upper.y;
+            bool topFound = Ray(topOrigin, Vector3.down, maximumHeight - minimumHeight + _config.SkinWidth, out RaycastHit top);
+            if (!_presenter.CanClimbLedge(true, aboveBlocked, topFound, topFound && IsBlocked(top.point, _config.Height),
+                feet, top.point, top.normal, reach, minimumHeight, maximumHeight, _config.SlopeLimitDegrees)) return false;
+            target = top.point;
+            return true;
+        }
+
+        private bool Ray(Vector3 origin, Vector3 direction, float distance, out RaycastHit closest)
+        {
+            closest = default;
+            float nearest = float.PositiveInfinity;
+            foreach (RaycastHit hit in Physics.RaycastAll(origin, direction, Mathf.Max(0f, distance), MovementMask, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
+                closest = hit; nearest = hit.distance;
+            }
+            return nearest < float.PositiveInfinity;
+        }
+
+        private bool Depenetrate(ref Vector3 position, Collider obstacle)
+        {
+            if (!Physics.ComputePenetration(_capsule, position, Quaternion.identity, obstacle,
+                obstacle.transform.position, obstacle.transform.rotation, out Vector3 direction, out float depth)) return false;
+            position += _presenter.PenetrationOffset(direction, depth, _config.SkinWidth);
+            return true;
+        }
+
+        private void ResolvePenetrations(ref Vector3 position)
+        {
+            for (int pass = 0; pass < Mathf.Max(1, _config.CastIterations); pass++)
+            {
+                _presenter.Capsule(position, _state.Height, _config.Radius, out Vector3 bottom, out Vector3 top);
+                Collider[] overlaps = Physics.OverlapCapsule(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
+                    MovementMask, QueryTriggerInteraction.Ignore);
+                bool moved = false;
+                foreach (Collider obstacle in overlaps)
+                    if (!obstacle.transform.IsChildOf(transform)) moved |= Depenetrate(ref position, obstacle);
+                if (!moved) break;
+            }
+        }
+
         private bool TryStep(Vector3 position, Vector3 displacement, out Vector3 stepped)
         {
             stepped = position;
@@ -252,6 +329,12 @@ namespace Worsen.Domain.Player
         private bool FindGround(Vector3 feet, float distance, Vector3 travel, out RaycastHit closest)
         {
             bool capsuleHit = Cast(feet, _state.Height, Vector3.down, distance, out closest);
+            if (capsuleHit && _presenter.IsInitialOverlap(closest.distance, closest.point))
+            {
+                if (!Physics.ComputePenetration(_capsule, feet, Quaternion.identity, closest.collider,
+                    closest.collider.transform.position, closest.collider.transform.rotation, out Vector3 normal, out _)) return false;
+                closest.normal = normal;
+            }
             bool found = capsuleHit && _presenter.IsWalkable(closest.normal, _config.SlopeLimitDegrees);
             // A steep contact still blocks the full capsule. Peripheral support
             // may shorten this descent, never snap through it to a lower floor.

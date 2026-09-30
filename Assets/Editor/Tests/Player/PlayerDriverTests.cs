@@ -12,7 +12,8 @@
 //   - Exercise the actual Driver and Unity casts against temporary BoxColliders.
 //   - Bound every horizontal displacement and check continuous top support.
 //   - Keep tall walls, low ceilings and unsupported edges blocking or airborne.
-//   - Require fixed-lock vault completion at the closest clear face and in air.
+//   - Require bounded traversal completion with last-third steering release and failed-vault speed cuts.
+//   - Regress continuous 26.6-degree ramp motion, untagged edges and physical slide redirects.
 //   - Preserve endpoint rejection and honest intermediate collision failure.
 //   - Repeatedly jump, land and continue climbing real inclines at walk and sprint speed.
 // DEPENDENCIES:
@@ -169,7 +170,7 @@ namespace Worsen.Tests.Player
             Assert.That(arrangement.transform.InverseTransformPoint(driver.Position).x, Is.GreaterThan(3.2f));
         }
 
-        [TestCase(0.32f)]
+        [TestCase(0.42f)]
         [TestCase(2f)]
         public void StepHigherThanConfiguredLimitAndTallWallRemainBlocking(float height)
         {
@@ -417,13 +418,14 @@ namespace Worsen.Tests.Player
                         {
                             Assert.That(residual <= profile.VaultCompletionTolerance, Is.EqualTo(succeeds), "Only the resolved endpoint establishes success.");
                             Assert.That(new Vector2(state.Velocity.x, state.Velocity.z).magnitude,
-                                Is.EqualTo(profile.SprintSpeed).Within(0.0001f), "Completion restores the entry speed.");
+                                Is.EqualTo(profile.SprintSpeed * (succeeds ? 1f : profile.StumbleSpeedMultiplier)).Within(0.0001f),
+                                "Successful completion retains entry speed; a blocked traversal stumbles.");
                         }
                         TestContext.WriteLine($"Vault outcome tick={tick}; succeeded={fact.Succeeded}; residual={residual:R}; ceilingTicks={ceilingTicks}; position={movement.Position:R}");
                     }
                 }
                 Assert.That(outcomeCount, Is.EqualTo(1), "One ordinary press must yield one final Vault outcome.");
-                Assert.That(lockedTicks, Is.EqualTo(admitted ? durationTicks : 0));
+                Assert.That(lockedTicks, Is.EqualTo(admitted ? Mathf.RoundToInt(durationTicks * (2f / 3f)) : 0));
                 Assert.That(state.InputLockSeconds, Is.Zero);
                 if (expectCeiling) Assert.That(ceilingTicks, Is.GreaterThan(0), "The intermediate beam must produce actual ceiling contact.");
             }
@@ -454,6 +456,53 @@ namespace Worsen.Tests.Player
             driver.Initialize();
             Physics.SyncTransforms();
             driver.Move(Vector3.zero, Vector3.zero, false, 90f + yaw, 1f / 60f);
+        }
+
+        [Test]
+        public void RampAtTwentySixDegreesNeverFreezesAfterTickSixtySix()
+        {
+            float slope = Mathf.Atan(0.5f) * Mathf.Rad2Deg;
+            BoxCollider ramp = Box("26.6 degree ramp", new Vector3(10f, 5f - 0.25f / Mathf.Cos(slope * Mathf.Deg2Rad), 0f),
+                new Vector3(24f, 0.5f, 4f));
+            ramp.transform.localRotation = Quaternion.Euler(0f, 0f, slope);
+            Spawn(new Vector3(1f, 0.5f, 0f));
+            for (int tick = 0; tick < 180; tick++)
+            {
+                Vector3 before = driver.Position;
+                PlayerMoveResult moved = Advance();
+                Assert.That(moved.Position.x, Is.GreaterThan(before.x), "Forward progress at tick " + tick);
+                Assert.That(moved.Velocity.sqrMagnitude, Is.GreaterThan(1f), "No overlap-induced zero velocity.");
+                Assert.That(moved.Grounded && driver.Probe().Grounded, Is.True);
+                AssertNoPenetration();
+            }
+            Assert.That(driver.Position.y, Is.GreaterThan(2.4f));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void UntaggedLedgeProbeRequiresClearStandingEndpoint(bool blocked)
+        {
+            Box("Untagged ledge", new Vector3(2f, 0.75f, 0f), new Vector3(2f, 1.5f, 3f));
+            if (blocked) Box("Ledge ceiling", new Vector3(2f, 2.6f, 0f), new Vector3(2f, 0.2f, 3f));
+            Spawn(new Vector3(0.4f, 0.4f, 0f));
+            MovementProbe probe = driver.Probe(1.2f, 0.5f, 1.8f, 0.8f);
+            Assert.That(probe.Grounded || probe.VaultCandidate, Is.False);
+            Assert.That(probe.VaultClearance > 0f, Is.EqualTo(!blocked));
+            if (!blocked) Assert.That(probe.VaultTarget.y, Is.EqualTo(1.5f).Within(0.001f));
+        }
+
+        [Test]
+        public void SlideGlancesAlongPhysicalWallWithoutLosingMostSpeed()
+        {
+            Box("Slide wall", new Vector3(1f, 1f, 0f), new Vector3(0.2f, 2f, 4f));
+            Spawn(new Vector3(0.5f, 0f, 0f));
+            Vector3 velocity = new Vector3(8f, 0f, 6f);
+            PlayerMoveResult result = driver.Move(velocity * 0.1f, velocity, true, 90f, 0.1f, true, 0.9f);
+            Physics.SyncTransforms();
+            Assert.That(result.Velocity.x, Is.Zero.Within(0.001f));
+            Assert.That(result.Velocity.z, Is.GreaterThanOrEqualTo(8.99f));
+            Assert.That(result.Position.z, Is.GreaterThan(0f));
+            AssertNoPenetration();
         }
         private PlayerMoveResult Advance()
         {

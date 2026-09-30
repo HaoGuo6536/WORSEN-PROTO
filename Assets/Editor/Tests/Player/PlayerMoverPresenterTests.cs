@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Reproduce the 26.6-degree overlap sentinel, uphill support, ledge gates and slide redirects.
 //   - Verify grace mask exclusion, invalid-layer safety and the session warning latch.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -29,6 +30,57 @@ namespace Worsen.Tests.Player
     public sealed class PlayerMoverPresenterTests
     {
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();
+        [TestCase(26.56505f)]
+        [TestCase(40f)]
+        public void SlopeOverlapDepenetratesWithoutZeroingAlongSlopeVelocity(float degrees)
+        {
+            const float radius = 0.3f, skin = 0.02f;
+            Vector3 normal = Quaternion.Euler(-degrees, 0f, 0f) * Vector3.up;
+            _presenter.Capsule(Vector3.zero, 1.8f, radius, out Vector3 bottom, out _);
+            float clearance = Vector3.Dot(bottom, normal);
+            Assert.That(clearance, Is.LessThan(radius - skin), "The shrunken sweep really begins inside the plane.");
+            Vector3 velocity = Vector3.ProjectOnPlane(Vector3.forward * 4f, normal);
+            Vector3 syntheticNormal = -velocity.normalized;
+            Assert.That(_presenter.ProjectAfterHit(velocity, syntheticNormal).magnitude, Is.LessThan(0.00001f), "Old freeze mechanism.");
+            bool overlap = _presenter.IsInitialOverlap(0f, Vector3.zero);
+            Assert.That(overlap, Is.True);
+            Assert.That(_presenter.ContactVelocity(velocity, syntheticNormal, overlap), Is.EqualTo(velocity));
+            Vector3 corrected = bottom + _presenter.PenetrationOffset(normal, radius - clearance, skin);
+            Assert.That(Vector3.Dot(corrected, normal), Is.GreaterThan(radius - skin));
+            Assert.That(_presenter.CanGround(velocity, normal, 50f), Is.True);
+            Assert.That(_presenter.CanGround(velocity + Vector3.up * 5.5f, normal, 50f), Is.False);
+            Assert.That(_presenter.IsInitialOverlap(0.1f, Vector3.zero), Is.False, "A real world-origin contact is not an overlap.");
+        }
+
+        [Test]
+        public void SlideWallRedirectKeepsMostSpeedButNeverPushesIntoTheWall()
+        {
+            Vector3 incoming = new Vector3(8f, 0f, 6f);
+            Vector3 redirected = _presenter.RedirectSlide(incoming, Vector3.left, 0.9f);
+            Assert.That(redirected.x, Is.Zero.Within(0.00001f));
+            Assert.That(redirected.magnitude, Is.EqualTo(9f).Within(0.0001f));
+            Assert.That(_presenter.RedirectSlide(Vector3.right * 10f, Vector3.left, 0.9f), Is.EqualTo(Vector3.zero));
+            Assert.That(_presenter.RedirectSlide(Vector3.left, Vector3.left, 0.9f), Is.EqualTo(Vector3.left));
+        }
+
+        [TestCase(true, false, true, false, 1f, 0f, true)]
+        [TestCase(false, false, true, false, 1f, 0f, false)]
+        [TestCase(true, true, true, false, 1f, 0f, false)]
+        [TestCase(true, false, false, false, 1f, 0f, false)]
+        [TestCase(true, false, true, true, 1f, 0f, false)]
+        [TestCase(true, false, true, false, 1.801f, 0f, false)]
+        [TestCase(true, false, true, false, 0.499f, 0f, false)]
+        [TestCase(true, false, true, false, 1f, 60f, false)]
+        public void LedgeRequiresChestEdgeClearHeadroomReachAndWalkableTop(bool chest, bool above,
+            bool top, bool blocked, float height, float slope, bool accepted)
+        {
+            Assert.That(_presenter.CanClimbLedge(chest, above, top, blocked, Vector3.zero,
+                new Vector3(0f, height, 1f), Quaternion.Euler(slope, 0f, 0f) * Vector3.up,
+                1.2f, 0.5f, 1.8f, 50f), Is.EqualTo(accepted));
+            Assert.That(_presenter.CanClimbLedge(true, false, true, false, Vector3.zero,
+                new Vector3(0f, 1f, 1.201f), Vector3.up, 1.2f, 0.5f, 1.8f, 50f), Is.False);
+        }
+
         [TestCase(0)]
         [TestCase(12)]
         [TestCase(31)]

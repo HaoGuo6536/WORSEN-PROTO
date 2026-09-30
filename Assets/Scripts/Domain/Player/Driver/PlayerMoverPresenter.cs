@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Distinguish overlap sentinels from real sweep contacts and retain slope-tangent motion.
+//   - Decide support, wall-slide redirection and untagged ledge admission from supplied geometry.
 //   - Remove only the hunter layer during grace and decide the once-per-session missing-layer warning.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -55,6 +57,34 @@ namespace Worsen.Domain.Player
             if (normal.sqrMagnitude < 0.0001f) return Vector3.zero;
             normal.Normalize();
             return Vector3.Dot(displacement, normal) < 0f ? Vector3.ProjectOnPlane(displacement, normal) : displacement;
+        }
+
+        public bool IsInitialOverlap(float distance, Vector3 point)
+            => distance <= 0f && point.sqrMagnitude == 0f;
+
+        public Vector3 PenetrationOffset(Vector3 direction, float depth, float skin)
+            => direction.normalized * Mathf.Max(0f, depth + skin);
+
+        public Vector3 ContactVelocity(Vector3 velocity, Vector3 normal, bool initialOverlap)
+            => initialOverlap ? velocity : ProjectAfterHit(velocity, normal);
+
+        public bool CanGround(Vector3 velocity, Vector3 normal, float slopeLimit)
+            => IsWalkable(normal, slopeLimit) && Vector3.Dot(velocity, normal.normalized) <= 0.001f;
+
+        public Vector3 RedirectSlide(Vector3 velocity, Vector3 normal, float retention)
+        {
+            Vector3 projected = ProjectAfterHit(velocity, normal);
+            if (Vector3.Dot(velocity, normal) >= 0f || projected.sqrMagnitude < 0.0001f) return projected;
+            return projected.normalized * Mathf.Max(projected.magnitude, velocity.magnitude * Mathf.Clamp01(retention));
+        }
+
+        public bool CanClimbLedge(bool chestBlocked, bool aboveBlocked, bool topFound, bool endpointBlocked,
+            Vector3 feet, Vector3 top, Vector3 normal, float reach, float minimumHeight, float maximumHeight, float slopeLimit)
+        {
+            Vector3 delta = top - feet;
+            return chestBlocked && !aboveBlocked && topFound && !endpointBlocked && Finite(delta)
+                && delta.y >= minimumHeight && delta.y <= maximumHeight
+                && new Vector2(delta.x, delta.z).magnitude <= reach && IsWalkable(normal, slopeLimit);
         }
 
         public bool IsWalkable(Vector3 normal, float slopeLimit)

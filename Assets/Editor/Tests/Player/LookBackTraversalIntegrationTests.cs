@@ -8,7 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Domain · Player integration.
 // KEY RESPONSIBILITIES:
 //   - Use actual Run fixed ticks, collision probes and committed traversal facts.
-//   - Verify frozen body heading, full ground steering, heavy slide countersteering and usable slide-jump.
+//   - Verify live body heading, full ground steering, bounded slide countersteering and usable slide-jump.
 //   - Expect a fixed 180-degree rear view despite held look deltas, then body look on release.
 // DEPENDENCIES:
 //   Core, Player/Hunter/Chase, Run/Input, Camera, TagArena and CaptureGateTrace.
@@ -95,7 +95,7 @@ namespace Worsen.Tests.Player
                     .FindProperty("_config").objectReferenceValue;
                 Assert.That(profile, Is.Not.Null);
                 Assert.That(cameraConfig, Is.Not.Null);
-                Assert.That(profile.SlideMaximumTurnRate, Is.LessThanOrEqualTo(40f));
+                Assert.That(profile.SlideMaximumTurnRate, Is.GreaterThan(40f).And.LessThanOrEqualTo(180f));
                 // Serialized legacy yaw is ignored by the fixed rear-view snap; observe the actual pose below.
                 trial = new Trial(run, player, chase, profile, cameraConfig, UnityEngine.Camera.main);
                 input.FramePublished += trial.PublishSynthetic;
@@ -129,7 +129,7 @@ namespace Worsen.Tests.Player
 
         private sealed class Trial
         {
-            private const float Heading = 90f, HeadDelta = 165f, ReleaseDelta = 7f;
+            private const float Heading = 90f, HeadDelta = 0.5f, ReleaseDelta = 7f;
             private readonly RunSessionManager run;
             private readonly PlayerManager player;
             private readonly ChaseManager chase;
@@ -173,7 +173,8 @@ namespace Worsen.Tests.Player
                     ? Vector2.up : Vector2.zero;
                 Vector2 look = Vector2.zero;
                 if (stage == Stage.Accelerate) look.x = Mathf.DeltaAngle(player.ReadOnlyState.HeadingDegrees, Heading);
-                if (stage == Stage.Steer) { move.x = 0.5f; if (stageTicks == 0) look.x = HeadDelta; }
+                // A paired yaw pulse tests live snap steering without reversing this connector route.
+                if (stage == Stage.Steer) { move.x = 0.5f; if (stageTicks < 2) look.x = stageTicks == 0 ? HeadDelta : -HeadDelta; }
                 if (stage == Stage.Slide)
                 {
                     // The preceding diagonal sprint carries momentum into the slide.
@@ -203,12 +204,13 @@ namespace Worsen.Tests.Player
                 if (!Application.isFocused || chase.ReadOnlyState.HasActiveChase || HunterRegistry.Items.Count != 0 ||
                     player.ReadOnlyState.Health != profile.MaximumHealth) Fail("Free movement lost focus, entered chase or took damage.");
                 bool heldBack = (record.Input.Held & InputButtons.LookBack) != 0;
-                float expectedHeading = stage == Stage.Return ? Heading + ReleaseDelta : Heading;
+                float expectedHeading = stage == Stage.Return ? Heading + ReleaseDelta
+                    : Heading + (stage == Stage.Steer && stageTicks == 1 ? HeadDelta : 0f);
                 if (Mathf.Abs(Mathf.DeltaAngle(player.ReadOnlyState.HeadingDegrees, expectedHeading)) > 0.001f ||
                     player.ReadOnlyState.LookBack != heldBack || player.LastMovementSample.LookBack != heldBack)
                     Fail("LookBack body-heading/held state diverged from the committed input.");
-                if (heldBack && player.LastMovementSample.HeadLookDelta != record.Input.LookDelta)
-                    Fail("Held look delta was not routed as head look.");
+                if (heldBack && player.LastMovementSample.HeadLookDelta != Vector2.zero)
+                    Fail("Held snap must not scan the head independently of the body.");
                 if (committed > 900 || stageTicks > 300) Fail("Bounded fixed-tick limit exceeded.");
 
                 switch (stage)
