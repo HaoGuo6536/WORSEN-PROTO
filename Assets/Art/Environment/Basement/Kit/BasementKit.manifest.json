@@ -1,0 +1,196 @@
+{
+  "theme": "basement",
+  "wallHeight": 3.2,
+  "pieces": [
+    {
+      "id": "wall_2m",
+      "file": "Basement_wall_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.304
+      ],
+      "kind": "wall"
+    },
+    {
+      "id": "wall_door_4m",
+      "file": "Basement_wall_door_4m.fbx",
+      "size": [
+        4.0,
+        3.2,
+        0.298
+      ],
+      "kind": "door"
+    },
+    {
+      "id": "wall_window_2m",
+      "file": "Basement_wall_window_2m.fbx",
+      "size": [
+        2.0,
+        3.2,
+        0.304
+      ],
+      "kind": "window"
+    },
+    {
+      "id": "wall_arc_r4",
+      "file": "Basement_wall_arc_r4.fbx",
+      "size": [
+        2.199962,
+        3.2,
+        0.386297
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "wall_arc_r6",
+      "file": "Basement_wall_arc_r6.fbx",
+      "size": [
+        2.170602,
+        3.2,
+        0.341153
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "wall_arc_r8",
+      "file": "Basement_wall_arc_r8.fbx",
+      "size": [
+        2.153682,
+        3.2,
+        0.318441
+      ],
+      "kind": "arc"
+    },
+    {
+      "id": "corner_in",
+      "file": "Basement_corner_in.fbx",
+      "size": [
+        0.5,
+        3.2,
+        0.5245
+      ],
+      "kind": "corner"
+    },
+    {
+      "id": "corner_out",
+      "file": "Basement_corner_out.fbx",
+      "size": [
+        0.5,
+        3.2,
+        0.5245
+      ],
+      "kind": "corner"
+    },
+    {
+      "id": "pillar",
+      "file": "Basement_pillar.fbx",
+      "size": [
+        0.48,
+        3.2,
+        0.48
+      ],
+      "kind": "pillar"
+    },
+    {
+      "id": "floor_2x2",
+      "file": "Basement_floor_2x2.fbx",
+      "size": [
+        2.0,
+        0.1002,
+        2.0
+      ],
+      "kind": "floor"
+    },
+    {
+      "id": "ceiling_2x2",
+      "file": "Basement_ceiling_2x2.fbx",
+      "size": [
+        2.0,
+        0.13,
+        2.0
+      ],
+      "kind": "ceiling"
+    },
+    {
+      "id": "trim_base_2m",
+      "file": "Basement_trim_base_2m.fbx",
+      "size": [
+        2.0,
+        0.18,
+        0.07
+      ],
+      "kind": "trim"
+    },
+    {
+      "id": "pipe_straight_2m",
+      "file": "Basement_pipe_straight_2m.fbx",
+      "size": [
+        2.0,
+        0.32,
+        0.32
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "pipe_elbow",
+      "file": "Basement_pipe_elbow.fbx",
+      "size": [
+        0.79,
+        0.32,
+        0.79
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "pipe_tee",
+      "file": "Basement_pipe_tee.fbx",
+      "size": [
+        1.2,
+        0.32,
+        0.76
+      ],
+      "kind": "pipe"
+    },
+    {
+      "id": "duct_straight_2m",
+      "file": "Basement_duct_straight_2m.fbx",
+      "size": [
+        2.0,
+        0.56,
+        0.72
+      ],
+      "kind": "duct"
+    },
+    {
+      "id": "duct_elbow",
+      "file": "Basement_duct_elbow.fbx",
+      "size": [
+        1.24,
+        0.56,
+        1.24
+      ],
+      "kind": "duct"
+    },
+    {
+      "id": "prop_valve_wheel",
+      "file": "Basement_prop_valve_wheel.fbx",
+      "size": [
+        0.57,
+        0.57,
+        0.215
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_boiler",
+      "file": "Basement_prop_boiler.fbx",
+      "size": [
+        1.15,
+        2.32,
+        1.37
+      ],
+      "kind": "prop"
+    }
+  ]
+}

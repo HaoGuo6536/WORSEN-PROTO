@@ -1,0 +1,10515 @@
+{
+  "theme": "school",
+  "module": 2.0,
+  "templates": [
+    {
+      "id": "school_classroom",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            5,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            8,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8,
+            0,
+            6.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            8,
+            0,
+            7.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            5.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            7.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "chalk_rail_board_2m",
+          "pos": [
+            1.2,
+            1.3,
+            7.88
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_teacher_desk",
+          "pos": [
+            1.4,
+            0,
+            6.7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_globe",
+          "pos": [
+            1.8,
+            0.82,
+            6.7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            2,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            2,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            2,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            2,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            4,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            4,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            4,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            4,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            6,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            6,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            6,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            6,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.24,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.24,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_science_lab",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                8
+              ],
+              "rotY": 0
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                8
+              ],
+              "rotY": 0
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            5,
+            3.3,
+            3
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            5,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            8,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8,
+            0,
+            6.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            8,
+            0,
+            7.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            7.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "chalk_rail_board_2m",
+          "pos": [
+            1.2,
+            1.3,
+            7.88
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_teacher_desk",
+          "pos": [
+            1.4,
+            0,
+            6.7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_lab_bench",
+          "pos": [
+            2,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            2,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_lab_bench",
+          "pos": [
+            4,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            4,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_lab_bench",
+          "pos": [
+            4,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            4,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_lab_bench",
+          "pos": [
+            6,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            6,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_lab_bench",
+          "pos": [
+            6,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            6,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            7.24
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            7.24
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.24,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.24,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_library",
+      "kind": "room",
+      "sizeClass": "large",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          5
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            5,
+            3
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                12,
+                0,
+                6
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                12,
+                0,
+                8
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            3
+          ],
+          [
+            7,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [
+          [
+            11,
+            0,
+            11
+          ]
+        ],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ],
+          [
+            1,
+            3.3,
+            9
+          ],
+          [
+            9,
+            3.3,
+            9
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            11
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            8,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            12,
+            0,
+            7
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            12,
+            0,
+            4.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            12,
+            0,
+            10.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            12,
+            0,
+            11.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            1.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            5.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            7.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            9.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            11.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            9.0,
+            0,
+            4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            11.0,
+            0,
+            4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            5,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            1.1,
+            0,
+            11.62
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            3.2,
+            0,
+            11.62
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            5.3,
+            0,
+            11.62
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            7.4,
+            0,
+            11.62
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            0.35,
+            0,
+            2
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            0.35,
+            0,
+            4
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            0.35,
+            0,
+            6
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            3,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            3,
+            0,
+            2.3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            5,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            5,
+            0,
+            2.3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            3,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            3,
+            0,
+            4.3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            11.24,
+            0,
+            5.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            11.24,
+            0,
+            8.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent_dead",
+          "pos": [
+            5,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_gymnasium",
+      "kind": "room",
+      "sizeClass": "hall",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          6
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            6,
+            3
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                14,
+                0,
+                6
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                14,
+                0,
+                8
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ],
+          [
+            11,
+            0,
+            1
+          ],
+          [
+            13,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            3
+          ],
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [
+          [
+            13.3,
+            0,
+            13.3
+          ]
+        ],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ],
+          [
+            9,
+            3.3,
+            3
+          ],
+          [
+            1,
+            3.3,
+            9
+          ],
+          [
+            5,
+            3.3,
+            9
+          ],
+          [
+            9,
+            3.3,
+            9
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            0.7,
+            0,
+            12.7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            14,
+            0,
+            7
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            14,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            14,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            14,
+            0,
+            4.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            14,
+            0,
+            10.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            14,
+            0,
+            12.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            14,
+            0,
+            13.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            3.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            7.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            9.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            11.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            13.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            10.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            12.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            13.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            13.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            13,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            2,
+            0,
+            12.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            4,
+            0,
+            12.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            6,
+            0,
+            12.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            8,
+            0,
+            12.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            10,
+            0,
+            12.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            12,
+            0,
+            12.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_basketball_hoop",
+          "pos": [
+            0.25,
+            2.2,
+            3
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_basketball_hoop",
+          "pos": [
+            0.25,
+            2.2,
+            10
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            13.24,
+            0,
+            5.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            13.24,
+            0,
+            8.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent_dead",
+          "pos": [
+            13,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent_dead",
+          "pos": [
+            13,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_cafeteria",
+      "kind": "room",
+      "sizeClass": "large",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            2
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                4
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                6
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            9,
+            0,
+            9
+          ]
+        ],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ],
+          [
+            9,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            9
+          ],
+          [
+            9,
+            3.3,
+            9
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            9
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            10,
+            0,
+            5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            10,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            10,
+            0,
+            2.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            10,
+            0,
+            8.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            10,
+            0,
+            9.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            9.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cafeteria_table",
+          "pos": [
+            2.5,
+            0,
+            2.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cafeteria_table",
+          "pos": [
+            2.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cafeteria_table",
+          "pos": [
+            5,
+            0,
+            2.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cafeteria_table",
+          "pos": [
+            5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cafeteria_table",
+          "pos": [
+            7.5,
+            0,
+            2.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cafeteria_table",
+          "pos": [
+            7.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "drinking_fountain",
+          "pos": [
+            9.7,
+            0,
+            9
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            9.24,
+            0,
+            3.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            9.24,
+            0,
+            6.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent_dead",
+          "pos": [
+            1,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_principal_office",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            2,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                6,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                6,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            6,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            6,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            6,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            3.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_teacher_desk",
+          "pos": [
+            2,
+            0,
+            4.3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_globe",
+          "pos": [
+            2.5,
+            0.82,
+            4.3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            2,
+            0,
+            3.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            1.1,
+            0,
+            5.62
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "bulletin_board",
+          "pos": [
+            5.88,
+            1.3,
+            2
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            5.24,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            5.24,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_janitor_closet",
+      "kind": "room",
+      "sizeClass": "closet",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            5,
+            3.3,
+            1
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            7.0,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_mop_bucket",
+          "pos": [
+            7,
+            0,
+            0.7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bookcase",
+          "pos": [
+            1.1,
+            0,
+            1.72
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            1
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_washroom",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            2,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                6,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                6,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            6,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            6,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            6,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            3.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_toilet",
+          "pos": [
+            1.2,
+            0,
+            5.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_stall_partition",
+          "pos": [
+            1.82,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_toilet",
+          "pos": [
+            2.6,
+            0,
+            5.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_stall_partition",
+          "pos": [
+            3.22,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_toilet",
+          "pos": [
+            4,
+            0,
+            5.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_stall_partition",
+          "pos": [
+            4.62,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_washbasin",
+          "pos": [
+            0.35,
+            0,
+            1.1
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_washbasin",
+          "pos": [
+            0.35,
+            0,
+            2.4
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            5.24,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            5.24,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_locker_hallway",
+      "kind": "hallway",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          7
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            0,
+            1
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                0,
+                0,
+                2
+              ],
+              "rotY": 270
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                0,
+                0,
+                4
+              ],
+              "rotY": 270
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            6
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                12
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                14
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            1,
+            3.3,
+            9
+          ],
+          [
+            1,
+            3.3,
+            15
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            1,
+            0,
+            15
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            4,
+            0,
+            13
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            4,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            4,
+            0,
+            10.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            4,
+            0,
+            15.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            1.0,
+            0,
+            16
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            16
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            0,
+            0,
+            3
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0,
+            0,
+            0.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            6.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            8.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            10.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            12.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            14.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0,
+            0,
+            15.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            0.3,
+            0,
+            5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            3.7,
+            0,
+            5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            0.3,
+            0,
+            7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            3.7,
+            0,
+            7
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            0.3,
+            0,
+            9
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            3.7,
+            0,
+            9
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            0.3,
+            0,
+            11
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            3.7,
+            0,
+            11
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "drinking_fountain",
+          "pos": [
+            0.3,
+            0,
+            15
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "bulletin_board",
+          "pos": [
+            3.88,
+            1.35,
+            1.2
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            0.76,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            0.76,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.24,
+            0,
+            11.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.24,
+            0,
+            14.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            15
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_stairwell_bend",
+      "kind": "junction",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            4,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            0,
+            4
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                0,
+                0,
+                8
+              ],
+              "rotY": 270
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                0,
+                0,
+                10
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ],
+          [
+            9,
+            3.3,
+            3
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            1,
+            0,
+            11
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            4,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            4,
+            0,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            12,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            12,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            5.0,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            7.0,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            9.0,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            11.0,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            1.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            9,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            6.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            11.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            0,
+            0,
+            9
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0,
+            0,
+            6.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0,
+            0,
+            11.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            3,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "stair_flight_2m",
+          "pos": [
+            1.15,
+            0,
+            5.1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "stair_banister_2m",
+          "pos": [
+            2.1,
+            0,
+            5.1
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            5,
+            0,
+            3.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "locker_bank_2m",
+          "pos": [
+            7,
+            0,
+            3.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "drinking_fountain",
+          "pos": [
+            0.3,
+            0,
+            1.2
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            10.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            0.76,
+            0,
+            7.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            0.76,
+            0,
+            10.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent_dead",
+          "pos": [
+            1,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_bleacher_traversal",
+      "kind": "room",
+      "sizeClass": "large",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          4
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            5,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                12,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                12,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            11.3,
+            0,
+            9.3
+          ]
+        ],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ],
+          [
+            9,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            9
+          ],
+          [
+            9,
+            3.3,
+            9
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            0.7,
+            0,
+            8.7
+          ]
+        ]
+      },
+      "gimmick": "traversal",
+      "minRound": 3,
+      "weight": 0.65,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            12,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            12,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            12,
+            0,
+            6.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            12,
+            0,
+            8.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            12,
+            0,
+            9.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            11.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            10.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            11.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            9,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.0702,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            11,
+            3.8,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            2,
+            0,
+            8.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            4,
+            0,
+            8.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            6,
+            0,
+            8.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            8,
+            0,
+            8.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            10,
+            0,
+            8.6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_basketball_hoop",
+          "pos": [
+            0.25,
+            2.2,
+            3
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_basketball_hoop",
+          "pos": [
+            0.25,
+            2.2,
+            6
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            6.0,
+            0,
+            4
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_bleacher",
+          "pos": [
+            8.0,
+            0,
+            4
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            11.24,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            11.24,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent_dead",
+          "pos": [
+            1,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            9,
+            3.3,
+            9
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "school_locked_classroom",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "height": 3.8,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            7
+          ]
+        ],
+        "light": [
+          [
+            1,
+            3.3,
+            3
+          ],
+          [
+            5,
+            3.3,
+            3
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            5,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "freeze",
+      "minRound": 3,
+      "weight": 0.65,
+      "pieces": [
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            8,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            8,
+            0,
+            6.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            8,
+            0,
+            7.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "window_boarded_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "window_multipane_2m",
+          "pos": [
+            5.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            7.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_classroom_transom",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_end_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_cinderblock_dado_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            1,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            3,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_damaged_2x2",
+          "pos": [
+            5,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            5,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.0702,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_tile_2x2",
+          "pos": [
+            7,
+            3.8,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "chalk_rail_board_2m",
+          "pos": [
+            1.2,
+            1.3,
+            7.88
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_teacher_desk",
+          "pos": [
+            1.4,
+            0,
+            6.7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_globe",
+          "pos": [
+            1.8,
+            0.82,
+            6.7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            2,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            2,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            2,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            2,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            4,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            4,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            4,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            4,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            6,
+            0,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            6,
+            0,
+            1.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_desk",
+          "pos": [
+            6,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            6,
+            0,
+            3.28
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chair",
+          "pos": [
+            5.3,
+            0,
+            5.4
+          ],
+          "rotY": 137
+        },
+        {
+          "id": "prop_fire_bell",
+          "pos": [
+            0.12,
+            2.7,
+            0.7
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            1.32,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            4.68,
+            0,
+            0.76
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.24,
+            0,
+            1.32
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            7.24,
+            0,
+            4.68
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            1,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_fluorescent",
+          "pos": [
+            5,
+            3.3,
+            3
+          ],
+          "rotY": 0
+        }
+      ]
+    }
+  ]
+}
