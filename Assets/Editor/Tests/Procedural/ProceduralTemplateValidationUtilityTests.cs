@@ -98,6 +98,7 @@ namespace Worsen.Tests.Procedural
                 pieces.Add(new ProceduralTemplatePiece { Id = "wall_2m", Position = new Vector3(x, 0f, z), RotY = 90f });
             var room = new ProceduralRoomTemplate {
                 Id = "castle_round_large", Kind = "room", Shape = "round", SizeClass = "large", Height = 7f,
+                Gimmick = "none", MinRound = 1, Weight = 1f,
                 Footprint = Enumerable.Range(0, 4).SelectMany(x => Enumerable.Range(0, 7).Select(z => new Vector2Int(x, z))).ToArray(),
                 Doors = new[] { new ProceduralTemplateDoor { Cell = new Vector2Int(0, 3), Side = "W" }, new ProceduralTemplateDoor { Cell = new Vector2Int(3, 3), Side = "E" } },
                 Cake = Enumerable.Range(1, 7).Select(z => new Vector3(4f, 0f, z + 3f)).ToArray(),
@@ -106,7 +107,8 @@ namespace Worsen.Tests.Procedural
             var placed = new ProceduralTemplateRoom { Template = room, Turns = 1, Offset = new Vector2Int(3, 2) };
             Assert.That(ProceduralTemplateValidationUtility.RoundBoundary(catalogue, placed, Vector2.zero), Has.Length.EqualTo(pieces.Count));
             room.Pieces[0].Position += Vector3.forward * .1f;
-            Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.ValidateRoom(catalogue, room));
+            var error = Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.ValidateRoom(catalogue, room));
+            Assert.That(error.Message, Does.Contain("round enclosure has an open or branching seam"));
         }
         [Test]
         public void OrganicFallbackPublishesItsCurvedShellAndVestibuleBoundary()
