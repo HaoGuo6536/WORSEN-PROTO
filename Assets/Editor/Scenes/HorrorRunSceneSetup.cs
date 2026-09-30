@@ -13,6 +13,7 @@
 //   - Preserve unrelated loaded scenes and existing configuration asset identities.
 //   - Keep the diagnostic service wired with its document hidden by default.
 //   - Supply the HUD compass with the explicit camera aim source.
+//   - Restore title/preferences wiring without replacing existing references or tuning.
 // DEPENDENCIES:
 //   - Runtime layer APIs, existing presentation generators, UnityEditor and URP.
 // USAGE NOTES:
@@ -49,6 +50,8 @@ using Worsen.Session.Expedition;
 using Worsen.Session.HorrorEffects;
 using Worsen.Presentation.Environment;
 using Worsen.Presentation.Audio;
+using Worsen.Presentation.Menu;
+using Worsen.Session.Settings;
 using Worsen.Editor.Horror;
 using DistantLands.Lumen;
 namespace Worsen.Editor.Scenes
@@ -103,6 +106,7 @@ namespace Worsen.Editor.Scenes
                 Wire(ui, "_config", uiConfig); Wire(ui, "_driver", uiDriver); Wire(uiDriver, "_panelSettings", panel);
                 Wire(root, "_progressionUI", ui);
                 Wire(root, "_progressionRoute", ui.gameObject.AddComponent<ProgressionUIOrchestrator>());
+                RestoreMenuAndSettings(root);
                 var rootData = new SerializedObject(root);
                 rootData.FindProperty("_sourceRevision").stringValue = Fingerprint("Assets/Scripts", "*.cs");
                 rootData.FindProperty("_configSnapshotHash").stringValue = Fingerprint("Assets/Resources/ScriptableObjects", "*.asset");
@@ -120,6 +124,62 @@ namespace Worsen.Editor.Scenes
                 if (!saved) Debug.LogError("HorrorRun setup did not complete; inspect the preceding error.");
             }
         }
+
+        public static void RestoreMenuAndSettings(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            var menu = Referenced<MenuManager>(root, "_menu");
+            if (menu == null)
+            {
+                var child = root.transform.Find("Menu Service");
+                var owner = child != null ? child.gameObject : new GameObject("Menu Service");
+                owner.transform.SetParent(root.transform, false);
+                menu = owner.GetComponent<MenuManager>() ?? owner.AddComponent<MenuManager>();
+                Wire(root, "_menu", menu);
+            }
+            var driver = Referenced<MenuDriver>(menu, "_driver") ?? menu.GetComponent<MenuDriver>() ?? menu.gameObject.AddComponent<MenuDriver>();
+            WireMissing(menu, "_driver", driver);
+            var document = driver.GetComponent<UIDocument>() ?? driver.gameObject.AddComponent<UIDocument>();
+            if (document.panelSettings == null)
+            {
+                const string panelPath = "Assets/Resources/UI/Presentation/Menu/MenuPanelSettings.asset";
+                var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>(panelPath);
+                if (panel == null)
+                {
+                    panel = Ensure<PanelSettings>(panelPath);
+                    panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+                    panel.referenceResolution = new Vector2Int(1920, 1080);
+                    panel.sortingOrder = 300;
+                    panel.themeStyleSheet = Require<ThemeStyleSheet>("Assets/Resources/UI/Presentation/DebugOverlay/DebugOverlayTheme.tss");
+                    EditorUtility.SetDirty(panel); AssetDatabase.SaveAssetIfDirty(panel);
+                }
+                document.panelSettings = panel; EditorUtility.SetDirty(document);
+            }
+            if (Referenced<MenuDriverConfig>(menu, "_config") == null)
+                Wire(menu, "_config", Ensure<MenuDriverConfig>(ConfigRoot + "Presentation/Menu/MenuDriverConfig.asset"));
+            if (menu.GetComponent<MenuOrchestrator>() == null) menu.gameObject.AddComponent<MenuOrchestrator>();
+            var settings = Referenced<SettingsManager>(root, "_settings");
+            if (settings == null)
+            {
+                settings = root.gameObject.scene.GetRootGameObjects().Select(value => value.GetComponent<SettingsManager>())
+                    .FirstOrDefault(value => value != null);
+                if (settings == null)
+                {
+                    settings = Add<SettingsManager>("Settings Session");
+                    SceneManager.MoveGameObjectToScene(settings.gameObject, root.gameObject.scene);
+                }
+                Wire(root, "_settings", settings);
+            }
+            var files = Referenced<SettingsDriver>(settings, "_driver") ?? settings.GetComponent<SettingsDriver>() ?? settings.gameObject.AddComponent<SettingsDriver>();
+            WireMissing(settings, "_driver", files);
+            if (Referenced<SettingsConfig>(settings, "_config") == null)
+                Wire(settings, "_config", Ensure<SettingsConfig>(ConfigRoot + "Session/Settings/SettingsConfig.asset"));
+        }
+        private static T Referenced<T>(UnityEngine.Object owner, string field) where T : UnityEngine.Object
+            => new SerializedObject(owner).FindProperty(field).objectReferenceValue as T;
+        private static void WireMissing(UnityEngine.Object owner, string field, UnityEngine.Object value)
+        { if (Referenced<UnityEngine.Object>(owner, field) == null) Wire(owner, field, value); }
 
         private static void BuildWorldServices(HorrorRunSceneRoot root, GameObject cake)
         {

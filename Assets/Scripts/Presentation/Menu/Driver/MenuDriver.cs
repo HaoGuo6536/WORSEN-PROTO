@@ -9,11 +9,12 @@
 // KEY RESPONSIBILITIES:
 //   - Own the UI Toolkit tree, callbacks and rebind-safe presentation state.
 //   - Expose all player preferences and an explicit save/apply interaction.
+//   - Execute an explicitly routed quit, including clean editor Play Mode exit.
 // DEPENDENCIES:
 //   Core records, own Menu stack and Unity UI Toolkit only.
 // USAGE NOTES:
-//   Scene-owned through MenuManager with its own DriverConfig. No global side effects:
-//   pause, cursor, input gating and application quit are explicitly routed by the owner.
+//   Scene-owned through MenuManager with its own DriverConfig. QuitApplication owns
+//   application exit only when commanded; clicks alone never quit or pause gameplay.
 //   Requires a wired UIDocument PanelSettings; missing wiring is logged, not fabricated.
 // ============================================================================
 using System;
@@ -46,6 +47,14 @@ namespace Worsen.Presentation.Menu
             Bind();
         }
         public void ShowTitle() { _presenter.ShowTitle(_state); Apply(); }
+        public void QuitApplication()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
         public void SetRunState(bool canPause, bool paused) { _presenter.SetRunState(_state, canPause, paused); Apply(); }
         public void SetSettings(PlayerSettingsRecord value) { _presenter.SetSettings(_state, value); Apply(); }
         public void SetSaveResult(bool saved, string message) { _presenter.SetSaveResult(_state, saved, message); Apply(); }

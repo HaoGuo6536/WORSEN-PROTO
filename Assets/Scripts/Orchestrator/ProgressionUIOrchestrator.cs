@@ -11,6 +11,7 @@
 //   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
 //   - Route display snapshots and UI decisions through paired subscriptions.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
+//   - Default Hidden Count to false until Progression supplies its future curse flag.
 // DEPENDENCIES:
 //   - Session Progression/Run, Presentation ProgressionUI and Core payloads.
 //   - CameraManager supplies the authoritative catch-completed event.
@@ -49,7 +50,9 @@ namespace Worsen.Orchestrator
         private void OnEnable()
         {
             if (_progression == null || _ui == null) return;
+            OnDisable();
             _progression.SnapshotChanged += OnSnapshot;
+            _progression.TransactionCommitted += OnTransaction;
             if (_run != null) { _run.PlayerDied += OnDeath; _run.CaptureStarted += OnCapture; }
             if (_camera != null) _camera.CatchHoldEnded += OnCatchEnded;
             _ui.ChooseThreatRequested += OnThreat;
@@ -60,7 +63,11 @@ namespace Worsen.Orchestrator
         }
         private void OnDisable()
         {
-            if (_progression != null) _progression.SnapshotChanged -= OnSnapshot;
+            if (_progression != null)
+            {
+                _progression.SnapshotChanged -= OnSnapshot;
+                _progression.TransactionCommitted -= OnTransaction;
+            }
             if (_run != null) { _run.PlayerDied -= OnDeath; _run.CaptureStarted -= OnCapture; }
             if (_camera != null) _camera.CatchHoldEnded -= OnCatchEnded;
             if (_ui == null) return;
@@ -71,7 +78,10 @@ namespace Worsen.Orchestrator
             _ui.RestartRequested -= OnRestart;
             _ui.ResetCatch();
         }
-        private void OnSnapshot(ProgressionSnapshot value) => _ui.SetSnapshot(value);
+        private void OnSnapshot(ProgressionSnapshot value)
+        { _ui.SetHiddenCount(false); _ui.SetSnapshot(value); }
+        private void OnTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
+        { if (operation == nameof(ProgressionSessionManager.StartRun)) _ui.SetHiddenCount(false); }
         private void OnDeath(EntityId player, Vector3 position) => _ui.PrepareCatch(player);
         private void OnCatchEnded(EntityId player) => _ui.EndCatch(player);
         private void OnCapture(RunCaptureMetadata metadata) => _ui.ResetCatch();

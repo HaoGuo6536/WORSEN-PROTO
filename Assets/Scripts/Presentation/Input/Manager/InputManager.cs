@@ -16,6 +16,7 @@
 //   - Pair Driver subscriptions with this component's enabled lifetime.
 //   - Command one frame publication per caller-controlled fixed tick.
 //   - Expose exact source selection and tick-aligned recording through the owned Driver.
+//   - Republish pause intent even while the gameplay frame gate is closed.
 //
 // DEPENDENCIES:
 //   - Core InputFrame; the Input system's own PlayerInputDriver only.
@@ -45,6 +46,7 @@ namespace Worsen.Presentation.Input
 
         public static InputManager Instance { get; private set; }
         public event Action<InputFrame> FramePublished;
+        public event Action PausePressed;
         public InputSource Source => _initialized ? _driver.Source : InputSource.Live;
         public InputProbeRecord CurrentPlaybackRecord => _initialized ? _driver.CurrentPlaybackRecord : default;
         public string LastRecordingPath => _initialized ? _driver.LastRecordingPath : "";
@@ -114,6 +116,7 @@ namespace Worsen.Presentation.Input
             if (!_initialized || _subscribed)
                 return;
             _driver.FrameCaptured += HandleFrameCaptured;
+            _driver.PausePressed += HandlePause;
             _subscribed = true;
             _driver.SetOwnerEnabled(true);
         }
@@ -123,6 +126,7 @@ namespace Worsen.Presentation.Input
             if (!_subscribed)
                 return;
             _driver.FrameCaptured -= HandleFrameCaptured;
+            _driver.PausePressed -= HandlePause;
             _subscribed = false;
             _driver.SetOwnerEnabled(false);
         }
@@ -135,7 +139,10 @@ namespace Worsen.Presentation.Input
             if (Instance == this)
                 Instance = null;
             FramePublished = null;
+            PausePressed = null;
         }
+
+        private void HandlePause() => PausePressed?.Invoke();
 
         private void HandleFrameCaptured(InputFrame frame)
         {

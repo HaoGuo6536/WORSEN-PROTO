@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own Driver initialization and paired interaction subscriptions.
 //   - Forward authoritative pause acknowledgements and sanitized preference snapshots.
+//   - Forward explicit application-exit commands to the owned engine boundary.
 // DEPENDENCIES:
 //   Core records and own Menu Driver/Config only; no sibling presentation systems.
 // USAGE NOTES:
@@ -39,6 +40,7 @@ namespace Worsen.Presentation.Menu
             _initialized = _config != null;
         }
         public void ShowTitle() => _driver?.ShowTitle();
+        public void QuitApplication() => _driver?.QuitApplication();
         public void SetRunState(bool canPause, bool paused) => _driver?.SetRunState(canPause, paused);
         public void SetSettings(PlayerSettingsRecord value) => _driver?.SetSettings(value);
         public void SetSaveResult(bool saved, string message) => _driver?.SetSaveResult(saved, message);
@@ -46,6 +48,7 @@ namespace Worsen.Presentation.Menu
         private void OnEnable()
         {
             Initialize();
+            OnDisable();
             _driver.enabled = true;
             _driver.StartClicked += OnStart; _driver.QuitClicked += OnQuit;
             _driver.PauseSelected += OnPause; _driver.SettingsApplied += OnSettings;

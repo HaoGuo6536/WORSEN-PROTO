@@ -13,8 +13,9 @@
 //   - Bind the generated-floor flow and publish its first player choice.
 //   - Choose fresh expedition seeds at the composition boundary unless fixed replay is selected.
 //   - Bind progression telemetry before the first run starts so round, wallet and choice rows are captured.
+//   - Publish loaded preferences and show the title before accepting a user start.
 // DEPENDENCIES:
-//   - Session Expedition/Progression/Run/SceneFlow, Domain factory/service APIs,
+//   - Session Expedition/Progression/Run/SceneFlow/Settings, Domain factory/service APIs,
 //     and Presentation manager APIs. No game rules are implemented here.
 // USAGE NOTES:
 //   Scene-owned, explicitly initialized in Start. No per-frame work. Generated
@@ -47,11 +48,15 @@ using Worsen.Session.Expedition;
 using Worsen.Session.Progression;
 using Worsen.Session.HorrorEffects;
 using Worsen.Presentation.Environment;
+using Worsen.Presentation.Menu;
+using Worsen.Session.Settings;
 namespace Worsen.Orchestrator
 {
     public sealed class HorrorRunSceneRoot : MonoBehaviour
     {
         [SerializeField] private RunSessionManager _run;
+        [SerializeField] private MenuManager _menu;
+        [SerializeField] private SettingsManager _settings;
         [SerializeField] private SceneFlowManager _sceneFlow;
         [SerializeField] private InputManager _input;
         [SerializeField] private InputOrchestrator _inputRoute;
@@ -104,6 +109,7 @@ namespace Worsen.Orchestrator
         private void Start()
         {
             int runSeed = _useFixedSeed ? _seed : CreateRunSeed();
+            _seed = runSeed;
             _run = _run.Initialize(runSeed);
             _sceneFlow = _sceneFlow.Initialize();
             _input = _input.Initialize();
@@ -133,8 +139,23 @@ namespace Worsen.Orchestrator
             _telemetry.GetComponent<TelemetryOrchestrator>().ConfigureProgression(_progression);
             _assembled = true;
             OnEnable();
-            _progression.StartRun(runSeed);
+            if (SettingsManager.Instance != null && SettingsManager.Instance != _settings)
+            {
+                if (_settings != null) Destroy(_settings.gameObject);
+                _settings = SettingsManager.Instance;
+            }
+            if (_settings == null || !_settings.Initialize())
+                throw new InvalidOperationException("HorrorRun requires a configured Settings service.");
+            _menu = _menu != null ? _menu : GetComponentInChildren<MenuManager>(true);
+            if (_menu == null) throw new InvalidOperationException("HorrorRun requires a configured Menu service.");
+            _menu.Initialize();
+            _menu.GetComponent<MenuOrchestrator>().Configure(_menu, _settings, StartFromTitle, _progression, _input);
+            _settings.PublishCurrent();
+            _input.SetInputEnabled(false);
+            _progressionUI.Hide();
+            _menu.ShowTitle();
         }
+        private void StartFromTitle() => _progression.StartRun(_seed);
         private static int CreateRunSeed() => Guid.NewGuid().GetHashCode() & int.MaxValue;
         private void OnDestroy()
         {

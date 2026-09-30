@@ -9,12 +9,14 @@
 // KEY RESPONSIBILITIES:
 //   - Sequence load, pure validation, save and snapshot publication through owned stacks.
 //   - Report failed saves rather than claiming the active runtime overrides are persisted.
+//   - Persist one completed expedition's lifetime count and best depth together.
 // DEPENDENCIES:
 //   Core persistence records; own Config, Controller, BehaviorState and Driver only.
 // USAGE NOTES:
 //   Persistent tier (§8), one root service explicitly initialized before menu display.
 //   No scene references. Coordinator routes SettingsChanged, never writes config assets.
 //   RecordRunStarted is one expedition start, not a generated-floor capture event.
+//   RecordRunEnded is an alternative counting boundary; a route must use one, not both.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -73,6 +75,13 @@ namespace Worsen.Session.Settings
         public void RecordBestDepth(int depth)
         {
             if (_controller != null && _controller.RecordBestDepth(depth)) SaveHistory();
+        }
+        public void RecordRunEnded(int depth)
+        {
+            if (_controller == null) return;
+            _controller.RecordRunStarted();
+            _controller.RecordBestDepth(depth);
+            SaveHistory();
         }
         private void SaveHistory()
         {
