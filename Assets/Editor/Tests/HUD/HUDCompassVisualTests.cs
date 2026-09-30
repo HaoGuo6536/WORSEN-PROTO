@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Ensure bind/unbind leaves no duplicate indicator or obsolete caption.
 //   - Preserve guidance in chases; forbid chrome, hints and empty slot outlines.
+//   - Keep occupied captions under the same chase gate and suppress empty selections.
 // DEPENDENCIES:
 //   NUnit, HUD presentation, Unity objects and UI Toolkit.
 // USAGE NOTES:
@@ -18,6 +19,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Worsen.Presentation.HUD;
+using Worsen.Core;
 namespace Worsen.Tests.HUD
 {
     public sealed class HUDCompassVisualTests
@@ -59,9 +61,13 @@ namespace Worsen.Tests.HUD
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
                 var presenter = new HUDPresenter();
                 presenter.SetDirection(state, Vector3.forward, true);
-                presenter.SetItemSlots(state, 2, 8);
+                presenter.SetConsumables(state, new ConsumableInventorySnapshot(
+                    new[] { new ProgressionInventorySlot("gauze", "Gauze", 4) }, new[] { 1 }, 0), 8);
                 presenter.SetChaseMode(state, true); driver.Apply(state);
                 Assert.That(root.Q("hud-extra").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("selected-consumable").parent, Is.SameAs(root.Q("hud-extra")));
+                Assert.That(root.Q<Label>("selected-consumable").text, Is.EqualTo("1: Gauze ×1"));
+                Assert.That(root.Q("shield"), Is.Null);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.None));
                 Assert.That(root.Q("direction-group").parent, Is.SameAs(root));
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
@@ -73,7 +79,7 @@ namespace Worsen.Tests.HUD
                 Assert.That(root.Q("objective-title"), Is.Null);
                 Assert.That(root.Q("cake-gauge"), Is.Null);
                 Assert.That(root.Q("exit-state"), Is.Null);
-                Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.Flex));
                 presenter.SetGoldenCount(state, 4); driver.Apply(state);
                 Assert.That(root.Q<Label>("golden-count").text, Is.EqualTo("Golden: 4"));
                 presenter.SetChaseMode(state, false);
@@ -82,6 +88,10 @@ namespace Worsen.Tests.HUD
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.Flex));
                 Assert.That(root.Q("hud").style.opacity.value, Is.EqualTo(1f));
                 Assert.That(root.Q("hud-extra").style.opacity.value, Is.EqualTo(1f));
+                presenter.SetConsumables(state, new ConsumableInventorySnapshot(
+                    new[] { default(ProgressionInventorySlot) }, new[] { 0 }, 0), 8); driver.Apply(state);
+                Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("selected-consumable").style.display.value, Is.EqualTo(DisplayStyle.None));
                 // Edit Mode does not exercise ordinary runtime MonoBehaviour callbacks.
                 driver.Unbind();
                 Object.DestroyImmediate(owner);

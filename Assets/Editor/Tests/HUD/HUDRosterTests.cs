@@ -2,7 +2,8 @@
 // HUDRosterTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies independent Ticking bearings and initial/change shield presentation.
+//   Verifies independent Ticking bearings and retained shield facts without HUD text.
+//   Shield routing remains intact while numerical protection stays off the run surface.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · HUD and Run relay.
 // KEY RESPONSIBILITIES:
@@ -47,7 +48,7 @@ namespace Worsen.Tests.HUD
             presenter.SetShield(state, 23.5f); Assert.That(state.ShieldText, Is.EqualTo("Shield: 23.5"));
             presenter.ResetRunView(state); Assert.That(state.Threats, Is.Empty); Assert.That(state.Shield, Is.Zero);
         }
-        [Test] public void VisualThreatsAndShieldAreOutsideChaseHiddenChromeAndUnbindCleanly()
+        [Test] public void VisualThreatsSurviveChaseWithoutShieldTextAndUnbindCleanly()
         {
             var go = new GameObject("Roster HUD"); var config = ScriptableObject.CreateInstance<HUDDriverConfig>();
             var visual = go.AddComponent<HUDVisualDriver>(); var root = new VisualElement();
@@ -58,8 +59,8 @@ namespace Worsen.Tests.HUD
                 visual.Bind(root, config); visual.Apply(state);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.None));
                 Assert.That(root.Q("threat-4").style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                Assert.That(root.Q<Label>("shield").text, Is.EqualTo("Shield: 12"));
-                Assert.That(root.Q("shield").parent, Is.SameAs(root));
+                Assert.That(root.Q("shield"), Is.Null);
+                Assert.That(state.Shield, Is.EqualTo(12), "Decluttering must not erase routed shield facts.");
                 presenter.SetThreat(state, Threat(4, false, 2)); visual.Apply(state);
                 Assert.That(root.Q("threat-4").style.display.value, Is.EqualTo(DisplayStyle.None));
                 visual.Unbind(); Assert.That(root.childCount, Is.Zero);
