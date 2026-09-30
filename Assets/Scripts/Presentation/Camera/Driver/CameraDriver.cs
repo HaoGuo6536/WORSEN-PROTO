@@ -13,7 +13,7 @@
 //   - Bind the serialized output camera and rebuild missing owned rig components.
 //   - Apply pose and lens in LateUpdate, then manually advance the owned brain.
 //   - Expose unshaken aim and route explicit event shake without moving gameplay authority.
-//   - Advance terminal consumption with unscaled presentation time.
+//   - Advance held catches with unscaled time and publish hold edges after applying the pose.
 //   - Generate the detection impulse and release only owned runtime objects.
 //
 // DEPENDENCIES:
@@ -28,9 +28,11 @@
 //
 // ============================================================================
 
+using System;
 using Unity.Cinemachine;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Camera
 {
@@ -51,9 +53,12 @@ namespace Worsen.Presentation.Camera
         private CinemachineBrain.UpdateMethods _previousUpdateMethod;
         private bool _previousBrainEnabled;
 
+        public event Action<EntityId> CatchHoldStarted;
+        public event Action<EntityId> CatchHoldEnded;
+
         public Quaternion AimRotation => _state != null ? _presenter.AimRotation(_state) : Quaternion.identity;
         public float ConsumptionSeconds => _config != null ? _presenter.ConsumptionSeconds(_config) : 0f;
-        public Vector3 AimPosition => _state?.EyePosition ?? Vector3.zero;
+        public Vector3 AimPosition => _state == null ? Vector3.zero : _state.DeathSnapped ? _state.Position : _state.EyePosition;
 
         public bool IsReady => _state != null && _outputCamera != null && _rig != null && _brain != null
             && _impulse != null && _listener != null;
@@ -132,7 +137,7 @@ namespace Worsen.Presentation.Camera
 
         public void PlayDeathSnap(Vector3 killerPosition)
         {
-            if (_state != null) _presenter.PlayDeathSnap(_state, killerPosition);
+            if (_state != null) _presenter.PlayDeathSnap(_state, _config, killerPosition);
         }
 
         public void PlayConsumed(Vector3 handPosition)
@@ -204,11 +209,14 @@ namespace Worsen.Presentation.Camera
         private void LateUpdate()
         {
             if (_state == null || !_state.HasMovement) return;
-            _presenter.Tick(_state, _config, _state.Consumed ? Time.unscaledDeltaTime : Time.deltaTime, _outputCamera.aspect);
+            bool holdStarted = _state.CatchHoldStarted, holdEnded = _state.CatchHoldEnded;
+            _presenter.Tick(_state, _config, _state.DeathSnapped ? Time.unscaledDeltaTime : Time.deltaTime, _outputCamera.aspect);
             _rig.transform.SetPositionAndRotation(_state.Position, _state.Rotation);
             _rig.Lens.FieldOfView = _state.VerticalFieldOfView;
             _listener.Gain = _state.DeathSnapped ? 0f : _config.PunchIntensity * _config.ShakeIntensity;
             _brain.ManualUpdate();
+            if (!holdStarted && _state.CatchHoldStarted) CatchHoldStarted?.Invoke(_state.PlayerId);
+            if (_state != null && !holdEnded && _state.CatchHoldEnded) CatchHoldEnded?.Invoke(_state.PlayerId);
         }
 
         private void OnEnable()
