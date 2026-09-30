@@ -1,0 +1,8 @@
+id: lower-layer-no-orchestrator-ref
+snapshots:
+  class Logic { InputOrchestrator owner; }:
+    labels:
+    - source: InputOrchestrator
+      style: primary
+      start: 14
+      end: 31

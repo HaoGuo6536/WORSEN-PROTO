@@ -1,0 +1,13 @@
+id: manager-resources-own-config
+valid:
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { UnityEngine.Resources.Load<Worsen.Session.Settings.SettingsConfig>("x"); } } }'
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources . Load < SettingsConfig > ("x"); } } }'
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<SettingsConfig>("x"); } } }'
+  - 'namespace Worsen.Domain.Player { class PlayerManager { void Load() { Resources.Load<PlayerProfile>("x"); } } }'
+invalid:
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<Texture>("x"); } } }'
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<Texture>(Resources.Load<SettingsConfig>("x").Path); } } }'
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { UnityEngine.Resources.Load<Worsen.Domain.Other.SettingsConfig>("x"); } } }'
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<CameraDriverConfig>("x"); } } }'
+  - 'namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load("x"); } } }'
+  - 'namespace Worsen.Session.Expedition { class ExpeditionSessionManager { void Load() { Resources.Load<ShrineConfig>("x"); } } }'
