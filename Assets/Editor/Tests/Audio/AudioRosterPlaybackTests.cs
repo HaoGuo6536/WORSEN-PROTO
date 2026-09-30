@@ -29,6 +29,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioRosterPlaybackTests
     {
         private readonly List<Object> owned = new List<Object>();

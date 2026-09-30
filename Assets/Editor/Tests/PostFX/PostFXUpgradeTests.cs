@@ -20,6 +20,7 @@ using Worsen.Core;
 using Worsen.Presentation.PostFX;
 namespace Worsen.Tests.PostFX
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PostFXUpgradeTests
     {
         private PostFXDriverConfig config;

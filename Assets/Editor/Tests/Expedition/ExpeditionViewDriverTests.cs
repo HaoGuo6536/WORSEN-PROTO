@@ -18,6 +18,7 @@ using UnityEngine;
 using Worsen.Session.Expedition;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionViewDriverTests
     {
         [Test] public void CameraTransformAndActualLensReachTheSameTick()

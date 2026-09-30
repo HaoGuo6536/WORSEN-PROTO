@@ -21,6 +21,7 @@ using UnityEngine;
 using Worsen.Presentation.PostFX;
 namespace Worsen.Tests.PostFX
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CamcorderFramePresenterTests
     {
         private PostFXDriverConfig _config;

@@ -17,6 +17,7 @@ using UnityEngine;
 using Worsen.Domain.Floor;
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorBoundsUtilityTests
     {
         [TestCase(1, 0, 0)] [TestCase(-1, 0, 0)]
