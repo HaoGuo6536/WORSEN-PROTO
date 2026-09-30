@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Resolve the Player-owned effect config through its mirrored Resources path.
 //   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
 //   - Maintain walkable uphill support while allowing real jumps to leave the surface.
 //   - Query untagged chest/upper/top ledge geometry and sweep late traversal steering.
@@ -49,6 +50,9 @@ namespace Worsen.Domain.Player
         public Vector3 Position => _state.Position;
         public float Heading => _state.Heading;
         public Vector3 EyePosition => _presenter.EyePosition(_state, _config.EyeHeight, _config.Height);
+
+        public PlayerEffectConfig ResolveEffectConfig(PlayerEffectConfig configured)
+            => configured != null ? configured : Resources.Load<PlayerEffectConfig>("ScriptableObjects/Domain/Player/PlayerEffectConfig");
 
         public void Initialize()
         {

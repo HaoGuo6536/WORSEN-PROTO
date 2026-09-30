@@ -15,6 +15,7 @@
 //   - Verify auto-ledge decisions, standing-jump air control, stumble timing and deterministic trajectories.
 //   - Verify committed posture/sprint facts, clearance-safe held crouch and replay/reset parity.
 //   - Verify grace boundaries, severity-scaled boosts, reset/cancellation and the snap-disable hook.
+//   - Distinguish float roundoff at integral recovery ticks from genuine fractional durations.
 //   - Verify hold-to-sprint, uphill landing recovery and clearance-safe slide cancellation.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
@@ -1006,6 +1007,27 @@ namespace Worsen.Tests.Player
             Assert.That(_state.HitBoostEndTick, Is.Zero);
             Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
             Assert.That(_state.LookBackEnabled, Is.True);
+        }
+
+        [TestCase(0.1f, 1.2f, 12)]
+        [TestCase(0.02f, 1.2f, 60)]
+        [TestCase(0.1f, 1.20001f, 13)]
+        [TestCase(0.1f, 1.25f, 13)]
+        [TestCase(0.1f, 0.000001f, 1)]
+        [TestCase(0.1f, 0f, 0)]
+        public void RecoveryRoundingOnlySnapsFloatErrorAtIntegralBoundaries(float step, float seconds, long ticks)
+        {
+            SetProfileFloat("_hitGraceSeconds", seconds);
+            SetProfileFloat("_heavyHitBoostSeconds", seconds);
+            _controller.Reset(new EntityId(1), Vector3.zero, 0f, step);
+            _controller.AdvanceRecovery(7);
+            _controller.ApplyHit(1f);
+            Assert.That(_state.GraceWindow.EndTick, Is.EqualTo(7 + ticks));
+            Assert.That(_state.HitBoostEndTick, Is.EqualTo(7 + ticks));
+            if (ticks > 0) Assert.That(_controller.AdvanceRecovery(7 + ticks - 1), Is.Null);
+            _controller.AdvanceRecovery(7 + ticks);
+            Assert.That(_state.GraceActive, Is.False);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
         }
 
         [Test]
