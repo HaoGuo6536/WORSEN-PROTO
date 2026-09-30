@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Content SO (§4b) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Tune passive health regeneration and the quiet interval after accepted damage.
 //   - Tune ledge reach, late traversal steering, timed boosts and fail-forward recovery.
 //   - Tune grace duration and independent light/heavy hit recovery speed and duration.
 //   - Implement only the Player responsibility named by this script.
@@ -76,6 +77,8 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _hardStumbleDuration = 0.5f;
         [SerializeField] private float _lookBackSteerAuthority = 0.35f;
         [SerializeField] private float _maximumHealth = 100f;
+        [SerializeField, Min(0f)] private float _healthRegenerationPerSecond = 1.5f;
+        [SerializeField, Min(0f)] private float _healthRegenerationDelay = 4f;
         [SerializeField] private float _lungeDamage = 50f;
         [SerializeField, Min(0f)] private float _hitGraceSeconds = 1.2f;
         [SerializeField, Min(0f)] private float _lightHitSpeedBoost = 0.12f;
@@ -140,6 +143,8 @@ namespace Worsen.Domain.Player
         public float HardStumbleDuration => _hardStumbleDuration;
         public float LookBackSteerAuthority => _lookBackSteerAuthority;
         public float MaximumHealth => _maximumHealth;
+        public float HealthRegenerationPerSecond => _healthRegenerationPerSecond;
+        public float HealthRegenerationDelay => _healthRegenerationDelay;
         public float LungeDamage => _lungeDamage;
         public float HitGraceSeconds => _hitGraceSeconds;
         public float LightHitSpeedBoost => _lightHitSpeedBoost;

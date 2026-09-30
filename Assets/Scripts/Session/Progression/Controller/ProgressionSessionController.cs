@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Retain current-floor health for reporting, but refill it after choices before each generation.
 //   - Advance combat floors and shops using completed-combat cadence.
 //   - Debit the configured bail penalty once, inside generation-guarded completion.
 //   - Commit unique curse/upgrade traits, consumable stock and one-charge wards.
@@ -270,6 +271,7 @@ namespace Worsen.Session.Progression
             }
             else
             {
+                state.Health = state.MaximumHealth;
                 state.GenerationId++;
                 state.Phase = ProgressionPhase.Generating;
                 state.Message = state.IsShop ? "Finding a safe room..." : "The next floor is taking shape...";

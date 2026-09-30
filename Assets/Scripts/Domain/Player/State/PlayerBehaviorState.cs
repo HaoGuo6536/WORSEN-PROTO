@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain regeneration delay and neutral-by-default health effect hooks per life.
 //   - Store traversal progress/steering, regrab cooldown and one-tick stumble publication data.
 //   - Retain the tick-based grace interval, independent hit boost and snap-enable hook.
 //   - Store committed sprint status separately from input intent and commanded physical posture.
@@ -42,6 +43,9 @@ namespace Worsen.Domain.Player
         public float MaxDesignSpeed { get; set; }
         public float Health { get; set; }
         public float MaxHealth { get; set; }
+        public double RegenerationDelayRemaining { get; set; }
+        public float RegenerationMultiplier { get; set; } = 1f;
+        public float FloorStartHealthFraction { get; set; } = 1f;
         public PlayerHealthState HealthState { get; set; }
         public bool IsAlive => Health > 0f;
         public bool LookBack { get; set; }

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Publish tick-driven regeneration and expose unwired health hooks plus the floor-start hand-off.
 //   - Publish normalized traversal progress and stumble starts using Core/primitive event payloads.
 //   - Pass profile ledge limits, slide contact retention and steering to the physical mover.
 //   - Publish Core grace start/end and absorption facts, and push pass-through before physics queries.
@@ -75,6 +76,7 @@ namespace Worsen.Domain.Player
         {
             if (_controller == null) return;
             bool wasLookingBack = _state.LookBack;
+            float previousHealth = _state.Health;
             AdvanceRecovery(tick);
             MovementProbe probe = _driver.Probe(_profile.LedgeReach, _profile.LedgeMinimumHeight,
                 _profile.LedgeMaximumHeight, _profile.LedgeChestHeight);
@@ -89,6 +91,7 @@ namespace Worsen.Domain.Player
             var record = new InputProbeRecord(InputProbeRecord.CurrentSchemaVersion, tick, frame, probe, dt, resolution);
             _controller.CommitFrame(_driver.EyePosition, record, result.Facts);
             _driver.ShowMovement(_state.MovementState);
+            if (previousHealth != _state.Health) OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
             if (wasLookingBack != _state.LookBack) OnLookBackChanged?.Invoke(Id, _state.LookBack);
             OnMovementSample?.Invoke(LastMovementSample);
             if (_state.TraversalSampleActive)
@@ -130,6 +133,15 @@ namespace Worsen.Domain.Player
         }
 
         public void SetLookBackEnabled(bool enabled) { _controller?.SetLookBackEnabled(enabled); }
+        public void SetHealthRecoveryEffects(float regenerationMultiplier = 1f, float floorStartHealthFraction = 1f)
+        { _controller?.SetHealthRecoveryEffects(regenerationMultiplier, floorStartHealthFraction); }
+        public void BeginFloorHealth(float maximumHealth, float movementMultiplier)
+        {
+            if (_controller == null) return;
+            _controller.BeginFloorHealth(maximumHealth, movementMultiplier);
+            EndRecovery();
+            OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
+        }
         public void ApplyRunModifiers(float health, float maximumHealth, float movementMultiplier)
         {
             if (_controller == null) return;

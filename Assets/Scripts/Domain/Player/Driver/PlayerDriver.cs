@@ -17,7 +17,7 @@
 //   - Resolve walkable step support within the capsule footprint without adding horizontal travel.
 //   - Bound each step raise by actual overhead clearance before checking forward travel and support.
 //   - Resolve optional authored traversal endpoint pairs through pure geometry before clearance casts.
-//   - Hide legacy limb objects immediately at initialization and after all movement commands.
+//   - Enable first-person hands at initialization and movement; hide limbs at teardown.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.

@@ -4,10 +4,11 @@
 // PURPOSE:
 //   Assembles each floor requested by progression and connects it to the existing
 //   Run Session's sole gameplay tick. It replaces old actors and geometry before
-//   admitting the new floor while progression retains health, choices and wallet.
+//   admitting the new floor while progression retains maximum health, choices and wallet.
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
+//   - Start each spawned Player at its effective maximum, never the previous floor's current health.
 //   - Bind scene-owned services explicitly and release every binding on disable.
 //   - Defer new assembly until old factory objects finish deferred destruction.
 //   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
@@ -214,7 +215,7 @@ namespace Worsen.Session.Expedition
                 _procedural.PlayerSpawnPosition, _procedural.PlayerSpawnRotation)));
             if (!PlayerRegistry.TryGet(_state.Player, out var player) || player.ReadOnlyState == null)
                 throw new InvalidOperationException("Generated player failed to register.");
-            player.ApplyRunModifiers(request.Effects.Health, request.Effects.MaximumHealth, request.Effects.MovementSpeedMultiplier);
+            player.BeginFloorHealth(request.Effects.MaximumHealth, request.Effects.MovementSpeedMultiplier);
 
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions);
             if (_hunterRoster != null && _hunterRoster.Length > 0)
