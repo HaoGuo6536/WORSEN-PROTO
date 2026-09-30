@@ -23,6 +23,7 @@ using Worsen.Core;
 using Worsen.Session.Progression;
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ShrineProgressionControllerTests
     {
         private EffectCatalogueConfig catalogue;

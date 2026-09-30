@@ -30,6 +30,7 @@ using Worsen.Domain.Floor;
 using Worsen.Domain.Player;
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorHandControllerTests
     {
         private FloorHandController _controller;

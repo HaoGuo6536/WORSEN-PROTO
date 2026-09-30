@@ -24,6 +24,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerConsumableTests
     {
         private PlayerProfile profile;

@@ -24,6 +24,7 @@ using Worsen.Core;
 using Worsen.Domain.Floor;
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RoomCollapsePresenterTests
     {
         private readonly RoomCollapsePresenter _presenter = new RoomCollapsePresenter();

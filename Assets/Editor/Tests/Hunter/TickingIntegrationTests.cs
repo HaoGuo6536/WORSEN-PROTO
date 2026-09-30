@@ -32,6 +32,7 @@ using Object = UnityEngine.Object;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class TickingIntegrationTests
     {
         [Test] public void SetupReusesAssetsPreservesTuningAndRepairsReferences()

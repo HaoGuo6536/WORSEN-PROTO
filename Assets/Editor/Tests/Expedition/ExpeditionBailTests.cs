@@ -29,6 +29,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
     public sealed class ExpeditionBailTests
     {
         [UnityTest]

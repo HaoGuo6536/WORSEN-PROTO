@@ -26,6 +26,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
     public sealed class RunSessionManagerTests
     {
         [UnityTest]

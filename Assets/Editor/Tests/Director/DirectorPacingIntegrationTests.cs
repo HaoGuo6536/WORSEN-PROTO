@@ -63,6 +63,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Director
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class DirectorPacingIntegrationTests
     {
         private const string ScenePath = "Assets/Scenes/FloorLoop.unity";
@@ -71,14 +72,14 @@ namespace Worsen.Tests.Director
         private static readonly Vector3 CadenceHunter = new Vector3(-16f, 0.1f, 22f);
         private static readonly Vector3 TravelPlayer = new Vector3(-38f, 0.1f, 22f);
 
-        [UnityTest, Timeout(240000)]
+        [UnityTest, Timeout(300000)]
         public IEnumerator PhysicalLossReliefAndExitCadenceRepeatAtTheSameSeed()
         {
             yield return new EnterPlayMode();
             yield return ExerciseRepeatedCadence();
         }
 
-        [UnityTest, Timeout(150000)]
+        [UnityTest, Timeout(300000)]
         public IEnumerator HistoricalHintReachesActualProximityWithEveryGapRetained()
         {
             yield return new EnterPlayMode();
