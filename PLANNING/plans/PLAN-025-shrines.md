@@ -2,7 +2,7 @@
 id: PLAN-025
 type: plan
 title: Shrines
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Shrine worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-025 — Shrines
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004 §2.14](../specs/SPEC-004-horror-direction-content-proposals.md#214-shrines), and uses the Interact binding from §2.8 item 5. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004 §2.14](../specs/SPEC-004-horror-direction-content-proposals.md#214-shrines), and uses the Interact binding from §2.8 item 5. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 

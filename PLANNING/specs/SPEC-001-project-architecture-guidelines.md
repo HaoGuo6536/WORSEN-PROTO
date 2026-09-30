@@ -14,7 +14,7 @@ archived: none
 
 # Project Architecture & Modular Design Guidelines
 
-> SPEC-001 · LIVE since 2026-09-14. See the [registry](../index.md). Implemented by [PLAN-001](../plans/PLAN-001-worsen-boilerplate.md).
+> SPEC-001 · LIVE since 2026-09-14. See the [registry](../index.md). Implemented by [PLAN-001](../archive/plans/PLAN-001-worsen-boilerplate.md).
 > Migrated from `Assets/Scripts/PROJECT_ARCHITECTURE_GUIDELINES.md`. Existing enforcement labels using `PROJECT_ARCHITECTURE_GUIDELINES.md` refer to this spec. The original body and stable section numbers are preserved; historical verification notes below were not reverified by this migration.
 
 When adding features or modifying code in this project, **you must strictly adhere to the modular architecture below.** The codebase separates *state*, *logic*, *configuration*, *presentation*, and *cross-system wiring* into distinct script types with distinct rules, and separates *systems* into layers with a fixed dependency direction.

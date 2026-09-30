@@ -2,21 +2,22 @@
 id: PLAN-009
 type: plan
 title: Director pressure and relief
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: Director worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-015, PLAN-022
 source: none
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # PLAN-009 — Director pressure and relief
 
-> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../specs/SPEC-002-worsen-game-design.md); see the [registry](../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-015](../../plans/PLAN-015-hunter-behaviour-felt-intelligence.md) and [PLAN-022](../../plans/PLAN-022-camera-catch-degradation-lighting.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../../specs/SPEC-002-worsen-game-design.md); see the [registry](../../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
 
 ## 1. Objective
 
@@ -54,7 +55,7 @@ Core HintPayload, shared Run tick, Orchestrators and scenes belong to PLAN-002. 
 
 Before changing existing indexed symbols, run GitNexus upstream impact and inspect direct callers; handle unknown/partial results with source and serialized-reference evidence. Follow SPEC-001 §13: script headers, appropriate pure-layer tests, assembly compilation, ast-grep, current graph conformance, ArchitectureConformanceTests and project tests. A source-only pass does not establish scene wiring.
 
-All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
+All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
 
 DirectorControllerTests covers 2 Hz evaluation with variable tick batches, history boundaries/warmup, delayed location accuracy, radius/seed reproducibility, relief equality, exit-state cadence, stationary intrusion, multiple registry entries and scene reset.
 
@@ -85,7 +86,8 @@ No boss cadence, player personalization, adaptive difficulty, extra systemic ene
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned; awaits C1 and later I3 integration | [Coordinator](PLAN-002-parallel-coordination.md) |
-| 2026-09-14 | Published implementation and bounded verification | Director pressure, history, relief and cadence are published under Session ownership. Default intrusion reaches real visuals and expires. An arranged default-threshold historical hint produces a three-second-old uncertain belief, next-tick investigation and more than one metre of actual Hunter motor travel. | [Requirement and live evidence matrix](../../Logs/AgentValidation/GoalCompletion/requirements.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: relief transitions, exit cadence, repeated seeded timing and the full-floor proximity-gap bound with measured travel still need complete evidence. Hint input capture was incomplete; participant reports of no wandering remain required. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
-| 2026-09-15 | Complete-cohort pressure observations | All 1,721 pressure boundaries and 11 hints reconstruct without differences. Nine interior gaps have maximum 18.383334292 s; 30 boundary-censored gaps have maximum 25.933334686 s. Nine hints have later near poses and two remain censored. All nine complete interior gaps are below the 23-second base threshold before nonnegative travel. Participant no-wandering reports remain open. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-14 | Published implementation and bounded verification | Director pressure, history, relief and cadence are published under Session ownership. Default intrusion reaches real visuals and expires. An arranged default-threshold historical hint produces a three-second-old uncertain belief, next-tick investigation and more than one metre of actual Hunter motor travel. | [Requirement and live evidence matrix](../../../Logs/AgentValidation/GoalCompletion/requirements.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: relief transitions, exit cadence, repeated seeded timing and the full-floor proximity-gap bound with measured travel still need complete evidence. Hint input capture was incomplete; participant reports of no wandering remain required. | [Remaining acceptance](../../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Complete-cohort pressure observations | All 1,721 pressure boundaries and 11 hints reconstruct without differences. Nine interior gaps have maximum 18.383334292 s; 30 boundary-censored gaps have maximum 25.933334686 s. Nine hints have later near poses and two remain censored. All nine complete interior gaps are below the 23-second base threshold before nonnegative travel. Participant no-wandering reports remain open. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-015, PLAN-022. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |

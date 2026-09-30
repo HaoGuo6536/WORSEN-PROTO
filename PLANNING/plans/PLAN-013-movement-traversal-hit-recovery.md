@@ -2,7 +2,7 @@
 id: PLAN-013
 type: plan
 title: Movement, traversal and hit recovery
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Player worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-013 — Movement, traversal and hit recovery
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.9 rows 1–6 and its on-hit boost and regeneration rule, the §2.4 grace window, §2.8 items 1–2, §2.6 fail forward and hands, and the §2.3 look-back and crouch decisions. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.9 rows 1–6 and its on-hit boost and regeneration rule, the §2.4 grace window, §2.8 items 1–2, §2.6 fail forward and hands, and the §2.3 look-back and crouch decisions. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 
@@ -30,7 +30,7 @@ Make the base movement kit stop fighting the player, and make a hit a chance to 
 - [`PlayerDriver.cs`](../../Assets/Scripts/Domain/Player/Driver/PlayerDriver.cs) resolves `ITraversalSurface` on the hit collider (around lines 72–80). Untagged edges never vault, mantle or rebound.
 - Health: lunges deal half of full health and hands a quarter, with no grace. Health carries between rounds through [`ProgressionSessionController.RecordHealth`](../../Assets/Scripts/Session/Progression/Controller/ProgressionSessionController.cs). Hunter capsules collide with the player.
 - The Stumble state exists with no effect; a failed vault only emits a fact. [`PlayerLimbStandIn`](../../Assets/Scripts/Domain/Player/Driver/PlayerLimbStandIn.cs) hides hands and feet in normal motion (SPEC-004 §2.6).
-- LIVE [PLAN-003](PLAN-003-player-movement-health.md) holds measured evidence (free-speed 90th percentile, input lock ≤0.35 s, replay determinism). This plan changes rules that evidence covers (PLAN-011 §3.4).
+- LIVE [PLAN-003](../archive/plans/PLAN-003-player-movement-health.md) holds measured evidence (free-speed 90th percentile, input lock ≤0.35 s, replay determinism). This plan changes rules that evidence covers (PLAN-011 §3.4).
 
 ## 3. Changes
 

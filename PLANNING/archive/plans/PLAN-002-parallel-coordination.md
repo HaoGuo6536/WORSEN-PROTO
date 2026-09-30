@@ -2,21 +2,22 @@
 id: PLAN-002
 type: plan
 title: Parallel contracts and integration
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: Program coordinator
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-011
 source: none
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # PLAN-002 — Parallel contracts and integration
 
-> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../specs/SPEC-002-worsen-game-design.md); see the [registry](../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-011](../../plans/PLAN-011-horror-direction-coordination.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../../specs/SPEC-002-worsen-game-design.md); see the [registry](../../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
 
 ## 1. Objective
 
@@ -24,7 +25,7 @@ Make the approved boilerplate executable by independent workers without conflict
 
 ## 2. Starting point
 
-M0 is implemented: [checkpoint](../../Logs/AgentValidation/M0/verification.md), 70 passing Edit Mode tests, TagArena, input buffering and persistent services. Physical device testing remains unverified and graph query 5 has a documented false positive. Recheck this evidence against current source before relying on it. M1–M8 are not implemented merely because their plans exist.
+M0 is implemented: [checkpoint](../../../Logs/AgentValidation/M0/verification.md), 70 passing Edit Mode tests, TagArena, input buffering and persistent services. Physical device testing remains unverified and graph query 5 has a documented false positive. Recheck this evidence against current source before relying on it. M1–M8 are not implemented merely because their plans exist.
 
 The shared checkout contains substantial pre-existing uncommitted and untracked work, including M0. A worktree created from HEAD alone will not contain that baseline. Before delegating, provide and verify a complete agreed baseline in each isolated checkout, or use the shared-checkout publication protocol below. Do not mass-stage unrelated vendor/user files, switch the shared branch, or overwrite another worker's changes.
 
@@ -80,7 +81,7 @@ These are engineering boundaries, not permission to change the original movement
 
 ### Testing admission
 
-1. Read the [lease guide](../../tools/coordination/README.md). Claim the repository-wide lease atomically with your task identity, plan id and purpose. Busy means no editor work; keep independent work moving or retry later. Do not enter Play Mode, refresh, build scenes, bake navigation, install packages or run tests before acquisition.
+1. Read the [lease guide](../../../tools/coordination/README.md). Claim the repository-wide lease atomically with your task identity, plan id and purpose. Busy means no editor work; keep independent work moving or retry later. Do not enter Play Mode, refresh, build scenes, bake navigation, install packages or run tests before acquisition.
 2. Assert your returned token. Verify the connected project path and actual editor state: no foreign Play Mode session, no running test/build, imports or compilation, and no unsaved user scene work that your operation would replace. Tool discovery alone proves none of these. If busy or unreadable, do not begin; retain the lease and coordinate with the active operator until the actual state is known and idle. Never disturb someone else's operation to pass admission.
 3. Every save/publication into Assets, Packages or ProjectSettings of the open checkout also uses this lease and holds it through imports/compilation. An initial freeze acknowledgment covers already-running writers. Isolated worktrees may be edited independently; all Unity sessions for this repository still queue behind this single lease.
 4. Hold ownership across refresh → compile → test/play → completed results → intended cleanup. Assert ownership before each tool mutation and heartbeat between operations. A heartbeat warning never authorizes stealing; a timed-out tool does not establish that Unity stopped.
@@ -93,7 +94,7 @@ The lock is cooperative; it cannot stop manual UI actions or a noncompliant tool
 
 Before changing existing indexed symbols, run GitNexus upstream impact and inspect direct callers; handle unknown/partial results with source and serialized-reference evidence. Follow SPEC-001 §13: script headers, appropriate pure-layer tests, assembly compilation, ast-grep, current graph conformance, ArchitectureConformanceTests and project tests. A source-only pass does not establish scene wiring.
 
-All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
+All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
 
 Validate C1 fixtures against concrete implementations at every integration checkpoint. Use a fresh graph snapshot; detect_changes can omit untracked sources and a long-lived MCP (Model Context Protocol) server can retain stale data. Hash/snapshot the included files and review the known query-5 member-reference false positive rather than relaxing checks. Serialize index writes and shared Git mutations through the coordinator; read-only searches and lint may run independently against stable snapshots.
 
@@ -125,14 +126,15 @@ PLAN-001's networking, procedural generation, shops/items/classes, multiple hunt
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
-| 2026-09-14 | Decomposition | Coordination plan written; C0/C1 and gameplay integration are not yet executed | [M0 baseline](../../Logs/AgentValidation/M0/verification.md) |
-| 2026-09-14 | C0 continuation admission | `/root` owns shared contracts, Session, routing, setup and publication. `/root/player` owns PLAN-003, `/root/level` PLAN-004, `/root/camera` PLAN-006 and `/root/telemetry` PLAN-010. All acknowledged staging-only writes outside Unity import paths. No other active writer was found in this task. | [Source hashes](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/c0-source-hashes.json), [workspace snapshot](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/c0-worktree-status.txt) |
-| 2026-09-14 | C1 preparation | Shared movement/probe, graph, traversal and recording contracts agreed in staging. Offline Core compilation passed; Unity publication/compilation and integration remain pending. This is preparation, not a completed C1 or I1 checkpoint. | [Offline compilation evidence](../../Logs/AgentValidation/PLAN-002/offline-compile/README.md) |
-| 2026-09-14 | I1 candidate verification | Four workers and the coordinator prepared 89 files. Final offline compilation passed seven assemblies; all 11 structural rules passed over 113 sources. Seventy-eight selected pure managed tests passed. Publication, Unity tests, graph conformance and gameplay/physical acceptance remain pending. No child plan meets archival criteria. | [Verification and remaining gates](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md), [publication manifest](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/prepared-publication-manifest.json) |
-| 2026-09-14 | Published integration and current verification | Shared contracts, Session tick/routing, deterministic scenes and terminal/restart integration are published. Manifest 61DC0C…05C33 has 238 current inputs, 0 compile errors/60 warnings and 0 lint findings. Final 548/548 Unity cases and exact source/scene graph checks pass. Scene source/config stamps match; the intended editor is idle and the coordinator lease is released. Historical failed and stale-provenance runs remain retained. | [Final engineering and closeout](../../Logs/AgentValidation/GoalCompletion/current-evidence/final-012-closeout.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: I1/I2/I3/V still require the wider movement, measured chase/floor/pressure and real-device/participant criteria mapped below. Bounded engine fixtures establish their arrangements, not every default gameplay route or acceptance population. Current engineering gates are verified; no source/test repetition is implied without a new issue. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
-| 2026-09-15 | Published integration and current targeted verification | Source 021 contains 246 inputs. Seven assemblies compile with 0 errors/60 warnings and 11-rule lint has 0 findings. Both targeted native cases pass, and saved scene stamps match recomputed source/config hashes. Repaired 020b graph remains valid for its source; current full regression, independent audits and closeout pass. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-14 | Decomposition | Coordination plan written; C0/C1 and gameplay integration are not yet executed | [M0 baseline](../../../Logs/AgentValidation/M0/verification.md) |
+| 2026-09-14 | C0 continuation admission | `/root` owns shared contracts, Session, routing, setup and publication. `/root/player` owns PLAN-003, `/root/level` PLAN-004, `/root/camera` PLAN-006 and `/root/telemetry` PLAN-010. All acknowledged staging-only writes outside Unity import paths. No other active writer was found in this task. | [Source hashes](../../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/c0-source-hashes.json), [workspace snapshot](../../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/c0-worktree-status.txt) |
+| 2026-09-14 | C1 preparation | Shared movement/probe, graph, traversal and recording contracts agreed in staging. Offline Core compilation passed; Unity publication/compilation and integration remain pending. This is preparation, not a completed C1 or I1 checkpoint. | [Offline compilation evidence](../../../Logs/AgentValidation/PLAN-002/offline-compile/README.md) |
+| 2026-09-14 | I1 candidate verification | Four workers and the coordinator prepared 89 files. Final offline compilation passed seven assemblies; all 11 structural rules passed over 113 sources. Seventy-eight selected pure managed tests passed. Publication, Unity tests, graph conformance and gameplay/physical acceptance remain pending. No child plan meets archival criteria. | [Verification and remaining gates](../../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md), [publication manifest](../../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/prepared-publication-manifest.json) |
+| 2026-09-14 | Published integration and current verification | Shared contracts, Session tick/routing, deterministic scenes and terminal/restart integration are published. Manifest 61DC0C…05C33 has 238 current inputs, 0 compile errors/60 warnings and 0 lint findings. Final 548/548 Unity cases and exact source/scene graph checks pass. Scene source/config stamps match; the intended editor is idle and the coordinator lease is released. Historical failed and stale-provenance runs remain retained. | [Final engineering and closeout](../../../Logs/AgentValidation/GoalCompletion/current-evidence/final-012-closeout.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: I1/I2/I3/V still require the wider movement, measured chase/floor/pressure and real-device/participant criteria mapped below. Bounded engine fixtures establish their arrangements, not every default gameplay route or acceptance population. Current engineering gates are verified; no source/test repetition is implied without a new issue. | [Remaining acceptance](../../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Published integration and current targeted verification | Source 021 contains 246 inputs. Seven assemblies compile with 0 errors/60 warnings and 11-rule lint has 0 findings. Both targeted native cases pass, and saved scene stamps match recomputed source/config hashes. Repaired 020b graph remains valid for its source; current full regression, independent audits and closeout pass. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-011. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |
 
 ### Continuation baseline and publication boundary
 

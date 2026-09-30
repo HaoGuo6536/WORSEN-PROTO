@@ -2,21 +2,22 @@
 id: PLAN-008
 type: plan
 title: Floor collection and collapse
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: Floor worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-018, PLAN-019
 source: none
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # PLAN-008 — Floor collection and collapse
 
-> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../specs/SPEC-002-worsen-game-design.md); see the [registry](../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-018](../../plans/PLAN-018-collapse-fog-grab-hands.md) and [PLAN-019](../../plans/PLAN-019-cakes-arrow-cake-traps.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../../specs/SPEC-002-worsen-game-design.md); see the [registry](../../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
 
 ## 1. Objective
 
@@ -56,11 +57,11 @@ Do not edit Run/SceneFlow, shared Core graph/helpers, SceneRoots, Orchestrators,
 
 Before changing existing indexed symbols, run GitNexus upstream impact and inspect direct callers; handle unknown/partial results with source and serialized-reference evidence. Follow SPEC-001 §13: script headers, appropriate pure-layer tests, assembly compilation, ast-grep, current graph conformance, ArchitectureConformanceTests and project tests. A source-only pass does not establish scene wiring.
 
-All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
+All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
 
 FloorControllerTests: duplicate contacts, anchor selection weights/seed reproducibility, disconnected rooms, distance tie ordering, exact telegraph/closure timing, safe transition ordering, Golden Cake separation and cue selection. Verify real triggers, lights, blockers and hunters refusing closed rooms; a changed NavMesh cost alone is not proof of impassability.
 
-Verify the functional first sweep with no stop to interact. Test both exit success and solo death; results and restart must reflect gameplay facts and reset the new run. Verify no Golden Cake arrow and no fallback dummy anchors. Under the [user clarification of 2026-09-15](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md), the former 2–4-minute duration target is NON-BLOCKING and deferred to later procedural floor sizing/growth. Retain historical timing misses; do not redesign or tune this greybox solely for that target.
+Verify the functional first sweep with no stop to interact. Test both exit success and solo death; results and restart must reflect gameplay facts and reset the new run. Verify no Golden Cake arrow and no fallback dummy anchors. Under the [user clarification of 2026-09-15](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md), the former 2–4-minute duration target is NON-BLOCKING and deferred to later procedural floor sizing/growth. Retain historical timing misses; do not redesign or tune this greybox solely for that target.
 
 ## 6. Risks and open questions
 
@@ -87,8 +88,9 @@ No economy/shop, procedural placement outside hand-authored anchors, save/load, 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned; awaits C1 and live Player/Level integration | [Coordinator](PLAN-002-parallel-coordination.md) |
-| 2026-09-14 | Published implementation and bounded verification | Floor collection, golden pickups, exit, collapse and restart are published. Fresh ordinary synthetic movement completes a directly bound 2672-record pair with 64 cake, 25 exit and 50 discriminating cue checks; 14 file stamps and 101 poses match. Warning lights, blockers/carving, Hunter refusal and lethal closure paths pass. | [Final Floor capture and cue audit](../../Logs/AgentValidation/GoalCompletion/telemetry-audit/20260915T0550228251317Z-85a6c6facab346bb8ca17fc74842622e/README.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: fresh first sweep 32.283335017 seconds and historical 32.316668352 seconds both miss 120–240 seconds. Preserve explicit ExitOpened sidecar timing and declared unopposed cohorts. Normal opposed/participant pacing, no-stop experience and actual warning audio remain open. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
-| 2026-09-15 | Opposed floor capture verification | Independent audit verifies 23 complete original input/CSV pairs, nine deaths and 14 escapes. The declared stopping rule reaches 30 completed chases. Sixteen observed first sweeps have median 34.650001807 s and none meet 120–240 s; seven missing/censored sweeps remain. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | User clarification: floor pacing is non-blocking | The former 120–240 s first-sweep duration target is deferred to later procedural floor sizing/growth outside the boilerplate. Preserve all historical misses and functional floor/terminal requirements. Hunter, movement, Director and unrelated participant/device criteria remain unchanged; status stays LIVE. | [User clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) |
+| 2026-09-14 | Published implementation and bounded verification | Floor collection, golden pickups, exit, collapse and restart are published. Fresh ordinary synthetic movement completes a directly bound 2672-record pair with 64 cake, 25 exit and 50 discriminating cue checks; 14 file stamps and 101 poses match. Warning lights, blockers/carving, Hunter refusal and lethal closure paths pass. | [Final Floor capture and cue audit](../../../Logs/AgentValidation/GoalCompletion/telemetry-audit/20260915T0550228251317Z-85a6c6facab346bb8ca17fc74842622e/README.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: fresh first sweep 32.283335017 seconds and historical 32.316668352 seconds both miss 120–240 seconds. Preserve explicit ExitOpened sidecar timing and declared unopposed cohorts. Normal opposed/participant pacing, no-stop experience and actual warning audio remain open. | [Remaining acceptance](../../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Opposed floor capture verification | Independent audit verifies 23 complete original input/CSV pairs, nine deaths and 14 escapes. The declared stopping rule reaches 30 completed chases. Sixteen observed first sweeps have median 34.650001807 s and none meet 120–240 s; seven missing/censored sweeps remain. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | User clarification: floor pacing is non-blocking | The former 120–240 s first-sweep duration target is deferred to later procedural floor sizing/growth outside the boilerplate. Preserve all historical misses and functional floor/terminal requirements. Hunter, movement, Director and unrelated participant/device criteria remain unchanged; status stays LIVE. | [User clarification](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-018, PLAN-019. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |

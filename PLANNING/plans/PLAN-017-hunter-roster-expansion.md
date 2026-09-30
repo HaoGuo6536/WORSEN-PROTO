@@ -2,7 +2,7 @@
 id: PLAN-017
 type: plan
 title: Hunter roster expansion and non-hunter threats
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Hunter roster workers, one per archetype (assignees UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-017 — Hunter roster expansion and non-hunter threats
 
-> Status: DRAFT since 2026-09-30. Implements the [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.15 hunters not shipped by PLAN-016, their §2.16 curses, and the remaining §2.17 non-hunter threat candidates. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements the [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.15 hunters not shipped by PLAN-016, their §2.16 curses, and the remaining §2.17 non-hunter threat candidates. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 
@@ -25,7 +25,7 @@ Add the rest of the requested roster behind depth gates, so each arrival returns
 
 ## 2. Starting point
 
-- Starts after PLAN-016 establishes the extension point, retires placeholders and ships three threats. The seven or eight remaining hunters depend on PLAN-016's choice.
+- Starts after PLAN-016 establishes the extension point, retires placeholders and ships the Echo, the Weaver and the Ticking (owner decision, 2026-09-30). The remaining seven hunters are the Mannequin, the Stare, the Ram, the Mimic, the Skip, the Blinder and the Herald; their rows in the table below apply, and the Echo, Weaver and Ticking rows move to PLAN-016.
 - Herald audio is present and fixed by SPEC-004: `Assets/External/Audio/Mangled_Screams_free/Sounds/ms_mangled_scream_03.wav` and `sb_mangled_scream_01.wav` to `sb_mangled_scream_03.wav`.
 - No voice lines exist for the Stare's "I see you" and "Find me" [assumed; search before recording new assets].
 - Room lighting state exists only as floor and collapse data (`FloorConfig`, `RoomCollapseVolume`). A per-room "lit" contract for the Mannequin is not established.

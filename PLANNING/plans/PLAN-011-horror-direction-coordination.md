@@ -2,7 +2,7 @@
 id: PLAN-011
 type: plan
 title: Horror direction execution map and shared contracts
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Coordinator role (assignee UNKNOWN — owner input needed); design authority Hao Guo
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-011 — Horror direction execution map and shared contracts
 
-> Status: DRAFT since 2026-09-30. Umbrella for [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md), which is itself DRAFT, so nothing here or in its child plans is approved for execution. Engineering follows [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md). See the [registry](../index.md). `DOCUMENTATION/direction.md` is absent, so no direction item is linked.
+> Status: LIVE since 2026-09-30, approved by Hao Guo together with SPEC-004 and every child plan. Umbrella for [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md). Engineering follows [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md). See the [registry](../index.md). `DOCUMENTATION/direction.md` is absent, so no direction item is linked.
 
 ## 1. Objective
 
@@ -28,7 +28,7 @@ Split SPEC-004 into fifteen child plans that can be run in parallel, with one ow
 Locations below were rechecked by text search on 2026-09-30. No Unity run and no GitNexus query was made for this decomposition, so caller sets and serialized wiring are unverified.
 
 - SPEC-004's "today" columns come from the owner's 2026-09-30 code survey. The horror run already exists: [`HorrorRunSceneRoot`](../../Assets/Scripts/Orchestrator/Scenes/HorrorRunSceneRoot.cs), Session systems `Expedition`, `HorrorEffects` and `Progression`, and a Domain `Procedural` castle generator. SPEC-003 therefore has generator code but no registered plan; PLAN-026 reconciles this.
-- PLAN-001 and PLAN-002/003/005–010 are LIVE for the hand-built boilerplate. Several of their criteria conflict with SPEC-004 (§3.4). This decomposition does not edit them.
+- PLAN-001 to PLAN-003 and PLAN-005 to PLAN-010 were the LIVE hand-built boilerplate plans. Several of their criteria conflicted with SPEC-004 (§3.4); at H0 on 2026-09-30 the owner directed that they be archived, and they are now SUPERSEDED.
 - Facts that constrain the shared contracts:
   - `ProgressionTraits` in [`ProgressionDefinitions.cs`](../../Assets/Scripts/Core/Definitions/ProgressionDefinitions.cs) is an `int` flags enum with 26 of 32 bits used. The SPEC-004 catalogues (49 upgrades, 17 active general curses and 40 hunter curses, several stacking) cannot fit.
   - [`CueId`](../../Assets/Scripts/Core/Definitions/CueId.cs) has 67 identifiers; SPEC-004 §2.6 sets a budget of roughly three player, five per hunter and a handful of world cues.
@@ -59,7 +59,7 @@ Locations below were rechecked by text search on 2026-09-30. No Unity run and no
 | [PLAN-025](PLAN-025-shrines.md) | Shrines (§2.14) | New shrine system |
 | [PLAN-026](PLAN-026-level-diversity-gaps-multifloor.md) | Level diversity, gaps and multi-floor generation (§2.11, §2.9 ramps, SPEC-003) | `Domain/Procedural/**`, Level |
 
-Ownership follows [PLAN-002 §3](PLAN-002-parallel-coordination.md#exclusive-file-ownership): the coordinator owns `Core/**`, `Session/**` contracts, `Orchestrator/**`, scene setup, assemblies, `Packages/**` and `ProjectSettings/**`. It explicitly delegates Session subtrees to PLAN-023/024. One writer per file per wave. Every other change is submitted to the path's owner as a request; each child lists its requests in §3.
+Ownership follows [PLAN-002 §3](../archive/plans/PLAN-002-parallel-coordination.md#exclusive-file-ownership): the coordinator owns `Core/**`, `Session/**` contracts, `Orchestrator/**`, scene setup, assemblies, `Packages/**` and `ProjectSettings/**`. It explicitly delegates Session subtrees to PLAN-023/024. One writer per file per wave. Every other change is submitted to the path's owner as a request; each child lists its requests in §3.
 
 ### 3.2 Checkpoints
 
@@ -88,19 +88,19 @@ Ownership follows [PLAN-002 §3](PLAN-002-parallel-coordination.md#exclusive-fil
 | World interactables | Core description for stateful doors, lights and knockable props, so hunters, shrines, micro-events and curses act on shared objects produced by PLAN-026. |
 | Floor split | PLAN-019 owns `FloorController`, `FloorDriver`, `FloorPresenter`, `CakePickup`, `FloorExitDoor*`, `FloorLumenGlow` and `FloorConfig`. PLAN-018 owns `RoomCollapse*`, `FloorHand*` and the new fog field. |
 
-### 3.4 Conflicts with LIVE boilerplate plans
+### 3.4 Conflicts with the boilerplate plans (resolved at H0)
 
 | LIVE item | SPEC-004 position | Plan |
 |---|---|---|
-| [PLAN-003](PLAN-003-player-movement-health.md) look-back steering ×0.35, frozen heading, free head scan | Fixed snap behind, no scanning, steering continues | 013, 022 |
+| [PLAN-003](../archive/plans/PLAN-003-player-movement-health.md) look-back steering ×0.35, frozen heading, free head scan | Fixed snap behind, no scanning, steering continues | 013, 022 |
 | PLAN-003 health: lunge 50, states 100/50/25/0, no grace | Grace, severity-scaled boost, full health each floor, regeneration | 013 |
 | PLAN-003 vault lock 0.25 s, mantle 0.35 s | Physics mantle with live look, steering in the last third | 013 |
-| [PLAN-005](PLAN-005-hunter-chase.md) Stalk optional; investigation at chase speed | Stalk required; walk while investigating | 015 |
-| PLAN-005/[006](PLAN-006-camera-postfx-feedback.md) death camera snap and fade | Held close-up, hard sting, hard cut | 022 |
-| [PLAN-007](PLAN-007-audio-hud-results.md) chase label, health display, compass | Removed; one white arrow | 020 |
-| [PLAN-008](PLAN-008-floor-collapse.md) collapse closure and lethal rooms | Exit room never collapses; rubber-band wall; grab then throw | 018 |
+| [PLAN-005](../archive/plans/PLAN-005-hunter-chase.md) Stalk optional; investigation at chase speed | Stalk required; walk while investigating | 015 |
+| PLAN-005/[006](../archive/plans/PLAN-006-camera-postfx-feedback.md) death camera snap and fade | Held close-up, hard sting, hard cut | 022 |
+| [PLAN-007](../archive/plans/PLAN-007-audio-hud-results.md) chase label, health display, compass | Removed; one white arrow | 020 |
+| [PLAN-008](../archive/plans/PLAN-008-floor-collapse.md) collapse closure and lethal rooms | Exit room never collapses; rubber-band wall; grab then throw | 018 |
 
-Player, Hunter and Floor code is shared by every scene, so limiting SPEC-004 to HorrorRun would need parallel configuration paths. Recommendation: at H0, add a dated note to each affected LIVE criterion pointing to its successor plan. The existing evidence stays as history. This is the owner's decision.
+Resolved at H0 on 2026-09-30: the owner directed that the old LIVE plans be archived. PLAN-001 to PLAN-003 and PLAN-005 to PLAN-010 are SUPERSEDED by the plans named in the registry. Their unchecked criteria are not carried forward unless a successor restates them, and their evidence remains as history.
 
 ### 3.5 Coverage matrix
 
@@ -163,7 +163,7 @@ These common gates apply to every child plan:
 
 - Run GitNexus upstream impact before editing an indexed symbol. Warn on HIGH or CRITICAL; treat UNKNOWN or partial results as unresolved.
 - Complete SPEC-001 §13: script headers, pure-layer tests, assembly compilation, `ast-grep scan`, the saved graph conformance queries, `ArchitectureConformanceTests` and the project suite.
-- Acquire the [Unity lease](../../tools/coordination/README.md) before any Unity operation or save into an open checkout, and follow the [PLAN-002 testing admission](PLAN-002-parallel-coordination.md#testing-admission). Write output under `Logs/AgentValidation/<PLAN-ID>/<lease-token>/<run>/`.
+- Acquire the [Unity lease](../../tools/coordination/README.md) before any Unity operation or save into an open checkout, and follow the [PLAN-002 testing admission](../archive/plans/PLAN-002-parallel-coordination.md#testing-admission). Write output under `Logs/AgentValidation/<PLAN-ID>/<lease-token>/<run>/`.
 - Check wiring changes live in HorrorRun; a static pass does not prove a feature is connected. Report any fallback path that fires as a failure.
 - Feel rows are accepted by owner playtest, recorded with date and build. Metrics support but do not establish feel.
 
@@ -173,15 +173,15 @@ For this plan: every SPEC-004 §2 requirement maps to a plan or to §7; the H1 c
 
 | Item | Type | Proposed resolution / owner |
 |---|---|---|
-| 1. §2.3 "hide the whole HUD in a chase" vs §2.18 arrow "always active, including during chases" | Spec conflict | Arrow exempt; Hao Guo at H0 |
-| 2. §2.5 "second grab fatal" vs §2.10 "no special fatal-grab rule" | Spec conflict | §2.10 (later rule set) wins; Hao Guo |
-| 3. §2.12 "no relic is a percentage" vs §2.13 flat and multiplier upgrades | Spec conflict | Catalogue wins; the rule applies to rule-changing upgrades; Hao Guo |
-| 4. §2.16 names "Lower Gravity", absent from §2.13, and "Wagered Haul", deferred | Spec gap | Confirm or drop Lower Gravity; Hao Guo |
-| 5. §2.17 cites "the Marionette already listed"; no Marionette exists | Spec gap | Name it or delete the reference; Hao Guo |
-| 6. §2.5 golden count on the HUD vs §2.7 target of arrow, count and slots only | Spec conflict | Hao Guo |
-| 7. §2.4 "wager the wallet" row not marked deferred; §3 defers it | Spec wording | Treat as deferred |
-| 8. SPEC-004 §5 open questions (Mannequin, Faithless Arrow, numbers, themes, shrine vs event cadence) | Design | Owners named in each child |
-| 9. Boilerplate conflicts (§3.4) | Governance | Hao Guo at H0 |
+| 1. §2.3 "hide the whole HUD in a chase" vs §2.18 arrow "always active, including during chases" | Spec conflict | Decided 2026-09-30: arrow stays visible during chases; other HUD chrome hides |
+| 2. §2.5 "second grab fatal" vs §2.10 "no special fatal-grab rule" | Spec conflict | Decided 2026-09-30: §2.10 rules win; no special fatal-grab rule |
+| 3. §2.12 "no relic is a percentage" vs §2.13 flat and multiplier upgrades | Spec conflict | Decided 2026-09-30: catalogue multipliers and flat upgrades allowed; the rule applies to rule-changing upgrades |
+| 4. §2.16 names "Lower Gravity", absent from §2.13, and "Wagered Haul", deferred | Spec gap | Decided 2026-09-30: drop Lower Gravity; Wagered Haul stays deferred |
+| 5. §2.17 cites "the Marionette already listed"; no Marionette exists | Spec gap | Decided 2026-09-30: delete the Marionette reference |
+| 6. §2.5 golden count on the HUD vs §2.7 target of arrow, count and slots only | Spec conflict | Decided 2026-09-30: golden count shown as a quiet second figure |
+| 7. §2.4 "wager the wallet" row not marked deferred; §3 defers it | Spec wording | Decided 2026-09-30: treat as deferred |
+| 8. SPEC-004 §5 open questions (Mannequin, Faithless Arrow, numbers, themes, shrine vs event cadence) | Design | Numbers: provisional values in config, listed for owner tuning (decided 2026-09-30). Mannequin rule, Faithless Arrow, themes and shrine cadence: ask when the owning plan reaches them |
+| 9. Boilerplate conflicts (§3.4) | Governance | Decided 2026-09-30: old plans archived as SUPERSEDED (§3.4) |
 | 10. Shared checkout has a large uncommitted baseline; worktrees from HEAD miss it | Integration | Verify baseline before delegating |
 | 11. New persistence, spatializer package and physics layers | Shared settings | Coordinator only, under lease |
 
@@ -191,7 +191,7 @@ Deferred by SPEC-004: declining a hunter at selection; bring-in items between ru
 
 ## 8. Definition of done
 
-- [ ] H0: SPEC-004 LIVE or named plans approved; §3.4 and §6 decisions recorded; owners assigned.
+- [x] H0: SPEC-004 LIVE or named plans approved; §3.4 and §6 decisions recorded; owners assigned.
 - [ ] H1: §3.3 contracts compiled with fixtures; conformance and project tests pass.
 - [ ] H2, H3 and H4 each have integration evidence and owner playtest notes.
 - [ ] Every child plan is COMPLETED, SUPERSEDED or CANCELLED with a reason.
@@ -202,3 +202,4 @@ Deferred by SPEC-004: declining a hunter at selection; bring-in items between ru
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-30 | Decomposition | PLAN-011 to PLAN-026 registered DRAFT; no code changed | [Registry](../index.md#spec-004-decomposition-on-2026-09-30) |
+| 2026-09-30 | H0 admission | Owner approved SPEC-004 (and SPEC-003) and PLAN-011 to PLAN-026 as LIVE; archived PLAN-001 to PLAN-003 and PLAN-005 to PLAN-010 as SUPERSEDED; accepted §6 items 1–7 with provisional numbers; first threats Echo, Weaver and Ticking; verified work lands as local commits on main and is pushed only on request; placeholder art and voice; ask before any package or asset download. Execution: Claude coordinates; workers are Hermes one-shot subagents on gpt-6-astra (high, xhigh for hard tasks) and gpt-6.1-sol (high, clearly defined tasks), in isolated worktrees, integrated by the coordinator under the Unity lease | [Registry](../index.md#approval-and-boilerplate-archive-on-2026-09-30) |

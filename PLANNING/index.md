@@ -8,41 +8,41 @@
 
 | ID | Type | Title | Status | Created | Updated | Direction | Specs | Supersedes | Path |
 |----|------|-------|--------|---------|---------|-----------|-------|------------|------|
-| PLAN-001 | plan | WORSEN core boilerplate implementation | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-001-worsen-boilerplate.md](plans/PLAN-001-worsen-boilerplate.md) |
-| PLAN-002 | plan | Parallel contracts and integration | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-002-parallel-coordination.md](plans/PLAN-002-parallel-coordination.md) |
-| PLAN-003 | plan | Player movement and health | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-003-player-movement-health.md](plans/PLAN-003-player-movement-health.md) |
-| PLAN-005 | plan | Hunter behavior and chase rules | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-005-hunter-chase.md](plans/PLAN-005-hunter-chase.md) |
-| PLAN-006 | plan | Camera and post-processing communicate pursuit without obscuring movement | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-006-camera-postfx-feedback.md](plans/PLAN-006-camera-postfx-feedback.md) |
-| PLAN-007 | plan | Audio and interface communicate chase and run outcomes | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-007-audio-hud-results.md](plans/PLAN-007-audio-hud-results.md) |
-| PLAN-008 | plan | Floor collection and collapse | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-008-floor-collapse.md](plans/PLAN-008-floor-collapse.md) |
-| PLAN-009 | plan | Director pressure and relief | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-009-director-pressure.md](plans/PLAN-009-director-pressure.md) |
-| PLAN-010 | plan | Telemetry replay and tuning | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-010-telemetry-replay-tuning.md](plans/PLAN-010-telemetry-replay-tuning.md) |
-| PLAN-011 | plan | Horror direction execution map and shared contracts | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-002, SPEC-003 | none | [plans/PLAN-011-horror-direction-coordination.md](plans/PLAN-011-horror-direction-coordination.md) |
-| PLAN-012 | plan | Direction-independent survey fixes | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-012-direction-independent-survey-fixes.md](plans/PLAN-012-direction-independent-survey-fixes.md) |
-| PLAN-013 | plan | Movement, traversal and hit recovery | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-013-movement-traversal-hit-recovery.md](plans/PLAN-013-movement-traversal-hit-recovery.md) |
-| PLAN-014 | plan | Hunter corner-stall investigation | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-003 | none | [plans/PLAN-014-hunter-corner-stall-investigation.md](plans/PLAN-014-hunter-corner-stall-investigation.md) |
-| PLAN-015 | plan | Hunter behaviour and felt intelligence | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-015-hunter-behaviour-felt-intelligence.md](plans/PLAN-015-hunter-behaviour-felt-intelligence.md) |
-| PLAN-016 | plan | Hunter roster foundation and first three threats | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-002 | none | [plans/PLAN-016-hunter-roster-foundation.md](plans/PLAN-016-hunter-roster-foundation.md) |
-| PLAN-017 | plan | Hunter roster expansion and non-hunter threats | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-017-hunter-roster-expansion.md](plans/PLAN-017-hunter-roster-expansion.md) |
-| PLAN-018 | plan | Collapse fog and grab hands | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-018-collapse-fog-grab-hands.md](plans/PLAN-018-collapse-fog-grab-hands.md) |
-| PLAN-019 | plan | Cakes, the white arrow and cake traps | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-019-cakes-arrow-cake-traps.md](plans/PLAN-019-cakes-arrow-cake-traps.md) |
-| PLAN-020 | plan | In-run interface, title, pause and results | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-020-run-interface-menus-results.md](plans/PLAN-020-run-interface-menus-results.md) |
-| PLAN-021 | plan | Silence-first audio and shared hearing | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-021-silence-first-audio-hearing.md](plans/PLAN-021-silence-first-audio-hearing.md) |
-| PLAN-022 | plan | Camera feel, the catch, degradation and lighting | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-022-camera-catch-degradation-lighting.md](plans/PLAN-022-camera-catch-degradation-lighting.md) |
-| PLAN-023 | plan | Selection cadence, curses and stakes | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-023-selection-curses-stakes.md](plans/PLAN-023-selection-curses-stakes.md) |
-| PLAN-024 | plan | Shop, upgrades and consumables | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-024-shop-upgrades-consumables.md](plans/PLAN-024-shop-upgrades-consumables.md) |
-| PLAN-025 | plan | Shrines | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-025-shrines.md](plans/PLAN-025-shrines.md) |
-| PLAN-026 | plan | Level diversity, gaps and multi-floor generation | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-003, SPEC-001 | none | [plans/PLAN-026-level-diversity-gaps-multifloor.md](plans/PLAN-026-level-diversity-gaps-multifloor.md) |
+| PLAN-011 | plan | Horror direction execution map and shared contracts | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-002, SPEC-003 | none | [plans/PLAN-011-horror-direction-coordination.md](plans/PLAN-011-horror-direction-coordination.md) |
+| PLAN-012 | plan | Direction-independent survey fixes | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-012-direction-independent-survey-fixes.md](plans/PLAN-012-direction-independent-survey-fixes.md) |
+| PLAN-013 | plan | Movement, traversal and hit recovery | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-013-movement-traversal-hit-recovery.md](plans/PLAN-013-movement-traversal-hit-recovery.md) |
+| PLAN-014 | plan | Hunter corner-stall investigation | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-003 | none | [plans/PLAN-014-hunter-corner-stall-investigation.md](plans/PLAN-014-hunter-corner-stall-investigation.md) |
+| PLAN-015 | plan | Hunter behaviour and felt intelligence | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-015-hunter-behaviour-felt-intelligence.md](plans/PLAN-015-hunter-behaviour-felt-intelligence.md) |
+| PLAN-016 | plan | Hunter roster foundation and first three threats | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-002 | none | [plans/PLAN-016-hunter-roster-foundation.md](plans/PLAN-016-hunter-roster-foundation.md) |
+| PLAN-017 | plan | Hunter roster expansion and non-hunter threats | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-017-hunter-roster-expansion.md](plans/PLAN-017-hunter-roster-expansion.md) |
+| PLAN-018 | plan | Collapse fog and grab hands | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-018-collapse-fog-grab-hands.md](plans/PLAN-018-collapse-fog-grab-hands.md) |
+| PLAN-019 | plan | Cakes, the white arrow and cake traps | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-019-cakes-arrow-cake-traps.md](plans/PLAN-019-cakes-arrow-cake-traps.md) |
+| PLAN-020 | plan | In-run interface, title, pause and results | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-020-run-interface-menus-results.md](plans/PLAN-020-run-interface-menus-results.md) |
+| PLAN-021 | plan | Silence-first audio and shared hearing | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-021-silence-first-audio-hearing.md](plans/PLAN-021-silence-first-audio-hearing.md) |
+| PLAN-022 | plan | Camera feel, the catch, degradation and lighting | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-022-camera-catch-degradation-lighting.md](plans/PLAN-022-camera-catch-degradation-lighting.md) |
+| PLAN-023 | plan | Selection cadence, curses and stakes | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-023-selection-curses-stakes.md](plans/PLAN-023-selection-curses-stakes.md) |
+| PLAN-024 | plan | Shop, upgrades and consumables | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-024-shop-upgrades-consumables.md](plans/PLAN-024-shop-upgrades-consumables.md) |
+| PLAN-025 | plan | Shrines | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-025-shrines.md](plans/PLAN-025-shrines.md) |
+| PLAN-026 | plan | Level diversity, gaps and multi-floor generation | LIVE | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-003, SPEC-001 | none | [plans/PLAN-026-level-diversity-gaps-multifloor.md](plans/PLAN-026-level-diversity-gaps-multifloor.md) |
 | SPEC-001 | spec | Project architecture and modular design guidelines | LIVE | 2026-09-14 | 2026-09-15 | n/a | — | none | [specs/SPEC-001-project-architecture-guidelines.md](specs/SPEC-001-project-architecture-guidelines.md) |
 | SPEC-002 | spec | WORSEN foundational game design revision 3 | LIVE | 2026-09-14 | 2026-09-14 | n/a | — | none | [specs/SPEC-002-worsen-game-design.md](specs/SPEC-002-worsen-game-design.md) |
-| SPEC-003 | spec | Procedural maps and level progression | DRAFT | 2026-09-15 | 2026-09-30 | n/a | — | none | [specs/SPEC-003-procedural-maps-level-progression.md](specs/SPEC-003-procedural-maps-level-progression.md) |
-| SPEC-004 | spec | Horror direction and content proposals | DRAFT | 2026-09-30 | 2026-09-30 | n/a | — | none | [specs/SPEC-004-horror-direction-content-proposals.md](specs/SPEC-004-horror-direction-content-proposals.md) |
+| SPEC-003 | spec | Procedural maps and level progression | LIVE | 2026-09-15 | 2026-09-30 | n/a | — | none | [specs/SPEC-003-procedural-maps-level-progression.md](specs/SPEC-003-procedural-maps-level-progression.md) |
+| SPEC-004 | spec | Horror direction and content proposals | LIVE | 2026-09-30 | 2026-09-30 | n/a | — | none | [specs/SPEC-004-horror-direction-content-proposals.md](specs/SPEC-004-horror-direction-content-proposals.md) |
 
 ## Archived
 
 | ID | Type | Title | Final status | Created | Archived | Superseded by / reason | Evidence | Path |
 |----|------|-------|--------------|---------|----------|------------------------|----------|------|
+| PLAN-001 | plan | WORSEN core boilerplate implementation | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-011; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-001-worsen-boilerplate.md](archive/plans/PLAN-001-worsen-boilerplate.md) |
+| PLAN-002 | plan | Parallel contracts and integration | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-011; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-002-parallel-coordination.md](archive/plans/PLAN-002-parallel-coordination.md) |
+| PLAN-003 | plan | Player movement and health | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-013; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-003-player-movement-health.md](archive/plans/PLAN-003-player-movement-health.md) |
 | PLAN-004 | plan | Level graph and tag arena | COMPLETED | 2026-09-14 | 2026-09-15 | Exit criteria met; separate umbrella acceptance remains | [025 checkpoint](../Logs/AgentValidation/GoalCompletion/current-evidence/checkpoint-025.md) | [archive/plans/PLAN-004-level-tag-arena.md](archive/plans/PLAN-004-level-tag-arena.md) |
+| PLAN-005 | plan | Hunter behavior and chase rules | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-015; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-005-hunter-chase.md](archive/plans/PLAN-005-hunter-chase.md) |
+| PLAN-006 | plan | Camera and post-processing communicate pursuit without obscuring movement | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-022; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-006-camera-postfx-feedback.md](archive/plans/PLAN-006-camera-postfx-feedback.md) |
+| PLAN-007 | plan | Audio and interface communicate chase and run outcomes | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-020, PLAN-021; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-007-audio-hud-results.md](archive/plans/PLAN-007-audio-hud-results.md) |
+| PLAN-008 | plan | Floor collection and collapse | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-018, PLAN-019; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-008-floor-collapse.md](archive/plans/PLAN-008-floor-collapse.md) |
+| PLAN-009 | plan | Director pressure and relief | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-015, PLAN-022; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-009-director-pressure.md](archive/plans/PLAN-009-director-pressure.md) |
+| PLAN-010 | plan | Telemetry replay and tuning | SUPERSEDED | 2026-09-14 | 2026-09-30 | Superseded by PLAN-012, PLAN-014; owner directed archiving the old LIVE plans when SPEC-004 went LIVE | — | [archive/plans/PLAN-010-telemetry-replay-tuning.md](archive/plans/PLAN-010-telemetry-replay-tuning.md) |
 
 ## Initialization record
 
@@ -51,7 +51,7 @@ Initialized on 2026-09-14. Migration scope was `Assets/Scripts/`, with this regi
 | Original path | Current location | Removed Unity metadata |
 |---|---|---|
 | `Assets/Scripts/PROJECT_ARCHITECTURE_GUIDELINES.md` | [SPEC-001](specs/SPEC-001-project-architecture-guidelines.md) | `Assets/Scripts/PROJECT_ARCHITECTURE_GUIDELINES.md.meta` |
-| `Assets/Scripts/WORSEN_Boilerplate_Plan.md` | [PLAN-001](plans/PLAN-001-worsen-boilerplate.md) | `Assets/Scripts/WORSEN_Boilerplate_Plan.md.meta` |
+| `Assets/Scripts/WORSEN_Boilerplate_Plan.md` | [PLAN-001](archive/plans/PLAN-001-worsen-boilerplate.md) | `Assets/Scripts/WORSEN_Boilerplate_Plan.md.meta` |
 | `Assets/Scripts/WORSEN_GDD_Rev3.docx` | [Unchanged binary source](specs/sources/WORSEN_GDD_Rev3.docx), summarized by [SPEC-002](specs/SPEC-002-worsen-game-design.md) | `Assets/Scripts/WORSEN_GDD_Rev3.docx.meta` |
 
 The originals were untracked, so migration used filesystem moves instead of `git mv`; no files were staged. The Word source is retained byte for byte. The migrated Markdown bodies retain their existing sections, including the architecture's stable section numbers; metadata, navigation, and the plan's obsolete location note were updated. Existing lint and test labels that name `PROJECT_ARCHITECTURE_GUIDELINES.md` refer to SPEC-001.
@@ -70,7 +70,7 @@ Validation covered planning structure, document references, preservation of the 
 
 The user requested physical plans that can be run in parallel and an explicit testing-admission gate. PLAN-001 remains the LIVE umbrella; PLAN-002 through PLAN-010 partition its approved execution scope. They inherit the prior instruction to begin boilerplate execution and add no feature scope. LIVE does not mean a dependency checkpoint has been met, an agent has been launched, or work is complete. No document was superseded, archived, copied into a second authority, or marked completed.
 
-Start with [the execution map](plans/PLAN-001-worsen-boilerplate.md#parallel-execution-map), then [PLAN-002 C0/C1](plans/PLAN-002-parallel-coordination.md#3-changes). Workers use exact file ownership, agreed shared contracts and the [Unity lease](../tools/coordination/README.md). Physical child files contain nine structured sections, scope, entry gates, handoffs, verification, risks and completion checklists. C1 permits parallel implementation; real integration and human/measured acceptance have later gates.
+Start with [the execution map](archive/plans/PLAN-001-worsen-boilerplate.md#parallel-execution-map), then [PLAN-002 C0/C1](archive/plans/PLAN-002-parallel-coordination.md#3-changes). Workers use exact file ownership, agreed shared contracts and the [Unity lease](../tools/coordination/README.md). Physical child files contain nine structured sections, scope, entry gates, handoffs, verification, risks and completion checklists. C1 permits parallel implementation; real integration and human/measured acceptance have later gates.
 
 The M0 evidence is [available locally](../Logs/AgentValidation/M0/verification.md); it is a baseline with recorded limits, not completion of the full boilerplate. No direction document exists. HAND-OFF → $codebase-documentation, when explicitly requested: reconcile the umbrella and child plans against implementation before assigning direction items; this operation did not edit DOCUMENTATION.
 
@@ -119,7 +119,7 @@ The independent full-regression audit retains every leaf output, expected fault-
 
 The [user clarification](../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) makes the current greybox floor's former **2–4-minute first-sweep duration target NON-BLOCKING** for boilerplate completion. Procedural level generation, later floor growth and their duration calibration remain deferred. Existing first-sweep measurements still miss the historical target; the dated scope decision does not turn them into passes.
 
-[PLAN-001 M5](plans/PLAN-001-worsen-boilerplate.md#m5--floor-loop--2-weeks) and [PLAN-008](plans/PLAN-008-floor-collapse.md) retain functional collection/cues, no-stop interaction, exit, optional Golden Cakes, collapse/telegraph/blocker/lethal behavior, warning presentation, death/exit summaries and restart. Hunter/chase numeric rules, movement metrics, Director behavior and unrelated participant/device acceptance are unchanged. Do not redesign or tune this hand-built floor solely to meet the deferred duration target.
+[PLAN-001 M5](archive/plans/PLAN-001-worsen-boilerplate.md#m5--floor-loop--2-weeks) and [PLAN-008](archive/plans/PLAN-008-floor-collapse.md) retain functional collection/cues, no-stop interaction, exit, optional Golden Cakes, collapse/telegraph/blocker/lethal behavior, warning presentation, death/exit summaries and restart. Hunter/chase numeric rules, movement metrics, Director behavior and unrelated participant/device acceptance are unchanged. Do not redesign or tune this hand-built floor solely to meet the deferred duration target.
 
 Ten plans and two specs remain LIVE, with no checkbox completion, status transition or archive move. Historical execution/evidence records remain intact. This planning clarification does not edit DOCUMENTATION or implement procedural generation.
 
@@ -160,3 +160,16 @@ SPEC-004 section 6 now lists the plans and maps its six original candidates to t
 > No plan changed status. When `DOCUMENTATION/direction.md` exists, the SPEC-004 waves in PLAN-011 §4 are candidates for Now/Next items. This skill did not create or edit DOCUMENTATION.
 
 Audit summary: 2 LIVE specs, 9 LIVE plans, 2 DRAFT specs, 16 DRAFT plans, 1 archived plan. Every one of the 30 Markdown documents under PLANNING except index.md has exactly one row, with matching id, status, dates and a location that matches its status. All 258 relative file links and anchors in the registry, SPEC-003, SPEC-004 and the new plans resolve. Each new plan has all nine template sections. No violations. [Audit evidence](../Logs/AgentValidation/SPEC-004-Decomposition/planning-audit.json).
+
+## Approval and boilerplate archive on 2026-09-30
+
+The owner approved the SPEC-004 work and directed that the old LIVE plans be archived. Applied transitions:
+
+- SPEC-004 and SPEC-003: DRAFT → LIVE. SPEC-003 is included because PLAN-026 continues it.
+- PLAN-011 to PLAN-026: DRAFT → LIVE.
+- PLAN-001 to PLAN-003 and PLAN-005 to PLAN-010: LIVE → SUPERSEDED, moved to `archive/plans/` with `git mv`. Each names its successor in front matter and in the table above, gains a header line and an execution-log row, and has its relative links rewritten for the new folder. No content was deleted. Their unmet acceptance items are not claimed and are not carried forward unless a successor restates them.
+
+Links to the moved files were rewritten in the registry, SPEC-001 to SPEC-003, PLAN-004, PLAN-011, PLAN-013, PLAN-018, PLAN-020, PLAN-022, `CLAUDE.md` and `AGENTS.md`. The owner's H0 decisions (accepted spec resolutions, first threats, commit policy, placeholders) are recorded in [PLAN-011 §6 and §9](plans/PLAN-011-horror-direction-coordination.md#9-execution-log).
+
+> HAND-OFF → $codebase-documentation
+> PLAN-001 to PLAN-003 and PLAN-005 to PLAN-010 are SUPERSEDED and archived; PLAN-011 to PLAN-026 are LIVE. When `DOCUMENTATION/direction.md` exists, its Now/Next items should point at the LIVE SPEC-004 plans. This skill did not create or edit DOCUMENTATION.

@@ -2,21 +2,22 @@
 id: PLAN-003
 type: plan
 title: Player movement and health
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: Player worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-013
 source: none
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # PLAN-003 — Player movement and health
 
-> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../specs/SPEC-002-worsen-game-design.md); see the [registry](../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-013](../../plans/PLAN-013-movement-traversal-hit-recovery.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> LIVE within the user's previously approved [PLAN-001](PLAN-001-worsen-boilerplate.md) execution scope. This decomposition authorizes no additional feature scope. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../../specs/SPEC-002-worsen-game-design.md); see the [registry](../../index.md). LIVE is approval, not dependency readiness or completion. Direction documentation is not present.
 
 ## 1. Objective
 
@@ -63,7 +64,7 @@ Do not edit Core, Session, Input, Orchestrator, global scene setup or Camera. Su
 
 Before changing existing indexed symbols, run GitNexus upstream impact and inspect direct callers; handle unknown/partial results with source and serialized-reference evidence. Follow SPEC-001 §13: script headers, appropriate pure-layer tests, assembly compilation, ast-grep, current graph conformance, ArchitectureConformanceTests and project tests. A source-only pass does not establish scene wiring.
 
-All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
+All Unity operations and saves into a checkout open in Unity use the [exclusive lease protocol](../../../tools/coordination/README.md) and [PLAN-002 testing gate](PLAN-002-parallel-coordination.md#testing-admission). Acquire first; a free Status response is not ownership. Assert the token, verify the intended editor is idle, and wait for imports/compilation before testing. Use token-specific output paths, wait for completed results, restore only your changes, then release when idle. While another owner holds the lease, prepare patches outside imported paths or work in an isolated checkout; do not save into the tested checkout.
 
 Run PlayerControllerTests and PlayerMoverPresenterTests: threshold boundaries, tap/coyote windows, same-wall cooldown, head/body separation, invalid probes, collision projection, death idempotence, pooled-state reset and deterministic InputFrame+MovementProbe replay. Check capsule clearance, slopes/edges, short traversal, step/ground snapping and all movement chains in the actual arena. No static test substitutes for casts.
 
@@ -95,8 +96,9 @@ No networking/prediction implementation, stamina, combat attacks, item mechanics
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned; awaits C1 | [Coordinator](PLAN-002-parallel-coordination.md) |
-| 2026-09-14 | I1 preparation | PLAN-003 owner prepared Player logic, Driver stack, prefab generator and tests outside imported paths. Includes recorded collision-resolution replay and Level traversal contract integration. Publication, Unity tests and physical movement acceptance remain pending; no definition-of-done item is inferred complete. | [Staged handoff](../../Logs/AgentStaging/PLAN-003/HANDOFF.md), [coordinator verification](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md) |
-| 2026-09-14 | Published implementation and bounded verification | Player movement, health and replay are published. Actual Step Driver 8/8, unchanged Advanced 2/2, held-LookBack 1/1 and forward/reverse authored-vault 2/2 cases pass after support and endpoint corrections. The retained route lock is 0.250000013 seconds, within its recorded scope. | [Movement and traversal evidence](../../Logs/AgentValidation/GoalCompletion/requirements.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: hard landing, broader lock/chased/blind-vault/rebound combinations, declared normal-route measurements, physical devices and natural look-back/vault acceptance remain. Retain both below-9 m/s synthetic trials; next measure a declared normal route with unchanged tuning and denominator. The LookBack fixture supplies no complete replay capture. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
-| 2026-09-15 | Movement, replay and corrected limb observations | Earlier free landing/held-LookBack and connected-route passes remain. Source 021 raises only the existing foot-offset default and matching asset. The current movement/traversal recording and replay case passes 1/1; the coordinator sees feet in both Slide PNGs and preserved Vault hands. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-14 | I1 preparation | PLAN-003 owner prepared Player logic, Driver stack, prefab generator and tests outside imported paths. Includes recorded collision-resolution replay and Level traversal contract integration. Publication, Unity tests and physical movement acceptance remain pending; no definition-of-done item is inferred complete. | [Staged handoff](../../../Logs/AgentStaging/PLAN-003/HANDOFF.md), [coordinator verification](../../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md) |
+| 2026-09-14 | Published implementation and bounded verification | Player movement, health and replay are published. Actual Step Driver 8/8, unchanged Advanced 2/2, held-LookBack 1/1 and forward/reverse authored-vault 2/2 cases pass after support and endpoint corrections. The retained route lock is 0.250000013 seconds, within its recorded scope. | [Movement and traversal evidence](../../../Logs/AgentValidation/GoalCompletion/requirements.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: hard landing, broader lock/chased/blind-vault/rebound combinations, declared normal-route measurements, physical devices and natural look-back/vault acceptance remain. Retain both below-9 m/s synthetic trials; next measure a declared normal route with unchanged tuning and denominator. The LookBack fixture supplies no complete replay capture. | [Remaining acceptance](../../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Movement, replay and corrected limb observations | Earlier free landing/held-LookBack and connected-route passes remain. Source 021 raises only the existing foot-offset default and matching asset. The current movement/traversal recording and replay case passes 1/1; the coordinator sees feet in both Slide PNGs and preserved Vault hands. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-013. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |

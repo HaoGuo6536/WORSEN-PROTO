@@ -2,7 +2,7 @@
 id: PLAN-024
 type: plan
 title: Shop, upgrades and consumables
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Shop worker, delegated shop and inventory subtree (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-024 — Shop, upgrades and consumables
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004 §2.12](../specs/SPEC-004-horror-direction-content-proposals.md#212-relics-consumables-shop-and-selection-cadence) (relics, flashlight, expensive shop); the §2.13 upgrades, consumables and shop presentation; the §2.18 flashlight row; and filling the §2.8 inventory slots. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004 §2.12](../specs/SPEC-004-horror-direction-content-proposals.md#212-relics-consumables-shop-and-selection-cadence) (relics, flashlight, expensive shop); the §2.13 upgrades, consumables and shop presentation; the §2.18 flashlight row; and filling the §2.8 inventory slots. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 

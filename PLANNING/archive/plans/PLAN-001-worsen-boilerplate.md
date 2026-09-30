@@ -2,28 +2,29 @@
 id: PLAN-001
 type: plan
 title: WORSEN core boilerplate implementation
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: UNKNOWN — owner input needed
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-011
 source: Assets/Scripts/WORSEN_Boilerplate_Plan.md
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # WORSEN — Core Boilerplate Implementation Plan
 
-> PLAN-001 · LIVE since 2026-09-14 by migration default. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and the solo prototype subset of [SPEC-002](../specs/SPEC-002-worsen-game-design.md). See the [registry](../index.md).
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-011](../../plans/PLAN-011-horror-direction-coordination.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> PLAN-001 · LIVE since 2026-09-14 by migration default. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and the solo prototype subset of [SPEC-002](../../specs/SPEC-002-worsen-game-design.md). See the [registry](../../index.md).
 > This initialization preserves the existing plan; it does not execute milestones or verify historical implementation claims. The original sections and acceptance criteria remain below.
 
 **Scope:** Unity, solo prototype. First-person throughout. Proves the tag loop, the detection beat and look-back, and the sweep → collapse → second-sweep floor. No procgen, no economy, no networking — but the architecture keeps networking possible.
 
 **Definition of done:** one hand-built cluster where a chase against one hunter feels like tag, the detection beat lands on confirmed detection, the look-back reads as a skill, and a full floor plays end to end with the Director keeping pressure on throughout.
 
-**Relationship to the architecture guidelines:** [SPEC-001 — Project architecture guidelines](../specs/SPEC-001-project-architecture-guidelines.md) is normative; this plan is a build order expressed in its vocabulary. Every script named below is one taxonomy type (Manager / Controller / BehaviorState / Config / Definitions / Driver / Presenter / DriverState / DriverConfig / Factory / Registry / Orchestrator / SceneRoot / Editor tool) in one layer (Core / Domain / Session / Presentation / Orchestrator), and every milestone closes only when the four §13 gates are green (§13e). Section references of the form §N below point at the guidelines. The gameplay values in §3 are design decisions and are unchanged from the previous revision of this plan; only structure and naming changed (see Appendix A).
+**Relationship to the architecture guidelines:** [SPEC-001 — Project architecture guidelines](../../specs/SPEC-001-project-architecture-guidelines.md) is normative; this plan is a build order expressed in its vocabulary. Every script named below is one taxonomy type (Manager / Controller / BehaviorState / Config / Definitions / Driver / Presenter / DriverState / DriverConfig / Factory / Registry / Orchestrator / SceneRoot / Editor tool) in one layer (Core / Domain / Session / Presentation / Orchestrator), and every milestone closes only when the four §13 gates are green (§13e). Section references of the form §N below point at the guidelines. The gameplay values in §3 are design decisions and are unchanged from the previous revision of this plan; only structure and naming changed (see Appendix A).
 
 ---
 
@@ -31,13 +32,13 @@ archived: none
 
 This plan remains the LIVE umbrella for scope and gameplay values. The physical child plans below replace the strictly serial execution order with dependency-gated workstreams; original milestone sections remain the acceptance reference. Assign exactly one worker to each owned area. The user's prior instruction to begin this plan supplies execution approval; a LIVE child still waits for its entry checkpoint and a testing lease.
 
-M0 is implemented with [70 passing tests and live scene evidence](../../Logs/AgentValidation/M0/verification.md), with physical-device testing and documented graph-tool limitations still to address. Do not repeat M0 blindly or interpret the historical “Remaining” list below as current implementation status.
+M0 is implemented with [70 passing tests and live scene evidence](../../../Logs/AgentValidation/M0/verification.md), with physical-device testing and documented graph-tool limitations still to address. Do not repeat M0 blindly or interpret the historical “Remaining” list below as current implementation status.
 
 | Plan | Workstream / source coverage | Earliest independent work | Live integration waits for |
 |---|---|---|---|
 | [PLAN-002](PLAN-002-parallel-coordination.md) | Shared contracts, Session, routing, scene setup, testing admission and final integration | First: C0 baseline/ownership, C1 contracts | Own I1/I2/I3/V checkpoints |
 | [PLAN-003](PLAN-003-player-movement-health.md) | Player movement and health; M1 + M7 rules | C1 | 004 real surfaces, 006 camera, 010 measurements |
-| [PLAN-004](../archive/plans/PLAN-004-level-tag-arena.md) | Level graph, markers, geometry and navigation; M2 | C1, parallel with Player | Coordinator shared utility/setup; 003 traversal |
+| [PLAN-004](PLAN-004-level-tag-arena.md) | Level graph, markers, geometry and navigation; M2 | C1, parallel with Player | Coordinator shared utility/setup; 003 traversal |
 | [PLAN-005](PLAN-005-hunter-chase.md) | Hunter and Chase; M3 + M4 proximity facts | C1 fixtures | 003 Player + 004 Level; 010 telemetry for acceptance |
 | [PLAN-006](PLAN-006-camera-postfx-feedback.md) | Camera/PostFX; M4 visuals + M6 intrusion/M7 effects | C1 fixtures, parallel with gameplay | 003/005/009 real facts via coordinator |
 | [PLAN-007](PLAN-007-audio-hud-results.md) | Audio/HUD/Results; M4 + M5/M7 presentation | C1 fixtures, parallel with gameplay | 003/005/008 and Session summaries |
@@ -74,7 +75,7 @@ flowchart TD
 
 The graph shows integration readiness, not a ban on earlier pure work against C1 fixtures. PLAN-002 is an ongoing coordinator plan: depend on its named checkpoint, never on its final completion.
 
-**Shared editor rule:** every worker follows [the atomic Unity lease protocol](../../tools/coordination/README.md) before testing, Play Mode, scene setup, imports, or publishing into a checkout open in Unity. Only the token owner may proceed, and it must still verify the editor is actually idle. Other workers prepare patches outside imported paths or in isolated checkouts. Old heartbeats never permit automatic takeover.
+**Shared editor rule:** every worker follows [the atomic Unity lease protocol](../../../tools/coordination/README.md) before testing, Play Mode, scene setup, imports, or publishing into a checkout open in Unity. Only the token owner may proceed, and it must still verify the editor is actually idle. Other workers prepare patches outside imported paths or in isolated checkouts. Old heartbeats never permit automatic takeover.
 
 **Architecture reconciliation:** PLAN-002's C1 boundary table controls ambiguous implementation wording below: Core-only EntityContext, a neutral traversal-surface contract, shared Core graph utility, marker→Driver→Manager→Registry lifecycle routing, and downward scene initialization. SPEC-001 remains normative. Do not copy historical names or patterns that contradict current code/policy. Gameplay values and measured/human acceptance thresholds remain unchanged.
 
@@ -350,7 +351,7 @@ System: `Domain/Floor/` (Service, scene-owned) plus `Session/Run/` for the run f
 
 Tests: `Assets/Editor/Tests/Floor/FloorControllerTests.cs`, `Assets/Editor/Tests/Run/RunSessionControllerTests.cs`. Add `FloorLoopSceneRoot` and `FloorLoopSceneSetup`.
 
-Acceptance (user clarification, 2026-09-15): a full floor verifies collection, exit opening, collapse, optional second-sweep rewards, death/exit summaries and fresh restart without stopping for an interaction. The former 2–4-minute first-sweep duration target is **NON-BLOCKING** for boilerplate completion; calibration is deferred with procedural generation and increasing floor sizes outside this boilerplate. Preserve historical timing misses. See the [dated user clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md); other movement, Hunter, Director and participant/device criteria are unchanged.
+Acceptance (user clarification, 2026-09-15): a full floor verifies collection, exit opening, collapse, optional second-sweep rewards, death/exit summaries and fresh restart without stopping for an interaction. The former 2–4-minute first-sweep duration target is **NON-BLOCKING** for boilerplate completion; calibration is deferred with procedural generation and increasing floor sizes outside this boilerplate. Preserve historical timing misses. See the [dated user clarification](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md); other movement, Hunter, Director and participant/device criteria are unchanged.
 
 ### M6 — Director v1 (≈ 1.5 weeks)
 System: `Domain/Director/` (Service, scene-owned). Ticked by `RunSessionManager` every fixed tick; `DirectorController` accumulates `dt` and evaluates at 2 Hz.
@@ -383,7 +384,7 @@ Tests: `Assets/Editor/Tests/Telemetry/TelemetryPresenterTests.cs`.
 
 - **Networking.** Decide between Netcode for GameObjects, Fish-Net, and Photon Fusion only after the solo loop is proven; the Controller/BehaviorState split, Core-typed DTOs, and the single tick owner in `RunSessionManager` keep all three viable. Do not add `NetworkBehaviour` to anything before then.
 - **Procedural generation.** `LevelGraph` (Core) and `LevelMarker`s are built so a generator can produce them later; the prototype hand-authors one cluster.
-- [ ] **Separate follow-up: procedural maps and level progression.** Implement working seeded runtime generation, connected playable maps and configurable growth across rounds, with enemy, curse and shop content allowed as placeholders. See [SPEC-003](../specs/SPEC-003-procedural-maps-level-progression.md) (DRAFT; a separate implementation plan is pending). This todo is outside the boilerplate's completion criteria.
+- [ ] **Separate follow-up: procedural maps and level progression.** Implement working seeded runtime generation, connected playable maps and configurable growth across rounds, with enemy, curse and shop content allowed as placeholders. See [SPEC-003](../../specs/SPEC-003-procedural-maps-level-progression.md) (DRAFT; a separate implementation plan is pending). This todo is outside the boilerplate's completion criteria.
 - **Items, relics, classes, shop.** `PlayerBehaviorState` has an inventory struct with empty slots so the HUD can render it; nothing consumes it.
 - **Behavior trees.** Add only when a GOAP action needs internal sequencing (likely `BreakLoop` or a boss rule).
 - **Multiple hunters.** `HunterRegistry`, `ChaseController`, and `DirectorController` are written for N hunters, but v1 ships with one instance.
@@ -424,7 +425,7 @@ The single most important checkpoint is the end of M3. If a chase does not feel 
 **Repository notes found while aligning (not plan content):**
 - `Assets/Tests/Tests.asmdef` is a stray test assembly outside the canonical `Assets/Editor/Tests/` location (§11 "one folder, no exceptions"). Delete it and its `.meta`.
 - Cinemachine is not in `Packages/manifest.json`; M0 adds it.
-- On 2026-09-14, $docs-plans init moved this plan into root-level `PLANNING/plans/` and the unchanged [game design source](../specs/sources/WORSEN_GDD_Rev3.docx) into `PLANNING/specs/sources/`. These documents are now outside the Unity import pipeline; see the [migration record](../index.md#initialization-record).
+- On 2026-09-14, $docs-plans init moved this plan into root-level `PLANNING/plans/` and the unchanged [game design source](../../specs/sources/WORSEN_GDD_Rev3.docx) into `PLANNING/specs/sources/`. These documents are now outside the Unity import pipeline; see the [migration record](../../index.md#initialization-record).
 
 ## Appendix B — Execution log
 
@@ -432,9 +433,10 @@ These entries update execution status; original scope, milestone criteria and hi
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
-| 2026-09-14 | Published implementation and engineering verification | Approved runtime systems and both scenes are published. Source012 has 238 exact audited inputs, seven assemblies with 0 compile errors/60 visible warnings, and 0 findings across 11 lint rules. The final Unity suite passes 548/548, including all 13 architecture cases; current graph conformance and complete change coverage pass. Editor idle/restoration and root lease release are verified. | [Final engineering and closeout](../../Logs/AgentValidation/GoalCompletion/current-evidence/final-012-closeout.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: broader movement/lock combinations, measured chase/floor/Director criteria and real-device/participant perception, look-back and comfort evidence remain. Retained synthetic speed and floor trials miss their thresholds; do not discard their denominators or infer a sprint tuning defect. Engineering success does not close the remaining milestone criteria. | [Requirement and remaining evidence](../../Logs/AgentValidation/GoalCompletion/requirements.md) |
-| 2026-09-15 | Acceptance observations through Source 021 | Free transitions, the connected route, Director cadence and component feedback gain bounded native evidence. The independently audited 23-attempt cohort reaches 30 completed chases but misses chase duration, loss and first-sweep targets. Both targeted 021 native cases pass; corrected limb pixels are observed. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | User clarification: floor pacing is non-blocking | The former 120–240 s first-sweep duration target is deferred to later procedural floor sizing/growth outside the boilerplate. Preserve all historical misses and functional floor/terminal requirements. Hunter, movement, Director and unrelated participant/device criteria remain unchanged; status stays LIVE. | [User clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) |
-| 2026-09-15 | PLAN-004 completed and archived | The finite hand-built Level/TagArena child scope is complete; its original traversal, cue and current engineering evidence is retained. PLAN-001 remains LIVE for broader chase/participant/device acceptance. | [025 checkpoint](../../Logs/AgentValidation/GoalCompletion/current-evidence/checkpoint-025.md) |
+| 2026-09-14 | Published implementation and engineering verification | Approved runtime systems and both scenes are published. Source012 has 238 exact audited inputs, seven assemblies with 0 compile errors/60 visible warnings, and 0 findings across 11 lint rules. The final Unity suite passes 548/548, including all 13 architecture cases; current graph conformance and complete change coverage pass. Editor idle/restoration and root lease release are verified. | [Final engineering and closeout](../../../Logs/AgentValidation/GoalCompletion/current-evidence/final-012-closeout.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: broader movement/lock combinations, measured chase/floor/Director criteria and real-device/participant perception, look-back and comfort evidence remain. Retained synthetic speed and floor trials miss their thresholds; do not discard their denominators or infer a sprint tuning defect. Engineering success does not close the remaining milestone criteria. | [Requirement and remaining evidence](../../../Logs/AgentValidation/GoalCompletion/requirements.md) |
+| 2026-09-15 | Acceptance observations through Source 021 | Free transitions, the connected route, Director cadence and component feedback gain bounded native evidence. The independently audited 23-attempt cohort reaches 30 completed chases but misses chase duration, loss and first-sweep targets. Both targeted 021 native cases pass; corrected limb pixels are observed. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | User clarification: floor pacing is non-blocking | The former 120–240 s first-sweep duration target is deferred to later procedural floor sizing/growth outside the boilerplate. Preserve all historical misses and functional floor/terminal requirements. Hunter, movement, Director and unrelated participant/device criteria remain unchanged; status stays LIVE. | [User clarification](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) |
+| 2026-09-15 | PLAN-004 completed and archived | The finite hand-built Level/TagArena child scope is complete; its original traversal, cue and current engineering evidence is retained. PLAN-001 remains LIVE for broader chase/participant/device acceptance. | [025 checkpoint](../../../Logs/AgentValidation/GoalCompletion/current-evidence/checkpoint-025.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-011. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |

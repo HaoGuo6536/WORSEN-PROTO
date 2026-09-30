@@ -2,7 +2,7 @@
 id: SPEC-003
 type: spec
 title: Procedural maps and level progression
-status: DRAFT
+status: LIVE
 created: 2026-09-15
 updated: 2026-09-30
 owner: UNKNOWN — owner input needed
@@ -14,14 +14,14 @@ archived: none
 
 # SPEC-003 — Procedural maps and level progression
 
-> Status: DRAFT since 2026-09-15. See the [registry](../index.md).
+> Status: LIVE since 2026-09-30 (DRAFT from 2026-09-15), approved with the SPEC-004 plans. See the [registry](../index.md).
 > Sources: the user's 2026-09-15 request and the unchanged [Game Design Document (GDD), Revision 3](sources/WORSEN_GDD_Rev3.docx), summarized by [SPEC-002](SPEC-002-worsen-game-design.md). This records intended follow-up work, not an implemented feature or settled balance choices.
 
 ## 1. Subject and scope
 
 Working procedural maps, growth across successive rounds, and progression involving enemies, curses and shops. **Procedural generation must produce playable maps in the running game. Enemy, curse, shop and visual content may be placeholders.** For this draft, a round means one playable floor followed by a between-floor progression interval; exact choice cadence remains open.
 
-This is a separate follow-up to the hand-built boilerplate. [PLAN-001](../plans/PLAN-001-worsen-boilerplate.md#4-what-is-deliberately-not-in-the-boilerplate), [PLAN-004](../archive/plans/PLAN-004-level-tag-arena.md) and [PLAN-008](../plans/PLAN-008-floor-collapse.md) retain their current scope. Procedural generation and progression do not become boilerplate completion criteria. Networking, cooperative resolution, final content catalogs, boss cadence, branching, extra biomes, permanent unlocks and save/load are outside this initial follow-up.
+This is a separate follow-up to the hand-built boilerplate. [PLAN-001](../archive/plans/PLAN-001-worsen-boilerplate.md#4-what-is-deliberately-not-in-the-boilerplate), [PLAN-004](../archive/plans/PLAN-004-level-tag-arena.md) and [PLAN-008](../archive/plans/PLAN-008-floor-collapse.md) retain their current scope. Procedural generation and progression do not become boilerplate completion criteria. Networking, cooperative resolution, final content catalogs, boss cadence, branching, extra biomes, permanent unlocks and save/load are outside this initial follow-up.
 
 ## 2. Intended behaviour
 
@@ -76,9 +76,9 @@ Reusable modules allow varied maps while preserving deliberate local traversal. 
 
 ## 6. Plans implementing this spec
 
-The unchecked follow-up is recorded in [PLAN-001's deferred-work list](../plans/PLAN-001-worsen-boilerplate.md#4-what-is-deliberately-not-in-the-boilerplate). PLAN-001, PLAN-004 and PLAN-008 retain their hand-built boilerplate scope. This DRAFT is not an execution plan.
+The unchecked follow-up is recorded in [PLAN-001's deferred-work list](../archive/plans/PLAN-001-worsen-boilerplate.md#4-what-is-deliberately-not-in-the-boilerplate). PLAN-001, PLAN-004 and PLAN-008 retain their hand-built boilerplate scope. This spec is not an execution plan.
 
-- PLAN-026 — DRAFT — [plans/PLAN-026-level-diversity-gaps-multifloor.md](../plans/PLAN-026-level-diversity-gaps-multifloor.md). Registered 2026-09-30 from SPEC-004. It continues this spec's generation work, and its first step records which of section 2's requirements the existing `Domain/Procedural` code meets. PLAN-014 (hunter corner stalls on generated floors) and PLAN-023 (selection cadence) also touch this spec's subject.
+- PLAN-026 — LIVE — [plans/PLAN-026-level-diversity-gaps-multifloor.md](../plans/PLAN-026-level-diversity-gaps-multifloor.md). Registered 2026-09-30 from SPEC-004. It continues this spec's generation work, and its first step records which of section 2's requirements the existing `Domain/Procedural` code meets. PLAN-014 (hunter corner stalls on generated floors) and PLAN-023 (selection cadence) also touch this spec's subject.
 
 ## 7. History
 
@@ -86,3 +86,4 @@ The unchecked follow-up is recorded in [PLAN-001's deferred-work list](../plans/
 |------|--------|----|
 | 2026-09-15 | Recorded the requested separate procedural-map and level-progression follow-up. Working generation is required; enemy/curse/shop content may be placeholders. Preserved GDD floor/wallet/progression semantics and left growth, cadence and balance choices open. | $docs-plans |
 | 2026-09-30 | Section 6 lists PLAN-026 (DRAFT), registered during the SPEC-004 decomposition. Body and status unchanged. | $docs-plans new plan |
+| 2026-09-30 | Set LIVE when the owner approved the SPEC-004 plans, since PLAN-026 continues this spec. Body unchanged. | $docs-plans status |

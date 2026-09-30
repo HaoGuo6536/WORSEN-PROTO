@@ -2,7 +2,7 @@
 id: PLAN-018
 type: plan
 title: Collapse fog and grab hands
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Collapse worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-018 — Collapse fog and grab hands
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004 §2.10](../specs/SPEC-004-horror-direction-content-proposals.md#210-collapse-fog-and-grabs) and the §2.5 rows for exit soft-lock, hands as a real cost and deep dark in collapse. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004 §2.10](../specs/SPEC-004-horror-direction-content-proposals.md#210-collapse-fog-and-grabs) and the §2.5 rows for exit soft-lock, hands as a real cost and deep dark in collapse. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 
@@ -29,7 +29,7 @@ Make collapse read as a dark front advancing through the building, not cells swi
 - [`FloorHandController.cs`](../../Assets/Scripts/Domain/Floor/Controller/FloorHandController.cs): warning, escapable slow, one hit per grab and explicit lethal confirmation. Unit tests pass, but in play the grab chain does not fire (SPEC-004 §2.10); the cause is not identified.
 - [`FloorController`](../../Assets/Scripts/Domain/Floor/Controller/FloorController.cs) orders collapse by distance to the exit (line 57). `ContactExit` refuses a Closed exit room (line 192), so a Closed exit room soft-locks the run.
 - Fog is black from 8 to 24 m across the whole floor (SPEC-004 §2.5). The fog and horror presentation lives in [`HorrorAtmosphereDriver`](../../Assets/Scripts/Presentation/Horror/Driver/HorrorAtmosphereDriver.cs) and [`EnvironmentDriver`](../../Assets/Scripts/Presentation/Environment/Driver/EnvironmentDriver.cs) [verify which owns distance fog].
-- LIVE [PLAN-008](PLAN-008-floor-collapse.md) defines collapse closure and lethal behaviour that this plan replaces (PLAN-011 §3.4).
+- LIVE [PLAN-008](../archive/plans/PLAN-008-floor-collapse.md) defines collapse closure and lethal behaviour that this plan replaces (PLAN-011 §3.4).
 
 ## 3. Changes
 

@@ -2,7 +2,7 @@
 id: PLAN-021
 type: plan
 title: Silence-first audio and shared hearing
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Audio worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-021 — Silence-first audio and shared hearing
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004 §2.6](../specs/SPEC-004-horror-direction-content-proposals.md#26-presentation) audio rows, "Minimal audio, by decision" and "Shared hearing rule"; the §2.3 rows for the clean all-clear, occluded player noise (mix side) and false positives; the §2.5 combo-sting row; and the §2.2 per-hunter sound-identity row (slots and mix). Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004 §2.6](../specs/SPEC-004-horror-direction-content-proposals.md#26-presentation) audio rows, "Minimal audio, by decision" and "Shared hearing rule"; the §2.3 rows for the clean all-clear, occluded player noise (mix side) and false positives; the §2.5 combo-sting row; and the §2.2 per-hunter sound-identity row (slots and mix). Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 

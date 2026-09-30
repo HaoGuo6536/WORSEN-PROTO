@@ -32,7 +32,7 @@ This is a summary stub for the retained design source, not a complete transcript
 
 ## 3. Constraints and non-negotiables
 
-The source's ordered prototype scope is solo-only and separates simulation state from presentation for future networking (§6). It defers networking, classes and content catalogs, a full hunter roster, boss cadence, branching, extra biomes, and between-level shops. Engineering follows [SPEC-001](SPEC-001-project-architecture-guidelines.md); the build sequence and narrower prototype scope are in [PLAN-001](../plans/PLAN-001-worsen-boilerplate.md).
+The source's ordered prototype scope is solo-only and separates simulation state from presentation for future networking (§6). It defers networking, classes and content catalogs, a full hunter roster, boss cadence, branching, extra biomes, and between-level shops. Engineering follows [SPEC-001](SPEC-001-project-architecture-guidelines.md); the build sequence and narrower prototype scope are in [PLAN-001](../archive/plans/PLAN-001-worsen-boilerplate.md).
 
 ## 4. Rationale
 
@@ -51,7 +51,7 @@ These entries preserve source uncertainty; migration does not choose a design ou
 
 ## 6. Plans implementing this spec
 
-- [PLAN-001 — WORSEN core boilerplate implementation](../plans/PLAN-001-worsen-boilerplate.md) — LIVE; implements the solo prototype subset under SPEC-001's architecture.
+- [PLAN-001 — WORSEN core boilerplate implementation](../archive/plans/PLAN-001-worsen-boilerplate.md) — LIVE; implements the solo prototype subset under SPEC-001's architecture.
 
 ## 7. History
 

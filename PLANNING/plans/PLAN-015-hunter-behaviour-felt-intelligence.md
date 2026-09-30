@@ -2,7 +2,7 @@
 id: PLAN-015
 type: plan
 title: Hunter behaviour and felt intelligence
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Hunter worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-015 — Hunter behaviour and felt intelligence
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004 §2.2](../specs/SPEC-004-horror-direction-content-proposals.md#22-making-the-hunters-scary): the approved behaviour rows, "Felt intelligence" items 1–6, the Director hint change, environment habits, Final IK and the animation note. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004 §2.2](../specs/SPEC-004-horror-direction-content-proposals.md#22-making-the-hunters-scary): the approved behaviour rows, "Felt intelligence" items 1–6, the Director hint change, environment habits, Final IK and the animation note. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 

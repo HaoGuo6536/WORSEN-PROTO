@@ -2,7 +2,7 @@
 id: PLAN-016
 type: plan
 title: Hunter roster foundation and first three threats
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Hunter roster worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-016 — Hunter roster foundation and first three threats
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.2 (build order, one-page brief, partition-ignoring hunter, novelty on schedule), the first three entries of §2.15 and their §2.16 curses, and the §2.17 systemic slot. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.2 (build order, one-page brief, partition-ignoring hunter, novelty on schedule), the first three entries of §2.15 and their §2.16 curses, and the §2.17 systemic slot. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 
@@ -74,9 +74,9 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 
 | Item | Type | Impact | Mitigation / owner |
 |---|---|---|---|
-| Which §2.15 hunter is the first pursuer (candidates: Echo, Ram, Herald, Mannequin, Blinder) | Owner decision | Everything after step 3 | Hao Guo at H0 |
-| Weaver or Skip as partition-ignoring; Skip is an annoyance type | Owner decision | Navigation work | Hao Guo |
-| Which systemic threat is third (Ticking, Stare, §2.17 candidate) | Owner decision | Director work | Hao Guo |
+| Which §2.15 hunter is the first pursuer | Owner decision | Everything after step 3 | Decided 2026-09-30: the Echo |
+| Weaver or Skip as partition-ignoring | Owner decision | Navigation work | Decided 2026-09-30: the Weaver |
+| Which systemic threat is third | Owner decision | Director work | Decided 2026-09-30: the Ticking |
 | Mannequin rule direction and Faithless Arrow (SPEC-004 §5) | Open question | Brief content | Hao Guo, if chosen |
 | Archetype modules may need a SPEC-001 taxonomy amendment | Architecture | Policy change | Amend SPEC-001 and its checks with reason, not relax them |
 | Removing placeholders reopens LIVE PLAN-005 evidence | Governance | History | PLAN-011 §3.4 note |

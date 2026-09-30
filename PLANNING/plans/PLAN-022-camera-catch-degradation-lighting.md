@@ -2,7 +2,7 @@
 id: PLAN-022
 type: plan
 title: Camera feel, the catch, degradation and lighting
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Presentation worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-022 — Camera feel, the catch, degradation and lighting
 
-> Status: DRAFT since 2026-09-30. Implements the [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.2 catch row; §2.3 look-back (camera side); §2.6 embodiment (landing dip), degradation layer, startle budget and fail forward (camera side); the §2.5 micro-events row; and the §2.18 lighting rows. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements the [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.2 catch row; §2.3 look-back (camera side); §2.6 embodiment (landing dip), degradation layer, startle budget and fail forward (camera side); the §2.5 micro-events row; and the §2.18 lighting rows. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 
@@ -34,7 +34,7 @@ archived: none
 - [`PostFXDriver`](../../Assets/Scripts/Presentation/PostFX/Driver/PostFXDriver.cs) applies distortion, vignette, desaturation and grain. Grain appears only during the intrusion (`PostFXDriverConfig._intrusionGrain`).
 - The intrusion fires whenever the player is slow (Director intrusion episodes); there are no other startles.
 - Lumen 2 is used as fake-light flares budgeted to the twelve nearest ([`HorrorLumenPresenter`](../../Assets/Scripts/Presentation/Horror/Driver/HorrorLumenPresenter.cs)). Ambient light is grey-green with black fog from 8 m.
-- LIVE [PLAN-006](PLAN-006-camera-postfx-feedback.md) defines the current death snap and look-back camera (PLAN-011 §3.4).
+- LIVE [PLAN-006](../archive/plans/PLAN-006-camera-postfx-feedback.md) defines the current death snap and look-back camera (PLAN-011 §3.4).
 
 ## 3. Changes
 

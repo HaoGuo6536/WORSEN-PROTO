@@ -2,7 +2,7 @@
 id: PLAN-019
 type: plan
 title: Cakes, the white arrow and cake traps
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Floor worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-019 — Cakes, the white arrow and cake traps
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.5 cake rows (density, creation horror, golden count data), §2.3 and §2.18 arrow rows (accuracy and guidance data), and the §2.11 cake-trap row. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.5 cake rows (density, creation horror, golden count data), §2.3 and §2.18 arrow rows (accuracy and guidance data), and the §2.11 cake-trap row. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 

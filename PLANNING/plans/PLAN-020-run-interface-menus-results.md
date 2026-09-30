@@ -2,7 +2,7 @@
 id: PLAN-020
 type: plan
 title: In-run interface, title, pause and results
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Interface worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-020 — In-run interface, title, pause and results
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.7; the §2.3 rows for the HUNTED label, hidden health and hidden count; §2.18 arrow presentation; the §2.5 golden-count and results rows; the §2.6 headphones and pause rows; and the §2.8 hint-line and empty-slot items. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 is DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004](../specs/SPEC-004-horror-direction-content-proposals.md) §2.7; the §2.3 rows for the HUNTED label, hidden health and hidden count; §2.18 arrow presentation; the §2.5 golden-count and results rows; the §2.6 headphones and pause rows; and the §2.8 hint-line and empty-slot items. Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 
@@ -33,7 +33,7 @@ Reduce the in-run screen to one white arrow, a quiet cake count and the consumab
 - HorrorRun shows health as a number and bar ([`ProgressionUIPresenter`](../../Assets/Scripts/Presentation/ProgressionUI/Driver/ProgressionUIPresenter.cs) lines 64–65). The shelter lists every retained threat.
 - There is no title screen and no pause or quit. Sensitivity, invert Y, field of view, tilt, punch and reacquire blur are locked in designer configs. Mixer groups are unassigned (PLAN-021 assigns them). No persistence exists.
 - HorrorRun ends on the shelter screen with round and wallet only; [`ResultsDriver`](../../Assets/Scripts/Presentation/Results/Driver/ResultsDriver.cs) serves the boilerplate scenes.
-- LIVE [PLAN-007](PLAN-007-audio-hud-results.md) defines the current HUD (PLAN-011 §3.4).
+- LIVE [PLAN-007](../archive/plans/PLAN-007-audio-hud-results.md) defines the current HUD (PLAN-011 §3.4).
 
 ## 3. Changes
 

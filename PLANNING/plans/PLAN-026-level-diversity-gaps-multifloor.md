@@ -2,7 +2,7 @@
 id: PLAN-026
 type: plan
 title: Level diversity, gaps and multi-floor generation
-status: DRAFT
+status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Level generation worker (assignee UNKNOWN — owner input needed)
@@ -17,7 +17,7 @@ archived: none
 
 # PLAN-026 — Level diversity, gaps and multi-floor generation
 
-> Status: DRAFT since 2026-09-30. Implements [SPEC-004 §2.11](../specs/SPEC-004-horror-direction-content-proposals.md#211-level-and-room-design) (except cake traps), the §2.9 stair-ramp geometry, the §2.5 generation-retry row, and generator requests from other SPEC-004 plans. Continues the procedural work of [SPEC-003](../specs/SPEC-003-procedural-maps-level-progression.md). Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Not approved for execution while SPEC-004 and SPEC-003 are DRAFT. Direction documentation is not present.
+> Status: LIVE since 2026-09-30 (approved by Hao Guo). Implements [SPEC-004 §2.11](../specs/SPEC-004-horror-direction-content-proposals.md#211-level-and-room-design) (except cake traps), the §2.9 stair-ramp geometry, the §2.5 generation-retry row, and generator requests from other SPEC-004 plans. Continues the procedural work of [SPEC-003](../specs/SPEC-003-procedural-maps-level-progression.md). Coordinated by [PLAN-011](PLAN-011-horror-direction-coordination.md). See the [registry](../index.md). Direction documentation is not present.
 
 ## 1. Objective
 

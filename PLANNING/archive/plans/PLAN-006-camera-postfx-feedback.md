@@ -2,21 +2,22 @@
 id: PLAN-006
 type: plan
 title: Camera and post-processing communicate pursuit without obscuring movement
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: Camera/PostFX worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-022
 source: none
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # PLAN-006 — Camera and post-processing feedback
 
-> LIVE since 2026-09-14. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../specs/SPEC-002-worsen-game-design.md), through [PLAN-001 M4](PLAN-001-worsen-boilerplate.md#m4--detection-beat-look-back-first-person-readability--1-week), [M6](PLAN-001-worsen-boilerplate.md#m6--director-v1--15-weeks), and [M7](PLAN-001-worsen-boilerplate.md#m7--health-injury-hud--1-week). See the [registry](../index.md).
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-022](../../plans/PLAN-022-camera-catch-degradation-lighting.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> LIVE since 2026-09-14. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../../specs/SPEC-002-worsen-game-design.md), through [PLAN-001 M4](PLAN-001-worsen-boilerplate.md#m4--detection-beat-look-back-first-person-readability--1-week), [M6](PLAN-001-worsen-boilerplate.md#m6--director-v1--15-weeks), and [M7](PLAN-001-worsen-boilerplate.md#m7--health-injury-hud--1-week). See the [registry](../../index.md).
 > This is a bounded decomposition of the previously approved boilerplate execution, with unchanged scope. This planning operation implements nothing and records no milestone as complete.
 
 ## 1. Objective
@@ -25,7 +26,7 @@ Provide readable first-person camera feedback and post-processing for confirmed 
 
 ## 2. Starting point
 
-M0 has a static camera built by [TagArenaSceneSetup](../../Assets/Editor/Scenes/TagArenaSceneSetup.cs), a persistent [RunSessionManager](../../Assets/Scripts/Session/Run/Manager/RunSessionManager.cs), and a working [DebugOverlay Driver stack](../../Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs). That overlay demonstrates explicit initialization and document rebinding; it does not implement this plan's camera or effects. No Camera/PostFX system source exists at decomposition time. Recheck Cinemachine and Universal Render Pipeline package versions before implementation; package configuration belongs to the coordinator.
+M0 has a static camera built by [TagArenaSceneSetup](../../../Assets/Editor/Scenes/TagArenaSceneSetup.cs), a persistent [RunSessionManager](../../../Assets/Scripts/Session/Run/Manager/RunSessionManager.cs), and a working [DebugOverlay Driver stack](../../../Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs). That overlay demonstrates explicit initialization and document rebinding; it does not implement this plan's camera or effects. No Camera/PostFX system source exists at decomposition time. Recheck Cinemachine and Universal Render Pipeline package versions before implementation; package configuration belongs to the coordinator.
 
 Entry requires **C1: the Core contract freeze in [PLAN-002](PLAN-002-parallel-coordination.md)**, not completion of PLAN-002. Pure Presenters and tests can proceed against that agreed contract alongside PLAN-003 Player, PLAN-005 Hunter/Chase, and PLAN-009 Director. Live event integration waits for their real publishers and coordinator wiring. No direction document exists; do not invent direction identifiers.
 
@@ -75,7 +76,7 @@ Supply serialized own-Driver fields, head-anchor/pose binding requirements, pref
 
 ## 5. Verification
 
-Follow [the exclusive Unity protocol](../../tools/coordination/README.md) and [PLAN-002 testing admission](PLAN-002-parallel-coordination.md#testing-admission). Before any Unity mutation or save/publication into Assets, Packages or ProjectSettings of a checkout open in Unity, acquire the exclusive lease, assert its token and verify the actual editor is idle. The coordinator first obtains pause/protocol acknowledgments from already-active writers; cooperating writers then acquire the same lease for each publication, without a new global acknowledgment for every save. While another owner holds it, prepare patches outside imported paths or edit an isolated checkout not open in Unity. Do not overlap tests.
+Follow [the exclusive Unity protocol](../../../tools/coordination/README.md) and [PLAN-002 testing admission](PLAN-002-parallel-coordination.md#testing-admission). Before any Unity mutation or save/publication into Assets, Packages or ProjectSettings of a checkout open in Unity, acquire the exclusive lease, assert its token and verify the actual editor is idle. The coordinator first obtains pause/protocol acknowledgments from already-active writers; cooperating writers then acquire the same lease for each publication, without a new global acknowledgment for every save. While another owner holds it, prepare patches outside imported paths or edit an isolated checkout not open in Unity. Do not overlap tests.
 
 Assert the token before each operation and heartbeat between operations. Use unique `Logs/AgentValidation/PLAN-006/<lease-token>/<UTC-timestamp>/` logs/results, wait for actual completed results, read totals/failures/skips and timestamps, and release in `finally` only after the editor is idle. Started, timed-out, zero-test, or missing-result runs do not pass; do not release a still-running lease. The protocol's commands and recovery rules are authoritative.
 
@@ -113,8 +114,9 @@ Persisted user settings, alternate camera modes beyond the optional parent exper
 | Date | Step | Result | Evidence |
 |------|------|--------|----------|
 | 2026-09-14 | Decomposition | LIVE child scope inherits the prior PLAN-001 execution approval; planning only, no implementation or completion claim. | Parent M4/M6/M7, SPEC-001/002, M0 source links above. |
-| 2026-09-14 | I1 preparation | PLAN-006 owner prepared first-person Camera/PostFX stacks, pure feedback tests and config/rig generators outside imported paths. Coordinator prepared scene-owned routers and URP camera wiring. Live Cinemachine/volume behavior, comfort and pursuit-perception acceptance remain pending. | [Staged handoff](../../Logs/AgentStaging/PLAN-006/HANDOFF.md), [coordinator verification](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md) |
-| 2026-09-14 | Published implementation and bounded verification | Camera/PostFX stacks and routing are published. Actual moving LookBack steering/slide-jump camera endpoints pass. Five root-inspected 1920×1080 captures retain input/movement/producer ticks, camera/volume values and restoration; intrusion saturation/grain clears. The general-frame cap is 2000 of 2224 frames. | [Detailed visual evidence](../../Logs/AgentValidation/GoalCompletion/visual/dynamic/a9-20260915T035651354Z-d1993d0e/INSPECTION.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: easing duration, remaining detection/proximity/injury/death/settings synchronization, joint perception, natural look-back/vault and 15-minute comfort evidence remain. Stationary metadata is bounded; file completion is not exact pixel time. Optional third-person snap remains deferred. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
-| 2026-09-15 | Current critical feedback and limb pixels | Both targeted 021 cases pass. Arranged living 25 health produces actual BreathLoop volume 0.44 and vignette 0.3375; death and fresh life clear breathing. Corrected Slide feet and preserved Vault hands appear in the original PNGs. Earlier startup failures and missing-foot images remain. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-14 | I1 preparation | PLAN-006 owner prepared first-person Camera/PostFX stacks, pure feedback tests and config/rig generators outside imported paths. Coordinator prepared scene-owned routers and URP camera wiring. Live Cinemachine/volume behavior, comfort and pursuit-perception acceptance remain pending. | [Staged handoff](../../../Logs/AgentStaging/PLAN-006/HANDOFF.md), [coordinator verification](../../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md) |
+| 2026-09-14 | Published implementation and bounded verification | Camera/PostFX stacks and routing are published. Actual moving LookBack steering/slide-jump camera endpoints pass. Five root-inspected 1920×1080 captures retain input/movement/producer ticks, camera/volume values and restoration; intrusion saturation/grain clears. The general-frame cap is 2000 of 2224 frames. | [Detailed visual evidence](../../../Logs/AgentValidation/GoalCompletion/visual/dynamic/a9-20260915T035651354Z-d1993d0e/INSPECTION.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: easing duration, remaining detection/proximity/injury/death/settings synchronization, joint perception, natural look-back/vault and 15-minute comfort evidence remain. Stationary metadata is bounded; file completion is not exact pixel time. Optional third-person snap remains deferred. | [Remaining acceptance](../../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Current critical feedback and limb pixels | Both targeted 021 cases pass. Arranged living 25 health produces actual BreathLoop volume 0.44 and vignette 0.3375; death and fresh life clear breathing. Corrected Slide feet and preserved Vault hands appear in the original PNGs. Earlier startup failures and missing-foot images remain. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-022. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |

@@ -2,21 +2,22 @@
 id: PLAN-007
 type: plan
 title: Audio and interface communicate chase and run outcomes
-status: LIVE
+status: SUPERSEDED
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-30
 owner: Audio/HUD/Results worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
-superseded_by: none
+superseded_by: PLAN-020, PLAN-021
 source: none
 evidence: none
-archived: none
+archived: 2026-09-30
 ---
 
 # PLAN-007 — Audio, HUD, and results
 
-> LIVE since 2026-09-14. Implements [SPEC-001](../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../specs/SPEC-002-worsen-game-design.md), through [PLAN-001 M4](PLAN-001-worsen-boilerplate.md#m4--detection-beat-look-back-first-person-readability--1-week), [M5](PLAN-001-worsen-boilerplate.md#m5--floor-loop--2-weeks), [M7](PLAN-001-worsen-boilerplate.md#m7--health-injury-hud--1-week), and [M8](PLAN-001-worsen-boilerplate.md#m8--tuning-harness-built-alongside-m3-finished-here). See the [registry](../index.md).
+> SUPERSEDED and archived on 2026-09-30 at the owner's direction, when SPEC-004 and PLAN-011 to PLAN-026 became LIVE. Successor: [PLAN-020](../../plans/PLAN-020-run-interface-menus-results.md) and [PLAN-021](../../plans/PLAN-021-silence-first-audio-hearing.md). Unchecked criteria below were not met and are not carried forward unless the successor restates them. The original status line follows as history.
+> LIVE since 2026-09-14. Implements [SPEC-001](../../specs/SPEC-001-project-architecture-guidelines.md) and [SPEC-002](../../specs/SPEC-002-worsen-game-design.md), through [PLAN-001 M4](PLAN-001-worsen-boilerplate.md#m4--detection-beat-look-back-first-person-readability--1-week), [M5](PLAN-001-worsen-boilerplate.md#m5--floor-loop--2-weeks), [M7](PLAN-001-worsen-boilerplate.md#m7--health-injury-hud--1-week), and [M8](PLAN-001-worsen-boilerplate.md#m8--tuning-harness-built-alongside-m3-finished-here). See the [registry](../../index.md).
 > This is a bounded decomposition of the previously approved boilerplate execution, with unchanged scope. This planning operation implements nothing and records no milestone as complete.
 
 ## 1. Objective
@@ -25,7 +26,7 @@ Make chase proximity and run progress readable through audio and a minimal user 
 
 ## 2. Starting point
 
-M0 supplies an [input service](../../Assets/Scripts/Presentation/Input/Manager/InputManager.cs), a [run tick/phase publisher](../../Assets/Scripts/Session/Run/Manager/RunSessionManager.cs), [SceneFlowManager](../../Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs), and a [UI Toolkit DebugOverlayDriver](../../Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs) with mirrored UI Toolkit markup (UXML), theme and panel assets. Audio/HUD/Results source does not exist at decomposition time. The existing run phase event is `PhaseChanged`; parent-plan `OnPhaseChanged` examples and the future RunSummary delivery must be reconciled by the coordinator, not assumed implemented.
+M0 supplies an [input service](../../../Assets/Scripts/Presentation/Input/Manager/InputManager.cs), a [run tick/phase publisher](../../../Assets/Scripts/Session/Run/Manager/RunSessionManager.cs), [SceneFlowManager](../../../Assets/Scripts/Session/SceneFlow/Manager/SceneFlowManager.cs), and a [UI Toolkit DebugOverlayDriver](../../../Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayDriver.cs) with mirrored UI Toolkit markup (UXML), theme and panel assets. Audio/HUD/Results source does not exist at decomposition time. The existing run phase event is `PhaseChanged`; parent-plan `OnPhaseChanged` examples and the future RunSummary delivery must be reconciled by the coordinator, not assumed implemented.
 
 Entry requires **C1: the Core contract freeze in [PLAN-002](PLAN-002-parallel-coordination.md)**, not completion of PLAN-002. Pure audio/display work may run beside PLAN-003 Player, PLAN-005 Hunter/Chase, PLAN-006 Camera/PostFX, and PLAN-008 Floor. Live event integration waits for their real publishers and coordinator-owned Session/routing changes. No direction document exists; omit direction identifiers.
 
@@ -77,7 +78,7 @@ Hand PLAN-002 exact serialized fields, Resources paths, document/panel/theme ass
 
 ## 5. Verification
 
-Follow [the exclusive Unity protocol](../../tools/coordination/README.md) and [PLAN-002 testing admission](PLAN-002-parallel-coordination.md#testing-admission). Before any Unity mutation or save/publication into Assets, Packages or ProjectSettings of a checkout open in Unity, acquire the exclusive lease, assert its token and verify the actual editor is idle. The coordinator first obtains pause/protocol acknowledgments from already-active writers; cooperating writers then acquire the same lease for each publication, without a new global acknowledgment for every save. While another owner holds it, prepare patches outside imported paths or edit an isolated checkout not open in Unity. Do not overlap tests.
+Follow [the exclusive Unity protocol](../../../tools/coordination/README.md) and [PLAN-002 testing admission](PLAN-002-parallel-coordination.md#testing-admission). Before any Unity mutation or save/publication into Assets, Packages or ProjectSettings of a checkout open in Unity, acquire the exclusive lease, assert its token and verify the actual editor is idle. The coordinator first obtains pause/protocol acknowledgments from already-active writers; cooperating writers then acquire the same lease for each publication, without a new global acknowledgment for every save. While another owner holds it, prepare patches outside imported paths or edit an isolated checkout not open in Unity. Do not overlap tests.
 
 Assert the token before each operation and heartbeat between operations. Use unique `Logs/AgentValidation/PLAN-007/<lease-token>/<UTC-timestamp>/` results/logs. Wait for actual completion, inspect fresh totals/failures/skips and logs, and release in `finally` only when Unity is idle. A started, timed-out, zero-test, or missing-result run is not a pass; a still-running operation retains its lease. Use the protocol's actual commands and recovery rules.
 
@@ -85,7 +86,7 @@ Assert the token before each operation and heartbeat between operations. Use uni
 - Complete SPEC-001 §13: headers, tests, assembly compilation, ast-grep, refreshed GitNexus and saved conformance queries, ArchitectureConformanceTests and project tests. Coordinate shared index refresh through PLAN-002.
 - Verify actual audible clips/gain changes, HUD counter/exit-only chase mode, restoration, hidden health, empty item slots, and live Floor direction switching. Missing clip warnings, a silent fallback, synthetic samples, or labels that never receive real events do not establish completion.
 - Joint M4 acceptance with PLAN-006: cover the screen for **1 s** during pursuit; near/mid/far distance identification from audio plus proximity feedback is **≥70%**. Record covered/audio-only and full-feedback conditions distinctly. Support its **≥1 look-back/chase**, **≤10 percentage-point** extra in-chase vault failures, and **15-minute** comfort probes; PLAN-010 owns measurement infrastructure.
-- With PLAN-008/002, verify a full first sweep with **no stopping for an interaction**. The former **2–4-minute** duration target is **NON-BLOCKING** under the [2026-09-15 user clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md). On both death and exit, results match the actual summary; one restart request leads to one authorized scene load and fresh run state, with no stale audio, duplicate listeners, or recreated-document failures.
+- With PLAN-008/002, verify a full first sweep with **no stopping for an interaction**. The former **2–4-minute** duration target is **NON-BLOCKING** under the [2026-09-15 user clarification](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md). On both death and exit, results match the actual summary; one restart request leads to one authorized scene load and fresh run state, with no stale audio, duplicate listeners, or recreated-document failures.
 - Capture/view actual UI and listen to actual output. If an immediate screenshot tool produces black pixels, use verified end-of-render capture; valid label/layout state alone is not a rendered visual pass.
 
 ## 6. Risks and open questions
@@ -107,7 +108,7 @@ FMOD/Wwise, persistent settings, inventory/item gameplay, shops, permanent minim
 - [ ] Audio/HUD/Results stacks and own configs/assets exist, with pure tests and no forbidden dependencies or runtime SO setters.
 - [ ] Real chase/player/floor/run publishers reach agreed commands through coordinator-owned routing; restart emits one fact and Session performs the load.
 - [ ] Detection/lose cues, proximity and critical breathing, counter/exit-only chase HUD, **0.5 s** restoration, empty slots, and correct results work visibly/audibly.
-- [ ] Joint **≥70%** distance-band probe and functional no-stop floor flow have evidence; the former **2–4-minute** duration target is **NON-BLOCKING** deferred calibration under the [2026-09-15 user clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md). Shared look-back/comfort measurements are handed to PLAN-006/010.
+- [ ] Joint **≥70%** distance-band probe and functional no-stop floor flow have evidence; the former **2–4-minute** duration target is **NON-BLOCKING** deferred calibration under the [2026-09-15 user clarification](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md). Shared look-back/comfort measurements are handed to PLAN-006/010.
 - [ ] Disable/re-enable/reload cleanup, deterministic setup/fallback diagnostics, SPEC-001 gates, lease-scoped completed results, and coordinator acceptance are recorded.
 
 ## 9. Execution log
@@ -115,7 +116,8 @@ FMOD/Wwise, persistent settings, inventory/item gameplay, shops, permanent minim
 | Date | Step | Result | Evidence |
 |------|------|--------|----------|
 | 2026-09-14 | Decomposition | LIVE child scope inherits the prior PLAN-001 execution approval; planning only, no implementation or completion claim. | Parent M4/M5/M7/M8, SPEC-001/002, M0 source links above. |
-| 2026-09-14 | Published implementation and bounded verification | Audio, heads-up display (HUD), Results, assets and routing are published. Actual Floor totals/restart, moving cake-to-exit cues, static and LookBack/return interface pixels have bounded evidence. Results and restart behavior pass the final 548-case suite; the historical placeholder failure remains retained. | [HUD and Results visual evidence](../../Logs/AgentValidation/GoalCompletion/visual/README.md) |
-| 2026-09-14 | Remaining acceptance; no archive | LIVE: actual audible output, priority/gain/critical breathing, dynamic synchronized interface timing and physical pointer checks remain. At least 70% distance-band perception, normal opposed 120–240-second flow and shared comfort/look-back evidence require real listening and participant results. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
-| 2026-09-15 | Actual feedback and fresh-life observations | Earlier detection/death/restart, final-loss source and sampled HUD restoration remain. Native 021 reaches living 25 health through public damage commands and verifies actual critical source/volume routing, then clears breathing on death and fresh life. A real rendered RUN AGAIN pointer click also restarts FloorLoop with fresh state and capture. This is bounded component/interface evidence; device audibility and participant perception remain separate. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
-| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-14 | Published implementation and bounded verification | Audio, heads-up display (HUD), Results, assets and routing are published. Actual Floor totals/restart, moving cake-to-exit cues, static and LookBack/return interface pixels have bounded evidence. Results and restart behavior pass the final 548-case suite; the historical placeholder failure remains retained. | [HUD and Results visual evidence](../../../Logs/AgentValidation/GoalCompletion/visual/README.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: actual audible output, priority/gain/critical breathing, dynamic synchronized interface timing and physical pointer checks remain. At least 70% distance-band perception, normal opposed 120–240-second flow and shared comfort/look-back evidence require real listening and participant results. | [Remaining acceptance](../../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Actual feedback and fresh-life observations | Earlier detection/death/restart, final-loss source and sampled HUD restoration remain. Native 021 reaches living 25 health through public damage commands and verifies actual critical source/volume routing, then clears breathing on death and fresh life. A real rendered RUN AGAIN pointer click also restarts FloorLoop with fresh state and capture. This is bounded component/interface evidence; device audibility and participant perception remain separate. | [Checkpoint evidence](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-30 | Superseded and archived | Owner directed archiving the old LIVE plans; successor PLAN-020, PLAN-021. Acceptance items still open here are not claimed. | [Registry](../../index.md#approval-and-boilerplate-archive-on-2026-09-30) |
