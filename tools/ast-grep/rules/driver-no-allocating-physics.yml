@@ -1,0 +1,24 @@
+id: driver-no-allocating-physics
+language: csharp
+severity: error
+message: "Driver physics queries must reuse sized NonAlloc buffers in DriverState, retry on saturation, and sort in place (SPEC-001 §7)."
+files:
+  - "Assets/Scripts/**/Driver/**/*.cs"
+rule:
+  any:
+    - pattern: Physics.$METHOD($$$ARGS)
+    - pattern: UnityEngine.Physics.$METHOD($$$ARGS)
+constraints:
+  METHOD:
+    regex: '^(RaycastAll|SphereCastAll|CapsuleCastAll|BoxCastAll|OverlapSphere|OverlapBox|OverlapCapsule)$'
+# Debt (PLAN-027 perf-alloc-2, review by 2026-12-31): these drivers still allocate and are
+# converted after the Hunter plug-in refactor; remove each entry as it is fixed.
+ignores:
+  - "Assets/Scripts/Domain/Hunter/Driver/HunterDriver.cs"
+  - "Assets/Scripts/Domain/Hunter/Driver/HunterAttackDriver.cs"
+  - "Assets/Scripts/Domain/Hunter/Archetypes/Weaver/Driver/WeaverWebDriver.cs"
+  - "Assets/Scripts/Domain/Hunter/Archetypes/Ticking/Driver/TickingDriver.cs"
+  - "Assets/Scripts/Domain/Hunter/Archetypes/Stare/Driver/StareDriver.cs"
+  - "Assets/Scripts/Session/Expedition/Driver/ExpeditionSpawnDriver.cs"
+  - "Assets/Scripts/Session/HorrorEffects/Driver/HorrorEffectsDriver.cs"
+  - "Assets/Scripts/Presentation/Horror/Driver/HorrorAtmosphereDriver.cs"

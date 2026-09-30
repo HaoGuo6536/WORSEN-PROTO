@@ -1,0 +1,20 @@
+id: driver-no-allocating-physics
+valid:
+  - 'class Driver { void Probe() { Physics.RaycastNonAlloc(origin, direction, hits); } }'
+  - 'class Driver { void Probe() { Physics.CapsuleCastNonAlloc(a, b, radius, direction, hits); } }'
+  - 'class Driver { void Probe() { Physics.SphereCastNonAlloc(origin, radius, direction, hits); } }'
+  - 'class Driver { void Probe() { Physics.BoxCastNonAlloc(origin, size, direction, hits); } }'
+  - 'class Driver { void Probe() { Physics.OverlapSphereNonAlloc(origin, radius, overlaps); } }'
+  - 'class Driver { void Probe() { Physics.OverlapBoxNonAlloc(origin, size, overlaps); } }'
+  - 'class Driver { void Probe() { Physics.OverlapCapsuleNonAlloc(a, b, radius, overlaps); } }'
+  - 'class Driver { void Probe() { Physics.Raycast(origin, direction, out hit); } }'
+  - 'class Driver { void Probe() { sensor.RaycastAll(); } }'
+invalid:
+  - 'class Driver { void Probe() { Physics.RaycastAll(origin, direction); } }'
+  - 'class Driver { void Probe() { UnityEngine.Physics.RaycastAll(origin, direction); } }'
+  - 'class Driver { void Probe() { Physics.SphereCastAll(origin, radius, direction); } }'
+  - 'class Driver { void Probe() { Physics.CapsuleCastAll(a, b, radius, direction); } }'
+  - 'class Driver { void Probe() { Physics.BoxCastAll(origin, size, direction); } }'
+  - 'class Driver { void Probe() { Physics.OverlapSphere(origin, radius); } }'
+  - 'class Driver { void Probe() { Physics.OverlapBox(origin, size); } }'
+  - 'class Driver { void Probe() { Physics.OverlapCapsule(a, b, radius); } }'
