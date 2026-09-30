@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain active-floor admission and world mix state independently of music belief.
 //   - Retain source gain bases and runtime category overrides independently of voice playback.
 //   - Store per-emitter cooldowns, pooled voice leases and threat samples.
 //   - Keep musical envelopes and presentation random source outside the Presenter.
@@ -40,6 +41,8 @@ namespace Worsen.Presentation.Audio
         public float[] VoiceGains;
         public float RuntimeMusic = 1f, RuntimeEffects = 1f;
         public bool Paused;
+        public bool InRun;
+        public AudioWorldMixDriverState WorldMix = new AudioWorldMixDriverState();
         public System.Random CosmeticRandom;
         public float Time;
         public float ChaseHold;

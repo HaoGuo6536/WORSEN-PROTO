@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Deduplicate physical exit opening and explicit committed shop transactions.
 //   - Latch one catch sting until the owning Driver resets the run.
 //   - Remember prior health, movement, flashlight and phase observations.
 //   - Retain posture initialization and the continuous exertion envelope independently of gameplay.
@@ -50,6 +51,8 @@ namespace Worsen.Presentation.Audio
         public bool IsSprinting;
         public bool IsAlive = true;
         public bool CatchStingIssued;
+        public bool ExitSoundIssued;
+        public int TransactionRevision = -1;
         public bool IsCritical;
         public float ExertionGain;
         public bool ExertionActive;

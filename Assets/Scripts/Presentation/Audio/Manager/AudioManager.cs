@@ -13,6 +13,7 @@
 //   Owns AudioDriver and forwards Core facts into its presentation stack.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward level acoustics, active effects, grace, exit and committed shop facts.
 //   - Forward runtime category preferences and authoritative pause to the owned Driver.
 //   - Forward catch identity to the Driver's per-run sting admission, guarded by owner readiness.
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
@@ -86,6 +87,14 @@ namespace Worsen.Presentation.Audio
         public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObserveRoom(sample, position); }
         public void ObserveHealth(EntityId id, float health, float maximum) { if (_initialized && isActiveAndEnabled) _driver.ObserveHealth(id, health, maximum); }
         public void ObserveProgression(ProgressionSnapshot sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgression(sample); }
+        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation) { if (_initialized) _driver.ObserveTransaction(previous, current, operation); }
+        public void ObserveExit(FloorDisplaySnapshot sample, Vector3 position) { if (_initialized) _driver.ObserveExit(sample, position); }
+        public void SetWorld(LevelGraph graph, System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { if (_initialized) _driver.SetWorld(graph, doors); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_initialized) _driver.SetActiveEffects(effects); }
+        public void SetInRun(bool inRun) { if (_initialized) _driver.SetInRun(inRun); }
+        public void SetDeafening(float seconds) { if (_initialized) _driver.SetDeafening(seconds); }
+        public void SetMuffledDark(float seconds) { if (_initialized) _driver.SetMuffledDark(seconds); }
+        public void ObserveGrace(GraceWindowFact fact) { if (_initialized) _driver.ObserveGrace(fact); }
         public void ObserveAfterimage(FlashlightSample sample, float lifetime) { if (_initialized && isActiveAndEnabled) _driver.ObserveAfterimage(sample, lifetime); }
         public void ObserveFlashlight(FlashlightSample sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveFlashlight(sample); }
 

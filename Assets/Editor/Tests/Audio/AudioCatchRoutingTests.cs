@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio integration.
 // KEY RESPONSIBILITIES:
+//   - Inspect the category pool for stings now that legacy cue voices share admission.
 //   - Keep lethal health and PlayerDied silent; admit one sting at hold start.
 //   - Rearm on capture reset and direct restart, preserving owner readiness guards.
 //   - Verify camera replacement, clear and disable pair every subscription.
@@ -82,6 +83,7 @@ namespace Worsen.Tests.Audio
                 cues.GetArrayElementAtIndex(i).FindPropertyRelative("_clip").objectReferenceValue = _clip;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _driver.Initialize(_config);
+            _soundscape = (AudioSoundscapeDriver)Field(_driver, "_soundscape").GetValue(_driver);
             Set(_audio, "_driver", _driver);
             Set(_audio, "_initialized", true);
             _audio.gameObject.SetActive(true);
@@ -127,10 +129,12 @@ namespace Worsen.Tests.Audio
             Assert.That(Feedback.CatchStingIssued, Is.False);
             Publish(_camera, "CatchHoldStarted", player);
             Assert.That(Feedback.CatchStingIssued, Is.True);
-            Assert.That(Mix.ActiveCueKey, Is.EqualTo((int)CueId.Death));
-            int voice = Mix.VoiceIndex;
+            int voice = Array.FindIndex(Soundscape.Voices, entry => entry.Remaining > 0f && entry.Cue == (int)CueId.Death);
+            Assert.That(voice, Is.GreaterThanOrEqualTo(0));
+            float remaining = Soundscape.Voices[voice].Remaining;
             for (int i = 0; i < 3; i++) Publish(_camera, "CatchHoldStarted", new EntityId(7 + i));
-            Assert.That(Mix.VoiceIndex, Is.EqualTo(voice), "Repeated starts must not restart or swap cue voices.");
+            Assert.That(Array.FindAll(Soundscape.Voices, entry => entry.Remaining > 0f && entry.Cue == (int)CueId.Death).Length, Is.EqualTo(1));
+            Assert.That(Soundscape.Voices[voice].Remaining, Is.EqualTo(remaining));
         }
 
         [TestCase(false)]
@@ -146,7 +150,7 @@ namespace Worsen.Tests.Audio
             Assert.That(Feedback.CatchStingIssued, Is.False);
             Publish(_camera, "CatchHoldStarted", player);
             Assert.That(Feedback.CatchStingIssued, Is.True);
-            Assert.That(Mix.ActiveCueKey, Is.EqualTo((int)CueId.Death));
+            Assert.That(Array.Exists(Soundscape.Voices, entry => entry.Remaining > 0f && entry.Cue == (int)CueId.Death), Is.True);
         }
 
         [Test]
@@ -296,8 +300,12 @@ namespace Worsen.Tests.Audio
             Assert.That(Subscribers(progression, "TransactionCommitted"), Is.EqualTo(1));
             _route.ConfigureExpansion(progression, null, null, null);
             Assert.That(Subscribers(progression, "TransactionCommitted"), Is.EqualTo(1));
+            Assert.That(Subscribers(progression, "EffectsSnapshotChanged"), Is.EqualTo(1));
+            Assert.That(Subscribers(_run, "OnGraceStarted"), Is.EqualTo(1));
+            Assert.That(Subscribers(_run, "FloorDisplayChanged"), Is.EqualTo(1));
             _route.ClearExpansion();
             Assert.That(Subscribers(progression, "TransactionCommitted"), Is.Zero);
+            Assert.That(Subscribers(progression, "EffectsSnapshotChanged"), Is.Zero);
         }
 
         private sealed class HunterFixture : IReadOnlyHunterState
@@ -328,6 +336,7 @@ namespace Worsen.Tests.Audio
         }
         private void InitializeMusic()
         {
+            _soundscape.Teardown();
             _musicConfig = ScriptableObject.CreateInstance<AudioSoundscapeDriverConfig>();
             var serialized = new SerializedObject(_musicConfig);
             serialized.FindProperty("_earlyDangerFadeProbability").floatValue = 1f;

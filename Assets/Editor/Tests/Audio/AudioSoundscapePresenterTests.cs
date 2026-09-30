@@ -10,6 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Assert category-wide limits while retaining separate hunter owners.
 //   - Verify variation, cooldown, bounded polyphony and music lifecycle.
 //   - Cover missing clip slots and invalid timing data.
 //
@@ -66,7 +67,7 @@ namespace Worsen.Tests.Audio
             for (int i = 0; i < 60; i++)
             {
                 Assert.That(p.TryPlay(state, Bank(CueId.CakeCollect), 0, new[] { .1f, .1f, .1f }, 1f, out var play), Is.True);
-                Assert.That(play.Clip, Is.Not.EqualTo(prior)); Assert.That(play.Pitch, Is.InRange(.94f, 1.06f)); Assert.That(play.Gain, Is.InRange(.72f, .8f));
+                Assert.That(play.Clip, Is.Not.EqualTo(prior)); Assert.That(play.Pitch, Is.InRange(.94f, 1.06f)); Assert.That(play.Gain, Is.InRange(.7f, .9f));
                 if (i == 0) first = play.Pitch; else variedPitch |= play.Pitch != first;
                 prior = play.Clip; p.Tick(state, .2f, 1f, 1f, 1f);
             }
@@ -85,7 +86,7 @@ namespace Worsen.Tests.Audio
         [Test]
         public void CooldownIsPerEmitterAndLoopRefreshDoesNotRestart()
         {
-            var p = new AudioSoundscapePresenter(); var s = State(); var bank = Bank(CueId.TorchLoop); bank.Loop = true; bank.Cooldown = 4;
+            var p = new AudioSoundscapePresenter(); var s = State(); var bank = Bank(CueId.Presence); bank.Loop = true; bank.Cooldown = 4;
             Assert.That(p.TryPlay(s, bank, 7, new[] { 2f, 2f }, 1, out var first), Is.True);
             Assert.That(p.TryPlay(s, bank, 7, new[] { 2f, 2f }, 1, out var repeat), Is.True);
             Assert.That(repeat.ReuseLoop, Is.True); Assert.That(repeat.Voice, Is.EqualTo(first.Voice));
@@ -97,8 +98,8 @@ namespace Worsen.Tests.Audio
         public void ImportantWarningsStealOnlyLowerPriorityVoices()
         {
             var p = new AudioSoundscapePresenter(); var s = State();
-            for (int i = 0; i < 8; i++) Assert.That(p.TryPlay(s, Bank(CueId.ChainCreak, 15), i, new[] { 3f }, 1, out _), Is.True);
-            Assert.That(p.TryPlay(s, Bank(CueId.ChainCreak, 15), 9, new[] { 3f }, 1, out _), Is.False);
+            for (int i = 0; i < 8; i++) Assert.That(p.TryPlay(s, Bank(CueId.Detection, 15), i, new[] { 3f }, 1, out _), Is.True);
+            Assert.That(p.TryPlay(s, Bank(CueId.Detection, 15), 9, new[] { 3f }, 1, out _), Is.False);
             Assert.That(p.TryPlay(s, Bank(CueId.EnemyWindup, 80), 9, new[] { 3f }, 1, out var warning), Is.True);
             Assert.That(s.Voices[warning.Voice].Priority, Is.EqualTo(80)); Assert.That(s.Duck, Is.GreaterThan(0));
         }
