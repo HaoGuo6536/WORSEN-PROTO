@@ -270,7 +270,7 @@ namespace Worsen.Tests.Run
             run.RunEnded += value => { summary = value; order.Add("results"); };
             long terminalTick = run.Tick;
             Invoke(run, "HandleExitOpened", terminalTick);
-            Invoke(run, "HandleExitReached", new ExitReachedFact(player.Id, terminalTick), false);
+            Invoke(run, "HandleExitReached", new ExitReachedFact(player.Id, terminalTick));
             Route(new HunterHit(new EntityId(-1), player.Id, 50, terminalTick, Vector3.back));
             Invoke(run, "FinishIfRequested");
             Invoke(run, "DrainPendingHits"); Invoke(run, "FinishIfRequested");

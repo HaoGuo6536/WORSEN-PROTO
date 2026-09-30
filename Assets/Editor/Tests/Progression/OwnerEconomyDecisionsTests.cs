@@ -153,7 +153,9 @@ namespace Worsen.Tests.Progression
         private ProgressionSessionController Session(params EffectCatalogueEntry[] entries)
         {
             Set(catalogue, "_entries", entries);
-            Set(config, "_threats", new[] { new ProgressionEntryConfig("mimic", "Mimic", "Adds a hunter.") });
+            Set(config, "_threats", new[] {
+                new ProgressionEntryConfig("echo", "Echo", "Adds a hunter."),
+                new ProgressionEntryConfig("mimic", "Mimic", "Adds a hunter.") });
             Set(config, "_curses", new[] { new ProgressionEntryConfig("nothing", "Nothing???", "Nothing???") });
             var session = new ProgressionSessionController(new ProgressionSessionBehaviorState(), config, new System.Random(73));
             session.StartRun(73); return session;
@@ -161,7 +163,7 @@ namespace Worsen.Tests.Progression
         private static void Open(ProgressionSessionController session)
         {
             var s = session.Snapshot();
-            if (s.Phase == ProgressionPhase.ChooseThreat) Assert.That(session.ChooseThreat("mimic", s.Revision), Is.True);
+            if (s.Phase == ProgressionPhase.ChooseThreat) Assert.That(session.ChooseThreat(s.Choices[0].Id, s.Revision), Is.True);
             s = session.Snapshot();
             if (s.Phase == ProgressionPhase.ChooseCurse) Assert.That(session.ChooseCurse(s.Choices[0].Id, s.Revision), Is.True);
             Assert.That(session.ConfirmFloorReady(session.Snapshot().GenerationId), Is.True);
@@ -223,7 +225,20 @@ namespace Worsen.Tests.Progression
             Assert.That(EffectCatalogueUtility.Eligible(entry, 12, Empty), Is.False);
             Assert.That(EffectCatalogueUtility.Eligible(entry, 12, Held("mimic", kind: EffectKind.Threat)), Is.True);
             var session = Session(entry);
-            session.ChooseThreat("mimic", session.Snapshot().Revision);
+            // Mimic opens at round 5; normal selection cadence next offers it on round 7.
+            // Traverse real floors instead of bypassing either gate with injected state.
+            while (session.Snapshot().Round < 7)
+            {
+                var before = session.Snapshot();
+                Assert.That(before.Choices.Select(c => c.Id), Does.Not.Contain(entry.Id));
+                if (before.Round < 5) Assert.That(before.Choices.Select(c => c.Id), Does.Not.Contain("mimic"));
+                Open(session);
+                if (session.GenerationRequest().IsShop)
+                    Assert.That(session.ContinueShop(session.Snapshot().Revision), Is.True);
+                else Assert.That(session.CompleteFloor(session.Snapshot().GenerationId), Is.True);
+            }
+            Assert.That(session.Snapshot().Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
+            Assert.That(session.ChooseThreat("mimic", session.Snapshot().Revision), Is.True);
             Assert.That(session.Snapshot().Choices.Select(c => c.Id), Does.Contain(entry.Id));
             Assert.That(session.ChooseCurse(entry.Id, session.Snapshot().Revision), Is.True);
             var mimicConfig = ScriptableObject.CreateInstance<MimicConfig>();

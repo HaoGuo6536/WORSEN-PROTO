@@ -542,6 +542,8 @@ namespace Worsen.Tests.Progression
         {
             var seen = new HashSet<string>();
             var menus = new HashSet<string>();
+            var laterMenus = new HashSet<string>();
+            var laterSeen = new HashSet<string>();
             for (int seed = 0; seed < 32; seed++)
             {
                 var left = new ProgressionSessionController(new ProgressionSessionBehaviorState(), config, new System.Random(seed));
@@ -568,12 +570,45 @@ namespace Worsen.Tests.Progression
                     }
                 }
                 menus.Add(string.Join(",", ids));
+                AdvanceToRoundFour(left); AdvanceToRoundFour(right);
+                string[] later = left.Snapshot().Choices.Select(choice => choice.Id).ToArray();
+                Assert.That(later.Length, Is.EqualTo(3));
+                Assert.That(later.Distinct().Count(), Is.EqualTo(3));
+                Assert.That(later, Is.SubsetOf(new[] { "echo", "weaver", "ticking", "ram", "mannequin" }));
+                Assert.That(right.Snapshot().Choices.Select(choice => choice.Id), Is.EqualTo(later));
+                for (int read = 0; read < 5; read++)
+                    Assert.That(left.Snapshot().Choices.Select(choice => choice.Id), Is.EqualTo(later));
+                var layoutRandom = new System.Random(seed); int expectedSeed = 0;
+                for (int round = 1; round <= 4; round++) expectedSeed = layoutRandom.Next();
+                Assert.That(left.GenerationRequest().Seed, Is.EqualTo(expectedSeed), "Choices never draw layout randomness.");
+                laterMenus.Add(string.Join(",", later));
+                foreach (string id in later) laterSeen.Add(id);
             }
             Assert.That(seen, Is.EquivalentTo(new[] { "echo", "weaver", "ticking" }));
-            Assert.That(menus.Count, Is.GreaterThan(1));
+            Assert.That(menus.Count, Is.EqualTo(1), "Round 1 has exactly three eligible hunters, so the full menu is fixed.");
+            Assert.That(laterMenus.Count, Is.GreaterThan(1), "Seed diversity matters once more than three hunters are eligible.");
+            Assert.That(laterSeen, Is.EquivalentTo(new[] { "echo", "weaver", "ticking", "ram", "mannequin" }));
             Assert.That(config.Threats.Count, Is.EqualTo(10));
             Assert.That(config.Curses.Count, Is.EqualTo(5));
             Assert.That(config.Offers, Is.Empty, "Legacy offers are retired; pedestals use the catalogue.");
+        }
+
+        private static void AdvanceToRoundFour(ProgressionSessionController session)
+        {
+            while (session.Snapshot().Round < 4)
+            {
+                var snapshot = session.Snapshot();
+                if (snapshot.Phase == ProgressionPhase.ChooseThreat)
+                    Assert.That(session.ChooseThreat(snapshot.Choices[0].Id, snapshot.Revision), Is.True);
+                snapshot = session.Snapshot();
+                if (snapshot.Phase == ProgressionPhase.ChooseCurse)
+                    Assert.That(session.ChooseCurse(snapshot.Choices[0].Id, snapshot.Revision), Is.True);
+                Assert.That(session.ConfirmFloorReady(session.Snapshot().GenerationId), Is.True);
+                if (session.GenerationRequest().IsShop)
+                    Assert.That(session.ContinueShop(session.Snapshot().Revision), Is.True);
+                else Assert.That(session.CompleteFloor(session.Snapshot().GenerationId), Is.True);
+            }
+            Assert.That(session.Snapshot().Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
         }
 
         [TestCase(1)] [TestCase(29)] [TestCase(731)]
