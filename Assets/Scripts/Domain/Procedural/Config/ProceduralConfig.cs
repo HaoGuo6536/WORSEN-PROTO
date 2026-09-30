@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Store layout growth, room dimensions and candidate budgets/type preferences.
 //   - Keep broad cloister/gallery rooms enclosed beneath a higher ceiling.
+//   - Tune first-contact path separation, bounded retries and world-object density.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
@@ -46,6 +47,14 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private float _anchorHeight = 0.05f;
         [SerializeField] private float _spawnHeight = 0.1f;
         [SerializeField] private float _spawnSideOffset = 4f;
+        [SerializeField, Min(1)] private int _minimumHunterSpawnRooms = 2;
+        [SerializeField, Range(0, 8)] private int _generationRetries = 3;
+        [SerializeField, Range(0f, 1f)] private float _ordinaryDoorFraction = 0.35f;
+        [SerializeField, Range(0, 4)] private int _knockablePropsPerRoom = 2;
+        public int MinimumHunterSpawnRooms => _minimumHunterSpawnRooms;
+        public int GenerationRetries => _generationRetries;
+        public float OrdinaryDoorFraction => _ordinaryDoorFraction;
+        public int KnockablePropsPerRoom => _knockablePropsPerRoom;
         [SerializeField] private Vector2 _origin = Vector2.zero;
         [SerializeField] private bool _castleModules = true;
         [SerializeField] private float _castleHeight = 7f;

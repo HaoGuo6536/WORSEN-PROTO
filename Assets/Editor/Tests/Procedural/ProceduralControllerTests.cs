@@ -11,6 +11,7 @@
 //   - Check seeded variation, bounded growth, loops and diverse typed cake candidates.
 //   - Check candidate support, clearance, stable identities and rejected invalid graphs.
 //   - Keep presentation room bounds aligned with enclosed playable room volumes.
+//   - Expect a validated spawn subset, not every non-player room, under first-contact rules.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core contracts, NUnit and UnityEditor serialized setup.
 // USAGE NOTES:
@@ -250,7 +251,10 @@ namespace Worsen.Tests.Procedural
             var layout = Generate(7, 3);
             Assert.That(layout.Graph.Rooms[0].Bounds.Contains(layout.PlayerSpawnPosition), Is.True);
             Assert.That(layout.Graph.Rooms[layout.Graph.ExitRoomId - 1].Bounds.Contains(layout.Graph.ExitPosition), Is.True);
-            Assert.That(layout.HunterSpawnPositions.Count, Is.EqualTo(layout.Graph.Rooms.Count - 1));
+            Assert.That(layout.HunterSpawnPositions.Count, Is.InRange(1, layout.Graph.Rooms.Count - 2));
+            foreach (var position in layout.HunterSpawnPositions)
+                Assert.That(ProceduralSpawnUtility.Validate(layout, position, _config.DoorWidth,
+                    layout.MinimumHunterSpawnRooms, out _), Is.True);
             var firstRoom = layout.Graph.Rooms[0];
             var delta = layout.PlayerSpawnPosition - firstRoom.Center;
             Assert.That(layout.Modules[0].AlongX ? Mathf.Abs(delta.z) : Mathf.Abs(delta.x), Is.EqualTo(4f));
