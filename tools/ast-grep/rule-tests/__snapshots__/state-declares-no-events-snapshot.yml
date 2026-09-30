@@ -1,0 +1,14 @@
+id: state-declares-no-events
+snapshots:
+  class State { public event Action Changed { add {} remove {} } }:
+    labels:
+    - source: public event Action Changed { add {} remove {} }
+      style: primary
+      start: 14
+      end: 62
+  class State { public event Action Changed; }:
+    labels:
+    - source: public event Action Changed;
+      style: primary
+      start: 14
+      end: 42

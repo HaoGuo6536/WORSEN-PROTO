@@ -1,0 +1,22 @@
+id: pure-layer-not-monobehaviour
+snapshots:
+  'class Logic : MonoBehaviour {}':
+    labels:
+    - source: 'class Logic : MonoBehaviour {}'
+      style: primary
+      start: 0
+      end: 30
+    - source: ': MonoBehaviour'
+      style: secondary
+      start: 12
+      end: 27
+  'class Logic : UnityEngine.MonoBehaviour {}':
+    labels:
+    - source: 'class Logic : UnityEngine.MonoBehaviour {}'
+      style: primary
+      start: 0
+      end: 42
+    - source: ': UnityEngine.MonoBehaviour'
+      style: secondary
+      start: 12
+      end: 39
