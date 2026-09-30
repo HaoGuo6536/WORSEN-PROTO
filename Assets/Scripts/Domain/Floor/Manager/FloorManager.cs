@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own Floor logic/driver lifetimes and forward generation hooks and pocket activation.
 //   - Spawn ordinary, bonus and optional rewards through the shared pickup lifecycle.
-//   - Publish fixed-total counters, guidance, pickup/loss facts and exit progress.
+//   - Publish counters and curse-gated Mimic guidance without granting fake pickup credit.
 //   - Route staged collapse, traps, hands, hearing and boundary contacts upward.
 //   - Resolve open-exit contacts with paired subscriptions; locked doors never end a floor.
 // DEPENDENCIES:
@@ -21,6 +21,8 @@
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
 //   OnExitReached is the sole escape fact, admitted only after normal opening.
+//   Session routes Mimic facts to ReceiveMimic and effect snapshots to SetActiveEffects;
+//   no Hunter dependency or cross-system subscription is introduced here.
 //   OnBoundaryContact carries player, room, outward acceleration (m/s squared),
 //   boundary point and tick. Player's motion owner must enforce the boundary; Floor
 //   never writes a foreign Transform or Rigidbody. Hit throw travels with OnCollapseHand.
@@ -43,6 +45,7 @@ namespace Worsen.Domain.Floor
         private FloorBehaviorState _state;
         private FloorController _controller;
         private FloorHandController _hands;
+        private FloorGuidanceController _guidance;
         public IReadOnlyFloorCollapseState ReadOnlyState => _state;
         public event Action<PickupCollectedFact> OnPickupCollected;
         public event Action<RoomPhaseChangedFact> OnRoomPhaseChanged;
@@ -80,6 +83,7 @@ namespace Worsen.Domain.Floor
                 _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks, waxHeart,
                     preferredAnchors, earlyCollapseRooms, optionalGoldenCakeCount);
                 _hands = new FloorHandController(_state.Hands, _config);
+                _guidance = new FloorGuidanceController(new FloorGuidanceBehaviorState());
                 _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps);
                 SetHandLook(handLook);
                 if (isActiveAndEnabled) OnEnable();
@@ -99,6 +103,17 @@ namespace Worsen.Domain.Floor
             return true;
         }
         public void SetHandLook(string look) => _driver?.SetHandLook(look);
+        public void SetActiveEffects(IReadOnlyActiveEffects effects)
+        {
+            if (_guidance == null) return;
+            _guidance.SetActiveEffects(effects);
+            RefreshCue();
+        }
+        public void ReceiveMimic(MimicFact fact)
+        {
+            if (_state == null || _state.Ended || _guidance == null) return;
+            if (_guidance.ReceiveMimic(fact)) RefreshCue();
+        }
         public bool RegisterPassageReward(LevelAnchor anchor)
         {
             if (_controller == null || !_controller.RegisterPassageReward(anchor)) return false;
@@ -113,6 +128,7 @@ namespace Worsen.Domain.Floor
             var owner = _controller;
 
             if (_state.Ended) return;
+            bool guidanceExpired = _guidance?.Tick(dt) ?? false;
             var before = _state.ExitState;
             PublishRoomTransitions(_controller.Tick(dt, tick));
             if (!ReferenceEquals(owner, _controller)) return;
@@ -136,7 +152,7 @@ namespace Worsen.Domain.Floor
             if (!ReferenceEquals(owner, _controller)) return;
             float previousProgress = _driver.OpeningProgress(_state.ExitState == ExitState.Open);
             _driver.TickWarnings((float)_state.CollapseElapsed);
-            if (_controller.ConsumeCueDue()) RefreshCue();
+            if (_controller.ConsumeCueDue() || guidanceExpired) RefreshCue();
             else if (_driver.OpeningProgress(_state.ExitState == ExitState.Open) != previousProgress)
                 OnDisplayChanged?.Invoke(Snapshot());
         }
@@ -224,6 +240,7 @@ namespace Worsen.Domain.Floor
             OnDisable();
             if (_driver != null) _driver.Teardown();
             _hands?.Reset(); _hands = null;
+            _guidance?.Reset(); _guidance = null;
             _controller?.Reset(); _controller = null; _state = null;
         }
 
@@ -331,7 +348,9 @@ namespace Worsen.Domain.Floor
                         isFallback: _driver.IsDirectionFallback(golden.Id) || _driver.IsDirectionHeld(golden.Id));
             }
             // A read-only snapshot, including empty, replaces both channels atomically.
-            OnGuidanceChanged?.Invoke(owner.GuidanceTargets(fallback, goldenTarget));
+            var targets = owner.GuidanceTargets(fallback, goldenTarget);
+            if (_guidance != null && player != null) targets = _guidance.Apply(targets, player.Id, player.Position);
+            OnGuidanceChanged?.Invoke(targets);
             if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
         }
     }
