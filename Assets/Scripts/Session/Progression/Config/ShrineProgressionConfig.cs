@@ -2,13 +2,13 @@
 // ShrineProgressionConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Authors provisional shrine rewards, costs and Echo's per-kind changed outcomes.
+//   Authors provisional shrine rewards and costs; Echo repeats their normal rules.
 //   The data remains separate from active deals, effect stacks and delayed noises.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Tune Protection, Bargain, Pacification, Wick and Purgatory rules.
-//   - Supply an owner-replaceable Echo table without recursive Echo resolution.
+//   - Preserve source compatibility while preventing amplified Echo outcomes.
 // DEPENDENCIES:
 //   - Core shrine values and Unity serialization only.
 // USAGE NOTES:
@@ -26,15 +26,12 @@ namespace Worsen.Session.Progression
     public sealed class ShrineEchoRule
     {
         [SerializeField] private ShrineKind _kind;
-        [SerializeField] private int _magnitude = 2;
-        [SerializeField] private int _costMultiplier = 1;
-        [SerializeField] private float _delayMultiplier = 1f;
-        public ShrineEchoRule(ShrineKind kind, int magnitude = 2, int cost = 1, float delay = 1f)
-        { _kind = kind; _magnitude = magnitude; _costMultiplier = cost; _delayMultiplier = delay; }
+        public ShrineEchoRule(ShrineKind kind, int magnitude = 1, int cost = 1, float delay = 1f)
+        { _kind = kind; }
         public ShrineKind Kind => _kind;
-        public int Magnitude => _magnitude;
-        public int CostMultiplier => _costMultiplier;
-        public float DelayMultiplier => _delayMultiplier;
+        public int Magnitude => 1;
+        public int CostMultiplier => 1;
+        public float DelayMultiplier => 1f;
     }
     [Serializable]
     public sealed class ShrineProgressionRules
@@ -52,8 +49,8 @@ namespace Worsen.Session.Progression
         [SerializeField] private ShrineEchoRule[] _echo =
         {
             new ShrineEchoRule(ShrineKind.Chance), new ShrineEchoRule(ShrineKind.Bargain),
-            new ShrineEchoRule(ShrineKind.Pacification, delay: 0.5f), new ShrineEchoRule(ShrineKind.Wick),
-            new ShrineEchoRule(ShrineKind.Passage), new ShrineEchoRule(ShrineKind.Protection, cost: 2),
+            new ShrineEchoRule(ShrineKind.Pacification), new ShrineEchoRule(ShrineKind.Wick),
+            new ShrineEchoRule(ShrineKind.Passage), new ShrineEchoRule(ShrineKind.Protection),
             new ShrineEchoRule(ShrineKind.Purgatory)
         };
         public int ProtectionCost => _protectionCost;

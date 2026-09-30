@@ -130,7 +130,7 @@ namespace Worsen.Tests.Progression
             controller.ChooseThreat("echo", Snapshot.Revision);
             controller.ChooseCurse("legacy", Snapshot.Revision);
             var chosen = controller.EffectsSnapshot();
-            Assert.That(Snapshot.Effects.Traits, Is.EqualTo(ProgressionTraits.EchoDebt));
+            Assert.That(Snapshot.Effects.Traits, Is.EqualTo(ProgressionTraits.None), "Run selection never activates compatibility flags.");
             OpenFloor();
             for (int anchor = 0; anchor < 20; anchor++) controller.RecordGoldenCollected(Snapshot.GenerationId, anchor);
             controller.CompleteFloor(Snapshot.GenerationId); OpenFloor(); controller.CompleteFloor(Snapshot.GenerationId);
