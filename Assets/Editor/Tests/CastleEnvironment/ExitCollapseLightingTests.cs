@@ -20,6 +20,7 @@ using Worsen.Presentation.Environment;
 
 namespace Worsen.Tests.CastleEnvironment
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExitCollapseLightingTests
     {
         [TestCase(0f)] [TestCase(.4f)] [TestCase(1f)]

@@ -22,6 +22,7 @@ using UnityEngine;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterRangedDriverTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

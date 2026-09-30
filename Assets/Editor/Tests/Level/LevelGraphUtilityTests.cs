@@ -24,6 +24,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class LevelGraphUtilityTests
     {
         private static LevelRoom Room(int id) => new LevelRoom(id, new Vector3(id, 0f, 0f), Vector3.one);

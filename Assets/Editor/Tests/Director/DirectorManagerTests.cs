@@ -32,6 +32,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Director
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class DirectorManagerTests
     {
         private static readonly EntityId PlayerId = new EntityId(2147483501);

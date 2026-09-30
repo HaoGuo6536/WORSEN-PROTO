@@ -31,6 +31,7 @@ using Worsen.Session.SceneFlow;
 
 namespace Worsen.Tests.SceneFlow
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class SceneFlowControllerTests
     {
         [TestCase(SceneKey.TagArena, "Assets/Scenes/TagArena.unity")]

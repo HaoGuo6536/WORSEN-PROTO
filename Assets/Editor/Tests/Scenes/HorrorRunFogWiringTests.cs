@@ -30,6 +30,7 @@ using Worsen.Presentation.Fog;
 
 namespace Worsen.Tests.Scenes
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorRunFogWiringTests
     {
         [TestCase(false)]

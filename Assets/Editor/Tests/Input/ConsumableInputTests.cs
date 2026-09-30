@@ -25,6 +25,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Input
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ConsumableInputTests
     {
         [Test]

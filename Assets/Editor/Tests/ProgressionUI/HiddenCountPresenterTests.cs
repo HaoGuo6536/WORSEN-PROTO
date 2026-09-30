@@ -18,6 +18,7 @@ using Worsen.Core;
 using Worsen.Presentation.ProgressionUI;
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HiddenCountPresenterTests
     {
         [Test]

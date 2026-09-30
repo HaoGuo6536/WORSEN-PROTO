@@ -27,6 +27,7 @@ using Worsen.Presentation.HUD;
 
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDGeometryPresenterTests
     {
         [Test]

@@ -23,6 +23,7 @@ using Worsen.Presentation.Fog;
 
 namespace Worsen.Tests.Fog
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FogDensityPresenterTests
     {
         private FogDriverConfig _config;

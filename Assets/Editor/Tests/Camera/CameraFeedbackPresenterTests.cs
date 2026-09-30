@@ -31,6 +31,7 @@ using Worsen.Presentation.Camera;
 
 namespace Worsen.Tests.Camera
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CameraFeedbackPresenterTests
     {
         private CameraDriverConfig _config;

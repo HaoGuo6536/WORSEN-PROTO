@@ -26,6 +26,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.PostFX
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PostFXGraceTests
     {
         private PostFXDriverConfig _config;

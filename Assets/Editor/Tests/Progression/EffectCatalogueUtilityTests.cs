@@ -19,6 +19,7 @@ using Worsen.Session.Progression;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EffectCatalogueUtilityTests
     {
         private static ActiveEffect Active(string id, EffectKind kind = EffectKind.Curse, int count = 1)

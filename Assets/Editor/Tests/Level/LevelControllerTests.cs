@@ -26,6 +26,7 @@ using Worsen.Domain.Level;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class LevelControllerTests
     {
         [Test]
