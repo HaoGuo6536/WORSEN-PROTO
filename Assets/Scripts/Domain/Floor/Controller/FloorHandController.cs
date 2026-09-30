@@ -11,8 +11,10 @@
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Break one grab per armed Wax Ward and publish room phases without mutating Player.
+//   - Reject protected contacts and release warnings/grabs from the Player read-only effect view.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
+//   - Player IReadOnlyPlayerEffectState, injected by FloorManager; never mutable Player state.
 // USAGE NOTES:
 //   Scene-owned through FloorManager/FloorDriver. Time is supplied by the owner.
 //   No persistent singleton, global settings, or independent update loop.
@@ -22,6 +24,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Worsen.Core;
+using Worsen.Domain.Player;
 using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Floor
@@ -41,7 +44,8 @@ namespace Worsen.Domain.Floor
             room = contact.RoomId; hand = contact.HandId; return true;
         }
 
-        public bool Tick(EntityId player, bool alive, FloorHandProbe probe, float dt, long tick, out CollapseHandFact fact)
+        public bool Tick(EntityId player, bool alive, FloorHandProbe probe, float dt, long tick, out CollapseHandFact fact,
+            IReadOnlyPlayerEffectState effects = null)
         {
             fact = default;
             if (float.IsNaN(dt) || float.IsInfinity(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
@@ -50,6 +54,8 @@ namespace Worsen.Domain.Floor
             { contact = new FloorHandContactBehaviorState(); _state.Contacts.Add(player, contact); }
             contact.AwaitingDamageResult = false;
             if (!alive) return Release(contact, player, tick, CollapseHandEventKind.Released, out fact);
+            if (effects != null && effects.IsUngrabbable)
+                return Release(contact, player, tick, CollapseHandEventKind.Released, out fact);
             if (contact.Phase == FloorHandPhase.Cooldown)
             {
                 contact.Elapsed += dt;

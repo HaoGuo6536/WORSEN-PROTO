@@ -11,6 +11,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Reject L-shaped notches and internal seams while retaining rectangle probes exactly.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
@@ -27,6 +28,31 @@ namespace Worsen.Tests.Floor
     {
         private readonly RoomCollapsePresenter _presenter = new RoomCollapsePresenter();
         private readonly Bounds _room = new Bounds(new Vector3(0f,3.5f,0f),new Vector3(12f,7f,12f));
+        [TestCase(RoomPhase.Tearing)] [TestCase(RoomPhase.Encroaching)] [TestCase(RoomPhase.Closed)]
+        public void FootprintRejectsNotchAndUsesOnlyExposedEdges(RoomPhase phase)
+        {
+            var cells = new[] { _room, new Bounds(new Vector3(12f, 3.5f, 0f), _room.size),
+                new Bounds(new Vector3(0f, 3.5f, 12f), _room.size) };
+            var room = new LevelRoom(1, new Vector3(6f, 3.5f, 6f), new Vector3(24f, 7f, 24f), cells);
+            Assert.That(_presenter.BoundaryProbe(room, phase, new Vector3(6.1f, 0f, 6.1f), 2.1f).Available, Is.False);
+            Assert.That(_presenter.BoundaryProbe(room, phase, new Vector3(12f, 0f, 12f), 2.1f).Available, Is.False);
+            var seam = _presenter.BoundaryProbe(room, phase, new Vector3(6f, 0f, 0f), 2.1f);
+            Assert.That(seam.Available, Is.EqualTo(phase == RoomPhase.Closed));
+            if (seam.Available) Assert.That(seam.Penetration, Is.EqualTo(6f));
+            Assert.That(_presenter.BoundaryProbe(room, phase, new Vector3(5.5f, 0f, 12f), 2.1f).Available, Is.True);
+            foreach (var cell in cells)
+                for (int i = 0; i < 25; i++) Assert.That(room.ContainsXZ(_presenter.GridPoint(cell, i, 5, .25f)), Is.True);
+        }
+
+        [Test]
+        public void DefaultRectangleProbeIsUnchangedIncludingExteriorReach()
+        {
+            var room = new LevelRoom(1, _room.center, _room.size);
+            foreach (var phase in new[] { RoomPhase.Open, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed })
+                foreach (var position in new[] { Vector3.zero, Vector3.right * 5f, Vector3.right * 6.2f, Vector3.up * 7f })
+                    Assert.That(_presenter.BoundaryProbe(room, phase, position, 2.1f),
+                        Is.EqualTo(_presenter.BoundaryProbe(_room, 1, phase, position, 2.1f)));
+        }
         [Test] public void GraspShapeOpensOnEscapeAndClosesOnGrab()
         {
             Assert.That(_presenter.GripWeight(CollapseHandEventKind.Warning),Is.EqualTo(30f));

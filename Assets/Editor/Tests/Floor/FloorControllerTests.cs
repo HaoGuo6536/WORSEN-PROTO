@@ -14,6 +14,7 @@
 //   - Reject invalid contacts and verify a fresh initialization clears prior life.
 //   - Verify timed bail, cancellation and death without granting cakes or collapse.
 //   - Keep the exit permanently safe; cover warning pulses, optional losses and opt-in collapse hooks.
+//   - Keep pockets dormant until activation and reject room membership inside missing footprint cells.
 // DEPENDENCIES:
 //   - Core level/floor values and Domain Floor pure classes.
 //   - Domain Player read-only interface implemented by an immutable fixture.
@@ -177,7 +178,7 @@ namespace Worsen.Tests.Floor
 
             CollectionAssert.AreEqual(new[] { 103 }, fixture.State.ActiveCakeAnchors.Select(anchor => anchor.Id));
             CollectAll(fixture);
-            AssertPhases(fixture.Controller.Tick(0f, 5), new[] { 1 }, new[] { RoomPhase.Telegraph });
+            Assert.That(fixture.Controller.Tick(100f, 5), Is.Empty, "Unreachable optional rooms now remain dormant.");
         }
 
         [Test]
@@ -233,8 +234,9 @@ namespace Worsen.Tests.Floor
 
             var facts = fixture.Controller.Tick(70f, 90);
 
-            CollectionAssert.AreEqual(new[] { 5, 40, 20, 30 }, facts.Where(fact => fact.Phase == RoomPhase.Telegraph).Select(fact => fact.RoomId));
-            CollectionAssert.AreEqual(new[] { 5, 40, 20, 30 }, facts.Where(fact => fact.Phase == RoomPhase.Closed).Select(fact => fact.RoomId));
+            CollectionAssert.AreEqual(new[] { 40, 20, 30 }, facts.Where(fact => fact.Phase == RoomPhase.Telegraph).Select(fact => fact.RoomId));
+            CollectionAssert.AreEqual(new[] { 40, 20, 30 }, facts.Where(fact => fact.Phase == RoomPhase.Closed).Select(fact => fact.RoomId));
+            Assert.That(fixture.State.RoomPhases[5], Is.EqualTo(RoomPhase.Open), "Disconnected-first policy is superseded by dormant pockets.");
             Assert.That(fixture.State.RoomPhases[10], Is.EqualTo(RoomPhase.Open));
             Assert.That(fixture.Controller.ContactExit(new EntityId(1), 91, out _), Is.True);
         }
@@ -760,6 +762,56 @@ namespace Worsen.Tests.Floor
             Assert.That(fixture.Controller.Snapshot(value).OpeningProgress, Is.EqualTo(expected));
             Assert.That(fixture.Controller.SelectCue(null, value).OpeningProgress, Is.EqualTo(expected));
             Assert.That(new FloorDisplaySnapshot(0, 1, 0, ExitState.Locked, false, Vector3.zero).OpeningProgress, Is.Zero);
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void PocketsWaitForExplicitActivationAndUseIndependentConfiguredDelay(bool flagged)
+        {
+            var rooms = new[] { new LevelRoom(1, new Vector3(10f, 2f, 0f), new Vector3(8f, 4f, 8f)),
+                new LevelRoom(2, new Vector3(20f, 2f, 0f), new Vector3(8f, 4f, 8f), pocket: flagged),
+                new LevelRoom(3, new Vector3(30f, 2f, 0f), new Vector3(8f, 4f, 8f), pocket: true) };
+            var edges = flagged ? new[] { new LevelEdge(1, 1, 3, true), new LevelEdge(2, 2, 3, true) } :
+                new[] { new LevelEdge(1, 1, 3, true) };
+            var graph = LevelGraphUtility.Build(rooms, edges, new[] { Anchor(101, 1) }, 3, new Vector3(30f, 0f, 0f));
+            var config = Config(1);
+            Set(config, "_pocketCollapseDelay", 6f);
+            var fixture = Start(graph, config);
+            Assert.That(fixture.Controller.Tick(100f, 1), Is.Empty);
+            Assert.That(fixture.Controller.ActivatePocket(1), Is.False);
+            Assert.That(fixture.Controller.ActivatePocket(3), Is.False, "Even a flagged exit is permanently safe.");
+            Assert.That(fixture.Controller.ActivatePocket(99), Is.False);
+            Assert.That(fixture.Controller.ActivatePocket(2), Is.True);
+            Assert.That(fixture.Controller.Tick(5.5f, 2), Is.Empty);
+            Assert.That(fixture.Controller.ActivatePocket(2), Is.False, "Repeated bridge facts cannot reset the timer.");
+            AssertPhases(fixture.Controller.Tick(.5f, 3), new[] { 2 }, new[] { RoomPhase.Telegraph });
+            Assert.That(fixture.Controller.Destruction(2).Progress, Is.Zero);
+            fixture.Controller.Tick(14f, 4);
+            Assert.That(fixture.State.RoomPhases[2], Is.EqualTo(RoomPhase.Closed));
+            Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
+            CollectAll(fixture);
+            AssertPhases(fixture.Controller.Tick(0f, 5), new[] { 1 }, new[] { RoomPhase.Telegraph });
+            fixture.Controller.Tick(100f, 6);
+            Assert.That(fixture.State.RoomPhases[3], Is.EqualTo(RoomPhase.Open));
+            fixture.Controller.Initialize(graph, Players());
+            Assert.That(fixture.Controller.Tick(100f, 7), Is.Empty);
+            Assert.That(fixture.State.RoomPhases[2], Is.EqualTo(RoomPhase.Open));
+            Assert.That(fixture.Controller.ActivatePocket(2), Is.True);
+        }
+
+        [Test]
+        public void NotchCannotAdmitPlayerOrSupplyCakeMembership()
+        {
+            var room = new LevelRoom(1, new Vector3(10f, 2f, 0f), new Vector3(8f, 4f, 8f),
+                new[] { new Bounds(new Vector3(8f, 2f, 0f), new Vector3(4f, 4f, 8f)),
+                    new Bounds(new Vector3(12f, 2f, -2f), new Vector3(4f, 4f, 4f)) });
+            var graph = LevelGraphUtility.Build(new[] { room }, Array.Empty<LevelEdge>(),
+                new[] { new LevelAnchor(101, 1, CakeAnchorType.Flow, new Vector3(8f, 0f, 0f)),
+                    new LevelAnchor(102, 1, CakeAnchorType.Flow, new Vector3(12f, 0f, 2f)) }, 1, new Vector3(8f, 0f, 0f));
+            var fixture = Start(graph, Config(1));
+            Assert.That(fixture.State.ActiveCakeAnchors.Select(a => a.Id), Is.EqualTo(new[] { 101 }));
+            Assert.That(fixture.Controller.Collect(new EntityId(1), 102, PickupKind.Cake, 1, out _), Is.False);
+            Assert.Throws<InvalidOperationException>(() => fixture.Controller.Initialize(graph,
+                new[] { new PlayerFixture(1, position: new Vector3(12f, 0f, 2f)) }));
         }
 
         private static FloorConfig DensityConfig()

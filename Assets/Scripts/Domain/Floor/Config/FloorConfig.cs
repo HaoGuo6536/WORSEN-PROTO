@@ -11,6 +11,7 @@
 //   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
 //   - Tune per-room placement, the required share and shared pickup loudness.
 //   - Tune deliberate locked-exit holds independently of cake-driven collapse.
+//   - Tune the simulation-time delay before an explicitly activated pocket starts its warning.
 //   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
@@ -60,6 +61,8 @@ namespace Worsen.Domain.Floor
         [SerializeField, Min(0f)] private float _riskWeight = 1f;
         [SerializeField, Min(0f)] private float _verticalWeight = 2f;
         [SerializeField, Min(0.01f)] private float _collapseInterval = 12f;
+        [SerializeField, Min(0.01f)] private float _pocketCollapseDelay = 6f;
+        public float PocketCollapseDelay => _pocketCollapseDelay > 0f && !float.IsInfinity(_pocketCollapseDelay) ? _pocketCollapseDelay : 6f;
         [SerializeField, Min(0.01f)] private float _telegraphDuration = 6f;
         [SerializeField, Min(0.01f)] private float _directionCueInterval = 0.5f;
         [SerializeField, Min(0.1f)] private float _tearingDuration = 2f;

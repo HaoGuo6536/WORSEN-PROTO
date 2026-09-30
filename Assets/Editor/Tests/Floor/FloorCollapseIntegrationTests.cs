@@ -11,6 +11,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Verify footprint trigger/hand placement and Low Profile release through the Manager.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
@@ -162,6 +163,64 @@ namespace Worsen.Tests.Floor
                 Assert.That(facts.Last(), Is.EqualTo(CollapseHandEventKind.Escaped));
             }
         }
+        [TestCase(false)] [TestCase(true)]
+        public void ManagerPublishesLowProfileReleaseAndRejectsProtectedReacquisition(bool grabbed)
+        {
+            using (var fixture = new Fixture())
+            {
+                fixture.Open(); fixture.Manager.Tick(8f, 1);
+                fixture.Move(fixture.Origin + Vector3.right * 5.8f);
+                var facts = new List<CollapseHandFact>();
+                fixture.Manager.OnCollapseHand += facts.Add;
+                fixture.Player.IsUngrabbable = true;
+                fixture.Manager.Tick(0f, 2);
+                Assert.That(facts, Is.Empty);
+                fixture.Player.IsUngrabbable = false;
+                fixture.Manager.Tick(0f, 3);
+                if (grabbed) fixture.Manager.Tick(.7f, 4);
+                fixture.Player.IsUngrabbable = true;
+                fixture.Manager.Tick(2f, 5);
+                Assert.That(facts.Last().Kind, Is.EqualTo(CollapseHandEventKind.Released));
+                Assert.That(facts.Last().SlowMultiplier, Is.EqualTo(1f));
+                int count = facts.Count;
+                fixture.Manager.Tick(20f, 6);
+                Assert.That(facts.Count, Is.EqualTo(count));
+            }
+        }
+
+        [Test]
+        public void LShapeBuildsNoHandsOrVolumesInNotchAndCannotProbeIt()
+        {
+            using (var fixture = new Fixture())
+            {
+                var cells = new[] { new Bounds(fixture.Origin + Vector3.up * 3.5f, new Vector3(12f, 7f, 12f)),
+                    new Bounds(fixture.Origin + new Vector3(12f, 3.5f, 0f), new Vector3(12f, 7f, 12f)),
+                    new Bounds(fixture.Origin + new Vector3(0f, 3.5f, 12f), new Vector3(12f, 7f, 12f)) };
+                var room = new LevelRoom(1, fixture.Origin + new Vector3(6f, 3.5f, 6f), new Vector3(24f, 7f, 24f), cells);
+                var graph = LevelGraphUtility.Build(new[] { room }, Array.Empty<LevelEdge>(), Array.Empty<LevelAnchor>(), 1, fixture.Origin);
+                fixture.Manager.Teardown();
+                fixture.Driver.Initialize(graph, Array.Empty<LevelAnchor>(), boundaryReach: 2.1f);
+                fixture.Driver.ApplyRoomPhase(1, RoomPhase.Closed);
+                var volume = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
+                Vector3 notch = fixture.Origin + new Vector3(6.1f, .5f, 6.1f);
+                Physics.SyncTransforms();
+                Assert.That(volume.GetComponents<BoxCollider>().Length, Is.EqualTo(3));
+                foreach (var collider in volume.GetComponents<BoxCollider>()) Assert.That(collider.bounds.Contains(notch), Is.False);
+                var hands = volume.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("Shadow Hand ")).ToArray();
+                Assert.That(hands, Is.Not.Empty);
+                var cakes = new[] { fixture.Origin + new Vector3(0f, 0f, 12f), fixture.Origin + new Vector3(12f, 0f, 0f) };
+                foreach (float progress in new[] { 0f, .5f, 1f })
+                {
+                    volume.ApplyDestruction(new RoomDestructionSample(1, RoomPhase.Encroaching, progress), progress, cakes);
+                    foreach (var hand in hands) Assert.That(room.ContainsXZ(hand.position), Is.True);
+                }
+                fixture.Driver.ApplyRoomPhase(1, RoomPhase.Closed);
+                Assert.That(volume.Probe(notch).Available, Is.False);
+                Assert.That(volume.PickupOvertaken(notch), Is.False);
+                Assert.That(volume.PickupOvertaken(fixture.Origin), Is.True);
+            }
+        }
+
         private sealed class Fixture : IDisposable
         {
             public readonly Vector3 Origin = new Vector3(40000f,0f,40000f);
@@ -200,8 +259,9 @@ namespace Worsen.Tests.Floor
         {
             public LevelView(LevelGraph graph){Graph=graph;} public bool IsReady=>true;public LevelGraph Graph{get;}
         }
-        private sealed class PlayerView : IReadOnlyPlayerState
+        private sealed class PlayerView : IReadOnlyPlayerState, IReadOnlyPlayerEffectState
         {
+            public bool IsUngrabbable { get; set; }
             public EntityId Id=>new EntityId(1);public Vector3 Position{get;set;}
             public Vector3 Velocity=>Vector3.zero;public Vector3 Forward=>Vector3.forward;public float HeadingDegrees=>0f;
             public float SprintSpeed=>8f;public float MaxDesignSpeed=>12f;public float Health{get;set;}=100f;

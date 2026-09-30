@@ -10,6 +10,7 @@
 //   - Verify portal clearance, elevation, selection, local dimming and threshold chalk.
 //   - Verify default-off Wick/Darker Floors composition without exceeding the light cap.
 //   - Bind exact Core light sockets without lighting other rooms, moons or destroyed torches.
+//   - Keep footprint dressing out of notches and off internal walls; preserve rectangle placement.
 // DEPENDENCIES:
 //   - NUnit and EnvironmentPresenter; no scene objects required.
 // USAGE NOTES:
@@ -26,6 +27,44 @@ namespace Worsen.Tests.CastleEnvironment
 {
     public sealed class EnvironmentPresenterTests
     {
+        [Test]
+        public void FootprintDressingAndLightSlotsAvoidNotchesAndInternalWalls()
+        {
+            var cells = new[] { new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f)),
+                new Bounds(new Vector3(12f, 3.5f, 0f), new Vector3(12f, 7f, 12f)),
+                new Bounds(new Vector3(0f, 3.5f, 12f), new Vector3(12f, 7f, 12f)) };
+            var bounds = new Bounds(new Vector3(6f, 3.5f, 6f), new Vector3(24f, 7f, 24f));
+            var room = new LevelRoom(1, bounds.center, bounds.size, cells);
+            for (int id = 0; id < 8; id++)
+            {
+                var dressing = EnvironmentPresenter.BuildDressing(id, bounds, false, false, null, cells: cells);
+                var lights = EnvironmentPresenter.BuildSlots(id, bounds, null, cells);
+                Assert.That(dressing, Is.Not.Empty); Assert.That(lights, Is.Not.Empty);
+                foreach (var slot in dressing.Concat(lights))
+                {
+                    Assert.That(room.ContainsXZ(slot.Position), Is.True);
+                    var rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
+                    foreach (int x in new[] { -1, 1 }) foreach (int z in new[] { -1, 1 })
+                        Assert.That(room.ContainsXZ(slot.Position + rotation * new Vector3(x * slot.Envelope.x * .5f, 0f,
+                            z * slot.Envelope.z * .5f)), Is.True, "The entire dressing envelope must stay on occupied cells.");
+                    if (slot.Kind != EnvironmentDecorationKind.Torch && slot.Kind != EnvironmentDecorationKind.Banner) continue;
+                    var outside = slot.Position - Quaternion.Euler(0f, slot.Yaw, 0f) * Vector3.forward * .31f;
+                    Assert.That(room.ContainsXZ(outside), Is.False, "A wall-backed item cannot attach to a cell seam.");
+                }
+            }
+        }
+
+        [Test]
+        public void ExplicitSingleCellPreservesEveryRectangleSlot()
+        {
+            var bounds = new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f));
+            var portals = new[] { Vector3.back * 6f };
+            Assert.That(EnvironmentPresenter.BuildSlots(3, bounds, portals, new[] { bounds }),
+                Is.EqualTo(EnvironmentPresenter.BuildSlots(3, bounds, portals)));
+            Assert.That(EnvironmentPresenter.BuildDressing(3, bounds, false, true, portals, cells: new[] { bounds }),
+                Is.EqualTo(EnvironmentPresenter.BuildDressing(3, bounds, false, true, portals)));
+        }
+
         [Test]
         public void LightFactsMatchOnlyTheirRoomSocketAndRespectDestruction()
         {

@@ -12,6 +12,7 @@
 //   - Compute local flame falloff and bounded chalk crosses with room ownership.
 //   - Apply default-off Wick and Darker Floors without bypassing destruction or light budgets.
 //   - Match Level light facts to exact room/socket positions and preserve destruction gating.
+//   - Place multi-cell dressing only inside occupied cells and on exposed walls, never seams.
 // DEPENDENCIES:
 //   - Its own definitions/state, Core interactable snapshots and Unity value math.
 // USAGE NOTES:
@@ -85,8 +86,17 @@ namespace Worsen.Presentation.Environment
         }
 
         public static EnvironmentSlot[] BuildDressing(int roomId, Bounds bounds, bool openSky, bool refuge,
-            Vector3[] portals, Bounds[] reserved = null)
+            Vector3[] portals, Bounds[] reserved = null, IReadOnlyList<Bounds> cells = null)
         {
+            if (cells != null && cells.Count > 1)
+            {
+                var dressing = new List<EnvironmentSlot>();
+                foreach (var cell in cells)
+                    foreach (var slot in BuildDressing(roomId, cell, openSky, refuge, portals, reserved))
+                        if (FitsCell(slot, cell, cells)) dressing.Add(slot);
+                return dressing.ToArray();
+            }
+            if (cells != null && cells.Count == 1) bounds = cells[0];
             var result = new List<EnvironmentSlot>(6);
             EnvironmentSlot[] walls = BuildSlots(roomId, bounds, portals);
             foreach (EnvironmentSlot slot in walls) if (slot.Torch) result.Add(slot);
@@ -165,8 +175,17 @@ namespace Worsen.Presentation.Environment
             return false;
         }
 
-        public static EnvironmentSlot[] BuildSlots(int roomId, Bounds bounds, Vector3[] portals)
+        public static EnvironmentSlot[] BuildSlots(int roomId, Bounds bounds, Vector3[] portals, IReadOnlyList<Bounds> cells = null)
         {
+            if (cells != null && cells.Count > 1)
+            {
+                var lighting = new List<EnvironmentSlot>();
+                foreach (var cell in cells)
+                    foreach (var slot in BuildSlots(roomId, cell, portals))
+                        if (FitsCell(slot, cell, cells)) lighting.Add(slot);
+                return lighting.ToArray();
+            }
+            if (cells != null && cells.Count == 1) bounds = cells[0];
             var slots = new List<EnvironmentSlot>(4);
             if (bounds.size.x < 5f || bounds.size.z < 5f || bounds.size.y < 3.4f) return slots.ToArray();
             int torchCount = 0, decorCount = 0;
@@ -199,6 +218,36 @@ namespace Worsen.Presentation.Environment
                 if (torchCount == 2 && decorCount == 2) break;
             }
             return slots.ToArray();
+        }
+
+        private static bool FitsCell(EnvironmentSlot slot, Bounds cell, IReadOnlyList<Bounds> cells)
+        {
+            bool rotated = Mathf.Abs(Mathf.Sin(slot.Yaw * Mathf.Deg2Rad)) > .5f;
+            Vector3 half = (rotated ? new Vector3(slot.Envelope.z, slot.Envelope.y, slot.Envelope.x) : slot.Envelope) * .5f;
+            Vector3 min = slot.Position - half, max = slot.Position + half;
+            if (min.x < cell.min.x || max.x > cell.max.x || min.z < cell.min.z || max.z > cell.max.z) return false;
+            bool corner = slot.Kind == EnvironmentDecorationKind.Column || slot.Kind == EnvironmentDecorationKind.FloorProp ||
+                slot.Kind == EnvironmentDecorationKind.MerchantDisplay;
+            if (corner)
+                return ExposedWall(cell, cells, slot.Position.x < cell.center.x ? 3 : 1, min, max) &&
+                    ExposedWall(cell, cells, slot.Position.z < cell.center.z ? 0 : 2, min, max);
+            int wall = slot.Yaw == 0f ? 0 : slot.Yaw == 270f ? 1 : slot.Yaw == 180f ? 2 : 3;
+            return ExposedWall(cell, cells, wall, min, max);
+        }
+
+        private static bool ExposedWall(Bounds cell, IReadOnlyList<Bounds> cells, int wall, Vector3 min, Vector3 max)
+        {
+            bool x = wall == 1 || wall == 3, positive = wall == 1 || wall == 2;
+            float plane = x ? (positive ? cell.max.x : cell.min.x) : (positive ? cell.max.z : cell.min.z);
+            foreach (var other in cells)
+            {
+                if (other.Equals(cell) || other.min.y >= max.y || other.max.y <= min.y) continue;
+                float low = x ? other.min.x : other.min.z, high = x ? other.max.x : other.max.z;
+                bool across = positive ? low <= plane && high > plane : low < plane && high >= plane;
+                bool overlap = x ? other.min.z < max.z && other.max.z > min.z : other.min.x < max.x && other.max.x > min.x;
+                if (across && overlap) return false;
+            }
+            return true;
         }
 
         public static bool ClearsPortals(Vector3 point, Vector3[] portals, float clearance)

@@ -9,6 +9,7 @@
 //   DriverState (§7c) Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
 //   - Retain the room-owned native Lumen warning effect.
+//   - Retain cell-local triggers and hand bounds without filling the room's bounding rectangle.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 // DEPENDENCIES:
@@ -28,13 +29,16 @@ namespace Worsen.Domain.Floor
     public sealed class RoomCollapseDriverState
     {
         public Bounds Bounds;
+        public LevelRoom Room;
+        public readonly List<BoxCollider> Boundaries = new List<BoxCollider>();
+        public readonly List<Bounds> HandBounds = new List<Bounds>();
         public int RoomId;
         public RoomPhase Phase;
         public float Progress;
         public float Elapsed;
         public bool OptionalCracks;
         public FloorLumenGlow Warning;
-        public BoxCollider Boundary;
+
         public float BoundaryReach;
         public Func<Collider, EntityId> ResolveIdentity;
         public readonly Dictionary<Collider, EntityId> Contacts = new Dictionary<Collider, EntityId>();
