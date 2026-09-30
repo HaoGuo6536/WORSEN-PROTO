@@ -4,7 +4,7 @@ type: spec
 title: Procedural maps and level progression
 status: DRAFT
 created: 2026-09-15
-updated: 2026-09-15
+updated: 2026-09-30
 owner: UNKNOWN — owner input needed
 supersedes: none
 superseded_by: none
@@ -76,10 +76,13 @@ Reusable modules allow varied maps while preserving deliberate local traversal. 
 
 ## 6. Plans implementing this spec
 
-None yet. A separate implementation plan is needed. The unchecked follow-up is recorded in [PLAN-001's deferred-work list](../plans/PLAN-001-worsen-boilerplate.md#4-what-is-deliberately-not-in-the-boilerplate). PLAN-001, PLAN-004 and PLAN-008 retain their hand-built boilerplate scope. This DRAFT is not an execution plan.
+The unchecked follow-up is recorded in [PLAN-001's deferred-work list](../plans/PLAN-001-worsen-boilerplate.md#4-what-is-deliberately-not-in-the-boilerplate). PLAN-001, PLAN-004 and PLAN-008 retain their hand-built boilerplate scope. This DRAFT is not an execution plan.
+
+- PLAN-026 — DRAFT — [plans/PLAN-026-level-diversity-gaps-multifloor.md](../plans/PLAN-026-level-diversity-gaps-multifloor.md). Registered 2026-09-30 from SPEC-004. It continues this spec's generation work, and its first step records which of section 2's requirements the existing `Domain/Procedural` code meets. PLAN-014 (hunter corner stalls on generated floors) and PLAN-023 (selection cadence) also touch this spec's subject.
 
 ## 7. History
 
 | Date | Change | By |
 |------|--------|----|
 | 2026-09-15 | Recorded the requested separate procedural-map and level-progression follow-up. Working generation is required; enemy/curse/shop content may be placeholders. Preserved GDD floor/wallet/progression semantics and left growth, cadence and balance choices open. | $docs-plans |
+| 2026-09-30 | Section 6 lists PLAN-026 (DRAFT), registered during the SPEC-004 decomposition. Body and status unchanged. | $docs-plans new plan |

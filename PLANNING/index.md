@@ -1,6 +1,6 @@
 # PLANNING registry — WORSEN
 
-> Last audited: 2026-09-30 by $docs-plans audit
+> Last audited: 2026-09-30 by $docs-plans audit (after the SPEC-004 decomposition)
 > Current floor-pacing scope: see [the 2026-09-15 user clarification](#floor-pacing-clarification-on-2026-09-15); the former first-sweep duration target is non-blocking.
 > Companion: `../DOCUMENTATION/direction.md` is not present; direction linkage is unavailable until $codebase-documentation has been run.
 
@@ -17,9 +17,25 @@
 | PLAN-008 | plan | Floor collection and collapse | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-008-floor-collapse.md](plans/PLAN-008-floor-collapse.md) |
 | PLAN-009 | plan | Director pressure and relief | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-009-director-pressure.md](plans/PLAN-009-director-pressure.md) |
 | PLAN-010 | plan | Telemetry replay and tuning | LIVE | 2026-09-14 | 2026-09-15 | n/a | SPEC-001, SPEC-002 | none | [plans/PLAN-010-telemetry-replay-tuning.md](plans/PLAN-010-telemetry-replay-tuning.md) |
+| PLAN-011 | plan | Horror direction execution map and shared contracts | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-002, SPEC-003 | none | [plans/PLAN-011-horror-direction-coordination.md](plans/PLAN-011-horror-direction-coordination.md) |
+| PLAN-012 | plan | Direction-independent survey fixes | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-012-direction-independent-survey-fixes.md](plans/PLAN-012-direction-independent-survey-fixes.md) |
+| PLAN-013 | plan | Movement, traversal and hit recovery | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-013-movement-traversal-hit-recovery.md](plans/PLAN-013-movement-traversal-hit-recovery.md) |
+| PLAN-014 | plan | Hunter corner-stall investigation | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-003 | none | [plans/PLAN-014-hunter-corner-stall-investigation.md](plans/PLAN-014-hunter-corner-stall-investigation.md) |
+| PLAN-015 | plan | Hunter behaviour and felt intelligence | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-015-hunter-behaviour-felt-intelligence.md](plans/PLAN-015-hunter-behaviour-felt-intelligence.md) |
+| PLAN-016 | plan | Hunter roster foundation and first three threats | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001, SPEC-002 | none | [plans/PLAN-016-hunter-roster-foundation.md](plans/PLAN-016-hunter-roster-foundation.md) |
+| PLAN-017 | plan | Hunter roster expansion and non-hunter threats | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-017-hunter-roster-expansion.md](plans/PLAN-017-hunter-roster-expansion.md) |
+| PLAN-018 | plan | Collapse fog and grab hands | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-018-collapse-fog-grab-hands.md](plans/PLAN-018-collapse-fog-grab-hands.md) |
+| PLAN-019 | plan | Cakes, the white arrow and cake traps | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-019-cakes-arrow-cake-traps.md](plans/PLAN-019-cakes-arrow-cake-traps.md) |
+| PLAN-020 | plan | In-run interface, title, pause and results | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-020-run-interface-menus-results.md](plans/PLAN-020-run-interface-menus-results.md) |
+| PLAN-021 | plan | Silence-first audio and shared hearing | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-021-silence-first-audio-hearing.md](plans/PLAN-021-silence-first-audio-hearing.md) |
+| PLAN-022 | plan | Camera feel, the catch, degradation and lighting | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-022-camera-catch-degradation-lighting.md](plans/PLAN-022-camera-catch-degradation-lighting.md) |
+| PLAN-023 | plan | Selection cadence, curses and stakes | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-023-selection-curses-stakes.md](plans/PLAN-023-selection-curses-stakes.md) |
+| PLAN-024 | plan | Shop, upgrades and consumables | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-024-shop-upgrades-consumables.md](plans/PLAN-024-shop-upgrades-consumables.md) |
+| PLAN-025 | plan | Shrines | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-001 | none | [plans/PLAN-025-shrines.md](plans/PLAN-025-shrines.md) |
+| PLAN-026 | plan | Level diversity, gaps and multi-floor generation | DRAFT | 2026-09-30 | 2026-09-30 | n/a | SPEC-004, SPEC-003, SPEC-001 | none | [plans/PLAN-026-level-diversity-gaps-multifloor.md](plans/PLAN-026-level-diversity-gaps-multifloor.md) |
 | SPEC-001 | spec | Project architecture and modular design guidelines | LIVE | 2026-09-14 | 2026-09-15 | n/a | — | none | [specs/SPEC-001-project-architecture-guidelines.md](specs/SPEC-001-project-architecture-guidelines.md) |
 | SPEC-002 | spec | WORSEN foundational game design revision 3 | LIVE | 2026-09-14 | 2026-09-14 | n/a | — | none | [specs/SPEC-002-worsen-game-design.md](specs/SPEC-002-worsen-game-design.md) |
-| SPEC-003 | spec | Procedural maps and level progression | DRAFT | 2026-09-15 | 2026-09-15 | n/a | — | none | [specs/SPEC-003-procedural-maps-level-progression.md](specs/SPEC-003-procedural-maps-level-progression.md) |
+| SPEC-003 | spec | Procedural maps and level progression | DRAFT | 2026-09-15 | 2026-09-30 | n/a | — | none | [specs/SPEC-003-procedural-maps-level-progression.md](specs/SPEC-003-procedural-maps-level-progression.md) |
 | SPEC-004 | spec | Horror direction and content proposals | DRAFT | 2026-09-30 | 2026-09-30 | n/a | — | none | [specs/SPEC-004-horror-direction-content-proposals.md](specs/SPEC-004-horror-direction-content-proposals.md) |
 
 ## Archived
@@ -123,3 +139,24 @@ Audit summary: 2 LIVE specs, 9 LIVE plans, 1 DRAFT spec, 1 archived plan. [Archi
 SPEC-004 records the owner's 2026-09-30 direction shift toward sustained horror, converted from the reviewed Claude Doc with its approved and deferred marks kept inline, and retains the two design-conversation transcripts under `specs/sources/`. It is DRAFT: it overrides named SPEC-002 lines where they conflict but is not yet approved authority, and no plan implements it. SPEC-002 and SPEC-003 are unchanged in status. This operation did not edit DOCUMENTATION.
 
 Audit summary: 2 LIVE specs, 9 LIVE plans, 2 DRAFT specs, 1 archived plan; every `.md` under PLANNING except index.md has one registry row and every row's path exists.
+
+## SPEC-004 decomposition on 2026-09-30
+
+The user asked to decompose SPEC-004 into defined plans. Sixteen plans were created from the skill's plan template, all DRAFT, because SPEC-004 is DRAFT and no direction document exists; none is approved for execution.
+
+[PLAN-011](plans/PLAN-011-horror-direction-coordination.md) is the umbrella. It holds:
+
+- the coverage matrix that assigns every SPEC-004 section 2 requirement to one plan or to the deferred list;
+- the shared contracts to freeze before parallel work (effect catalogue replacing the near-full `ProgressionTraits` flags, threat kinds, one occlusion model for hearing and mix, hit severity and grace, typed guidance targets, cue budget, persistence, world interactables);
+- the delivery waves and checkpoints H0 to HV;
+- the conflicts with LIVE PLAN-003/005/006/007/008/009, which are recorded for an owner decision but not edited;
+- eight inconsistencies inside SPEC-004 that need an owner decision.
+
+Child plans PLAN-012 to PLAN-026 each name their starting code locations, found by text search on 2026-09-30. No Unity run, GitNexus query or code change was made, so impact analysis remains a required first step of every plan.
+
+SPEC-004 section 6 now lists the plans and maps its six original candidates to them. SPEC-003 section 6 lists PLAN-026 and its row's Updated date is 2026-09-30. Neither spec's status or body changed. No existing plan changed status, moved or was edited. This operation did not edit DOCUMENTATION.
+
+> HAND-OFF → $codebase-documentation
+> No plan changed status. When `DOCUMENTATION/direction.md` exists, the SPEC-004 waves in PLAN-011 §4 are candidates for Now/Next items. This skill did not create or edit DOCUMENTATION.
+
+Audit summary: 2 LIVE specs, 9 LIVE plans, 2 DRAFT specs, 16 DRAFT plans, 1 archived plan. Every one of the 30 Markdown documents under PLANNING except index.md has exactly one row, with matching id, status, dates and a location that matches its status. All 258 relative file links and anchors in the registry, SPEC-003, SPEC-004 and the new plans resolve. Each new plan has all nine template sections. No violations. [Audit evidence](../Logs/AgentValidation/SPEC-004-Decomposition/planning-audit.json).

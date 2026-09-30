@@ -497,10 +497,30 @@ From the 2026-09-30 playtest notes, the three that unblock testing everything el
 
 ## 6. Plans implementing this spec
 
-None yet. Candidate plans, in the order the source page's priority list suggests: hunter roster rebuild (briefs, felt intelligence, Stalk and Retreat, sound identity); movement and traversal fixes (hit grace and on-hit boost, vault and slide rework, ramps, ledge climb and boost, corner-stall investigation); collapse, fog and grabs; cakes, arrow and interface; shop, upgrades, consumables, curses and shrines; level diversity, gaps and multi-floor generation (with SPEC-003). Register each with `$docs-plans new plan` when execution is approved.
+Decomposed on 2026-09-30. All plans are DRAFT, like this spec, and none is approved for execution. [PLAN-011](../plans/PLAN-011-horror-direction-coordination.md) holds the coverage matrix that assigns every section 2 requirement, the shared contracts, the waves and the conflicts with the LIVE boilerplate plans.
+
+- PLAN-011 — DRAFT — [plans/PLAN-011-horror-direction-coordination.md](../plans/PLAN-011-horror-direction-coordination.md)
+- PLAN-012 — DRAFT — [plans/PLAN-012-direction-independent-survey-fixes.md](../plans/PLAN-012-direction-independent-survey-fixes.md)
+- PLAN-013 — DRAFT — [plans/PLAN-013-movement-traversal-hit-recovery.md](../plans/PLAN-013-movement-traversal-hit-recovery.md)
+- PLAN-014 — DRAFT — [plans/PLAN-014-hunter-corner-stall-investigation.md](../plans/PLAN-014-hunter-corner-stall-investigation.md)
+- PLAN-015 — DRAFT — [plans/PLAN-015-hunter-behaviour-felt-intelligence.md](../plans/PLAN-015-hunter-behaviour-felt-intelligence.md)
+- PLAN-016 — DRAFT — [plans/PLAN-016-hunter-roster-foundation.md](../plans/PLAN-016-hunter-roster-foundation.md)
+- PLAN-017 — DRAFT — [plans/PLAN-017-hunter-roster-expansion.md](../plans/PLAN-017-hunter-roster-expansion.md)
+- PLAN-018 — DRAFT — [plans/PLAN-018-collapse-fog-grab-hands.md](../plans/PLAN-018-collapse-fog-grab-hands.md)
+- PLAN-019 — DRAFT — [plans/PLAN-019-cakes-arrow-cake-traps.md](../plans/PLAN-019-cakes-arrow-cake-traps.md)
+- PLAN-020 — DRAFT — [plans/PLAN-020-run-interface-menus-results.md](../plans/PLAN-020-run-interface-menus-results.md)
+- PLAN-021 — DRAFT — [plans/PLAN-021-silence-first-audio-hearing.md](../plans/PLAN-021-silence-first-audio-hearing.md)
+- PLAN-022 — DRAFT — [plans/PLAN-022-camera-catch-degradation-lighting.md](../plans/PLAN-022-camera-catch-degradation-lighting.md)
+- PLAN-023 — DRAFT — [plans/PLAN-023-selection-curses-stakes.md](../plans/PLAN-023-selection-curses-stakes.md)
+- PLAN-024 — DRAFT — [plans/PLAN-024-shop-upgrades-consumables.md](../plans/PLAN-024-shop-upgrades-consumables.md)
+- PLAN-025 — DRAFT — [plans/PLAN-025-shrines.md](../plans/PLAN-025-shrines.md)
+- PLAN-026 — DRAFT — [plans/PLAN-026-level-diversity-gaps-multifloor.md](../plans/PLAN-026-level-diversity-gaps-multifloor.md)
+
+The six candidates first listed here map as follows: roster rebuild → PLAN-015, 016 and 017; movement and traversal → PLAN-013 and 014; collapse, fog and grabs → PLAN-018; cakes, arrow and interface → PLAN-019 and 020; shop, upgrades, consumables, curses and shrines → PLAN-023, 024 and 025; level diversity → PLAN-026. PLAN-012, 021 and 022 cover the section 2.8 fixes, audio and presentation, which the candidate list did not name. [PLAN-011 §6](../plans/PLAN-011-horror-direction-coordination.md#6-risks-and-open-questions) records internal inconsistencies in this spec that need an owner decision before its contracts freeze.
 
 ## 7. History
 
 | Date | Change | By |
 |------|--------|----|
 | 2026-09-30 | Created from the reviewed Claude Doc after the owner's comment pass; approved and deferred marks carried inline. Registered DRAFT. | $docs-plans new spec |
+| 2026-09-30 | Decomposed into PLAN-011 (umbrella) and PLAN-012 to PLAN-026, all DRAFT; section 6 updated. Spec body and status unchanged. | $docs-plans new plan |
