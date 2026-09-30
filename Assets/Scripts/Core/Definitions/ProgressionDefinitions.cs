@@ -12,6 +12,7 @@
 //   - Describe unique run traits, consumable stock, and actionable rejection reasons.
 //   - Carry the effective loadout without exposing mutable run state.
 //   - Add optional pedestal metadata, slot receipts and pending replacement/reroll views.
+//   - Carry an additive shelter bargain snapshot without changing legacy phase identities.
 // DEPENDENCIES:
 //   - System collection interfaces only; no project layer dependencies.
 // USAGE NOTES:
@@ -130,7 +131,8 @@ namespace Worsen.Core
             IReadOnlyList<ProgressionSelection> retained, ProgressionEffects effects, string message,
             bool canContinue, bool canRestart, IReadOnlyList<ProgressionInventorySlot> inventory = null,
             string pendingOfferId = null, string pendingOfferTitle = null, int pendingPrice = 0,
-            bool canReroll = false, int rerollPrice = 0, int freeRerollsRemaining = 0, string rerollUnavailableReason = null)
+            bool canReroll = false, int rerollPrice = 0, int freeRerollsRemaining = 0, string rerollUnavailableReason = null,
+            ShrineDealSnapshot bargain = default)
         {
             Revision = revision; GenerationId = generationId; Round = round; Seed = seed; Wallet = wallet;
             ThreatCount = threatCount; CurseCount = curseCount; Phase = phase; Health = health; MaxHealth = maxHealth;
@@ -139,6 +141,7 @@ namespace Worsen.Core
             Inventory = inventory; PendingOfferId = pendingOfferId; PendingOfferTitle = pendingOfferTitle;
             PendingPrice = pendingPrice; CanReroll = canReroll; RerollPrice = rerollPrice;
             FreeRerollsRemaining = freeRerollsRemaining; RerollUnavailableReason = rerollUnavailableReason;
+            Bargain = bargain;
         }
         public int Revision { get; }
         public int GenerationId { get; }
@@ -165,5 +168,6 @@ namespace Worsen.Core
         public int RerollPrice { get; }
         public int FreeRerollsRemaining { get; }
         public string RerollUnavailableReason { get; }
+        public ShrineDealSnapshot Bargain { get; }
     }
 }

@@ -12,6 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Name local choice, pedestal, reroll and replacement actions and display cards.
+//   - Distinguish a paid Bargain curse from normal curse selection.
 //
 // DEPENDENCIES:
 //   Core progression snapshots and own ProgressionUI stack only.
@@ -23,7 +24,7 @@
 
 namespace Worsen.Presentation.ProgressionUI
 {
-    public enum ProgressionUIAction { ChooseThreat, ChooseCurse, Purchase, Continue, Restart, Reroll, ReplaceSlot, CancelReplacement }
+    public enum ProgressionUIAction { ChooseThreat, ChooseCurse, Purchase, Continue, Restart, Reroll, ReplaceSlot, CancelReplacement, TakeBargain }
 
     public readonly struct ProgressionUICard
     {

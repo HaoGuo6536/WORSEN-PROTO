@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
+//   - Present revision-bound shelter Bargains with explicit payout and a free walk-away route.
 //   - Preserve unique ownership, consumable stock and authoritative rejection reasons.
 //   - Display catalogue axes, priced rerolls, inventory and deferred replacement choices.
 //   - Trust Session-admitted selection cards, including stackable curses after rerolls.
@@ -77,6 +78,13 @@ namespace Worsen.Presentation.ProgressionUI
             state.Message = snapshot.Message ?? "";
             state.Title = Title(snapshot.Phase);
             state.Subtitle = Subtitle(snapshot.Phase);
+            if (snapshot.Phase == ProgressionPhase.Shop && snapshot.Bargain.Pending)
+            {
+                state.Title = "THE BARGAIN";
+                state.Subtitle = "Take one curse and receive Golden Cakes now. CONTINUE walks away for free.";
+                if ((snapshot.Bargain.Offers?.Count ?? 0) == 0)
+                    state.Message = "No eligible curses remain. Walk away for free.";
+            }
             state.RetainedText = Retained(snapshot, state.HideActiveHunters) + Inventory(snapshot);
             state.Cards = Cards(snapshot);
             return true;
@@ -176,6 +184,16 @@ namespace Worsen.Presentation.ProgressionUI
 
         private static ProgressionUICard[] Cards(ProgressionSnapshot snapshot)
         {
+            if (snapshot.Phase == ProgressionPhase.Shop && snapshot.Bargain.Pending)
+            {
+                var offers = snapshot.Bargain.Offers;
+                var cards = new ProgressionUICard[offers?.Count ?? 0];
+                for (int i = 0; i < cards.Length; i++)
+                    cards[i] = new ProgressionUICard(offers[i].Id, offers[i].Title, offers[i].Copy,
+                        "Kept for this run · reward " + Number(offers[i].Payout) + " Golden Cakes",
+                        "TAKE  +" + Number(offers[i].Payout), true, ProgressionUIAction.TakeBargain);
+                return cards;
+            }
             if (snapshot.Phase == ProgressionPhase.Shop && !string.IsNullOrEmpty(snapshot.PendingOfferId))
             {
                 var replacements = new List<ProgressionUICard>();

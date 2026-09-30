@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Progression (Session system).
 // KEY RESPONSIBILITIES:
+//   - Commit shrine costs and transient Player shield grants before publishing outcomes.
+//   - Publish belief-drop/world-effect intent and delayed shared-hearing noise facts.
 //   - Own persistent state and explicitly seeded new-run/replay initialization.
 //   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
 //   - Own the delegated shop through the controller; route rerolls and replacements.
@@ -18,7 +20,7 @@
 //   - Publish read-only before/after transactions for observational consumers.
 // DEPENDENCIES:
 //   - Progression Config, Controller and BehaviorState; Core progression types.
-//   - Unity persistence lifecycle only; no other system or scene references.
+//   - Domain Player receives shield grants by a transient argument, never a retained scene reference.
 // USAGE NOTES:
 //   Persistent on its own root object. Initialize returns the canonical instance
 //   and never resets an existing expedition. Bind listeners before StartRun.
@@ -33,6 +35,7 @@ using System.Runtime.CompilerServices;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Session.Progression.Shop;
+using Worsen.Domain.Player;
 
 namespace Worsen.Session.Progression
 {
@@ -48,6 +51,10 @@ namespace Worsen.Session.Progression
         public event Action<ProgressionSnapshot> SnapshotChanged;
         public event Action<ProgressionSnapshot, IReadOnlyActiveEffects> EffectsSnapshotChanged;
         public event Action<ProgressionGenerationRequest> GenerationRequested;
+        public event Action<ShrineResolvedFact> ShrineResolved;
+        public event Action<NoiseEvent> ShrineNoiseEmitted;
+        public IReadOnlyActiveEffects FloorEffects => controller == null ? default(ActiveEffects) : controller.FloorEffects;
+        public float ShrineYieldMultiplier => controller?.ShrineYieldMultiplier ?? 1f;
         public event Action<ProgressionSnapshot, ProgressionSnapshot, string, string> TransactionCommitted;
         public ProgressionSnapshot Snapshot => controller == null ? default : controller.Snapshot();
         public ProgressionEffectsSnapshot EffectsSnapshot => controller == null ? default : controller.EffectsSnapshot();
@@ -105,6 +112,7 @@ namespace Worsen.Session.Progression
 
         public bool ChooseThreat(string id, int revision) => Change(() => controller.ChooseThreat(id, revision), id);
         public bool ChooseCurse(string id, int revision) => Change(() => controller.ChooseCurse(id, revision), id);
+        public bool TakeBargain(string id, int revision) => Change(() => controller.TakeBargain(id, revision), id);
         public bool Purchase(string id, int revision) => Change(() => controller.Purchase(id, revision), id);
         public bool RerollShop(int revision) => Change(() => controller.RerollShop(revision));
         public bool RerollSelection(int revision) => Change(() => controller.RerollSelection(revision));
@@ -121,6 +129,26 @@ namespace Worsen.Session.Progression
         public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId));
         public bool RecordHealth(int generationId, float health) => Change(() => controller.RecordHealth(generationId, health));
         public bool EndRun(int generationId) => Change(() => controller.EndRun(generationId));
+
+        public bool ActivateShrine(int generationId, ShrineActivatedFact fact, PlayerManager player, float collectedFraction = 0f)
+        {
+            RequireInitialized();
+            var previous = controller.Snapshot();
+            if (!controller.ActivateShrine(generationId, fact, player != null ? player.ShieldCapacity : 0f,
+                collectedFraction, out var result)) return false;
+            if (result.Shield > 0f && !player.GrantShield(result.Shield))
+                throw new InvalidOperationException("Admitted shield grant failed before shrine publication.");
+            TransactionCommitted?.Invoke(previous, controller.Snapshot(), nameof(ActivateShrine), fact.Kind.ToString());
+            ShrineResolved?.Invoke(result);
+            Publish(generationId);
+            return true;
+        }
+
+        public void TickShrines(int generationId, float dt, long tick)
+        {
+            RequireInitialized();
+            foreach (var noise in controller.TickShrines(generationId, dt, tick)) ShrineNoiseEmitted?.Invoke(noise);
+        }
 
         private bool Change(Func<bool> action, string choiceId = "", [CallerMemberName] string reason = "")
         {
@@ -165,6 +193,8 @@ namespace Worsen.Session.Progression
             SnapshotChanged = null;
             EffectsSnapshotChanged = null;
             GenerationRequested = null;
+            ShrineResolved = null;
+            ShrineNoiseEmitted = null;
             TransactionCommitted = null;
             controller = null;
             state = null;
