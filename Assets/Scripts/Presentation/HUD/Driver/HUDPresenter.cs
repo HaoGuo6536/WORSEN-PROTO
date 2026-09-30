@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Format fixed-total cake counters and floor-scoped hiding independently of guidance.
 //   - Compute independent objective/threat bearings in the supplied camera frame.
-//   - Format shield and occupied inventory/selection without drawing empty capacity.
+//   - Retain shield facts and format only occupied inventory selections, never empty capacity.
 //   - Compute interruptible chase restoration using supplied time and explicit resets.
 //   - Keep phantom counts temporary and separate from authoritative pickup counts.
 //
@@ -200,7 +200,8 @@ namespace Worsen.Presentation.HUD
             state.SelectedDisplaySlot = selected < state.DisplayedSlots ? selected : -1;
             if (snapshot.Inventory == null || snapshot.SelectedIndex < 0 || snapshot.SelectedIndex >= snapshot.Inventory.Count) return;
             var slot = snapshot.Inventory[snapshot.SelectedIndex];
-            string title = string.IsNullOrEmpty(slot.Id) ? "Empty" : slot.Title;
+            if (string.IsNullOrEmpty(slot.Id)) return;
+            string title = slot.Title;
             string uses = snapshot.RemainingUses != null && snapshot.SelectedIndex < snapshot.RemainingUses.Count && !string.IsNullOrEmpty(slot.Id)
                 ? " ×" + snapshot.RemainingUses[snapshot.SelectedIndex].ToString(CultureInfo.InvariantCulture) : "";
             state.SelectedSlotText = (snapshot.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture) + ": " + title + uses;
