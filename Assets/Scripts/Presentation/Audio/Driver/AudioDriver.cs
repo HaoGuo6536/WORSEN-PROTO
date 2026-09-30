@@ -13,6 +13,7 @@
 //   AudioManager alone commands this engine boundary.
 //
 // KEY RESPONSIBILITIES:
+//   - Admit one catch sting per run through the normal cue path, never at lethal health.
 //   - Advance footstep cadence when a committed contact already supplied its sound.
 //   - Render the continuous exertion envelope through a stable pooled voice using designer timing settings.
 //   - Apply actual slide turning to continuous friction without restarting playback.
@@ -28,6 +29,7 @@
 //   - Own DriverConfig: AudioDriverConfig; no global audio settings are changed.
 //   - Presentation Update uses unscaled time; Session remains the gameplay tick owner.
 //   - Teardown destroys all created sources; disable stops playback immediately.
+//   - ResetRun replaces feedback state, rearming the sting on restart and capture reset.
 //
 // ============================================================================
 
@@ -116,6 +118,12 @@ namespace Worsen.Presentation.Audio
             _cueSources[incoming].Play();
             _state.VoiceIndex = incoming;
             return true;
+        }
+
+        public bool PlayCatchSting(EntityId player)
+        {
+            if (_feedback == null || _state == null || !_ownerEnabled || !isActiveAndEnabled) return false;
+            return _feedback.TryCatchSting(_feedbackState, player) && PlayCue(CueId.Death);
         }
 
         public void SetProximity(float closeness) { if (_state != null) _presenter.SetProximity(_state, closeness); }

@@ -11,9 +11,9 @@
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Verify traversal admission, fixed locks and outcomes under the per-tick speed cap.
-//   - Verify Q head input survives vault/mantle admission and continuation without changing trajectory or lock.
+//   - Verify held snap steering and zero head deltas without changing captured traversal trajectory or lock.
 //   - Verify committed posture/sprint facts, clearance-safe held crouch and replay/reset parity.
-//   - Verify heavy slide turns, unchanged free-look steering and independent slowdown effects.
+//   - Verify grace boundaries, severity-scaled boosts, reset/cancellation and the snap-disable hook.
 //   - Verify hold-to-sprint, uphill landing recovery and clearance-safe slide cancellation.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
@@ -314,12 +314,13 @@ namespace Worsen.Tests.Player
         {
             _state.Velocity = Vector3.forward * 8f;
             _controller.Tick(Frame(Vector2.up, InputButtons.Jump, InputButtons.LookBack, new Vector2(30f, 5f)), Ground, Dt, 1);
-            Assert.That(_state.HeadingDegrees, Is.Zero);
-            Assert.That(_state.HeadLookDelta, Is.EqualTo(new Vector2(30f, 5f)));
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(30f));
+            Assert.That(_state.HeadLookDelta, Is.EqualTo(Vector2.zero));
             Assert.That(_state.LookBack, Is.True);
             Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
-            _controller.Tick(Frame(look: new Vector2(10f, 0f)), default, Dt, 2);
-            Assert.That(_state.HeadingDegrees, Is.EqualTo(10f));
+            _controller.Tick(Frame(look: new Vector2(10f, 4f)), default, Dt, 2);
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(40f));
+            Assert.That(_state.HeadLookDelta, Is.EqualTo(new Vector2(0f, 4f)));
             Assert.That(_state.LookBack, Is.False);
         }
 
@@ -342,8 +343,8 @@ namespace Worsen.Tests.Player
                 var actual = _controller.Tick(Frame(Vector2.up, pressed, InputButtons.LookBack, look), probe, Dt, index + 1);
                 var expected = baseline.Tick(Frame(Vector2.up, pressed), probe, Dt, index + 1);
                 Assert.That(_state.LookBack, Is.True, "Q must survive admission and every locked traversal tick.");
-                Assert.That(_state.HeadingDegrees, Is.EqualTo(90f));
-                Assert.That(_state.HeadLookDelta, Is.EqualTo(look));
+                Assert.That(_state.HeadingDegrees, Is.EqualTo(Mathf.Repeat(90f + 165f + index * 0.5f, 360f)));
+                Assert.That(_state.HeadLookDelta, Is.EqualTo(Vector2.zero));
                 Assert.That(actual.Traversing, Is.True);
                 Assert.That(actual.TraversalStart, Is.EqualTo(expected.TraversalStart));
                 Assert.That(actual.TraversalTarget, Is.EqualTo(expected.TraversalTarget));
@@ -357,7 +358,7 @@ namespace Worsen.Tests.Player
             Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
             _controller.Tick(Frame(look: new Vector2(7f, 0f)), default, Dt, steps + 1);
             Assert.That(_state.LookBack, Is.False);
-            Assert.That(_state.HeadingDegrees, Is.EqualTo(97f));
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(Mathf.Repeat(90f + 165f + (steps - 1) * 0.5f + 7f, 360f)));
             Assert.That(_state.InputLockSeconds, Is.Zero);
         }
 
@@ -386,7 +387,7 @@ namespace Worsen.Tests.Player
             Assert.That(Vector3.SignedAngle(before, _state.Velocity, Vector3.up), Is.InRange(0.1f, 4.001f));
             Assert.That(_state.Velocity.magnitude, Is.LessThanOrEqualTo(speed));
             Assert.That(_state.SlideRemaining, Is.LessThan(remaining));
-            Assert.That(_state.HeadingDegrees, Is.Zero);
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(170f));
         }
 
         [Test]
@@ -592,8 +593,8 @@ namespace Worsen.Tests.Player
         [Test]
         public void InjuryDuringTraversalCapsMotionWithoutExtendingLockOrInventingSuccess()
         {
-            // This healthy boundary is unreachable after a hit at tick 2 lowers the remaining budget.
-            ExerciseResolvedTraversal(1f, 0.25f, TraversalKind.Vault, 3.5f, false, 14f, 2, false);
+            // Recovery now raises the injured cap, so this admitted boundary remains reachable.
+            ExerciseResolvedTraversal(1f, 0.25f, TraversalKind.Vault, 3.5f, false, 14f, 2, true);
             Assert.That(_profile.VaultDuration, Is.EqualTo(0.25f));
             Assert.That(_profile.MantleDuration, Is.EqualTo(0.35f));
             Assert.That(_profile.HardStumbleDuration, Is.EqualTo(0.5f));
@@ -707,13 +708,17 @@ namespace Worsen.Tests.Player
             PlayerHitResult hit = _controller.ApplyHit(_profile.LungeDamage);
             Assert.That(_state.Health, Is.EqualTo(50f));
             Assert.That(_state.HealthState, Is.EqualTo(PlayerHealthState.Injured));
-            Assert.That(Speed, Is.EqualTo(13.3f).Within(0.0001f));
-            Assert.That(_state.VaultExitVelocity.magnitude, Is.EqualTo(13.3f).Within(0.0001f));
+            Assert.That(Speed, Is.EqualTo(14f).Within(0.0001f));
+            Assert.That(_state.VaultExitVelocity.magnitude, Is.EqualTo(14f).Within(0.0001f));
             Assert.That(hit.Changed, Is.True);
             Assert.That(hit.Died, Is.False);
+            _controller.AdvanceRecovery(_state.GraceWindow.EndTick);
+            Assert.That(Speed, Is.EqualTo(13.3f).Within(0.0001f));
+            Assert.That(_state.VaultExitVelocity.magnitude, Is.EqualTo(13.3f).Within(0.0001f));
             _controller.ApplyHit(25f);
             Assert.That(_state.Health, Is.EqualTo(_profile.CriticalThreshold));
             Assert.That(_state.HealthState, Is.EqualTo(PlayerHealthState.Critical));
+            _controller.AdvanceRecovery(_state.GraceWindow.EndTick);
             hit = _controller.ApplyHit(25f);
             Assert.That(hit.Died, Is.True);
             Assert.That(_state.IsAlive, Is.False);
@@ -721,6 +726,112 @@ namespace Worsen.Tests.Player
             Assert.That(_controller.ApplyHit(50f).Changed, Is.False);
             Assert.That(_controller.ApplyHit(float.NaN).Changed, Is.False);
             Assert.That(_controller.ApplyHit(-50f).Changed, Is.False);
+        }
+
+        [Test]
+        public void GraceStartsOnAcceptedHitAndEndsExclusivelyWithoutRestacking()
+        {
+            _controller.Tick(Frame(), Ground, Dt, 10);
+            PlayerHitResult accepted = _controller.ApplyHit(10f, HitSeverity.Light);
+            GraceWindowFact window = accepted.GraceStarted.Value;
+            Assert.That(accepted.Changed, Is.True);
+            Assert.That(window.PlayerId, Is.EqualTo(_state.Id));
+            Assert.That(window.StartTick, Is.EqualTo(10));
+            Assert.That(window.EndTick, Is.EqualTo(82));
+            Assert.That(window.Severity, Is.EqualTo(HitSeverity.Light));
+            long boostEnd = _state.HitBoostEndTick;
+            foreach (long tick in new[] { 10L, 11L, 81L })
+            {
+                _controller.Tick(Frame(), Ground, Dt, tick);
+                PlayerHitResult absorbed = _controller.ApplyHit(100f, HitSeverity.Heavy);
+                Assert.That(absorbed.AbsorbedByGrace, Is.True);
+                Assert.That(absorbed.Changed || absorbed.Died || absorbed.GraceStarted.HasValue, Is.False);
+                Assert.That(_state.Health, Is.EqualTo(90f));
+                Assert.That(_state.HitBoostEndTick, Is.EqualTo(boostEnd));
+                Assert.That(_state.GraceWindow, Is.EqualTo(window));
+            }
+            Assert.That(_controller.AdvanceRecovery(window.EndTick).Value, Is.EqualTo(window));
+            Assert.That(_controller.AdvanceRecovery(window.EndTick), Is.Null, "End publishes once.");
+            Assert.That(_controller.ApplyHit(10f).Changed, Is.True, "The end tick is outside grace.");
+            Assert.That(_state.Health, Is.EqualTo(80f));
+        }
+
+        [TestCase(HitSeverity.Light, 1.12f, 36)]
+        [TestCase(HitSeverity.Heavy, 1.25f, 72)]
+        public void HitBoostScalesTargetsAndCapUntilItsExclusiveEnd(HitSeverity severity, float multiplier, int durationTicks)
+        {
+            _controller.ApplyHit(1f, severity);
+            Assert.That(_state.HitBoostEndTick, Is.EqualTo(durationTicks));
+            Assert.That(_controller.MaximumMovementSpeed, Is.EqualTo(_profile.MaxDesignSpeed * multiplier).Within(0.0001f));
+            for (int tick = 1; tick < durationTicks; tick++)
+                _controller.Tick(Frame(Vector2.up, held: InputButtons.Sprint), Ground, Dt, tick);
+            Assert.That(Speed, Is.EqualTo(_profile.SprintSpeed * multiplier).Within(0.0001f));
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(multiplier));
+            Assert.That(_controller.ApplyHit(1f).AbsorbedByGrace, Is.True);
+            Assert.That(_state.HitBoostEndTick, Is.EqualTo(durationTicks));
+            _controller.Tick(Frame(Vector2.up, held: InputButtons.Sprint), Ground, Dt, durationTicks);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+            Assert.That(_controller.MaximumMovementSpeed, Is.EqualTo(_profile.MaxDesignSpeed));
+            Assert.That(Speed, Is.LessThan(_profile.SprintSpeed * multiplier));
+        }
+
+        [Test]
+        public void LightBoostExpiresWhileGraceStillAbsorbsHeavyHits()
+        {
+            _controller.ApplyHit(1f, HitSeverity.Light);
+            _controller.AdvanceRecovery(36);
+            Assert.That(_state.GraceActive, Is.True);
+            Assert.That(_controller.ApplyHit(50f, HitSeverity.Heavy).AbsorbedByGrace, Is.True);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.HitBoostEndTick, Is.EqualTo(36));
+        }
+
+        [Test]
+        public void RecoveryUsesInjectedTickRateAndCancellationAndResetClearIt()
+        {
+            _controller.Reset(new EntityId(1), Vector3.zero, 0f, 0.1f);
+            _controller.ApplyHit(1f);
+            Assert.That(_state.GraceWindow.EndTick, Is.EqualTo(12));
+            Assert.That(_controller.EndRecovery().Value.EndTick, Is.Zero);
+            Assert.That(_controller.EndRecovery(), Is.Null);
+            Assert.That(_state.GraceActive, Is.False);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+            _controller.ApplyHit(1f);
+            _controller.SetLookBackEnabled(false);
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            Assert.That(_state.GraceActive, Is.False);
+            Assert.That(_state.HitBoostEndTick, Is.Zero);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.LookBackEnabled, Is.True);
+        }
+
+        [Test]
+        public void InvalidDamageDoesNotStartRecoveryAndLethalHitHasNoLingeringWindow()
+        {
+            foreach (float damage in new[] { 0f, -1f, float.NaN, float.PositiveInfinity })
+                Assert.That(_controller.ApplyHit(damage).GraceStarted, Is.Null);
+            Assert.That(_state.GraceActive, Is.False);
+            PlayerHitResult fatal = _controller.ApplyHit(_profile.MaximumHealth);
+            Assert.That(fatal.Died, Is.True);
+            Assert.That(fatal.GraceStarted.Value.EndTick, Is.EqualTo(fatal.GraceStarted.Value.StartTick));
+            Assert.That(_state.GraceActive, Is.False);
+            Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void DisabledSnapLeavesBodyAndHeadLookNormalAndMovementFactPublishesTheDecision()
+        {
+            _controller.SetLookBackEnabled(false);
+            var held = Frame(held: InputButtons.LookBack, look: new Vector2(20f, 3f));
+            CommitAction(held, Ground, Vector3.zero, true, 1);
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(20f));
+            Assert.That(_state.HeadLookDelta, Is.EqualTo(new Vector2(0f, 3f)));
+            Assert.That(_state.LastMovementSample.LookBack, Is.False);
+            _controller.SetLookBackEnabled(true);
+            CommitAction(held, Ground, Vector3.zero, true, 2);
+            Assert.That(_state.HeadingDegrees, Is.EqualTo(40f));
+            Assert.That(_state.LastMovementSample.LookBack, Is.True);
+            Assert.That(_state.LastMovementSample.HeadLookDelta, Is.EqualTo(Vector2.zero));
         }
 
         [Test]

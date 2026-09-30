@@ -10,11 +10,16 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Admit only this archetype's curse bits while retaining general run traits.
+//   - Walk to uncertain clues and stalk fresh beliefs, holding when the player looks toward the hunter.
 // DEPENDENCIES:
-//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
-//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
+//   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
+//   - Injected Player and Level read-only views supply pose, clues and room topology.
 // USAGE NOTES:
 //   Time and randomness are injected. Hidden player position is never used as a clue.
+//   Stalk uses player pose only for the reveal gate, never to update its belief target.
+//   The Player view has no camera direction: use planar heading plus LookBack's 180
+//   degrees, without pitch, head scan or an occlusion query. Manager must forward
+//   HoldPosition to the motor's stopped input to discard existing movement inertia.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -142,10 +147,33 @@ namespace Worsen.Domain.Hunter
                     else _state.Feedback.Enqueue(HunterFeedbackKind.AttackWindup);
                 }
             }
-            float speed = _state.Action == HunterAction.Patrol ? _profile.PatrolSpeed :
-                _player.SprintSpeed * _profile.ChaseSpeedMultiplier;
+            bool hold = _state.Action == HunterAction.Stalk && InPlayerRevealCone();
+            float speed = hold ? 0f : MovementSpeed();
             return new HunterTickResult(_state.NavigationTarget, speed * _state.RunSpeedMultiplier, _state.LungePhase,
-                _state.LungeDirection, begin, _state.LungePhase == HunterLungePhase.Active);
+                _state.LungeDirection, begin, _state.LungePhase == HunterLungePhase.Active, hold);
+        }
+        private float MovementSpeed()
+        {
+            switch (_state.Action)
+            {
+                case HunterAction.Patrol: return _profile.PatrolSpeed;
+                case HunterAction.Stalk: return _player.SprintSpeed * _profile.ChaseSpeedMultiplier * _profile.StalkSpeedMultiplier;
+                case HunterAction.Chase:
+                case HunterAction.CutOff:
+                case HunterAction.Lunge: return _player.SprintSpeed * _profile.ChaseSpeedMultiplier;
+                default: return _profile.InvestigateSpeed;
+            }
+        }
+        private bool InPlayerRevealCone()
+        {
+            Vector3 offset = _state.Position - _player.Position;
+            if (offset.sqrMagnitude > _profile.StalkRevealDistance * _profile.StalkRevealDistance) return false;
+            offset.y = 0f;
+            if (offset.sqrMagnitude <= 0.0001f) return true;
+            float heading = _player.HeadingDegrees + (_player.LookBack ? 180f : 0f);
+            Vector3 view = Quaternion.Euler(0f, heading, 0f) * Vector3.forward;
+            return Vector3.Dot(view, offset.normalized) + 0.000001f >=
+                Mathf.Cos(_profile.StalkViewHalfAngleDegrees * Mathf.Deg2Rad);
         }
         public float EffectiveAttackDistance => _profile.AttackStyle == HunterAttackStyle.Lunge ?
             _profile.LungeDistance * (Cursed(ProgressionTraits.RusherLongStride) ? 1.35f : 1f) : _profile.RangedAttackDistance;
@@ -255,6 +283,7 @@ namespace Worsen.Domain.Hunter
         public void ApplyRunSpeedMultiplier(float multiplier)
         {
             if (!Finite(multiplier) || multiplier <= 0f || !Finite(_profile.PatrolSpeed * multiplier)
+                || !Finite(_profile.InvestigateSpeed * multiplier)
                 || !Finite(_player.SprintSpeed * _profile.ChaseSpeedMultiplier * multiplier)
                 || !Finite(_profile.LungeSpeed * multiplier))
                 throw new ArgumentOutOfRangeException(nameof(multiplier), "Hunter run speed must be finite and positive.");
@@ -381,6 +410,8 @@ namespace Worsen.Domain.Hunter
                 Action(_profile.LightResponse == HunterLightResponse.Avoid ? HunterAction.AvoidLight : HunterAction.FlankLight,
                     HunterWorldFacts.LightReactionReady, 0, HunterWorldFacts.EscapedBeam, 0.5f),
                 Action(HunterAction.Patrol, 0, 0, HunterWorldFacts.Patrolled, 4f),
+                Action(HunterAction.Stalk, HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh,
+                    HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 0.5f),
                 Action(HunterAction.InvestigateHint, HunterWorldFacts.HasHint, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 1f),
                 Action(HunterAction.SearchLastKnown, HunterWorldFacts.HasBelief, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 2f),
                 Action(HunterAction.Chase, HunterWorldFacts.PlayerVisible, HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange, 2f),
@@ -426,6 +457,7 @@ namespace Worsen.Domain.Hunter
             else if (_state.Action == HunterAction.Chase || _state.Action == HunterAction.Lunge)
                 _state.NavigationTarget = _player.Position;
             else if (_state.Action == HunterAction.CutOff) _state.NavigationTarget = InterceptRoom();
+            else if (_state.Action == HunterAction.Stalk) _state.NavigationTarget = _state.LastKnownPosition;
             else if (_state.Action == HunterAction.InvestigateHint || _state.Action == HunterAction.SearchLastKnown)
             {
                 _state.NavigationTarget = _state.LastKnownPosition;

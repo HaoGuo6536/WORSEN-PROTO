@@ -18,6 +18,7 @@
 //   - Domain.Procedural, Core values, NUnit and temporary Unity config instances.
 // USAGE NOTES:
 //   Pure geometry checks do not claim native Player or Hunter walking success.
+//   Block bounds enclose the rotated box (ramps are rotated); axis-aligned blocks are unchanged.
 // ============================================================================
 using System.Linq;
 using NUnit.Framework;
@@ -37,6 +38,22 @@ namespace Worsen.Tests.Procedural
         [TearDown] public void TearDown()
         { Object.DestroyImmediate(_config); Object.DestroyImmediate(_driver); }
 
+        // Block Size is local to Rotation (ProceduralDefinitions). Enclose the rotated box in
+        // world space; for unrotated blocks this equals new Bounds(Center, Size).
+        private static Bounds WorldBounds(ProceduralBlock b)
+        {
+            var world = new Bounds(b.Center, Vector3.zero);
+            var half = b.Size * 0.5f;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                var local = new Vector3((corner & 1) == 0 ? -half.x : half.x,
+                    (corner & 2) == 0 ? -half.y : half.y, (corner & 4) == 0 ? -half.z : half.z);
+                world.Encapsulate(b.Center + b.Rotation * local);
+            }
+            return world;
+        }
+        private static Bounds Expanded(Bounds bounds, float amount) { bounds.Expand(amount); return bounds; }
+
         [TestCase(1)] [TestCase(3)] [TestCase(20)]
         public void TwentySeedsKeepExitHubFourDoorsEveryCakeClearAndElevatedRoutes(int round)
         {
@@ -54,15 +71,15 @@ namespace Worsen.Tests.Procedural
                 foreach (var anchor in layout.Graph.Anchors)
                 {
                     var standing = new Bounds(anchor.Position + Vector3.up * 0.91f, new Vector3(0.6f, 1.8f, 0.6f));
-                    Assert.That(blocks.Any(b => new Bounds(b.Center, b.Size).Intersects(standing)), Is.False,
+                    Assert.That(blocks.Any(b => WorldBounds(b).Intersects(standing)), Is.False,
                         "Blocked cake on seed " + seed + " at " + anchor.Position);
                     Assert.That(blocks.Any(b => b.Kind == ProceduralSurfaceKind.Floor &&
-                        new Bounds(b.Center, b.Size).Contains(anchor.Position - Vector3.up * 0.06f)), Is.True);
+                        WorldBounds(b).Contains(anchor.Position - Vector3.up * 0.06f)), Is.True);
                 }
                 foreach (var door in layout.Doors.Where(d => !d.IsOptional))
                 {
                     var standing = new Bounds(door.Center + Vector3.up * 1.1f, new Vector3(0.6f, 2f, 0.6f));
-                    Assert.That(blocks.Any(b => new Bounds(b.Center, b.Size).Intersects(standing)), Is.False);
+                    Assert.That(blocks.Any(b => WorldBounds(b).Intersects(standing)), Is.False);
                 }
                 foreach (var actor in new[] { TraversalAccess.Player, TraversalAccess.Hunter })
                     Assert.That(LevelGraphUtility.DistancesTo(layout.Graph, layout.Graph.ExitRoomId, actor).Values.All(d => d >= 0), Is.True);
@@ -98,7 +115,7 @@ namespace Worsen.Tests.Procedural
             Assert.That(room.Size.y, Is.GreaterThan(refuge.Graph.Rooms.Max(r => r.Size.y)),
                 "The broad cloister is distinguished by more enclosed headroom, never exposed sky.");
             Assert.That(blocks.Where(b => b.RoomId == room.Id && b.Kind == ProceduralSurfaceKind.Ceiling)
-                .Any(b => new Bounds(b.Center, b.Size).Contains(new Vector3(room.Center.x, room.Size.y + _driver.CeilingThickness * 0.5f, room.Center.z))), Is.True);
+                .Any(b => WorldBounds(b).Contains(new Vector3(room.Center.x, room.Size.y + _driver.CeilingThickness * 0.5f, room.Center.z))), Is.True);
             Assert.That(normal.PresentationRooms.All(r => !r.OpenSky), Is.True);
         }
 
@@ -125,7 +142,7 @@ namespace Worsen.Tests.Procedural
             {
                 var layout = Generate(seed, round);
                 var blocks = new ProceduralGeometryPresenter().Build(layout, _config, _driver);
-                var walls = blocks.Where(b => b.Kind == ProceduralSurfaceKind.Wall).Select(b => new Bounds(b.Center, b.Size)).ToArray();
+                var walls = blocks.Where(b => b.Kind == ProceduralSurfaceKind.Wall).Select(b => WorldBounds(b)).ToArray();
                 foreach (var room in layout.Graph.Rooms)
                 {
                     var family = layout.Modules[room.Id - 1].Kind;
@@ -136,7 +153,7 @@ namespace Worsen.Tests.Procedural
                     Assert.That(sample.Bounds, Is.EqualTo(room.Bounds), "Collapse and decoration must receive the complete enclosed volume.");
                     Assert.That(sample.OpenSky, Is.False);
                     var roofs = blocks.Where(b => b.RoomId == room.Id && b.Kind == ProceduralSurfaceKind.Ceiling)
-                        .Select(b => new Bounds(b.Center, b.Size)).ToArray();
+                        .Select(b => WorldBounds(b)).ToArray();
                     float roofY = room.Bounds.max.y + _driver.CeilingThickness * 0.5f;
                     // Cover the entire footprint, including room center and all former canopy gaps.
                     for (int x = -4; x <= 4; x++)
@@ -198,7 +215,7 @@ namespace Worsen.Tests.Procedural
                             // A full-height swept box conservatively encloses the capsule; ignore only base floor contact.
                             var clearance = new Bounds(feet + Vector3.up * (height * 0.5f), new Vector3(mover.Radius * 2f, height - 0.02f, mover.Radius * 2f));
                             Assert.That(blocks.Where(b => !(b.Kind == ProceduralSurfaceKind.Floor && b.Center.y + b.Size.y * 0.5f <= 0.001f))
-                                .Any(b => new Bounds(b.Center, b.Size).Intersects(clearance)), Is.False,
+                                .Any(b => WorldBounds(b).Intersects(clearance)), Is.False,
                                 "Seed " + seed + " surface " + surface.SurfaceId + " reverse " + reverse + " progress " + progress);
                         }
                     }
@@ -216,7 +233,7 @@ namespace Worsen.Tests.Procedural
             try
             {
                 var exitClearance = new Bounds(layout.Graph.ExitPosition + Vector3.up * 1.5f, new Vector3(3f, 3f, 3f));
-                Assert.That(blocks.Any(b => new Bounds(b.Center, b.Size).Intersects(exitClearance)), Is.False,
+                Assert.That(blocks.Any(b => WorldBounds(b).Intersects(exitClearance)), Is.False,
                     "Castle furniture and structure must leave room for the central exit door and its approach.");
                 foreach (var door in layout.Doors)
                 foreach (float sign in new[] { -1f, 1f })
@@ -225,7 +242,7 @@ namespace Worsen.Tests.Procedural
                     var feet = door.Center + normal * (_driver.LandingOffset * sign);
                     var standing = new Bounds(feet + Vector3.up * (mover.Height * 0.5f + 0.01f),
                         new Vector3(mover.Radius * 2f, mover.Height, mover.Radius * 2f));
-                    Assert.That(blocks.Any(b => new Bounds(b.Center, b.Size).Intersects(standing)), Is.False,
+                    Assert.That(blocks.Any(b => WorldBounds(b).Intersects(standing)), Is.False,
                         "A module must not obstruct either side of an ordinary or optional entrance.");
                 }
 
@@ -242,15 +259,16 @@ namespace Worsen.Tests.Procedural
                     var headroom = new Bounds(feet + Vector3.up * (mover.Height * 0.5f + mover.StepHeight),
                         new Vector3(mover.Radius * 2f, mover.Height - mover.StepHeight, mover.Radius * 2f));
                     Assert.That(blocks.Where(b => b.HasCollision && b.Kind != ProceduralSurfaceKind.Floor)
-                        .Any(b => new Bounds(b.Center, b.Size).Intersects(headroom)), Is.False);
+                        .Any(b => WorldBounds(b).Intersects(headroom)), Is.False);
                 }
                 var raisedObjectives = layout.Graph.Anchors.Where(a => a.RoomId == stairRoom && a.Position.y > 1f).ToArray();
                 Assert.That(raisedObjectives.Length, Is.GreaterThan(0));
                 foreach (var anchor in raisedObjectives)
-                    Assert.That(floors.Any(b => new Bounds(b.Center, b.Size).Contains(anchor.Position - Vector3.up * (_config.AnchorHeight + 0.01f))), Is.True,
+                    Assert.That(floors.Any(b => WorldBounds(b).Contains(anchor.Position - Vector3.up * (_config.AnchorHeight + 0.01f))), Is.True,
                         "The module must supply physical support beneath its raised objectives.");
+                // The ramp's top endpoint lies on the gallery's edge; keep the original 2 mm contact tolerance.
                 Assert.That(floors.Any(b => b.Role == ProceduralBlockRole.Solid &&
-                    new Bounds(b.Center, b.Size).Contains(ramp.EndpointB - Vector3.up * 0.01f)), Is.True,
+                    Expanded(WorldBounds(b), 0.002f).Contains(ramp.EndpointB - Vector3.up * 0.01f)), Is.True,
                     "The ordinary ascent must meet the gallery supporting the objectives.");
             }
             finally { Object.DestroyImmediate(mover); }
@@ -264,7 +282,7 @@ namespace Worsen.Tests.Procedural
                 var layout = Generate(seed, round);
                 var solids = new ProceduralGeometryPresenter().Build(layout, _config, _driver)
                     .Where(b => b.Kind != ProceduralSurfaceKind.Ceiling).ToArray();
-                var bounds = solids.Select(b => new Bounds(b.Center, b.Size)).ToArray();
+                var bounds = solids.Select(b => WorldBounds(b)).ToArray();
                 var supported = new bool[solids.Length];
                 var frontier = new System.Collections.Generic.Queue<int>();
                 for (int index = 0; index < solids.Length; index++)
@@ -309,9 +327,9 @@ namespace Worsen.Tests.Procedural
                     var doorEnvelope = new Bounds(layout.Graph.ExitPosition + Vector3.up * 1.5f, new Vector3(2.6f, 3f, 2.1f));
                     Assert.That(doorEnvelope.Intersects(standing), Is.False, "Spawn must clear the freestanding door and its moving leaves.");
                     var blocks = new ProceduralGeometryPresenter().Build(layout, _config, _driver);
-                    Assert.That(blocks.Any(b => new Bounds(b.Center, b.Size).Intersects(standing)), Is.False);
+                    Assert.That(blocks.Any(b => WorldBounds(b).Intersects(standing)), Is.False);
                     var ground = new Vector3(layout.PlayerSpawnPosition.x, -0.01f, layout.PlayerSpawnPosition.z);
-                    Assert.That(blocks.Any(b => b.Kind == ProceduralSurfaceKind.Floor && new Bounds(b.Center, b.Size).Contains(ground)), Is.True);
+                    Assert.That(blocks.Any(b => b.Kind == ProceduralSurfaceKind.Floor && WorldBounds(b).Contains(ground)), Is.True);
                     foreach (var cake in layout.Graph.Anchors)
                     {
                         var separation = cake.Position - layout.PlayerSpawnPosition;

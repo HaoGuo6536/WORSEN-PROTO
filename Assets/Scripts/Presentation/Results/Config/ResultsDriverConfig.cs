@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · Results.
 //
 // KEY RESPONSIBILITIES:
+//   - Bound missing-camera catch waits independently of gameplay time.
 //   - Expose responsive panel dimensions, typography, spacing and vector palette.
 //   - Keep shared asset values read-only at runtime.
 //
@@ -29,6 +30,11 @@ namespace Worsen.Presentation.Results
     [CreateAssetMenu(fileName = "ResultsDriverConfig", menuName = "Worsen/Results/Driver Config")]
     public sealed class ResultsDriverConfig : ScriptableObject
     {
+        public const float DefaultCatchTimeoutSeconds = 2.05f;
+        [Tooltip("Missing catch fallback: provisional 0.15 s approach + 1.4 s hold + 0.5 s margin.")]
+        [SerializeField, Min(0.01f)] private float _catchTimeoutSeconds = DefaultCatchTimeoutSeconds;
+        public float CatchTimeoutSeconds => float.IsNaN(_catchTimeoutSeconds) || float.IsInfinity(_catchTimeoutSeconds)
+            || _catchTimeoutSeconds <= 0f ? DefaultCatchTimeoutSeconds : _catchTimeoutSeconds;
         [SerializeField, Min(10)] private int _fontSize = 20;
         [SerializeField, Min(240f)] private float _panelWidth = 460f;
         [SerializeField, Min(0f)] private float _screenMargin = 24f;

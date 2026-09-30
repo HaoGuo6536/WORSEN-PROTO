@@ -8,16 +8,18 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Audio target.
 // KEY RESPONSIBILITIES:
+//   - Route scene camera hold start to per-run catch sting admission, not PlayerDied.
 //   - Pair run, progression, effects, expedition and UI subscriptions symmetrically.
 //   - Preserve legacy cue fallback and feed rich threat layers in every scene.
 //   - Reset playback at capture start, then restore room and retained-health facts.
 // DEPENDENCIES:
 //   - Core payloads; Session Run, Progression, HorrorEffects and Expedition.
-//   - Presentation Audio target, ProgressionUI feedback and Environment anchor publishers.
+//   - Presentation Audio target, Camera catch, ProgressionUI feedback and Environment anchor publishers.
 // USAGE NOTES:
 //   Persistent on the canonical Audio root; base Run reference is persistent.
 //   ConfigureExpansion scopes all optional references, including scene-owned UI;
 //   the SceneRoot must call ClearExpansion before scene teardown.
+//   ConfigureCatch/ClearCatch separately scope the scene camera; disable unhooks it.
 //   Capture restores supplied Environment torch anchors after resetting playback.
 //   Optional-room cracks already arrive through
 //   the authoritative destruction stream and never receive a duplicate cue here.
@@ -31,6 +33,7 @@ using Worsen.Session.Progression;
 using Worsen.Session.HorrorEffects;
 using Worsen.Session.Expedition;
 using Worsen.Presentation.Audio;
+using Worsen.Presentation.Camera;
 using Worsen.Presentation.ProgressionUI;
 using Worsen.Presentation.Environment;
 
@@ -45,6 +48,14 @@ namespace Worsen.Orchestrator
         private ExpeditionSessionManager _expedition;
         private ProgressionUIManager _ui;
         private EnvironmentManager _environment;
+        private CameraManager _camera;
+
+        public void ConfigureCatch(CameraManager camera)
+        {
+            OnDisable(); _camera = camera;
+            if (isActiveAndEnabled) OnEnable();
+        }
+        public void ClearCatch() => ConfigureCatch(null);
 
         public void ConfigureExpansion(ProgressionSessionManager progression, HorrorEffectsManager effects,
             ExpeditionSessionManager expedition, ProgressionUIManager ui, EnvironmentManager environment = null)
@@ -76,9 +87,9 @@ namespace Worsen.Orchestrator
             _run.CollapseHandPublished += OnHand;
             _run.RoomDestructionPublished += OnDestruction;
             _run.SpeedNormalizedPublished += OnSpeed;
-            _run.PlayerDied += OnDeath;
             _run.PhaseChanged += OnPhase;
             _run.RoomPhaseChanged += OnRoom;
+            if (_camera != null) _camera.CatchHoldStarted += OnCatchStarted;
             if (_progression != null) _progression.SnapshotChanged += OnSnapshot;
             if (_expedition != null) _expedition.RoomsReady += OnRooms;
             if (_ui != null) _ui.Feedback += OnUiFeedback;
@@ -104,10 +115,10 @@ namespace Worsen.Orchestrator
                 _run.CollapseHandPublished -= OnHand;
                 _run.RoomDestructionPublished -= OnDestruction;
                 _run.SpeedNormalizedPublished -= OnSpeed;
-                _run.PlayerDied -= OnDeath;
                 _run.PhaseChanged -= OnPhase;
                 _run.RoomPhaseChanged -= OnRoom;
             }
+            if (_camera != null) _camera.CatchHoldStarted -= OnCatchStarted;
             if (_progression != null) _progression.SnapshotChanged -= OnSnapshot;
             if (_expedition != null) _expedition.RoomsReady -= OnRooms;
             if (_ui != null) _ui.Feedback -= OnUiFeedback;
@@ -170,7 +181,7 @@ namespace Worsen.Orchestrator
         private void OnDoorMarked(int door, Vector3 position) => _audio.PlayCueAt(CueId.TraversalMiss, position, .25f);
         private void OnAfterimage(FlashlightSample sample, float lifetime) => _audio.ObserveAfterimage(sample, lifetime);
         private void OnSpeed(float speed) => _audio.SetSpeedNormalized(speed);
-        private void OnDeath(EntityId id, Vector3 position) { if (_expedition == null) _audio.PlayCue(CueId.Death); }
+        private void OnCatchStarted(EntityId player) => _audio.PlayCatchSting(player);
         private void OnPhase(RunPhase phase) { if (phase == RunPhase.ExitOpen) _audio.PlayCue(CueId.ExitOpen); }
         private void OnRoom(RoomPhaseChangedFact fact)
         { if (_expedition == null && fact.Phase == RoomPhase.Telegraph) _audio.PlayCue(CueId.RoomTelegraph); }

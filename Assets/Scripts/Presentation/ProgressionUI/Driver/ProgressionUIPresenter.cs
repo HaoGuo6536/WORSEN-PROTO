@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve unique ownership, consumable stock and authoritative rejection reasons.
 //   - Group retained choices without truncation; distinguish UI intent from committed purchase audio.
-//   - Delay only terminal presentation with supplied time; leave progression authority unchanged.
+//   - Gate terminal and shelter presentation on catch completion with a bounded, flagged timeout.
 //   - Reject hidden, stale or repeated UI clicks using the displayed snapshot.
 //   - Format health only for selection, shelter and terminal screens, never a live floor or generation.
 //
@@ -39,11 +39,11 @@ namespace Worsen.Presentation.ProgressionUI
         {
             if (state.HasSnapshot && snapshot.Revision < state.Revision) return false;
             if (state.HasDeferredTerminal && snapshot.Revision < state.DeferredTerminal.Revision) return false;
-            if (state.TerminalDeferred && (snapshot.GenerationId != state.DeferredGenerationId
+            if ((state.TerminalDeferred || state.CatchCompleted) && (snapshot.GenerationId != state.DeferredGenerationId
                 || snapshot.Phase == ProgressionPhase.Dormant || snapshot.Phase == ProgressionPhase.Generating
                 || snapshot.Phase == ProgressionPhase.ChooseThreat || snapshot.Phase == ProgressionPhase.ChooseCurse))
                 ClearTerminalDeferral(state);
-            if (state.TerminalDeferred && state.TerminalRemaining > 0f && snapshot.Phase == ProgressionPhase.Ended)
+            if (state.TerminalDeferred && (snapshot.Phase == ProgressionPhase.Ended || snapshot.Phase == ProgressionPhase.Shop))
             {
                 state.DeferredTerminal = snapshot;
                 state.HasDeferredTerminal = true;
@@ -82,12 +82,20 @@ namespace Worsen.Presentation.ProgressionUI
             state.Hidden = true;
         }
 
-        public void DeferTerminal(ProgressionUIDriverState state, float seconds)
+        public void DeferTerminal(ProgressionUIDriverState state, float seconds, EntityId player = default)
         {
-            if (state.TerminalDeferred || state.Phase == ProgressionPhase.Ended || !Finite(seconds) || seconds <= 0f) return;
+            if (state.TerminalDeferred || state.CatchCompleted || state.Phase == ProgressionPhase.Ended) return;
             state.TerminalDeferred = true;
-            state.TerminalRemaining = Math.Min(2f, seconds);
+            state.TerminalRemaining = Finite(seconds) && seconds > 0f ? seconds : ProgressionUIDriverConfig.DefaultCatchTimeoutSeconds;
             state.DeferredGenerationId = state.GenerationId;
+            state.CatchPlayer = player;
+            state.CatchFallbackFired = false;
+        }
+
+        public bool EndCatch(ProgressionUIDriverState state, EntityId player)
+        {
+            if (!state.TerminalDeferred || !player.IsValid || (state.CatchPlayer.IsValid && state.CatchPlayer != player)) return false;
+            return ReleaseTerminal(state);
         }
 
         public bool Tick(ProgressionUIDriverState state, float dt)
@@ -95,15 +103,27 @@ namespace Worsen.Presentation.ProgressionUI
             if (!state.TerminalDeferred || !Finite(dt) || dt <= 0f) return false;
             state.TerminalRemaining = Math.Max(0f, state.TerminalRemaining - dt);
             if (state.TerminalRemaining > 0f) return false;
+            state.CatchFallbackFired = true;
+            ReleaseTerminal(state);
+            return true;
+        }
+
+        private bool ReleaseTerminal(ProgressionUIDriverState state)
+        {
             bool pending = state.HasDeferredTerminal;
             var snapshot = state.DeferredTerminal;
-            ClearTerminalDeferral(state);
+            state.TerminalDeferred = state.HasDeferredTerminal = false;
+            state.TerminalRemaining = 0f;
+            state.DeferredTerminal = default;
+            state.CatchCompleted = true;
             return pending && Present(state, snapshot);
         }
 
         public void ClearTerminalDeferral(ProgressionUIDriverState state)
         {
             state.TerminalDeferred = state.HasDeferredTerminal = false;
+            state.CatchCompleted = state.CatchFallbackFired = false;
+            state.CatchPlayer = default;
             state.TerminalRemaining = 0f;
             state.DeferredGenerationId = 0;
             state.DeferredTerminal = default;

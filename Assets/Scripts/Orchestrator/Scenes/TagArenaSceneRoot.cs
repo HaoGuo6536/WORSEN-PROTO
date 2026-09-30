@@ -8,11 +8,12 @@
 // ARCHITECTURAL ROLE:
 //   SceneRoot (§6b) · Orchestrator · TagArena scene assembly.
 // KEY RESPONSIBILITIES:
+//   - Bind camera catches to Results and canonical audio; release both on teardown.
 //   - Initialize canonical persistent services and hand off the ready scene.
 //   - Initialize Level, spawn the Player and preserve the shared seeded source.
 // DEPENDENCIES:
 //   - Session.Run/SceneFlow; Domain.Player/Level; Presentation Input, DebugOverlay,
-//     Camera, PostFX and Telemetry. No per-frame gameplay work lives here.
+//     Camera, PostFX, Audio, HUD, Results and Telemetry. No per-frame gameplay work lives here.
 // USAGE NOTES:
 //   - Scene-owned. Setup wires all fields before the scene is played.
 //   - Start is this root's assembly entry point; it explicitly initializes its
@@ -104,6 +105,8 @@ namespace Worsen.Orchestrator
             _camera.Initialize();
             _postFX.Initialize();
             if (!_camera.IsReady || !_postFX.IsReady) throw new InvalidOperationException("Camera/PostFX initialization failed; rebuild TagArena.");
+            _results.GetComponent<ResultsOrchestrator>()?.ConfigureCatch(_camera);
+            _audio.GetComponent<AudioOrchestrator>()?.ConfigureCatch(_camera);
             _playerFactory.Configure(_playerProfile, _run.RandomSource);
             var playerId = _playerFactory.Spawn(new SpawnRequest(_playerProfile.ArchetypeKey, _spawnPosition, Quaternion.Euler(0f, 90f, 0f)));
             if (!PlayerRegistry.TryGet(playerId, out var player)) throw new InvalidOperationException("Player registration failed.");
@@ -114,6 +117,11 @@ namespace Worsen.Orchestrator
             _assembled = true;
             SceneReady?.Invoke(SceneKey.TagArena);
         }
-        private void OnDestroy() { if (_assembled && _run != null) _run.SuspendForSceneLoad(); }
+        private void OnDestroy()
+        {
+            if (_results != null) _results.GetComponent<ResultsOrchestrator>()?.ConfigureCatch(null);
+            if (_audio != null) _audio.GetComponent<AudioOrchestrator>()?.ClearCatch();
+            if (_assembled && _run != null) _run.SuspendForSceneLoad();
+        }
     }
 }

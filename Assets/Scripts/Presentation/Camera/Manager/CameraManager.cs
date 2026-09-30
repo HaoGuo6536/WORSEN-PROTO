@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Initialize the serialized Driver and mirrored config fallback.
 //   - Expose unshaken aim for routed flashlight sensing; forward world event shakes.
-//   - Forward confirmed consumption and expose its configured duration for routed visual synchronization.
+//   - Forward hunter/hand catches and republish hold-start/hold-end facts for external routing.
 //   - Forward commands and pair Driver enable/disable and teardown.
 //
 // DEPENDENCIES:
@@ -22,11 +22,14 @@
 //   - Scene-owned Service (§8), explicitly initialized by scene assembly; no singleton.
 //   - AddComponent does not initialize or create runtime effects.
 //   - Serialized references are primary; missing config or Driver produces a visible warning.
+//   - ConsumptionSeconds is a legacy duration estimate; hold events are the authoritative cut/sting boundary.
 //
 // ============================================================================
 
+using System;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Camera
 {
@@ -36,6 +39,9 @@ namespace Worsen.Presentation.Camera
         [SerializeField] private CameraDriverConfig _config;
         [SerializeField] private CameraDriver _driver;
         private bool _initialized;
+
+        public event Action<EntityId> CatchHoldStarted;
+        public event Action<EntityId> CatchHoldEnded;
 
         public Quaternion AimRotation => _driver != null ? _driver.AimRotation : Quaternion.identity;
         public float ConsumptionSeconds => _driver != null ? _driver.ConsumptionSeconds : 0f;
@@ -56,6 +62,7 @@ namespace Worsen.Presentation.Camera
             _driver.Initialize(_config);
             _initialized = _driver.IsReady;
             _driver.enabled = isActiveAndEnabled;
+            if (isActiveAndEnabled) OnEnable();
             return this;
         }
 
@@ -77,13 +84,25 @@ namespace Worsen.Presentation.Camera
 
         private void OnEnable()
         {
+            if (_driver == null) return;
+            // Initialize can follow OnEnable; rebinding is idempotent for either ordering.
+            _driver.CatchHoldStarted -= OnCatchHoldStarted;
+            _driver.CatchHoldEnded -= OnCatchHoldEnded;
+            _driver.CatchHoldStarted += OnCatchHoldStarted;
+            _driver.CatchHoldEnded += OnCatchHoldEnded;
             if (_initialized && _driver != null) _driver.enabled = true;
         }
 
         private void OnDisable()
         {
+            if (_driver == null) return;
+            _driver.CatchHoldStarted -= OnCatchHoldStarted;
+            _driver.CatchHoldEnded -= OnCatchHoldEnded;
             if (_initialized && _driver != null) _driver.enabled = false;
         }
+
+        private void OnCatchHoldStarted(EntityId player) => CatchHoldStarted?.Invoke(player);
+        private void OnCatchHoldEnded(EntityId player) => CatchHoldEnded?.Invoke(player);
 
         private void OnDestroy() => Teardown();
     }

@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
 //   - Expire optional blur and intrusion without clearing injury or proximity.
-//   - Fade the world into black after confirmed consumption; later injury cannot cancel it.
+//   - Keep hunter/hand catches visible: legacy consumption calls never fade to black.
 //   - Reset all transient effects on a scene or run reset.
 //
 // DEPENDENCIES:
@@ -21,6 +21,7 @@
 // USAGE NOTES:
 //   - Stateless; PostFXDriver owns the supplied state and all volume APIs.
 //   - The caller supplies intrusion duration, including the initial two-second response.
+//   - Look-back release blur affects focus only, never camera pose or view blending.
 //
 // ============================================================================
 
@@ -83,18 +84,10 @@ namespace Worsen.Presentation.PostFX
             state.Grain = state.IntrusionRemaining > 0f ? Mathf.Clamp01(config.IntrusionGrain) : 0f;
             state.Blur = Mathf.Clamp01(state.BlurRemaining / Mathf.Max(0.001f, config.ReacquireBlurSeconds));
             state.BlurRadius = Mathf.Lerp(0.5f, config.BlurRadius, state.Blur);
+            state.Blackout = state.Exposure = 0f;
+            state.SceneTint = Color.white;
             if (!state.Consumed) return;
             state.ConsumptionElapsed = Mathf.Min(state.ConsumptionDuration, state.ConsumptionElapsed + dt);
-            float progress = state.ConsumptionElapsed / state.ConsumptionDuration;
-            float delay = Mathf.Clamp(Finite(config.ConsumptionFadeStart), 0f, 0.8f);
-            float fade = Mathf.Clamp01((progress - delay) / (1f - delay));
-            state.Blackout = fade * fade * (3f - 2f * fade);
-            state.SceneTint = Color.Lerp(Color.white, Color.black, state.Blackout);
-            state.Exposure = Mathf.Clamp(Finite(config.ConsumptionExposure), -10f, 0f) * state.Blackout;
-            state.Vignette = Mathf.Max(state.Vignette, state.Blackout);
-            state.Grain *= 1f - state.Blackout;
-            state.Chromatic *= 1f - state.Blackout;
-            state.Blur *= 1f - state.Blackout;
         }
 
         private float Finite(float value) => float.IsNaN(value) || float.IsInfinity(value) ? 0f : value;

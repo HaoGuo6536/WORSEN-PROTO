@@ -4,12 +4,14 @@
 // PURPOSE:
 //   Generates a reproducible castle floor around a four-door central exit hub.
 //   Seeded growth retains an ordinary walking loop, adds optional shared-wall
-//   windows and slides, and places objectives on ground and stair-accessible decks.
+//   windows and slides, and offers typed cake destinations on existing ground and
+//   stair-accessible decks rather than filling rooms with straight pickup lines.
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Grow bounded room layouts, match door openings and validate reachability.
 //   - Produce stable room, edge and anchor identities and a comparable manifest.
+//   - Sample diverse geometry-backed candidates; leave required cake selection to Floor.
 //   - Keep player spawns outside cake pickup radii while preserving ordinary routes.
 //   - Publish enclosed room volumes with higher ceilings for broad gallery spaces.
 //   - Start each castle floor in its exit hub with a clear approach to the center door.
@@ -74,7 +76,7 @@ namespace Worsen.Domain.Procedural
                         new Vector3(room.Center.x, _config.HighCeilingHeight * 0.5f, room.Center.z),
                         new Vector3(room.Size.x, _config.HighCeilingHeight, room.Size.z));
                 }
-            var anchors = CreateAnchors(rooms, modules);
+            var anchors = CreateAnchors(rooms, modules, doors);
             var preliminary = LevelGraphUtility.Build(rooms, edges, anchors, rooms[0].Id, Ground(rooms[0].Center));
             var distances = LevelGraphUtility.TopologicalDistancesFrom(preliminary, rooms[0].Id, TraversalAccess.Player);
             var ordered = rooms.OrderByDescending(room => distances[room.Id]).ThenBy(room => room.Id).ToArray();
@@ -173,28 +175,98 @@ namespace Worsen.Domain.Procedural
             return doors;
         }
 
-        private List<LevelAnchor> CreateAnchors(IReadOnlyList<LevelRoom> rooms, IReadOnlyList<ProceduralRoomModule> modules)
+        private List<LevelAnchor> CreateAnchors(IReadOnlyList<LevelRoom> rooms,
+            IReadOnlyList<ProceduralRoomModule> modules, IReadOnlyList<ProceduralDoorPlan> doors)
         {
             var anchors = new List<LevelAnchor>();
             foreach (var room in rooms)
             {
-                bool alongX = modules[room.Id - 1].AlongX;
-                for (int line = 0; line < 2; line++)
-                for (int index = 0; index < _config.CakesPerLine; index++)
+                var pool = CandidateSites(room, modules[room.Id - 1], doors)
+                    .Where(anchor => Preference(anchor.Type) > 0f).ToList();
+                int count = _random.Next(_config.MinimumCandidatesPerRoom, _config.MaximumCandidatesPerRoom + 1);
+                if (pool.Count < count)
+                    throw new InvalidOperationException("Cake preferences leave too few supported candidates in room " + room.Id + ".");
+                var usedTypes = new HashSet<CakeAnchorType>();
+                for (int index = 0; index < count; index++)
                 {
-                    float along = (index - (_config.CakesPerLine - 1) * 0.5f) * _config.CakeSpacing;
-                    var kind = modules[room.Id - 1].Kind;
-                    bool elevated = kind == ProceduralModuleKind.OpenStairHall || kind == ProceduralModuleKind.SplitLevelLibrary ||
-                        kind == ProceduralModuleKind.BrokenGallery;
-                    float across = elevated ? (line == 0 ? -4.5f : 2.6f) :
-                        (line == 0 ? -1f : 1f) * _config.CakeLineOffset;
-                    if (elevated && line == 1) along *= 0.9f;
-                    var point = room.Center + (alongX ? new Vector3(along, 0f, across) : new Vector3(across, 0f, along));
-                    point.y = _config.AnchorHeight + (elevated && line == 1 ? _config.UpperDeckHeight : 0f);
-                    anchors.Add(new LevelAnchor(10001 + anchors.Count, room.Id, CakeAnchorType.Flow, point));
+                    // Prefer unused types before repeats; weights are per type, not per socket.
+                    var types = pool.Select(anchor => anchor.Type).Distinct().OrderBy(type => type).ToArray();
+                    if (types.All(usedTypes.Contains)) usedTypes.Clear();
+                    types = types.Where(type => !usedTypes.Contains(type)).ToArray();
+                    double roll = _random.NextDouble() * types.Sum(type => (double)Preference(type));
+                    var selected = types[types.Length - 1];
+                    foreach (var type in types)
+                    {
+                        roll -= Preference(type);
+                        if (roll < 0d) { selected = type; break; }
+                    }
+                    var sites = pool.Where(anchor => anchor.Type == selected).ToArray();
+                    var candidate = sites[_random.Next(sites.Length)];
+                    anchors.Add(candidate);
+                    pool.Remove(candidate);
+                    usedTypes.Add(selected);
                 }
             }
             return anchors;
+        }
+
+        private List<LevelAnchor> CandidateSites(LevelRoom room, ProceduralRoomModule module,
+            IReadOnlyList<ProceduralDoorPlan> doors)
+        {
+            var sites = new List<LevelAnchor>();
+            var portals = doors.Where(door => door.FromRoomId == room.Id || door.ToRoomId == room.Id).ToArray();
+            bool raised = module.Kind == ProceduralModuleKind.OpenStairHall ||
+                module.Kind == ProceduralModuleKind.SplitLevelLibrary || module.Kind == ProceduralModuleKind.BrokenGallery;
+            var origin = new Vector3(room.Center.x, _config.AnchorHeight, room.Center.z);
+            float side = _config.RoomSize * 0.5f - _config.CandidatePerimeterInset;
+            var corners = new[] { new Vector3(-side, 0f, -side), new Vector3(-side, 0f, side),
+                new Vector3(side, 0f, -side), new Vector3(side, 0f, side) };
+            // Corner pockets are off the door axes and outside partitions, piers and stairs.
+            // In flat rooms the most remote pocket is Risk, measured against every exit.
+            int farthest = Enumerable.Range(0, corners.Length).OrderByDescending(index =>
+                portals.Min(door => (origin + corners[index] - door.Center).sqrMagnitude)).First();
+            for (int index = 0; index < corners.Length; index++)
+                sites.Add(new LevelAnchor(10000 + room.Id * 100 + index, room.Id,
+                    !raised && index == farthest ? CakeAnchorType.Risk : CakeAnchorType.Detour, origin + corners[index]));
+            foreach (var door in portals.Where(door => !door.IsOptional))
+            {
+                var delta = door.Center - origin;
+                var point = door.Center - (door.AlongX ? Vector3.forward * Math.Sign(delta.z) :
+                    Vector3.right * Math.Sign(delta.x)) * _config.CandidatePerimeterInset;
+                point.y = _config.AnchorHeight;
+                // Cardinal socket ids do not shift when other rooms select fewer candidates.
+                int socket = door.AlongX ? (delta.z > 0f ? 4 : 5) : (delta.x > 0f ? 6 : 7);
+                sites.Add(new LevelAnchor(10000 + room.Id * 100 + socket, room.Id, CakeAnchorType.Flow, point));
+            }
+            if (raised)
+            {
+                // Authored module sockets, matching CastlePresenter's deck (x +/-4.3,
+                // z 1.2..4), stair head (-3,1.2), and library's 1.7m-wide side deck.
+                AddUpper(8, CakeAnchorType.Precision, module.Kind == ProceduralModuleKind.SplitLevelLibrary ?
+                    new Vector3(3.45f, 0f, -1.5f) : new Vector3(0f, 0f, 1.65f));
+                AddUpper(9, CakeAnchorType.Vertical, new Vector3(-3f, 0f, 2.6f));
+                AddUpper(10, CakeAnchorType.Risk, new Vector3(3.6f, 0f, 3.45f));
+            }
+            return sites;
+
+            void AddUpper(int socket, CakeAnchorType type, Vector3 local)
+            {
+                local.y = _config.UpperDeckHeight;
+                var point = origin + (module.AlongX ? local : new Vector3(local.z, local.y, local.x));
+                sites.Add(new LevelAnchor(10000 + room.Id * 100 + socket, room.Id, type, point));
+            }
+        }
+
+        private float Preference(CakeAnchorType type)
+        {
+            switch (type)
+            {
+                case CakeAnchorType.Precision: return _config.PrecisionPreference;
+                case CakeAnchorType.Detour: return _config.DetourPreference;
+                case CakeAnchorType.Risk: return _config.RiskPreference;
+                case CakeAnchorType.Vertical: return _config.VerticalPreference;
+                default: return _config.FlowPreference;
+            }
         }
 
         private void ValidateConfig(int roundIndex)
@@ -214,6 +286,14 @@ namespace Worsen.Domain.Procedural
             RequirePositive(_config.DoorWidth, "door width"); RequirePositive(_config.DoorHeight, "door height");
             RequirePositive(_config.CakeSpacing, "cake spacing"); RequirePositive(_config.CakeLineOffset, "cake line offset");
             RequirePositive(_config.SpawnSideOffset, "spawn side offset");
+            RequirePositive(_config.CandidatePerimeterInset, "candidate perimeter inset");
+            if (_config.MinimumCandidatesPerRoom < 1 || _config.MaximumCandidatesPerRoom > 5 ||
+                _config.MaximumCandidatesPerRoom < _config.MinimumCandidatesPerRoom ||
+                _config.CandidatePerimeterInset >= _config.RoomSize * 0.5f)
+                throw new ArgumentException("Candidate budgets must satisfy 1 <= minimum <= maximum <= 5 with an inset inside the room.");
+            foreach (CakeAnchorType type in Enum.GetValues(typeof(CakeAnchorType)))
+                if (!Finite(Preference(type)) || Preference(type) < 0f)
+                    throw new ArgumentException("Candidate type preferences must be finite and nonnegative.");
             if (_config.SpawnSideOffset >= _config.RoomSize * 0.5f)
                 throw new ArgumentException("Spawns must remain inside the room perimeter.");
             if (!Finite(_config.DoorOffset) || _config.DoorOffset < 0f ||
@@ -280,7 +360,7 @@ namespace Worsen.Domain.Procedural
 
         private static string Manifest(ProceduralLayout layout)
         {
-            var text = new StringBuilder("castle-rooms-v2|");
+            var text = new StringBuilder("castle-rooms-v3|");
             text.Append(layout.Seed).Append('|').Append(layout.RoundIndex).Append('|').Append(layout.Graph.ExitRoomId);
             foreach (var room in layout.Graph.Rooms)
             { text.Append("|R:").Append(room.Id); Append(text, room.Center); Append(text, room.Size); }
@@ -289,7 +369,7 @@ namespace Worsen.Domain.Procedural
             foreach (var module in layout.Modules)
                 text.Append("|M:").Append(module.RoomId).Append(',').Append((int)module.Kind).Append(',').Append(module.AlongX ? 1 : 0);
             foreach (var anchor in layout.Graph.Anchors)
-            { text.Append("|C:").Append(anchor.Id).Append(',').Append(anchor.RoomId); Append(text, anchor.Position); }
+            { text.Append("|C:").Append(anchor.Id).Append(',').Append(anchor.RoomId).Append(',').Append((int)anchor.Type); Append(text, anchor.Position); }
             return text.ToString();
         }
 
