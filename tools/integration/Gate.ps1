@@ -55,3 +55,28 @@ function Add-LedgerEntry([string]$ledger, [hashtable]$entry) {
     $json = ([pscustomobject]$entry | ConvertTo-Json -Depth 6 -Compress)
     [System.IO.File]::AppendAllText($ledger, $json + "`n", (New-Object System.Text.UTF8Encoding($false)))
 }
+
+# Setup drift evidence: which generated files a gate's setup steps rewrote. Not a verdict;
+# it makes parity claims ("setup output unchanged") checkable in the gate evidence.
+$script:DriftRoots = @('Assets/Resources', 'Assets/Prefabs', 'Assets/Scenes', 'Assets/Settings')
+$script:DriftExtensions = @('.asset', '.prefab', '.unity', '.mat', '.mixer', '.controller', '.anim', '.wav', '.meta')
+
+function Get-GeneratedSnapshot([string]$root, [string[]]$roots = $script:DriftRoots, [string[]]$extensions = $script:DriftExtensions) {
+    $snap = @{}
+    foreach ($r in $roots) {
+        $dir = Join-Path $root $r
+        if (-not (Test-Path -LiteralPath $dir)) { continue }
+        Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $extensions -contains $_.Extension.ToLowerInvariant() } | ForEach-Object {
+            $rel = $_.FullName.Substring($root.TrimEnd('\', '/').Length + 1).Replace('\', '/')
+            $snap[$rel] = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+        }
+    }
+    $snap
+}
+
+function Compare-GeneratedSnapshot([hashtable]$before, [hashtable]$after) {
+    $changed = @($after.Keys | Where-Object { $before.ContainsKey($_) -and $before[$_] -ne $after[$_] } | Sort-Object)
+    $added = @($after.Keys | Where-Object { -not $before.ContainsKey($_) } | Sort-Object)
+    $removed = @($before.Keys | Where-Object { -not $after.ContainsKey($_) } | Sort-Object)
+    [pscustomobject]@{ changed = $changed; added = $added; removed = $removed; files = $after.Count }
+}

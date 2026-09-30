@@ -7,6 +7,9 @@ param(
     [string[]]$SetupSnippets = @(),
     # Extra paths (git pathspecs) produced by setup to commit onto the candidate, besides .meta files.
     [string[]]$CommitPaths = @(),
+    # Wait for the Edit Mode results XML. Play-mode tests dominate (about 100 s of domain reload
+    # each): batch 12 needed 116 minutes and batch 13 more than 150.
+    [int]$TestTimeoutMinutes = 240,
     [switch]$PrecheckOnly,
     [switch]$NoPush,
     [switch]$NoReindex,
@@ -93,7 +96,7 @@ if ($PrecheckOnly) { Log 'Precheck only; nothing published.'; return }
 # ---------- 2. Unity gate on the detached candidate ----------
 $token = Enter-UnityLease $Plan "Gate $Label`: candidate $($candidate.Substring(0,8)) import, setup, Edit Mode suite"
 Log "Lease acquired ($($token.Substring(0,8))...)"
-$safe = $false; $onCandidate = $false; $verdict = $null
+$safe = $false; $onCandidate = $false; $keepCandidate = $false; $verdict = $null
 try {
     Assert-UnityLease $token
     $s = Get-EditorState
@@ -116,11 +119,17 @@ try {
     if ($s.Failed) { $entry.verdict = 'fail-compile'; throw 'Unity reports script compilation failed on the candidate.' }
 
     if ($SetupSteps.Count + $SetupSnippets.Count -gt 0) {
+        $before = Get-GeneratedSnapshot $main
         # In-process call: `powershell -File` would split the string arrays into positional arguments.
         $global:LASTEXITCODE = 0
         $setupOut = & (Join-Path $PSScriptRoot 'unity-setup.ps1') -Purpose "Gate $Label setup" -Steps $SetupSteps -Snippets $SetupSnippets -Token $token -OutJson (Join-Path $out 'setup.json') -ContinueOnError
         $setupExit = $LASTEXITCODE; $setupOut | ForEach-Object { Log "  $_" }
         $entry.setup_ok = ($setupExit -eq 0)
+        # Evidence, not a verdict: which generated files the setup rewrote (parity claims are checkable).
+        $drift = Compare-GeneratedSnapshot $before (Get-GeneratedSnapshot $main)
+        $drift | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $out 'setup-drift.json')
+        $entry.setup_drift = [ordered]@{ changed = $drift.changed.Count; added = $drift.added.Count; removed = $drift.removed.Count; files = $drift.files }
+        Log ("Setup drift: changed={0} added={1} removed={2} of {3} generated files (setup-drift.json)" -f $drift.changed.Count, $drift.added.Count, $drift.removed.Count, $drift.files)
     } else { $entry.setup_ok = $true }
 
     # Commit Unity-generated .meta files for merged paths and declared setup outputs onto the candidate.
@@ -145,11 +154,16 @@ try {
     $start = Invoke-UnityCsharp 'return SynapticPro.TestRunner.NexusTestRunnerService.Execute("run", "editmode", "");'
     Log "Test start: $start"
     $resultsJson = Join-Path $out 'editmode-results.json'
-    $waitOut = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'await-results.ps1') -Token $token -Since $since.ToString('o') -TimeoutMinutes 150 -OutJson $resultsJson
+    $waitOut = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'await-results.ps1') -Token $token -Since $since.ToString('o') -TimeoutMinutes $TestTimeoutMinutes -OutJson $resultsJson
     $waitExit = $LASTEXITCODE
     $waitOut | Set-Content -LiteralPath (Join-Path $out 'editmode-summary.txt')
     $waitOut | Select-Object -First 3 | ForEach-Object { Log "  $_" }
-    if ($waitExit -ne 0) { $entry.verdict = 'fail-no-results'; throw 'Test results were not produced; lease retained until the run is confirmed finished.' }
+    if ($waitExit -ne 0) {
+        # Unity may still be running the suite. Switching the checkout now would import main's
+        # files mid-run, so leave the candidate checked out and the lease held.
+        $entry.verdict = 'fail-no-results'; $keepCandidate = $true
+        throw "No test results within $TestTimeoutMinutes min. The open checkout stays on the candidate and the lease is retained until the run is confirmed finished (README: 'Timed-out suite')."
+    }
     $s = Wait-EditorIdle $token 10
     if ($s -and $s.TimeScale -ne 1) { Log "WARNING: Time.timeScale is $($s.TimeScale) after the suite (a test leaked it)" }
     # Nobody may commit in the open checkout while it is detached for the gate; a moved HEAD
@@ -192,7 +206,10 @@ try {
 } catch {
     Log "ERROR: $($_.Exception.Message)"
     if (-not $entry.verdict) { $entry.verdict = 'fail-error' }
-    if ($onCandidate) {
+    if ($onCandidate -and $keepCandidate) {
+        try { Invoke-Git $main branch -f "cand/$Label" (Invoke-Git $main rev-parse HEAD | Select-Object -Last 1) | Out-Null } catch { }
+        Log "Open checkout left on the candidate (cand/$Label): the suite may still be running"
+    } elseif ($onCandidate) {
         try { Invoke-Git $main branch -f "cand/$Label" (Invoke-Git $main rev-parse HEAD | Select-Object -Last 1) | Out-Null; Invoke-Git $main checkout -q main | Out-Null; Log "Restored open checkout to main; candidate kept as cand/$Label" } catch { Log "RESTORE FAILED: $($_.Exception.Message)" }
     }
     throw
