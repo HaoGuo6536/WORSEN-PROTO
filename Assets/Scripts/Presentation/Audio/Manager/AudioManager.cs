@@ -18,6 +18,7 @@
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
 //   - Forward cue, movement, fractional injury and proximity commands without gameplay rules.
 //   - Pair owner enable/disable and teardown with the owned Driver lifetime.
+//   - Forward aggregate live proximity and the explicit expedition contact-retention boundary.
 //
 // DEPENDENCIES:
 //   - Core CueId and MovementState; Audio system's own Driver and DriverConfig.
@@ -27,6 +28,7 @@
 //   - Scene assembly must retain the canonical instance returned by Initialize.
 //   - ResetRun releases all previous run playback; no scene-owned references are cached.
 //   - Restart and capture reset rearm catch admission through the same ResetRun command.
+//   - Floor resets may retain music contact; full restart and terminal run reset never do.
 //
 // ============================================================================
 
@@ -92,13 +94,14 @@ namespace Worsen.Presentation.Audio
         public void ObserveRoom(RoomDestructionSample sample) { if (_initialized) _driver.ObserveRoom(sample); }
         public void PlayCueAt(CueId cue, Vector3 position, float gain = 1f, int emitterId = 0) { if (_initialized && isActiveAndEnabled) _driver.PlayCueAt(cue, position, gain, emitterId); }
         public void SetThreat(int id, bool chasing, float closeness) { if (_initialized) _driver.SetThreat(id, chasing, closeness); }
+        public void ObserveProximity(ProximitySample sample) { if (_initialized) _driver.ObserveProximity(sample); }
         public void RemoveThreat(int id) { if (_initialized) _driver.RemoveThreat(id); }
         public void SetAmbience(float openness, float collapse) { if (_initialized) _driver.SetAmbience(openness, collapse); }
         public void SetListenerPosition(Vector3 position) { if (_initialized) _driver.SetListenerPosition(position); }
         public void SetFootstepGain(float gain) { if (_initialized) _driver.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_initialized) _driver.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_initialized) _driver.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun() { if (_initialized) _driver.ResetRun(); }
+        public void ResetRun(bool preserveMusicContact = false) { if (_initialized) _driver.ResetRun(preserveMusicContact); }
 
         private void OnEnable() { if (_initialized) _driver.SetOwnerEnabled(true); }
         private void OnDisable() { if (_initialized && _driver != null) _driver.SetOwnerEnabled(false); }
