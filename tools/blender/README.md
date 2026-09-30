@@ -152,3 +152,22 @@ constants. Runtime view tuning remains in the existing PlayerMoverDriverConfig.
   leg pole displacement (0,-.5,0)m, influence 0 by default, chain length 2,
   no stretch. Preview orthographic scale 2.35m, perspective lens 75 degrees,
   near plane .05m, background (.19,.19,.19); camera locations live in main().
+
+# SPEC-005 humanoid hunter prototypes
+
+Echo, Mannequin, Stare and Herald are original, primitive-built prototype bodies (the owner asked for one per hunter on 2026-09-30). Each has a rigid-skinned rig and the six actions `idle`, `walk`, `run`, `ready`, `attack` and `hit` at 30 fps, in place. The shared helper is `hunter_humanoid_common.py`.
+
+```sh
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python-exit-code 1 --python tools/blender/hunter_<name>.py
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python-exit-code 1 --python tools/blender/validate_hunter_<name>.py
+"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python-exit-code 1 --python tools/blender/hunter_humanoid_common.py -- --lineup
+```
+
+- **Paths:**
+  - sources: `ArtSource/Hunter/<Name>/`;
+  - FBX and `WORSEN_Hunter<Name>.manifest.json`: `Assets/Art/Hunter/<Name>/`;
+  - previews and `validation.json`: `Logs/AgentValidation/Art/Hunter<Name>/`.
+- **Manifest:** the only hand-off to Unity. It holds height, width, triangles, bones, actions (frames, loop, attack contact frame), materials (sRGB colour, emission) and sockets (`attack_origin`, `head_or_top`, in Blender bone-local coordinates). Apply colours and emission from the manifest, because FBX does not preserve emission strength.
+- **Unity import:** Generic rig, `bakeAxisConversion = false`, root motion off.
+- **Reproducibility:** content hashes canonicalise oriented triangle order. Binary FBX and `.blend` timestamps are not reproducibility criteria.
+
