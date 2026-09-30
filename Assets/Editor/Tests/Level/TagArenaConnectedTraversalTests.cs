@@ -231,7 +231,7 @@ namespace Worsen.Tests.Level
                     moverSnapshot = EditorJsonUtility.ToJson(mover); Stamp(AssetDatabase.GetAssetPath(mover));
                     Assert.That(profile.SprintSpeed, Is.EqualTo(8f)); Assert.That(profile.MaxDesignSpeed, Is.EqualTo(14f));
                     Assert.That(mover.Height, Is.EqualTo(1.8f)); Assert.That(mover.Height * mover.SlideHeightRatio, Is.EqualTo(0.9f));
-                    Assert.That(mover.StepHeight, Is.EqualTo(0.3f)); Assert.That(mover.SlopeLimitDegrees, Is.EqualTo(50f));
+                    Assert.That(mover.StepHeight, Is.EqualTo(0.4f)); Assert.That(mover.SlopeLimitDegrees, Is.EqualTo(50f));
                     foreach (int id in new[] { 210, 211, 212 })
                     {
                         Assert.That(markers[id].Kind, Is.EqualTo(TraversalSurfaceKind.Vault));

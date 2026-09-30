@@ -16,6 +16,7 @@
 //     UnityEditor for temporary profile tuning, and NUnit.
 // USAGE NOTES:
 //   Edit Mode tests construct a temporary profile; no Play Mode or scene mutation.
+//   Disable the separately tested deliberation beat to isolate approach speeds.
 // ============================================================================
 using System;
 using NUnit.Framework;
@@ -46,6 +47,7 @@ namespace Worsen.Tests.Hunter
         [SetUp] public void SetUp()
         {
             _profile = ScriptableObject.CreateInstance<HunterProfile>();
+            SetTuning("_deliberationSeconds", 0f);
             _state = new HunterBehaviorState();
             _player = new PlayerBehaviorState { Id = new EntityId(1), Position = Vector3.forward * 10f, Health = 100f, SprintSpeed = 8f };
             _controller = new HunterController(_state, _profile, new System.Random(37), _player, new LevelFixture());
@@ -133,12 +135,13 @@ namespace Worsen.Tests.Hunter
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Stalk));
             int replans = ReplanCount;
             _controller.ReportPathFailure();
-            HunterTickResult search = _controller.Tick(default, Dt, 5);
+            for (int tick = 5; tick < 34; tick++) _controller.Tick(default, Dt, tick);
+            HunterTickResult search = _controller.Tick(default, Dt, 34);
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.SearchLastKnown));
             Assert.That(search.Speed, Is.EqualTo(_profile.InvestigateSpeed));
             Assert.That(ReplanCount, Is.EqualTo(replans + 1));
-            for (int tick = 6; tick < 120; tick++) _controller.Tick(default, Dt, tick);
-            Assert.That(ReplanCount, Is.EqualTo(replans + 1));
+            for (int tick = 35; tick < 120; tick++) _controller.Tick(default, Dt, tick);
+            Assert.That(ReplanCount, Is.InRange(replans + 1, replans + 2), "Search freshness invalidation is bounded, not per-tick.");
             _controller.Tick(Visible, Dt, 120);
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Chase));
         }
@@ -221,7 +224,7 @@ namespace Worsen.Tests.Hunter
         }
 
         [Test]
-        public void StaleBeliefLeavesStalkForSearchThenExpiresToPatrol()
+        public void StaleBeliefLeavesStalkAndCompletesFixedSearchBeforePatrol()
         {
             const float memoryDt = 0.25f; // Exact binary steps exercise the inclusive freshness boundary.
             _controller.Tick(Visible, memoryDt, 0);
@@ -233,6 +236,9 @@ namespace Worsen.Tests.Hunter
             Assert.That(search.Speed, Is.EqualTo(_profile.InvestigateSpeed));
             Assert.That(ReplanCount, Is.EqualTo(replans + 1));
             _controller.Tick(default, memoryDt, 32);
+            Assert.That(_state.BeliefConfidence, Is.Zero);
+            Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.SearchLastKnown));
+            for (int tick = 33; tick <= 150; tick++) _controller.Tick(default, memoryDt, tick);
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Patrol));
         }
 
@@ -400,8 +406,9 @@ namespace Worsen.Tests.Hunter
         [Test] public void FailedChaseFallsBackThenRetriesInsteadOfCachingPatrol()
         {
             _controller.Tick(Visible, Dt, 0); _controller.ReportPathFailure();
-            _controller.Tick(default, Dt, 1); Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Patrol));
-            _controller.Tick(default, Dt, 2); Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Chase));
+            _controller.Tick(default, 0.5f, 1); Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Patrol));
+            _controller.Tick(default, 0.25f, 2); Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Patrol));
+            _controller.Tick(default, 0.25f, 3); Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Chase));
         }
         [Test] public void CommittedLungeHasExactPhasesAndOnlyOneTargetContact()
         {

@@ -12,6 +12,7 @@
 //   - Require Consumed before death presentation and terminal progression state.
 //   - Keep positive health updates immediate and final health accurate.
 //   - Schedule the hand outside initial hit grace with consistent 60 Hz fact ticks.
+//   - Place the lethal hand in a non-exit room connected to a permanently safe exit.
 // DEPENDENCIES:
 //   Core, Domain Floor/Player/Level and assembly service types, Session managers,
 //   NUnit and Unity Test Framework. No production Presentation dependency.
@@ -138,6 +139,8 @@ namespace Worsen.Tests.Expedition
                 var playerProfile = Config<PlayerProfile>();
                 var moverConfig = Config<PlayerMoverDriverConfig>();
                 Set(floorConfig, "_requiredCakeCount", 2);
+                // This fixed two-socket scenario needs both sockets as required cakes (legacy count mode).
+                Set(floorConfig, "_useRoomCakeDensity", false);
                 Run = Component<RunSessionManager>("Consumption Run").Initialize(901);
                 Progression = Component<ProgressionSessionManager>("Consumption Progression").Initialize(progressionConfig, 901);
                 expedition = Component<ExpeditionSessionManager>("Consumption Expedition").Initialize();
@@ -181,9 +184,10 @@ namespace Worsen.Tests.Expedition
                 Player = spawned;
                 Player.gameObject.SetActive(true);
                 assembly.RecordPlayer(playerId);
-                var graph = LevelGraphUtility.Build(new[] { room }, Array.Empty<LevelEdge>(),
+                var exit = new LevelRoom(2, Origin + new Vector3(12f, 3.5f, 0f), new Vector3(12f, 7f, 12f));
+                var graph = LevelGraphUtility.Build(new[] { room, exit }, new[] { new LevelEdge(1, 1, 2, true) },
                     new[] { new LevelAnchor(101, 1, CakeAnchorType.Flow, Origin),
-                        new LevelAnchor(102, 1, CakeAnchorType.Flow, Origin + Vector3.right * 4f) }, 1, Origin + Vector3.forward * 4f);
+                        new LevelAnchor(102, 1, CakeAnchorType.Flow, Origin + Vector3.right * 4f) }, 2, Origin + Vector3.right * 12f);
                 level.InitializeGenerated(graph);
                 Floor.Initialize(floorConfig, level.ReadOnlyState, new[] { Player.ReadOnlyState }, Run.RandomSource, 2);
                 Floor.OnCollapseHand += ObserveHand;

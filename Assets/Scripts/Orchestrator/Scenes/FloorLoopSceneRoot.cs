@@ -11,6 +11,7 @@
 //   - Bind camera catches to Results and canonical audio; release both on teardown.
 //   - Initialize canonical persistent services and hand off the ready scene.
 //   - Initialize Level, spawn the Player and preserve the shared seeded source.
+//   - Supply the initialized Director with Level topology for region and noise inference.
 // DEPENDENCIES:
 //   - Session.Run/SceneFlow; Domain.Player/Level; Presentation Input, DebugOverlay,
 //     Camera, PostFX, Audio, HUD, Results and Telemetry. No per-frame gameplay work lives here.
@@ -124,6 +125,7 @@ namespace Worsen.Orchestrator
             _run.BindGameplay(_chase, _floor, _director);
             _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState }, _run.RandomSource);
             _director.Initialize(_directorConfig, _run.RandomSource, _chase.ReadOnlyState, _floor.ReadOnlyState);
+            _director.SetLevelView(_level.ReadOnlyState);
             _assembled = true;
             SceneReady?.Invoke(SceneKey.FloorLoop);
         }

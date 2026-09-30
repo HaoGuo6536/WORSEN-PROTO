@@ -8,6 +8,9 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
 //   - Verify portal clearance, elevation, selection, local dimming and threshold chalk.
+//   - Verify default-off Wick/Darker Floors composition without exceeding the light cap.
+//   - Bind exact Core light sockets without lighting other rooms, moons or destroyed torches.
+//   - Keep footprint dressing out of notches and off internal walls; preserve rectangle placement.
 // DEPENDENCIES:
 //   - NUnit and EnvironmentPresenter; no scene objects required.
 // USAGE NOTES:
@@ -18,11 +21,85 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Presentation.Environment;
+using Worsen.Core;
 
 namespace Worsen.Tests.CastleEnvironment
 {
     public sealed class EnvironmentPresenterTests
     {
+        [Test]
+        public void FootprintDressingAndLightSlotsAvoidNotchesAndInternalWalls()
+        {
+            var cells = new[] { new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f)),
+                new Bounds(new Vector3(12f, 3.5f, 0f), new Vector3(12f, 7f, 12f)),
+                new Bounds(new Vector3(0f, 3.5f, 12f), new Vector3(12f, 7f, 12f)) };
+            var bounds = new Bounds(new Vector3(6f, 3.5f, 6f), new Vector3(24f, 7f, 24f));
+            var room = new LevelRoom(1, bounds.center, bounds.size, cells);
+            for (int id = 0; id < 8; id++)
+            {
+                var dressing = EnvironmentPresenter.BuildDressing(id, bounds, false, false, null, cells: cells);
+                var lights = EnvironmentPresenter.BuildSlots(id, bounds, null, cells);
+                Assert.That(dressing, Is.Not.Empty); Assert.That(lights, Is.Not.Empty);
+                foreach (var slot in dressing.Concat(lights))
+                {
+                    Assert.That(room.ContainsXZ(slot.Position), Is.True);
+                    var rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
+                    foreach (int x in new[] { -1, 1 }) foreach (int z in new[] { -1, 1 })
+                        Assert.That(room.ContainsXZ(slot.Position + rotation * new Vector3(x * slot.Envelope.x * .5f, 0f,
+                            z * slot.Envelope.z * .5f)), Is.True, "The entire dressing envelope must stay on occupied cells.");
+                    if (slot.Kind != EnvironmentDecorationKind.Torch && slot.Kind != EnvironmentDecorationKind.Banner) continue;
+                    var outside = slot.Position - Quaternion.Euler(0f, slot.Yaw, 0f) * Vector3.forward * .31f;
+                    Assert.That(room.ContainsXZ(outside), Is.False, "A wall-backed item cannot attach to a cell seam.");
+                }
+            }
+        }
+
+        [Test]
+        public void ExplicitSingleCellPreservesEveryRectangleSlot()
+        {
+            var bounds = new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f));
+            var portals = new[] { Vector3.back * 6f };
+            Assert.That(EnvironmentPresenter.BuildSlots(3, bounds, portals, new[] { bounds }),
+                Is.EqualTo(EnvironmentPresenter.BuildSlots(3, bounds, portals)));
+            Assert.That(EnvironmentPresenter.BuildDressing(3, bounds, false, true, portals, cells: new[] { bounds }),
+                Is.EqualTo(EnvironmentPresenter.BuildDressing(3, bounds, false, true, portals)));
+        }
+
+        [Test]
+        public void LightFactsMatchOnlyTheirRoomSocketAndRespectDestruction()
+        {
+            var state = new EnvironmentDriverState();
+            state.Flames.Add(new EnvironmentFlameDriverState { RoomId = 1, SocketPosition = Vector3.one, Moon = true });
+            state.Flames.Add(new EnvironmentFlameDriverState { RoomId = 2, SocketPosition = Vector3.one });
+            state.Flames.Add(new EnvironmentFlameDriverState { RoomId = 1, SocketPosition = Vector3.one });
+            state.Available.AddRange(new[] { true, true, true });
+            var off = new InteractableState(42, InteractableKind.Light, 1, Vector3.one, InteractableStateValue.Inactive);
+            var on = new InteractableState(42, InteractableKind.Light, 1, Vector3.one, InteractableStateValue.Lit);
+            Assert.That(EnvironmentPresenter.ApplyLight(state, off), Is.True);
+            Assert.That(state.Available, Is.EqualTo(new[] { true, true, false }));
+            Assert.That(EnvironmentPresenter.ApplyLight(state, on), Is.True);
+            Assert.That(state.Available[2], Is.True);
+            state.Flames[2].Destruction = 1f;
+            EnvironmentPresenter.ApplyLight(state, on);
+            Assert.That(state.Available[2], Is.False);
+            Assert.That(EnvironmentPresenter.ApplyLight(state,
+                new InteractableState(43, InteractableKind.Light, 1, Vector3.zero, InteractableStateValue.Lit)), Is.False);
+            Assert.That(EnvironmentPresenter.ApplyLight(state,
+                new InteractableState(42, InteractableKind.Door, 1, Vector3.one, InteractableStateValue.Open)), Is.False);
+        }
+
+        [TestCase(false, false)] [TestCase(true, false)] [TestCase(false, true)] [TestCase(true, true)]
+        public void LampHooksRestoreLitStateAndScaleDarknessWithoutRevivingDestroyedRooms(bool wick, bool darker)
+        {
+            float expected = EnvironmentPresenter.FlameBrightness(2f, 3, wick ? 0f : 1f, 0f) * (darker ? .65f : 1f);
+            Assert.That(EnvironmentPresenter.LampBrightness(2f, 3, 1f, 0f, wick, darker, .65f), Is.EqualTo(expected));
+            Assert.That(EnvironmentPresenter.LampBrightness(2f, 3, 1f, 1f, wick, darker, .65f), Is.Zero);
+            var positions = Enumerable.Range(0, 40).Select(i => Vector3.right * i).ToArray();
+            var available = Enumerable.Repeat(true, 40).ToArray();
+            Assert.That(EnvironmentPresenter.Nearest(Vector3.zero, positions, available, 12, 60f),
+                Is.EqualTo(Enumerable.Range(0, 12).ToArray()));
+        }
+
         [Test]
         public void SlotsKeepPortalClearanceAndRespectElevatedFloor()
         {

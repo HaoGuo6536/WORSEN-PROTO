@@ -11,6 +11,7 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Carry an explicit motion hold independently of committed attack phases.
+//   - Carry collision-limited stumble displacement and a deliberation facing command.
 // DEPENDENCIES:
 //   - UnityEngine Vector3 value data only; no foreign system dependencies.
 // USAGE NOTES:
@@ -21,7 +22,8 @@
 using UnityEngine;
 namespace Worsen.Domain.Hunter
 {
-    public enum HunterAction { Patrol, InvestigateHint, Chase, Lunge, SearchLastKnown, CutOff, InvestigateLight, AvoidLight, FlankLight, Stalk }
+    public enum HunterAction { Patrol, InvestigateHint, Chase, Lunge, SearchLastKnown, CutOff, InvestigateLight, AvoidLight, FlankLight, Stalk, Retreat, DenyCake, ProtectExit, BreakLoop }
+    public enum HunterGoal { LocatePrey, DenyCake, ProtectExit, BreakLoop }
     public enum HunterAttackStyle { Lunge, Projectile, GroundSpikes }
     public enum HunterLightResponse { Investigate, Avoid, Flank }
     [System.Flags]
@@ -30,7 +32,8 @@ namespace Worsen.Domain.Hunter
         PlayerVisible = 1, PlayerHeard = 2, HasBelief = 4, BeliefFresh = 8,
         InLungeRange = 16, LoopDetected = 32, HasHint = 64,
         CaughtPlayer = 128, LocatedPlayer = 256, Patrolled = 512, LightObserved = 1024, DirectlyIlluminated = 2048,
-        LightMemoryFresh = 4096, LightReactionReady = 8192, EscapedBeam = 16384
+        LightMemoryFresh = 4096, LightReactionReady = 8192, EscapedBeam = 16384,
+        CakeAvailable = 32768, ExitOpen = 65536, RouteDenied = 131072, ExitProtected = 262144, LoopBroken = 524288
     }
     public readonly struct HunterLightObservation
     {
@@ -45,8 +48,9 @@ namespace Worsen.Domain.Hunter
     public readonly struct HunterTickResult
     {
         public HunterTickResult(Vector3 target, float speed, HunterLungePhase phase, Vector3 lungeDirection, bool beginLunge, bool activeContact,
-            bool holdPosition = false)
-        { Target = target; Speed = speed; Phase = phase; LungeDirection = lungeDirection; BeginLunge = beginLunge; ActiveContact = activeContact; HoldPosition = holdPosition; }
+            bool holdPosition = false, Vector3 stumbleDisplacement = default, Vector3 deliberationFacing = default)
+        { Target = target; Speed = speed; Phase = phase; LungeDirection = lungeDirection; BeginLunge = beginLunge; ActiveContact = activeContact; HoldPosition = holdPosition;
+            StumbleDisplacement = stumbleDisplacement; DeliberationFacing = deliberationFacing; }
         public Vector3 Target { get; }
         public float Speed { get; }
         public HunterLungePhase Phase { get; }
@@ -54,5 +58,7 @@ namespace Worsen.Domain.Hunter
         public bool BeginLunge { get; }
         public bool ActiveContact { get; }
         public bool HoldPosition { get; }
+        public Vector3 StumbleDisplacement { get; }
+        public Vector3 DeliberationFacing { get; }
     }
 }

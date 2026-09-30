@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies native fake-light radius/cone conversion and sampled wall limits.
+//   Exit fans and optional fog/rim hooks are checked without a renderer.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Horror.
 // KEY RESPONSIBILITIES:
@@ -22,6 +23,35 @@ namespace Worsen.Tests.Horror
     public sealed class HorrorLumenPresenterTests
     {
         private readonly HorrorLumenPresenter _presenter = new HorrorLumenPresenter();
+
+        [Test]
+        public void ExitRaysIntensifyMonotonicallyAndFanSymmetrically()
+        {
+            float previous = 0f;
+            for (int i = 0; i <= 100; i++)
+            {
+                float value = _presenter.ExitRayIntensity(i / 100f, .04f, .65f);
+                Assert.That(value, Is.GreaterThanOrEqualTo(previous)); previous = value;
+            }
+            Assert.That(previous, Is.EqualTo(.65f).Within(.00001f));
+            Assert.That(_presenter.ExitRayIntensity(float.NaN, .04f, .65f), Is.EqualTo(.04f));
+            Assert.That(_presenter.FanYaw(0, 5, 30f), Is.EqualTo(-30f));
+            Assert.That(_presenter.FanYaw(2, 5, 30f), Is.Zero);
+            Assert.That(_presenter.FanYaw(4, 5, 30f), Is.EqualTo(30f));
+            Assert.That(_presenter.RayVertices(.45f, 4f), Is.EqualTo(new[] { Vector3.zero,
+                new Vector3(-.45f, 0f, 4f), new Vector3(.45f, 0f, 4f) }));
+        }
+
+        [Test]
+        public void FogGlowsOnlyInThinRegionsAndRimRequiresBothOptInAndLookBack()
+        {
+            foreach (float density in new[] { 0f, .35f, 1f, float.NaN })
+                Assert.That(_presenter.FogBoundaryGlow(density, .35f, .08f), Is.Zero);
+            Assert.That(_presenter.FogBoundaryGlow(.175f, .35f, .08f), Is.EqualTo(.08f).Within(.00001f));
+            Assert.That(_presenter.HunterRim(false, true, .08f), Is.Zero);
+            Assert.That(_presenter.HunterRim(true, false, .08f), Is.Zero);
+            Assert.That(_presenter.HunterRim(true, true, .08f), Is.EqualTo(.08f));
+        }
 
         [TestCase(.2f, 2f)] [TestCase(2.4f, 2f)] [TestCase(18f, 2f)] [TestCase(40f, 8f)]
         public void RadiusMatchesActualShaderCutoff(float meters, float baseRange)

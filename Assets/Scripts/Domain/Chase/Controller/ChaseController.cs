@@ -9,6 +9,7 @@
 //   Controller (§2) · Domain · Chase.
 // KEY RESPONSIBILITIES:
 //   - Confirm continuous sight, require both loss conditions, and preserve grace identity.
+//   - Read each hunter's loss rule; a requested retreat drops that source immediately.
 //   - Return accepted catch outcomes and bounded directional proximity facts.
 // DEPENDENCIES:
 //   - Reads injected Player and Hunter read-only views; Core event facts.
@@ -63,7 +64,12 @@ namespace Worsen.Domain.Chase
                     !present.Add(hunter.Id)) continue;
                 if (!_state.Hunters.TryGetValue(hunter.Id, out ChaseHunterBehaviorState source))
                     _state.Hunters.Add(hunter.Id, source = new ChaseHunterBehaviorState());
-                bool visible = _player.IsAlive && hunter.PlayerVisible;
+                var policy = hunter as IReadOnlyHunterPursuitState;
+                source.LossSeconds = policy?.LossSeconds ?? _config.LossSeconds;
+                float lossDistance = policy?.LossDistance ?? _config.LossDistance;
+                bool withdrawing = policy?.PursuitSuppressed ?? false;
+                if (withdrawing) source.Participating = false;
+                bool visible = _player.IsAlive && hunter.PlayerVisible && !withdrawing;
                 source.SightSeconds = visible ? source.SightSeconds + dt : 0f;
                 source.NoSightSeconds = visible ? 0f : source.NoSightSeconds + dt;
                 source.SeenTick = tick;
@@ -73,8 +79,8 @@ namespace Worsen.Domain.Chase
                     source.Participating = true;
                     if (!confirmation.IsValid || hunter.Id.Value < confirmation.Value) confirmation = hunter.Id;
                 }
-                if (source.Participating && !(source.NoSightSeconds + 0.000001f >= _config.LossSeconds &&
-                    distance > _config.LossDistance)) retainsPursuit = true;
+                if (source.Participating && !(source.NoSightSeconds + 0.000001f >= source.LossSeconds &&
+                    distance > lossDistance)) retainsPursuit = true;
                 float value = Closeness(distance, Vector3.Dot(hunter.Position - _player.Position, _player.Forward) < 0f);
                 if (value > closeness || (!proximityHunter.IsValid && distance < nearest))
                 { closeness = value; proximityHunter = hunter.Id; nearest = distance; }
@@ -83,7 +89,7 @@ namespace Worsen.Domain.Chase
             {
                 if (present.Contains(pair.Key)) continue;
                 pair.Value.SightSeconds = 0f; pair.Value.NoSightSeconds += dt;
-                if (pair.Value.Participating && pair.Value.NoSightSeconds + 0.000001f < _config.LossSeconds)
+                if (pair.Value.Participating && pair.Value.NoSightSeconds + 0.000001f < pair.Value.LossSeconds)
                     retainsPursuit = true;
             }
             bool started = false, lost = false, ended = false;

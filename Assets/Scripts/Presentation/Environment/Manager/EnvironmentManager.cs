@@ -9,8 +9,11 @@
 // KEY RESPONSIBILITIES:
 //   - Own and initialize the EnvironmentDriver, forwarding scene lifecycle and pushed facts.
 //   - Route room batches, threshold chalk and localized flame dimming into the own Driver.
+//   - Expose exit-frame facts, default-off lamp hooks and fog/rim output for later routing.
+//   - Forward Level light snapshots without introducing a Domain assembly reference.
+//   - Forward footprint cells without flattening them to room bounding rectangles.
 // DEPENDENCIES:
-//   - Own presentation stack and Core GeneratedRoomSample; remaining public data is primitive.
+//   - Own presentation stack and Core GeneratedRoomSample/InteractableState; remaining public data is primitive.
 // USAGE NOTES:
 //   Scene-owned service. Initialize before AddRoom; BeginFloor removes preceding floor dressing.
 //   Global fog belongs to Horror and torch audio is routed through the central soundscape.
@@ -45,13 +48,23 @@ namespace Worsen.Presentation.Environment
             _driver.BeginFloor();
             if (rooms == null) return;
             foreach (GeneratedRoomSample room in rooms)
-                _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters);
+                _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters, cells: room.Cells);
         }
-        public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null)
-        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved); }
+        public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
+            IReadOnlyList<Bounds> cells = null)
+        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved, cells); }
         public Vector3[] GetTorchPositions(int roomId)
         { return _driver != null ? _driver.GetTorchPositions(roomId) : new Vector3[0]; }
         public void SetObserver(Vector3 position) { if (_driver != null) _driver.SetObserver(position); }
+        public void SetLightingHooks(bool darkerFloors, bool wick)
+        { if (_driver != null) _driver.SetLightingHooks(darkerFloors, wick); }
+        public void ApplyLight(InteractableState light) { if (_driver != null) _driver.ApplyLight(light); }
+        public void SetExitFrame(int roomId, Vector3 position, Quaternion rotation)
+        { if (_driver != null) _driver.SetExitFrame(roomId, position, rotation); }
+        public void SetExitProgress(float progress) { if (_driver != null) _driver.SetExitProgress(progress); }
+        public float FogBoundaryGlow(float density) => _driver != null ? _driver.FogBoundaryGlow(density) : 0f;
+        public Color FogBoundaryColor => _driver != null ? _driver.FogBoundaryColor : Color.black;
+        public float HunterRim(bool lookBack) => _driver != null ? _driver.HunterRim(lookBack) : 0f;
         public void SetFlameGutter(float amount) { if (_driver != null) _driver.SetFlameGutter(amount); }
         public void SetFlameDim(Vector3 position, float radius, float multiplier)
         { if (_driver != null) _driver.SetFlameDim(position, radius, multiplier); }

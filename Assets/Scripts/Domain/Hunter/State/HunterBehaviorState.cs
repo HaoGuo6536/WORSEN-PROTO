@@ -5,11 +5,13 @@
 //   Stores one Hunter life, beliefs, light reactions and committed attack identities.
 //   Per-instance curses and cooldowns stay outside shared profile assets.
 //   Reset removes contacts, light traces and unavailable rooms from the previous life.
+//   Intent memory includes observed cake ids, fixed search legs and pending sound decisions.
 // ARCHITECTURAL ROLE:
 //   BehaviorState (section 3) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Retain per-archetype pursuit policy and bounded commitment/deliberation timers.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -22,7 +24,7 @@ using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter
 {
-    public sealed class HunterBehaviorState : IReadOnlyHunterState
+    public sealed class HunterBehaviorState : IReadOnlyHunterPursuitState
     {
         public EntityId Id { get; internal set; }
         public EntityId TargetId { get; internal set; }
@@ -38,6 +40,28 @@ namespace Worsen.Domain.Hunter
         public float RunSpeedMultiplier { get; internal set; } = 1f;
         public HunterLungePhase LungePhase { get; internal set; }
         public HunterAction CurrentAction => Action;
+        public float LossSeconds { get; internal set; }
+        public float LossDistance { get; internal set; }
+        public bool PursuitSuppressed { get; internal set; }
+        public HunterGoal CurrentGoal { get; internal set; }
+        public bool IsDeliberating => DeliberationRemaining > 0f;
+        public int LastPickupRoom { get; internal set; }
+        internal float CommitmentRemaining, DeliberationRemaining, RetreatRemaining;
+        internal Vector3 DeliberationTarget;
+        internal bool DeliberationFactPending, PendingNoiseDecision;
+        internal NoiseEvent PendingNoise;
+        internal float PendingNoiseLoudness;
+        internal readonly List<NoiseEvent> HeardNoises = new List<NoiseEvent>();
+        internal readonly Dictionary<int, int> CakeRooms = new Dictionary<int, int>();
+        internal readonly List<Vector3> SearchRoute = new List<Vector3>();
+        internal int SearchIndex, ObservedPlayerRoom, PreviousPlayerRoom;
+        internal Vector3 ObservedPlayerVelocity;
+        internal bool SearchActive;
+        internal Vector3 CakeTarget, ExitTarget;
+        internal bool CakeAvailable, ExitAvailable;
+        internal readonly List<int> PredictionRoute = new List<int>();
+        internal int PredictionIndex;
+        internal bool Predict;
         public float PhaseSeconds { get; internal set; }
         public Vector3 LungeDirection { get; internal set; }
         public FlashlightSample Flashlight { get; internal set; }

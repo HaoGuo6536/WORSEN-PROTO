@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Carry immutable action requirements, effects and costs as plain data.
 //   - Distinguish a completed search from an unreachable or bounded search.
+//   - Carry competing goal utilities independently of their action costs.
 // DEPENDENCIES:
 //   - No other project systems.
 // USAGE NOTES:
@@ -18,6 +19,14 @@
 // ============================================================================
 namespace Worsen.Domain.Hunter
 {
+    public readonly struct GoapGoalDefinition
+    {
+        public GoapGoalDefinition(int id, ulong facts, float utility)
+        { Id = id; Facts = facts; Utility = utility; }
+        public int Id { get; }
+        public ulong Facts { get; }
+        public float Utility { get; }
+    }
     public readonly struct GoapActionDefinition
     {
         public readonly int Id;

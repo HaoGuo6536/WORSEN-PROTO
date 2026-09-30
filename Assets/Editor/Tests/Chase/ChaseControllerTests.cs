@@ -9,6 +9,7 @@
 //   Editor tool (§10) · test suite (§11) · Domain · Chase.
 // KEY RESPONSIBILITIES:
 //   - Exercise boundaries, duplicate sources, removal, catch idempotence and reset.
+//   - Read per-profile loss rules and honor explicitly suppressed pursuit.
 // DEPENDENCIES:
 //   - Chase/Hunter pure rules, Player fixtures, Level read-only contract, Core facts and NUnit.
 // USAGE NOTES:
@@ -16,6 +17,7 @@
 // ============================================================================
 using System;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Domain.Chase;
@@ -39,7 +41,7 @@ namespace Worsen.Tests.Chase
             public bool IsReady => false;
             public LevelGraph Graph => null;
         }
-        private sealed class HunterFixture : IReadOnlyHunterState
+        private class HunterFixture : IReadOnlyHunterState
         {
             public EntityId Id { get; set; } = new EntityId(-1);
             public EntityId TargetId { get; set; } = new EntityId(1);
@@ -52,6 +54,12 @@ namespace Worsen.Tests.Chase
             public float BeliefConfidence => 1f;
             public long Tick => 0;
             public bool IsActive { get; set; } = true;
+        }
+        private sealed class WithdrawingHunterFixture : HunterFixture, IReadOnlyHunterPursuitState
+        {
+            public float LossSeconds => 100f;
+            public float LossDistance => 100f;
+            public bool PursuitSuppressed { get; set; }
         }
         [SetUp] public void SetUp()
         {
@@ -107,11 +115,53 @@ namespace Worsen.Tests.Chase
             _hunter.Position = Vector3.forward * 14.001f;
             Assert.That(Step().Lost, Is.True);
         }
+        [TestCase(0.5f, 5f)] [TestCase(4f, 20f)]
+        public void ProfileLossRuleOverridesGlobalTimeAndDistance(float seconds, float distance)
+        {
+            var profile = ScriptableObject.CreateInstance<HunterProfile>();
+            try
+            {
+                var so = new SerializedObject(profile);
+                so.FindProperty("_lossSeconds").floatValue = seconds;
+                so.FindProperty("_lossDistance").floatValue = distance;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                var state = new HunterBehaviorState();
+                var hunter = new HunterController(state, profile, new System.Random(37), _player, new UnavailableLevelFixture());
+                hunter.Reset(_hunter.Id, Vector3.back * distance, Vector3.forward);
+                Assert.That(state.LossSeconds, Is.EqualTo(seconds));
+                Assert.That(state.LossDistance, Is.EqualTo(distance));
+                hunter.Tick(new SightProbe(true, false, false), 0.1f, 0);
+                _controller.Tick(new IReadOnlyHunterState[] { state }, 0.3f, 0);
+                Assert.That(_state.Phase, Is.EqualTo(ChasePhase.Confirmed));
+                hunter.Tick(default, 0.1f, 4);
+                _controller.Tick(new IReadOnlyHunterState[] { state }, seconds, 1);
+                Assert.That(_state.Phase, Is.EqualTo(ChasePhase.Confirmed), "Equal distance does not lose.");
+                hunter.CommitPose(Vector3.back * (distance + 0.01f), Vector3.zero, Vector3.forward);
+                Assert.That(_controller.Tick(new IReadOnlyHunterState[] { state }, 0.1f, 2).Lost, Is.True);
+                _controller.Reset();
+                hunter.Tick(new SightProbe(true, false, false), 0.1f, 8);
+                _controller.Tick(new IReadOnlyHunterState[] { state }, 0.3f, 0);
+                hunter.Tick(default, 0.1f, 12);
+                Assert.That(_controller.Tick(new IReadOnlyHunterState[] { state }, seconds - 0.1f, 1).Lost, Is.False);
+                Assert.That(_controller.Tick(new IReadOnlyHunterState[] { state }, 0.1f, 2).Lost, Is.True);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(profile); }
+        }
         [Test] public void DistanceAloneCannotEndChase()
         {
             Confirm(); _hunter.Position = Vector3.forward * 100f;
             for (int i = 0; i < 200; i++) Step();
             Assert.That(_state.Phase, Is.EqualTo(ChasePhase.Confirmed));
+        }
+        [Test] public void RequestedWithdrawalDropsSourceWithoutWaitingForLossRule()
+        {
+            var source = new WithdrawingHunterFixture();
+            for (int i = 0; i < 18; i++) Step(source);
+            Assert.That(_state.Phase, Is.EqualTo(ChasePhase.Confirmed));
+            source.PursuitSuppressed = true;
+            Assert.That(Step(source).Lost, Is.True);
+            for (int i = 0; i < 18; i++) Assert.That(Step(source).Started, Is.False);
+            Assert.That(_state.Phase, Is.EqualTo(ChasePhase.Lost));
         }
         [Test] public void AnotherConfirmedSourceWithinLossRadiusRetainsAggregate()
         {

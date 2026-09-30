@@ -93,3 +93,4 @@ Theme art beyond light sources (PLAN-026); per-hunter catch animations (PLAN-016
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Look-back and catch | Look-back snap, catch close-up hold, results gated on the hold, single catch sting and scene camera binding. Degradation layer, startle budget, Lumen grammar and their routing accepted on worker branches | Commits 5b90c96, 6d3bdf8, a2632db; branches wt/plan022-look 02730f6, wt/plan022-lookwire 521f4a3 |

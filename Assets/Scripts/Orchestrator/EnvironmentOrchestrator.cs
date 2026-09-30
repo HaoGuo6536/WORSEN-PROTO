@@ -4,16 +4,21 @@
 // PURPOSE:
 //   Routes assembled rooms, player position and curse facts to medieval lighting.
 //   Keeps map generation and curse rules out of the Environment presentation stack.
+//   Exit rays receive the assembled frame and continuous committed opening progress.
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Environment target.
 // KEY RESPONSIBILITIES:
 //   - Pair floor, movement and visual-effect subscriptions with scene lifetime.
 //   - Keep decorations and local lighting synchronized with room destruction.
+//   - Publish the exit frame after room dressing exists and forward continuous opening progress.
+//   - Bind Level light snapshots after dressing and reset them when Expedition releases a floor.
 // DEPENDENCIES:
 //   Session Expedition/Run/HorrorEffects; Presentation Environment; Core values.
+//   Domain Level supplies the current graph and light facts; FloorDriverConfig supplies the authored door yaw.
 // USAGE NOTES:
 //   Scene-owned, explicitly configured after canonical services initialize.
 //   Environment owns objects and lighting budgets.
+//   FloorDisplayChanged carries opening and bail poses; Environment owns ray intensity math.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,6 +27,8 @@ using Worsen.Session.Run;
 using Worsen.Session.Expedition;
 using Worsen.Session.HorrorEffects;
 using Worsen.Presentation.Environment;
+using Worsen.Domain.Level;
+using Worsen.Domain.Floor;
 namespace Worsen.Orchestrator
 {
     public sealed class EnvironmentOrchestrator : MonoBehaviour
@@ -30,25 +37,45 @@ namespace Worsen.Orchestrator
         private ExpeditionSessionManager _expedition;
         private HorrorEffectsManager _effects;
         private EnvironmentManager _environment;
+        private LevelManager _level;
+        private FloorDriverConfig _floorVisuals;
         public void Configure(RunSessionManager run, ExpeditionSessionManager expedition, HorrorEffectsManager effects,
-            EnvironmentManager environment)
-        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; if (isActiveAndEnabled) OnEnable(); }
+            EnvironmentManager environment, LevelManager level = null, FloorDriverConfig floorVisuals = null)
+        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; if (isActiveAndEnabled) OnEnable(); }
         private void OnEnable()
         {
             if (_run == null || _expedition == null || _effects == null || _environment == null) return;
             _expedition.RoomsReady += OnRooms;
+            _expedition.FloorReleased += OnFloorReleased;
+            if (_level != null) _level.InteractableChanged += OnInteractable;
             _run.PlayerMovementPublished += OnMovement;
             _run.RoomDestructionPublished += OnDestruction;
+            _run.FloorDisplayChanged += OnFloorDisplay;
             _effects.FlameDimChanged += OnFlame;
             _effects.DoorMarked += OnMark;
         }
         private void OnDisable()
         {
-            if (_expedition != null) _expedition.RoomsReady -= OnRooms;
-            if (_run != null) { _run.PlayerMovementPublished -= OnMovement; _run.RoomDestructionPublished -= OnDestruction; }
+            if (_expedition != null) { _expedition.RoomsReady -= OnRooms; _expedition.FloorReleased -= OnFloorReleased; }
+            if (_level != null) _level.InteractableChanged -= OnInteractable;
+            if (_run != null) { _run.PlayerMovementPublished -= OnMovement; _run.RoomDestructionPublished -= OnDestruction; _run.FloorDisplayChanged -= OnFloorDisplay; }
             if (_effects != null) { _effects.FlameDimChanged -= OnFlame; _effects.DoorMarked -= OnMark; }
         }
-        private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _environment.SetRooms(rooms);
+        private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms)
+        {
+            _environment.SetRooms(rooms);
+            if (_level != null && rooms != null)
+                foreach (var room in rooms) BindLights(room.RoomId);
+            if (_level == null || !_level.ReadOnlyState.IsReady || _floorVisuals == null) return;
+            LevelGraph graph = _level.ReadOnlyState.Graph;
+            _environment.SetExitFrame(graph.ExitRoomId, graph.ExitPosition, Quaternion.Euler(0f, _floorVisuals.ExitDoorYaw, 0f));
+            _environment.SetExitProgress(0f);
+        }
+        private void BindLights(int roomId)
+        { foreach (var light in _level.Interactables.InRoom(roomId)) _environment.ApplyLight(light); }
+        private void OnInteractable(InteractableState before, InteractableState after) => _environment.ApplyLight(after);
+        private void OnFloorReleased() => _environment.BeginFloor();
+        private void OnFloorDisplay(FloorDisplaySnapshot snapshot) => _environment.SetExitProgress(snapshot.OpeningProgress);
         private void OnMovement(PlayerMovementSample sample) => _environment.SetObserver(sample.Position);
         private void OnDestruction(RoomDestructionSample sample) => _environment.SetRoomDestruction(sample.RoomId, sample.Progress);
         private void OnFlame(Vector3 position, float radius, float multiplier) => _environment.SetFlameDim(position, radius, multiplier);

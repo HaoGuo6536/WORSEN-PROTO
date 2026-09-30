@@ -10,7 +10,7 @@
 //   DriverConfig (§7d) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
-//   - Expose darkness, flashlight, dither fog and attack cue tuning.
+//   - Expose darkness, fog hooks, earned-startle budget and attack cue tuning.
 //   - Hold the imported growl, optional ambience loop and a build-included warning material.
 //   - Reference project-owned Lumen fake-light prefabs and default to black 8–24 meter fog.
 //   - Keep a soft, wall-limited close fill that dims when the flashlight is switched off.
@@ -34,6 +34,18 @@ namespace Worsen.Presentation.Horror
     [CreateAssetMenu(fileName = "HorrorDriverConfig", menuName = "Worsen/Horror/Driver Config")]
     public sealed class HorrorDriverConfig : ScriptableObject
     {
+        [Header("Presentation startle budget")]
+        [SerializeField, Min(0)] private int _startlesPerRun = 2;
+        [SerializeField, Min(0f)] private float _startleSpacingSeconds = 120f;
+        [SerializeField, Range(0f, 1f)] private float _earnedStartleChance = 1f;
+        [Header("Default-off effect hook strengths")]
+        [SerializeField, Range(0.01f, 1f)] private float _darkerFogDistanceMultiplier = 0.7f;
+        [SerializeField, Min(1f)] private float _catEyesFogStartMultiplier = 1.5f;
+        public int StartlesPerRun => _startlesPerRun;
+        public float StartleSpacingSeconds => _startleSpacingSeconds;
+        public float EarnedStartleChance => _earnedStartleChance;
+        public float DarkerFogDistanceMultiplier => _darkerFogDistanceMultiplier;
+        public float CatEyesFogStartMultiplier => _catEyesFogStartMultiplier;
         [Header("Dark rooms")]
         [SerializeField] private Color _ambientColor = new Color(0.14f, 0.16f, 0.16f, 1f);
         [SerializeField] private Color _backgroundColor = Color.black;

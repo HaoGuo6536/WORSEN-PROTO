@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
+//   - Require full effective health per generation without losing maximum-health effects.
 //   - Verify shops after two combat floors and three committed eligible hunter/curse choices.
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
 //   - Verify stock, automatic ward use, exhaustion and retained ownership.
@@ -218,12 +219,17 @@ namespace Worsen.Tests.Progression
             Assert.That(controller.Purchase("field-dressing", Revision), Is.False);
             Assert.That(state.Wallet, Is.EqualTo(10));
             ReachNextShop(60f);
+            Assert.That(state.Health, Is.EqualTo(state.MaximumHealth), "Prior combat damage no longer reaches the shop.");
+            // Inject an otherwise unreachable injured shop state to retain the legacy purchase/stock contract.
+            typeof(ProgressionSessionBehaviorState).GetProperty(nameof(state.Health)).SetValue(state, 60f);
             Assert.That(controller.Purchase("field-dressing", Revision), Is.True);
             Assert.That(state.Health, Is.EqualTo(95f));
             Assert.That(controller.Purchase("field-dressing", Revision), Is.False);
             Assert.That(Offer("field-dressing").UnavailableReason, Does.Contain("Sold out"));
             ReachNextShop();
             Assert.That(Offer("field-dressing").StockRemaining, Is.EqualTo(1));
+            Assert.That(state.Health, Is.EqualTo(state.MaximumHealth));
+            typeof(ProgressionSessionBehaviorState).GetProperty(nameof(state.Health)).SetValue(state, 95f);
             Assert.That(controller.Purchase("field-dressing", Revision), Is.True);
             Assert.That(state.Health, Is.EqualTo(100f));
             Assert.That(state.Wallet, Is.EqualTo(6));
@@ -256,7 +262,7 @@ namespace Worsen.Tests.Progression
         {
             ReachFirstShop(1, 60f);
             int revision = Revision;
-            Assert.That(controller.Purchase("field-dressing", revision), Is.False);
+            Assert.That(controller.Purchase("wax-ward", revision), Is.False);
             Assert.That(Revision, Is.GreaterThan(revision));
             Assert.That(controller.Snapshot().Message, Does.Contain("Not enough"));
             Assert.That(controller.Purchase("missing", Revision), Is.False);
@@ -266,15 +272,40 @@ namespace Worsen.Tests.Progression
         }
 
         [Test]
-        public void HealthCarriesBetweenFloorsAndGenerationReportsCannotHeal()
+        public void HealthResetsBetweenFloorsAndGenerationReportsCannotOverwriteIt()
         {
             int generation = OpenCombatFloor();
             controller.RecordHealth(generation, 55f);
             controller.CompleteFloor(generation);
             ChooseLoadout();
-            Assert.That(state.Health, Is.EqualTo(55f));
-            Assert.That(controller.RecordHealth(state.GenerationId, 100f), Is.False);
-            Assert.That(state.Health, Is.EqualTo(55f));
+            Assert.That(state.Health, Is.EqualTo(state.MaximumHealth));
+            Assert.That(controller.GenerationRequest().Effects.Health, Is.EqualTo(state.MaximumHealth));
+            Assert.That(controller.RecordHealth(generation, 55f), Is.False, "Old floor reports cannot damage the replacement.");
+            Assert.That(controller.RecordHealth(state.GenerationId, 55f), Is.False);
+            Assert.That(state.Health, Is.EqualTo(state.MaximumHealth));
+        }
+
+        [TestCase(-20f, 80f)] [TestCase(20f, 120f)]
+        public void FloorRefillUsesMaximumHealthAfterTheSelectedEffect(float delta, float expected)
+        {
+            SetConfigField("_curses", new[] { new ProgressionEntryConfig("health-test", "Health", "Test maximum", maximumHealthDelta: delta) });
+            controller = new ProgressionSessionController(state, config, new System.Random(731));
+            controller.StartRun(731);
+            int generation = OpenCombatFloor();
+            Assert.That(controller.GenerationRequest().Effects.MaximumHealth, Is.EqualTo(expected));
+            Assert.That(controller.GenerationRequest().Effects.Health, Is.EqualTo(expected));
+            controller.RecordHealth(generation, 20f);
+            controller.CompleteFloor(generation);
+            generation = OpenCombatFloor(); // Exhausted curse catalogue still refills through BeginGeneration.
+            Assert.That(state.Health, Is.EqualTo(expected));
+            controller.RecordHealth(generation, 30f);
+            controller.CompleteFloor(generation);
+            Assert.That(controller.GenerationRequest().IsShop, Is.True);
+            Assert.That(controller.GenerationRequest().Effects.Health, Is.EqualTo(expected));
+            controller.ConfirmFloorReady(state.GenerationId);
+            controller.ContinueShop(Revision);
+            OpenCombatFloor();
+            Assert.That(state.Health, Is.EqualTo(expected));
         }
         [TestCase(float.NaN)] [TestCase(float.PositiveInfinity)] [TestCase(-1f)]
         public void InvalidHealthReportsCannotCorruptRun(float health)

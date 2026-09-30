@@ -96,3 +96,4 @@ Themes beyond the first two; boss floors; the forest and uncanny sequences from 
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Waves 1–2 | Stair ramps and landings, typed cake anchor candidates, hunter spawn validation, bounded generation retry with reported fallback, world interactables. Wave 3a (larger rooms, gaps) in progress | Commits 582b3ee, 1182ae1, c1446a8, 9f4ae95, 3b87aa2 |

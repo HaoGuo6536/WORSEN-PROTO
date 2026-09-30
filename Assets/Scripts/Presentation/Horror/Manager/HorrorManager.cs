@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
-//   - Initialize the scene-owned Driver and forward commands.
+//   - Forward explicit run reset, startle admission and default-off fog hooks.
 //   - Pair owner enable, disable and destruction with rendering restoration.
 //
 // DEPENDENCIES:
@@ -58,6 +58,11 @@ namespace Worsen.Presentation.Horror
         public void SetEffects(float fogMultiplier, float flashlightMultiplier)
         { if (_driver != null) _driver.SetEffects(fogMultiplier, flashlightMultiplier); }
         public void ResetRound() { if (_driver != null) _driver.ResetRound(); }
+        public void ResetRun(int seed) { if (_driver != null) _driver.ResetRun(seed); }
+        public bool TryStartle(double runSeconds, bool earned)
+            => _driver != null && isActiveAndEnabled && _driver.TryStartle(runSeconds, earned);
+        public void SetLightingHooks(bool darkerFloors, bool catEyes)
+        { if (_driver != null) _driver.SetLightingHooks(darkerFloors, catEyes); }
         public void SetAttack(HunterAttackSample sample)
         { if (_driver != null && isActiveAndEnabled) _driver.SetAttack(sample); }
         public void RemoveAttack(EntityId hunter) { if (_driver != null) _driver.RemoveAttack(hunter); }

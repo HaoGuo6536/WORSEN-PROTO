@@ -94,3 +94,4 @@ Full shelter redesign; accessibility options beyond the listed settings; key reb
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | HUD and menus | Chase text removed; HUD chrome hidden in chases and health hidden in play. Title, pause, settings and results presentation accepted on a worker branch; wiring in progress | Commit 893bd82; branch wt/plan020-menus 8a31dcc |

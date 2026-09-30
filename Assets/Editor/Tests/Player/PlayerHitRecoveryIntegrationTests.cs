@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player integration.
 // KEY RESPONSIBILITIES:
+//   - Verify Manager effect delivery waits for Tick and publishes maximum-only health changes.
+//   - Verify floor health hand-off and regeneration publish the live effective maximum.
 //   - Check Core grace facts, source-independent absorption and symmetric cleanup.
 //   - Check hunter-only capsule/ground filtering and the visible missing-layer fallback.
 // DEPENDENCIES:
@@ -16,6 +18,7 @@
 //   Coordinator runs these Edit Mode engine tests in Unity. The built-in Ignore
 //   Raycast layer stands in for HunterBody; no project layers or matrix are edited.
 //   The warning test restores the session latch so fixture order cannot suppress it.
+//   Runtime-only MonoBehaviour callbacks are explicitly invoked in Edit Mode lifecycle tests.
 // ============================================================================
 using System.Collections.Generic;
 using System.Reflection;
@@ -102,7 +105,14 @@ namespace Worsen.Tests.Player
             _player.OnGraceEnded += fact => ended++;
             _player.ApplyHit(1f, _origin);
             if (teardown) _player.Teardown();
-            else _player.gameObject.SetActive(false);
+            else
+            {
+                _player.gameObject.SetActive(false);
+                // This fixture never enters Play Mode: SetActive alone does not
+                // dispatch OnDisable for a runtime-only MonoBehaviour here.
+                typeof(PlayerManager).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(_player, null);
+            }
             Assert.That(ended, Is.EqualTo(1));
             Assert.That(_capsule.excludeLayers.value, Is.EqualTo(1 << 4));
             _player.Teardown();
@@ -163,6 +173,71 @@ namespace Worsen.Tests.Player
             var data = new SerializedObject(_config);
             data.FindProperty("_hunterBodyLayer").stringValue = name;
             data.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        [Test]
+        public void ActiveEffectsWaitForTickAndPublishMaximumOnlyChanges()
+        {
+            var effects = ScriptableObject.CreateInstance<PlayerEffectConfig>();
+            try
+            {
+                var data = new SerializedObject(_player);
+                data.FindProperty("_effectConfig").objectReferenceValue = effects;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                _player.Initialize(_profile, new EntityContext(new EntityId(1), new System.Random(1)));
+                _player.ApplyRunModifiers(20f, 100f, 1f);
+                _player.SetHealthRecoveryEffects(0f);
+                int changes = 0;
+                _player.OnHealthChanged += (id, health, maximum) => changes++;
+                _player.SetActiveEffects(PlayerEffectUtilityTests.Effects("thin-skin"));
+                Assert.That(_player.ReadOnlyState.MaxHealth, Is.EqualTo(100f));
+                Assert.That(changes, Is.Zero);
+                _player.Tick(default, 1f / 60f, 1);
+                Assert.That(_player.ReadOnlyState.Health, Is.EqualTo(20f));
+                Assert.That(_player.ReadOnlyState.MaxHealth, Is.EqualTo(75f));
+                Assert.That(changes, Is.EqualTo(1));
+                _player.SetActiveEffects(null);
+                _player.Tick(default, 1f / 60f, 2);
+                Assert.That(_player.ReadOnlyState.MaxHealth, Is.EqualTo(100f));
+                Assert.That(changes, Is.EqualTo(2));
+                Assert.That(_player.IsUngrabbable, Is.False);
+            }
+            finally { _player.Teardown(); Object.DestroyImmediate(effects); }
+        }
+
+        [Test]
+        public void FloorHealthAndRegenerationPublishChangesWithoutRevivingTheDead()
+        {
+            int changes = 0;
+            float publishedHealth = 0f, publishedMaximum = 0f;
+            _player.OnHealthChanged += (id, health, maximum) =>
+            {
+                Assert.That(id, Is.EqualTo(_player.Id));
+                changes++;
+                publishedHealth = health;
+                publishedMaximum = maximum;
+            };
+            _player.BeginFloorHealth(80f, 1f);
+            Assert.That(publishedHealth, Is.EqualTo(80f));
+            Assert.That(publishedMaximum, Is.EqualTo(80f));
+            Assert.That(changes, Is.EqualTo(1));
+            _player.ApplyHit(10f, _origin);
+            _player.Tick(default, 4f, 240);
+            Assert.That(changes, Is.EqualTo(2), "The exact delay boundary does not heal.");
+            _player.Tick(default, 1f, 300);
+            Assert.That(changes, Is.EqualTo(3));
+            Assert.That(publishedHealth, Is.EqualTo(71.5f));
+            Assert.That(publishedMaximum, Is.EqualTo(80f));
+            _player.ApplyHit(100f, _origin);
+            _player.Tick(default, 10f, 900);
+            Assert.That(changes, Is.EqualTo(4));
+            Assert.That(publishedHealth, Is.Zero);
+            _player.SetHealthRecoveryEffects(0f, 0.5f);
+            _player.BeginFloorHealth(60f, 1f);
+            Assert.That(publishedHealth, Is.EqualTo(30f));
+            Assert.That(publishedMaximum, Is.EqualTo(60f));
+            _player.Tick(default, 10f, 1500);
+            Assert.That(changes, Is.EqualTo(5), "Disabled regeneration emits no spurious health changes.");
         }
 
         private GameObject Make(string name, Vector3 offset)
