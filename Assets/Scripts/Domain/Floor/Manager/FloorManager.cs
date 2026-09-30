@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
+//   - Resolve door identities, cancel departed holds before timing, and present bails without rewards.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -66,7 +67,7 @@ namespace Worsen.Domain.Floor
                 _controller = new FloorController(_state, _config, random);
                 _controller.Initialize(level.Graph, players, requiredCakeCount);
                 _hands = new FloorHandController(new FloorHandBehaviorState(), _config);
-                _driver.Initialize(level.Graph, _state.SelectedAnchors);
+                _driver.Initialize(level.Graph, _state.SelectedAnchors, Resolve);
                 if (isActiveAndEnabled) OnEnable();
                 RefreshCue();
             }
@@ -77,9 +78,12 @@ namespace Worsen.Domain.Floor
         {
             if (_controller == null) return;
             var owner = _controller;
+            _driver.RefreshExitContacts();
+            if (!ReferenceEquals(owner, _controller)) return;
             if (owner.TickExitHold(dt, tick, out var bail))
             {
                 var display = owner.Snapshot();
+                _driver.PresentBail();
                 OnEscapeResolved?.Invoke(bail, true);
                 if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
                 return;
@@ -167,6 +171,7 @@ namespace Worsen.Domain.Floor
             _driver.PickupContact -= HandlePickup; _driver.PickupContact += HandlePickup;
 
             _driver.ExitContact -= HandleExit; _driver.ExitContact += HandleExit;
+            _driver.ExitDeparted -= LeaveExit; _driver.ExitDeparted += LeaveExit;
         }
         private void OnDisable()
         {
@@ -175,6 +180,7 @@ namespace Worsen.Domain.Floor
             _driver.PickupContact -= HandlePickup;
 
             _driver.ExitContact -= HandleExit;
+            _driver.ExitDeparted -= LeaveExit;
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => Collect(Resolve(other), anchor, kind);

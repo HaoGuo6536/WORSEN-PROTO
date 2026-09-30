@@ -17,6 +17,7 @@
 //   - Maintain one persistent canonical run and one shared seeded random source.
 //   - Request synchronous input publication immediately before each fixed tick.
 //   - Hand explicit delta time to the Controller and publish completed tick data.
+//   - Consume only Floor's unified escape fact, retaining the early-bail flag.
 //
 // DEPENDENCIES:
 //   - Run Controller, state, and definitions in this system; shared Core types.
@@ -209,7 +210,7 @@ namespace Worsen.Session.Run
                 floor.OnPickupCollected += HandlePickup;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
-                floor.OnExitReached += HandleExitReached;
+                floor.OnEscapeResolved += HandleExitReached;
                 floor.OnLethalContact += HandleLethal;
                 floor.OnDisplayChanged += HandleFloorDisplay;
                 floor.OnRoomDestruction += HandleRoomDestruction;
@@ -240,7 +241,7 @@ namespace Worsen.Session.Run
                 floor.OnPickupCollected -= HandlePickup;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
-                floor.OnExitReached -= HandleExitReached;
+                floor.OnEscapeResolved -= HandleExitReached;
                 floor.OnLethalContact -= HandleLethal;
                 floor.OnDisplayChanged -= HandleFloorDisplay;
                 floor.OnRoomDestruction -= HandleRoomDestruction;
@@ -355,7 +356,8 @@ namespace Worsen.Session.Run
             { controller.Apply(RunEvent.CollapseStarted); PhaseChanged?.Invoke(state.Phase); }
             RoomPhaseChanged?.Invoke(fact);
         }
-        private void HandleExitReached(ExitReachedFact fact) => controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero);
+        private void HandleExitReached(ExitReachedFact fact, bool bailed) =>
+            controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero, bailed);
         private void HandleLethal(FloorLethalContactFact fact)
         {
             PlayerManager target = players.Find(player => player != null && player.Id == fact.PlayerId);
