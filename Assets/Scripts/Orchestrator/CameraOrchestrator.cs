@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Camera target.
 // KEY RESPONSIBILITIES:
+//   - Expose progress/stumble relay handlers pending the Run owner's event additions.
 //   - Forward accepted-hit and hand feedback; only confirmed consumption starts fog drag.
 //   - Pair event subscriptions with component lifetime and preserve ordinary death snaps.
 // DEPENDENCIES:
@@ -60,6 +61,10 @@ namespace Worsen.Orchestrator
         }
         private void OnMovement(PlayerMovementSample sample) => _camera.SetMovement(sample);
         private void OnTraversal(PlayerTraversalFact fact) => _camera.PlayTraversal(fact);
+        public void OnTraversalProgressed(EntityId id, long tick, TraversalKind kind, float progress, bool active)
+            => _camera.SetTraversalProgress(id, tick, kind, progress, active);
+        public void OnPlayerStumbled(EntityId id, long tick, float duration) => _camera.PlayStumble(id, tick, duration);
+        public void OnLanding(PlayerTraversalFact fact, float severity) => _camera.PlayTraversal(fact, severity);
         private void OnCaptureStarted(RunCaptureMetadata metadata) => _camera.ResetView();
         private void OnChaseStarted(ChaseFact fact) => _camera.PlayDetectionBeat();
         private void OnProximity(ProximitySample sample) => _camera.SetProximity(sample.Closeness);

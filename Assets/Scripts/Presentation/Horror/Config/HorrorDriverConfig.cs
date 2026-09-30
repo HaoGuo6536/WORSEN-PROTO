@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Tune rare micro-event admission and exact catalogue lighting-effect bindings.
 //   - Expose darkness, fog hooks, earned-startle budget and attack cue tuning.
 //   - Hold the imported growl, optional ambience loop and a build-included warning material.
 //   - Reference project-owned Lumen fake-light prefabs and default to black 8–24 meter fog.
@@ -34,6 +35,31 @@ namespace Worsen.Presentation.Horror
     [CreateAssetMenu(fileName = "HorrorDriverConfig", menuName = "Worsen/Horror/Driver Config")]
     public sealed class HorrorDriverConfig : ScriptableObject
     {
+        [Header("Micro-events (independent of loud startles)")]
+        [SerializeField, Min(0)] private int _microEventsPerRun = 2;
+        [SerializeField, Min(60f)] private float _microEventSpacingSeconds = 60f;
+        [SerializeField, Min(1f)] private float _microEventMeanWaitSeconds = 300f;
+        [SerializeField, Min(0f)] private float _silhouetteSeconds = 1f;
+        [SerializeField, Min(0f)] private float _counterCakeSeconds = 0.7f;
+        [SerializeField, Min(0f)] private float _microEventMinimumDistance = 6f;
+        [SerializeField, Range(0f, 0.5f)] private float _silhouetteEdgeFraction = 0.12f;
+        [SerializeField] private Vector3 _silhouetteScale = new Vector3(0.45f, 0.9f, 0.45f);
+        [SerializeField] private string[] _darkerFloorEffectIds = { "darker-floors" };
+        [SerializeField] private string[] _catEyesEffectIds = { "cat-eyes" };
+        [SerializeField] private string[] _wickEffectIds = { "wick" };
+        [SerializeField, Range(0f, 1f)] private float _darkerTorchCountMultiplier = 0.5f;
+        public int MicroEventsPerRun => _microEventsPerRun;
+        public float MicroEventSpacingSeconds => _microEventSpacingSeconds;
+        public float MicroEventMeanWaitSeconds => _microEventMeanWaitSeconds;
+        public float SilhouetteSeconds => _silhouetteSeconds;
+        public float CounterCakeSeconds => _counterCakeSeconds;
+        public float MicroEventMinimumDistance => _microEventMinimumDistance;
+        public float SilhouetteEdgeFraction => _silhouetteEdgeFraction;
+        public Vector3 SilhouetteScale => _silhouetteScale;
+        public System.Collections.Generic.IReadOnlyList<string> DarkerFloorEffectIds => _darkerFloorEffectIds;
+        public System.Collections.Generic.IReadOnlyList<string> CatEyesEffectIds => _catEyesEffectIds;
+        public System.Collections.Generic.IReadOnlyList<string> WickEffectIds => _wickEffectIds;
+        public float DarkerTorchCountMultiplier => _darkerTorchCountMultiplier;
         [Header("Presentation startle budget")]
         [SerializeField, Min(0)] private int _startlesPerRun = 2;
         [SerializeField, Min(0f)] private float _startleSpacingSeconds = 120f;

@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Configure grace easing and exact catalogue ids that enable blindness.
 //   - Expose optional re-acquire blur and bounded effect strength.
 //   - Tune constant degradation, subtle intrusions and duration-driven blindness.
 //   - Keep runtime envelopes out of shared assets.
@@ -29,6 +30,14 @@ namespace Worsen.Presentation.PostFX
     [CreateAssetMenu(fileName = "PostFXDriverConfig", menuName = "Worsen/PostFX/Driver Config")]
     public sealed class PostFXDriverConfig : ScriptableObject
     {
+        [SerializeField] private string[] _blindnessEffectIds = { "blinded" };
+        [SerializeField, Range(-100f, 0f)] private float _graceSaturation = -35f;
+        [SerializeField, Min(0.001f)] private float _graceEaseInSeconds = 0.12f;
+        [SerializeField, Min(0.001f)] private float _graceEaseOutSeconds = 0.25f;
+        public System.Collections.Generic.IReadOnlyList<string> BlindnessEffectIds => _blindnessEffectIds;
+        public float GraceSaturation => _graceSaturation;
+        public float GraceEaseInSeconds => _graceEaseInSeconds;
+        public float GraceEaseOutSeconds => _graceEaseOutSeconds;
         [SerializeField, Range(0f, 1f)] private float _baselineGrain = 0.08f;
         [SerializeField, Range(0f, 1f)] private float _baselineChromatic = 0.025f;
         [SerializeField, Range(0f, 1f)] private float _frameVignette = 0.12f;

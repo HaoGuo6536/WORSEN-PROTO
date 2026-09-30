@@ -10,6 +10,7 @@
 //   Manager (§1) · Presentation · Camera (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward progress, explicit landing severity and stumble duration without inferring gameplay.
 //   - Forward runtime comfort and base-lens preferences to the owned Driver.
 //   - Initialize the serialized Driver and mirrored config fallback.
 //   - Expose unshaken aim for routed flashlight sensing; forward world event shakes.
@@ -74,6 +75,10 @@ namespace Worsen.Presentation.Camera
         public void PlayShake(float strength, float seconds) { if (_initialized) _driver.PlayShake(strength, seconds); }
         public void SetProximity(float closeness) { if (_initialized) _driver.SetProximity(closeness); }
         public void PlayTraversal(PlayerTraversalFact fact) { if (_initialized) _driver.PlayTraversal(fact); }
+        public void PlayTraversal(PlayerTraversalFact fact, float landingSeverity) { if (_initialized) _driver.PlayTraversal(fact, landingSeverity); }
+        public void SetTraversalProgress(EntityId id, long tick, TraversalKind kind, float progress, bool active)
+        { if (_initialized) _driver.SetTraversalProgress(id, tick, kind, progress, active); }
+        public void PlayStumble(EntityId id, long tick, float seconds) { if (_initialized) _driver.PlayStumble(id, tick, seconds); }
         public void PlayDeathSnap(Vector3 killerPosition) { if (_initialized) _driver.PlayDeathSnap(killerPosition); }
         public void PlayConsumed(Vector3 handPosition) { if (_initialized) _driver.PlayConsumed(handPosition); }
         public void ResetView() { if (_initialized) _driver.ResetView(); }

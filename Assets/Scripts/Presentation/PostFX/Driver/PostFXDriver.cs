@@ -10,6 +10,7 @@
 //   Driver (§7a) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward Core grace windows and injected read-only effects to the Presenter.
 //   - Apply blur preferences immediately to runtime state and the owned volume.
 //   - Own and apply distortion, vignette, desaturation, grain and optional blur.
 //   - Apply constant degradation and timed blindness only to the owned runtime volume.
@@ -17,6 +18,7 @@
 //   - Retain all rendering package types behind this boundary.
 //
 // DEPENDENCIES:
+//   - Core grace/effects contracts only; no Domain or Session types.
 //   - Unity rendering core and Universal Render Pipeline volume APIs.
 //
 // USAGE NOTES:
@@ -28,6 +30,7 @@
 // ============================================================================
 
 using UnityEngine;
+using Worsen.Core;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -138,6 +141,12 @@ namespace Worsen.Presentation.PostFX
 
         public void SetBlindness(float seconds)
         { if (_state != null) _presenter.SetBlindness(_state, seconds); }
+
+        public void SetActiveEffects(IReadOnlyActiveEffects effects)
+        { if (_state != null) _state.ActiveEffects = effects; }
+
+        public void SetGrace(GraceWindowFact fact, bool active)
+        { if (_state != null) _presenter.SetGrace(_state, fact, active); }
 
         public void ResetEffects()
         {

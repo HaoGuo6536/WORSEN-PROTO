@@ -10,6 +10,7 @@
 //   Driver (Â§7a) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward traversal progress, landing severity and stumble duration to pure visual math.
 //   - Apply runtime lens/comfort preferences and immediately suppress disabled impulses.
 //   - Bind the serialized output camera and rebuild missing owned rig components.
 //   - Apply pose and lens in LateUpdate, then manually advance the owned brain.
@@ -137,11 +138,17 @@ namespace Worsen.Presentation.Camera
             if (_state != null) _presenter.SetProximity(_state, closeness);
         }
 
-        public void PlayTraversal(PlayerTraversalFact fact)
+        public void PlayTraversal(PlayerTraversalFact fact, float landingSeverity = 0f)
         {
             if (_state == null) return;
-            _presenter.PlayTraversal(_state, fact, _config);
+            _presenter.PlayTraversal(_state, fact, _config, landingSeverity);
         }
+
+        public void SetTraversalProgress(EntityId id, long tick, TraversalKind kind, float progress, bool active)
+        { if (_state != null) CameraTraversalPresenter.SetProgress(_state, _config, id, tick, kind, progress, active); }
+
+        public void PlayStumble(EntityId id, long tick, float seconds)
+        { if (_state != null) CameraTraversalPresenter.Stumble(_state, id, tick, seconds); }
 
         public void PlayDeathSnap(Vector3 killerPosition)
         {

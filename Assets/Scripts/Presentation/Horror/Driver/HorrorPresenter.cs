@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Resolve exact configured active-effect ids to fog, torch count and Wick outputs.
 //   - Validate authoritative light samples and preserve exact gameplay range.
 //   - Compose default-off fog hooks and gate earned intrusions with an injected random source.
 //   - Advance finite, non-negative run-clock deltas and zero the clock only on ResetRun.
@@ -61,6 +62,26 @@ namespace Worsen.Presentation.Horror
             state.StartlesUsed = 0;
             state.LastStartleSeconds = state.LastIntrusionSeconds = double.NegativeInfinity;
             state.HookFogDistanceMultiplier = state.HookFogStartMultiplier = 1f;
+            state.ActiveEffects = null;
+            state.TorchCountMultiplier = 1f;
+            state.Wick = false;
+        }
+
+        public void SetActiveEffects(HorrorDriverState state, HorrorDriverConfig config, IReadOnlyActiveEffects effects)
+        {
+            state.ActiveEffects = effects;
+            bool darker = Has(effects, config.DarkerFloorEffectIds);
+            SetLightingHooks(state, config, darker, Has(effects, config.CatEyesEffectIds));
+            state.TorchCountMultiplier = darker ? Mathf.Clamp01(NonNegativeOr(config.DarkerTorchCountMultiplier, 1f)) : 1f;
+            state.Wick = Has(effects, config.WickEffectIds);
+        }
+
+        private static bool Has(IReadOnlyActiveEffects effects, System.Collections.Generic.IReadOnlyList<string> ids)
+        {
+            if (effects == null || ids == null) return false;
+            foreach (string id in ids)
+                if (!string.IsNullOrWhiteSpace(id) && effects.Has(new EffectId(id))) return true;
+            return false;
         }
 
         public void SetLightingHooks(HorrorDriverState state, HorrorDriverConfig config, bool darkerFloors, bool catEyes)

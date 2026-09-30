@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain progress/cancellation height, severity-scaled landing and stumble clocks.
 //   - Retain runtime lens and comfort overrides across transient view resets.
 //   - Keep unshaken aim separate from cosmetic banking and deterministic shake envelopes.
 //   - Store consumed sample identity and head offsets.
@@ -39,6 +40,10 @@ namespace Worsen.Presentation.Camera
         public EntityId PlayerId;
         public long MovementTick = -1;
         public long TraversalTick = -1;
+        public long ProgressTick = -1, StumbleTick = -1;
+        public bool VaultActive;
+        public float VaultHeight, VaultReturnHeight, VaultReturnElapsed;
+        public float LandingDepth, LandingElapsed, StumbleElapsed, StumbleDuration;
         public Vector3 EyePosition;
         public Vector3 Velocity;
         public float HeadingDegrees;
