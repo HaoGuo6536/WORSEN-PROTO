@@ -14,6 +14,7 @@
 //   - Apply crack textures and bounded masonry splitting with matching colliders.
 //   - Tear down only the navigation instance, materials and geometry this Driver owns.
 //   - Build physical interactables and apply routed Level state to owned sub-drivers.
+//   - Keep safety slabs inside occupied cells and verify optional pocket isolation.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -77,7 +78,8 @@ namespace Worsen.Domain.Procedural
                     _state.Interactables.Add(plan.State.Id, worldObject);
                 }
                 BuildNavigation(layout, blocks, driverConfig);
-                foreach (var room in layout.Graph.Rooms) CreateSafetySlab(room, driverConfig.GeometryLayer);
+                foreach (var room in layout.Graph.Rooms)
+                foreach (var cell in ProceduralFootprintUtility.Volumes(layout, room)) CreateSafetySlab(cell, driverConfig.GeometryLayer);
                 _state.Root.SetActive(true);
                 Physics.SyncTransforms();
                 _state.Ready = true;
@@ -240,6 +242,7 @@ namespace Worsen.Domain.Procedural
 
         private static void ValidateNavigation(ProceduralLayout layout, ProceduralDriverConfig config)
         {
+            ProceduralFootprintUtility.Validate(layout);
             var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = 1 };
             if (!NavMesh.SamplePosition(layout.PlayerSpawnPosition, out var start, config.NavSampleRadius, filter))
                 throw new InvalidOperationException("Generated player spawn has no walkable navigation.");
@@ -251,6 +254,18 @@ namespace Worsen.Domain.Procedural
                 if (!NavMesh.SamplePosition(target, out var end, config.NavSampleRadius, filter) ||
                     !NavMesh.CalculatePath(start.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
                     throw new InvalidOperationException("Generated navigation cannot reach required position " + target + ".");
+            foreach (var pocket in layout.Modules.Where(m => m.PocketId != 0).GroupBy(m => m.PocketId))
+            {
+                var anchors = layout.PocketAnchors.Where(a => pocket.Any(m => m.RoomId == a.RoomId)).ToArray();
+                if (anchors.Length == 0 || !NavMesh.SamplePosition(anchors[0].Position, out var origin, config.NavSampleRadius, filter))
+                    throw new InvalidOperationException("Optional pocket has no navigation.");
+                if (NavMesh.CalculatePath(start.position, origin.position, filter, path) && path.status == NavMeshPathStatus.PathComplete)
+                    throw new InvalidOperationException("Optional pocket unexpectedly connects to the main floor.");
+                foreach (var anchor in anchors)
+                    if (!NavMesh.SamplePosition(anchor.Position, out var end, config.NavSampleRadius, filter) ||
+                        !NavMesh.CalculatePath(origin.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
+                        throw new InvalidOperationException("Optional pocket anchor has no local walking route.");
+            }
         }
 
         private static void ValidateShortcutDetours(IReadOnlyList<ProceduralBlock> blocks, ProceduralDriverConfig config)

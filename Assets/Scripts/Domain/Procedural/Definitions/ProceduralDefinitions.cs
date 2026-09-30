@@ -11,12 +11,14 @@
 //   - Describe one reproducible layout and its physical construction commands.
 //   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
 //   - Retain the effective spawn policy and immutable world-object construction plans.
+//   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
 //   Data only; these system-local snapshots contain no engine object references.
 //   Block Size is local to Rotation. Ordinary blocks default to visible solid boxes;
 //   stair ramp endpoints describe the centerline of the walkable top face.
+//   CollisionOnly seals a view window without creating a traversable aperture.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -43,6 +45,11 @@ namespace Worsen.Domain.Procedural
         public int RoundIndex { get; internal set; }
         public LevelGraph Graph { get; internal set; }
         public IReadOnlyList<Vector2Int> Cells { get; internal set; }
+        public float CellSize { get; internal set; }
+        public Vector2 Origin { get; internal set; }
+        public IReadOnlyList<Vector2Int> GapCells { get; internal set; } = System.Array.Empty<Vector2Int>();
+        public IReadOnlyList<LevelAnchor> PocketAnchors { get; internal set; } = System.Array.Empty<LevelAnchor>();
+        public IReadOnlyList<ProceduralGapSite> GapSites { get; internal set; } = System.Array.Empty<ProceduralGapSite>();
         public IReadOnlyList<ProceduralDoorPlan> Doors { get; internal set; }
         public IReadOnlyList<ProceduralRoomModule> Modules { get; internal set; }
         public Vector3 PlayerSpawnPosition { get; internal set; }
@@ -67,7 +74,7 @@ namespace Worsen.Domain.Procedural
         public int SurfaceId { get; }
     }
 
-    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding }
+    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding, CollisionOnly }
     public enum ProceduralModuleKind
     {
         VaultPartition, WindowPartition, SlidePartition,
@@ -76,11 +83,24 @@ namespace Worsen.Domain.Procedural
 
     public readonly struct ProceduralRoomModule
     {
-        public ProceduralRoomModule(int roomId, ProceduralModuleKind kind, bool alongX)
-        { RoomId = roomId; Kind = kind; AlongX = alongX; }
+        public ProceduralRoomModule(int roomId, ProceduralModuleKind kind, bool alongX,
+            IReadOnlyList<Vector2Int> cells = null, int pocketId = 0)
+        { RoomId = roomId; Kind = kind; AlongX = alongX; Cells = cells; PocketId = pocketId; }
         public int RoomId { get; }
         public ProceduralModuleKind Kind { get; }
         public bool AlongX { get; }
+        public IReadOnlyList<Vector2Int> Cells { get; }
+        public int PocketId { get; }
+    }
+
+    public readonly struct ProceduralGapSite
+    {
+        public ProceduralGapSite(int roomId, int pocketId, Vector3 edge, Vector3 landing)
+        { RoomId = roomId; PocketId = pocketId; Edge = edge; Landing = landing; }
+        public int RoomId { get; }
+        public int PocketId { get; }
+        public Vector3 Edge { get; }
+        public Vector3 Landing { get; }
     }
 
     public readonly struct ProceduralBlock

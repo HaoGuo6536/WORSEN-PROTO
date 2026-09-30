@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Validate all module kinds, explicit landings and useful physical clearances.
+//   - Keep legacy room-center measurements scoped to the single-cell catalogue.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core traversal metadata, NUnit and UnityEngine values.
 // USAGE NOTES:
@@ -28,7 +29,15 @@ namespace Worsen.Tests.Procedural
         private ProceduralConfig _config;
         private ProceduralDriverConfig _driverConfig;
         [SetUp] public void SetUp()
-        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); var settings = new SerializedObject(_config); settings.FindProperty("_castleModules").boolValue = false; settings.FindProperty("_initialRoomCount").intValue = 5; settings.ApplyModifiedPropertiesWithoutUndo(); }
+        {
+            _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = false;
+            settings.FindProperty("_initialRoomCount").intValue = 5;
+            settings.FindProperty("_twoCellWeight").floatValue = 0f;
+            settings.FindProperty("_threeCellWeight").floatValue = 0f;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
         [TearDown] public void TearDown()
         { Object.DestroyImmediate(_config); Object.DestroyImmediate(_driverConfig); }
 
