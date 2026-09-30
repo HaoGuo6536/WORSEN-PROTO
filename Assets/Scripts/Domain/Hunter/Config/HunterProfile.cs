@@ -5,16 +5,20 @@
 //   Defines immutable Hunter archetype sensing, light response and attack tuning.
 //   Profiles distinguish melee reach/elevation, traveling spells and warned ground eruptions.
 //   Runtime memories, curse effects and cooldowns live in per-instance state.
+//   Investigation and unseen stalking have separate approach and reveal tuning.
 // ARCHITECTURAL ROLE:
 //   Content SO (section 4b) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Configure walk speed, chase-relative stalk speed and the player's reveal cone.
 // DEPENDENCIES:
-//   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
-//   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
+//   - Hunter-local attack and light-response enums; UnityEngine asset authoring types.
+//   - No foreign system state or runtime engine operations.
 // USAGE NOTES:
 //   Shared immutable asset; never modified by runtime code.
+//   Approach defaults are provisional. InvestigateSpeed starts at the patrol default,
+//   not a live link to PatrolSpeed; StalkSpeedMultiplier is relative to chase speed.
 // ============================================================================
 using UnityEngine;
 namespace Worsen.Domain.Hunter
@@ -28,6 +32,10 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private float _turnRate = 240f;
         [SerializeField] private float _chaseSpeedMultiplier = 1.12f;
         [SerializeField] private float _patrolSpeed = 3f;
+        [SerializeField, Min(0f)] private float _investigateSpeed = 3f;
+        [SerializeField, Range(0f, 1f)] private float _stalkSpeedMultiplier = 0.6f;
+        [SerializeField, Min(0f)] private float _stalkRevealDistance = 12f;
+        [SerializeField, Range(0f, 180f)] private float _stalkViewHalfAngleDegrees = 55f;
         [SerializeField] private float _sightConeDegrees = 110f;
         [SerializeField] private float _sightRange = 30f;
         [SerializeField] private int _sensorIntervalTicks = 4;
@@ -82,6 +90,10 @@ namespace Worsen.Domain.Hunter
         public float TurnRate => _turnRate;
         public float ChaseSpeedMultiplier => _chaseSpeedMultiplier;
         public float PatrolSpeed => _patrolSpeed;
+        public float InvestigateSpeed => Mathf.Max(0f, _investigateSpeed);
+        public float StalkSpeedMultiplier => Mathf.Clamp01(_stalkSpeedMultiplier);
+        public float StalkRevealDistance => Mathf.Max(0f, _stalkRevealDistance);
+        public float StalkViewHalfAngleDegrees => Mathf.Clamp(_stalkViewHalfAngleDegrees, 0f, 180f);
         public float SightConeDegrees => _sightConeDegrees;
         public float SightRange => _sightRange;
         public int SensorIntervalTicks => _sensorIntervalTicks;
