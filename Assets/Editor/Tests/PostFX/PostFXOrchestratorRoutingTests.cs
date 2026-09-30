@@ -3,23 +3,24 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises intrusion admission through the real routing and presentation command path.
-//   Explicit publisher facts and a supplied whole-run clock isolate the budget from
-//   floor-local Run resets, while real Progression commands exercise restart identity.
+//   Explicit publisher facts exercise Horror's real whole-run clock and the injected
+//   test seam, while real Progression commands exercise floor and restart boundaries.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · PostFX routing integration.
 // KEY RESPONSIBILITIES:
 //   - Require one clock read and one admission attempt per Director intrusion.
 //   - Preserve budget and spacing across floors; reset only on committed run starts.
 //   - Verify same-seed restart, rejected restart and paired subscriptions.
+//   - Verify tick forwarding, rebind cleanup, suspension and invalid clock commands.
 // DEPENDENCIES:
 //   Core; Session Run/Progression; Presentation PostFX/Horror/Input; Orchestrators;
 //   NUnit, transient configuration and UnityEngine object lifetime.
 // USAGE NOTES:
-//   Edit Mode boundary tests, not live scene wiring or a production whole-run clock test.
+//   Edit Mode boundary tests for the production clock path, not live scene wiring.
 //   Horror's state/presenter and inactive atmosphere boundary are injected to avoid
 //   global rendering changes. Progression's canonical controller is injected to avoid
 //   DontDestroyOnLoad in Edit Mode; public StartRun/RestartRun still publish real facts.
-//   The coordinator must wire a Horror-owned clock that survives ResetRound.
+//   The scene owner still wires Horror into PostFX; no injected clock is needed in production.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -184,9 +185,173 @@ namespace Worsen.Tests.PostFX
         }
 
         [Test]
-        public void MissingWholeRunClockFailsClosedWithoutConsumingBudget()
+        public void MissingHorrorFailsClosedWithoutConsumingBudgetOrReadingInjectedClock()
+        {
+            _postRoute.Configure(_run, _post, runSeconds: ReadClock);
+            Intrude(5d, false);
+            Assert.That(_horrorState.StartlesUsed, Is.Zero);
+            Assert.That(_clockReads, Is.Zero);
+        }
+
+        [Test]
+        public void FloorsPreserveTheRealHorrorClockSpacingAndBudgetWithoutAnInjectedClock()
         {
             _postRoute.Configure(_run, _post, horror: _horror);
+            var state = new RunSessionBehaviorState(731);
+            Set(_run, "state", state);
+            Set(_run, "controller", new RunSessionController(state, new System.Random(731)));
+            int first = OpenFloor();
+            _run.HandleSceneReady(SceneKey.HorrorRun);
+            AdvanceGameplayClock(5f);
+            Intrude(5d, true);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(5d));
+            Assert.That(_run.ElapsedSeconds, Is.EqualTo(5d));
+            Assert.That(_progression.CompleteFloor(first), Is.True);
+            _run.PrepareScene(SceneKey.HorrorRun, _progression.Snapshot.Seed);
+            OpenFloor();
+            _run.HandleSceneReady(SceneKey.HorrorRun);
+            Assert.That(_run.ElapsedSeconds, Is.Zero);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(5d));
+            Assert.That(_horrorState.StartlesUsed, Is.EqualTo(1));
+            AdvanceGameplayClock(_horrorConfig.StartleSpacingSeconds - 1f);
+            Intrude(_horror.RunElapsedSeconds, false);
+            AdvanceGameplayClock(1f);
+            Intrude(_horror.RunElapsedSeconds, true);
+            AdvanceGameplayClock(_horrorConfig.StartleSpacingSeconds);
+            Intrude(_horror.RunElapsedSeconds, false);
+            Assert.That(_horrorState.StartlesUsed, Is.EqualTo(_horrorConfig.StartlesPerRun));
+            Assert.That(_clockReads, Is.Zero);
+            _progression.StartRun(731);
+            Assert.That(_horror.RunElapsedSeconds, Is.Zero);
+            Assert.That(_horrorState.StartlesUsed, Is.Zero);
+        }
+
+        [TestCase(731)]
+        [TestCase(902)]
+        public void CommittedRestartZeroesTheRealClockAndGameplayTicksResume(int seed)
+        {
+            int generation = OpenFloor();
+            Publish(_run, "TickAdvanced", default(InputFrame), 3f, 1L);
+            Assert.That(_progression.RestartRun(_progression.Snapshot.Revision, seed), Is.False);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(3d));
+            Assert.That(_progression.EndRun(generation), Is.True);
+            Assert.That(_progression.RestartRun(_progression.Snapshot.Revision, seed), Is.True);
+            Assert.That(_horror.RunElapsedSeconds, Is.Zero);
+            OpenFloor();
+            Publish(_run, "TickAdvanced", default(InputFrame), 0.5f, 1L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.5d));
+        }
+
+        [TestCase(double.NaN)]
+        [TestCase(double.PositiveInfinity)]
+        [TestCase(double.NegativeInfinity)]
+        [TestCase(-1d)]
+        public void InvalidInjectedClockDoesNotFallBackToTheValidHorrorClock(double seconds)
+        {
+            _horror.AdvanceRunClock(5f);
+            Intrude(seconds, false);
+            Assert.That(_horrorState.StartlesUsed, Is.Zero);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(5d));
+            Assert.That(_clockReads, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ExplicitClockTakesPrecedenceOverTheRealHorrorClock()
+        {
+            Assert.That(_horror.AdvanceRunClock(500f), Is.True);
+            Intrude(5d, true);
+            Assert.That(_horrorState.LastIntrusionSeconds, Is.EqualTo(5d));
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(500d));
+            Assert.That(_clockReads, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ReconfigureDisableAndReenableForwardEachTickExactlyOnce()
+        {
+            Publish(_run, "TickAdvanced", default(InputFrame), 0.25f, 1L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.25d));
+            _horrorRoute.Configure(_run, _progression, _input, _horror);
+            _horrorRoute.Configure(_run, _progression, _input, _horror);
+            Assert.That(Subscribers(_run, "TickAdvanced"), Is.EqualTo(1));
+            Publish(_run, "TickAdvanced", default(InputFrame), 0.5f, 2L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.75d));
+            _horrorRoute.gameObject.SetActive(false);
+            Assert.That(Subscribers(_run, "TickAdvanced"), Is.Zero);
+            Publish(_run, "TickAdvanced", default(InputFrame), 1f, 3L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.75d));
+            _horrorRoute.gameObject.SetActive(true);
+            Assert.That(Subscribers(_run, "TickAdvanced"), Is.EqualTo(1));
+            Publish(_run, "TickAdvanced", default(InputFrame), 0.25f, 4L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(1d));
+        }
+
+        [Test]
+        public void RebindingDetachesTheOldTickPublisher()
+        {
+            var replacement = Component<RunSessionManager>();
+            _horrorRoute.Configure(replacement, _progression, _input, _horror);
+            Assert.That(Subscribers(_run, "TickAdvanced"), Is.Zero);
+            Assert.That(Subscribers(replacement, "TickAdvanced"), Is.EqualTo(1));
+            Publish(_run, "TickAdvanced", default(InputFrame), 9f, 1L);
+            Assert.That(_horror.RunElapsedSeconds, Is.Zero);
+            Publish(replacement, "TickAdvanced", default(InputFrame), 0.5f, 1L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(0.5d));
+            _horrorRoute.gameObject.SetActive(false);
+            Assert.That(Subscribers(replacement, "TickAdvanced"), Is.Zero);
+        }
+
+        [Test]
+        public void SuspendedAndEndedGameplayDoesNotPublishClockTicks()
+        {
+            var state = new RunSessionBehaviorState(731);
+            var controller = new RunSessionController(state, new System.Random(731));
+            Set(_run, "state", state); Set(_run, "controller", controller);
+            typeof(RunSessionManager).GetField("<Instance>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _run);
+            controller.StartScene(SceneKey.HorrorRun);
+            var fixedUpdate = typeof(RunSessionManager).GetMethod("FixedUpdate", BindingFlags.Instance | BindingFlags.NonPublic);
+            fixedUpdate.Invoke(_run, null);
+            double elapsed = _horror.RunElapsedSeconds;
+            Assert.That(elapsed, Is.GreaterThan(0d));
+            Assert.That(elapsed, Is.EqualTo(_run.ElapsedSeconds));
+            _run.SuspendForSceneLoad();
+            fixedUpdate.Invoke(_run, null);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(elapsed));
+            controller.StartScene(SceneKey.HorrorRun);
+            Assert.That(_run.ElapsedSeconds, Is.Zero);
+            controller.Apply(RunEvent.PlayerDied);
+            fixedUpdate.Invoke(_run, null);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(elapsed));
+        }
+
+        [TestCase(float.NaN)]
+        [TestCase(float.PositiveInfinity)]
+        [TestCase(float.NegativeInfinity)]
+        [TestCase(-1f)]
+        public void PublicClockCommandRejectsInvalidDeltas(float deltaSeconds)
+        {
+            Assert.That(_horror.AdvanceRunClock(2f), Is.True);
+            Assert.That(_horror.AdvanceRunClock(deltaSeconds), Is.False);
+            Assert.That(_horrorDriver.AdvanceRunClock(deltaSeconds), Is.False);
+            Publish(_run, "TickAdvanced", default(InputFrame), deltaSeconds, 1L);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(2d));
+        }
+
+        [Test]
+        public void DisabledOwnersRejectClockCommandsAndUninitializedHorrorFailsClosed()
+        {
+            Assert.That(_horror.AdvanceRunClock(2f), Is.True);
+            _horror.enabled = false;
+            Assert.That(_horror.AdvanceRunClock(1f), Is.False);
+            Assert.That(_horrorDriver.AdvanceRunClock(1f), Is.False);
+            Assert.That(_horror.RunElapsedSeconds, Is.EqualTo(2d));
+            _horror.enabled = true;
+            _horrorDriver.enabled = false;
+            Assert.That(_horror.AdvanceRunClock(1f), Is.False);
+            _horrorDriver.enabled = true;
+            var uninitialized = Component<HorrorManager>();
+            Assert.That(double.IsNaN(uninitialized.RunElapsedSeconds), Is.True);
+            Assert.That(uninitialized.AdvanceRunClock(1f), Is.False);
+            _postRoute.Configure(_run, _post, horror: uninitialized);
             Intrude(5d, false);
             Assert.That(_horrorState.StartlesUsed, Is.Zero);
             Assert.That(_clockReads, Is.Zero);
@@ -213,6 +378,12 @@ namespace Worsen.Tests.PostFX
             Publish(_run, "IntrusionPublished", new IntrusionSample(new EntityId(7), 1, 2f));
             Assert.That(Post.IntrusionRemaining, Is.EqualTo(admitted ? 2f : 0f));
             Assert.That(Post.SubtleIntrusionRemaining, Is.EqualTo(admitted ? 0f : 2f));
+        }
+        private void AdvanceGameplayClock(float deltaSeconds)
+        {
+            var controller = (RunSessionController)Field(_run, "controller").GetValue(_run);
+            Assert.That(controller.TryTick(deltaSeconds, out InputFrame frame), Is.True);
+            Publish(_run, "TickAdvanced", frame, deltaSeconds, _run.Tick);
         }
         private double ReadClock() { _clockReads++; return _wholeRunSeconds; }
         private T Component<T>() where T : Component

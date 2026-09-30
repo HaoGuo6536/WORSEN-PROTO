@@ -5,13 +5,14 @@
 // PURPOSE:
 //   Exposes the dark-room flashlight and attack warning command surface.
 //   It forwards already-decided presentation facts and leaves world rendering and sound to its Driver.
+//   It exposes Horror's whole-run gameplay clock without depending on Session or engine time.
 //
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
 //   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
-//   - Forward explicit run reset, startle admission and default-off fog hooks.
+//   - Forward explicit run reset, injected clock deltas, startle admission and default-off fog hooks.
 //   - Pair owner enable, disable and destruction with rendering restoration.
 //
 // DEPENDENCIES:
@@ -20,6 +21,7 @@
 // USAGE NOTES:
 //   Scene-owned; exactly one service per assembled gameplay scene, with no singleton.
 //   The scene setup explicitly wires the Driver's output camera, fog Volume and optional daylights.
+//   RunElapsedSeconds is NaN until initialized; ResetRound preserves the clock and ResetRun zeroes it.
 //
 // ============================================================================
 
@@ -40,6 +42,7 @@ namespace Worsen.Presentation.Horror
         public float FogCurveStart => _driver != null ? _driver.FogCurveStart : 0f;
         public float FogCurveEnd => _driver != null ? _driver.FogCurveEnd : 0f;
         public float FlashlightRange => _driver != null ? _driver.FlashlightRange : 0f;
+        public double RunElapsedSeconds => _driver != null ? _driver.RunElapsedSeconds : double.NaN;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<HorrorDriver>(); }
 
@@ -59,6 +62,8 @@ namespace Worsen.Presentation.Horror
         { if (_driver != null) _driver.SetEffects(fogMultiplier, flashlightMultiplier); }
         public void ResetRound() { if (_driver != null) _driver.ResetRound(); }
         public void ResetRun(int seed) { if (_driver != null) _driver.ResetRun(seed); }
+        public bool AdvanceRunClock(float deltaSeconds)
+            => _driver != null && isActiveAndEnabled && _driver.AdvanceRunClock(deltaSeconds);
         public bool TryStartle(double runSeconds, bool earned)
             => _driver != null && isActiveAndEnabled && _driver.TryStartle(runSeconds, earned);
         public void SetLightingHooks(bool darkerFloors, bool catEyes)
