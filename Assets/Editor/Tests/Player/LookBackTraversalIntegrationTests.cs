@@ -95,7 +95,7 @@ namespace Worsen.Tests.Player
                     .FindProperty("_config").objectReferenceValue;
                 Assert.That(profile, Is.Not.Null);
                 Assert.That(cameraConfig, Is.Not.Null);
-                Assert.That(profile.SlideMaximumTurnRate, Is.LessThanOrEqualTo(40f));
+                Assert.That(profile.SlideMaximumTurnRate, Is.GreaterThan(40f).And.LessThanOrEqualTo(180f));
                 // Serialized legacy yaw is ignored by the fixed rear-view snap; observe the actual pose below.
                 trial = new Trial(run, player, chase, profile, cameraConfig, UnityEngine.Camera.main);
                 input.FramePublished += trial.PublishSynthetic;

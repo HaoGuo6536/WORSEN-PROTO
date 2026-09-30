@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Tune landing contact tolerance and legal step height independently of traversal rules.
 //   - Name the hunter-body layer excluded from movement queries and contacts during grace.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -31,9 +32,9 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _slideHeightRatio = 0.5f;
         [SerializeField] private float _skinWidth = 0.02f;
         [SerializeField] private int _castIterations = 5;
-        [SerializeField] private float _groundProbeDistance = 0.12f;
-        [SerializeField] private float _groundSnapDistance = 0.2f;
-        [SerializeField] private float _stepHeight = 0.3f;
+        [SerializeField] private float _groundProbeDistance = 0.16f;
+        [SerializeField] private float _groundSnapDistance = 0.25f;
+        [SerializeField] private float _stepHeight = 0.4f;
         [SerializeField] private float _slopeLimitDegrees = 50f;
         [SerializeField] private float _wallProbeDistance = 0.6f;
         [SerializeField] private float _vaultProbeDistance = 1.15f;

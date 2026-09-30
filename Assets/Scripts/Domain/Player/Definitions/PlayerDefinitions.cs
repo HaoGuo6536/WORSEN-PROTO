@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Domain · Player local results.
 // KEY RESPONSIBILITIES:
+//   - Carry collision-swept late steering separately from the captured traversal path.
 //   - Distinguish grace absorption from accepted damage and carry the new Core grace fact.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -28,11 +29,13 @@ namespace Worsen.Domain.Player
     public readonly struct PlayerTickResult
     {
         public PlayerTickResult(Vector3 displacement, bool crouched, PlayerTraversalFact[] facts,
-            bool traversing = false, Vector3 traversalStart = default, Vector3 traversalTarget = default, float traversalProgress = 0f, float traversalHeight = 0f)
+            bool traversing = false, Vector3 traversalStart = default, Vector3 traversalTarget = default, float traversalProgress = 0f, float traversalHeight = 0f,
+            Vector3 traversalOffset = default)
         {
             Displacement = displacement; Crouched = crouched; Facts = facts;
             Traversing = traversing; TraversalStart = traversalStart; TraversalTarget = traversalTarget; TraversalProgress = traversalProgress;
             TraversalHeight = traversalHeight;
+            TraversalOffset = traversalOffset;
         }
         public Vector3 Displacement { get; }
         public bool Crouched { get; }
@@ -42,6 +45,7 @@ namespace Worsen.Domain.Player
         public Vector3 TraversalTarget { get; }
         public float TraversalProgress { get; }
         public float TraversalHeight { get; }
+        public Vector3 TraversalOffset { get; }
     }
 
     public readonly struct PlayerMoveResult
