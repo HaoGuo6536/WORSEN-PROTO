@@ -8,7 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
-//   - Publish tick-driven regeneration and expose unwired health hooks plus the floor-start hand-off.
+//   - Route active-effect views to the Controller and publish effect/regen health changes.
+//   - Expose read-only Low Profile protection; Floor owns consulting it before grabs.
 //   - Publish normalized traversal progress and stumble starts using Core/primitive event payloads.
 //   - Pass profile ledge limits, slide contact retention and steering to the physical mover.
 //   - Publish Core grace start/end and absorption facts, and push pass-through before physics queries.
@@ -22,6 +23,7 @@
 //   Scene-owned; Initialize creates a fresh life, Teardown clears it. No competing FixedUpdate loop; Run Session supplies each tick.
 //   Hits use the latest run tick; callers with a newer tick must advance recovery first.
 //   Disable/teardown cancels recovery; death publishes an empty grace interval rather than a lingering effect.
+//   SetActiveEffects follows Initialize; null clears on the next tick. Config resolves via the Driver.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -36,11 +38,13 @@ namespace Worsen.Domain.Player
     public sealed class PlayerManager : MonoBehaviour, IEntityHandle
     {
         [SerializeField] private PlayerDriver _driver;
+        [SerializeField] private PlayerEffectConfig _effectConfig;
         private PlayerBehaviorState _state;
         private PlayerController _controller;
         private PlayerProfile _profile;
         public EntityId Id => _state?.Id ?? EntityId.None;
         public IReadOnlyPlayerState ReadOnlyState => _state;
+        public bool IsUngrabbable => _state?.IsUngrabbable ?? false;
         public PlayerMovementSample LastMovementSample => _state?.LastMovementSample ?? default;
         public InputProbeRecord LastProbeRecord => _state?.LastProbeRecord ?? default;
         public IReadOnlyList<PlayerTraversalFact> LastTraversalFacts => _state?.LastTraversalFacts ?? Array.Empty<PlayerTraversalFact>();
@@ -66,9 +70,10 @@ namespace Worsen.Domain.Player
             EndRecovery();
             if (_driver == null) _driver = GetComponent<PlayerDriver>();
             _driver.Initialize();
+            _effectConfig = _driver.ResolveEffectConfig(_effectConfig);
             _profile = profile;
             _state = new PlayerBehaviorState();
-            _controller = new PlayerController(_state, profile, context.Random);
+            _controller = new PlayerController(_state, profile, context.Random, _effectConfig);
             _controller.Reset(context.Id, _driver.Position, _driver.Heading, _driver.FixedDeltaTime);
         }
 
@@ -77,6 +82,8 @@ namespace Worsen.Domain.Player
             if (_controller == null) return;
             bool wasLookingBack = _state.LookBack;
             float previousHealth = _state.Health;
+            float previousMaximum = _state.MaxHealth;
+            bool wasAlive = _state.IsAlive;
             AdvanceRecovery(tick);
             MovementProbe probe = _driver.Probe(_profile.LedgeReach, _profile.LedgeMinimumHeight,
                 _profile.LedgeMaximumHeight, _profile.LedgeChestHeight);
@@ -85,13 +92,15 @@ namespace Worsen.Domain.Player
                 ? _driver.MoveTraversal(result.TraversalStart, result.TraversalTarget, result.TraversalProgress,
                     result.TraversalHeight, _state.Velocity, _state.HeadingDegrees, dt, _controller.MaximumMovementSpeed, result.TraversalOffset)
                 : _driver.Move(result.Displacement, _state.Velocity, result.Crouched, _state.HeadingDegrees, dt,
-                    _state.MovementState == MovementState.Slide, _profile.SlideWallSpeedRetention);
+                    _state.MovementState == MovementState.Slide, _controller.SlideWallSpeedRetention);
             _controller.CommitPose(movement);
             var resolution = new MovementResolution(movement.Position, movement.Velocity, movement.Grounded, movement.Ceiling, _driver.EyePosition);
             var record = new InputProbeRecord(InputProbeRecord.CurrentSchemaVersion, tick, frame, probe, dt, resolution);
             _controller.CommitFrame(_driver.EyePosition, record, result.Facts);
             _driver.ShowMovement(_state.MovementState);
-            if (previousHealth != _state.Health) OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
+            if (previousHealth != _state.Health || previousMaximum != _state.MaxHealth)
+                OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
+            if (wasAlive && !_state.IsAlive) { EndRecovery(); OnDied?.Invoke(Id, _state.Position); }
             if (wasLookingBack != _state.LookBack) OnLookBackChanged?.Invoke(Id, _state.LookBack);
             OnMovementSample?.Invoke(LastMovementSample);
             if (_state.TraversalSampleActive)
@@ -133,6 +142,7 @@ namespace Worsen.Domain.Player
         }
 
         public void SetLookBackEnabled(bool enabled) { _controller?.SetLookBackEnabled(enabled); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { _controller?.SetActiveEffects(effects); }
         public void SetHealthRecoveryEffects(float regenerationMultiplier = 1f, float floorStartHealthFraction = 1f)
         { _controller?.SetHealthRecoveryEffects(regenerationMultiplier, floorStartHealthFraction); }
         public void BeginFloorHealth(float maximumHealth, float movementMultiplier)

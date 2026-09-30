@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Store the pending effects view, tick snapshot, floor health baseline and one-use vault momentum.
 //   - Retain regeneration delay and neutral-by-default health effect hooks per life.
 //   - Store traversal progress/steering, regrab cooldown and one-tick stumble publication data.
 //   - Retain the tick-based grace interval, independent hit boost and snap-enable hook.
@@ -30,8 +31,17 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Player
 {
-    public sealed class PlayerBehaviorState : IReadOnlyPlayerState
+    public sealed class PlayerBehaviorState : IReadOnlyPlayerState, IReadOnlyPlayerEffectState
     {
+        public IReadOnlyActiveEffects ActiveEffects { get; set; }
+        public ActiveEffects AppliedEffects { get; set; }
+        public float BaseMaximumHealth { get; set; }
+        public bool FloorHealthPending { get; set; }
+        public float FloorStartHealth { get; set; }
+        public float StoredMomentumSpeed { get; set; }
+        public float StoredMomentumRemaining { get; set; }
+        public bool LowProfileEnabled { get; set; }
+        public bool IsUngrabbable => IsAlive && LowProfileEnabled && MovementState == MovementState.Slide;
         public EntityId Id { get; set; }
         public Vector3 Position { get; set; }
         public Vector3 Velocity { get; set; }
