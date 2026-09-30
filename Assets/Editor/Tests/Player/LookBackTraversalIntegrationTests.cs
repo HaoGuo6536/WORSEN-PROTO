@@ -2,14 +2,14 @@
 // LookBackTraversalIntegrationTests.cs
 // ============================================================================
 // PURPOSE:
-//   Exercises mouse-directed free-look with full captured-frame steering and slide-jump on the built TagArena floor,
+//   Exercises snapped look-back with full captured-frame steering and slide-jump on the built TagArena floor,
 //   then observes the real first-person camera's held and released orientations.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player integration.
 // KEY RESPONSIBILITIES:
 //   - Use actual Run fixed ticks, collision probes and committed traversal facts.
-//   - Verify frozen body heading, full ground steering, heavy slide countersteering and usable slide-jump.
-//   - Observe Camera output routed from gameplay, including body look on release.
+//   - Verify accumulated body steering, zero held head delta, heavy slide countersteering and slide-jump.
+//   - Expect the current body heading plus 180 degrees while held, then body look on release.
 // DEPENDENCIES:
 //   Core, Player/Hunter/Chase, Run/Input, Camera, TagArena and CaptureGateTrace.
 //   NUnit, Unity Test Framework and read-only UnityEditor serialized inspection.
@@ -96,7 +96,7 @@ namespace Worsen.Tests.Player
                 Assert.That(profile, Is.Not.Null);
                 Assert.That(cameraConfig, Is.Not.Null);
                 Assert.That(profile.SlideMaximumTurnRate, Is.LessThanOrEqualTo(40f));
-                Assert.That(cameraConfig.FreeLookYawLimit, Is.GreaterThanOrEqualTo(160f));
+                // Serialized legacy yaw is ignored by the fixed rear-view snap; observe the actual pose below.
                 trial = new Trial(run, player, chase, profile, cameraConfig, UnityEngine.Camera.main);
                 input.FramePublished += trial.PublishSynthetic;
                 run.PlayerProbeRecorded += trial.ObserveCommitted;
@@ -129,7 +129,7 @@ namespace Worsen.Tests.Player
 
         private sealed class Trial
         {
-            private const float Heading = 90f, HeadDelta = 165f, ReleaseDelta = 7f;
+            private const float Heading = 90f, HeldTurnPerTick = -1f, ReleaseDelta = 7f;
             private readonly RunSessionManager run;
             private readonly PlayerManager player;
             private readonly ChaseManager chase;
@@ -145,6 +145,7 @@ namespace Worsen.Tests.Player
             private InputFrame sent;
             private InputButtons previousHeld;
             private Vector3 steerStart;
+            private float expectedHeading;
             private float previousSlideYaw, previousSlideSpeed, countersteerDegrees;
             private int countersteerSamples;
             private float lateralDisplacement, steeringRatioSum, backYaw, returnedYaw;
@@ -160,6 +161,7 @@ namespace Worsen.Tests.Player
                 capsule = player.GetComponent<CapsuleCollider>();
                 standingHeight = capsule.height;
                 initialPosition = player.ReadOnlyState.Position;
+                expectedHeading = player.ReadOnlyState.HeadingDegrees;
                 lastTick = run.Tick;
             }
 
@@ -173,7 +175,9 @@ namespace Worsen.Tests.Player
                     ? Vector2.up : Vector2.zero;
                 Vector2 look = Vector2.zero;
                 if (stage == Stage.Accelerate) look.x = Mathf.DeltaAngle(player.ReadOnlyState.HeadingDegrees, Heading);
-                if (stage == Stage.Steer) { move.x = 0.5f; if (stageTicks == 0) look.x = HeadDelta; }
+                // Held mouse input now turns the body. Accumulate a small turn over
+                // five ticks, keeping the slide-jump inside the same bounded connector.
+                if (stage == Stage.Steer) { move.x = 0.5f; if (stageTicks < 5) look.x = HeldTurnPerTick; }
                 if (stage == Stage.Slide)
                 {
                     // The preceding diagonal sprint carries momentum into the slide.
@@ -203,12 +207,12 @@ namespace Worsen.Tests.Player
                 if (!Application.isFocused || chase.ReadOnlyState.HasActiveChase || HunterRegistry.Items.Count != 0 ||
                     player.ReadOnlyState.Health != profile.MaximumHealth) Fail("Free movement lost focus, entered chase or took damage.");
                 bool heldBack = (record.Input.Held & InputButtons.LookBack) != 0;
-                float expectedHeading = stage == Stage.Return ? Heading + ReleaseDelta : Heading;
+                expectedHeading = Mathf.Repeat(expectedHeading + record.Input.LookDelta.x, 360f);
                 if (Mathf.Abs(Mathf.DeltaAngle(player.ReadOnlyState.HeadingDegrees, expectedHeading)) > 0.001f ||
                     player.ReadOnlyState.LookBack != heldBack || player.LastMovementSample.LookBack != heldBack)
                     Fail("LookBack body-heading/held state diverged from the committed input.");
-                if (heldBack && player.LastMovementSample.HeadLookDelta != record.Input.LookDelta)
-                    Fail("Held look delta was not routed as head look.");
+                if (heldBack && player.LastMovementSample.HeadLookDelta != Vector2.zero)
+                    Fail("Held snap must not forward free head look.");
                 if (committed > 900 || stageTicks > 300) Fail("Bounded fixed-tick limit exceeded.");
 
                 switch (stage)
@@ -220,8 +224,9 @@ namespace Worsen.Tests.Player
                     case Stage.Steer:
                         if (stageTicks >= 12)
                         {
-                            float forward = Vector3.Dot(pose.Velocity, Vector3.right);
-                            float lateral = Vector3.Dot(pose.Velocity, Vector3.back);
+                            Vector3 bodyForward = Quaternion.Euler(0f, expectedHeading, 0f) * Vector3.forward;
+                            float forward = Vector3.Dot(pose.Velocity, bodyForward);
+                            float lateral = Vector3.Dot(pose.Velocity, Vector3.Cross(Vector3.up, bodyForward));
                             if (!record.Probe.Grounded || !pose.Grounded || forward < profile.SprintSpeed * 0.8f ||
                                 Mathf.Abs(lateral / forward - 0.5f) > 0.025f)
                                 Fail("Held LookBack did not retain forward motion and full lateral steering in the captured movement frame.");
@@ -272,10 +277,10 @@ namespace Worsen.Tests.Player
                 float yaw = Mathf.Atan2(output.transform.forward.x, output.transform.forward.z) * Mathf.Rad2Deg;
                 bool atEye = Vector3.Distance(output.transform.position, player.LastMovementSample.EyePosition) < 0.05f;
                 if (stage == Stage.BackView && player.ReadOnlyState.LookBack && atEye &&
-                    Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + HeadDelta)) < 2f)
+                    Mathf.Abs(Mathf.DeltaAngle(yaw, player.ReadOnlyState.HeadingDegrees + 180f)) < 2f)
                 { backYaw = yaw; cameraBack = true; Advance(Stage.Return); }
                 else if (stage == Stage.Return && stageTicks >= 2 && !player.ReadOnlyState.LookBack && atEye &&
-                    Mathf.Abs(Mathf.DeltaAngle(yaw, Heading + ReleaseDelta)) < 2f)
+                    Mathf.Abs(Mathf.DeltaAngle(yaw, player.ReadOnlyState.HeadingDegrees)) < 2f)
                 { returnedYaw = yaw; cameraReturned = true; Advance(Stage.Complete); }
             }
 

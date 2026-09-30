@@ -10,10 +10,10 @@
 //   Presenter (Â§7b) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Consume mouse-directed free-look once and ease release back to the movement frame.
+//   - Snap fully behind and forward on committed edges, ignoring rear-view look deltas.
 //   - Keep gameplay aim unshaken while composing bounded cosmetic effects.
 //   - Compose speed, detection, slide and rebound effects with comfort settings.
-//   - Give confirmed consumption precedence over ordinary death and freeze its final pose.
+//   - Approach a captured hunter/hand close-up, then hold a stable pose with timing facts.
 //   - Convert horizontal view angle to the camera's vertical lens angle.
 //
 // DEPENDENCIES:
@@ -23,6 +23,8 @@
 //   - Stateless calculator; CameraDriver owns the supplied state.
 //   - Head-look is degrees per committed tick; positive vertical input looks upward.
 //   - SetProximity stores a routed primitive; peripheral rendering belongs to PostFX.
+//   - Catch hold time begins on the first presented endpoint; approach overshoot is discarded.
+//   - Hunter input is a root position plus configured focus height; hands use the grab point.
 //
 // ============================================================================
 
@@ -47,14 +49,15 @@ namespace Worsen.Presentation.Camera
             state.Pitch = state.HeadYaw = state.LookYaw = 0f;
             state.SlideTurnRateDegrees = state.SlideBank = state.ShakeElapsed = state.ShakeDuration = state.ShakeStrength = 0f;
             state.AimRotation = Quaternion.identity;
-            state.LookTweenFrom = state.LookTweenTo = state.LookTweenElapsed = state.LookTweenDuration = 0f;
+
             state.DetectionElapsed = state.ReboundElapsed = -1f;
             state.ReboundSign = 1f;
             state.Proximity = 0f;
             state.Consumed = false;
-            state.ConsumptionElapsed = state.ConsumptionDuration = 0f;
-            state.ConsumptionStartPosition = state.ConsumptionTargetPosition = Vector3.zero;
-            state.ConsumptionStartRotation = state.ConsumptionTargetRotation = Quaternion.identity;
+            state.CatchElapsed = state.CatchApproachDuration = state.CatchHoldElapsed = state.CatchHoldDuration = 0f;
+            state.CatchHoldStarted = state.CatchHoldEnded = false;
+            state.CatchStartPosition = state.CatchTargetPosition = Vector3.zero;
+            state.CatchStartRotation = Quaternion.identity;
             state.DeathSnapped = false;
             state.DeathRotation = state.Rotation = Quaternion.identity;
             state.Position = Vector3.zero;
@@ -63,9 +66,9 @@ namespace Worsen.Presentation.Camera
 
         public void SetMovement(CameraDriverState state, CameraDriverConfig config, PlayerMovementSample sample)
         {
+            if (state.DeathSnapped) return;
             if (state.HasMovement && state.PlayerId.Equals(sample.Id) && sample.Tick <= state.MovementTick) return;
             if (state.HasMovement && !state.PlayerId.Equals(sample.Id)) Reset(state);
-            if (state.Consumed) return;
             state.HasMovement = true;
             state.PlayerId = sample.Id;
             state.MovementTick = sample.Tick;
@@ -75,25 +78,18 @@ namespace Worsen.Presentation.Camera
             state.Movement = sample.MovementState;
             state.SlideTurnRateDegrees = Finite(sample.SlideTurnRateDegrees);
             SetLookBack(state, config, sample.LookBack);
-            if (state.DeathSnapped) return;
+            if (state.LookBack) return;
             state.Pitch = Mathf.Clamp(state.Pitch - Finite(sample.HeadLookDelta.y),
-                -PitchLimit(state, config), PitchLimit(state, config));
-            if (state.LookBack)
-                state.HeadYaw = Mathf.Clamp(state.HeadYaw + Finite(sample.HeadLookDelta.x),
-                    -config.FreeLookYawLimit - state.LookYaw, config.FreeLookYawLimit - state.LookYaw);
+                -config.ForwardPitchLimit, config.ForwardPitchLimit);
         }
 
         public void SetLookBack(CameraDriverState state, CameraDriverConfig config, bool held)
         {
             if (state.DeathSnapped || state.LookBack == held) return;
             state.LookBack = held;
-            state.LookTweenFrom = state.LookYaw + state.HeadYaw;
             state.HeadYaw = 0f;
-            state.LookYaw = state.LookTweenFrom;
-            state.LookTweenTo = held ? state.LookTweenFrom : 0f;
-            state.LookTweenElapsed = 0f;
-            state.LookTweenDuration = held ? 0f : Mathf.Max(0.001f, config.LookForwardSeconds);
-            state.Pitch = Mathf.Clamp(state.Pitch, -PitchLimit(state, config), PitchLimit(state, config));
+            // Fixed-frame contract also applies to assets retaining the old 160-degree/blend values.
+            state.LookYaw = held ? 180f : 0f;
         }
 
         public void PlayDetectionBeat(CameraDriverState state)
@@ -132,74 +128,64 @@ namespace Worsen.Presentation.Camera
             state.ShakeElapsed = 0f;
         }
 
-        public void PlayDeathSnap(CameraDriverState state, Vector3 killerPosition)
-        {
-            if (state.Consumed || !state.HasMovement || !Finite(killerPosition)) return;
-            var direction = killerPosition - state.EyePosition;
-            if (direction.sqrMagnitude < 0.000001f) return;
-            state.DeathRotation = Quaternion.LookRotation(direction.normalized,
-                Mathf.Abs(Vector3.Dot(direction.normalized, Vector3.up)) > 0.999f ? Vector3.forward : Vector3.up);
-            state.DeathSnapped = true;
-            state.LookBack = false;
-            state.DetectionElapsed = state.ReboundElapsed = -1f;
-            state.HeadYaw = state.LookYaw = 0f;
-            state.ShakeStrength = state.ShakeDuration = 0f;
-        }
+        public void PlayDeathSnap(CameraDriverState state, CameraDriverConfig config, Vector3 killerPosition)
+            => BeginCatch(state, config, killerPosition + Vector3.up * Mathf.Max(0f, Finite(config.CatchHunterFocusHeight)), false);
 
         public float ConsumptionSeconds(CameraDriverConfig config)
-            => Mathf.Clamp(Finite(config.ConsumptionSeconds), 0.1f, 2f);
+            => Mathf.Max(0f, Finite(config.CatchApproachSeconds)) + Mathf.Max(0f, Finite(config.CatchHoldSeconds));
 
         public void PlayConsumed(CameraDriverState state, CameraDriverConfig config, Vector3 handPosition)
+            => BeginCatch(state, config, handPosition, true);
+
+        private void BeginCatch(CameraDriverState state, CameraDriverConfig config, Vector3 focus, bool consumed)
         {
-            if (state.Consumed || !state.HasMovement || !Finite(handPosition)) return;
+            if (!state.HasMovement || !Finite(focus) || state.Consumed
+                || (state.DeathSnapped && (!consumed || state.CatchHoldStarted))) return;
             var start = state.VerticalFieldOfView > 0f ? state.Position : state.EyePosition;
-            var direction = handPosition - start;
+            var direction = focus - start;
             if (!Finite(direction) || float.IsInfinity(direction.sqrMagnitude)) return;
-            var horizontal = new Vector3(direction.x, 0f, direction.z);
-            float motion = Mathf.Clamp01(Finite(config.ConsumptionMotionIntensity));
-            var drag = horizontal.sqrMagnitude > 0.000001f ? horizontal.normalized
-                * Mathf.Min(horizontal.magnitude, Mathf.Clamp(Finite(config.ConsumptionDragDistance), 0f, 3f)) : Vector3.zero;
-            state.ConsumptionStartPosition = start;
-            state.ConsumptionTargetPosition = start + motion * (drag
-                - Vector3.up * Mathf.Clamp(Finite(config.ConsumptionSinkDistance), 0f, 0.75f));
-            state.ConsumptionStartRotation = state.VerticalFieldOfView > 0f ? state.Rotation : AimRotation(state);
-            var targetRotation = direction.sqrMagnitude > 0.000001f
-                ? Quaternion.LookRotation(direction.normalized,
-                    Mathf.Abs(Vector3.Dot(direction.normalized, Vector3.up)) > 0.999f ? Vector3.forward : Vector3.up)
-                : state.ConsumptionStartRotation;
-            state.ConsumptionTargetRotation = Quaternion.Slerp(state.ConsumptionStartRotation, targetRotation, motion);
-            state.Consumed = state.DeathSnapped = true;
-            state.ConsumptionElapsed = 0f;
-            state.ConsumptionDuration = ConsumptionSeconds(config);
+            direction = direction.sqrMagnitude > 0.000001f ? direction.normalized : AimRotation(state) * Vector3.forward;
+            state.CatchStartPosition = start;
+            state.CatchTargetPosition = focus - direction * Mathf.Max(0.05f, Finite(config.CatchDistance));
+            state.CatchStartRotation = state.VerticalFieldOfView > 0f ? state.Rotation : AimRotation(state);
+            state.Position = start;
+            state.AimRotation = state.Rotation = state.CatchStartRotation;
+            state.DeathRotation = Quaternion.LookRotation(direction,
+                Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > 0.999f ? Vector3.forward : Vector3.up);
+            state.Consumed = consumed;
+            state.DeathSnapped = true;
+            state.CatchElapsed = state.CatchHoldElapsed = 0f;
+            state.CatchApproachDuration = Mathf.Max(0f, Finite(config.CatchApproachSeconds));
+            state.CatchHoldDuration = Mathf.Max(0f, Finite(config.CatchHoldSeconds));
+            state.CatchHoldStarted = state.CatchHoldEnded = false;
+            state.HorizontalFieldOfView = Mathf.Clamp(Finite(config.HorizontalFieldOfView), 1f, 179f);
             state.LookBack = false;
+            state.HeadYaw = state.LookYaw = 0f;
             state.DetectionElapsed = state.ReboundElapsed = -1f;
             state.ShakeStrength = state.ShakeDuration = state.SlideBank = 0f;
         }
 
-        private void TickConsumed(CameraDriverState state, CameraDriverConfig config, float dt, float aspectRatio)
+        private void TickCatch(CameraDriverState state, float dt, float aspectRatio)
         {
-            state.ConsumptionElapsed = Mathf.Min(state.ConsumptionDuration, state.ConsumptionElapsed + dt);
-            float progress = state.ConsumptionElapsed / state.ConsumptionDuration;
+            if (state.CatchHoldStarted)
+            {
+                state.CatchHoldElapsed = Mathf.Min(state.CatchHoldDuration, state.CatchHoldElapsed + dt);
+                state.CatchHoldEnded = state.CatchHoldElapsed >= state.CatchHoldDuration;
+            }
+            state.CatchElapsed = Mathf.Min(state.CatchApproachDuration, state.CatchElapsed + dt);
+            float progress = state.CatchApproachDuration > 0f ? state.CatchElapsed / state.CatchApproachDuration : 1f;
             float eased = progress * progress * (3f - 2f * progress);
-            float pull = Mathf.Sin(progress * Mathf.PI);
-            float motion = Mathf.Clamp01(Finite(config.ConsumptionMotionIntensity));
-            state.Roll = config.TiltEnabled ? Mathf.Clamp(Finite(config.ConsumptionRoll), 0f, 10f) * pull * motion : 0f;
-            float shake = pull * Mathf.Clamp01(Finite(config.ShakeIntensity)) * motion;
-            state.Position = Vector3.Lerp(state.ConsumptionStartPosition, state.ConsumptionTargetPosition, eased);
-            state.AimRotation = Quaternion.Slerp(state.ConsumptionStartRotation, state.ConsumptionTargetRotation, eased);
-            state.Rotation = state.AimRotation * Quaternion.Euler(
-                Mathf.Sin(state.ConsumptionElapsed * 47f) * Mathf.Clamp(Finite(config.MaximumShakeDegrees), 0f, 5f) * shake, 0f, state.Roll);
-            state.HorizontalFieldOfView = Mathf.Clamp(Finite(config.HorizontalFieldOfView), 1f, 179f);
+            state.Roll = 0f;
+            state.Position = Vector3.Lerp(state.CatchStartPosition, state.CatchTargetPosition, eased);
+            state.AimRotation = state.Rotation = Quaternion.Slerp(state.CatchStartRotation, state.DeathRotation, eased);
+            if (progress >= 1f) state.CatchHoldStarted = true;
             state.VerticalFieldOfView = HorizontalToVerticalFieldOfView(state.HorizontalFieldOfView, aspectRatio);
         }
 
         public void Tick(CameraDriverState state, CameraDriverConfig config, float dt, float aspectRatio)
         {
             dt = Mathf.Max(0f, Finite(dt));
-            if (state.Consumed) { TickConsumed(state, config, dt, aspectRatio); return; }
-            state.LookTweenElapsed = Mathf.Min(state.LookTweenDuration, state.LookTweenElapsed + dt);
-            var fraction = state.LookTweenDuration > 0f ? state.LookTweenElapsed / state.LookTweenDuration : 1f;
-            state.LookYaw = Mathf.Lerp(state.LookTweenFrom, state.LookTweenTo, fraction * fraction * (3f - 2f * fraction));
+            if (state.DeathSnapped) { TickCatch(state, dt, aspectRatio); return; }
             var kick = 0f;
             if (state.DetectionElapsed >= 0f)
             {
@@ -226,7 +212,7 @@ namespace Worsen.Presentation.Camera
                 state.Roll = config.ReboundRoll * state.ReboundSign * rebound;
                 if (rebound <= 0f) state.ReboundElapsed = -1f;
             }
-            if (!config.TiltEnabled || state.DeathSnapped) state.Roll = 0f;
+            if (!config.TiltEnabled) state.Roll = 0f;
             state.AimRotation = Quaternion.Euler(state.Pitch, state.HeadingDegrees + state.LookYaw + state.HeadYaw, 0f);
             state.ShakeElapsed += dt;
             float envelope = state.ShakeDuration > 0f ? Mathf.Clamp01(1f - state.ShakeElapsed / state.ShakeDuration) : 0f;
@@ -234,13 +220,13 @@ namespace Worsen.Presentation.Camera
             if (envelope <= 0f) state.ShakeStrength = 0f;
             var wave = new Vector3(Mathf.Sin(state.ShakeElapsed * 93f), Mathf.Sin(state.ShakeElapsed * 117f), Mathf.Sin(state.ShakeElapsed * 71f));
             state.Position = state.EyePosition + state.AimRotation * (Vector3.ClampMagnitude(wave, 1f) * config.MaximumShakeDisplacement * amount);
-            state.Rotation = state.DeathSnapped ? state.DeathRotation
-                : state.AimRotation * Quaternion.Euler(wave.x * config.MaximumShakeDegrees * amount,
+            state.Rotation = state.AimRotation * Quaternion.Euler(wave.x * config.MaximumShakeDegrees * amount,
                     wave.y * config.MaximumShakeDegrees * amount, state.Roll + wave.z * config.MaximumShakeDegrees * amount);
         }
 
         public Quaternion AimRotation(CameraDriverState state)
-            => Quaternion.Euler(state.Pitch, state.HeadingDegrees + state.LookYaw + state.HeadYaw, 0f);
+            => state.DeathSnapped ? state.AimRotation
+                : Quaternion.Euler(state.Pitch, state.HeadingDegrees + state.LookYaw + state.HeadYaw, 0f);
 
         public float HorizontalToVerticalFieldOfView(float horizontal, float aspectRatio)
         {
@@ -249,9 +235,6 @@ namespace Worsen.Presentation.Camera
             horizontal = Mathf.Clamp(Finite(horizontal), 1f, 179f);
             return 2f * Mathf.Atan(Mathf.Tan(horizontal * Mathf.Deg2Rad * 0.5f) / aspect) * Mathf.Rad2Deg;
         }
-
-        private float PitchLimit(CameraDriverState state, CameraDriverConfig config)
-            => state.LookBack ? config.FreeLookPitchLimit : config.ForwardPitchLimit;
 
         private float Finite(float value) => float.IsNaN(value) || float.IsInfinity(value) ? 0f : value;
         private bool Finite(Vector3 value) => !float.IsNaN(value.x) && !float.IsInfinity(value.x)

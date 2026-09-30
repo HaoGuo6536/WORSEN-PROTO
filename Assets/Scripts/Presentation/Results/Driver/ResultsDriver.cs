@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · Results.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply catch completion as a hard cut and warn once on unscaled fallback expiry.
 //   - Resolve the existing PanelSettings and own the procedural ResultsSurfaceDriver.
 //   - Bind, render, unbind and rebind the current document; report UI interactions as facts.
 //
@@ -20,7 +21,7 @@
 // USAGE NOTES:
 //   - Scene-owned through ResultsManager; own ResultsDriverConfig and no global side effects.
 //   - Button callbacks pair at bind/unbind; Manager event routing pairs at enable/disable.
-//   - Disabling preserves the current presentation; explicit Hide resets the request cycle.
+//   - Disabling clears pending catches; already visible summaries survive document rebinding.
 //   - Legacy UXML references remain serialized; the owned surface builds the named tree.
 //
 // ============================================================================
@@ -29,6 +30,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.Results
 {
@@ -73,7 +75,15 @@ namespace Worsen.Presentation.Results
         public void Show(RunSummary summary)
         {
             if (_state == null) return;
-            _presenter.Show(_state, summary);
+            _presenter.Show(_state, summary, _config != null ? _config.CatchTimeoutSeconds : ResultsDriverConfig.DefaultCatchTimeoutSeconds);
+            Apply();
+        }
+
+        public void PrepareCatch(EntityId player) { if (_state != null) _presenter.PrepareCatch(_state, player); }
+        public void EndCatch(EntityId player)
+        {
+            if (_state == null) return;
+            _presenter.EndCatch(_state, player);
             Apply();
         }
 
@@ -97,11 +107,20 @@ namespace Worsen.Presentation.Results
             if (_state != null) BindAndApply();
         }
 
-        private void OnDisable() => HideAndUnbind();
+        private void OnDisable()
+        {
+            if (_state != null && !_state.Visible) _presenter.Hide(_state);
+            HideAndUnbind();
+        }
 
         private void LateUpdate()
         {
             if (_state == null || _document == null) return;
+            if (_presenter.Tick(_state, Time.unscaledDeltaTime))
+            {
+                Debug.LogWarning("Results catch timeout: CatchHoldEnded was not received; revealing the pending summary by hard cut.", this);
+                Apply();
+            }
             if (!_document.isActiveAndEnabled) { HideAndUnbind(); return; }
             if (!ReferenceEquals(_boundRoot, _document.rootVisualElement)) BindAndApply();
         }

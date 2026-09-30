@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Run off two real ledges; distinguish soft/hard Stumble from input locking.
 //   - Hold LookBack across vault, mantle, jump, rebound and landing using Run ticks.
+//   - Alternate small body turns while snapped to keep the authored traversal route in reach.
 //   - Preserve every observed tick, stopped frame, lock edge and physical outcome.
 // DEPENDENCIES:
 //   Core; Player/Level/Hunter; Run/Input; TagArena scene factory and event wiring.
@@ -312,7 +313,7 @@ namespace Worsen.Tests.Player
                         if (secondJump) move = Vector2.zero;
                     }
                     held |= pressed;
-                    supplied = new InputFrame(move, IsLanding ? Vector2.zero : new Vector2(0.5f, 0f),
+                    supplied = new InputFrame(move, IsLanding ? Vector2.zero : new Vector2(samples.Count % 2 == 0 ? 0.5f : -0.5f, 0f),
                         held, pressed | (held & ~previousHeld), previousHeld & ~held);
                     previousHeld = held;
                     run.ReceiveInput(supplied);
@@ -348,8 +349,8 @@ namespace Worsen.Tests.Player
                     if (!IsLanding)
                     {
                         Assert.That(movement.LookBack, Is.True);
-                        Assert.That(movement.HeadingDegrees, Is.EqualTo(90f).Within(0.001f));
-                        Assert.That(movement.HeadLookDelta.x, Is.EqualTo(0.5f));
+                        Assert.That(movement.HeadingDegrees, Is.EqualTo(90f + (samples.Count % 2) * 0.5f).Within(0.001f));
+                        Assert.That(movement.HeadLookDelta, Is.EqualTo(Vector2.zero));
                     }
                     if (sample.Facts.Any(f => f.Kind == TraversalKind.Land) && firstLandTick == 0)
                         firstLandTick = record.Tick;

@@ -10,6 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Camera/PostFX and Audio integration.
 // KEY RESPONSIBILITIES:
 //   - Preserve default configs and observe Player -> Run -> Audio/PostFX facts.
+//   - Wait for the published end-exclusive grace tick before each intended accepted hit.
 //   - Distinguish critical breathing from proximity and inspect real AudioSources.
 //   - Verify death fades and canonical persistent Audio reset on one fresh scene.
 // DEPENDENCIES:
@@ -83,12 +84,12 @@ namespace Worsen.Tests.Camera
                 SceneManager.sceneLoaded += trial.Loaded;
                 Assert.That(SceneManager.LoadSceneAsync(Arena, LoadSceneMode.Single), Is.Not.Null);
                 yield return Until(() => trial.SceneCount == 1 && trial.Settled, trial, "Healthy baseline");
-                trial.Damage(50f, 50f);
+                yield return trial.Damage(50f, 50f);
                 yield return Until(() => trial.Settled, trial, "50 health stays below critical breathing threshold");
-                trial.Damage(25f, 25f);
+                yield return trial.Damage(25f, 25f);
                 yield return Until(() => trial.Settled, trial, "25 health reaches actual critical breath source and vignette");
                 trial.AssertCritical();
-                trial.Damage(25f, 0f);
+                yield return trial.Damage(25f, 0f);
                 yield return Until(() => trial.Settled && trial.Ended, trial, "Death reaches zero loop gains and Run end");
                 trial.AssertFirstLife();
                 trace.Mark("critical life ended; request fresh TagArena through canonical SceneFlow");
@@ -145,6 +146,7 @@ namespace Worsen.Tests.Camera
             private bool ready, awaitingDamage, sawCriticalMidpoint;
             private float health = 100f, elapsed, maxFrame, lastBreath, peakBreath;
             private float proximity;
+            private long nextDamageTick;
             private int stageFrames, firstAudioId, firstRunId, firstInputId, firstPostId, firstPlayerObjectId;
             public bool Settled, ReloadRequested;
             public string Failure = "";
@@ -311,8 +313,9 @@ namespace Worsen.Tests.Camera
             private void UnexpectedChase(ChaseFact fact) => Guard(() => Assert.Fail("Disabled-Hunter health fixture unexpectedly started a chase."));
             private void Proximity(ProximitySample sample) { proximity = sample.Closeness; }
 
-            public void Damage(float amount, float expectedHealth)
+            public IEnumerator Damage(float amount, float expectedHealth)
             {
+                yield return Until(() => player.ReadOnlyState.Tick >= nextDamageTick, this, "Hit grace expiry");
                 Assert.That(Failure, Is.Empty);
                 Assert.That(SceneCount == 1 && Settled && current.Unique, Is.True);
                 Assert.That(player.ReadOnlyState.IsAlive && run.Phase == RunPhase.FirstSweep, Is.True);
@@ -321,8 +324,10 @@ namespace Worsen.Tests.Camera
                     " expectedHealth=" + expectedHealth + " tick=" + run.Tick + " frame=" + Time.frameCount +
                     " killerPosition=self " + player.ReadOnlyState.Position.ToString("F4") + " focused=" + Application.isFocused);
                 awaitingDamage = true;
-                try { player.ApplyHit(amount, player.ReadOnlyState.Position); }
-                finally { awaitingDamage = false; }
+                Action<GraceWindowFact> observeGrace = fact => nextDamageTick = fact.EndTick;
+                player.OnGraceStarted += observeGrace;
+                try { Assert.That(player.ApplyHit(amount, player.ReadOnlyState.Position), Is.True); }
+                finally { player.OnGraceStarted -= observeGrace; awaitingDamage = false; }
                 Assert.That(Failure, Is.Empty);
                 Assert.That(player.ReadOnlyState.Health, Is.EqualTo(expectedHealth));
                 Assert.That(health, Is.EqualTo(expectedHealth));

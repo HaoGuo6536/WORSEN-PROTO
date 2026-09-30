@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Latch one catch sting until the owning Driver resets the run.
 //   - Remember prior health, movement, flashlight and phase observations.
 //   - Retain posture initialization and the continuous exertion envelope independently of gameplay.
 //   - Deduplicate committed event and pickup anchor identities without combo state.
@@ -48,6 +49,7 @@ namespace Worsen.Presentation.Audio
         public bool IsCrouched;
         public bool IsSprinting;
         public bool IsAlive = true;
+        public bool CatchStingIssued;
         public bool IsCritical;
         public float ExertionGain;
         public bool ExertionActive;

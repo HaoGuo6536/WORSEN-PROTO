@@ -52,6 +52,7 @@ namespace Worsen.Tests.Procedural
             }
             return world;
         }
+        private static Bounds Expanded(Bounds bounds, float amount) { bounds.Expand(amount); return bounds; }
 
         [TestCase(1)] [TestCase(3)] [TestCase(20)]
         public void TwentySeedsKeepExitHubFourDoorsEveryCakeClearAndElevatedRoutes(int round)
@@ -265,8 +266,9 @@ namespace Worsen.Tests.Procedural
                 foreach (var anchor in raisedObjectives)
                     Assert.That(floors.Any(b => WorldBounds(b).Contains(anchor.Position - Vector3.up * (_config.AnchorHeight + 0.01f))), Is.True,
                         "The module must supply physical support beneath its raised objectives.");
+                // The ramp's top endpoint lies on the gallery's edge; keep the original 2 mm contact tolerance.
                 Assert.That(floors.Any(b => b.Role == ProceduralBlockRole.Solid &&
-                    WorldBounds(b).Contains(ramp.EndpointB - Vector3.up * 0.01f)), Is.True,
+                    Expanded(WorldBounds(b), 0.002f).Contains(ramp.EndpointB - Vector3.up * 0.01f)), Is.True,
                     "The ordinary ascent must meet the gallery supporting the objectives.");
             }
             finally { Object.DestroyImmediate(mover); }

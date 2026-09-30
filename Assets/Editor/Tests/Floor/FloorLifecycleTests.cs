@@ -12,8 +12,10 @@
 //   - Check teardown and reinitialization release prior objects and subscriptions.
 //   - Prevent terminal callbacks from publishing an old run's display after restart.
 //   - Verify bail flags do not publish normal opening or spawn Golden Cakes.
+//   - Drive physical door overlaps through Run and cancel last-collider departures before timing.
 // DEPENDENCIES:
 //   - Domain Floor components, read-only Level/Player interfaces and Core values.
+//   - Session Run receives the physical bail through its actual Floor subscription.
 //   - UnityEngine creates temporary test objects; NUnit and reflection inspect them.
 // USAGE NOTES:
 //   Unity Edit Mode engine tests only; exclude this fixture from standalone managed
@@ -33,6 +35,7 @@ using Worsen.Core;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Level;
 using Worsen.Domain.Player;
+using Worsen.Session.Run;
 using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 
@@ -283,6 +286,88 @@ namespace Worsen.Tests.Floor
             }
         }
 
+        [TestCase("exit")]
+        [TestCase("disable")]
+        [TestCase("destroy")]
+        [TestCase("inactive")]
+        public void PhysicalDoorLastColliderDepartureCancelsHold(string departure)
+        {
+            using (var fixture = new LifecycleFixture(true))
+            {
+                fixture.Initialize();
+                var door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                var first = fixture.ContactCollider;
+                var second = first.gameObject.AddComponent<SphereCollider>();
+                int bails = 0;
+                fixture.Manager.OnEscapeResolved += (_, bailed) => { if (bailed) bails++; };
+                InvokeTrigger(door, "OnTriggerEnter", first);
+                InvokeTrigger(door, "OnTriggerEnter", second);
+                fixture.Manager.Tick(0.6f, 1);
+                InvokeTrigger(door, "OnTriggerExit", first);
+                fixture.Manager.Tick(0.4f, 2);
+                Assert.That(bails, Is.EqualTo(1), "One remaining collider must keep the hold armed.");
+
+                fixture.Initialize();
+                door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                InvokeTrigger(door, "OnTriggerEnter", first);
+                InvokeTrigger(door, "OnTriggerEnter", second);
+                fixture.Manager.Tick(0.6f, 3);
+                InvokeTrigger(door, "OnTriggerExit", first);
+                if (departure == "exit") InvokeTrigger(door, "OnTriggerExit", second);
+                else if (departure == "disable") second.enabled = false;
+                else if (departure == "destroy") Object.DestroyImmediate(second);
+                else first.gameObject.SetActive(false);
+                fixture.Manager.Tick(1f, 4);
+                Assert.That(bails, Is.EqualTo(1), "A missing exit callback must not complete a stale hold.");
+                first.gameObject.SetActive(true);
+                InvokeTrigger(door, "OnTriggerEnter", first);
+                fixture.Manager.Tick(0.6f, 5);
+                Assert.That(bails, Is.EqualTo(1), "Re-entry starts a fresh hold.");
+                fixture.Manager.Tick(0.4f, 6);
+                Assert.That(bails, Is.EqualTo(2));
+            }
+        }
+
+        [Test]
+        public void PhysicalBailReachesRunSummaryWithoutNormalOpeningOrGoldenCakes()
+        {
+            using (var fixture = new LifecycleFixture(true))
+            {
+                fixture.Initialize();
+                var runRoot = new GameObject("Bail Run route");
+                try
+                {
+                    var run = runRoot.AddComponent<RunSessionManager>();
+                    var state = new RunSessionBehaviorState(42);
+                    var controller = new RunSessionController(state, new System.Random(42));
+                    SetField(run, "state", state); SetField(run, "controller", controller);
+                    controller.StartScene(SceneKey.HorrorRun);
+                    run.BindGameplay(null, fixture.Manager, null);
+                    Assert.That(SubscriberCount(fixture.Manager, "OnExitReached", run), Is.Zero);
+                    Assert.That(SubscriberCount(fixture.Manager, "OnEscapeResolved", run), Is.EqualTo(1));
+                    int opened = 0;
+                    fixture.Manager.OnExitOpened += _ => opened++;
+                    var door = fixture.Root.GetComponentInChildren<FloorExitDoor>();
+                    InvokeTrigger(door, "OnTriggerEnter", fixture.ContactCollider);
+                    fixture.Manager.Tick(1f, 1);
+                    Assert.That(controller.TryFinish(out var summary), Is.True);
+                    Assert.That(summary.Bailed, Is.True);
+                    Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
+                    Assert.That(door.FullyOpen, Is.True);
+                    Assert.That(fixture.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
+                    Assert.That(opened, Is.Zero);
+                    Assert.That(fixture.Driver.OwnedPickupCount, Is.EqualTo(1));
+                    Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true)
+                        .Any(pickup => pickup.Kind == PickupKind.GoldenCake), Is.False);
+                    run.enabled = false;
+                    Assert.That(SubscriberCount(fixture.Manager, "OnEscapeResolved", run), Is.Zero);
+                    fixture.Manager.enabled = false;
+                    Assert.That(SubscriberCount(fixture.Driver, "ExitDeparted", fixture.Manager), Is.Zero);
+                }
+                finally { Object.DestroyImmediate(runRoot); }
+            }
+        }
+
         private static void InvokeTrigger(Component component, string callback, Collider other)
         {
             var method = component.GetType().GetMethod(callback, BindingFlags.Instance | BindingFlags.NonPublic);
@@ -315,13 +400,14 @@ namespace Worsen.Tests.Floor
             private FloorConfig _config;
             private FloorDriverConfig _driverConfig;
 
-            public LifecycleFixture()
+            public LifecycleFixture(bool physicalDoor = false)
             {
                 try
                 {
                     Assert.That(Application.isPlaying, Is.False, "Run Floor lifecycle tests in Edit Mode.");
                     _config = ScriptableObject.CreateInstance<FloorConfig>();
                     _driverConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                    SetField(_driverConfig, "_usePhysicalExitDoor", physicalDoor);
                     SetField(_config, "_requiredCakeCount", 1);
                     Root = new GameObject("Floor lifecycle test owner");
                     Root.SetActive(false);

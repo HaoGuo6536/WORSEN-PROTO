@@ -11,6 +11,7 @@
 //   DriverConfig (§7d) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
+//   - Configure the bounded missing-catch timeout for terminal hard cuts.
 //   - Bound the scrollable retained inventory independently from shop actions.
 //   - Expose colors, font sizes and responsive card/panel geometry.
 //
@@ -30,6 +31,11 @@ namespace Worsen.Presentation.ProgressionUI
     [CreateAssetMenu(fileName = "ProgressionUIDriverConfig", menuName = "Worsen/Progression UI/Driver Config")]
     public sealed class ProgressionUIDriverConfig : ScriptableObject
     {
+        public const float DefaultCatchTimeoutSeconds = 2.05f;
+        [Tooltip("Missing catch fallback: provisional 0.15 s approach + 1.4 s hold + 0.5 s margin.")]
+        [SerializeField, Min(0.01f)] private float _catchTimeoutSeconds = DefaultCatchTimeoutSeconds;
+        public float CatchTimeoutSeconds => float.IsNaN(_catchTimeoutSeconds) || float.IsInfinity(_catchTimeoutSeconds)
+            || _catchTimeoutSeconds <= 0f ? DefaultCatchTimeoutSeconds : _catchTimeoutSeconds;
         [SerializeField] private Color _panelColor = new Color(0.035f, 0.031f, 0.033f, 0.96f);
         [SerializeField] private Color _scrimColor = new Color(0.015f, 0.012f, 0.014f, 0.83f);
         [SerializeField] private Color _textColor = new Color(0.86f, 0.82f, 0.72f, 1f);

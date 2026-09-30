@@ -4,13 +4,13 @@
 //
 // PURPOSE:
 //   Verifies first-person presentation against explicit samples and elapsed time.
-//   These tests protect free-look, achieved steering bank and unshaken aim without relying on a live Cinemachine rig.
+//   These tests protect rear-view snaps, held catches and unshaken aim without a live Cinemachine rig.
 //
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Verify confirmed consumption precedence, bounded motion, comfort and reset.
+//   - Verify catch approach, stable hold timing, hand targeting, precedence and reset.
 //   - Cover once-per-tick look input, bounded view angles and exact timing endpoints.
 //   - Exercise effect composition, comfort settings, death and reset isolation.
 //
@@ -83,53 +83,73 @@ namespace Worsen.Tests.Camera
             Assert.That(_state.DetectionElapsed, Is.LessThan(0f));
         }
 
-        [Test]
-        public void FreeLookPressDoesNotRotateAndReleaseReturnsFromMouseDirectedView()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LookBackSnapsInOneStepWithoutIntermediateYawEvenWithLegacyTuning(bool legacy)
         {
-            _presenter.SetLookBack(_state, _config, true);
-            _presenter.Tick(_state, _config, 0.12f, 1f);
-            Assert.That(_state.LookYaw + _state.HeadYaw, Is.Zero);
-            _presenter.SetMovement(_state, _config, Sample(1, look: new Vector2(160f, 0f), lookBack: true));
-            Assert.That(_state.HeadYaw, Is.EqualTo(160f));
-            _presenter.SetLookBack(_state, _config, false);
-            _presenter.Tick(_state, _config, 0.15f, 1f);
-            Assert.That(_state.LookYaw, Is.EqualTo(0f).Within(0.0001f));
+            if (legacy)
+            {
+                var serialized = new SerializedObject(_config);
+                serialized.FindProperty("_lookBackYaw").floatValue = 160f;
+                serialized.FindProperty("_lookBackSeconds").floatValue = 0.12f;
+                serialized.FindProperty("_lookForwardSeconds").floatValue = 0.15f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            _presenter.SetMovement(_state, _config, Sample(1, lookBack: true));
+            Assert.That(_state.LookYaw, Is.EqualTo(180f));
+            foreach (float dt in new[] { 0f, 1f / 60f, 0.12f })
+            {
+                _presenter.Tick(_state, _config, dt, 1f);
+                Assert.That(Quaternion.Angle(_state.Rotation, Quaternion.Euler(0f, 210f, 0f)), Is.LessThan(0.01f));
+                Assert.That(_state.LookYaw, Is.EqualTo(180f));
+            }
+            _presenter.SetMovement(_state, _config, Sample(2));
+            Assert.That(_state.LookYaw, Is.Zero);
+            _presenter.Tick(_state, _config, 1f / 60f, 1f);
+            Assert.That(Quaternion.Angle(_state.Rotation, Quaternion.Euler(0f, 30f, 0f)), Is.LessThan(0.01f));
         }
 
         [Test]
-        public void ReversingLookBackStartsFromTheCurrentView()
+        public void RapidLookBackEdgesRemainBinary()
         {
             _presenter.SetLookBack(_state, _config, true);
             _presenter.SetMovement(_state, _config, Sample(1, look: new Vector2(80f, 0f), lookBack: true));
             _presenter.SetLookBack(_state, _config, false);
             _presenter.Tick(_state, _config, 0f, 1f);
-            Assert.That(_state.LookYaw, Is.EqualTo(80f).Within(0.0001f));
-            _presenter.Tick(_state, _config, 0.15f, 1f);
-            Assert.That(_state.LookYaw, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(_state.LookYaw, Is.Zero);
+            _presenter.SetLookBack(_state, _config, true);
+            _presenter.Tick(_state, _config, 0f, 1f);
+            Assert.That(_state.LookYaw, Is.EqualTo(180f));
         }
 
         [Test]
         public void DuplicateSamplesNeverConsumeHeadLookTwice()
         {
-            var sample = Sample(8, look: new Vector2(5f, 6f), lookBack: true);
+            var sample = Sample(8, look: new Vector2(5f, 6f));
             _presenter.SetMovement(_state, _config, sample);
             _presenter.SetMovement(_state, _config, sample);
             _presenter.Tick(_state, _config, 0.12f, 1f);
             Assert.That(_state.Pitch, Is.EqualTo(-6f));
-            Assert.That(_state.HeadYaw, Is.EqualTo(5f));
+            Assert.That(_state.HeadYaw, Is.Zero);
             Assert.That(_state.HeadingDegrees, Is.EqualTo(30f));
             Assert.That(_state.Position, Is.EqualTo(new Vector3(2f, 1.6f, 3f)));
         }
 
         [Test]
-        public void LookBackBoundsPitchAndHeadYawWhileForwardYawComesFromBody()
+        public void LookBackIgnoresLookDeltasAndPreservesForwardPitch()
         {
             _presenter.SetMovement(_state, _config, Sample(1, look: new Vector2(90f, 90f)));
             Assert.That(_state.Pitch, Is.EqualTo(-85f));
             Assert.That(_state.HeadYaw, Is.Zero);
-            _presenter.SetMovement(_state, _config, Sample(2, look: new Vector2(90f, 0f), lookBack: true));
+            _presenter.SetMovement(_state, _config, Sample(2, look: new Vector2(900f, -900f), lookBack: true));
             Assert.That(_state.Pitch, Is.EqualTo(-85f));
-            Assert.That(_state.HeadYaw, Is.EqualTo(90f));
+            Assert.That(_state.HeadYaw, Is.Zero);
+            _presenter.SetMovement(_state, _config, Sample(3, look: new Vector2(-900f, 900f), lookBack: true));
+            Assert.That(_state.Pitch, Is.EqualTo(-85f));
+            Assert.That(_state.LookYaw, Is.EqualTo(180f));
+            _presenter.SetMovement(_state, _config, Sample(4));
+            Assert.That(_state.Pitch, Is.EqualTo(-85f));
+            Assert.That(_state.HeadYaw + _state.LookYaw, Is.Zero);
         }
 
         [Test]
@@ -164,11 +184,12 @@ namespace Worsen.Tests.Camera
         }
 
         [Test]
-        public void DeathSnapFacesKillerAndResetClearsStaleSequences()
+        public void CatchFacesHunterUpperBodyAndResetClearsStaleSequences()
         {
             _presenter.SetMovement(_state, _config, Sample(1));
-            _presenter.PlayDeathSnap(_state, _state.EyePosition + Vector3.left * 3f);
-            _presenter.Tick(_state, _config, 0.1f, 1f);
+            var killer = _state.EyePosition + Vector3.left * 3f - Vector3.up * _config.CatchHunterFocusHeight;
+            _presenter.PlayDeathSnap(_state, _config, killer);
+            _presenter.Tick(_state, _config, _config.CatchApproachSeconds, 1f);
             Assert.That(Vector3.Dot(_state.Rotation * Vector3.forward, Vector3.left), Is.GreaterThan(0.999f));
             _presenter.PlayDetectionBeat(_state);
             Assert.That(_state.DetectionElapsed, Is.LessThan(0f));
@@ -177,6 +198,7 @@ namespace Worsen.Tests.Camera
             Assert.That(_state.HasMovement, Is.False);
             Assert.That(_state.LookBack, Is.False);
             Assert.That(_state.TraversalTick, Is.EqualTo(-1));
+            Assert.That(_state.CatchHoldStarted || _state.CatchHoldEnded, Is.False);
         }
 
         [Test]
@@ -224,31 +246,28 @@ namespace Worsen.Tests.Camera
         }
 
         [Test]
-        public void ConsumptionDragsGraduallyAndWinsOverFollowingDeathSnapAndMovement()
+        public void HandCatchUsesExactGrabPointAndWinsOverFollowingDeathAndMovement()
         {
             _presenter.SetMovement(_state, _config, Sample(1));
             _presenter.Tick(_state, _config, 0f, 1f);
             var start = _state.Position;
-            _presenter.PlayConsumed(_state, _config, start + Vector3.left * 10f);
-            _presenter.PlayDeathSnap(_state, start + Vector3.right * 10f);
+            var grab = start + Vector3.left * 3f + Vector3.down;
+            _presenter.PlayConsumed(_state, _config, grab);
+            _presenter.PlayDeathSnap(_state, _config, start + Vector3.right * 10f);
             _presenter.SetMovement(_state, _config, Sample(2, look: new Vector2(90f, 90f)));
-            _presenter.Tick(_state, _config, 0.45f, 1f);
+            _presenter.Tick(_state, _config, _config.CatchApproachSeconds, 1f);
             Assert.That(_state.Consumed, Is.True);
-            Assert.That(_state.Position.x, Is.InRange(start.x - 1.8f, start.x - 0.1f));
-            Assert.That(_state.Position.y, Is.LessThan(start.y));
-            var halfway = _state.Position;
-            _presenter.Tick(_state, _config, 0.45f, 1f);
-            Assert.That(_state.Position.x, Is.LessThan(halfway.x));
-            Assert.That(Vector3.Dot(_state.Rotation * Vector3.forward, Vector3.left), Is.GreaterThan(0.999f));
+            Assert.That(Vector3.Distance(_state.Position, grab), Is.EqualTo(_config.CatchDistance).Within(0.0001f));
+            Assert.That(Vector3.Angle(_state.Rotation * Vector3.forward, grab - _state.Position), Is.LessThan(0.01f));
             var end = _state.Position;
             _presenter.PlayConsumed(_state, _config, start + Vector3.right * 10f);
             _presenter.Tick(_state, _config, 10f, 1f);
             Assert.That(_state.Position, Is.EqualTo(end));
-            Assert.That(Vector3.Distance(end, start), Is.LessThan(3.1f));
+            Assert.That(_state.CatchHoldEnded, Is.True);
         }
 
         [Test]
-        public void ConsumptionNeedsExplicitValidTriggerAndResetRestoresOrdinaryDeath()
+        public void CatchNeedsValidTriggerAndResetAllowsANewHunterCatch()
         {
             _presenter.PlayConsumed(_state, _config, Vector3.zero);
             Assert.That(_state.Consumed, Is.False);
@@ -260,35 +279,111 @@ namespace Worsen.Tests.Camera
             Assert.That(_state.Consumed, Is.False);
             _presenter.PlayConsumed(_state, _config, _state.EyePosition + Vector3.back * 10000f);
             _presenter.Tick(_state, _config, float.NaN, 1f);
-            Assert.That(_state.ConsumptionElapsed, Is.Zero);
+            Assert.That(_state.CatchElapsed, Is.Zero);
             _presenter.Tick(_state, _config, 100f, 1f);
             Assert.That(float.IsNaN(_state.Position.sqrMagnitude), Is.False);
-            Assert.That(Vector3.Distance(_state.Position, _state.EyePosition), Is.LessThan(3.1f));
+            Assert.That(_state.CatchHoldStarted, Is.True);
+            Assert.That(_state.CatchHoldEnded, Is.False, "A long approach frame must not swallow the visible hold.");
             _presenter.Reset(_state);
             Assert.That(_state.Consumed, Is.False);
-            Assert.That(_state.ConsumptionDuration, Is.Zero);
+            Assert.That(_state.CatchApproachDuration, Is.Zero);
             _presenter.SetMovement(_state, _config, Sample(1));
-            _presenter.PlayDeathSnap(_state, _state.EyePosition + Vector3.right);
-            _presenter.Tick(_state, _config, 0.1f, 1f);
+            _presenter.PlayDeathSnap(_state, _config, _state.EyePosition + Vector3.right - Vector3.up * _config.CatchHunterFocusHeight);
+            _presenter.Tick(_state, _config, _config.CatchApproachSeconds, 1f);
             Assert.That(Vector3.Dot(_state.Rotation * Vector3.forward, Vector3.right), Is.GreaterThan(0.999f));
         }
 
         [Test]
-        public void ConsumptionHonorsMotionShakeAndTiltComfort()
+        public void CatchApproachesThenHoldsForConfiguredBeatWithoutDrift()
         {
             var serialized = new SerializedObject(_config);
-            serialized.FindProperty("_consumptionMotionIntensity").floatValue = 0f;
-            serialized.FindProperty("_shakeIntensity").floatValue = 0f;
-            serialized.FindProperty("_tiltEnabled").boolValue = false;
+            serialized.FindProperty("_catchDistance").floatValue = 2f;
+            serialized.FindProperty("_catchApproachSeconds").floatValue = 0.25f;
+            serialized.FindProperty("_catchHoldSeconds").floatValue = 0.5f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _presenter.SetMovement(_state, _config, Sample(1));
             _presenter.Tick(_state, _config, 0f, 1f);
-            var start = _state.Position; var rotation = _state.Rotation;
-            _presenter.PlayConsumed(_state, _config, start + Vector3.back * 10f);
-            _presenter.Tick(_state, _config, 0.45f, 1f);
-            Assert.That(_state.Position, Is.EqualTo(start));
-            Assert.That(Quaternion.Angle(_state.Rotation, rotation), Is.LessThan(0.001f));
+            var start = _state.Position;
+            var killer = start + Vector3.back * 4f;
+            var focus = killer + Vector3.up * _config.CatchHunterFocusHeight;
+            _presenter.PlayDeathSnap(_state, _config, killer);
+            Assert.That(_state.CatchHoldStarted || _state.CatchHoldEnded, Is.False);
+            _presenter.Tick(_state, _config, 0.125f, 1f);
+            Assert.That(_state.Position, Is.Not.EqualTo(start).And.Not.EqualTo(_state.CatchTargetPosition));
+            Assert.That(_state.CatchHoldStarted, Is.False);
+            _presenter.Tick(_state, _config, 0.125f, 1f);
+            Assert.That(_state.CatchHoldStarted, Is.True);
+            Assert.That(_state.CatchHoldEnded, Is.False);
+            Assert.That(Vector3.Distance(_state.Position, focus), Is.EqualTo(2f).Within(0.0001f));
+            var held = _state.Position; var rotation = _state.Rotation;
+            _presenter.PlayDeathSnap(_state, _config, Vector3.zero);
+            _presenter.PlayShake(_state, 1f, 1f);
+            _presenter.SetMovement(_state, _config, Sample(2, velocity: Vector3.one * 100f, look: Vector2.one * 90f));
+            _presenter.Tick(_state, _config, 0.25f, 1f);
+            Assert.That(_state.CatchHoldEnded, Is.False);
+            _presenter.Tick(_state, _config, 0.25f, 1f);
+            Assert.That(_state.CatchHoldEnded, Is.True);
+            _presenter.Tick(_state, _config, 10f, 1f);
+            Assert.That(_state.Position, Is.EqualTo(held));
+            Assert.That(_state.Rotation, Is.EqualTo(rotation));
+            Assert.That(_state.CatchHoldElapsed, Is.EqualTo(0.5f));
+            Assert.That(_state.HorizontalFieldOfView, Is.EqualTo(_config.HorizontalFieldOfView));
             Assert.That(_state.Roll, Is.Zero);
+        }
+
+        [Test]
+        public void DefaultCatchBeatAndTimingEdgesOccurOnceUntilReset()
+        {
+            Assert.That(_config.CatchDistance, Is.EqualTo(1.2f));
+            Assert.That(_config.CatchApproachSeconds, Is.EqualTo(0.15f));
+            Assert.That(_config.CatchHoldSeconds, Is.EqualTo(1.4f));
+            _presenter.SetMovement(_state, _config, Sample(1));
+            _presenter.PlayDeathSnap(_state, _config, Vector3.zero);
+            int starts = 0, ends = 0;
+            foreach (float dt in new[] { 0.15f, 0.7f, 0.7f, 10f })
+            {
+                bool started = _state.CatchHoldStarted, ended = _state.CatchHoldEnded;
+                _presenter.Tick(_state, _config, dt, 1f);
+                if (!started && _state.CatchHoldStarted) starts++;
+                if (!ended && _state.CatchHoldEnded) ends++;
+                if (_state.CatchHoldElapsed < 1.4f) Assert.That(ends, Is.Zero);
+            }
+            Assert.That(starts, Is.EqualTo(1));
+            Assert.That(ends, Is.EqualTo(1));
+            _presenter.Reset(_state);
+            _presenter.Tick(_state, _config, 10f, 1f);
+            Assert.That(_state.CatchHoldStarted || _state.CatchHoldEnded, Is.False);
+        }
+
+        [Test]
+        public void SnapDefaultsAndDurationValidationAllowZeroButNotNegative()
+        {
+            Assert.That(_config.LookBackYaw, Is.EqualTo(180f));
+            Assert.That(_config.LookBackSeconds, Is.Zero);
+            Assert.That(_config.LookForwardSeconds, Is.Zero);
+            var serialized = new SerializedObject(_config);
+            serialized.FindProperty("_lookBackSeconds").floatValue = -1f;
+            serialized.FindProperty("_lookForwardSeconds").floatValue = -1f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(_config.LookBackSeconds, Is.Zero);
+            Assert.That(_config.LookForwardSeconds, Is.Zero);
+        }
+
+        [Test]
+        public void ZeroCatchDurationsStillPublishStartBeforeEnd()
+        {
+            var serialized = new SerializedObject(_config);
+            serialized.FindProperty("_catchApproachSeconds").floatValue = 0f;
+            serialized.FindProperty("_catchHoldSeconds").floatValue = 0f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            _presenter.SetMovement(_state, _config, Sample(1));
+            _presenter.PlayConsumed(_state, _config, _state.EyePosition);
+            _presenter.Tick(_state, _config, 0f, 1f);
+            Assert.That(_state.CatchHoldStarted, Is.True);
+            Assert.That(_state.CatchHoldEnded, Is.False);
+            Assert.That(Vector3.Distance(_state.Position, _state.EyePosition), Is.EqualTo(_config.CatchDistance).Within(0.0001f));
+            _presenter.Tick(_state, _config, 0f, 1f);
+            Assert.That(_state.CatchHoldEnded, Is.True);
         }
 
         private PlayerMovementSample Sample(long tick, Vector3 velocity = default, Vector2 look = default,
