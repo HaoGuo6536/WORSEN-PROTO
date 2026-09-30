@@ -48,6 +48,8 @@ Where the GDD now conflicts with this: its line that the world should feel relat
 
 ### 2.2 Making the hunters scary
 
+Amended 2026-09-30: [SPEC-005](SPEC-005-hunter-briefs.md) is LIVE and supersedes the legacy-retirement, novelty and bodyless-slot alternatives below. Run selection uses the ten new hunters only; the five legacy hunters/traits survive only for TagArena/FloorLoop compatibility and borrowed prefab assets are preserved. Echo is first pursuer, Weaver the partition mover and built moving-body Ticking fills the systemic slot. First-admission round gates are Echo/Weaver/Ticking 1, Ram/Mannequin 4, Mimic/Blinder 5, Skip/Herald/Stare 6, without lifetime prerequisites. Final IK vendor assembly definition permission is approved; humanoid Animator IK or a generic-rig no-op is not proof of that backend working on shipped rigs.
+
 The five current hunters are placeholders and the roster is rebuilt from zero. What stays is the machinery around them: the GOAP planner and fact model, the factory and registry, the per-archetype motor, attack and animation configs, the trait flags, the light-response hooks, the animation driver and Final IK. The rows below are therefore requirements for the new roster and its systems, not patches to the Watcher, Rusher, Lurker, Hexer or Thorncaller. The fear of a hunter lives in the approach, its habits, its sound, and the catch.
 
 | Proposal | What exists today | Change |
@@ -88,6 +90,8 @@ Final IK is already imported under `Assets/External/Plugins/RootMotion/FinalIK` 
 
 ### 2.3 Hide state, not rules
 
+Amended 2026-09-30: “hidden hunter count” below is superseded: Hidden Count hides in-floor cake counters, not the readable shelter roster; all retained hunters remain active. The white arrow stays visible in chases while other heads-up display (HUD) chrome hides.
+
 The player should know everything about how hunters behave and almost nothing about where they are right now. Several current defaults hand that information over for free.
 
 | Proposal | What exists today | Change |
@@ -102,6 +106,8 @@ The player should know everything about how hunters behave and almost nothing ab
 | Occasional false positives | None | A rare distant footstep or door sound with no hunter behind it, rate-limited so trust erodes but does not break |
 
 ### 2.4 Stakes and the Make it Worse ladder
+
+Amended 2026-09-30: early bail and persistent hell below are superseded: no early bail or Bail Bond, and persistent hell is dropped. [SPEC-006](SPEC-006-worsen-verb-persistent-hell.md) is DRAFT/not approved; run-scoped worsen options remain proposals. Interact belongs to shrines, not Worsen. If option A is later approved, its action/preview is dedicated and rebindable, settlement occurs once, and its temporary effect/pending bonus cannot be duplicated or traded through shrines. No persistent-hell exception is required. These decisions also supersede early bail as a freeze-room exit and §4's sixth priority.
 
 The wallet already dies with the player and persists across floors, which is the right foundation. What is missing is a way to put something on the table before the first hunter appears, an honourable way out of the freeze, and worsenings that climb fear rather than lethality.
 
@@ -118,6 +124,8 @@ The wallet already dies with the player and persists across floors, which is the
 The five axes from your conversation, as a checklist for any new worsening: information, unpredictability, stakes, agency, time. A worsening that only raises hunter numbers should be the exception.
 
 ### 2.5 Collection, collapse and the run loop
+
+Amended 2026-09-30: the piped cake name and special second-grab-fatal proposal below are superseded. Keep candle/saturated glow/light pool without lore-name work; damage alone determines death. Normal and golden collected/total counters are fixed at generation and never shrink with collapse, with Passage/puzzle rewards accounted for. Owner visual review and the live debug grab chain remain required.
 
 The generated floor places two rows of five cakes in every room, all on Flow anchors, all required. With seven to fifteen rooms that is between seventy and one hundred fifty pellets gating the exit, and it is the single strongest arcade signal in the build. Fewer, placed cakes that are each a destination, plus cake imagery that unsettles, changes the whole read of a floor.
 
@@ -136,6 +144,8 @@ The generated floor places two rows of five cakes in every room, all on Flow anc
 | Unverifiable micro-events | None | A door left open is now closed; a silhouette stands where it cannot path; the counter shows a cake that is no longer there. One or two rare ones with a very low per-run chance become folklore |
 
 ### 2.6 Presentation
+
+Amended 2026-09-30: the all-world shared-hearing paragraph below and §3's corresponding constraint are superseded. Shared attenuation remains, but ordinary hunter hearing accepts player movement, Firecracker and player-triggered cake traps; never Pacification, world (including grabs/pickups) or false-positive audio. Dedicated hunter-rule broadcasts are explicit mechanics, not audio-derived sensing. Steam Audio 4.8.1 is imported; routing and headphone evidence remain pending. High Definition Render Pipeline (HDRP) is removed; Universal Render Pipeline remains. The diegetic frame is old camcorder treatment: rounded vignette, soft edge blur and degradation-driven tape wobble, no text. No clean Lose/all-clear cue; verify detection/presence, held catch and telegraph instead of the historical four-cue obligation in §2.8.
 
 Audio is the one presence channel a flat screen keeps almost in full, and the art target is plausible realism in darkness rather than lo-fi. Most of the pieces exist; they need defaults changed and a few gaps filled.
 
@@ -210,6 +220,8 @@ The collapse order is right and the presentation is wrong. Rooms die farthest-fr
 
 ### 2.11 Level and room design
 
+Amended 2026-09-30: the first two-theme slice below is superseded by Castle/Hospital/School/Basement, each with distinct architecture and colour, organic layouts and predefined room templates. Kit exports do not establish runtime integration. Gimmick rooms are absent in rounds 1–2, at most one from round 3 and rise provisionally to about three by round 8. Generation must supply every requested validated hunter spawn, including duplicates and Nothing extras, or fail/retry explicitly; never silently reduce the roster.
+
 Rooms are fixed 12 metre cells on one storey, chosen from five families. Later floors should be larger, taller and more demanding, and vertical movement should never depend on finding the staircase.
 
 | Proposal | What the build does today | Change |
@@ -245,6 +257,8 @@ Upgrades are underwhelming because they are stat nudges: a narrower beam, quiete
 - Both catalogues are readable in one line each. A relic the player cannot explain to a friend in a sentence is a stat buff wearing a costume.
 
 ### 2.13 Shop catalogue: relics, consumables and general curses
+
+Amended 2026-09-30: this historical catalogue is superseded where it includes Bail Bond or Thin Skin (retired); Extra Life returns the player to floor start (now once per run, no repurchase refresh, revival in place with collision grace and temporary immunity); Hidden Count redacts the shelter (now in-floor counters); Nothing mutates a hunter (now flat 0.85 shop prices plus a stack/extra hunter per shop); or No Regen lacks a round gate (now round 12+, still requires Slow Mend). Faster Collapse also adds configured 15% golden cakes. Greedy Door requires collected gold >= ceil(0.4 × gold originally placed in rooms not fully collapsed), not a remaining-versus-collected denominator; completed-collapse escape safety and the never-collapsing exit remain. Audit the active catalogue rather than freeze “49 entries.” Flat/multiplier upgrades are allowed; §2.12's “no relic is a percentage” applies only to rule-changing semantics. One or two cheap simple upgrades at 4–5 are available from round 1; expensive tier remains 8+.
 
 A starting catalogue in the same language as the hunter curses: short Title Case names, one line each, rules rather than numbers. Relic is the design language, not a category: these are the shop's upgrades, permanent for the run, each a rule rather than a number. There is no rarity. Each upgrade has a floor from which it can appear, and some appear only while a given hunter is in the run, as Nullscape gates its upgrades on enemies, curses and level. Consumables are bought with limited uses and spent in motion. General curses are picked at the selection round and climb the five fear axes from the stakes section. Prices and availability floors are left to the shop configuration; the expensive-shop and later-floor rules apply.
 
@@ -342,6 +356,8 @@ Shop presentation and inventory, decided 2026-09-30. The shop never displays the
 
 ### 2.14 Shrines
 
+Amended 2026-09-30: Echo's changed outcome and Pacification's delayed hunter broadcast below are superseded. Echo is a plain second use of the last shrine at its normal cost, with no doubling. Pacification clears belief, but its sound never reaches hunters. No shrine/event fear-axis exclusion; cadence values remain provisional. Shrine owns Interact; if Worsen is approved later, it gets its own action and cannot commit during shrine interaction.
+
 Shrines are single-use structures placed on certain rooms when a floor is generated, in the manner of [Nullscape's altars](https://nullscape.wiki/wiki/Altar): each type has one effect, the count grows with floor depth, and they are found rather than pointed at. The GDD names these altars as an in-motion level interaction; here they are called shrines. A shrine is activated by touching it or by the context Interact, which is bound but unused today, and never holds the player in place; its effect resolves while they keep moving. Counts follow Nullscape's curve as a starting point: one on floors three to seven, two on eight to eleven, three on twelve to fifteen, and so on to a cap of six, with an upgrade that adds more.
 
 | Shrine | From floor | Effect |
@@ -358,6 +374,8 @@ Shrines are single-use structures placed on certain rooms when a floor is genera
 Shrines answer the same ladder as curses: Chance, Bargain and Purgatory make it worse for a payout, Passage and Purgatory feed greed, Protection and Pacification buy a breath. A More Shrines upgrade belongs in the upgrades table when the system is built.
 
 ### 2.15 Requested hunter designs
+
+Amended 2026-09-30: SPEC-005 closes older alternatives below: Mannequin moves only in darkness while unobserved, lit rooms are refuges and Wick always freezes it. Its catch is a short snap/crunch instead of the loud shared sting. Skip interception is an ordinary hit with normal damage/grace. Hand death also uses held catch: fog-coloured hand emerges slowly, then grabs the face quickly, correct hand sting and hard cut. Extra Life intercepts terminal catch once in place. Silhouettes/gaits/tunables are provisional play-tuning baselines; coordinator selects installed-pack/in-house sounds with provenance.
 
 These are the hunters you asked for on 2026-09-30, written against the one-page brief format from the hunters section. Working names only. Each needs its four tunables, sound set and habits filled in before modelling; the columns here are the rule, the counterplay, and the tell.
 
@@ -377,6 +395,8 @@ These are the hunters you asked for on 2026-09-30, written against the one-page 
 Two roster slots from the earlier sections still apply and can be filled by these: the first physical pursuer should be the one whose four tunables are tuned in the arena before any art, and the Weaver or the Skip can be the partition-ignoring hunter if it moves through vault windows and optional doors.
 
 ### 2.16 Curses per hunter
+
+Amended 2026-09-30: type curses affect every instance of that hunter type. Faithless Arrow is an ordinary Mimic curse, not opt-in configuration or a second counterfeit-arrow mechanic. Lower Gravity is dropped; Wagered Haul remains deferred.
 
 Each hunter carries at least three curses, most four, in Nullscape's design language: a one-to-three-word Title Case name that is a comparative adjective or a plain verb phrase, and a single line stating the mechanical change. Nullscape offers hunter curses only once that hunter is in the run, lets them stack to a cap, and never dresses them up; the [curse list](https://nullscape.wiki/wiki/Curses) is the reference. These replace the current fifteen hunter upgrades, which are all multipliers on the placeholder roster. All curses in this table were accepted on 2026-09-30, with Cake Thief removed and Faulty Bulbs and Wrong Words replaced; the Herald's were added afterwards.
 
@@ -441,7 +461,9 @@ Principles for WORSEN's version:
 - They never require standing still. Winding, collecting, silencing and looking are all done in motion or in under a second.
 - They are selectable at the hunter and curse round like any other threat and, like hunters, are always active once chosen; the Director expresses them but never benches them.
 
-Candidates beyond the Marionette already listed: a Cadence-like collector that spawns offerings on a timer and enrages past a count; a lingering rule where staying in any room too long cracks it early; a screamer that must be silenced by touch before it calls every hunter to you; and a counterfeit arrow that occasionally points somewhere wrong for a few seconds, as a curse rather than a body.
+Superseded candidate list (nonexistent roster reference removed per PLAN-011 §6.5): a Cadence-like collector that spawns offerings on a timer and enrages past a count; a lingering rule where staying in any room too long cracks it early; a screamer that must be silenced by touch before it calls every hunter to you; and a counterfeit arrow that occasionally points somewhere wrong for a few seconds, as a curse rather than a body.
+
+Amended 2026-09-30: collector, lingering-room rule and touch-screamer are declined. Counterfeit guidance is only ordinary Mimic Faithless Arrow; no additional implementation. Built Ticking already satisfies the systemic slot.
 
 ### 2.18 Lighting, Lumen and the cake arrow
 
@@ -456,6 +478,8 @@ The arrow misfires for a specific reason, the flashlight is not earning its plac
 | Toon and horror together (approved 2026-09-30) | Lumen's stylised look is unused | Keep the plausible-realism darkness from the art target and let Lumen supply only the light itself: stylised light in a real-material dark room reads as uncanny, which is the tone. The reference image is a catalogue of Lumen's options, not a target to copy: use whichever of its features fits each object, and do not reproduce the orb merely because it is in the shot |
 
 ## 3. Constraints and non-negotiables
+
+Amended 2026-09-30: dated amendments in §2 supersede conflicting historical constraints below: compatibility-only legacy traits, origin-filtered hearing, full baseline except Rough Start, once-per-run in-place Extra Life, no early bail/persistent hell, and full-roster capacity or explicit generation failure. SPEC-005 is approved; SPEC-006 is not. Source/classes, setup recipes, bound assets, consumers and live evidence remain distinct; no old execution log establishes current plan completion.
 
 - Engineering follows [SPEC-001](SPEC-001-project-architecture-guidelines.md): injected time and randomness, layer dependencies, designer configuration separated from runtime state, paired lifecycle and events, deterministic asset wiring, and the verification gates. Nothing here relaxes those.
 - The five current hunter profiles (watcher, rusher, lurker, hexer, thorncaller) are placeholders. The GOAP planner and fact model, factory and registry, per-archetype motor, attack and animation configs, trait flags, light-response hooks, animation driver and Final IK are kept; the roster is rebuilt from the briefs in the requested hunter designs and curses subsections.
@@ -486,6 +510,8 @@ If only a handful of items land this month, these six move the feel the most per
 From the 2026-09-30 playtest notes, the three that unblock testing everything else: the hit grace through hunters, the arrow fix, and stairs to ramps. The fog-of-war field and the relic catalogue are the largest pieces of new work on this page and belong in their own plans.
 
 ## 5. Open questions
+
+Amended 2026-09-30: the Mannequin, Faithless Arrow, first-two-themes and shrine/event policy questions below are superseded and closed by the decisions in §2. Remaining concrete tunables and live acceptance need evidence/owner review; no settled policy is reopened. PLAN-011 §5 and each child's §8 require exact integrated hash, setup version, fresh counts, build seed and owner date; headless tests cannot prove rendering, physics, input focus, audio or feel.
 
 | Question | Why it matters | Owner | Needed by |
 |----------|----------------|-------|-----------|
@@ -525,3 +551,4 @@ The six candidates first listed here map as follows: roster rebuild → PLAN-015
 | 2026-09-30 | Created from the reviewed Claude Doc after the owner's comment pass; approved and deferred marks carried inline. Registered DRAFT. | $docs-plans new spec |
 | 2026-09-30 | Decomposed into PLAN-011 (umbrella) and PLAN-012 to PLAN-026, all DRAFT; section 6 updated. Spec body and status unchanged. | $docs-plans new plan |
 | 2026-09-30 | Set LIVE with PLAN-011 to PLAN-026 at the owner's direction. PLAN-011 §6 records the owner's decisions on this spec's internal inconsistencies; the body is unchanged. | $docs-plans status |
+| 2026-09-30 | Amended 2026-09-30: reconciled later owner decisions and SPEC-005 LIVE / SPEC-006 DRAFT; superseded clauses retained in place as history, optional threats and persistent hell dropped; no plan completed | WP-D, owner-requested $docs-plans |

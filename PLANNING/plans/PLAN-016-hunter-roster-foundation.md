@@ -6,7 +6,7 @@ status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Hunter roster worker (assignee UNKNOWN — owner input needed)
-specs: [SPEC-004, SPEC-001, SPEC-002]
+specs: [SPEC-004, SPEC-001, SPEC-002, SPEC-005]
 direction_ids: n/a
 supersedes: none
 superseded_by: none
@@ -28,6 +28,8 @@ Remove the five placeholder hunters and their fifteen curses. Establish the one-
 3. One non-physical systemic threat expressed by the Director.
 
 Add depth and lifetime-run gating, so later hunters arrive as novelty.
+
+Amended 2026-09-30: the unrestricted deletion, bodyless third slot and lifetime-gating wording above is superseded by [SPEC-005](../specs/SPEC-005-hunter-briefs.md), LIVE and owner-approved. Echo is the first pursuer, Weaver the partition mover, and the built moving-body Ticking fills the systemic slot; no extra bodyless threat is required. Legacy hunters remain only for TagArena/FloorLoop compatibility.
 
 ## 2. Starting point
 
@@ -52,6 +54,8 @@ Add depth and lifetime-run gating, so later hunters arrive as novelty.
 
 **Requests.** Selection and offers (PLAN-023). Per-archetype cue slots and mix priority (PLAN-021). Navigation areas and breakable or optional partitions (PLAN-026). Threat arrow for collectable threats (PLAN-019, PLAN-020).
 
+Amended 2026-09-30: C1 is satisfied as design authority by SPEC-005 approval, not a new draft request; §4 step 1 and §6 first-threat choices are closed. C3's blanket profile/trait deletion is superseded: remove the five legacy hunters from run selection, isolate traits/fixtures for TagArena/FloorLoop compatibility and preserve borrowed prefab assets. C6/C7 alternatives are superseded by Weaver and built Ticking. C8's depth/lifetime requirement is superseded by round gates: Echo/Weaver/Ticking 1; Ram/Mannequin 4; Mimic/Blinder 5; Skip/Herald/Stare 6, no lifetime condition. First admission only; retained hunters stay active. Track source, generated/bound assets, actual consumers and live evidence separately.
+
 ## 4. Sequence
 
 1. Hao Guo chooses the three threats (§6) and approves the briefs spec.
@@ -63,6 +67,8 @@ Add depth and lifetime-run gating, so later hunters arrive as novelty.
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §8 E1/E5 and the blanket “reachable from a build” fallback below are superseded by selection-only retirement and repeated-run tests of approved round gates; compatibility-scene reachability is intentional. Prove all retained duplicates and Nothing extras fit validated spawn capacity, or generation fails/retries without admitting a short roster. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date; headless tests/old logs do not establish rendering, physics, input focus, audio or owner feel.
 
 - Architecture conformance proves each archetype module depends only on permitted layers. A graph check shows the shared controller has no per-archetype branches added.
 - Tests per archetype: its rule, counterplay condition and tell; each §2.16 curse's effect and stacking cap; duplicate instances keep distinct identities and are all active; gating hides unavailable threats.

@@ -6,7 +6,7 @@ status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Shop worker, delegated shop and inventory subtree (assignee UNKNOWN — owner input needed)
-specs: [SPEC-004, SPEC-001]
+specs: [SPEC-004, SPEC-001, SPEC-005]
 direction_ids: n/a
 supersedes: none
 superseded_by: none
@@ -63,6 +63,10 @@ Make buying something a decision:
 
 ## 4. Sequence
 
+Amended 2026-09-30: C2's “all 49” and the group table's Bail Bond are superseded. Audit the active catalogue after approved removals, not a frozen historical entry count; no Bail Bond (`58ac976`). Extra Life is purchasable once per run, cannot be repurchased to refresh, and revives in place with independent collision grace and temporary damage immunity (`9198190`), without resetting the floor. Hunter-gated upgrades follow [SPEC-005](../specs/SPEC-005-hunter-briefs.md); data entries require actual effect readers and consumers.
+
+Amended 2026-09-30: Firecracker and player-triggered cake traps are approved hunter-hearing stimuli; Pacification, world and false-positive audio never are. If SPEC-006 A is later approved, its temporary effect/pending bonus stays separately owned and cannot be duplicated/traded via shrines or yield multipliers; this conditional rule authorises no implementation now.
+
 1. Run GitNexus upstream impact on `ProgressionConfig`, `ProgressionSessionController` shop paths, `InventorySnapshot` and the flashlight path.
 2. **After PLAN-023 change 1:** 1, 2, 4, 6, 9 and 10 (catalogue and shop working with economy upgrades).
 3. 8 (flashlight stun), then 5 and 7.
@@ -71,6 +75,8 @@ Make buying something a decision:
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §8's “every upgrade” means the active post-removal catalogue, with Extra Life one-purchase/one-use regression coverage. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs do not establish rendering, physics, input focus, audio or owner feel.
 
 - Shop tests: the subset honours floor and hunter requirements; the reroll count is consumed; prices scale by round; affordability is checked and the debit applied exactly once; the wallet never goes negative (SPEC-003 §2.9).
 - Inventory tests: default three slots; Bigger Pockets stacks; replacement flow; uses decrement; Spent Pockets clears at exit.
@@ -86,6 +92,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Prices, floors, reroll counts | Open values | Economy | Decided 2026-09-30 (owner): one or two simple upgrades at 4–5 from round 1; the expensive tier stays 8+; other values provisional |
 | Extra Life conflicts with "the catch ends the run" | Design | Death flow | Decided 2026-09-30 (owner): one per run; revives in place with a brief collision grace and temporary damage immunity |
 | 49 entries is a large surface | Scope | Delivery | Ship economy and movement first; add the rest as hooks land |
+
+Amended 2026-09-30: the percentage conflict is closed by PLAN-011 §6.3: flat/multiplier catalogue entries are allowed; rule-changing upgrades retain rule semantics. The historical 49-entry count and Extra Life ambiguity are superseded by amended C2; remaining prices/recharge/grace durations need tuning, not a new revival-policy decision.
 
 ## 7. Deferred follow-ups
 

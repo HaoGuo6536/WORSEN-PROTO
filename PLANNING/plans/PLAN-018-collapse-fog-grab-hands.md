@@ -49,6 +49,8 @@ Make collapse read as a dark front advancing through the building, not cells swi
 
 The domain side (boundary, grab state, cake loss) stays in `Domain/Floor`. The density texture and fog pass are Presentation and read only published collapse progress and portal data (SPEC-001 layering).
 
+Amended 2026-09-30: C4 and §8 require ordinary damage alone to decide death; historical second-grab-fatal language is superseded. Preserve the live trigger→grab→damage→throw/cooldown chain and debug recording. C11's shared hearing for grabs is superseded: grab audio/facts may serve presentation and telemetry, never hunter hearing. Only player movement, Firecracker and player-triggered cake traps enter ordinary hearing; Pacification/world/false-positive sounds do not. The lingering-room candidate in §7 is declined, not deferred work.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `FloorHandController`, `RoomCollapseVolume`, `RoomCollapsePresenter` and the `FloorController` collapse ordering.
@@ -60,6 +62,8 @@ The domain side (boundary, grab state, cake loss) stays in `Domain/Floor`. The d
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs cannot establish rendering, physics, input focus, audio or owner feel.
 
 - `FloorHandController` tests: enter, escape inside grace, damage and throw direction, cooldown, kill only by damage, rubber-band contact starting a grab, and Wax Ward breaking the next grab.
 - Collapse ordering tests: the exit room is never selected; Shuffled Collapse keeps an escape route.

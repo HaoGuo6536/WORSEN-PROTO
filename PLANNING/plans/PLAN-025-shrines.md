@@ -45,7 +45,12 @@ Place single-use shrines on generated floors that the player finds rather than i
 
 ## 4. Sequence
 
+Amended 2026-09-30: C5's delayed hunter-audible broadcast is superseded: Pacification clears belief, but its activation sound never reaches hunter hearing. C9's changed-outcome table is superseded: Echo is a plain second use of the last shrine at its normal cost, with no doubling. Preserve single-use admission and affordability checks.
+
+Amended 2026-09-30: for C3/C4/C9/C10, only if SPEC-006 A is approved, its temporary effect and pending bonus must remain separately owned: Chance/Bargain/Echo/Purgatory cannot duplicate, trade or replay them. SPEC-006 remains DRAFT/not approved; persistent hell is dropped, so no P1 persistence exception is required.
+
 1. Hao Guo decides the shrine and progression-event cadence (SPEC-004 §5) with PLAN-023.
+   Amended 2026-09-30: the policy question is superseded by no shrine/event fear-axis exclusion (`58ac976`); remove the exclusion implementation and obsolete tests. Cadence/count values remain provisional tuning.
 2. Architecture review for the shrine system's layer and system placement. Run GitNexus impact on any shared symbol touched.
 3. Changes 1 and 2, then Chance and Bargain (3, 4), Pacification (5) and Protection (8).
 4. After PLAN-026 gaps and PLAN-017 Mannequin: Passage (7), Wick (6), Echo (9) and Purgatory (10).
@@ -53,6 +58,8 @@ Place single-use shrines on generated floors that the player finds rather than i
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: the changed-Echo and delayed-Pacification checks below are superseded by normal-cost second-use tests and negative Pacification ingress. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs do not establish rendering, physics, input focus, audio or owner feel.
 
 - Placement tests over a seed set: counts match the depth curve and cap; the floor from which each shrine appears is honoured; placement stays reachable, except Passage, which stands at a gap's edge.
 - Effect tests per shrine: single use; resolves without holding the player; Bargain pays the scaled sum exactly once; Purgatory scaling at early and late activation; Echo changes the outcome.
@@ -66,6 +73,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Echo's "changed outcome" for each shrine | Design | Undefined results | Hao Guo defines per shrine |
 | Shield health and Protection cost | Open values | Balance | Config; Hao Guo |
 | Interact also used by the worsen verb (PLAN-023) | Controls | Conflict | Context: nearest shrine wins; owner confirms |
+
+Amended 2026-09-30: Echo's changed-outcome question and shared-Interact priority above are superseded. Echo repeats the last shrine at normal cost. Shrine owns Interact; if Worsen is later approved, it gets a dedicated action and cannot commit during shrine interaction. No shrine/event axis exclusion remains; no persistent-hell work is required.
 
 ## 7. Deferred follow-ups
 
