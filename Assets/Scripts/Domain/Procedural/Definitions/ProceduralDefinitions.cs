@@ -13,6 +13,7 @@
 //   - Retain the effective spawn policy and immutable world-object construction plans.
 //   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
 //   - Retain storeys, directed vertical routes and permissioned navigation link plans.
+//   - Keep theme metadata, optional cages and threshold staging outside required edges.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
@@ -42,6 +43,10 @@ namespace Worsen.Domain.Procedural
 
     public sealed class ProceduralLayout
     {
+        public ProceduralThemeData Theme { get; internal set; }
+        public string ThemeId => Theme?.Id ?? "castle";
+        public IReadOnlyList<ProceduralFreezePlan> FreezeRooms { get; internal set; } = System.Array.Empty<ProceduralFreezePlan>();
+        public IReadOnlyList<ProceduralPuzzlePlan> Puzzles { get; internal set; } = System.Array.Empty<ProceduralPuzzlePlan>();
         public int Seed { get; internal set; }
         public int RoundIndex { get; internal set; }
         public LevelGraph Graph { get; internal set; }

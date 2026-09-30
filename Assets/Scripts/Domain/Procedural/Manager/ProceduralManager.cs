@@ -13,6 +13,7 @@
 //   - Forward room destruction samples into owned masonry presentation.
 //   - Retry failed generation/builds and retain a separate fail-closed fallback journal.
 //   - Expose Core interactable snapshots and apply Level's routed state-change facts.
+//   - Publish primitive theme, threshold and optional puzzle facts for external routing.
 // DEPENDENCIES:
 //   - Core graph, interactable and destruction contracts; no Domain sibling calls.
 // USAGE NOTES:
@@ -52,8 +53,24 @@ namespace Worsen.Domain.Procedural
             Array.AsReadOnly(_state.Layout.Interactables.Select(plan => plan.State).ToArray());
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers => _driver != null ? _driver.TraversalMarkers : Array.Empty<LevelMarkerRecord>();
         public event Action<bool> ReadinessChanged;
+        public string ThemeId => IsReady ? _state.Layout.ThemeId : string.Empty;
+        public event Action<string, string, string, string, string> ThemePublished;
+        public event Action<int, string, string> RoomThemePublished;
+        public event Action<int, int, int, Vector3, Vector3> ThresholdFreezePublished;
+        public event Action<int, int, Vector3> OptionalPuzzleRewardPublished;
+        public event Action<int, int, int> PuzzleSolved;
 
-        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f)
+        private void OnEnable()
+        { if (_driver == null) _driver = GetComponent<ProceduralDriver>(); _driver.PuzzleSolved += OnPuzzleSolved; }
+        private void OnDisable() { if (_driver != null) _driver.PuzzleSolved -= OnPuzzleSolved; }
+        private void OnPuzzleSolved(int puzzle, int room, int reward) => PuzzleSolved?.Invoke(puzzle, room, reward);
+        private bool IsPuzzleActor(Collider collider) => collider.GetComponentInParent<IEntityHandle>()?.Id == _driver.PuzzlePlayerId;
+        public void TickPuzzles(PlayerMovementSample sample, float deltaTime)
+        { if (IsReady) _driver.TickPuzzles(sample, deltaTime); }
+        public void CompletePuzzleVault(int surfaceId, bool succeeded)
+        { if (IsReady) _driver.CompletePuzzleVault(surfaceId, succeeded); }
+
+        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null)
         {
             Teardown();
             if (config != null) _config = config;
@@ -68,8 +85,8 @@ namespace Worsen.Domain.Procedural
                     new System.Random(ProceduralController.LayoutSeed(_state.AttemptSeed, roundIndex)));
                 try
                 {
-                    var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier);
-                    _driver.Build(layout, _config, _driverConfig);
+                    var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed);
+                    _driver.Build(layout, _config, _driverConfig, IsPuzzleActor);
                     generation.Succeed(layout.Manifest + layout.InteractableManifest);
                     _controller.Admit();
                     break;
@@ -85,6 +102,15 @@ namespace Worsen.Domain.Procedural
             }
             // Subscriber failures are not generation failures and must never trigger a retry.
             ReadinessChanged?.Invoke(true);
+            var ready = _state.Layout;
+            ThemePublished?.Invoke(ready.ThemeId, ready.Theme?.LightSource ?? "torch", ready.Theme?.SoundZone ?? "castle-stone",
+                ready.Theme?.FogLook ?? "black-mist", ready.Theme?.HandLook ?? "shadow-hands");
+            foreach (var room in ready.Modules)
+                RoomThemePublished?.Invoke(room.RoomId, ready.ThemeId, ready.Theme?.Families[(int)room.Kind] ?? room.Kind.ToString());
+            foreach (var freeze in ready.FreezeRooms)
+                ThresholdFreezePublished?.Invoke(freeze.RoomId, freeze.BehindRoomId, freeze.AnchorId, ready.Doors[freeze.DoorIndex].Center, freeze.Hunter);
+            foreach (var puzzle in ready.Puzzles)
+                OptionalPuzzleRewardPublished?.Invoke(puzzle.Id, puzzle.Reward.Id, puzzle.Reward.Position);
         }
 
         public bool ValidateHunterSpawn(Vector3 position, out string reason)

@@ -16,6 +16,7 @@
 //   - Build physical interactables and apply routed Level state to owned sub-drivers.
 //   - Keep safety slabs inside occupied cells and verify optional pocket isolation.
 //   - Exclude player-only staging/drops from hunter paths and own opt-in partition links.
+//   - Apply theme palettes and own optional puzzle cages, contacts and solved facts.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -29,6 +30,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Procedural
 {
@@ -40,9 +42,12 @@ namespace Worsen.Domain.Procedural
         private readonly ProceduralFracturePresenter _fracture = new ProceduralFracturePresenter();
         public int OwnedBlockCount => _state.BlockCount;
         public bool IsReady => _state.Ready;
+        public EntityId PuzzlePlayerId => _state.PuzzlePlayer;
+        public event Action<int, int, int> PuzzleSolved;
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers => _state.TraversalMarkers ?? Array.Empty<LevelMarkerRecord>();
 
-        public void Build(ProceduralLayout layout, ProceduralConfig config, ProceduralDriverConfig driverConfig)
+        public void Build(ProceduralLayout layout, ProceduralConfig config, ProceduralDriverConfig driverConfig,
+            Func<Collider, bool> puzzleActor = null)
         {
             Teardown();
             if (transform.lossyScale != Vector3.one) throw new InvalidOperationException("Procedural owner requires unit world scale.");
@@ -51,7 +56,21 @@ namespace Worsen.Domain.Procedural
             new ProceduralStoreyPresenter().ValidateLandings(layout, blocks);
             var objects = new ProceduralInteractablePresenter();
             layout.Interactables = objects.Build(layout, config, driverConfig, blocks, new System.Random(layout.Seed));
-            layout.InteractableManifest = objects.Manifest(layout.Interactables);
+            var puzzles = new ProceduralPuzzleLayoutPresenter();
+            layout.Puzzles = puzzles.Build(layout, config.Challenges, blocks, new System.Random(layout.Seed));
+            var themed = layout.Theme != null && !layout.Theme.InheritMaterials ? layout.Theme : null;
+            var freezeDoors = layout.Interactables.ToList();
+            foreach (var freeze in layout.FreezeRooms)
+            {
+                var door = layout.Doors[freeze.DoorIndex]; int edge = 1001 + freeze.DoorIndex;
+                if (freezeDoors.Any(p => p.State.Id == 100000 + edge)) continue;
+                freezeDoors.Add(new ProceduralInteractablePlan(new InteractableState(100000 + edge, InteractableKind.Door,
+                    door.FromRoomId, door.Center + Vector3.up * (config.DoorHeight * 0.5f), InteractableStateValue.Open, edge),
+                    door.AlongX ? new Vector3(config.DoorWidth, config.DoorHeight, driverConfig.WallThickness) :
+                        new Vector3(driverConfig.WallThickness, config.DoorHeight, config.DoorWidth)));
+            }
+            layout.Interactables = Array.AsReadOnly(freezeDoors.OrderBy(p => p.State.Id).ToArray());
+            layout.InteractableManifest = objects.Manifest(layout.Interactables) + puzzles.Manifest(layout.Puzzles);
             foreach (var room in layout.Graph.Rooms) _state.RoomBounds.Add(room.Id, room.Bounds);
             try
             {
@@ -61,9 +80,12 @@ namespace Worsen.Domain.Procedural
                 // Layout positions are world-space; parent placement must not transform the generated map.
                 _state.Root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                 _state.Root.transform.localScale = Vector3.one;
-                var wall = MaterialOrFallback(driverConfig.WallMaterial, driverConfig.WallColor, driverConfig);
-                var floor = MaterialOrFallback(driverConfig.FloorMaterial, driverConfig.FloorColor, driverConfig);
-                var ceiling = MaterialOrFallback(driverConfig.CeilingMaterial, driverConfig.CeilingColor, driverConfig);
+                var wall = MaterialOrFallback(themed == null ? driverConfig.WallMaterial : null,
+                    themed?.Wall ?? driverConfig.WallColor, driverConfig, themed?.Smoothness);
+                var floor = MaterialOrFallback(themed == null ? driverConfig.FloorMaterial : null,
+                    themed?.Floor ?? driverConfig.FloorColor, driverConfig, themed?.Smoothness);
+                var ceiling = MaterialOrFallback(themed == null ? driverConfig.CeilingMaterial : null,
+                    themed?.Ceiling ?? driverConfig.CeilingColor, driverConfig, themed?.Smoothness);
                 foreach (var block in blocks)
                     CreateBlock(block, block.Kind == ProceduralSurfaceKind.Floor ? floor :
                         block.Kind == ProceduralSurfaceKind.Ceiling ? ceiling : wall, driverConfig.GeometryLayer);
@@ -73,14 +95,37 @@ namespace Worsen.Domain.Procedural
                     if (plan.SurfaceId != 0 || plan.State.Kind == InteractableKind.Light) continue;
                     var item = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     item.name = "Interactable " + plan.State.Id + " " + plan.State.Kind;
+                    if (themed != null && plan.State.Kind == InteractableKind.KnockableProp) item.name += " " + themed.Prop;
                     item.layer = driverConfig.GeometryLayer;
                     item.transform.SetParent(_state.Root.transform, false);
                     item.transform.position = plan.State.Position; item.transform.localScale = plan.Size;
                     item.GetComponent<Renderer>().sharedMaterial = wall;
+                    if (themed != null && plan.State.Kind == InteractableKind.KnockableProp && themed.PropPrimitive != PrimitiveType.Cube)
+                    {
+                        // Keep the exact collision envelope; swap only the visible mesh.
+                        var source = GameObject.CreatePrimitive(themed.PropPrimitive);
+                        var mesh = Instantiate(source.GetComponent<MeshFilter>().sharedMesh);
+                        var vertices = mesh.vertices;
+                        for (int i = 0; i < vertices.Length; i++) vertices[i].y *= 0.5f;
+                        mesh.vertices = vertices; mesh.RecalculateBounds();
+                        item.GetComponent<MeshFilter>().sharedMesh = mesh;
+                        _state.OwnedMeshes.Add(mesh); source.SetActive(false); Release(source);
+                    }
                     var worldObject = item.AddComponent<ProceduralWorldObject>(); worldObject.Configure(plan.State);
                     _state.Interactables.Add(plan.State.Id, worldObject);
                 }
-                BuildNavigation(layout, blocks, driverConfig);
+                var navigationBlocks = blocks.ToList();
+                foreach (var plan in layout.Puzzles)
+                {
+                    var item = new GameObject("Optional " + plan.Kind + " " + plan.Id);
+                    item.transform.SetParent(_state.Root.transform, false);
+                    var module = item.AddComponent<ProceduralPuzzleModule>();
+                    module.Configure(plan, config.Challenges, wall, driverConfig.GeometryLayer, puzzleActor);
+                    _state.Puzzles.Add(module);
+                    navigationBlocks.AddRange(puzzles.Blocks(plan, config.Challenges).Where((b, index) => index != 4));
+                }
+                _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(navigationBlocks);
+                BuildNavigation(layout, navigationBlocks, driverConfig);
                 foreach (var room in layout.Graph.Rooms)
                 foreach (var cell in ProceduralFootprintUtility.Volumes(layout, room)) CreateSafetySlab(cell, driverConfig.GeometryLayer);
                 _state.Root.SetActive(true);
@@ -93,6 +138,7 @@ namespace Worsen.Domain.Procedural
         public void Teardown()
         {
             _state.Ready = false;
+            _state.Puzzles.Clear(); _state.PuzzlePlayer = EntityId.None;
             foreach (var link in _state.NavigationLinks) if (NavMesh.IsLinkValid(link)) NavMesh.RemoveLink(link);
             _state.NavigationLinks.Clear();
             if (_state.NavigationInstance.valid) _state.NavigationInstance.Remove();
@@ -103,6 +149,8 @@ namespace Worsen.Domain.Procedural
             _state.Root = null;
             foreach (var material in _state.OwnedMaterials) if (material != null) Release(material);
             _state.OwnedMaterials.Clear();
+            foreach (var mesh in _state.OwnedMeshes) if (mesh != null) Release(mesh);
+            _state.OwnedMeshes.Clear();
             _state.BlockCount = 0;
             _state.TraversalMarkers = null;
             _state.Fragments.Clear(); _state.FragmentPlans.Clear(); _state.RoomBounds.Clear();
@@ -113,6 +161,21 @@ namespace Worsen.Domain.Procedural
         }
 
         private void OnDestroy() => Teardown();
+
+        public void TickPuzzles(PlayerMovementSample sample, float deltaTime)
+        {
+            if (!_state.Ready || sample.Id == EntityId.None) return;
+            _state.PuzzlePlayer = sample.Id;
+            float speed = new Vector2(sample.Velocity.x, sample.Velocity.z).magnitude;
+            foreach (var puzzle in _state.Puzzles)
+                if (puzzle.gameObject.activeSelf && puzzle.Tick(sample.Position, speed, deltaTime))
+                    PuzzleSolved?.Invoke(puzzle.Plan.Id, puzzle.Plan.RoomId, puzzle.Plan.Reward.Id);
+        }
+        public void CompletePuzzleVault(int surfaceId, bool succeeded)
+        {
+            if (!_state.Ready) return;
+            foreach (var puzzle in _state.Puzzles) puzzle.CompleteVault(surfaceId, succeeded);
+        }
 
         private void CreateBlock(ProceduralBlock block, Material material, int layer)
         {
@@ -147,6 +210,8 @@ namespace Worsen.Domain.Procedural
 
         public void SetRoomDestruction(RoomDestructionSample sample)
         {
+            if (sample.Phase == RoomPhase.Closed)
+                foreach (var puzzle in _state.Puzzles.Where(p => p.Plan.RoomId == sample.RoomId)) puzzle.gameObject.SetActive(false);
             if (!_state.Ready || !_state.Fragments.TryGetValue(sample.RoomId, out var fragments)) return;
             var plans = _state.FragmentPlans[sample.RoomId];
             var bounds = _state.RoomBounds[sample.RoomId];
@@ -305,14 +370,14 @@ namespace Worsen.Domain.Procedural
             }
         }
 
-        private Material MaterialOrFallback(Material configured, Color color, ProceduralDriverConfig config)
+        private Material MaterialOrFallback(Material configured, Color color, ProceduralDriverConfig config, float? smoothness = null)
         {
             if (configured != null) return configured;
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             if (shader == null) throw new InvalidOperationException("Generated rooms require a compatible lit material shader.");
             var material = new Material(shader) { name = "Procedural dark surface", color = color };
-            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", config.SurfaceSmoothness);
-            if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", config.SurfaceSmoothness);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness ?? config.SurfaceSmoothness);
+            if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", smoothness ?? config.SurfaceSmoothness);
             _state.OwnedMaterials.Add(material);
             return material;
         }
