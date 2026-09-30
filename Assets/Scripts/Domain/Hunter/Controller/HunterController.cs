@@ -14,7 +14,8 @@
 //   - Walk to uncertain clues and stalk fresh beliefs, holding when the player looks toward the hunter.
 //   - Weigh competing goals, remember pickups/search order, deliberate and withdraw on request.
 //   - Emit gated habit facts and validate run-long single-rule overrides without editing assets.
-//   - Bound prediction by observed motion and sight; budget walking travel separately from search.
+//   - Commit bounded chase predictions, retry failed guesses against sight, and prioritize real loops.
+//   - Budget walking travel separately from search; keep CutOff's room intercept distinct from chase lead.
 //   - Consult injected archetype rules without branching on specialised archetype names.
 //   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
 // DEPENDENCIES:
@@ -620,6 +621,16 @@ namespace Worsen.Domain.Hunter
             _state.PlayerVisible, _state.Position, Vector3.Distance(_state.Position, _player.Position));
         public void ReportPathFailure()
         {
+            // A failed guess does not disprove the route to visible prey. Try the
+            // observed position for a full commitment before excluding Chase, even
+            // if the failed guess was reported on the last tick of its commitment.
+            if (_state.Action == HunterAction.Chase && _state.Predict && _state.PlayerVisible)
+            {
+                _state.Predict = false; _state.PredictionRoute.Clear();
+                _state.NavigationTarget = _state.LastKnownPosition;
+                _state.CommitmentRemaining = Effective(HunterTunable.ActionCommitmentSeconds);
+                return;
+            }
             _state.ActionFailed = true;
             if (_state.Action == HunterAction.AvoidLight || _state.Action == HunterAction.FlankLight)
             { _state.LightReactionRemaining = 0f; _state.LightExposure = 0f; }
@@ -759,7 +770,8 @@ namespace Worsen.Domain.Hunter
             {
                 Action(HunterAction.DenyCake, HunterWorldFacts.CakeAvailable, 0, HunterWorldFacts.RouteDenied, 1f),
                 Action(HunterAction.ProtectExit, HunterWorldFacts.ExitOpen, 0, HunterWorldFacts.ExitProtected, 1f),
-                Action(HunterAction.BreakLoop, HunterWorldFacts.LoopDetected | HunterWorldFacts.HasBelief, 0, HunterWorldFacts.LoopBroken, 1f),
+                Action(HunterAction.BreakLoop, HunterWorldFacts.LoopDetected | HunterWorldFacts.HasBelief,
+                    HunterWorldFacts.PlayerVisible, HunterWorldFacts.LoopBroken, 1f),
                 Action(HunterAction.InvestigateLight, HunterWorldFacts.LightMemoryFresh, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 0.75f),
                 Action(_profile.LightResponse == HunterLightResponse.Avoid ? HunterAction.AvoidLight : HunterAction.FlankLight,
                     HunterWorldFacts.LightReactionReady, 0, HunterWorldFacts.EscapedBeam, 0.5f),
@@ -770,7 +782,7 @@ namespace Worsen.Domain.Hunter
                 Action(HunterAction.SearchLastKnown, HunterWorldFacts.HasBelief, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 2f),
                 Action(HunterAction.Chase, HunterWorldFacts.PlayerVisible, HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange, 2f),
                 Action(HunterAction.CutOff, HunterWorldFacts.PlayerVisible | HunterWorldFacts.LoopDetected,
-                    HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange, 1f),
+                    HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange | HunterWorldFacts.LoopBroken, 1f),
                 Action(HunterAction.Lunge, HunterWorldFacts.PlayerVisible | HunterWorldFacts.InLungeRange, 0, HunterWorldFacts.CaughtPlayer, 1f)
             };
             if (_state.ActionFailed)
@@ -788,7 +800,7 @@ namespace Worsen.Domain.Hunter
                 new GoapGoalDefinition((int)HunterGoal.ProtectExit, (ulong)HunterWorldFacts.ExitProtected,
                     _state.ExitAvailable ? _profile.ExitGoalUtility : 0f),
                 new GoapGoalDefinition((int)HunterGoal.BreakLoop, (ulong)HunterWorldFacts.LoopBroken,
-                    _state.LoopDetected ? _profile.LoopGoalUtility : 0f) };
+                    _state.LoopDetected && (facts & (ulong)HunterWorldFacts.InLungeRange) == 0 ? _profile.LoopGoalUtility : 0f) };
             for (int i = 0; i < goals.Length; i++)
                 goals[i] = new GoapGoalDefinition(goals[i].Id, goals[i].Facts,
                     _archetype.GoalUtility((HunterGoal)goals[i].Id, goals[i].Utility));
@@ -799,11 +811,19 @@ namespace Worsen.Domain.Hunter
             if (changed)
             {
                 _state.Action = chosen; _state.HasPatrolTarget = false; _state.ReplanCount++;
-                // Attack commitment must not consume an unrelated prediction draw.
-                _state.Predict = chosen == HunterAction.Chase && _state.PlayerVisible &&
-                    _level.IsReady && _level.Graph != null && _profile.PredictionChance > 0f &&
-                    _random.NextDouble() < _profile.PredictionChance;
-                _state.PredictionRoute.Clear();
+            }
+            // Sample once per commitment, even when the action/facts stay unchanged.
+            // Hold the chosen point rather than bending the prediction through each
+            // newly observed cut. Urgent sight/attack/loop facts still interrupt it.
+            _state.Predict = chosen == HunterAction.Chase && _state.PlayerVisible &&
+                _state.ObservedPlayerVelocity.sqrMagnitude > 0.0001f &&
+                _level.IsReady && _level.Graph != null && _profile.PredictionChance > 0f &&
+                _random.NextDouble() < _profile.PredictionChance;
+            _state.PredictionRoute.Clear();
+            if (_state.Predict)
+            {
+                _state.NavigationTarget = PursuitTarget();
+                _state.Predict = _state.NavigationTarget != _state.LastKnownPosition;
             }
             if ((_state.Action == HunterAction.AvoidLight || _state.Action == HunterAction.FlankLight) && _state.LightReactionRemaining <= 0f)
             {
@@ -835,7 +855,9 @@ namespace Worsen.Domain.Hunter
                 { _state.LightMemoryRemaining = 0f; _state.PlannedFacts = ulong.MaxValue; }
             }
             else if (_state.Action == HunterAction.Chase)
-                _state.NavigationTarget = _state.Predict ? PursuitTarget() : _player.Position;
+            {
+                if (!_state.Predict) _state.NavigationTarget = _state.LastKnownPosition;
+            }
             else if (_state.Action == HunterAction.Lunge)
                 _state.NavigationTarget = _player.Position;
             else if (_state.Action == HunterAction.CutOff) _state.NavigationTarget = InterceptRoom();
@@ -902,7 +924,8 @@ namespace Worsen.Domain.Hunter
         private Vector3 InterceptRoom()
         {
             if (!_level.IsReady || _level.Graph == null || _state.LastRoom == 0) return _state.LastKnownPosition;
-            Vector3 predicted = _state.LastKnownPosition + _state.ObservedPlayerVelocity * _profile.CutOffPredictionSeconds * (Cursed(ProgressionTraits.WatcherCuttingCorners) ? 1.7f : 1f);
+            float horizon = _state.Action == HunterAction.Chase ? _profile.ChasePredictionSeconds : _profile.CutOffPredictionSeconds;
+            Vector3 predicted = _state.LastKnownPosition + _state.ObservedPlayerVelocity * horizon * (Cursed(ProgressionTraits.WatcherCuttingCorners) ? 1.7f : 1f);
             Vector3 best = _state.LastKnownPosition; float score = float.PositiveInfinity; int bestRoom = 0;
             foreach (LevelRoom room in _level.Graph.Rooms)
                 if (Vector3.SqrMagnitude(RoomTarget(room) - predicted) < score &&
