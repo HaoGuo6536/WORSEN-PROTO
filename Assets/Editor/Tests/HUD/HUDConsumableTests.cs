@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies physical inventory selection without drawing empty item outlines.
-//   The selected caption stays meaningful for empty slots and overflow capacity.
+//   Empty selections stay silent while occupied overflow selections keep their caption.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10), Tests (§11) · Editor · HUD.
 // KEY RESPONSIBILITIES:
@@ -32,10 +32,25 @@ namespace Worsen.Tests.HUD
             Assert.That(state.SelectedSlotText, Is.EqualTo("3: Firecracker ×2"));
             hud.SetChaseMode(state, true); Assert.That(state.SelectedSlotText, Is.EqualTo("3: Firecracker ×2"));
             hud.SetConsumables(state, new ConsumableInventorySnapshot(slots, new[] { 0, 1, 2 }, 0), 3);
-            Assert.That(state.SelectedSlotText, Is.EqualTo("1: Empty")); Assert.That(state.SelectedDisplaySlot, Is.EqualTo(-1));
+            Assert.That(state.SelectedSlotText, Is.Empty); Assert.That(state.SelectedDisplaySlot, Is.EqualTo(-1));
             hud.SetConsumables(state, new ConsumableInventorySnapshot(slots, new[] { 0, 1, 2 }, 2), 1);
             Assert.That(state.SelectedDisplaySlot, Is.EqualTo(-1)); Assert.That(state.SelectedSlotText, Does.Contain("Firecracker"));
             hud.SetConsumables(state, default, 3); Assert.That(state.DisplayedSlots, Is.Zero); Assert.That(state.SelectedSlotText, Is.Empty);
+        }
+
+        [Test]
+        public void ExhaustedInventoryClearsThePreviouslySelectedCaptionAndHighlight()
+        {
+            var state = new HUDDriverState(); var hud = new HUDPresenter();
+            hud.SetConsumables(state, new ConsumableInventorySnapshot(
+                new[] { new ProgressionInventorySlot("gauze", "Gauze", 4) }, new[] { 1 }, 0), 3);
+            Assert.That(state.SelectedSlotText, Is.EqualTo("1: Gauze ×1"));
+            hud.SetConsumables(state, new ConsumableInventorySnapshot(
+                new[] { default(ProgressionInventorySlot) }, new[] { 0 }, 0), 3);
+            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.SelectedDisplaySlot, Is.EqualTo(-1));
+            Assert.That(state.SelectedSlotText, Is.Empty);
+            Assert.That(state.SlotOverflowText, Is.Empty);
         }
     }
 }
