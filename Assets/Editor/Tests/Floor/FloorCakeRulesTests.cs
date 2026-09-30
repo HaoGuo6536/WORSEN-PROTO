@@ -235,12 +235,98 @@ namespace Worsen.Tests.Floor
             for (int tick = 1; tick < 5; tick++)
             {
                 f.Controller.Tick(14f, tick);
-                int remaining = required.Count(a => a.Id != required[0].Id && f.State.RoomPhases[a.RoomId] != RoomPhase.Closed);
-                Assert.That(f.State.ExitState, Is.EqualTo(remaining <= 1 ? ExitState.Open : ExitState.Locked));
+                int possible = required.Count(a => f.State.RoomPhases[a.RoomId] != RoomPhase.Closed);
+                Assert.That(f.State.ExitState, Is.EqualTo(possible <= 2 ? ExitState.Open : ExitState.Locked));
             }
             f.Controller.Initialize(f.Graph, new[] { new Player() });
             Assert.That(f.State.Traps, Is.Empty); Assert.That(f.State.CollapseStarted, Is.False);
             CollectRequired(f); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void GenerationTotalsStayFixedAndPhysicalPickupsRiseThroughCollapse(bool hidden)
+        {
+            var f = Start(round: 1, hooks: new FloorCakeHooks(hiddenCount: hidden));
+            var initial = f.Controller.Snapshot();
+            Assert.That(initial.TotalCakes, Is.EqualTo(18));
+            Assert.That(initial.TotalGoldenCakes, Is.EqualTo(6));
+            Assert.That(initial.HiddenCount, Is.EqualTo(hidden));
+            int optional = f.Graph.Anchors.First(a => f.State.ActiveCakeAnchors.All(r => r.Id != a.Id)).Id;
+            f.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 1, out _);
+            var required = f.State.ActiveCakeAnchors.ToArray(); CollectRequired(f);
+            Assert.That(f.Controller.Snapshot().Collected, Is.EqualTo(7));
+            f.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 2, out _);
+            Assert.That(f.Controller.Snapshot().Golden, Is.EqualTo(1));
+            Assert.That(f.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 2, out _), Is.False);
+            f.Controller.Tick(10000f, 3);
+            var after = f.Controller.Snapshot();
+            Assert.That(after.TotalCakes, Is.EqualTo(initial.TotalCakes));
+            Assert.That(after.TotalGoldenCakes, Is.EqualTo(initial.TotalGoldenCakes));
+            Assert.That(after.Collected, Is.EqualTo(7)); Assert.That(after.Golden, Is.EqualTo(1));
+            Assert.That(after.HiddenCount, Is.EqualTo(hidden));
+        }
+
+        [Test]
+        public void FasterCollapsePlansCeilingBonusDeterministicallyBeforeReveal()
+        {
+            var config = Config(); Set(config, "_useRoomCakeDensity", true);
+            Set(config, "_minimumCakesPerRoom", 1); Set(config, "_maximumCakesPerRoom", 1);
+            Set(config, "_minimumExitRoomCakes", 1); Set(config, "_requiredCakeFraction", 1f);
+            var hooks = new FloorCakeHooks(goldenCakeMultiplier: 1.15f);
+            var a = Start(round: 1, config: config, hooks: hooks);
+            var b = Start(round: 1, config: config, hooks: hooks);
+            Assert.That(a.Controller.Snapshot().TotalGoldenCakes, Is.EqualTo(7));
+            CollectRequired(a); CollectRequired(b);
+            var goldA = (System.Collections.IEnumerable)a.State.GetType().GetField("GoldenAnchors", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(a.State);
+            var goldB = (System.Collections.IEnumerable)b.State.GetType().GetField("GoldenAnchors", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(b.State);
+            Assert.That(goldA.Cast<LevelAnchor>().Select(x => x.Id), Is.EqualTo(goldB.Cast<LevelAnchor>().Select(x => x.Id)));
+            Assert.That(goldA.Cast<LevelAnchor>().Count(), Is.EqualTo(7));
+        }
+
+        [Test]
+        public void OptionalGoldIsReservedInFixedTotalsButNeverSatisfiesGreedyDoor()
+        {
+            var config = Config(); var state = new FloorBehaviorState();
+            var c = new FloorController(state, config, new System.Random(7));
+            c.Initialize(Graph(), new[] { new Player() }, round: 1,
+                cakeHooks: new FloorCakeHooks(greedyDoor: true, goldenCakeMultiplier: 1.15f), optionalGoldenCakeCount: 1);
+            Assert.That(c.Snapshot().TotalGoldenCakes, Is.EqualTo(9));
+            Assert.That(c.RegisterPuzzleReward(99, 99, new Vector3(60f, 0f, 0f)), Is.True);
+            Assert.That(c.SolvePuzzle(99, 6, 99, out _), Is.True);
+            Assert.That(c.Collect(new EntityId(1), 99, PickupKind.GoldenCake, 0, out _), Is.True);
+            foreach (var anchor in state.ActiveCakeAnchors.ToArray()) c.Collect(new EntityId(1), anchor.Id, PickupKind.Cake, 1, out _);
+            Assert.That(state.ExitState, Is.EqualTo(ExitState.Locked));
+            Assert.That(c.Snapshot().Golden, Is.EqualTo(1));
+            Assert.That(c.Snapshot().TotalGoldenCakes, Is.EqualTo(9));
+            c.Tick(10000f, 2);
+            Assert.That(c.Snapshot().TotalGoldenCakes, Is.EqualTo(9));
+        }
+
+        [Test]
+        public void ClosingRoomSubtractsItsCollectedGoldFromQuotaButNotCollectedCount()
+        {
+            var config = Config(); Set(config, "_requiredCakeCount", 5);
+            var graph = LevelGraphUtility.Build(
+                Enumerable.Range(1, 4).Select(i => new LevelRoom(i, new Vector3(i * 10f, 2f, 0f), new Vector3(8f, 4f, 8f))).ToArray(),
+                Enumerable.Range(1, 3).Select(i => new LevelEdge(i, i, i + 1, true)).ToArray(),
+                Enumerable.Range(1, 5).Select(i => new LevelAnchor(i, i <= 3 ? 1 : 4, CakeAnchorType.Flow,
+                    new Vector3(i <= 3 ? 10f : 40f, 0f, 0f))).ToArray(), 4, new Vector3(40f, 0f, 0f));
+            var player = new PlayerBehaviorState { Id = new EntityId(1), Health = 100f, Position = new Vector3(40f, 0f, 0f) };
+            var state = new FloorBehaviorState(); var c = new FloorController(state, config, new System.Random(7));
+            c.Initialize(graph, new[] { player }, cakeHooks: new FloorCakeHooks(greedyDoor: true));
+            foreach (var anchor in state.ActiveCakeAnchors.ToArray()) c.Collect(player.Id, anchor.Id, PickupKind.Cake, 0, out _);
+            c.Collect(player.Id, 1, PickupKind.GoldenCake, 1, out _);
+            Assert.That(state.ExitState, Is.EqualTo(ExitState.Locked));
+            for (int tick = 0; tick < 100 && state.RoomPhases[1] != RoomPhase.Closed; tick++)
+            {
+                Assert.That(state.ExitState, Is.EqualTo(ExitState.Locked));
+                c.Tick(.5f, tick + 2);
+            }
+            Assert.That(state.RoomPhases[1], Is.EqualTo(RoomPhase.Closed));
+            Assert.That(state.RoomPhases[4], Is.EqualTo(RoomPhase.Open));
+            Assert.That(state.ExitState, Is.EqualTo(ExitState.Open));
+            Assert.That(c.Snapshot().Golden, Is.EqualTo(1));
+            Assert.That(c.Snapshot().TotalGoldenCakes, Is.EqualTo(5));
         }
 
         internal static Fixture Start(int seed = 7, int round = 3, FloorCakeHooks hooks = default, FloorConfig config = null, bool shuffled = false)
@@ -256,7 +342,7 @@ namespace Worsen.Tests.Floor
         {
             var c = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));
             Set(c, "_requiredCakeCount", 6); Set(c, "_flowWeight", 1f); Set(c, "_collapseInterval", 12f);
-            Set(c, "_telegraphDuration", 6f); Set(c, "_directionCueInterval", 0.5f); Set(c, "_earlyBailHoldDuration", 1f);
+            Set(c, "_telegraphDuration", 6f); Set(c, "_directionCueInterval", 0.5f);
             Set(c, "_trapStartRound", 3); Set(c, "_optionalTrapShare", 0.33333334f); Set(c, "_roomsPerTrap", 3);
             Set(c, "_maximumTraps", 3); Set(c, "_extraBlinderTraps", 2); Set(c, "_trapTickInterval", 2f);
             Set(c, "_trapAnnounceLoudness", 1f); Set(c, "_greedyDoorShare", 0.4f); return c;

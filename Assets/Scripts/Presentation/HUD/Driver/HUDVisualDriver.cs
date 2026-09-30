@@ -11,11 +11,10 @@
 //   Sub-driver (§7e), owned by HUDDriver · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Draw the selected item caption even during a chase; highlight its occupied slot.
-//   - Build quiet cake and golden counts without panel chrome, title or controls hints.
-//   - Pair all vector callbacks when binding, unbinding or replacing a document.
-//   - Paint separate white and golden arrows, each independent of chase chrome.
-//   - Apply chrome visibility and restoration without suppressing the independent compass.
+//   - Build quiet cake/golden counters and honor floor hiding independently of other HUD.
+//   - Render shield, selected inventory and independent threat/objective guidance.
+//   - Pair vector callbacks across document binding, replacement and teardown.
+//   - Apply chrome visibility and restoration without suppressing guidance.
 //
 // DEPENDENCIES:
 //   Own HUDDriverConfig, HUDDriverState and HUDGeometryPresenter only.
@@ -29,6 +28,8 @@
 
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.HUD
 {
@@ -40,6 +41,9 @@ namespace Worsen.Presentation.HUD
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
         private VisualElement _goldenDirectionGroup, _goldenArrow;
         private Label _count, _golden, _overflow, _selected;
+        private Label _shield;
+        private VisualElement _threatGroup;
+        private readonly Dictionary<EntityId, Label> _threatArrows = new Dictionary<EntityId, Label>();
 
         public void Bind(VisualElement root, HUDDriverConfig config)
         {
@@ -66,6 +70,16 @@ namespace Worsen.Presentation.HUD
             _golden = Text("golden-count", "Golden: —", _panel);
             _golden.style.fontSize = config.FontSize;
             _golden.style.color = config.MutedColor;
+            _shield = Text("shield", "Shield: 0", root);
+            _shield.style.color = config.MutedColor;
+            _shield.style.position = Position.Absolute;
+            _shield.style.right = config.ScreenMargin;
+            _shield.style.bottom = config.ScreenMargin;
+            _threatGroup = Element("threat-directions", root);
+            _threatGroup.style.position = Position.Absolute;
+            _threatGroup.style.left = Length.Percent(50);
+            _threatGroup.style.bottom = config.ScreenMargin * 3 + config.CompassSize;
+            _threatGroup.style.flexDirection = FlexDirection.Row;
 
 
             _extra = Element("hud-extra", root);
@@ -114,7 +128,24 @@ namespace Worsen.Presentation.HUD
             _state = state;
             _count.text = state.CountText;
             _golden.text = state.GoldenText;
-            _panel.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _shield.text = state.ShieldText;
+            foreach (var id in new List<EntityId>(_threatArrows.Keys))
+                if (!state.Threats.ContainsKey(id)) { _threatArrows[id].RemoveFromHierarchy(); _threatArrows.Remove(id); }
+            foreach (var pair in state.Threats)
+            {
+                if (!_threatArrows.TryGetValue(pair.Key, out var arrow))
+                {
+                    arrow = Text("threat-" + pair.Key.Value, "▲", _threatGroup);
+                    arrow.style.fontSize = _config.CompassSize * .5f;
+                    arrow.style.width = arrow.style.height = _config.CompassSize;
+                    arrow.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    arrow.style.color = _config.ThreatArrowColor;
+                    _threatArrows.Add(pair.Key, arrow);
+                }
+                arrow.style.display = pair.Value.Visible ? DisplayStyle.Flex : DisplayStyle.None;
+                arrow.style.rotate = new Rotate(new Angle(pair.Value.ArrowDegrees, AngleUnit.Degree));
+            }
+            _panel.style.display = state.ChromeVisible && !state.HiddenCount ? DisplayStyle.Flex : DisplayStyle.None;
             _panel.style.opacity = state.ExtraOpacity;
             _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _extra.style.opacity = state.ExtraOpacity;
@@ -133,6 +164,7 @@ namespace Worsen.Presentation.HUD
 
         public void Unbind()
         {
+            _threatArrows.Clear(); _threatGroup = null; _shield = null;
 
             if (_arrow != null) _arrow.generateVisualContent -= PaintArrow;
             if (_goldenArrow != null) _goldenArrow.generateVisualContent -= PaintGoldenArrow;

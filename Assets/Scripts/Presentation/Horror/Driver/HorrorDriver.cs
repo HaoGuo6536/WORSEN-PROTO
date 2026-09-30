@@ -11,6 +11,8 @@
 //   Driver (§7a) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Smooth per-floor collapse facts into distance fog and multiplicative torch-budget output.
+//   - Own finite-lived Weaver visuals; leave all hunter sound admission to Audio.
 //   - Own the micro-event sub-driver and republish decisions and lighting hook changes.
 //   - Render external light authority independently of camera shake and bank.
 //   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
@@ -51,9 +53,10 @@ namespace Worsen.Presentation.Horror
         private HorrorAtmosphereDriver _atmosphere;
         private HorrorAmbienceDriver _ambience;
         private HorrorMicroEventDriver _micro;
+        private HorrorWebDriver _web;
         public event Action<int, int, Vector3, float> MicroEventSelected;
         public event Action<float, bool> LightingHooksChanged;
-        public float TorchCountMultiplier => _state?.TorchCountMultiplier ?? 1f;
+        public float TorchCountMultiplier => _state != null ? HorrorCollapsePresenter.TorchMultiplier(_state, _config) : 1f;
         public bool Wick => _state != null && _state.Wick;
         public bool IsReady => _state != null && _atmosphere != null && _atmosphere.IsReady
             && _state.CueMaterial != null && _config.AttackGrowl != null;
@@ -74,6 +77,9 @@ namespace Worsen.Presentation.Horror
                 return;
             }
             _state = new HorrorDriverState();
+            var webObject = new GameObject("Owned Weaver visuals");
+            webObject.transform.SetParent(transform, false);
+            _web = webObject.AddComponent<HorrorWebDriver>(); _web.Initialize(_config);
             var microObject = new GameObject("Owned horror micro-events");
             microObject.transform.SetParent(transform, false);
             _micro = microObject.AddComponent<HorrorMicroEventDriver>();
@@ -110,6 +116,7 @@ namespace Worsen.Presentation.Horror
         {
             if (_state == null) return;
             _state.OwnerEnabled = value;
+            if (_web != null) _web.enabled = value && isActiveAndEnabled;
             if (_micro != null) _micro.enabled = value && isActiveAndEnabled;
             if (value && isActiveAndEnabled) OnEnable();
             _atmosphere.SetOwnershipEnabled(value && isActiveAndEnabled);
@@ -142,6 +149,16 @@ namespace Worsen.Presentation.Horror
             ApplyAtmosphere();
         }
 
+        public void SetCollapseRooms(IReadOnlyList<GeneratedRoomSample> rooms, int? exitRoom)
+        {
+            if (_state == null) return;
+            HorrorCollapsePresenter.BeginFloor(_state, rooms, exitRoom);
+            ApplyAtmosphere();
+            LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
+        }
+        public void ObserveCollapse(RoomDestructionSample sample)
+        { if (_state != null) HorrorCollapsePresenter.Observe(_state, sample, _config); }
+
         public void SetAttack(HunterAttackSample sample)
         {
             if (_state == null || !_state.OwnerEnabled || !isActiveAndEnabled || !sample.Hunter.IsValid) return;
@@ -152,6 +169,7 @@ namespace Worsen.Presentation.Horror
                 _state.Attacks.Add(sample.Hunter, attack);
             }
             HorrorAttackVisual visual = _presenter.PresentAttack(attack, sample, _config.Settings);
+            visual.PlayGrowl = false; // Audio owns the budgeted windup cue, not this visual boundary.
             if (!_state.Cues.TryGetValue(sample.Hunter, out HorrorAttackCueDriver cue))
             {
                 if (!visual.Visible) return;
@@ -165,23 +183,29 @@ namespace Worsen.Presentation.Horror
             cue.Apply(visual);
         }
 
+        public void ObserveWeaver(WeaverFact fact)
+        { if (_web != null && _state != null && _state.OwnerEnabled && isActiveAndEnabled) _web.Observe(fact); }
+
         public bool AdvanceRunClock(float deltaSeconds)
         {
             if (_state == null || !_state.OwnerEnabled || !isActiveAndEnabled
                 || !_presenter.AdvanceRunClock(_state, deltaSeconds)) return false;
             if (_state.ActiveEffects != null) SetActiveEffects(_state.ActiveEffects);
             if (_micro != null) _micro.Tick(_config, _outputCamera, _state.RunElapsedSeconds, deltaSeconds);
+            if (_web != null) _web.Tick(deltaSeconds);
+            if (HorrorCollapsePresenter.Tick(_state, _config, deltaSeconds))
+            { ApplyAtmosphere(); LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick); }
             return true;
         }
 
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
         {
             if (_state == null) return;
-            float previous = _state.TorchCountMultiplier; bool wick = _state.Wick;
+            float previous = TorchCountMultiplier; bool wick = _state.Wick;
             _presenter.SetActiveEffects(_state, _config, effects);
             ApplyAtmosphere();
-            if (previous != _state.TorchCountMultiplier || wick != _state.Wick)
-                LightingHooksChanged?.Invoke(_state.TorchCountMultiplier, _state.Wick);
+            if (previous != TorchCountMultiplier || wick != _state.Wick)
+                LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
         }
         public void SetMicroEventWorld(IReadOnlyInteractableSet world, IReadOnlyList<Vector3> unreachableAnchors)
         { if (_micro != null) _micro.SetWorld(world, unreachableAnchors); }
@@ -229,15 +253,18 @@ namespace Worsen.Presentation.Horror
         public void ResetRound()
         {
             if (_state == null) return;
+            if (_web != null) _web.Reset();
             ClearCues();
             _presenter.ResetRound(_state);
             if (_micro != null) _micro.ResetFloor();
             _atmosphere.ClearAfterimage();
             ApplyAtmosphere();
+            LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
         }
 
         public void Teardown()
         {
+            if (_web != null) { _web.Teardown(); DestroyOwned(_web.gameObject); _web = null; }
             if (_micro != null)
             { _micro.Selected -= OnMicroEventSelected; _micro.ResetFloor(); DestroyOwned(_micro.gameObject); _micro = null; }
             if (_state != null)
@@ -258,7 +285,9 @@ namespace Worsen.Presentation.Horror
         private void ApplyAtmosphere()
         {
             if (_state == null || _outputCamera == null || _atmosphere == null) return;
-            _presenter.CalculateAtmosphere(_state, _config.Settings, _outputCamera.farClipPlane);
+            var settings = _config.Settings;
+            if (_state.HasCollapseFloor) settings.FogNearMeters = HorrorCollapsePresenter.FogNear(_state, _config);
+            _presenter.CalculateAtmosphere(_state, settings, _outputCamera.farClipPlane);
             _atmosphere.Apply(_state.FogCurveStart, _state.FogCurveEnd, _state.FlashlightRange,
                 _state.FlashlightIntensity, _state.FlashlightEnabled);
             if (_state.HasAuthoritativeFlashlight) _atmosphere.SetFlashlightPose(_state.AuthoritativeFlashlight);
@@ -274,6 +303,7 @@ namespace Worsen.Presentation.Horror
 
         private void OnEnable()
         {
+            if (_web != null) _web.enabled = _state != null && _state.OwnerEnabled;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.Selected += OnMicroEventSelected; }
             if (_micro != null) _micro.enabled = _state != null && _state.OwnerEnabled;
             if (_state != null && _state.OwnerEnabled)
@@ -285,6 +315,7 @@ namespace Worsen.Presentation.Horror
         }
         private void OnDisable()
         {
+            if (_web != null) _web.enabled = false;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.enabled = false; }
             if (_state == null) return;
             _atmosphere.SetOwnershipEnabled(false);

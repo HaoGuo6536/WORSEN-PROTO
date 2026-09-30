@@ -10,13 +10,11 @@
 //   Presenter (§7b) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Clear only blindness on cleanse and only the consumed latch on revival.
-//   - Ease identity-matched grace desaturation and read exact configured effect ids.
-//   - Override blur admission at runtime and immediately clear disabled blur.
+//   - Preserve independent cleanse, revival, grace and runtime blur commands.
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
 //   - Expire optional blur and intrusion without clearing injury or proximity.
-//   - Keep hunter/hand catches visible: legacy consumption calls never fade to black.
-//   - Compose transient effects above constant degradation; blindness is explicit and timed.
+//   - Keep catches visible: legacy consumption never fades to black.
+//   - Compose existing degradation with the independently timed camcorder frame.
 //
 // DEPENDENCIES:
 //   - Core grace/effects contracts; pure UnityEngine math only.
@@ -45,6 +43,7 @@ namespace Worsen.Presentation.PostFX
 
         public void Reset(PostFXDriverState state)
         {
+            CamcorderFramePresenter.Reset(state.Frame);
             state.ActiveEffects = null;
             state.CleansedBlindness.Clear();
             state.Grace = default;
@@ -72,7 +71,9 @@ namespace Worsen.Presentation.PostFX
         public void SetInjury(PostFXDriverState state, float currentHealth, float maxHealth)
         {
             maxHealth = Finite(maxHealth);
-            state.Injury = maxHealth > 0f ? 1f - Mathf.Clamp01(Finite(currentHealth) / maxHealth) : 0f;
+            float injury = maxHealth > 0f ? 1f - Mathf.Clamp01(Finite(currentHealth) / maxHealth) : 0f;
+            if (injury > state.Injury) state.Frame.HitWeight = 1f;
+            state.Injury = injury;
         }
 
         public void PlayReacquireBlur(PostFXDriverState state, PostFXDriverConfig config)
@@ -152,6 +153,7 @@ namespace Worsen.Presentation.PostFX
             state.Vignette = Mathf.Clamp01(config.FrameVignette + state.Injury * config.InjuryVignette);
             float intrusion = state.IntrusionRemaining > 0f ? 1f :
                 state.SubtleIntrusionRemaining > 0f ? Mathf.Clamp01(config.SubtleIntrusionMultiplier) : 0f;
+            CamcorderFramePresenter.Tick(state.Frame, config, state.Injury, state.Proximity, intrusion, dt);
             state.Saturation = -Mathf.Clamp(config.IntrusionDesaturation, 0f, 100f) * intrusion;
             float ease = state.GraceActive ? config.GraceEaseInSeconds : config.GraceEaseOutSeconds;
             state.GraceWeight = Mathf.MoveTowards(state.GraceWeight, state.GraceActive ? 1f : 0f,

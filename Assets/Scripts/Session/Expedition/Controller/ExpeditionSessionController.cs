@@ -8,16 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Allocate duplicate indices and retain accepted Core mutations without selecting new rules.
-//   - Buffer admitted challenge facts and route one committed movement sample per tick.
-//   - Validate explicitly identified vault outcomes without guessing a traversal surface.
-//   - Preserve living shield between floors, time Wick and count physical Golden Cake pickups.
-//   - Reject stale requests and preserve the queued phase during deferred cleanup.
-//   - Preserve selected hunter identities and validate real room crossings for retained perks.
-//   - Cap spawn requests to validated positions and record the deterministic budget shortfall.
-//   - Reject fallback admission while preserving its manifest through actor cleanup.
-//   - Commit readiness only after every required actor has been registered.
-//   - Leave retained-effect tuning to the authoritative effect service routed by the Manager.
+//   - Preserve retained hunters, append Nothing extras and allocate duplicate indices.
+//   - Reject stale/fallback/incomplete admission and retain diagnostic shortfalls.
+//   - Buffer challenge, movement, traversal and room-crossing facts without engine queries.
+//   - Preserve shields/mutations, time Wick and count physical golden pickups.
+//   - Coordinate queued generation and complete actor cleanup without selecting effect rules.
 // DEPENDENCIES:
 //   - Own BehaviorState/Definitions and immutable Core progression/spawn values.
 // USAGE NOTES:
@@ -61,6 +56,7 @@ namespace Worsen.Session.Expedition
             _state.LayoutManifest = string.Empty;
             _state.HunterSpawnShortfall = 0;
             _state.Phase = ExpeditionAssemblyPhase.Queued;
+            _state.RequestedHunterCount = request.IsShop ? 0 : request.Effects.ActiveThreatBudget;
             return true;
         }
 
@@ -81,12 +77,15 @@ namespace Worsen.Session.Expedition
         }
 
         public IReadOnlyList<SpawnRequest> HunterSpawns(string archetype, IReadOnlyList<Vector3> positions,
-            Func<Vector3, bool> validate = null)
+            Func<Vector3, bool> validate = null, IReadOnlyList<string> extraHunters = null)
         {
             RequireGenerating();
             int requested = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
             if (!_state.Request.IsShop && _state.Request.Effects.ActiveThreatIds != null && _state.Request.Effects.ActiveThreatIds.Count != requested)
                 throw new InvalidOperationException("Selected hunter identities must exactly match their budget.");
+            int retained = requested;
+            if (!_state.Request.IsShop) requested = checked(requested + (extraHunters?.Count ?? 0));
+            _state.RequestedHunterCount = requested;
             var valid = new List<Vector3>();
             if (positions != null) foreach (var position in positions)
                 if ((validate == null || validate(position)) && !valid.Contains(position)) valid.Add(position);
@@ -94,7 +93,8 @@ namespace Worsen.Session.Expedition
             var requests = new SpawnRequest[count];
             for (int index = 0; index < count; index++)
             {
-                string selected = _state.Request.Effects.ActiveThreatIds == null ? archetype : _state.Request.Effects.ActiveThreatIds[index];
+                string selected = index >= retained ? extraHunters[index - retained] :
+                    _state.Request.Effects.ActiveThreatIds == null ? archetype : _state.Request.Effects.ActiveThreatIds[index];
                 requests[index] = HunterSpawn(selected, valid[index]);
             }
             _state.HunterSpawnShortfall = requested - count;
@@ -193,8 +193,8 @@ namespace Worsen.Session.Expedition
         {
             RequireGenerating();
             if (_state.UsedFallback) throw new InvalidOperationException("A fallback layout cannot be admitted as a floor.");
-            int count = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget - _state.HunterSpawnShortfall;
-            if (!_state.Player.IsValid || _state.Hunters.Count != count)
+            int count = _state.RequestedHunterCount;
+            if (_state.HunterSpawnShortfall != 0 || !_state.Player.IsValid || _state.Hunters.Count != count)
                 throw new InvalidOperationException("Cannot admit a floor before all requested actors exist.");
             _state.Phase = ExpeditionAssemblyPhase.Ready;
         }

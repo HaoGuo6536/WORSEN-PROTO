@@ -7,12 +7,12 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Shrine.
 // KEY RESPONSIBILITIES:
-//   - Enforce depth, gap-edge, fear-axis exclusions, nearest Interact and single use.
+//   - Enforce depth, gap-edge placement, nearest Interact and single use.
 //   - Return activation facts using the supplied committed player pose and tick.
 // DEPENDENCIES:
 //   - Own state/config, Core values and injected System.Random only.
 // USAGE NOTES:
-//   No Domain-to-Domain dependencies. Assembly supplies reachable sites and event axes.
+//   No Domain-to-Domain dependencies. Assembly supplies reachable sites; event axes do not exclude shrines.
 //   Contact wins inside its radius; a pressed Interact selects only the nearest live shrine.
 // ============================================================================
 using System;
@@ -44,7 +44,7 @@ namespace Worsen.Domain.Shrine
                 (moreShrines ? config.MoreShrinesBonus : 0));
         }
         public IReadOnlyList<ShrinePlacement> Assemble(IReadOnlyList<ShrineSite> sites, int floor,
-            bool moreShrines = false, IReadOnlyCollection<FearAxis> excludedAxes = null)
+            bool moreShrines = false)
         {
             var placements = new List<ShrinePlacement>();
             int count = CountForFloor(floor, moreShrines);
@@ -55,9 +55,7 @@ namespace Worsen.Domain.Shrine
                 var kinds = new List<ShrineKind>();
                 foreach (var entry in config.Availability)
                 {
-                    bool excluded = false;
-                    if (excludedAxes != null) foreach (var axis in excludedAxes) excluded |= entry.Axis != FearAxis.None && axis == entry.Axis;
-                    if (!excluded && floor >= entry.Floor && (entry.Kind != ShrineKind.Passage || site.GapEdge)) kinds.Add(entry.Kind);
+                    if (floor >= entry.Floor && (entry.Kind != ShrineKind.Passage || site.GapEdge)) kinds.Add(entry.Kind);
                 }
                 if (kinds.Count > 0) placements.Add(new ShrinePlacement(i, kinds[random.Next(kinds.Count)], site));
             }

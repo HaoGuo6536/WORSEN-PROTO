@@ -7,12 +7,11 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · HUD target.
 // KEY RESPONSIBILITIES:
-//   - Route Progression's variable-capacity inventory/selection to HUD and Run slot telemetry.
-//   - Route typed guidance snapshots; display counters must never overwrite either arrow.
-//   - Forward supplied values and pair every subscription with teardown.
-//   - Reset chase presentation when a new generated floor capture begins.
-//   - Route authoritative golden totals and translate empty slots to held-item count.
-//   - Forward the current unshaken camera aim after camera LateUpdate for the 3D compass.
+//   - Route fixed-total counters and floor visibility through Run, including late binding.
+//   - Route independent guidance, shield and unshaken camera aim to HUD.
+//   - Route Progression inventory/selection to HUD and Run telemetry.
+//   - Pair subscriptions with teardown and reset presentation at floor capture.
+//   - Forward chase facts without computing gameplay or presentation rules.
 // DEPENDENCIES:
 //   - Session Progression supplies held items; the legacy Player inventory is not read.
 //   - Core event payloads, Session Run, HUD and Camera Presentation Managers.
@@ -50,17 +49,23 @@ namespace Worsen.Orchestrator
             _hud.Initialize();
             _run.FloorDisplayChanged += OnDisplay;
             _run.GuidanceChanged += OnGuidance;
+            _run.TickingGuidancePublished += OnThreat;
+            _run.ShieldChanged += OnShield;
+            _run.PublishShieldSnapshot();
             _run.PlayerMovementPublished += OnMovement;
             BindProgression();
             _run.ChaseStarted += OnChase;
             _run.ChaseEnded += OnChaseEnd;
             _run.CaptureStarted += OnCaptureStarted;
+            _run.PublishFloorSnapshot();
         }
         private void OnDisable()
         {
             if (_run == null) return;
             _run.FloorDisplayChanged -= OnDisplay;
             _run.GuidanceChanged -= OnGuidance;
+            _run.TickingGuidancePublished -= OnThreat;
+            _run.ShieldChanged -= OnShield;
             if (_hud != null) { _hud.ResetRunView(); _hud.SetGuidance(null); }
             _run.PlayerMovementPublished -= OnMovement;
             if (_progression != null) _progression.ConsumablesChanged -= OnSlots;
@@ -71,12 +76,13 @@ namespace Worsen.Orchestrator
         }
         private void OnDisplay(FloorDisplaySnapshot display)
         {
-            _hud.SetCount(display.Collected, display.Required);
-            _hud.SetGoldenCount(display.Golden);
+            _hud.SetFloorCounters(display);
             _hud.SetExitState(display.Exit);
         }
         private void OnMovement(PlayerMovementSample sample) => _hud.SetHeading(sample.HeadingDegrees);
         private void OnGuidance(IReadOnlyList<GuidanceTarget> targets) => _hud.SetGuidance(targets);
+        private void OnThreat(TickingGuidanceFact fact) => _hud.SetThreat(fact);
+        private void OnShield(Worsen.Core.EntityId player, float shield) => _hud.SetShield(shield);
         private void BindProgression()
         {
             if (_progression != null) return;
@@ -87,6 +93,6 @@ namespace Worsen.Orchestrator
         private void OnChase(ChaseFact fact) => _hud.SetChaseMode(true);
         private void OnChaseEnd(ChaseFact fact) => _hud.SetChaseMode(false);
         private void OnCaptureStarted(RunCaptureMetadata metadata)
-        { BindProgression(); _hud.ResetRunView(); _hud.SetGuidance(null); _hud.SetGoldenCount(0); OnSlots(_progression != null ? _progression.Consumables : default); }
+        { BindProgression(); _hud.ResetRunView(); _hud.SetGuidance(null); _run.PublishFloorSnapshot(); OnSlots(_progression != null ? _progression.Consumables : default); _run.PublishShieldSnapshot(); }
     }
 }

@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
-//   - Register More Shrines and Blinder curses while preserving exact module effect ids.
+//   - Register owner-approved curses and upgrades while preserving module effect ids.
 //   - Store copy, fear axes, availability, requirements, caps and future shop prices.
 //   - Give Bargain a separate curse value, defaulting to one rather than shop price.
 // DEPENDENCIES:
@@ -84,26 +84,26 @@ namespace Worsen.Session.Progression
             new EffectCatalogueEntry("herald", EffectKind.Threat, FearAxis.Information, "The Herald", "Adds a screaming hunter that broadcasts your position and deafens you."),
             new EffectCatalogueEntry("no-look-back", EffectKind.Curse, FearAxis.Information, "No Look-Back", "Removes the look-back snap."),
             new EffectCatalogueEntry("silent-presence", EffectKind.Curse, FearAxis.Information, "Silent Presence", "Removes distant hunter presence loops; detection and attack cues remain."),
-            new EffectCatalogueEntry("hidden-count", EffectKind.Curse, FearAxis.Information, "Hidden Count", "Removes the shelter's active hunter list."),
+            new EffectCatalogueEntry("hidden-count", EffectKind.Curse, FearAxis.Information, "Hidden Count", "Hides the cake counter during a floor."),
+            new EffectCatalogueEntry("mimic-faithless-arrow", EffectKind.Curse, FearAxis.Information, "Faithless Arrow", "Replaces the white arrow's safe guidance with brief directions toward a Mimic.", hunters: new[] { "mimic" }),
             new EffectCatalogueEntry("blinder-more-traps", EffectKind.Curse, FearAxis.Information, "More Traps", "Adds Blinder traps, removing safe paths through the floor.", hunters: new[] { "blinder" }),
             new EffectCatalogueEntry("blinder-silent-traps", EffectKind.Curse, FearAxis.Information, "Silent Traps", "Removes the sound warning from Blinder traps.", hunters: new[] { "blinder" }),
             new EffectCatalogueEntry("darker-floors", EffectKind.Curse, FearAxis.Information, "Darker Floors", "Reduces lit rooms and the distance you can see through fog."),
             new EffectCatalogueEntry("random-spawn", EffectKind.Curse, FearAxis.Unpredictability, "Random Spawn", "Replaces the exit-room start with a spawn elsewhere on the floor."),
             new EffectCatalogueEntry("shuffled-collapse", EffectKind.Curse, FearAxis.Unpredictability, "Shuffled Collapse", "Removes farthest-first collapse order; an escape route remains guaranteed."),
-            new EffectCatalogueEntry("nothing", EffectKind.Curse, FearAxis.Unpredictability, "Nothing???", "Nothing???", change: "Changes one hunter rule for the rest of the run, with a tell but no announcement."),
-            new EffectCatalogueEntry("thin-skin", EffectKind.Curse, FearAxis.Stakes, "Thin Skin", "Reduces maximum health."),
+            new EffectCatalogueEntry("nothing", EffectKind.Curse, FearAxis.Unpredictability, "Nothing???", "Nothing???", change: "Reduces shop prices by 15%; adds one enemy and one stack at each shop round."),
             new EffectCatalogueEntry("spent-pockets", EffectKind.Curse, FearAxis.Stakes, "Spent Pockets", "Removes unused consumables at the exit; they no longer carry between floors."),
             new EffectCatalogueEntry("greedy-door", EffectKind.Curse, FearAxis.Agency, "Greedy Door", "Replaces immediate exit opening with a Golden Cake quota: 40%, scaled by remaining versus collected cakes. With none collected, completed collapse opens it anyway; the exit room never collapses."),
             new EffectCatalogueEntry("short-grace", EffectKind.Curse, FearAxis.Agency, "Short Grace", "Shortens the grace window after a hit."),
-            new EffectCatalogueEntry("faster-collapse", EffectKind.Curse, FearAxis.Time, "Faster Collapse", "Shortens the time before rooms collapse after the exit opens."),
+            new EffectCatalogueEntry("faster-collapse", EffectKind.Curse, FearAxis.Time, "Faster Collapse", "Shortens the time before rooms collapse after the exit opens; 15% more golden cakes."),
             new EffectCatalogueEntry("slow-mend", EffectKind.Curse, FearAxis.Stakes, "Slow Mend", "Reduces health regeneration to half speed."),
-            new EffectCatalogueEntry("no-regen", EffectKind.Curse, FearAxis.Stakes, "No Regen", "Removes health regeneration during a floor.", prerequisite: "slow-mend"),
+            new EffectCatalogueEntry("no-regen", EffectKind.Curse, FearAxis.Stakes, "No Regen", "Removes health regeneration during a floor.", floor: 12, prerequisite: "slow-mend"),
             new EffectCatalogueEntry("rough-start", EffectKind.Curse, FearAxis.Stakes, "Rough Start", "Replaces full starting health with half health on every floor."),
             new EffectCatalogueEntry("short-burst", EffectKind.Curse, FearAxis.Agency, "Short Burst", "Shortens the on-hit speed boost."),
             new EffectCatalogueEntry("heavy-legs", EffectKind.Curse, FearAxis.Agency, "Heavy Legs", "Removes the on-hit speed boost.", prerequisite: "short-burst"),
             new EffectCatalogueEntry("stored-momentum", EffectKind.Upgrade, FearAxis.Agency, "Stored Momentum", "A vault stores your speed and the next jump releases it.", price: 12),
-            new EffectCatalogueEntry("soft-landing", EffectKind.Upgrade, FearAxis.Agency, "Soft Landing", "Hard landings no longer stumble you.", price: 12),
-            new EffectCatalogueEntry("quiet-slide", EffectKind.Upgrade, FearAxis.Information, "Quiet Slide", "Slides make no noise at all.", price: 12),
+            new EffectCatalogueEntry("soft-landing", EffectKind.Upgrade, FearAxis.Agency, "Soft Landing", "Hard landings no longer stumble you.", price: 4),
+            new EffectCatalogueEntry("quiet-slide", EffectKind.Upgrade, FearAxis.Information, "Quiet Slide", "Slides make no noise at all.", price: 5),
             new EffectCatalogueEntry("thick-skin", EffectKind.Upgrade, FearAxis.Agency, "Thick Skin", "The grace window after a hit lasts longer.", cap: 3, price: 12),
             new EffectCatalogueEntry("wax-heart", EffectKind.Upgrade, FearAxis.Agency, "Wax Heart", "The first grab of every floor breaks automatically.", floor: 2, price: 12),
             new EffectCatalogueEntry("low-profile", EffectKind.Upgrade, FearAxis.Agency, "Low Profile", "Sliding passes under collapse hands; a slide cannot be grabbed.", floor: 2, price: 12),
@@ -136,8 +136,7 @@ namespace Worsen.Session.Progression
             new EffectCatalogueEntry("spare-key", EffectKind.Upgrade, FearAxis.Time, "Spare Key", "Keys spawn closer to you.", floor: 4, price: 12, hunters: new[] { "ticking" }),
             new EffectCatalogueEntry("mirror-skin", EffectKind.Upgrade, FearAxis.Information, "Mirror Skin", "Blindness lasts half as long.", floor: 5, price: 12, hunters: new[] { "blinder" }),
             new EffectCatalogueEntry("ear-plugs", EffectKind.Upgrade, FearAxis.Information, "Ear Plugs", "The Herald's scream deafens you for half as long.", floor: 5, price: 12, hunters: new[] { "herald" }),
-            new EffectCatalogueEntry("bail-bond", EffectKind.Upgrade, FearAxis.Stakes, "Bail Bond", "Reduces the early bail penalty by half.", floor: 5, price: 12),
-            new EffectCatalogueEntry("extra-life", EffectKind.Upgrade, FearAxis.Stakes, "Extra Life", "Once per run, dying returns you to the floor start at half health while collapse continues.", floor: 6, price: 12),
+            new EffectCatalogueEntry("extra-life", EffectKind.Upgrade, FearAxis.Stakes, "Extra Life", "Once per run, a catch revives you where you fell, with a brief collision grace and temporary damage immunity.", floor: 6, price: 12),
             new EffectCatalogueEntry("golden-touch", EffectKind.Upgrade, FearAxis.Stakes, "Golden Touch", "Increases each Golden Cake's value by one.", floor: 2, price: 12),
             new EffectCatalogueEntry("shop-reroll", EffectKind.Upgrade, FearAxis.Agency, "Shop Reroll", "Adds one free shop-offer reroll per visit.", floor: 2, cap: 3, price: 12),
             new EffectCatalogueEntry("loyalty-card", EffectKind.Upgrade, FearAxis.Stakes, "Loyalty Card", "All shop prices are lower.", floor: 3, cap: 3, price: 12),

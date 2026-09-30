@@ -8,14 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Tune the provisional gloved-hand scale independently of all collapse timings and reach.
-//   - Tune code-built named cakes, candle flicker, layered glow and the placeholder trap tick.
-//   - Reference native Lumen room and exit prefabs; no real-light fallback.
-//   - Reference cake art and an optional medieval panel visual for the physical exit.
-//   - Support staged cracks, tearing, mist advance and escapable hand contacts.
-//   - Tune mist opacity modulation and crack-width gain for published warning pulses.
+//   - Tune nameless cakes, candle flicker, layered glow and placeholder trap ticks.
+//   - Reference cake, exit and native Lumen art without a real-light fallback.
+//   - Tune gloved hands independently of gameplay timings and reach.
+//   - Tune cracks, mist and warning-pulse visuals for staged collapse.
 //   - Expose the horizontal guidance corner skip distance for designer tuning.
-//   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - UnityEngine serialized values and prefab/material references only.
 //   - Consumed within Floor; no other system dependency.
@@ -34,7 +31,7 @@ namespace Worsen.Domain.Floor
     {
         [SerializeField] private float _pickupRadius = 0.55f;
         [SerializeField] private GameObject _cakePrefab;
-        [SerializeField] private string _pipedName = "ADA";
+
         [SerializeField, Min(0.01f)] private float _cakeVisualScale = 1f;
         [SerializeField] private Color _frostingColor = new Color(1f, 0.08f, 0.32f);
         [SerializeField] private Color _candleColor = new Color(1f, 0.48f, 0.08f);
@@ -47,7 +44,7 @@ namespace Worsen.Domain.Floor
         [SerializeField, Min(0.1f)] private float _cakePoolRadius = 1.2f;
         [SerializeField, Min(0.01f)] private float _trapTickDuration = 0.06f;
         [SerializeField, Min(1f)] private float _trapTickFrequency = 900f;
-        public string PipedName => _pipedName;
+
         public float CakeVisualScale => Mathf.Max(0.01f, _cakeVisualScale);
         public Color FrostingColor => _frostingColor;
         public Color CandleColor => _candleColor;

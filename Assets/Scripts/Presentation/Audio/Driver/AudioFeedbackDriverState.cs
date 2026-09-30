@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Deduplicate physical exit opening and explicit committed shop transactions.
-//   - Latch one catch sting until the owning Driver resets the run.
+//   - Retain confirmed hand-death identity and one catch sting until run reset.
 //   - Remember prior health, movement, flashlight and phase observations.
 //   - Retain posture initialization and the continuous exertion envelope independently of gameplay.
 //   - Deduplicate committed event and pickup anchor identities without combo state.
@@ -51,6 +51,7 @@ namespace Worsen.Presentation.Audio
         public bool IsSprinting;
         public bool IsAlive = true;
         public bool CatchStingIssued;
+        public EntityId HandDeathPlayer;
         public bool ExitSoundIssued;
         public int TransactionRevision = -1;
         public bool IsCritical;

@@ -12,15 +12,11 @@
 //   Owns the rules over RunSessionBehaviorState without touching a Unity scene.
 //
 // KEY RESPONSIBILITIES:
-//   - Count Progression's physical slots and cancel only an admitted Extra Life death.
-//   - Gate pause before input/time consumption and derive detailed summaries from committed facts.
-//   - Admit the runtime-generated horror scene to the same fixed-step lifecycle.
-//   - Define phase transitions and gate ticks on scene readiness and run state.
-//   - Combine pending input, retain held controls, and consume edges exactly once.
-//   - Advance the run counter from explicit positive delta time values.
-//   - Close observational capture exactly once across repeated shutdown facts.
-//   - Accumulate run outcomes and confirmed-chase statistics from committed facts.
-//   - Admit flagged first-sweep bails while preserving death priority and normal exit gates.
+//   - Gate ticks and pause on scene readiness and run state.
+//   - Consume input edges once and advance explicit simulation time.
+//   - Accumulate outcomes, slot counts and confirmed-chase statistics.
+//   - Admit only open-exit escapes, preserving death priority and Extra Life cancellation.
+//   - Close observational capture exactly once across shutdown facts.
 //
 // DEPENDENCIES:
 //   - Run state and definitions in this system; Core input and phase values.
@@ -93,7 +89,7 @@ namespace Worsen.Session.Run
             state.ChaseCount = state.ChasesEscaped = state.ActiveChaseId = 0;
             state.ChaseStartedAt = state.TotalChaseSeconds = 0;
             state.PendingEndReason = RunEndReason.Unknown;
-            state.PendingBailed = false;
+
             state.DeadPlayer = EntityId.None;
             state.KillerPosition = Vector3.zero;
             state.TelemetryEventId = 0;
@@ -155,14 +151,13 @@ namespace Worsen.Session.Run
             state.ActiveChaseId = 0;
         }
 
-        public void RequestEnd(RunEndReason reason, EntityId player, Vector3 killerPosition, bool bailed = false)
+        public void RequestEnd(RunEndReason reason, EntityId player, Vector3 killerPosition)
         {
             if (state.Phase == RunPhase.Ended || reason == RunEndReason.Unknown) return;
-            if (reason == RunEndReason.Escaped && state.Phase != RunPhase.ExitOpen && state.Phase != RunPhase.Collapse &&
-                !(bailed && state.Phase == RunPhase.FirstSweep)) return;
+            if (reason == RunEndReason.Escaped && state.Phase != RunPhase.ExitOpen && state.Phase != RunPhase.Collapse) return;
             if (state.PendingEndReason == RunEndReason.Died) return;
             state.PendingEndReason = reason;
-            state.PendingBailed = reason == RunEndReason.Escaped && (state.PendingBailed || bailed);
+
             if (reason == RunEndReason.Died) { state.DeadPlayer = player; state.KillerPosition = killerPosition; }
         }
 
@@ -178,15 +173,14 @@ namespace Worsen.Session.Run
                 state.ChaseCount, state.ChasesEscaped, state.TotalChaseSeconds, state.PendingEndReason, state.SummarySeed, state.Scene,
                 state.DeathCause, state.KillerArchetypeId, state.GrabsEscaped,
                 state.PendingEndReason == RunEndReason.Escaped && state.ExitOpenedAt >= 0
-                    ? Math.Max(0, state.ElapsedSeconds - state.ExitOpenedAt) : -1, state.DepthReached,
-                bailed: state.PendingBailed);
+                    ? Math.Max(0, state.ElapsedSeconds - state.ExitOpenedAt) : -1, state.DepthReached);
             return true;
         }
 
         public bool CancelDeathForRevival(EntityId player)
         {
             if (state.Phase == RunPhase.Ended || state.PendingEndReason != RunEndReason.Died || state.DeadPlayer != player) return false;
-            state.PendingEndReason = RunEndReason.Unknown; state.PendingBailed = false;
+            state.PendingEndReason = RunEndReason.Unknown;
             state.DeathCause = DeathCause.None; state.KillerArchetypeId = string.Empty;
             state.DeadPlayer = EntityId.None; state.KillerPosition = Vector3.zero; state.PendingInput = default;
             return true;

@@ -13,6 +13,7 @@
 // USAGE NOTES:
 //   Coordinator-only Edit Mode execution under its lease. Temporary NavMesh data
 //   is removed in teardown; no project scene, prefab or asset is written.
+//   Registry resets explicitly remove stale Edit Mode registrations before and after each test.
 // ============================================================================
 using System;
 using System.Collections;
@@ -50,6 +51,7 @@ namespace Worsen.Tests.Expedition
         [SetUp]
         public void SetUp()
         {
+            ResetRegistries();
             Assert.That(PlayerRegistry.Items, Is.Empty); Assert.That(HunterRegistry.Items, Is.Empty);
             player = Component<PlayerManager>();
             var mover = Config<PlayerMoverDriverConfig>(); Set(mover, "_hunterBodyLayer", "Ignore Raycast");
@@ -85,7 +87,8 @@ namespace Worsen.Tests.Expedition
             controller.Queue(new ProgressionGenerationRequest(1, 17, 8, false,
                 new ProgressionEffects(1, 1, 1, 1, 100, 100, 1, activeThreatIds: new[] { "Hunter" })));
             controller.Begin(1); controller.RecordPlayer(player.Id);
-            controller.HunterSpawns("Hunter", Array.Empty<Vector3>()); controller.Ready();
+            controller.HunterSpawns("Hunter", new[] { new Vector3(16, 0, 0) });
+            controller.RecordHunter(new EntityId(-700)); controller.Ready();
             expedition = Component<ExpeditionSessionManager>();
             Set(expedition, "_state", state); Set(expedition, "_controller", controller);
             Set(expedition, "_level", level); Set(expedition, "_procedural", procedural); Set(expedition, "_floor", floor);
@@ -114,6 +117,7 @@ namespace Worsen.Tests.Expedition
             if (navigation.valid) navigation.Remove();
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear();
+            ResetRegistries();
         }
         [Test]
         public void ProducerSitesAssemblePassageActivatesPocketAndReleaseRemovesShrines()
@@ -146,7 +150,7 @@ namespace Worsen.Tests.Expedition
             if (!pool) LogAssert.Expect(LogType.Warning, "Shrine 1: purgatory-mutation-unavailable:Hunter");
             var fact = Fact(ShrineKind.Purgatory, extra: 1, mutation: true);
             Call(expedition, "HandleShrineResolved", fact); Call(expedition, "HandleShrineResolved", fact);
-            Assert.That(expedition.ActiveHunterCount, Is.EqualTo(1)); Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
+            Assert.That(expedition.ActiveHunterCount, Is.EqualTo(2)); Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
             foreach (var hunter in HunterRegistry.Items)
                 Assert.That(((IDictionary)Get(hunter.ReadOnlyState, "Mutations")).Count, Is.EqualTo(pool ? 1 : 0));
             Assert.That(unresolved.Count, Is.EqualTo(pool ? 0 : 1));
@@ -165,6 +169,11 @@ namespace Worsen.Tests.Expedition
                 new ShrineActivatedFact(2, ShrineKind.Pacification, 1, Vector3.zero, 1), ShrineKind.Pacification, false, dropBeliefs: true));
             foreach (var hunter in HunterRegistry.Items)
             { Assert.That(hunter.ReadOnlyState.BeliefConfidence, Is.Zero); Assert.That(Get(hunter.ReadOnlyState, "PendingNoiseDecision"), Is.False); }
+        }
+        private static void ResetRegistries()
+        {
+            typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            typeof(HunterRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         }
         private static ShrineResolvedFact Fact(ShrineKind kind, int extra = 0, bool mutation = false) =>
             new ShrineResolvedFact(1, new ShrineActivatedFact(1, kind, 1, Vector3.zero, 1), kind, false, extraHunters: extra, mutation: mutation);
