@@ -116,3 +116,4 @@ Wagered Haul and the wallet wager; decline a hunter; bring-in stakes (co-op).
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Early bail | Early bail hold and wallet penalty, wired through door, run session and run summary | Commits e95b37a, 8be19cc |

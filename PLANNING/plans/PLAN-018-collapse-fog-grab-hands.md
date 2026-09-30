@@ -93,3 +93,4 @@ Per-theme fog and hand looks (PLAN-026 themes); the lingering-room threat (PLAN-
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Collapse rebuild | Grab chain, rules, pulse, rubber-band wall and cake snatch accepted on a worker branch, integrating with PLAN-019 density; fog density field spike in progress | Branch wt/plan018-collapse 4990ce1 |

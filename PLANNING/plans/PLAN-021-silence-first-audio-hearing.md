@@ -98,3 +98,4 @@ Surface-specific footsteps, only once a surface matters to a hunter's hearing; a
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Music | Music floor kept, release randomised, sweep silenced. Live proximity/belief facts and run-end reset remain | Commit 87ebdd9 |
