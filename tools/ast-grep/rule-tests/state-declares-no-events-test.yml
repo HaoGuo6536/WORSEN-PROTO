@@ -1,0 +1,6 @@
+id: state-declares-no-events
+valid:
+  - 'class State { public int Value; }'
+invalid:
+  - 'class State { public event Action Changed; }'
+  - 'class State { public event Action Changed { add {} remove {} } }'

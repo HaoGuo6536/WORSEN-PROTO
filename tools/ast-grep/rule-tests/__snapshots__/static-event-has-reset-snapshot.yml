@@ -1,0 +1,12 @@
+id: static-event-has-reset
+snapshots:
+  class Owner { public static event Action Changed; }:
+    labels:
+    - source: class Owner { public static event Action Changed; }
+      style: primary
+      start: 0
+      end: 51
+    - source: public static event Action Changed;
+      style: secondary
+      start: 14
+      end: 49

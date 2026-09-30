@@ -1,0 +1,6 @@
+id: manager-fixed-time-tick-owner
+valid:
+  - 'class Owner { void Tick(float dt) { driver.Tick(dt); } }'
+invalid:
+  - 'class Owner { float Step() => Time.fixedDeltaTime; }'
+  - 'class Owner { float Step() => UnityEngine.Time.fixedDeltaTime; }'

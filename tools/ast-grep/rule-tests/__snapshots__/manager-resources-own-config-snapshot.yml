@@ -1,0 +1,38 @@
+id: manager-resources-own-config
+snapshots:
+  namespace Worsen.Session.Expedition { class ExpeditionSessionManager { void Load() { Resources.Load<ShrineConfig>("x"); } } }:
+    labels:
+    - source: Resources.Load<ShrineConfig>("x")
+      style: primary
+      start: 85
+      end: 118
+  namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load("x"); } } }:
+    labels:
+    - source: Resources.Load("x")
+      style: primary
+      start: 74
+      end: 93
+  namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<CameraDriverConfig>("x"); } } }:
+    labels:
+    - source: Resources.Load<CameraDriverConfig>("x")
+      style: primary
+      start: 74
+      end: 113
+  namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<Texture>("x"); } } }:
+    labels:
+    - source: Resources.Load<Texture>("x")
+      style: primary
+      start: 74
+      end: 102
+  ? namespace Worsen.Session.Settings { class SettingsManager { void Load() { Resources.Load<Texture>(Resources.Load<SettingsConfig>("x").Path); } } }
+  : labels:
+    - source: Resources.Load<Texture>(Resources.Load<SettingsConfig>("x").Path)
+      style: primary
+      start: 74
+      end: 139
+  ? namespace Worsen.Session.Settings { class SettingsManager { void Load() { UnityEngine.Resources.Load<Worsen.Domain.Other.SettingsConfig>("x"); } } }
+  : labels:
+    - source: UnityEngine.Resources.Load<Worsen.Domain.Other.SettingsConfig>("x")
+      style: primary
+      start: 74
+      end: 141
