@@ -7,10 +7,12 @@
 //   DriverState (§7c) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
 //   - Store raw samples, capture metadata, prior movement and local output status.
+//   - Retain expedition observation output status and the last reported floor seed.
 // DEPENDENCIES:
 //   - Core immutable values, local report and System collections.
 // USAGE NOTES:
 //   - Persistent with TelemetryDriver; cleared explicitly for each run.
+//   - Observation journal status survives floor captures and resets at expedition start.
 // ============================================================================
 using System.Collections.Generic;
 using Worsen.Core;
@@ -35,5 +37,8 @@ namespace Worsen.Presentation.Telemetry
         public long EndTick, LastTick;
         public string LastError = "", OutputPath = "";
         public TelemetryReport Report;
+        public int? ObservationFloorSeed;
+        public string ObservationOutputPath = "", ObservationError = "";
+        public bool ObservationFailed;
     }
 }

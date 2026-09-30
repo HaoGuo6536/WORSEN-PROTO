@@ -9,12 +9,15 @@
 //   Editor tool (§10) · Editor · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Ensure mirrored profile/config assets and the owned hunter prefab.
+//   - Resolve HunterBody by name for roots and all collision-bearing descendants.
 // DEPENDENCIES:
 //   - Hunter runtime types and UnityEditor APIs; no shared scene ownership.
 // USAGE NOTES:
 //   Run in an idle editor under the coordinator's Unity lease. Existing .meta
 //   identities and profile values are reused, and unrelated assets are never saved.
 //   The explicit-path overload supports isolated asset generation and Editor tests.
+//   HunterFactory clones these layers unchanged; missing HunterBody logs an error
+//   without changing layers. The coordinator provisions the layer before generation.
 // ============================================================================
 using System;
 using UnityEditor;
@@ -58,6 +61,7 @@ namespace Worsen.Editor.Hunter
                 if (visualCollider != null) UnityEngine.Object.DestroyImmediate(visualCollider);
                 Wire(driver, "_config", config); Wire(driver, "_capsule", capsule); Wire(driver, "_body", body);
                 Wire(manager, "_driver", driver);
+                AssignBodyLayer(root);
                 GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
                 if (prefab == null) throw new InvalidOperationException("Hunter prefab could not be saved.");
                 Wire(profile, "_prefab", prefab);
@@ -67,6 +71,19 @@ namespace Worsen.Editor.Hunter
             finally
             { if (exists) PrefabUtility.UnloadPrefabContents(root); else UnityEngine.Object.DestroyImmediate(root); }
         }
+        public static void AssignBodyLayer(GameObject root)
+        {
+            int layer = LayerMask.NameToLayer("HunterBody");
+            if (layer < 0)
+            {
+                Debug.LogError("HunterBody layer is missing; hunter body layers are unchanged. Add HunterBody before regenerating hunter assets.", root);
+                return;
+            }
+            root.layer = layer;
+            foreach (Collider collider in root.GetComponentsInChildren<Collider>(true))
+                collider.gameObject.layer = layer;
+        }
+
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
         {
             T asset = AssetDatabase.LoadAssetAtPath<T>(path); if (asset != null) return asset;

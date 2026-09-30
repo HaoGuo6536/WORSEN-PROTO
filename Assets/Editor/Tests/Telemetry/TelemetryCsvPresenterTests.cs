@@ -7,6 +7,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
 //   - Verify invariant numbers, text escaping and missing-value output.
+//   - Lock legacy column order and blank appended cells for every pre-existing kind.
 // DEPENDENCIES:
 //   - NUnit, Core values and TelemetryCsvPresenter.
 // USAGE NOTES:
@@ -22,6 +23,23 @@ namespace Worsen.Tests.Telemetry
 {
     public sealed class TelemetryCsvPresenterTests
     {
+        [Test]
+        public void EveryLegacyKindKeepsItsFirstTenCellsAndHasOnlyBlankAppendedCells()
+        {
+            var csv = new TelemetryCsvPresenter();
+            Assert.That(string.Join(",", csv.Header.Split(',').Take(10)), Is.EqualTo(
+                "row_type,tick,player,chase_id,kind,value,detail,in_chase,outcome,event_id"));
+            foreach (TelemetrySampleKind kind in System.Enum.GetValues(typeof(TelemetrySampleKind)))
+            {
+                if (kind >= TelemetrySampleKind.RoundStarted) continue;
+                string prefix = "\"raw\",\"7\",\"3\",\"2\",\"" + kind + "\",\"8.125\",\"unchanged\",\"True\",\"Lost\",\"19\"";
+                string row = csv.Raw(new TelemetrySample(7, new EntityId(3), 2, kind, 8.125f, "unchanged", true, ChaseEndReason.Lost, 19));
+                Assert.That(row, Is.EqualTo(prefix + string.Concat(Enumerable.Repeat(",\"\"", csv.Header.Split(',').Length - 10))), kind.ToString());
+            }
+            foreach (string row in csv.Metadata(new RunCaptureMetadata("fixture", 1, 0.1f, "s", "c", "order", 0))
+                .Concat(csv.Summary(new TelemetryReport(), 10)))
+                Assert.That(row, Does.EndWith(string.Concat(Enumerable.Repeat(",\"\"", csv.Header.Split(',').Length - 10))));
+        }
         [Test]
         public void RawRowsUseInvariantNumbersAndEscapeQuotesCommasAndNewlines()
         {
