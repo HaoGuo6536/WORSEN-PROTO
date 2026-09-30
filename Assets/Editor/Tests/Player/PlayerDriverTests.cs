@@ -9,6 +9,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Require visible hands clear of the final camera near plane and hidden feet/teardown.
 //   - Exercise the actual Driver and Unity casts against temporary BoxColliders.
 //   - Bound every horizontal displacement and check continuous top support.
 //   - Keep tall walls, low ceilings and unsupported edges blocking or airborne.
@@ -62,9 +63,11 @@ namespace Worsen.Tests.Player
         }
 
         [TestCase(MovementState.Ground)]
+        [TestCase(MovementState.Air)]
         [TestCase(MovementState.Slide)]
         [TestCase(MovementState.Vault)]
-        public void TraversalCommandsNeverShowLegacyLimbs(MovementState movement)
+        [TestCase(MovementState.Stumble)]
+        public void MovementShowsHandsBeyondCameraNearPlaneAndKeepsFeetHidden(MovementState movement)
         {
             Spawn(Vector3.zero);
             var visuals = new GameObject("[Test] Legacy limb visuals");
@@ -73,8 +76,11 @@ namespace Worsen.Tests.Player
             var serializedLimbs = new SerializedObject(limbs);
             foreach (string field in new[] { "_leftHand", "_rightHand", "_leftFoot", "_rightFoot" })
             {
-                var limb = new GameObject(field);
+                var limb = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                limb.name = field;
+                Object.DestroyImmediate(limb.GetComponent<Collider>());
                 limb.transform.SetParent(visuals.transform, false);
+                limb.transform.localScale = new Vector3(0.13f, 0.22f, 0.13f);
                 serializedLimbs.FindProperty(field).objectReferenceValue = limb;
             }
             serializedLimbs.ApplyModifiedPropertiesWithoutUndo();
@@ -82,6 +88,35 @@ namespace Worsen.Tests.Player
             serializedDriver.FindProperty("_limbs").objectReferenceValue = limbs;
             serializedDriver.ApplyModifiedPropertiesWithoutUndo();
             driver.ShowMovement(movement);
+            var cameraObject = new GameObject("[Test] Player view");
+            cameraObject.transform.SetParent(arrangement.transform, false);
+            var camera = cameraObject.AddComponent<UnityEngine.Camera>();
+            camera.tag = "MainCamera";
+            camera.nearClipPlane = 0.3f; // Stricter than the authored 0.05m lens.
+            var render = typeof(PlayerLimbStandIn).GetMethod("BeforeCameraRendering",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(render, Is.Not.Null);
+            foreach (float pitch in new[] { -85f, 0f, 85f })
+            foreach (float yaw in new[] { 0f, 180f })
+            {
+                camera.transform.SetPositionAndRotation(Origin + Vector3.up * 0.8f, Quaternion.Euler(pitch, yaw, 6f));
+                render.Invoke(limbs, new object[] { default(UnityEngine.Rendering.ScriptableRenderContext), camera });
+                foreach (Transform limb in visuals.transform)
+                {
+                    bool hand = limb.name.EndsWith("Hand");
+                    Assert.That(limb.gameObject.activeSelf, Is.EqualTo(hand));
+                    if (!hand) continue;
+                    Bounds bounds = limb.GetComponent<Renderer>().bounds;
+                    foreach (float x in new[] { -1f, 1f })
+                    foreach (float y in new[] { -1f, 1f })
+                    foreach (float z in new[] { -1f, 1f })
+                    {
+                        Vector3 corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3(x, y, z));
+                        Assert.That(camera.transform.InverseTransformPoint(corner).z, Is.GreaterThan(camera.nearClipPlane));
+                    }
+                }
+            }
+            driver.Teardown();
             foreach (Transform limb in visuals.transform) Assert.That(limb.gameObject.activeSelf, Is.False);
         }
 

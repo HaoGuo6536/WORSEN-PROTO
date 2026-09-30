@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Reset floor health to its effective maximum and regenerate living players after accepted hits.
+//   - Classify every movement noise; crouch changes posture, not speed or loudness.
 //   - Keep traversal look/cancel live, steer its last third and reward fresh end-window jumps.
 //   - Auto-grab checked untagged ledges, bend slides and enforce brief stumble speed cuts.
 //   - Implement only the Player responsibility named by this script.
@@ -25,6 +27,8 @@
 //   Pure rules with injected time/randomness. Reset clears a pooled life; hard stumble does not lock input.
 //   Recovery uses end-exclusive run ticks, rounded up from seconds at Reset's injected fixed step.
 //   The optional 60 Hz step preserves existing pure callers; the Manager supplies the actual engine step.
+//   Regeneration advances only with Tick's delta time, not AdvanceRecovery or wall time.
+//   Health hooks are neutral after Reset; configure them before BeginFloorHealth, after spawning.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -70,6 +74,8 @@ namespace Worsen.Domain.Player
             _state.MaxDesignSpeed = _profile.MaxDesignSpeed;
             _state.Health = _profile.MaximumHealth;
             _state.MaxHealth = _profile.MaximumHealth;
+            _state.RegenerationDelayRemaining = 0d;
+            _state.RegenerationMultiplier = _state.FloorStartHealthFraction = 1f;
             _state.HealthState = PlayerHealthState.Healthy;
             _state.MovementState = MovementState.Ground;
             _state.LookBack = _state.Grounded = _state.Crouched = _state.IsSprinting = false;
@@ -123,6 +129,7 @@ namespace Worsen.Domain.Player
                 _state.LookBack = false;
                 return new PlayerTickResult(Vector3.zero, _state.Crouched, facts.ToArray());
             }
+            RegenerateHealth(deltaTime);
             ApplyLook(frame);
             if ((frame.Pressed & InputButtons.Jump) != 0)
             {
@@ -193,7 +200,7 @@ namespace Worsen.Domain.Player
                 _state.ReboundCooldownRemaining = _profile.ReboundCooldown * _state.ReboundCooldownMultiplier;
                 ConsumeJump();
                 facts.Add(Fact(TraversalKind.Rebound, true, _state.Velocity.normalized, _profile.ReboundCooldown));
-                AddNoise(_profile.TraversalLoudness);
+                AddNoise(_profile.TraversalLoudness, NoiseSourceKind.Rebound);
             }
             else if (jump && _state.CoyoteRemaining > 0f && !probe.StandingBlocked)
             {
@@ -214,7 +221,7 @@ namespace Worsen.Domain.Player
                 _state.SlideRemaining = _profile.SlideDuration;
                 _state.MovementState = MovementState.Slide;
                 facts.Add(Fact(TraversalKind.Slide, true, horizontal.normalized, _profile.SlideDuration));
-                AddNoise(_profile.SlideLoudness);
+                AddNoise(_profile.SlideLoudness, NoiseSourceKind.Slide);
             }
 
             MoveHorizontal(frame, probe, deltaTime);
@@ -228,7 +235,8 @@ namespace Worsen.Domain.Player
                 && _state.FootstepRemaining <= 0f && _state.MovementState != MovementState.Slide)
             {
                 bool sprinting = (frame.Held & InputButtons.Sprint) != 0;
-                AddNoise(sprinting ? _profile.SprintLoudness : _profile.WalkingLoudness * _state.FootstepNoiseMultiplier);
+                AddNoise(sprinting ? _profile.SprintLoudness : _profile.WalkingLoudness * _state.FootstepNoiseMultiplier,
+                    NoiseSourceKind.Footstep);
                 _state.FootstepRemaining = _profile.FootstepInterval;
             }
             return new PlayerTickResult(_state.Velocity * deltaTime, _state.Crouched, facts.ToArray());
@@ -296,6 +304,7 @@ namespace Worsen.Domain.Player
             float boost = severity == HitSeverity.Light ? _profile.LightHitSpeedBoost : _profile.HeavyHitSpeedBoost;
             if (!Finite(boost) || boost < 0f || !Finite(1f + boost)) throw new ArgumentOutOfRangeException(nameof(boost));
             _state.Health = Mathf.Max(0f, _state.Health - damage);
+            _state.RegenerationDelayRemaining = Math.Max(0d, _profile.HealthRegenerationDelay);
             _state.HealthState = HealthTier(_state.Health);
             _state.GraceWindow = new GraceWindowFact(_state.Id, _state.Tick, _state.IsAlive ? graceEnd : _state.Tick, severity);
             _state.GraceActive = _state.Tick < _state.GraceWindow.EndTick;
@@ -343,6 +352,35 @@ namespace Worsen.Domain.Player
         }
 
         public void SetLookBackEnabled(bool enabled) { _state.LookBackEnabled = enabled; }
+
+        public void SetHealthRecoveryEffects(float regenerationMultiplier = 1f, float floorStartHealthFraction = 1f)
+        {
+            if (!Finite(regenerationMultiplier) || regenerationMultiplier < 0f
+                || !Finite(floorStartHealthFraction) || floorStartHealthFraction <= 0f || floorStartHealthFraction > 1f)
+                throw new ArgumentOutOfRangeException(nameof(regenerationMultiplier));
+            // Zero stops regeneration; 0.5 halves it. No curse identifiers are wired here.
+            _state.RegenerationMultiplier = regenerationMultiplier;
+            _state.FloorStartHealthFraction = floorStartHealthFraction;
+        }
+
+        public PlayerHitResult BeginFloorHealth(float maximumHealth, float movementMultiplier)
+        {
+            PlayerHitResult result = ApplyRunModifiers(maximumHealth * _state.FloorStartHealthFraction,
+                maximumHealth, movementMultiplier);
+            _state.RegenerationDelayRemaining = 0d;
+            return result;
+        }
+
+        private void RegenerateHealth(float dt)
+        {
+            double healingSeconds = Math.Max(0d, dt - _state.RegenerationDelayRemaining);
+            _state.RegenerationDelayRemaining = Math.Max(0d, _state.RegenerationDelayRemaining - dt);
+            if (healingSeconds <= 0d || _state.Health >= _state.MaxHealth || _state.RegenerationMultiplier <= 0f
+                || !Finite(_profile.HealthRegenerationPerSecond) || _profile.HealthRegenerationPerSecond <= 0f) return;
+            _state.Health = (float)Math.Min(_state.MaxHealth, _state.Health
+                + healingSeconds * _profile.HealthRegenerationPerSecond * _state.RegenerationMultiplier);
+            _state.HealthState = HealthTier(_state.Health);
+        }
 
         public PlayerHitResult ApplyRunModifiers(float health, float maximumHealth, float movementMultiplier)
         {
@@ -470,7 +508,7 @@ namespace Worsen.Domain.Player
             _state.MovementState = _state.StumbleRemaining > 0f ? MovementState.Stumble : MovementState.Ground;
             _state.LandingImpactSpeed = -1f;
             facts.Add(Fact(TraversalKind.Land, true, Vector3.down, _state.StumbleRemaining));
-            AddNoise(_profile.TraversalLoudness);
+            AddNoise(_profile.TraversalLoudness, NoiseSourceKind.Landing);
         }
 
         private void StartStumble(float duration, float retention)
@@ -517,7 +555,7 @@ namespace Worsen.Domain.Player
             // Look stays live; the base path is captured once and steering is a separate swept offset.
             _state.Grounded = false;
             ConsumeJump();
-            AddNoise(_profile.TraversalLoudness);
+            AddNoise(_profile.TraversalLoudness, NoiseSourceKind.Vault);
         }
 
         private PlayerTickResult ContinueVault(InputFrame frame, MovementProbe probe, float dt, List<PlayerTraversalFact> facts, bool canCancel)
@@ -591,9 +629,9 @@ namespace Worsen.Domain.Player
         private float EffectiveSprintSpeed() => _state.SprintSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.HitBoostMultiplier;
         private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration)
             => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration);
-        private void AddNoise(float loudness)
+        private void AddNoise(float loudness, NoiseSourceKind sourceKind)
         {
-            var noise = new NoiseEvent(_state.Id, _state.Position, loudness, _state.Tick);
+            var noise = new NoiseEvent(_state.Id, _state.Position, loudness, _state.Tick, sourceKind);
             _state.NoiseRing[_state.NextNoiseIndex] = noise;
             _state.NextNoiseIndex = (_state.NextNoiseIndex + 1) % _state.NoiseRing.Length;
             _state.NoiseCount = Math.Min(_state.NoiseCount + 1, _state.NoiseRing.Length);
