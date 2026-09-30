@@ -14,7 +14,7 @@
 // KEY RESPONSIBILITIES:
 //   - Identify the entity, position, and tick that produced a noise.
 //   - Carry loudness as a plain value for later hearing calculations.
-//   - Classify environmental sources without changing legacy noise production.
+//   - Keep acoustic kind separate from explicit gameplay provenance.
 //
 // DEPENDENCIES:
 //   - EntityId in Core and UnityEngine.Vector3 as a value type.
@@ -22,7 +22,8 @@
 // USAGE NOTES:
 //   Loudness is authored by the producing system, not calculated here. Tick
 //   uses the run's fixed-step counter so replay needs no engine clock.
-//   Legacy construction classifies the source as Other; no consumer is migrated.
+//   Legacy construction is Unspecified and must fail closed at hearing ingress.
+//   Producers, not audio playback or loudness, declare gameplay provenance.
 //
 // ============================================================================
 
@@ -30,17 +31,20 @@ using UnityEngine;
 
 namespace Worsen.Core
 {
+    public enum NoiseOrigin { Unspecified, PlayerMovement, Firecracker, PlayerTriggeredCakeTrap, Pacification, World, Presentation, FalsePositive }
+
     /// <summary>An environmental sound fact shared by hearing and presentation.</summary>
     public readonly struct NoiseEvent
     {
         public NoiseEvent(EntityId source, Vector3 position, float loudness, long tick,
-            NoiseSourceKind sourceKind = NoiseSourceKind.Other)
+            NoiseSourceKind sourceKind = NoiseSourceKind.Other, NoiseOrigin origin = NoiseOrigin.Unspecified)
         {
             Source = source;
             Position = position;
             Loudness = loudness;
             Tick = tick;
             SourceKind = sourceKind;
+            Origin = origin;
         }
 
         public EntityId Source { get; }
@@ -48,5 +52,6 @@ namespace Worsen.Core
         public float Loudness { get; }
         public long Tick { get; }
         public NoiseSourceKind SourceKind { get; }
+        public NoiseOrigin Origin { get; }
     }
 }

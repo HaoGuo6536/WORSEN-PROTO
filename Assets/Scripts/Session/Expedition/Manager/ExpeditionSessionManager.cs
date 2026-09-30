@@ -11,7 +11,7 @@
 //   - Own generation/admission and paired scene-service bindings with diagnostic failures.
 //   - Spawn every retained hunter plus seeded Nothing extras and restore run mutations.
 //   - Snapshot configured effects, rewards, theme and freeze facts into floor assembly.
-//   - Route puzzle, shrine, movement, geometry and actor facts through owned services.
+//   - Route world/view, Skip routes, break/light work, puzzles and shrine facts through owned services.
 //   - Route terminal outcomes to Progression and defer reassembly until cleanup completes.
 // DEPENDENCIES:
 //   - Domain Shrine owns single-use world objects; own spawn Driver validates live late-spawn cover.
@@ -54,10 +54,14 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Session.Expedition
 {
+    [RequireComponent(typeof(ExpeditionViewDriver))]
     public sealed class ExpeditionSessionManager : MonoBehaviour
     {
         private ExpeditionSessionBehaviorState _state;
         private ExpeditionSessionController _controller;
+        private ExpeditionHunterController _hunterWorld;
+        private ExpeditionLightController _hunterLights;
+        private ExpeditionViewDriver _viewDriver;
         private RunSessionManager _run;
         private ProgressionSessionManager _progression;
         private ProceduralManager _procedural;
@@ -164,6 +168,11 @@ namespace Worsen.Session.Expedition
             _run.TickAdvanced += HandleTick;
             _run.HunterArchetypePublished += HandleArchetype;
             _run.HunterMutationPublished += HandleMutation;
+            _run.RamFactPublished += HandleRam;
+            _run.MannequinFactPublished += HandleMannequin;
+            _run.SkipFactPublished += HandleSkip;
+            _run.HunterDoorBreakPublished += HandleDoorBreak;
+            if (_effects != null) _effects.DoorJamChanged += HandleDoorJam;
             if (_procedural != null)
             {
                 _procedural.ThemePublished += HandleTheme;
@@ -179,6 +188,14 @@ namespace Worsen.Session.Expedition
         private void Unsubscribe()
         {
             if (!_subscribed) return;
+            if (_effects != null) _effects.DoorJamChanged -= HandleDoorJam;
+            if (_run != null)
+            {
+                _run.RamFactPublished -= HandleRam;
+                _run.MannequinFactPublished -= HandleMannequin;
+                _run.SkipFactPublished -= HandleSkip;
+                _run.HunterDoorBreakPublished -= HandleDoorBreak;
+            }
             if (_procedural != null)
             {
                 _procedural.ThemePublished -= HandleTheme;
@@ -341,6 +358,7 @@ namespace Worsen.Session.Expedition
         private void BindWorld()
         {
             if (_worldBound) return;
+            _hunterLights = new ExpeditionLightController(new ExpeditionLightBehaviorState());
             _level.InteractableChanged += HandleInteractable;
             _run.BeforeTick += RouteClosedDoors;
             _worldBound = true;
@@ -353,7 +371,9 @@ namespace Worsen.Session.Expedition
             if (_run != null) _run.BeforeTick -= RouteClosedDoors;
             _director?.SetClosedDoors(null);
             foreach (var hunter in HunterRegistry.Items) if (hunter != null)
-            { hunter.SetClosedDoors(null); hunter.SetInteractables(null); hunter.SetFloorView(null); hunter.SetActiveEffects(null); }
+            { hunter.SetClosedDoors(null); hunter.SetInteractables(null); hunter.SetFloorView(null); hunter.SetActiveEffects(null);
+                hunter.SetWorldView(null); hunter.SetPlayerView(default); }
+            _hunterWorld = null;
             _worldBound = false;
         }
 
@@ -368,12 +388,20 @@ namespace Worsen.Session.Expedition
         private void RouteClosedDoors()
         {
             if (!_worldBound || !_level.ReadOnlyState.IsReady) return;
-            _director.SetClosedDoors(_level.ClosedDoors);
+            _director?.SetClosedDoors(_level.ClosedDoors);
             foreach (var hunter in HunterRegistry.Items) if (hunter != null) BindHunterWorld(hunter);
+            if (_viewDriver == null) _viewDriver = GetComponent<ExpeditionViewDriver>();
+            HunterPlayerView view = default;
+            if (_viewDriver != null) _viewDriver.TrySample(_run.Tick + 1, out view);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetPlayerView(view);
         }
 
         private void BindHunterWorld(HunterManager hunter)
         {
+            if (_hunterWorld == null) _hunterWorld = new ExpeditionHunterController(new ExpeditionHunterBehaviorState(),
+                GenerationId, _level.ReadOnlyState.Graph, _level.Interactables);
+            hunter.SetWorldView(_hunterWorld);
+            if (_hunterWorld.BindHunter(hunter.Id)) hunter.BeginSkipFloor(GenerationId);
             hunter.SetClosedDoors(_level.ClosedDoors);
             hunter.SetInteractables(_level.Interactables);
             hunter.SetFloorView(_state != null && !_state.Request.IsShop ? _floor?.ReadOnlyState : null);
@@ -386,6 +414,54 @@ namespace Worsen.Session.Expedition
                     throw new InvalidOperationException("Retained mutation rejected by " + hunter.ArchetypeKey + ": " + mutation.Tunable);
         }
         private void HandleMutation(HunterMutationFact fact) => _controller.RetainMutation(fact);
+        private void HandleRam(RamFact fact)
+        {
+            if (_worldBound && _state.Hunters.Contains(fact.Hunter) && fact.Kind == RamFactKind.PartitionImpact &&
+                _level.Interactables.TryGet(fact.ObjectId, out var item) &&
+                (item.Kind == InteractableKind.Partition || item.Kind == InteractableKind.KnockableProp)) _level.Break(fact.ObjectId);
+        }
+        private void HandleMannequin(MannequinFact fact)
+        {
+            if (!_worldBound || !_state.Hunters.Contains(fact.Hunter)) return;
+            _hunterLights?.Observe(fact);
+            RefreshHunterLights(0f);
+        }
+        private void RefreshHunterLights(float dt)
+        {
+            if (_hunterLights == null || _level?.ReadOnlyState?.Graph == null) return;
+            var lights = new List<InteractableState>();
+            foreach (var room in _level.ReadOnlyState.Graph.Rooms)
+                foreach (var item in _level.Interactables.InRoom(room.Id))
+                    if (item.Kind == InteractableKind.Light) lights.Add(item);
+            foreach (var change in _hunterLights.Tick(dt, WickActive, lights)) _level.SetLit(change.Key, change.Value);
+        }
+        private void HandleSkip(SkipFact fact)
+        {
+            if (_worldBound && fact.Floor == GenerationId && _state.Hunters.Contains(fact.Hunter) &&
+                fact.Kind == SkipFactKind.Marked) _level.Mark(fact.MarkId);
+        }
+        private void HandleDoorBreak(HunterDoorBreakFact fact)
+        {
+            if (_hunterWorld != null && _hunterWorld.MatchesBreak(fact) && _effects != null && _effects.CompleteDoorBreak(fact.DoorId))
+                _hunterWorld.RemoveJam(fact.DoorId);
+        }
+        private void HandleDoorJam(DoorJamFact fact)
+        {
+            if (_hunterWorld == null) return;
+            if (!fact.Active) { _hunterWorld.RemoveJam(fact.DoorId); return; }
+            if (_procedural == null || !_level.Interactables.TryGet(fact.DoorId, out var item)) return;
+            // Generated ordinary door edges use the same stable index as ProceduralInteractablePresenter.
+            int index = item.EdgeId - 1001;
+            if (index < 0 || index >= _procedural.Doors.Count) return;
+            var door = _procedural.Doors[index];
+            var size = door.AlongX ? new Vector3(_proceduralConfig.DoorWidth, _proceduralConfig.DoorHeight, _proceduralDriverConfig.WallThickness) :
+                new Vector3(_proceduralDriverConfig.WallThickness, _proceduralConfig.DoorHeight, _proceduralConfig.DoorWidth);
+            _hunterWorld.SetJam(fact, new Bounds(item.Position, size));
+        }
+        private void RecordSkipUse(SkipTraversalUse use)
+        {
+            foreach (var id in _state.Hunters) if (HunterRegistry.TryGet(id, out var hunter)) hunter.RecordSkipUse(use);
+        }
         private void HandleArchetype(HunterArchetypeFact fact)
         {
             if (_worldBound && _state != null && _state.Hunters.Contains(fact.Hunter) &&
@@ -399,18 +475,36 @@ namespace Worsen.Session.Expedition
         {
             _controller.ObservePuzzleMovement(sample);
             _effects?.ObserveMovement(sample);
-            if (_controller.ObserveCrossing(sample, out int door, out Vector3 position)) _effects?.RecordDoorCrossed(door, position);
+            if (_controller.ObserveCrossing(sample, out int door, out Vector3 position))
+            {
+                _effects?.RecordDoorCrossed(door, position);
+                if (_hunterWorld != null && _hunterWorld.TryDoorway(sample.Id, sample.Tick, position, sample.Position, out var use)) RecordSkipUse(use);
+            }
         }
         private void HandleTraversal(PlayerTraversalFact fact)
         {
             _effects?.ObserveTraversal(fact);
             CompletePuzzleVault(fact, fact.SurfaceId);
+            if (_hunterWorld == null || !_controller.AcceptsGameplay(fact.Id) || !fact.Succeeded || fact.SurfaceId <= 0 ||
+                (fact.Kind != TraversalKind.Vault && fact.Kind != TraversalKind.Mantle && fact.Kind != TraversalKind.Land) ||
+                !PlayerRegistry.TryGet(fact.Id, out var player)) return;
+            foreach (var marker in _procedural.TraversalMarkers)
+            {
+                if (marker.Id != fact.SurfaceId) continue;
+                SkipRouteKind kind;
+                if (marker.Kind == LevelMarkerKind.VaultSurface) kind = SkipRouteKind.VaultWindow;
+                else if (marker.Kind == LevelMarkerKind.OneWayDrop) kind = SkipRouteKind.Drop;
+                else continue;
+                if (_hunterWorld.TryRoute(fact.Id, fact.Tick, fact.SurfaceId, kind, player.ReadOnlyState.Position, -1, out var use)) RecordSkipUse(use);
+                break;
+            }
         }
         private void HandleTick(InputFrame frame, float dt, long tick)
         {
             if (_controller.TryTickPuzzles(dt, tick, out var movement)) _procedural?.TickPuzzles(movement, dt);
             _effects?.Tick(frame, dt, tick);
             if (_controller.TickWick(dt, tick)) RestoreWick();
+            RefreshHunterLights(dt);
         }
 
         public void CompletePuzzleVault(PlayerTraversalFact fact, int surfaceId)
@@ -611,6 +705,8 @@ namespace Worsen.Session.Expedition
             if (_spawnDriver != null)
             { if (Application.isPlaying) Destroy(_spawnDriver); else DestroyImmediate(_spawnDriver); _spawnDriver = null; }
             UnbindWorld();
+            _hunterWorld = null;
+            _hunterLights = null;
             Release(() => FloorReleased?.Invoke(), failures);
             if (_effects != null) { _effects.ClearHazards(); _effects.Suspend(); }
             if (_director != null) Release(_director.Teardown, failures);
