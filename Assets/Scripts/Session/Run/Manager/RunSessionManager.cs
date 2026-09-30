@@ -36,8 +36,8 @@
 //   Accepted hits are recorded even before chase confirmation. Terminal outcomes
 //   are committed after facts, then capture closes before input/results notification.
 //   Recovery uses the processing Run tick, not a queued hit's historical timestamp.
-//   EntityId.None noises go through Director's acoustic hint path, never both paths.
-//   Without Director the legacy direct-hearing fallback is retained. No source is forged.
+//   Explicit gameplay origins gate hearing before Director or direct delivery.
+//   Pacification, pickups, hands and hunter sound facts are presentation-only.
 //   Shield-only hits publish Damage=0 and telemetry health loss=0, still count as catches
 //   and keep Player's grace/boost. Other hit payloads retain their incoming damage metadata.
 //
@@ -91,6 +91,20 @@ namespace Worsen.Session.Run
         public event Action<TickingSoundFact> TickingSoundPublished;
         public event Action<TickingGuidanceFact> TickingGuidancePublished;
         public event Action<TickingNoiseFact> TickingNoisePublished;
+        public event Action<RamFact> RamFactPublished;
+        public event Action<SkipFact> SkipFactPublished;
+        public event Action<MimicFact> MimicFactPublished;
+        public event Action<BlinderHitFact> BlinderHitPublished;
+        public event Action<BlinderThrowFact> BlinderThrowPublished;
+        public event Action<BlinderSoundFact> BlinderSoundPublished;
+        public event Action<BlinderTrapPolicyFact> BlinderTrapPolicyPublished;
+        public event Action<HeraldScreamFact> HeraldScreamPublished;
+        public event Action<HeraldBreathFact> HeraldBreathPublished;
+        public event Action<HeraldDeafenFact> HeraldDeafenPublished;
+        public event Action<HunterDoorBreakFact> HunterDoorBreakPublished;
+        public event Action<MannequinFact> MannequinFactPublished;
+        public event Action<StareFact> StareFactPublished;
+        public event Action<NoiseEvent> WorldNoisePublished;
         public event Action<HunterHit> HitAccepted;
         public event Action<GraceWindowFact> OnGraceStarted;
         public event Action<GraceWindowFact> OnGraceEnded;
@@ -275,9 +289,7 @@ namespace Worsen.Session.Run
         private void HandleShrineNoise(NoiseEvent noise)
         {
             if (IsPaused) return;
-            if (director != null) { director.HearNoise(noise); return; }
-            foreach (var hunter in HunterRegistry.Items)
-                if (hunter != null && hunter.isActiveAndEnabled && hunter.ReadOnlyState?.IsActive == true) hunter.HearNoise(noise);
+            WorldNoisePublished?.Invoke(noise);
         }
 
         private void OnEnable()
@@ -306,7 +318,7 @@ namespace Worsen.Session.Run
                 floor.OnPickupCollected += HandlePickup;
                 floor.OnPickupNoise += HandlePickupNoise;
                 floor.OnHandNoise += HandlePickupNoise;
-                floor.OnTrapNoise += HandlePickupNoise;
+                floor.OnTrapNoise += HandleTrapNoise;
                 floor.OnTrapSprung += HandleTrapSprung;
                 floor.OnGuidanceChanged += HandleGuidance;
                 floor.OnBoundaryContact += HandleBoundaryContact;
@@ -352,7 +364,7 @@ namespace Worsen.Session.Run
                 floor.OnPickupCollected -= HandlePickup;
                 floor.OnPickupNoise -= HandlePickupNoise;
                 floor.OnHandNoise -= HandlePickupNoise;
-                floor.OnTrapNoise -= HandlePickupNoise;
+                floor.OnTrapNoise -= HandleTrapNoise;
                 floor.OnTrapSprung -= HandleTrapSprung;
                 floor.OnGuidanceChanged -= HandleGuidance;
                 floor.OnBoundaryContact -= HandleBoundaryContact;
@@ -378,6 +390,12 @@ namespace Worsen.Session.Run
             hunter.OnArchetypeFact += HandleHunterArchetype; hunter.OnHabit += HandleHunterHabit;
             hunter.OnMutation += HandleHunterMutation; hunter.OnWeaverFact += HandleWeaver;
             hunter.OnWebHit += HandleWebHit;
+            hunter.OnRamFact += HandleRam; hunter.OnSkipFact += HandleSkip; hunter.OnMimicFact += HandleMimic;
+            hunter.OnBlinderHit += HandleBlinderHit; hunter.OnBlinderThrow += HandleBlinderThrow;
+            hunter.OnBlinderSound += HandleBlinderSound; hunter.OnBlinderTrapPolicy += HandleBlinderTrapPolicy;
+            hunter.OnHeraldScream += HandleHeraldScream; hunter.OnHeraldBreath += HandleHeraldBreath;
+            hunter.OnHeraldDeafen += HandleHeraldDeafen; hunter.OnDoorBreakCompleted += HandleDoorBreak;
+            hunter.OnMannequinFact += HandleMannequin; hunter.OnStareFact += HandleStare;
             if (hunter.Ticking == null) return;
             hunter.Ticking.OnSound += HandleTickingSound; hunter.Ticking.OnGuidance += HandleTickingGuidance;
             hunter.Ticking.OnNoise += HandleTickingNoise;
@@ -388,6 +406,12 @@ namespace Worsen.Session.Run
             hunter.OnArchetypeFact -= HandleHunterArchetype; hunter.OnHabit -= HandleHunterHabit;
             hunter.OnMutation -= HandleHunterMutation; hunter.OnWeaverFact -= HandleWeaver;
             hunter.OnWebHit -= HandleWebHit;
+            hunter.OnRamFact -= HandleRam; hunter.OnSkipFact -= HandleSkip; hunter.OnMimicFact -= HandleMimic;
+            hunter.OnBlinderHit -= HandleBlinderHit; hunter.OnBlinderThrow -= HandleBlinderThrow;
+            hunter.OnBlinderSound -= HandleBlinderSound; hunter.OnBlinderTrapPolicy -= HandleBlinderTrapPolicy;
+            hunter.OnHeraldScream -= HandleHeraldScream; hunter.OnHeraldBreath -= HandleHeraldBreath;
+            hunter.OnHeraldDeafen -= HandleHeraldDeafen; hunter.OnDoorBreakCompleted -= HandleDoorBreak;
+            hunter.OnMannequinFact -= HandleMannequin; hunter.OnStareFact -= HandleStare;
             if (hunter.Ticking == null) return;
             hunter.Ticking.OnSound -= HandleTickingSound; hunter.Ticking.OnGuidance -= HandleTickingGuidance;
             hunter.Ticking.OnNoise -= HandleTickingNoise;
@@ -413,12 +437,28 @@ namespace Worsen.Session.Run
         private void HandleTickingNoise(TickingNoiseFact fact)
         {
             if (IsPaused) return;
-            // Director owns fan-out when bound: never also enqueue its ranged hearing path.
-            if (director != null) director.HearFloorWideNoise(fact.Noise);
-            else foreach (var hunter in HunterRegistry.Items)
-                if (hunter != null && hunter.isActiveAndEnabled) hunter.HearFloorWideNoise(fact.Noise);
             TickingNoisePublished?.Invoke(fact);
         }
+
+        private void HandleRam(RamFact fact) { if (!IsPaused) RamFactPublished?.Invoke(fact); }
+        private void HandleSkip(SkipFact fact) { if (!IsPaused) SkipFactPublished?.Invoke(fact); }
+        private void HandleMimic(MimicFact fact) { if (!IsPaused) MimicFactPublished?.Invoke(fact); }
+        private void HandleBlinderHit(BlinderHitFact fact) { if (!IsPaused) BlinderHitPublished?.Invoke(fact); }
+        private void HandleBlinderThrow(BlinderThrowFact fact) { if (!IsPaused) BlinderThrowPublished?.Invoke(fact); }
+        private void HandleBlinderSound(BlinderSoundFact fact) { if (!IsPaused) BlinderSoundPublished?.Invoke(fact); }
+        private void HandleBlinderTrapPolicy(BlinderTrapPolicyFact fact) { if (!IsPaused) BlinderTrapPolicyPublished?.Invoke(fact); }
+        private void HandleHeraldScream(HeraldScreamFact fact) { if (!IsPaused) HeraldScreamPublished?.Invoke(fact); }
+        private void HandleHeraldBreath(HeraldBreathFact fact) { if (!IsPaused) HeraldBreathPublished?.Invoke(fact); }
+        private void HandleHeraldDeafen(HeraldDeafenFact fact)
+        {
+            if (IsPaused) return;
+            QueueHit(new HunterHit(fact.Hunter, fact.Player, fact.Damage, fact.Tick, fact.Origin,
+                ChaseEndReason.Unknown, HitSeverity.Light, HitSource.Scream));
+            HeraldDeafenPublished?.Invoke(fact);
+        }
+        private void HandleDoorBreak(HunterDoorBreakFact fact) { if (!IsPaused) HunterDoorBreakPublished?.Invoke(fact); }
+        private void HandleMannequin(MannequinFact fact) { if (!IsPaused) MannequinFactPublished?.Invoke(fact); }
+        private void HandleStare(StareFact fact) { if (!IsPaused) StareFactPublished?.Invoke(fact); }
 
         private void OnDisable() { SetPaused(false); UnsubscribeGameplay(); }
 
@@ -483,7 +523,23 @@ namespace Worsen.Session.Run
         private void HandlePickupNoise(NoiseEvent noise)
         {
             if (IsPaused) return;
-            if (!noise.Source.IsValid && director != null) { director.HearNoise(noise); return; }
+            WorldNoisePublished?.Invoke(noise);
+        }
+        private void HandleTrapNoise(NoiseEvent noise)
+        {
+            if (IsPaused) return;
+            // Floor emits this event only after validating a living player's SpringTrap.
+            // Stamp legacy payloads at that trusted event boundary, never from audibility.
+            if (noise.Origin == NoiseOrigin.Unspecified && noise.Source.IsValid)
+                noise = new NoiseEvent(noise.Source, noise.Position, noise.Loudness, noise.Tick,
+                    noise.SourceKind, NoiseOrigin.PlayerTriggeredCakeTrap);
+            WorldNoisePublished?.Invoke(noise);
+            ForwardGameplayNoise(noise);
+        }
+        public void ForwardGameplayNoise(NoiseEvent noise)
+        {
+            if (IsPaused || !HunterHearingUtility.Allows(noise)) return;
+            if (director != null) { director.HearNoise(noise); return; }
             foreach (HunterManager hunter in hunters)
                 if (hunter != null && hunter.isActiveAndEnabled && hunter.ReadOnlyState?.IsActive == true)
                     hunter.HearNoise(noise);
@@ -639,6 +695,10 @@ namespace Worsen.Session.Run
             HunterArchetypePublished = null; HunterHabitPublished = null; HunterMutationPublished = null;
             WeaverFactPublished = null; WebHitPublished = null; TickingSoundPublished = null;
             TickingGuidancePublished = null; TickingNoisePublished = null;
+            RamFactPublished = null; SkipFactPublished = null; MimicFactPublished = null;
+            BlinderHitPublished = null; BlinderThrowPublished = null; BlinderSoundPublished = null; BlinderTrapPolicyPublished = null;
+            HeraldScreamPublished = null; HeraldBreathPublished = null; HeraldDeafenPublished = null;
+            HunterDoorBreakPublished = null; MannequinFactPublished = null; StareFactPublished = null; WorldNoisePublished = null;
             OnGraceStarted = null; OnGraceEnded = null;
             RoomDestructionPublished = null; CollapseHandPublished = null;
             TrapSprung = null; GuidanceChanged = null;

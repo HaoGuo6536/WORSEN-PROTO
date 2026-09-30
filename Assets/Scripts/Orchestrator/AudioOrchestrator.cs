@@ -8,16 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Audio target.
 // KEY RESPONSIBILITIES:
-//   - Route roster, hidden progression tells, sound zones and sensory cleansing without announcing changes.
-//   - Pair direct deliberation publishers through registry refresh and floor-scoped teardown.
-//   - Route Level acoustics, physical exit progress, grace and paired active effects.
-//   - Forward committed purchase/reservation/reroll reasons without wallet inference.
-//   - Route Session pause to audio playback and its unscaled presentation clocks.
-//   - Route scene camera hold start to per-run catch sting admission, not PlayerDied.
-//   - Pair run, progression, effects, expedition and UI subscriptions symmetrically.
-//   - Preserve legacy cue fallback and feed rich threat layers in every scene.
-//   - Replace aggregate threat facts, never accumulate nearest-hunter snapshots.
-//   - Reset floor playback at capture/end; retain contact only within an expedition.
+//   - Route roster, progression tells, world acoustics and committed transactions.
+//   - Pair Session, camera, UI and scoped deliberation subscriptions symmetrically.
+//   - Route Blinder muffling, Herald deafness, cleansing and pause to Audio.
+//   - Preserve legacy cues and replace aggregate threat facts without accumulation.
+//   - Reset floor playback while retaining contact only within an expedition.
 // DEPENDENCIES:
 //   - Domain Hunter registry supplies only scoped deliberation publisher references.
 //   - Domain Level supplies Core graph and closed-door snapshots; Floor supplies trap positions.
@@ -110,6 +105,8 @@ namespace Worsen.Orchestrator
             _run.HunterHabitPublished += OnHabit;
             _run.WeaverFactPublished += OnWeaver;
             _run.TickingSoundPublished += OnTicking;
+            _run.BlinderHitPublished += OnBlinderHit;
+            _run.HeraldDeafenPublished += OnHeraldDeafen;
             _run.HitAccepted += OnHit;
             _run.BeforeTick += RefreshHunters;
             RefreshHunters();
@@ -155,6 +152,8 @@ namespace Worsen.Orchestrator
                 _run.HunterHabitPublished -= OnHabit;
                 _run.WeaverFactPublished -= OnWeaver;
                 _run.TickingSoundPublished -= OnTicking;
+                _run.BlinderHitPublished -= OnBlinderHit;
+                _run.HeraldDeafenPublished -= OnHeraldDeafen;
                 _run.HitAccepted -= OnHit;
                 _run.BeforeTick -= RefreshHunters;
                 _run.PickupCollected -= OnPickup;
@@ -227,6 +226,8 @@ namespace Worsen.Orchestrator
         private void OnHabit(HunterHabitFact fact) => _audio.ObserveHabit(fact);
         private void OnWeaver(WeaverFact fact) => _audio.ObserveWeaver(fact);
         private void OnTicking(TickingSoundFact fact) => _audio.ObserveTicking(fact);
+        private void OnBlinderHit(BlinderHitFact fact) { if (fact.MuffledDark) OnMuffledDark(fact.Duration); }
+        private void OnHeraldDeafen(HeraldDeafenFact fact) => OnDeafening(fact.Duration);
         private void OnHit(HunterHit fact) => _audio.ObserveHit(fact);
         private void OnDeliberation(EntityId hunter, Vector3 position, long tick)
         { if (_run != null && !_run.IsPaused) _audio.ObserveDeliberation(hunter, position, tick); }
