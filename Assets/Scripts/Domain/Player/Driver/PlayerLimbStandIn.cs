@@ -29,7 +29,7 @@ namespace Worsen.Domain.Player
 {
     public sealed class PlayerLimbStandIn : MonoBehaviour
     {
-        [SerializeField] private bool _showHands;
+        [SerializeField] private bool _showHands = false;
         [SerializeField] private GameObject _leftHand;
         [SerializeField] private GameObject _rightHand;
         [SerializeField] private GameObject _leftFoot;

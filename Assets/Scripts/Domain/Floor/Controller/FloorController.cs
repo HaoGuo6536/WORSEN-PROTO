@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Admit deduplicated Passage gold before global collapse, outside all objective quotas.
 //   - Admit one-shot optional puzzle gold independently of required cakes and exit quotas.
 //   - Prefer freeze doorway anchors and safely prioritize behind-rooms with full telegraphs.
 //   - Replace optional spawns with seeded traps; apply injected cake hooks without foreign effects.
@@ -172,7 +173,7 @@ namespace Worsen.Domain.Floor
             if (!_state.IsReady || _state.Ended || puzzleId == 0 || anchorId == 0 ||
                 !Finite(position.x) || !Finite(position.y) || !Finite(position.z) ||
                 _state.PuzzleRewards.ContainsKey(puzzleId) || _state.Graph.Anchors.Any(a => a.Id == anchorId) ||
-                _state.PuzzleRewards.Values.Any(a => a.Id == anchorId)) return false;
+                _state.PuzzleRewards.Values.Any(a => a.Id == anchorId) || _state.PassageRewards.Contains(anchorId)) return false;
             var rooms = _state.Graph.Rooms.Where(r => r.ContainsXZ(position) && r.Cells.Any(c => c.Contains(position))).ToArray();
             if (rooms.Length != 1) return false;
             _state.PuzzleRewards.Add(puzzleId, new LevelAnchor(anchorId, rooms[0].Id, CakeAnchorType.Risk, position));
@@ -189,6 +190,20 @@ namespace Worsen.Domain.Floor
             _state.GoldenAnchors.Add(anchor);
             _state.RemainingRewards.Add(anchorId, PickupKind.GoldenCake);
             reward = anchor;
+            return true;
+        }
+
+        public bool RegisterPassageReward(LevelAnchor anchor)
+        {
+            if (!_state.IsReady || _state.Ended || anchor.Id == 0 || !_state.PocketRooms.Contains(anchor.RoomId) ||
+                _state.MutableRoomPhases[anchor.RoomId] == RoomPhase.Closed ||
+                !Finite(anchor.Position.x) || !Finite(anchor.Position.y) || !Finite(anchor.Position.z) ||
+                !_state.Graph.Rooms.Any(r => r.Id == anchor.RoomId && r.ContainsXZ(anchor.Position) && r.Cells.Any(c => c.Contains(anchor.Position))) ||
+                _state.Graph.Anchors.Any(a => a.Id == anchor.Id) || _state.PuzzleRewards.Values.Any(a => a.Id == anchor.Id) ||
+                !_state.PassageRewards.Add(anchor.Id)) return false;
+            _state.SpawnedAnchors.Add(anchor);
+            _state.GoldenAnchors.Add(anchor);
+            _state.RemainingRewards.Add(anchor.Id, PickupKind.GoldenCake);
             return true;
         }
 
@@ -226,7 +241,7 @@ namespace Worsen.Domain.Floor
             }
             else if (kind == PickupKind.GoldenCake)
             {
-                if ((!_state.CollapseStarted && !_state.UnlockedPuzzleRewards.Contains(anchorId)) ||
+                if ((!_state.CollapseStarted && !OptionalGold(anchorId)) ||
                     !_state.CollectedGoldenCakes.Add(anchorId)) return false;
                 _state.GoldenCakeCount++;
                 _state.RemainingRewards.Remove(anchorId);
@@ -450,6 +465,7 @@ namespace Worsen.Domain.Floor
         {
             _state.MutableTraps.Clear(); _state.SprungTraps.Clear(); _state.GoldenAnchors.Clear();
             _state.PuzzleRewards.Clear(); _state.UnlockedPuzzleRewards.Clear(); _state.RouteSafeCollapse = false;
+            _state.PassageRewards.Clear();
             _state.CakeHooks = default; _state.CollapseStarted = false; _state.CueAnchorId = -1;
             _state.TrapTickElapsed = 0d; _state.Elapsed = 0d;
             _state.PocketRooms.Clear(); _state.PocketStarts.Clear();
@@ -540,14 +556,15 @@ namespace Worsen.Domain.Floor
         private void UpdateExitLock()
         {
             if (!_state.CollapseStarted || _state.ExitState == ExitState.Open) return;
-            int remaining = _state.RemainingRewards.Count(pair => pair.Value == PickupKind.GoldenCake && !_state.UnlockedPuzzleRewards.Contains(pair.Key));
-            int collected = _state.CollectedGoldenCakes.Count(id => !_state.UnlockedPuzzleRewards.Contains(id));
+            int remaining = _state.RemainingRewards.Count(pair => pair.Value == PickupKind.GoldenCake && !OptionalGold(pair.Key));
+            int collected = _state.CollectedGoldenCakes.Count(id => !OptionalGold(id));
             // Lost gold reduces the available pool. Zero collected waits for the full collapse.
             bool quota = collected > 0 && collected >= Mathf.CeilToInt((remaining + collected) * _config.GreedyDoorShare);
-            if (!_state.CakeHooks.GreedyDoor || !_state.GoldenAnchors.Any(a => !_state.UnlockedPuzzleRewards.Contains(a.Id)) || quota ||
+            if (!_state.CakeHooks.GreedyDoor || !_state.GoldenAnchors.Any(a => !OptionalGold(a.Id)) || quota ||
                 (_state.PendingCollapseRooms.Count == 0 && _state.NextTransition == _state.Schedule.Count))
             { _state.ExitState = ExitState.Open; CancelExitHolds(); }
         }
+        private bool OptionalGold(int id) => _state.UnlockedPuzzleRewards.Contains(id) || _state.PassageRewards.Contains(id);
         private static float NormalizedProgress(float value) => Finite(value) ? Mathf.Clamp01(value) : 0f;
         private LevelAnchor DrawAnchor(List<LevelAnchor> candidates, IReadOnlyCollection<int> preferred = null)
         {

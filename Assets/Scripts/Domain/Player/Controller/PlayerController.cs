@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Publish captured Vault identity on admission failure and resolved completion.
+//   - Own the single timed web-slow path; cleansing cancels both its factor and timer.
 //   - Apply Session-timed healing/speed, clear slows and revive at the retained floor spawn.
 //   - Compose a separately timed Core web slow with grab/trap factors without disabling slides.
 //   - Emit soft/hard landing severity independently of the stumble duration.
@@ -90,7 +92,7 @@ namespace Worsen.Domain.Player
             _state.Velocity = Vector3.zero;
             _state.FloorStartPosition = position;
             _state.FloorStartHeading = headingDegrees;
-            _state.WebSpeedMultiplier = _state.ConsumableSpeedMultiplier = 1f;
+            _state.ConsumableSpeedMultiplier = 1f;
             _state.PendingExternalVelocity = Vector3.zero;
             _state.HeadingDegrees = headingDegrees;
             _state.Forward = Quaternion.Euler(0f, headingDegrees, 0f) * Vector3.forward;
@@ -126,6 +128,7 @@ namespace Worsen.Domain.Player
             _state.VaultSteeringOffset = Vector3.zero;
             _state.VaultHeight = 0f;
             _state.VaultKind = TraversalKind.None;
+            _state.VaultSurfaceId = 0;
             _state.VaultCompletionPending = _state.PreserveVelocityOnCommit = false;
             _state.CompletedTraversal = null;
             _state.VaultAttemptResolvedForPress = false;
@@ -228,7 +231,7 @@ namespace Worsen.Domain.Player
                 bool mantle = probe.VaultHeight > _profile.VaultMaximumHeight;
                 _state.VaultAttemptResolvedForPress = true;
                 facts.Add(Fact(mantle ? TraversalKind.Mantle : TraversalKind.Vault, false,
-                    _state.Forward, TraversalDuration(mantle)));
+                    _state.Forward, TraversalDuration(mantle), probe.SurfaceId));
                 StartStumble(_profile.FailedVaultStumbleDuration, _profile.StumbleSpeedMultiplier);
                 ConsumeJump();
                 jump = false;
@@ -339,7 +342,7 @@ namespace Worsen.Domain.Player
             {
                 bool succeeded = Vector3.Distance(_state.Position, _state.VaultTarget + _state.VaultSteeringOffset) <= _profile.VaultCompletionTolerance;
                 _state.CompletedTraversal = Fact(_state.VaultKind, succeeded,
-                    (_state.VaultTarget - _state.VaultStart).normalized, _state.VaultDuration);
+                    (_state.VaultTarget - _state.VaultStart).normalized, _state.VaultDuration, _state.VaultSurfaceId);
                 if (!succeeded) StartStumble(_profile.FailedVaultStumbleDuration, _profile.StumbleSpeedMultiplier);
                 _state.VaultCompletionPending = false;
             }
@@ -409,11 +412,8 @@ namespace Worsen.Domain.Player
         public void SetConsumableSpeedMultiplier(float multiplier)
         { _state.ConsumableSpeedMultiplier = Finite(multiplier) ? Mathf.Max(1f, multiplier) : 1f; }
 
-        public void SetWebSpeedMultiplier(float multiplier)
-        { _state.WebSpeedMultiplier = Finite(multiplier) ? Mathf.Clamp01(multiplier) : 1f; }
-
         public void ClearSlows()
-        { _state.WebSpeedMultiplier = _state.TrapSpeedMultiplier = 1f; }
+        { _state.WebSlowRemaining = 0f; _state.WebSpeedMultiplier = _state.TrapSpeedMultiplier = 1f; }
 
         public bool RespawnAtFloorStart(float healthFraction)
         {
@@ -772,6 +772,7 @@ namespace Worsen.Domain.Player
             _state.VaultHeight = probe.VaultHeight;
             _state.VaultStart = _state.Position;
             _state.VaultKind = mantle ? TraversalKind.Mantle : TraversalKind.Vault;
+            _state.VaultSurfaceId = probe.SurfaceId;
             _state.VaultTarget = probe.VaultTarget;
             _state.VaultExitVelocity = Horizontal(_state.Velocity);
             if (!mantle && HasEffect(PlayerEffectStat.StoredMomentum))
@@ -862,8 +863,8 @@ namespace Worsen.Domain.Player
             _state.SprintSpeed * _state.MovementSpeedMultiplier) * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
         private float CapEffectSpeed(float speed) => PlayerEffectUtility.HasModifier(_effectConfig, _state.AppliedEffects, PlayerEffectStat.SprintSpeed)
             ? Mathf.Min(speed, PlayerEffectUtility.SprintCeiling(_effectConfig)) : speed;
-        private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration)
-            => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration);
+        private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration, int surfaceId = 0)
+            => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration, surfaceId: surfaceId);
         private void AddNoise(float loudness, NoiseSourceKind sourceKind)
         {
             var noise = new NoiseEvent(_state.Id, _state.Position, loudness, _state.Tick, sourceKind);

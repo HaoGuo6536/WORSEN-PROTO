@@ -10,6 +10,7 @@
 //   Driver (§7a) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply targeted blindness cleansing and revival latch clearing without resetting other inputs.
 //   - Forward Core grace windows and injected read-only effects to the Presenter.
 //   - Apply blur preferences immediately to runtime state and the owned volume.
 //   - Own and apply distortion, vignette, desaturation, grain and optional blur.
@@ -141,10 +142,21 @@ namespace Worsen.Presentation.PostFX
         { if (_state != null) _presenter.PlayIntrusion(_state, seconds, startle); }
 
         public void SetBlindness(float seconds)
-        { if (_state != null) _presenter.SetBlindness(_state, seconds); }
+        {
+            if (_state == null) return;
+            _presenter.SetBlindness(_state, seconds, _config);
+            _presenter.Tick(_state, _config, 0f); Apply();
+        }
+
+        public void ClearConsumed()
+        {
+            if (_state == null) return;
+            _presenter.ClearConsumed(_state);
+            _presenter.Tick(_state, _config, 0f); Apply();
+        }
 
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
-        { if (_state != null) _state.ActiveEffects = effects; }
+        { if (_state != null) _presenter.SetActiveEffects(_state, effects); }
 
         public void SetGrace(GraceWindowFact fact, bool active)
         { if (_state != null) _presenter.SetGrace(_state, fact, active); }

@@ -6,9 +6,10 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · HorrorEffects.
 // KEY RESPONSIBILITIES:
+//   - Exercise real timed web cleansing and Level-backed Doorstop admission/expiry.
 //   - Reject duplicate ticks; pause moving heals; clear slows; admit one revival.
 // DEPENDENCIES:
-//   Core, Player, HorrorEffects, Progression, NUnit and transient Unity objects.
+//   Core, Player, Level, HorrorEffects, Progression, NUnit and transient Unity objects.
 // USAGE NOTES:
 //   Edit Mode. Reflection supplies isolated state and restores the service singleton.
 // ============================================================================
@@ -19,6 +20,7 @@ using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Domain.Player;
+using Worsen.Domain.Level;
 using Worsen.Session.HorrorEffects;
 using Worsen.Session.Progression;
 using EntityId = Worsen.Core.EntityId;
@@ -67,11 +69,47 @@ namespace Worsen.Tests.HorrorEffects
         public void SaltsPublishesOneCleanseAndClearsBothSlowKinds()
         {
             Setup("smelling-salts", EffectKind.Consumable);
-            player.SetTrapSpeedMultiplier(.4f); player.SetWebSpeedMultiplier(.3f);
+            player.SetTrapSpeedMultiplier(.4f); player.ApplyWebSlow(new WebHitFact(new EntityId(-1), player.Id, 0, 1, .3f, 3f, 1f));
             int count = 0; effects.SensesCleansed += fact => { Assert.That(fact.PlayerId, Is.EqualTo(player.Id)); count++; };
             effects.Tick(UseFrame, .02f, 1);
             Assert.That(count, Is.EqualTo(1)); Assert.That(motion.TrapSpeedMultiplier, Is.EqualTo(1f));
-            Assert.That(typeof(PlayerBehaviorState).GetField("WebSpeedMultiplier", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(motion), Is.EqualTo(1f));
+            Assert.That(motion.WebSpeedMultiplier, Is.EqualTo(1f)); Assert.That(motion.WebSlowRemaining, Is.Zero);
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void DoorstopSelectsDoorAndRejectsOpenWithoutPublishingUntilExpiryOrBreak(bool broken)
+        {
+            Setup("doorstop", EffectKind.Consumable);
+            var level = Component<LevelManager>();
+            level.gameObject.SetActive(true);
+            var graph = LevelGraphUtility.Build(new[] {
+                new LevelRoom(1, Vector3.up * 2, new Vector3(12, 4, 12)),
+                new LevelRoom(2, new Vector3(12, 2, 0), new Vector3(12, 4, 12)) },
+                new[] { new LevelEdge(11, 1, 2, true, TraversalAccess.All) }, Array.Empty<LevelAnchor>(), 1, Vector3.zero);
+            level.InitializeGenerated(graph, new[] { new InteractableState(101, InteractableKind.Door, 1,
+                Vector3.back, InteractableStateValue.Open, 11) });
+            effects.ConfigureHazards(service, null, levelService: level);
+            effects.Tick(UseFrame, .02f, 1);
+            Assert.That(effects.IsDoorJammed(101), Is.True);
+            int changes = 0, playerOpens = 0;
+            level.InteractableChanged += (a, b) => changes++;
+            level.DoorOpened += (door, byPlayer) => { if (byPlayer) playerOpens++; };
+            Assert.That(level.OpenDoor(101, openedByPlayer: true), Is.False);
+            Assert.That(changes, Is.Zero); Assert.That(playerOpens, Is.Zero);
+            Assert.That(level.ClosedDoors[11], Is.True);
+            if (broken)
+            {
+                Assert.That(effects.CompleteDoorBreak(101), Is.True);
+                Assert.That(effects.IsDoorJammed(101), Is.False); Assert.That(level.ClosedDoors[11], Is.False);
+            }
+            else
+            {
+                effects.Tick(default, 1000f, 2);
+                Assert.That(effects.IsDoorJammed(101), Is.False);
+                Assert.That(level.OpenDoor(101, openedByPlayer: true), Is.True);
+                Assert.That(playerOpens, Is.EqualTo(1));
+            }
+            Assert.That(changes, Is.EqualTo(1));
         }
 
         [Test]

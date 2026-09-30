@@ -10,6 +10,7 @@
 //   Manager (§1) · Presentation · PostFX (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward targeted sensory cleansing and revival without resetting unrelated feedback.
 //   - Expose the configured Blind trap duration to the routing boundary.
 //   - Forward Run grace boundaries and the injected active-effects view.
 //   - Forward runtime blur enablement without changing the designer config.
@@ -69,6 +70,7 @@ namespace Worsen.Presentation.PostFX
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_initialized) _driver.SetActiveEffects(effects); }
         public void SetGrace(GraceWindowFact fact, bool active) { if (_initialized) _driver.SetGrace(fact, active); }
         public void PlayConsumed(float seconds) { if (_initialized) _driver.PlayConsumed(seconds); }
+        public void ClearConsumed() { if (_initialized) _driver.ClearConsumed(); }
         public void ResetEffects() { if (_initialized) _driver.ResetEffects(); }
 
         public void Teardown()

@@ -10,6 +10,7 @@
 //   Definitions (§5) · Core · shared boilerplate contracts.
 //
 // KEY RESPONSIBILITIES:
+//   - Preserve optional authored surface identity through traversal outcomes; zero is unknown.
 //   - Carry normalized landing severity separately from traversal duration (default soft).
 //   - Carry achieved slide turning for cosmetic banking without steering authority.
 //   - Carry committed crouch and sprint facts so feedback never guesses from camera height or input intent.
@@ -74,7 +75,7 @@ namespace Worsen.Core
     }
     public readonly struct PlayerTraversalFact
     {
-        public PlayerTraversalFact(EntityId id, long tick, TraversalKind kind, bool succeeded, Vector3 direction, float duration, float severity = 0f)
+        public PlayerTraversalFact(EntityId id, long tick, TraversalKind kind, bool succeeded, Vector3 direction, float duration, float severity = 0f, int surfaceId = 0)
         {
             Id = id;
             Tick = tick;
@@ -83,6 +84,7 @@ namespace Worsen.Core
             Direction = direction;
             Duration = duration;
             Severity = severity;
+            SurfaceId = surfaceId;
         }
         public EntityId Id { get; }
         public long Tick { get; }
@@ -91,6 +93,7 @@ namespace Worsen.Core
         public Vector3 Direction { get; }
         public float Duration { get; }
         public float Severity { get; }
+        public int SurfaceId { get; }
     }
     public readonly struct InventorySnapshot
     {
