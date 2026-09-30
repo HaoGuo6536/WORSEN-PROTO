@@ -92,6 +92,8 @@ namespace Worsen.Tests.HorrorEffects
             var noise = items.DrainNoises(); Assert.That(noise.Length, Is.EqualTo(1));
             Assert.That(noise[0].Position, Is.EqualTo(Vector3.forward));
             Assert.That(noise[0].Loudness, Is.EqualTo(config.FirecrackerLoudness));
+            Assert.That(HorrorNoiseUtility.Origin(noise[0]), Is.EqualTo(HorrorNoiseOrigin.Firecracker));
+            Assert.That(HorrorNoiseUtility.HunterAudible(noise[0]), Is.True);
             Assert.That(items.AdvanceThrows(.1f), Is.Empty);
         }
         [Test]
@@ -107,7 +109,9 @@ namespace Worsen.Tests.HorrorEffects
             Assert.That(items.DrainDoors()[0].Seconds, Is.EqualTo(8f));
             Tick(8f, Vector3.forward); Assert.That(items.IsJammed(7), Is.False); Assert.That(items.DrainNoises(), Is.Empty);
             Use("doorstop"); Assert.That(items.EndJam(7, true, tick), Is.True);
-            Assert.That(items.EndJam(7, true, tick), Is.False); Assert.That(items.DrainNoises().Length, Is.EqualTo(1));
+            Assert.That(items.EndJam(7, true, tick), Is.False);
+            var noises = items.DrainNoises(); Assert.That(noises.Length, Is.EqualTo(1));
+            Assert.That(HorrorNoiseUtility.HunterAudible(noises[0]), Is.False);
         }
         [Test]
         public void OilSlipsOnEntryNotEveryTickAndExpires()

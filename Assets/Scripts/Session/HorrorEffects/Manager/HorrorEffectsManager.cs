@@ -12,7 +12,7 @@
 //   - Complete in-place revival once after the catch without resetting collapse.
 //   - Route hand/ward/throw outcomes while rejecting revival-protected grabs.
 //   - Own effect lifecycle, actor refresh, trap slows and world jam bindings.
-//   - Publish light, sensory and item facts; route environmental noise through Director.
+//   - Publish sensory facts; only authorized item noise reaches hunter hearing.
 // DEPENDENCIES:
 //   Domain Level closes/breaks doors. Own Driver observes head bones and physics sweeps.
 //   Core contracts; Domain Player/Hunter registries and managers; Domain Floor manager.
@@ -218,8 +218,7 @@ namespace Worsen.Session.HorrorEffects
                         foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.SetAfterimage(fact.Light, fact.Value);
                         AfterimageChanged?.Invoke(fact.Light, fact.Value); break;
                     case HorrorEffectKind.Noise:
-                        if (director != null) director.HearNoise(fact.Noise);
-                        else foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(fact.Noise);
+                        // Legacy curse echoes and world noises are presentation-only.
                         NoiseEmitted?.Invoke(fact.Noise); break;
                     case HorrorEffectKind.FlameDim: FlameDimChanged?.Invoke(fact.Position, fact.Radius, fact.Value); break;
                     case HorrorEffectKind.OptionalRoomCrack:
@@ -331,10 +330,14 @@ namespace Worsen.Session.HorrorEffects
             foreach (var fact in consumables.DrainSlips()) HunterSlipped?.Invoke(fact);
             foreach (var fact in consumables.DrainDoors())
             { level?.SetDoorJammed(fact.DoorId, fact.Active); DoorJamChanged?.Invoke(fact); }
-            foreach (var noise in consumables.DrainNoises())
+            foreach (var fact in consumables.DrainNoiseFacts())
             {
-                if (director != null) director.HearNoise(noise);
-                else foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(noise);
+                var noise = fact.Noise;
+                if (HorrorNoiseUtility.HunterAudible(fact))
+                {
+                    if (director != null) director.HearNoise(noise);
+                    else foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(noise);
+                }
                 NoiseEmitted?.Invoke(noise);
             }
         }

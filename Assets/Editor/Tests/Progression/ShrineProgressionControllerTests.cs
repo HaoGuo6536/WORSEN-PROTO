@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
-//   - Cover Chance pools/lifetime, Bargain quotes, Echo history and delayed hearing.
+//   - Cover Chance pools/lifetime, Bargain quotes, ordinary Echo replay and world noise.
 //   - Cover Protection admission and Purgatory's fixed downside and scaled yield.
 // DEPENDENCIES:
 //   - Session Progression, Core, NUnit and temporary catalogue allocation.
@@ -143,9 +143,9 @@ namespace Worsen.Tests.Progression
         {
             Resolve(1, ShrineKind.Protection); controller.EndFloor();
             var result = Resolve(1, ShrineKind.Echo);
-            Assert.That(result.ResolvedKind, Is.EqualTo(ShrineKind.Protection)); Assert.That(result.ChangedOutcome, Is.True);
-            Assert.That(result.Shield, Is.EqualTo(80f)); Assert.That(result.Cost, Is.EqualTo(2 * (4 + 8 / 3)));
-            Assert.That(Resolve(2, ShrineKind.Echo).Shield, Is.EqualTo(80f));
+            Assert.That(result.ResolvedKind, Is.EqualTo(ShrineKind.Protection)); Assert.That(result.ChangedOutcome, Is.False);
+            Assert.That(result.Shield, Is.EqualTo(40f)); Assert.That(result.Cost, Is.EqualTo(4 + 8 / 3));
+            Assert.That(Resolve(2, ShrineKind.Echo).Shield, Is.EqualTo(40f));
             Assert.That(controller.History.Count, Is.EqualTo(3));
         }
         [Test]
@@ -153,8 +153,10 @@ namespace Worsen.Tests.Progression
         {
             SetEntries(Entry("a", EffectKind.Curse), Entry("good", EffectKind.Upgrade));
             Resolve(1, ShrineKind.Chance); controller.EndFloor(); Resolve(1, ShrineKind.Echo);
+            Assert.That(controller.FloorEffects.Count, Is.EqualTo(1));
+            Assert.That(controller.Resolve(1, 8, Fact(2, ShrineKind.Echo), 0, 0f, 0f, empty, out _), Is.True);
             Assert.That(controller.FloorEffects.Count, Is.EqualTo(2));
-            Assert.That(controller.Resolve(1, 8, Fact(2, ShrineKind.Echo), 0, 0f, 0f, empty, out _), Is.False);
+            Assert.That(controller.Resolve(1, 8, Fact(3, ShrineKind.Echo), 0, 0f, 0f, empty, out _), Is.False);
         }
         [TestCase(0f, 2f)] [TestCase(0.75f, 1.25f)] [TestCase(1f, 1f)]
         [TestCase(-1f, 2f)] [TestCase(2f, 1f)]
@@ -170,19 +172,21 @@ namespace Worsen.Tests.Progression
         public void WickPassageAndChangedOutcomesRemainExplicitIntegrationFacts()
         {
             Assert.That(Resolve(1, ShrineKind.Wick).WickSeconds, Is.EqualTo(10f));
-            Assert.That(Resolve(2, ShrineKind.Echo).WickSeconds, Is.EqualTo(20f));
+            Assert.That(Resolve(2, ShrineKind.Echo).WickSeconds, Is.EqualTo(10f));
             Assert.That(Resolve(3, ShrineKind.Passage).ResolvedKind, Is.EqualTo(ShrineKind.Passage));
-            Assert.That(Resolve(4, ShrineKind.Echo).YieldMultiplier, Is.EqualTo(2f));
+            Assert.That(Resolve(4, ShrineKind.Echo).YieldMultiplier, Is.EqualTo(1f));
         }
         [Test]
         public void EchoBargainDoublesPayoutAndPacificationHalvesDelay()
         {
             Resolve(1, ShrineKind.Bargain); Resolve(2, ShrineKind.Echo);
             controller.EndFloor(); controller.OpenDeal(empty);
-            Assert.That(controller.Deal().Offers.Single(o => o.Id == "a").Payout, Is.EqualTo(2 * 3 * (2 + 8 / 2)));
+            Assert.That(controller.Deal().Offers.Single(o => o.Id == "a").Payout, Is.EqualTo(3 * (2 + 8 / 2)));
             controller.CloseDeal(); Resolve(3, ShrineKind.Pacification); Resolve(4, ShrineKind.Echo);
-            var noise = controller.Tick(0.75f, 11).Single(); Assert.That(noise.Loudness, Is.EqualTo(40f));
-            Assert.That(controller.Tick(0.75f, 12).Single().Loudness, Is.EqualTo(20f));
+            Assert.That(controller.Tick(0.75f, 11), Is.Empty);
+            var noises = controller.Tick(0.75f, 12);
+            Assert.That(noises.Count, Is.EqualTo(2));
+            Assert.That(noises.All(noise => noise.Loudness == 20f), Is.True);
         }
     }
 }
