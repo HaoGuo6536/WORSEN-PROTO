@@ -12,7 +12,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Build quiet cake/golden counters and honor floor hiding independently of other HUD.
-//   - Render shield, selected inventory and independent threat/objective guidance.
+//   - Render occupied inventory within chase-hidden chrome and independent guidance.
+//   - Keep numerical shield/health information off the in-run surface.
 //   - Pair vector callbacks across document binding, replacement and teardown.
 //   - Apply chrome visibility and restoration without suppressing guidance.
 //
@@ -41,7 +42,7 @@ namespace Worsen.Presentation.HUD
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
         private VisualElement _goldenDirectionGroup, _goldenArrow;
         private Label _count, _golden, _overflow, _selected;
-        private Label _shield;
+
         private VisualElement _threatGroup;
         private readonly Dictionary<EntityId, Label> _threatArrows = new Dictionary<EntityId, Label>();
 
@@ -70,11 +71,7 @@ namespace Worsen.Presentation.HUD
             _golden = Text("golden-count", "Golden: —", _panel);
             _golden.style.fontSize = config.FontSize;
             _golden.style.color = config.MutedColor;
-            _shield = Text("shield", "Shield: 0", root);
-            _shield.style.color = config.MutedColor;
-            _shield.style.position = Position.Absolute;
-            _shield.style.right = config.ScreenMargin;
-            _shield.style.bottom = config.ScreenMargin;
+
             _threatGroup = Element("threat-directions", root);
             _threatGroup.style.position = Position.Absolute;
             _threatGroup.style.left = Length.Percent(50);
@@ -114,7 +111,7 @@ namespace Worsen.Presentation.HUD
             _overflow = Text("slot-overflow", "", inventory);
             _overflow.style.color = config.MutedColor;
             _overflow.style.fontSize = config.SmallFontSize;
-            _selected = Text("selected-consumable", "", root);
+            _selected = Text("selected-consumable", "", _extra);
             _selected.style.position = Position.Absolute;
             _selected.style.left = config.ScreenMargin;
             _selected.style.bottom = config.ScreenMargin;
@@ -128,7 +125,7 @@ namespace Worsen.Presentation.HUD
             _state = state;
             _count.text = state.CountText;
             _golden.text = state.GoldenText;
-            _shield.text = state.ShieldText;
+
             foreach (var id in new List<EntityId>(_threatArrows.Keys))
                 if (!state.Threats.ContainsKey(id)) { _threatArrows[id].RemoveFromHierarchy(); _threatArrows.Remove(id); }
             foreach (var pair in state.Threats)
@@ -155,6 +152,7 @@ namespace Worsen.Presentation.HUD
             _goldenArrow.MarkDirtyRepaint();
             _overflow.text = state.SlotOverflowText;
             _selected.text = state.SelectedSlotText;
+            _selected.style.display = string.IsNullOrEmpty(state.SelectedSlotText) ? DisplayStyle.None : DisplayStyle.Flex;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
             _slots.style.display = state.DisplayedSlots > 0 ? DisplayStyle.Flex : DisplayStyle.None;
             _arrow.style.rotate = new Rotate(new Angle(state.ArrowDegrees, AngleUnit.Degree));
@@ -164,7 +162,7 @@ namespace Worsen.Presentation.HUD
 
         public void Unbind()
         {
-            _threatArrows.Clear(); _threatGroup = null; _shield = null;
+            _threatArrows.Clear(); _threatGroup = null;
 
             if (_arrow != null) _arrow.generateVisualContent -= PaintArrow;
             if (_goldenArrow != null) _goldenArrow.generateVisualContent -= PaintGoldenArrow;
