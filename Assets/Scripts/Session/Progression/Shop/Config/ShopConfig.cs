@@ -43,7 +43,7 @@ namespace Worsen.Session.Progression.Shop
         [SerializeField, Min(0)] private int _shopRerolls = 1;
         [SerializeField, Range(0, 1)] private float _bargainDiscount = 0.25f;
         [SerializeField, Range(0, 1)] private float _loyaltyDiscount = 0.1f;
-        [SerializeField, Range(0, 1)] private float _bailPenaltyMultiplier = 0.5f;
+
         [SerializeField, Min(0)] private int _goldenTouchBonus = 1;
         [SerializeField, Range(0, 1)] private float _interestFraction = 0.1f;
         [SerializeField, Min(0)] private int _interestCap = 5;
@@ -63,7 +63,7 @@ namespace Worsen.Session.Progression.Shop
         public int ShopRerolls => _shopRerolls;
         public float BargainDiscount => _bargainDiscount;
         public float LoyaltyDiscount => _loyaltyDiscount;
-        public float BailPenaltyMultiplier => _bailPenaltyMultiplier;
+
         public int GoldenTouchBonus => _goldenTouchBonus;
         public float InterestFraction => _interestFraction;
         public int InterestCap => _interestCap;

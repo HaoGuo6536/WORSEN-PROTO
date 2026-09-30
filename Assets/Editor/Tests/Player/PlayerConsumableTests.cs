@@ -9,12 +9,14 @@
 // KEY RESPONSIBILITIES:
 //   - Use the sole timed web contact API and ensure cleansing cancels its lifetime.
 //   - Cover healing clamps, speed composition, cleansing and half-health floor respawn.
+//   - Verify in-place revival, independent protection deadlines, tuning and resets.
 // DEPENDENCIES:
 //   - Player pure controller/state/profile, Core values and NUnit.
 // USAGE NOTES:
 //   Edit Mode; profile objects are temporary and never saved.
 // ============================================================================
 using NUnit.Framework;
+using System.Reflection;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Domain.Player;
@@ -59,6 +61,72 @@ namespace Worsen.Tests.Player
             Assert.That(state.WebSlowRemaining, Is.Zero); Assert.That(state.WebSpeedMultiplier, Is.EqualTo(1f));
             player.SetConsumableSpeedMultiplier(1f); Assert.That(player.MaximumMovementSpeed, Is.EqualTo(baseline * .5f).Within(.001f));
         }
+        [TestCase(50)] [TestCase(60)] [TestCase(120)]
+        public void InPlaceRevivalKeepsPoseAndModifiersWithIndependentEndExclusiveProtection(int rate)
+        {
+            player.Reset(new EntityId(1), Vector3.zero, 0f, 1f / rate);
+            player.ApplyRunModifiers(0f, 120f, 1.2f);
+            state.Position = new Vector3(20f, 4f, 30f); state.HeadingDegrees = 123f;
+            state.Tick = 900; state.Crouched = true; state.Grounded = true;
+            player.SetHealthRecoveryEffects(0f);
+            Assert.That(player.ReviveInPlace(.25f), Is.True);
+            Assert.That(state.Position, Is.EqualTo(new Vector3(20f, 4f, 30f)));
+            Assert.That(state.HeadingDegrees, Is.EqualTo(123f)); Assert.That(state.Crouched, Is.True);
+            Assert.That(state.Health, Is.EqualTo(30f)); Assert.That(state.MaxHealth, Is.EqualTo(120f));
+            Assert.That(state.MovementSpeedMultiplier, Is.EqualTo(1.2f));
+            Assert.That(state.RegenerationMultiplier, Is.Zero); Assert.That(state.HitBoostMultiplier, Is.EqualTo(1f));
+            Assert.That(player.ReviveInPlace(.5f), Is.False, "No duplicate revival or extended deadline.");
+            Assert.That(player.GrantShield(10f), Is.True);
+            player.AdvanceRecovery(900 + rate * 2 - 1);
+            Assert.That(state.RevivalCollisionGraceActive, Is.True);
+            Assert.That(player.ApplyHit(1000f).Changed, Is.False);
+            Assert.That(player.AdvanceRecovery(900 + rate * 2), Is.Null);
+            Assert.That(state.RevivalCollisionGraceActive, Is.False);
+            Assert.That(state.RevivalDamageImmune, Is.True); Assert.That(state.IsUngrabbable, Is.True);
+            player.AdvanceRecovery(900 + rate * 3 - 1);
+            Assert.That(player.ApplyHit(1000f).Changed, Is.False);
+            Assert.That(state.Health, Is.EqualTo(30f)); Assert.That(state.Shield, Is.EqualTo(10f));
+            var ended = player.AdvanceRecovery(900 + rate * 3);
+            Assert.That(ended.HasValue, Is.True); Assert.That(ended.Value.StartTick, Is.EqualTo(900));
+            Assert.That(state.RevivalDamageImmune, Is.False); Assert.That(state.IsUngrabbable, Is.False);
+            Assert.That(player.AdvanceRecovery(900 + rate * 3), Is.Null);
+            Assert.That(player.ApplyHit(20f).Changed, Is.True);
+            Assert.That(state.Shield, Is.Zero); Assert.That(state.Health, Is.EqualTo(20f));
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void FloorOrNewLifeClearsRevivalProtection(bool newLife)
+        {
+            player.ApplyRunModifiers(0f, 100f, 1f); player.ReviveInPlace(.5f);
+            if (newLife) player.Reset(new EntityId(2), Vector3.zero, 0f);
+            else player.BeginFloorHealth(100f, 1f);
+            Assert.That(state.RevivalCollisionGraceActive, Is.False);
+            Assert.That(state.RevivalDamageImmune, Is.False); Assert.That(state.IsUngrabbable, Is.False);
+            Assert.That(player.ApplyHit(1f).Changed, Is.True);
+        }
+
+        [Test]
+        public void RevivalTuningIsIndependentOfOrdinaryGraceAndBoostEffects()
+        {
+            typeof(PlayerProfile).GetField("_revivalCollisionGraceSeconds", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(profile, .5f);
+            typeof(PlayerProfile).GetField("_revivalDamageImmunitySeconds", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(profile, 0f);
+            player.Reset(new EntityId(1), Vector3.zero, 0f, .25f);
+            player.ApplyRunModifiers(0f, 100f, 1f); player.ReviveInPlace(.5f);
+            Assert.That(state.RevivalCollisionGraceActive, Is.True); Assert.That(state.RevivalDamageImmune, Is.False);
+            Assert.That(state.HitBoostMultiplier, Is.EqualTo(1f));
+            player.AdvanceRecovery(1); Assert.That(state.RevivalCollisionGraceActive, Is.True);
+            player.AdvanceRecovery(2); Assert.That(state.RevivalCollisionGraceActive, Is.False);
+        }
+
+        [TestCase(0f)] [TestCase(-1f)] [TestCase(1.1f)] [TestCase(float.NaN)]
+        public void InvalidRevivalFractionCannotChangeDeathOrProtection(float fraction)
+        {
+            player.ApplyRunModifiers(0f, 100f, 1f);
+            Assert.That(player.ReviveInPlace(fraction), Is.False);
+            Assert.That(state.IsAlive, Is.False); Assert.That(state.RevivalCollisionGraceActive, Is.False);
+            Assert.That(state.RevivalDamageImmune, Is.False);
+        }
+
         [Test]
         public void RevivalRestoresFloorStartAtHalfEffectiveMaximumWithoutStartingANewFloor()
         {

@@ -12,6 +12,7 @@
 //   - Verify instance speed scaling and phase-normalized attack indicators without shared asset mutation.
 //   - Verify walk/stalk speeds, reveal holds, sight/noise transitions and bounded path-failure replanning.
 //   - Bound stalled searches by the configured travel-aware leg deadline.
+//   - Reject revival-protected contacts without spending an attack's acceptance latch.
 // DEPENDENCIES:
 //   - Hunter pure logic and steering, Player fixture state, Level read-only contract,
 //     UnityEditor for temporary profile tuning, and NUnit.
@@ -430,11 +431,65 @@ namespace Worsen.Tests.Hunter
             for (int tick = 34; tick <= 80; tick++) _controller.Tick(Visible, Dt, tick);
             Assert.That(_state.LungePhase, Is.EqualTo(HunterLungePhase.Recovery));
         }
+        [TestCase(0f)] [TestCase(3f)]
+        public void RevivalProtectionRejectsLungeWithoutSpendingContactAndStillAllowsPursuit(float immunitySeconds)
+        {
+            var profile = ScriptableObject.CreateInstance<PlayerProfile>();
+            try
+            {
+                var data = new SerializedObject(profile);
+                data.FindProperty("_revivalDamageImmunitySeconds").floatValue = immunitySeconds;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                var player = new PlayerController(_player, profile, new System.Random(1));
+                player.Reset(new EntityId(1), Vector3.forward * 3f, 0f, .25f);
+                player.ApplyHit(1000f); Assert.That(player.ReviveInPlace(.5f), Is.True);
+                _controller.Tick(Visible, Dt, 0);
+                for (int tick = 1; tick <= 15; tick++) _controller.Tick(Visible, Dt, tick);
+                Assert.That(_state.LungePhase, Is.EqualTo(HunterLungePhase.Active));
+                Assert.That(_state.PlayerVisible, Is.True);
+                Assert.That(_controller.TryAcceptContact(_player.Id, out _), Is.False);
+                player.AdvanceRecovery(8);
+                Assert.That(_player.RevivalCollisionGraceActive, Is.False);
+                if (immunitySeconds > 0f)
+                {
+                    Assert.That(_controller.TryAcceptContact(_player.Id, out _), Is.False);
+                    player.AdvanceRecovery(12);
+                }
+                Assert.That(_controller.TryAcceptContact(_player.Id, out _), Is.True);
+                Assert.That(_controller.TryAcceptContact(_player.Id, out _), Is.False);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(profile); }
+        }
+
         [Test] public void OversizedTickCannotLeaveContactsEnabledAfterActiveWindow()
         {
             _player.Position = Vector3.forward * 3f; _controller.Tick(Visible, Dt, 0);
             _controller.Tick(Visible, 0.6f, 1);
             Assert.That(_state.LungePhase, Is.EqualTo(HunterLungePhase.Recovery));
+        }
+        [TestCase(HunterAttackStyle.Projectile)] [TestCase(HunterAttackStyle.GroundSpikes)]
+        public void RevivalRejectsRangedContactsWithoutSpendingFiredIdentity(HunterAttackStyle style)
+        {
+            var profile = ScriptableObject.CreateInstance<PlayerProfile>();
+            try
+            {
+                var data = new SerializedObject(_profile);
+                data.FindProperty("_attackStyle").intValue = (int)style;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                var player = new PlayerController(_player, profile, new System.Random(1));
+                player.Reset(new EntityId(1), Vector3.forward * 10f, 0f, .25f);
+                player.ApplyHit(1000f); Assert.That(player.ReviveInPlace(.5f), Is.True);
+                _controller.Tick(Visible, .02f, 0);
+                int serial = _state.AttackSerial;
+                for (int tick = 1; tick < 18; tick++) _controller.Tick(Visible, .02f, tick);
+                Assert.That(_controller.TryAcceptRangedContact(_player.Id, serial, out _), Is.False);
+                player.AdvanceRecovery(8);
+                Assert.That(_controller.TryAcceptRangedContact(_player.Id, serial, out _), Is.False);
+                player.AdvanceRecovery(12);
+                Assert.That(_controller.TryAcceptRangedContact(_player.Id, serial, out _), Is.True);
+                Assert.That(_controller.TryAcceptRangedContact(_player.Id, serial, out _), Is.False);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(profile); }
         }
         [Test] public void ResetClearsBeliefLungeAndPerLifeContact()
         {

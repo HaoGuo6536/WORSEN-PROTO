@@ -2,26 +2,24 @@
 // FloorExitVolumeDriverState.cs
 // ============================================================================
 // PURPOSE:
-//   Retains collider membership and resolved identities for the legacy exit volume.
-//   Cached identities survive a collider being destroyed before Unity reports exit.
+//   Retains the trigger reference for the legacy exit volume.
+//   Contact admission stays with FloorManager; no timed overlap state is retained.
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Hold per-entity overlap sets and the owned trigger reference without engine calls.
+//   - Hold the owned trigger reference without engine calls.
 // DEPENDENCIES:
-//   - Core EntityId and passive Unity collider references only.
+//   - Passive Unity collider references only.
 // USAGE NOTES:
-//   Scene-owned by FloorExitVolume; cleared on disable and reconfiguration.
+//   Scene-owned by FloorExitVolume; replaced on reconfiguration.
 // ============================================================================
-using System.Collections.Generic;
 using UnityEngine;
-using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Floor
 {
     public sealed class FloorExitVolumeDriverState
     {
         public BoxCollider Trigger;
-        public readonly Dictionary<EntityId, HashSet<Collider>> Contacts = new Dictionary<EntityId, HashSet<Collider>>();
+
     }
 }

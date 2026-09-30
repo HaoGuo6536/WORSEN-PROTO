@@ -13,6 +13,7 @@
 //   - Author progress-based vault height, landing depths and stumble comfort tuning.
 //   - Retain legacy look fields while the fixed-frame rear view disables scanning.
 //   - Tune the held catch framing and timing, slide banking and bounded shake.
+//   - Author the hand's slow fog emergence and fast face grab independently of hunters.
 //
 // DEPENDENCIES:
 //   - No other project systems.
@@ -82,6 +83,30 @@ namespace Worsen.Presentation.Camera
         [SerializeField, Range(0f, 0.1f)] private float _maximumShakeDisplacement = 0.025f;
         [SerializeField, Min(0.01f)] private float _nearClip = 0.05f;
         [SerializeField, Min(1f)] private float _farClip = 500f;
+
+        [Header("Hand catch (provisional)")]
+        [SerializeField, Min(0f)] private float _handApproachSeconds = 1.2f;
+        [SerializeField, Min(0f)] private float _handGrabSeconds = 0.15f;
+        [SerializeField, Min(0.01f)] private float _handStartDistance = 2f;
+        [SerializeField, Min(0.01f)] private float _handReachDistance = 0.65f;
+        [SerializeField, Min(0.01f)] private float _handFaceDistance = 0.12f;
+        [SerializeField, Min(0.01f)] private float _handSize = 0.55f;
+        [SerializeField, Range(0f, 120f)] private float _handGripDegrees = 90f;
+        [SerializeField] private Color _handColor = new Color(0.18f, 0.28f, 0.32f, 1f);
+        [SerializeField] private Mesh _handMesh = null;
+        [SerializeField] private Material _handMaterial = null;
+        [SerializeField] private Vector3 _handMeshEuler = Vector3.zero;
+        public float HandApproachSeconds => _handApproachSeconds;
+        public float HandGrabSeconds => _handGrabSeconds;
+        public float HandStartDistance => _handStartDistance;
+        public float HandReachDistance => _handReachDistance;
+        public float HandFaceDistance => _handFaceDistance;
+        public float HandSize => _handSize;
+        public float HandGripDegrees => _handGripDegrees;
+        public Color HandColor => _handColor;
+        public Mesh HandMesh => _handMesh;
+        public Material HandMaterial => _handMaterial;
+        public Vector3 HandMeshEuler => _handMeshEuler;
 
         [SerializeField, Min(0.05f)] private float _catchDistance = 1.2f;
         [SerializeField, Min(0f)] private float _catchApproachSeconds = 0.15f;

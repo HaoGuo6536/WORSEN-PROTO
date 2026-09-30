@@ -8,24 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
-//   - Open the identified Passage before pocket collapse and route its optional Golden Cakes.
-//   - Bind every roster hunter's world/effects views and silently restore accepted run mutations.
-//   - Route Core Echo door-passage facts to Level through paired Run subscriptions.
-//   - Subscribe before generation to theme, optional-reward and threshold-freeze facts.
-//   - Route committed puzzle ticks once, retain the run theme seed and release challenge state.
-//   - Assemble floor shrines, preserve shields and route Wick, Passage and Purgatory outcomes.
-//   - Snapshot catalogue cake/collapse hooks and the actual round into each non-shop Floor.
-//   - Start each spawned Player at its effective maximum, never the previous floor's current health.
-//   - Route immutable active effects before floor health and on current-floor revisions.
-//   - Bind scene-owned services explicitly and release every binding on disable.
-//   - Defer new assembly until old factory objects finish deferred destruction.
-//   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
-//   - Apply run-scoped modifiers and route completed floor facts to progression.
-//   - Forward resolved bail flags with the admitted generation for exactly-once penalties.
-//   - Pass HorrorEffects' configured optional-window multiplier to procedural generation.
-//   - Announce assembled floors for the SceneRoot readiness hand-off.
-//   - Route Level interactables to geometry and door acoustics before hunter ticks.
-//   - Retain fallback manifests and spawn shortfalls through the existing diagnostic path.
+//   - Own generation/admission and paired scene-service bindings with diagnostic failures.
+//   - Spawn every retained hunter plus seeded Nothing extras and restore run mutations.
+//   - Snapshot configured effects, rewards, theme and freeze facts into floor assembly.
+//   - Route puzzle, shrine, movement, geometry and actor facts through owned services.
+//   - Route terminal outcomes to Progression and defer reassembly until cleanup completes.
 // DEPENDENCIES:
 //   - Domain Shrine owns single-use world objects; own spawn Driver validates live late-spawn cover.
 //   - Session HorrorEffects owns retained gameplay effects; its actor and hazard binding is floor-scoped.
@@ -95,6 +82,7 @@ namespace Worsen.Session.Expedition
         [SerializeField] private ShrineConfig _shrineConfig = null;
         [SerializeField] private ShrineDriverConfig _shrineDriverConfig = null;
         [SerializeField] private ExpeditionSpawnDriverConfig _spawnConfig = null;
+
         private ShrineManager _shrines;
         private ExpeditionSpawnDriver _spawnDriver;
 
@@ -130,6 +118,7 @@ namespace Worsen.Session.Expedition
                 _state = new ExpeditionSessionBehaviorState();
                 _controller = new ExpeditionSessionController(_state);
             }
+
             DontDestroyOnLoad(gameObject);
             return this;
         }
@@ -287,11 +276,19 @@ namespace Worsen.Session.Expedition
             player.RestoreShield(_controller.CarriedShield);
             _controller.AdmitShieldTransfer();
 
+            var roster = new List<string>();
+            if (_hunterRoster != null && _hunterRoster.Length > 0)
+            { foreach (var profile in _hunterRoster) if (profile != null) roster.Add(profile.ArchetypeKey); }
+            else roster.Add(_hunterProfile.ArchetypeKey);
+            var extras = request.IsShop ? Array.Empty<string>() : ExpeditionFloorEffectUtility.ExtraHunters(
+                _progression.EffectsSnapshot.ActiveEffects, roster, _progression.Snapshot.Seed, request.Round);
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
-                position => _procedural.ValidateHunterSpawn(position, out _));
+                position => _procedural.ValidateHunterSpawn(position, out _), extras);
             if (_state.HunterSpawnShortfall > 0)
-                Debug.LogWarning("Floor " + request.Round + ", seed " + request.Seed + ": hunter spawn shortfall=" +
-                    _state.HunterSpawnShortfall + ", spawning=" + spawns.Count + ", requested=" + request.Effects.ActiveThreatBudget, this);
+                throw new InvalidOperationException("hunter-spawn-capacity-shortfall: required=" +
+                    (spawns.Count + _state.HunterSpawnShortfall) + ", admitted=" + spawns.Count +
+                    ", shortfall=" + _state.HunterSpawnShortfall + ", nothingExtras=" + extras.Count +
+                    ". Procedural must supply safe capacity for the full retained roster plus Nothing stacks.");
             if (_hunterRoster != null && _hunterRoster.Length > 0)
                 _hunterFactory.Configure(_hunterRoster, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
             else _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
@@ -314,8 +311,9 @@ namespace Worsen.Session.Expedition
                 _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState },
                     _run.RandomSource, fasterCollapse: ExpeditionFloorEffectUtility.FasterCollapse(activeEffects),
                     shuffledCollapse: ExpeditionFloorEffectUtility.ShuffledCollapse(activeEffects), round: request.Round,
-                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
-                    preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook);
+                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _progression.FasterCollapseGoldenCakeMultiplier), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
+                    preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook,
+                    optionalGoldenCakeCount: _state.PuzzleRewards.Count);
                 foreach (var reward in _state.PuzzleRewards)
                     if (!_floor.RegisterPuzzleReward(reward.Key, reward.Value.Anchor, reward.Value.Position))
                         throw new InvalidOperationException("Floor rejected optional puzzle reward " + reward.Key + ".");
@@ -576,7 +574,7 @@ namespace Worsen.Session.Expedition
             int generationId = GenerationId;
             if (PlayerRegistry.TryGet(_state.Player, out var player) && player.ReadOnlyState != null)
                 _progression.RecordHealth(generationId, player.ReadOnlyState.Health);
-            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId, summary.Bailed);
+            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId);
             else _progression.EndRun(generationId);
         }
 
@@ -648,6 +646,7 @@ namespace Worsen.Session.Expedition
         private void OnDestroy()
         {
             ClearScene();
+
             if (Instance == this) Instance = null;
             AssemblyReady = null; RoomsReady = null; FloorReleased = null;
             ThemePublished = null; RoomThemePublished = null; ThresholdFreezePublished = null;

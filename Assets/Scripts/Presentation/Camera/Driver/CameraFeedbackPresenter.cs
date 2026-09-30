@@ -10,12 +10,10 @@
 //   Presenter (Â§7b) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Compose progress-driven vault and comfort-gated landing/stumble without locking look.
-//   - Apply runtime lens/comfort overrides without mutating designer configuration.
-//   - Snap fully behind and forward on committed edges, ignoring rear-view look deltas.
-//   - Keep gameplay aim unshaken while composing bounded cosmetic effects.
-//   - Compose speed, detection, slide and rebound effects with comfort settings.
-//   - Approach a captured hunter/hand close-up, then hold a stable pose with timing facts.
+//   - Compose progress-driven traversal, speed and bounded comfort-gated feedback.
+//   - Apply runtime lens/comfort overrides without mutating configuration.
+//   - Snap rear-view edges while retaining unshaken gameplay aim.
+//   - Preserve hunter holds and delegate fixed-camera hand emergence/grab timing.
 //   - Convert horizontal view angle to the camera's vertical lens angle.
 //
 // DEPENDENCIES:
@@ -26,7 +24,8 @@
 //   - Head-look is degrees per committed tick; positive vertical input looks upward.
 //   - SetProximity stores a routed primitive; peripheral rendering belongs to PostFX.
 //   - Catch hold time begins on the first presented endpoint; approach overshoot is discarded.
-//   - Hunter input is a root position plus configured focus height; hands use the grab point.
+//   - Hunter input is a root plus focus height; hand grab points set facing only.
+//   - Hand hold-start marks the fast grab/sting; hold-end is the existing hard-cut boundary.
 //
 // ============================================================================
 
@@ -66,6 +65,7 @@ namespace Worsen.Presentation.Camera
             state.ReboundSign = 1f;
             state.Proximity = 0f;
             state.Consumed = false;
+            state.HandDistance = state.HandReveal = state.HandGrip = 0f;
             state.CatchElapsed = state.CatchApproachDuration = state.CatchHoldElapsed = state.CatchHoldDuration = 0f;
             state.CatchHoldStarted = state.CatchHoldEnded = false;
             state.CatchStartPosition = state.CatchTargetPosition = Vector3.zero;
@@ -144,7 +144,7 @@ namespace Worsen.Presentation.Camera
             => BeginCatch(state, config, killerPosition + Vector3.up * Mathf.Max(0f, Finite(config.CatchHunterFocusHeight)), false);
 
         public float ConsumptionSeconds(CameraDriverConfig config)
-            => Mathf.Max(0f, Finite(config.CatchApproachSeconds)) + Mathf.Max(0f, Finite(config.CatchHoldSeconds));
+            => Mathf.Max(0f, Finite(config.HandApproachSeconds)) + Mathf.Max(0f, Finite(config.HandGrabSeconds));
 
         public void PlayConsumed(CameraDriverState state, CameraDriverConfig config, Vector3 handPosition)
             => BeginCatch(state, config, handPosition, true);
@@ -175,6 +175,7 @@ namespace Worsen.Presentation.Camera
             state.HeadYaw = state.LookYaw = 0f;
             state.DetectionElapsed = state.ReboundElapsed = -1f;
             state.ShakeStrength = state.ShakeDuration = state.SlideBank = 0f;
+            if (consumed) CameraHandCatchPresenter.Begin(state, config);
         }
 
         private void TickCatch(CameraDriverState state, float dt, float aspectRatio)
@@ -197,7 +198,16 @@ namespace Worsen.Presentation.Camera
         public void Tick(CameraDriverState state, CameraDriverConfig config, float dt, float aspectRatio)
         {
             dt = Mathf.Max(0f, Finite(dt));
-            if (state.DeathSnapped) { TickCatch(state, dt, aspectRatio); return; }
+            if (state.DeathSnapped)
+            {
+                if (state.Consumed)
+                {
+                    CameraHandCatchPresenter.Tick(state, config, dt);
+                    state.VerticalFieldOfView = HorizontalToVerticalFieldOfView(state.HorizontalFieldOfView, aspectRatio);
+                }
+                else TickCatch(state, dt, aspectRatio);
+                return;
+            }
             var kick = 0f;
             if (state.DetectionElapsed >= 0f)
             {
