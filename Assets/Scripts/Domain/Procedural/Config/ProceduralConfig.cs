@@ -12,6 +12,7 @@
 //   - Keep broad cloister/gallery rooms enclosed beneath a higher ceiling.
 //   - Tune first-contact path separation, bounded retries and world-object density.
 //   - Weight post-hub footprints and gate reserved gaps and optional pocket chains.
+//   - Gate upper storeys in extension cells and mirror the base Player ledge envelope.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
@@ -51,6 +52,20 @@ namespace Worsen.Domain.Procedural
         public int MaximumGapCells => _maximumGapCells;
         public float PocketProbability => _pocketProbability;
         public int PocketRoomCount => _pocketRoomCount;
+        [SerializeField, Min(1)] private int _multiFloorStartRound = 3;
+        [SerializeField, Range(0f, 1f)] private float _storeyProbability = 0.65f;
+        [SerializeField] private float _storeyHeight = 3.2f;
+        [SerializeField] private float _baseLedgeMinimumHeight = 0.5f;
+        [SerializeField] private float _baseLedgeMaximumHeight = 1.8f;
+        [SerializeField] private float _baseLedgeReach = 1.2f;
+        [SerializeField] private bool _baseReboundSupported = true;
+        public int MultiFloorStartRound => _multiFloorStartRound;
+        public float StoreyProbability => _storeyProbability;
+        public float StoreyHeight => _storeyHeight;
+        public float BaseLedgeMinimumHeight => _baseLedgeMinimumHeight;
+        public float BaseLedgeMaximumHeight => _baseLedgeMaximumHeight;
+        public float BaseLedgeReach => _baseLedgeReach;
+        public bool BaseReboundSupported => _baseReboundSupported;
         [SerializeField] private float _roomSize = 12f;
         [SerializeField] private float _roomHeight = 4f;
         [SerializeField] private float _doorWidth = 3.2f;

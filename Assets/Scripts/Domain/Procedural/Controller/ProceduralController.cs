@@ -18,6 +18,7 @@
 //   - Enforce reusable first-contact validation and record deterministic distance relaxation.
 //   - Reserve gaps before growth; separate optional pocket anchors from required candidates.
 //   - Keep the initial hub/loop single-cell; weight subsequent rooms without size fallback.
+//   - Add extension-cell storeys, retain their directed manifest and reject stranded objectives.
 // DEPENDENCIES:
 //   - Core immutable level contracts and LevelGraphUtility; no Domain siblings.
 // USAGE NOTES:
@@ -112,6 +113,7 @@ namespace Worsen.Domain.Procedural
                 PlayerSpawnRotation = Quaternion.LookRotation(modules[spawnIndex].AlongX ? Vector3.forward : Vector3.right, Vector3.up),
                 HunterSpawnPositions = Array.Empty<Vector3>()
             };
+            ProceduralStoreyUtility.Apply(layout, _config, _random);
             layout.GapSites = GapSites(layout);
             layout.Manifest = Manifest(layout);
             _state.Layout = layout; // Retain failed candidates for the existing retry journal.
@@ -121,6 +123,7 @@ namespace Worsen.Domain.Procedural
             layout.MinimumHunterSpawnRooms = minimumRooms;
             layout.SpawnValidationReport = spawnReport;
             ProceduralFootprintUtility.Validate(layout);
+            ProceduralStoreyUtility.Validate(layout, _config);
             layout.PresentationRooms = DescribeRooms(layout, spawnRoom.Id);
             layout.Manifest = Manifest(layout);
             _state.Layout = layout;
@@ -447,7 +450,7 @@ namespace Worsen.Domain.Procedural
 
         private string Manifest(ProceduralLayout layout)
         {
-            var text = new StringBuilder("castle-rooms-v5|");
+            var text = new StringBuilder("castle-rooms-v6|");
             text.Append(layout.Seed).Append('|').Append(layout.RoundIndex).Append('|').Append(layout.Graph.ExitRoomId);
             text.Append("|FootprintPolicy:").Append(_config.MultiCellStartRound).Append(',').Append(_config.GapStartRound)
                 .Append(',').Append(_config.MaximumGapCells).Append(',').Append(_config.PocketRoomCount);
@@ -479,6 +482,7 @@ namespace Worsen.Domain.Procedural
             Append(text, layout.PlayerSpawnRotation * Vector3.forward);
             text.Append("|Exit:"); Append(text, layout.Graph.ExitPosition);
             foreach (var spawn in layout.HunterSpawnPositions) { text.Append("|H:"); Append(text, spawn); }
+            text.Append(ProceduralStoreyUtility.Manifest(layout, _config));
             return text.ToString();
         }
 

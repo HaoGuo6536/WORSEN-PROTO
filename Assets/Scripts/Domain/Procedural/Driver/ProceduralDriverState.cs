@@ -11,6 +11,7 @@
 //   - Track generated root, owned materials, fragment bases and navigation data.
 //   - Retain per-room fissure materials and one shared procedural crack texture.
 //   - Index owned world-object sub-drivers by immutable interactable identity.
+//   - Retain only this floor's opt-in partition links for symmetric teardown.
 // DEPENDENCIES:
 //   - Passive UnityEngine and navigation references only.
 // USAGE NOTES:
@@ -29,6 +30,7 @@ namespace Worsen.Domain.Procedural
         public readonly List<Material> OwnedMaterials = new List<Material>();
         public NavMeshData NavigationData;
         public NavMeshDataInstance NavigationInstance;
+        public readonly List<NavMeshLinkInstance> NavigationLinks = new List<NavMeshLinkInstance>();
         public int BlockCount;
         public bool Ready;
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers;
