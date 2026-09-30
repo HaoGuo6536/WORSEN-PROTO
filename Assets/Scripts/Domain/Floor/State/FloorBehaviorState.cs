@@ -2,21 +2,17 @@
 // FloorBehaviorState.cs
 // ============================================================================
 // PURPOSE:
-//   Owns counters, selected anchors, scheduled room changes and per-player exit holds.
+//   Owns counters, selected anchors, scheduled room changes and terminal outcome state.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Retain Passage reward identities across collection/loss to prevent respawning them.
-//   - Keep puzzle rewards separate from required selection and Greedy Door accounting.
-//   - Retain seeded pending collapse priorities and the next safely admitted room deadline.
-//   - Retain trap identities, default-off cake hooks, typed guidance and separate collapse readiness.
-//   - Support staged cracks, tearing, mist advance and escapable hand contacts.
-//   - Retain elapsed locked-exit contact until cancellation or a terminal outcome.
-//   - Retain dormant pocket identities and explicit activation deadlines on the floor clock.
-//   - Retain optional rewards, queued cake losses, collapse hooks and read-only room hand phases.
-//   - Keep rules, passive state and engine operations in their owning roles.
+//   - Retain generation totals, bonus placements and monotonic pickup identities.
+//   - Separate optional puzzle/Passage rewards from exit-quota accounting.
+//   - Hold seeded collapse schedules, pocket activation and hand contact state.
+//   - Retain traps, losses, guidance and floor-scoped hooks.
+//   - Retain terminal outcome state until reset.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -40,6 +36,9 @@ namespace Worsen.Domain.Floor
         internal readonly List<FloorTrapSpawn> MutableTraps = new List<FloorTrapSpawn>();
         internal readonly HashSet<int> SprungTraps = new HashSet<int>();
         internal readonly List<LevelAnchor> GoldenAnchors = new List<LevelAnchor>();
+        internal readonly List<LevelAnchor> BonusGoldenAnchors = new List<LevelAnchor>();
+        internal int TotalCakes;
+        internal int TotalGoldenCakes;
         internal readonly Dictionary<int, LevelAnchor> PuzzleRewards = new Dictionary<int, LevelAnchor>();
         internal readonly HashSet<int> UnlockedPuzzleRewards = new HashSet<int>();
         internal readonly HashSet<int> PassageRewards = new HashSet<int>();
@@ -64,7 +63,7 @@ namespace Worsen.Domain.Floor
         internal readonly HashSet<int> OptionalCrackedRooms = new HashSet<int>();
         internal readonly HashSet<int> CollectedCakes = new HashSet<int>();
         internal readonly HashSet<int> CollectedGoldenCakes = new HashSet<int>();
-        internal readonly Dictionary<EntityId, double> ExitHolds = new Dictionary<EntityId, double>();
+
         internal readonly List<FloorScheduledTransition> Schedule = new List<FloorScheduledTransition>();
         internal IReadOnlyList<IReadOnlyPlayerState> Players = Array.Empty<IReadOnlyPlayerState>();
         internal LevelGraph Graph;

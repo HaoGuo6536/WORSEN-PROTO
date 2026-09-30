@@ -4,12 +4,12 @@
 // PURPOSE:
 //   Creates the approved effect catalogue after Unity has generated script metadata.
 //   It binds the existing Progression config without replacing its legacy content
-//   or overwriting designer tuning on subsequent runs. Missing catalogue rows
-//   are appended from defaults so an existing asset receives new effect ids.
+//   while migrating catalogue rows by identity to the approved code defaults.
+//   Retired ids are removed; unknown designer rows are retained.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Progression.
 // KEY RESPONSIBILITIES:
-//   - Append absent entries only, including Blinder, More Shrines and module curse ids.
+//   - Reconcile known rows, remove retired/duplicate ids and append missing defaults.
 //   - Idempotently create the mirrored catalogue and fill only an absent binding.
 // DEPENDENCIES:
 //   - Session Progression config and UnityEditor asset operations.
@@ -61,15 +61,24 @@ namespace Worsen.Editor.Progression
             var defaults = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
             try
             {
-                var ids = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var entry in catalogue.Entries) if (entry != null) ids.Add(entry.Id);
                 var serialized = new SerializedObject(catalogue);
                 var entries = serialized.FindProperty("_entries");
+                var ids = new Dictionary<string, int>(StringComparer.Ordinal);
+                for (int i = 0; i < entries.arraySize;)
+                {
+                    string id = entries.GetArrayElementAtIndex(i).FindPropertyRelative("_id").stringValue;
+                    if (id == "thin-skin" || id == "bail-bond" || ids.ContainsKey(id))
+                    { entries.DeleteArrayElementAtIndex(i); continue; }
+                    ids.Add(id, i++);
+                }
                 foreach (var entry in defaults.Entries)
                 {
-                    if (!ids.Add(entry.Id)) continue;
-                    int index = entries.arraySize;
-                    entries.arraySize = index + 1;
+                    if (!ids.TryGetValue(entry.Id, out int index))
+                    {
+                        index = entries.arraySize;
+                        entries.arraySize = index + 1;
+                        ids.Add(entry.Id, index);
+                    }
                     var row = entries.GetArrayElementAtIndex(index);
                     row.FindPropertyRelative("_id").stringValue = entry.Id;
                     row.FindPropertyRelative("_kind").intValue = (int)entry.Kind;

@@ -9,6 +9,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
+//   - Hand out a read-only state view without exposing mutable runtime collections.
 //   - Require fresh radius-matched sweep evidence both before warning and launch.
 //   - Publish slow/cue facts and deterministic doorway nests with capped curses.
 // DEPENDENCIES:
@@ -44,6 +45,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Weaver
         public WeaverController(WeaverBehaviorState state, WeaverConfig config, HunterProfile profile, System.Random random)
         { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile)); _random = random ?? throw new ArgumentNullException(nameof(random)); }
+        public IReadOnlyWeaverState ReadOnlyState => _state;
         public WeaverAction Action => _state.Action;
         public bool Hold => _state.Hold;
         public bool Ceiling => _state.Ceiling;

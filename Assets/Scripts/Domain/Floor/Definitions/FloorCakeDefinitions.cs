@@ -46,10 +46,12 @@ namespace Worsen.Domain.Floor
     public readonly struct FloorCakeHooks
     {
         public FloorCakeHooks(bool sweetTooth = false, bool blindFaith = false, bool goldenSense = false,
-            bool moreTraps = false, bool silentTraps = false, bool greedyDoor = false)
+            bool moreTraps = false, bool silentTraps = false, bool greedyDoor = false,
+            bool hiddenCount = false, float goldenCakeMultiplier = 1f)
         {
             SweetTooth = sweetTooth; BlindFaith = blindFaith; GoldenSense = goldenSense;
             MoreTraps = moreTraps; SilentTraps = silentTraps; GreedyDoor = greedyDoor;
+            HiddenCount = hiddenCount; GoldenCakeMultiplier = goldenCakeMultiplier;
         }
         public bool SweetTooth { get; }
         public bool BlindFaith { get; }
@@ -57,5 +59,7 @@ namespace Worsen.Domain.Floor
         public bool MoreTraps { get; }
         public bool SilentTraps { get; }
         public bool GreedyDoor { get; }
+        public bool HiddenCount { get; }
+        public float GoldenCakeMultiplier { get; }
     }
 }

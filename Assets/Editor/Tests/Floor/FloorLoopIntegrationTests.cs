@@ -98,6 +98,7 @@ namespace Worsen.Tests.Floor
             Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
             Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.Zero);
             var anchors = floor.ReadOnlyState.ActiveCakeAnchors.OrderBy(anchor => anchor.Id).ToArray();
+            int generatedCakeTotal = floor.Snapshot().TotalCakes;
             Assert.That(anchors.Length, Is.EqualTo(floor.ReadOnlyState.RequiredCakeCount).And.GreaterThanOrEqualTo(1));
             int[] persistentIds = PersistentIds();
             int oldFloorId = floor.GetInstanceID(), oldPlayerId = player.GetInstanceID(), oldResultsId = results.GetInstanceID();
@@ -149,7 +150,7 @@ namespace Worsen.Tests.Floor
                 Assert.That(floor.ReadOnlyState.ActiveCakeAnchors, Is.Empty);
                 var hud = One<HUDManager>().GetComponent<UIDocument>().rootVisualElement;
                 Assert.That(hud.Q<Label>("cake-count").text,
-                    Is.EqualTo("Cakes: " + anchors.Length + " / " + anchors.Length));
+                    Is.EqualTo("Cakes: " + ordinaryPickups.Count + " / " + generatedCakeTotal));
                 Assert.That(hud.Q<Label>("exit-state"), Is.Null, "PLAN-020 removes exit-state HUD chrome.");
 
                 // The last cake may immediately spawn a golden trigger around the

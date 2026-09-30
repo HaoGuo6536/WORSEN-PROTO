@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Builds a small tiered birthday cake when no authored cake visual is supplied.
-//   Saturated icing, a repeated name and a candle replace the collectible sphere.
+//   Saturated icing and a candle replace the collectible sphere; cakes carry no name.
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by FloorDriver · Domain · Floor.
 // KEY RESPONSIBILITIES:
@@ -40,14 +40,7 @@ namespace Worsen.Domain.Floor
             _light = _flame.gameObject.AddComponent<Light>(); _light.type = LightType.Point;
             _light.color = config.CandleColor; _light.range = config.CandleRange;
             _light.shadows = LightShadows.None; _light.enabled = !trap;
-            var label = new GameObject("Piped Name"); label.transform.SetParent(transform, false);
-            label.transform.localPosition = new Vector3(0f, 0.2f, -0.08f);
-            label.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            var text = label.AddComponent<TextMesh>(); text.text = config.PipedName;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.GetComponent<MeshRenderer>().sharedMaterial = text.font.material;
-            text.anchor = TextAnchor.MiddleCenter; text.alignment = TextAlignment.Center;
-            text.characterSize = 0.035f; text.fontSize = 48; text.color = config.CakeColor;
+
             Tick(0f);
         }
         public void Tick(float elapsed)
