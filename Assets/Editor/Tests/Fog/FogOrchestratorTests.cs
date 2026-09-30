@@ -29,6 +29,7 @@ using Worsen.Session.Expedition;
 
 namespace Worsen.Tests.Fog
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FogOrchestratorTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

@@ -28,6 +28,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorWebTests
     {
         private static WeaverFact Fact(int hunter, WeaverFactKind kind, long tick, int serial = 0) =>

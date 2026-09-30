@@ -23,6 +23,7 @@ using UnityEngine;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterClearTurnTests
     {
         [TestCase(0f, true)] [TestCase(90f, true)]

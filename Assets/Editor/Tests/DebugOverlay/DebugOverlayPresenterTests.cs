@@ -31,6 +31,7 @@ using Worsen.Presentation.DebugOverlay;
 
 namespace Worsen.Tests.DebugOverlay
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class DebugOverlayPresenterTests
     {
         [Test]

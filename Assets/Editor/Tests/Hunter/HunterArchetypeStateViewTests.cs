@@ -23,6 +23,7 @@ using Worsen.Domain.Hunter.Archetypes.Herald;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterArchetypeStateViewTests
     {
         [TestCase(typeof(IReadOnlyWeaverState))]

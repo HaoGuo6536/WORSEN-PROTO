@@ -17,6 +17,7 @@ using UnityEngine;
 using Worsen.Presentation.HUD;
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDCompassPresenterTests
     {
         [TestCase(0f, 0f, 1f)]

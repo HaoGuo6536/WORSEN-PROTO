@@ -28,6 +28,7 @@ using Worsen.Domain.Player;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Chase
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ChaseControllerTests
     {
         private const float Dt = 1f / 60f;

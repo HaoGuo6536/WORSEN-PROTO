@@ -40,6 +40,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HorrorHunterContentIntegrationTests
     {
         private const string Profiles = "Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/";

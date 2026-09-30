@@ -26,6 +26,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.PostFX
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PostFXConsumableTests
     {
         private GameObject owner;

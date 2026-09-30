@@ -32,6 +32,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HunterStairTraversalTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

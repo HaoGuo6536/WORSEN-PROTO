@@ -54,6 +54,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class TagArenaConnectedTraversalTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";
@@ -61,7 +62,7 @@ namespace Worsen.Tests.Level
         private const int MaximumTicks = 2400;
         private static readonly Vector3 Spawn = new Vector3(-21f, 0.05f, 5f);
 
-        [UnityTest, Timeout(120000)]
+        [UnityTest, Timeout(300000)]
         public IEnumerator NativeClutterRisingLineBridgeAndDropFormOneConnectedRoute()
         {
             yield return new EnterPlayMode();

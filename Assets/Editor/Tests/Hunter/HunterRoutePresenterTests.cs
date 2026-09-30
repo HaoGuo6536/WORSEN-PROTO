@@ -22,6 +22,7 @@ using UnityEngine;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterRoutePresenterTests
     {
         [Test] public void EmergencePrefersLastHiddenDoorwayBeforeVisibilityWithoutChangingRoute()
