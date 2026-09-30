@@ -95,8 +95,16 @@ class ArchitectureTests(unittest.TestCase):
         self.assertEqual(self.alarms(code.replace(',E15', '')), [])
 
     def test_relay_only_and_working_handler(self):
-        self.assertEqual(self.alarms(FIXTURES['relay'])[0]['measured']['relayHandlers'], 1)
+        # Calibrated 2026-09-30: the relay ratio applies only from six subscribed handlers.
+        self.assertEqual(self.alarms(FIXTURES['relay']), [])
         self.assertEqual(self.alarms(FIXTURES['mixedHandler']), [])
+        subs = ' '.join(f'source.E{i} += H{i};' for i in range(6))
+        relays = ' '.join(f'private void H{i}() => Changed?.Invoke();' for i in range(4))
+        work = ' '.join(f'private void H{i}() {{ count++; }}' for i in range(4, 6))
+        code = ('class ExampleManager { public event Action Changed; int count; private void OnEnable() { '
+                + subs + ' } ' + relays + ' ' + work + ' }')
+        self.assertEqual(self.alarms(code)[0]['measured']['relayHandlers'], 4)
+        self.assertEqual(self.alarms(code.replace('private void H3() => Changed?.Invoke();', 'private void H3() { count++; }')), [])
 
     def test_half_relays_is_not_alarm(self):
         code = FIXTURES['relay'].replace('source.Changed += Handle;', 'source.Changed += Handle; source.Other += Work;').replace('private void Handle()', 'private void Work() { UpdateState(); } private void Handle()')
