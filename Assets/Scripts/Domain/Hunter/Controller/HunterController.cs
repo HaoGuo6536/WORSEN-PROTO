@@ -20,6 +20,7 @@
 //   - Budget walking travel separately from search; keep CutOff's room intercept distinct from chase lead.
 //   - Consult injected archetype rules without branching on specialised archetype names.
 //   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
+//   - Allow specialised attacks to opt out of shared lunges while retaining sensing.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
@@ -280,7 +281,8 @@ namespace Worsen.Domain.Hunter
                 Replan();
                 if (!_archetype.TryMovement(out Vector3 movementTarget, out _)) UpdateTarget(dt);
                 else _state.NavigationTarget = movementTarget;
-                if (_state.Action == HunterAction.Lunge && _state.PlayerVisible && !_state.IsDeliberating)
+                if (_state.Action == HunterAction.Lunge && _state.PlayerVisible && !_state.IsDeliberating &&
+                    (!(_archetype is IHunterAttackRules attacks) || attacks.UsesSharedAttacks))
                 {
                     _state.LungePhase = HunterLungePhase.Windup; _state.PhaseSeconds = 0f;
                     _state.AttackSerial++; _state.AttackTarget = _player.Position;

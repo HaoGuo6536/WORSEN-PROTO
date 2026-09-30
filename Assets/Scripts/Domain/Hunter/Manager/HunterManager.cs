@@ -17,6 +17,7 @@
 //   - Construct per-life archetype rules and acknowledge recording motion before facts.
 //   - Route Weaver sweep evidence, web contacts and ceiling commands without Player writes.
 //   - Bind the optional Ticking facet for world keys and Core-typed guidance/sound/noise facts.
+//   - Register Ram/Skip/Mimic rules and relay their motion, contact and Core facts.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -46,6 +47,9 @@ namespace Worsen.Domain.Hunter
         private HunterController _controller;
         private WeaverController _weaver;
         private WeaverConfig _weaverConfig;
+        private Archetypes.Ram.RamController _ram;
+        private Archetypes.Skip.SkipController _skip;
+        private Archetypes.Mimic.MimicController _mimic;
         private HunterProfile _profile;
         private Archetypes.Ticking.TickingManager _ticking;
         public Archetypes.Ticking.TickingManager Ticking => _ticking;
@@ -70,6 +74,11 @@ namespace Worsen.Domain.Hunter
         public event Action<HunterArchetypeFact> OnArchetypeFact;
         public event Action<WebHitFact> OnWebHit;
         public event Action<WeaverFact> OnWeaverFact;
+        public event Action<RamFact> OnRamFact;
+        public event Action<SkipFact> OnSkipFact;
+        public event Action<MimicFact> OnMimicFact;
+        public bool BeginSkipFloor(long generation) => _skip?.BeginFloor(generation) ?? false;
+        public bool RecordSkipUse(SkipTraversalUse use) => _skip?.RecordUse(use) ?? false;
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
@@ -82,6 +91,7 @@ namespace Worsen.Domain.Hunter
         }
         private void OnDisable()
         {
+            if (_mimic != null) { _mimic.Teardown(); PublishRosterFacts(); }
             if (_ticking != null) _ticking.Teardown();
             if (_driver != null)
             {
@@ -106,7 +116,17 @@ namespace Worsen.Domain.Hunter
                 archetype = new WeaverController(new WeaverBehaviorState(), weaver, profile, context.Random);
             else if (profile.ArchetypeRules is Archetypes.Ticking.TickingConfig ticking)
                 archetype = new Archetypes.Ticking.TickingController(ticking, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Ram.RamConfig ram)
+                archetype = new Archetypes.Ram.RamController(ram, profile);
+            else if (profile.ArchetypeRules is Archetypes.Skip.SkipConfig skip)
+                archetype = new Archetypes.Skip.SkipController(skip, profile, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Mimic.MimicConfig mimic)
+                archetype = new Archetypes.Mimic.MimicController(mimic, context.Random);
             else if (profile.ArchetypeRules != null) throw new ArgumentException("Unregistered Hunter rules config.");
+            if (_mimic != null) { _mimic.Teardown(); PublishRosterFacts(); }
+            _ram = archetype as Archetypes.Ram.RamController;
+            _skip = archetype as Archetypes.Skip.SkipController;
+            _mimic = archetype as Archetypes.Mimic.MimicController;
             _profile = profile; _player = player; _level = level; _driver.Initialize(profile.MotorOverride);
             _weaver = archetype as WeaverController; _weaverConfig = profile.ArchetypeRules as WeaverConfig;
             if (_weaver != null) _driver.ConfigureWeaver(_weaverConfig.DriverConfig);
@@ -126,7 +146,7 @@ namespace Worsen.Domain.Hunter
         }
         public void Tick(float dt, long tick)
         {
-            if (_controller == null || !_state.IsActive) return;
+            if (_controller == null || !_state.IsActive || !(dt > 0f) || float.IsInfinity(dt)) return;
             if (_weaver != null)
             {
                 if (!(dt > 0f) || float.IsInfinity(dt) || tick <= _weaver.LastTick) return;
@@ -170,7 +190,15 @@ namespace Worsen.Domain.Hunter
             if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
                 _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
             _driver.SetEmergence(_controller.PreferEmergence, _state.LastKnownPosition, _profile.EmergenceWaypointBudget);
-            if (_controller.ReplayPath != null && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
+            if (_ram != null && _ram.OwnsPursuit && !_state.CatchActive && _state.IsActive)
+            {
+                bool blocked = _driver.MoveCharge(_ram.Motion, _ram.Direction, dt, out Collider blocker);
+                IRamBreakableHandle partition = blocker != null ? blocker.GetComponentInParent<IRamBreakableHandle>() : null;
+                _ram.CommitMotion(_driver.Position, blocked, partition?.RamBreakableId ?? -1);
+            }
+            else if (_skip != null && _skip.TryTeleport(out Vector3 arrival))
+                _skip.CommitTeleport(_driver.TryTeleport(arrival), arrival);
+            else if (_controller.ReplayPath != null && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
             {
                 int reached = _driver.MoveRecording(_controller.ReplayPath, dt, out bool unreachable);
                 _controller.CommitReplay(reached, unreachable);
@@ -180,8 +208,10 @@ namespace Worsen.Domain.Hunter
                     result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
                     (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
                 result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
-            _driver.ApplyDecisionMotion(result.StumbleDisplacement, result.DeliberationFacing);
+            if (!(_ram?.OwnsPursuit ?? false)) _driver.ApplyDecisionMotion(result.StumbleDisplacement, result.DeliberationFacing);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+            if (_mimic != null && _mimic.Posed && !_state.CatchActive) _driver.ProbeMimicTouch(_mimic.TouchRadius);
+            PublishRosterFacts();
             if (_weaver != null)
             {
                 _driver.SetWeaverCeiling(_weaver.CeilingHeight, _weaver.Ceiling && result.Phase == HunterLungePhase.None && !_state.CatchActive);
@@ -208,6 +238,10 @@ namespace Worsen.Domain.Hunter
             if (_controller == null) return;
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle == null) return;
+            if (_ram != null)
+            { if (_ram.TryHit(handle.Id, out HunterHit charge)) OnLungeHit?.Invoke(charge); return; }
+            if (_mimic != null)
+            { if (_mimic.Touch(handle.Id, out HunterHit bite)) OnLungeHit?.Invoke(bite); PublishRosterFacts(); return; }
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
             if (_controller.TryAcceptContact(handle.Id, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
@@ -218,6 +252,12 @@ namespace Worsen.Domain.Hunter
             if (handle != null && _controller.TryAcceptRangedContact(handle.Id, serial, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
         private void HandleAttackFeedback(HunterFeedbackEvent feedback) { OnFeedback?.Invoke(feedback); }
+        private void PublishRosterFacts()
+        {
+            if (_ram != null) while (_ram.TakeFact(out RamFact fact)) OnRamFact?.Invoke(fact);
+            if (_skip != null) while (_skip.TakeFact(out SkipFact fact)) OnSkipFact?.Invoke(fact);
+            if (_mimic != null) while (_mimic.TakeFact(out MimicFact fact)) OnMimicFact?.Invoke(fact);
+        }
         private void HandleStall(HunterStallFact fact) { OnStall?.Invoke(fact); }
         private void HandleRangedMiss(int serial) { _controller?.ReportAttackMiss(serial); }
         public void SetRoomPhase(RoomPhaseChangedFact fact)
@@ -232,6 +272,7 @@ namespace Worsen.Domain.Hunter
         public void BeginCatch(Vector3 playerPosition)
         {
             if (_controller == null) return;
+            _ram?.Won(); _mimic?.Won(); PublishRosterFacts();
             _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
             if (_weaver != null) { _weaver.SuspendAttack(); _driver.SetWeaverCeiling(_weaver.CeilingHeight, false); }
         }
@@ -262,11 +303,13 @@ namespace Worsen.Domain.Hunter
         public void ReceiveHint(HintPayload hint) { _controller?.ReceiveHint(hint); }
         public void Teardown()
         {
+            if (_mimic != null) { _mimic.Teardown(); PublishRosterFacts(); }
             if (_ticking != null) _ticking.Teardown();
             if (_driver != null) _driver.Teardown();
             HunterRegistry.Unregister(this);
             _controller = null; _state = null; _profile = null; _player = null; _level = null;
             _weaver = null; _weaverConfig = null;
+            _ram = null; _skip = null; _mimic = null;
         }
         private void OnDestroy() { Teardown(); }
     }

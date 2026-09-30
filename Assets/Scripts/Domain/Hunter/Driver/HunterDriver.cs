@@ -16,6 +16,7 @@
 //   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
 //   - Apply ordered recording segments without pathfinding shortcuts or corner smoothing.
 //   - Own the optional Weaver sweep/ceiling sub-driver and admit verified partition links.
+//   - Apply non-turning Ram displacement, atomic Skip placement and Mimic touch probes.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -207,6 +208,48 @@ namespace Worsen.Domain.Hunter
         { if (_animation != null) _animation.Apply(dt, Velocity.magnitude, phase, progress); }
         public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt)
             => MoveRecording(points, dt, out _);
+        public bool MoveCharge(Vector3 displacement, Vector3 direction, float dt, out Collider blocker)
+        {
+            blocker = null;
+            if (_state == null || !(dt > 0f)) return false;
+            Vector3 start = Position, movement = displacement;
+            bool blocked = !_routePresenter.Allowed(new[] { start, start + movement }, _state.UnavailableRooms);
+            if (blocked) movement = Vector3.zero;
+            else if (movement.sqrMagnitude > 0f && Cast(start, movement, out RaycastHit hit))
+            {
+                blocked = true; blocker = hit.collider;
+                movement = movement.normalized * Mathf.Min(movement.magnitude, Mathf.Max(0f, hit.distance - _config.SkinWidth));
+            }
+            // No NavMesh steering, step-up, slide or turn during a charge.
+            if (movement.sqrMagnitude > 0f && !HasLevelSupport(start + movement))
+            { movement = Vector3.zero; blocker = null; blocked = true; }
+            _state.Steering.Position = start + movement;
+            _state.Steering.Velocity = blocked ? Vector3.zero : movement / dt;
+            _state.Steering.Forward = direction;
+            _state.PathCooldown = 0f; _state.VerticalSpeed = 0f;
+            transform.SetPositionAndRotation(start + movement, Quaternion.LookRotation(direction, Vector3.up));
+            _body.position = start + movement; Physics.SyncTransforms();
+            if (blocker != null) OnLungeContact?.Invoke(blocker);
+            return blocked;
+        }
+        public bool TryTeleport(Vector3 position)
+        {
+            if (_state == null || float.IsNaN(position.sqrMagnitude) || float.IsInfinity(position.sqrMagnitude) ||
+                !NavMesh.SamplePosition(position, out NavMeshHit hit, _config.SkinWidth, _config.NavigationAreaMask) ||
+                Vector3.Distance(position, hit.position) > _config.SkinWidth || Blocked(position) ||
+                !_routePresenter.Allowed(new[] { position, position }, _state.UnavailableRooms)) return false;
+            // Atomic endpoint transfer: no audio, trail, animation or intermediate poses.
+            transform.position = position; _body.position = position;
+            _presenter.Reset(_state.Steering, position, Forward);
+            _state.PathCooldown = 0f; _state.VerticalSpeed = 0f;
+            Physics.SyncTransforms(); return true;
+        }
+        public void ProbeMimicTouch(float radius)
+        {
+            foreach (Collider other in Physics.OverlapSphere(Position + Vector3.up * radius, radius,
+                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
+                if (!Own(other) && (_state.TargetFilter?.Invoke(other) ?? false)) OnLungeContact?.Invoke(other);
+        }
         public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt, out bool unreachable)
         {
             unreachable = false;
