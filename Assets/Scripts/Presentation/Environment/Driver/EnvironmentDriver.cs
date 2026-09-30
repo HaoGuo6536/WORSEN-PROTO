@@ -8,16 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
-//   - Protect exit-room flames from collapse destruction, guttering and darkness once the exit is bound.
-//   - Swap torch art for cold hospital panels before construction, without moving or renumbering sockets.
-//   - Apply a density budget to eligible torches only; moon/exit lights keep the shared cap.
-//   - Apply safe wall slots, remove decorative collision and own every spawned object.
-//   - Replace imported real lights with configured Lumen fake-light strengths without exposing vendor commands to gameplay systems.
-//   - Fade destruction and localized cursed flames while preserving route readability.
-//   - Own small chalk threshold crosses and clear them on room/floor teardown.
-//   - Own runtime Lumen grammar sub-drivers; budget exit fans alongside local lamps.
-//   - Bind Core light facts by exact generated socket position; unlit torches consume no budget.
-//   - Build dressing and open-sky light pools per footprint cell, retaining one room owner.
+//   - Protect exit lights while budgeting eligible lamps under destruction and curse hooks.
+//   - Build torch, school/hospital fluorescent and basement cage art at exact sockets.
+//   - Admit footprint/curved dressing without decorative collision or real lights.
+//   - Own budgeted Lumen grammar and bind Core light facts by exact socket position.
+//   - Own room objects and threshold chalk with symmetric floor teardown.
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
 //   - Core interactable snapshots are pushed by the owning Manager, never pulled from Level.
@@ -75,26 +70,27 @@ namespace Worsen.Presentation.Environment
         }
 
         public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
-            IReadOnlyList<Bounds> cells = null)
+            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
         {
             if (_config == null || _state.Rooms.ContainsKey(id)) return;
             bool fluorescent = EnvironmentThemePresenter.IsFluorescent(_state, id);
+            bool cage = EnvironmentThemePresenter.IsCageLamp(_state, id);
             string family = _state.RoomThemes.TryGetValue(id, out var roomTheme) ? roomTheme.Family : string.Empty;
             var root = new GameObject("Room " + id + (fluorescent ? " Hospital " : " Castle ") + family + " Dressing");
             root.transform.SetParent(transform, false); root.SetActive(false);
             _state.Rooms.Add(id, root);
             _state.RoomBounds.Add(id, bounds);
-            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved, cells);
+            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved, cells, boundary, lightSockets);
             for (int i = 0; i < slots.Length; i++)
             {
                 EnvironmentSlot slot = slots[i];
                 if (slot.Torch)
                 {
-                    if (!fluorescent) SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
+                    if (!fluorescent && !cage) SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
                     AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false,
-                        slot.Position, fluorescent, slot.Yaw, slot.Envelope);
+                        slot.Position, fluorescent, slot.Yaw, slot.Envelope, cage);
                 }
-                else if (!fluorescent)
+                else if (!fluorescent && !cage)
                 {
                     bool groundProp = slot.Kind == EnvironmentDecorationKind.FloorProp || slot.Kind == EnvironmentDecorationKind.MerchantDisplay;
                     if (groundProp && Physics.CheckBox(slot.Position, slot.Envelope * .5f - Vector3.one * .025f,
@@ -153,7 +149,7 @@ namespace Worsen.Presentation.Environment
         }
 
         private void AddFlame(int roomId, int identity, Transform parent, Vector3 position, bool refuge, bool moon,
-            Vector3 socketPosition = default, bool fluorescent = false, float yaw = 0f, Vector3 envelope = default)
+            Vector3 socketPosition = default, bool fluorescent = false, float yaw = 0f, Vector3 envelope = default, bool cage = false)
         {
             var holder = new GameObject(moon ? "Lumen 2 Moon Pool" : fluorescent ? "Lumen 2 Fluorescent Pool" : "Lumen 2 Torch Pool");
             holder.transform.SetParent(parent, false); holder.transform.position = position;
@@ -164,13 +160,13 @@ namespace Worsen.Presentation.Environment
             var grammar = effectRoot.AddComponent<EnvironmentLumenDriver>();
             LumenEffectPlayer lumen = grammar.CreateLamp(_config, moon, fluorescent);
             EnvironmentFluorescentFixture panel = null;
-            if (fluorescent)
+            if (fluorescent || cage)
             {
                 var panelRoot = new GameObject("Cold fluorescent panel"); panelRoot.transform.SetParent(holder.transform, false);
                 panel = panelRoot.AddComponent<EnvironmentFluorescentFixture>();
-                panel.Configure(socketPosition, yaw, envelope, _config);
+                panel.Configure(socketPosition, yaw, envelope, _config, cage);
             }
-            if (!moon && !fluorescent && _config.FirePrefab != null)
+            if (!moon && !fluorescent && !cage && _config.FirePrefab != null)
             {
                 GameObject fire = Instantiate(_config.FirePrefab, effectRoot.transform);
                 fire.transform.localPosition = Vector3.zero; fire.transform.localScale *= 0.35f;

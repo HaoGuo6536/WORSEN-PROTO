@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Select a seeded module within the shared gimmick budget and record its reward.
+//   - Select a seeded eligible room or tagged template and retain authored gold sockets.
 //   - Build cage and vault boxes that native navigation can validate before play.
 // DEPENDENCIES:
 //   - Own configs/layout and Core values only; no engine calls.
@@ -33,25 +33,34 @@ namespace Worsen.Domain.Procedural
             if (c == null || layout.RoundIndex < c.PuzzleFirstRound || layout.Modules.Any(m => m.Kind == ProceduralModuleKind.MerchantRefuge))
                 return Array.Empty<ProceduralPuzzlePlan>();
             var occupied = ProceduralGimmickUtility.Rooms(layout);
+            if (layout.UsesTemplates && !layout.TemplateRooms.Any(r => r.Template.Gimmick == "puzzle"))
+                return Array.Empty<ProceduralPuzzlePlan>();
             int budget = ProceduralGimmickUtility.Budget(c, layout.RoundIndex);
             if (layout.GimmickBudget != int.MaxValue && occupied.Count >= budget)
                 return Array.Empty<ProceduralPuzzlePlan>();
             foreach (float v in new[] { c.LaneLength, c.LaneWidth, c.CageHeight, c.PanelThickness, c.ContactHeight,
                 c.VaultHeight, c.Clearance, c.NearbyRadius, c.SequenceSeconds, c.SegmentSeconds, c.MovingSpeed })
                 if (!(v > 0f) || float.IsInfinity(v)) throw new ArgumentException("Invalid puzzle dimensions/timing.");
-            if (c.PuzzleFirstRound < 1 || c.LaneLength + 2f * c.Clearance >= layout.CellSize ||
-                c.LaneWidth + 2f * c.Clearance >= layout.CellSize || c.PanelThickness >= c.LaneWidth * 0.5f ||
+            if (c.PuzzleFirstRound < 1 || (!layout.UsesTemplates && (c.LaneLength + 2f * c.Clearance >= layout.CellSize ||
+                c.LaneWidth + 2f * c.Clearance >= layout.CellSize)) || c.PanelThickness >= c.LaneWidth * 0.5f ||
                 c.VaultHeight >= c.CageHeight || c.ContactHeight >= c.VaultHeight)
                 throw new ArgumentException("Puzzle does not fit the cell or base traversal envelope.");
             var kind = (ProceduralPuzzleKind)random.Next(4);
             foreach (var module in layout.Modules.Where(m => m.PocketId == 0 && m.RoomId != layout.Graph.ExitRoomId &&
-                (layout.GimmickBudget == int.MaxValue || !occupied.Contains(m.RoomId))))
+                (layout.GimmickBudget == int.MaxValue || !occupied.Contains(m.RoomId)) &&
+                (!layout.UsesTemplates || layout.TemplateRooms.Any(r => r.RoomId == m.RoomId && r.Template.Gimmick == "puzzle"))))
             foreach (var cell in ProceduralFootprintUtility.Volumes(layout, layout.Graph.Rooms[module.RoomId - 1]))
             foreach (bool alongX in new[] { false, true })
             foreach (float offset in new[] { 0f, -(layout.CellSize - c.LaneLength) * 0.25f, (layout.CellSize - c.LaneLength) * 0.25f })
             {
                 var axis = alongX ? Vector3.right : Vector3.forward;
                 var origin = new Vector3(cell.Center.x, 0f, cell.Center.z) + axis * offset;
+                var template = layout.TemplateRooms.FirstOrDefault(r => r.RoomId == module.RoomId);
+                if (template != null)
+                {
+                    if (template.Template.GoldenCake.Length != 1) continue;
+                    origin = ProceduralTemplateUtility.Point(template, template.Template.GoldenCake[0], layout.Origin) - axis * (c.LaneLength * .375f);
+                }
                 var size = new Vector3(c.LaneWidth + 2f * c.Clearance, c.CageHeight, c.LaneLength + 2f * c.Clearance);
                 if (alongX) size = new Vector3(size.z, size.y, size.x);
                 var envelope = new Bounds(origin + Vector3.up * (c.CageHeight * 0.5f + c.PanelThickness), size);

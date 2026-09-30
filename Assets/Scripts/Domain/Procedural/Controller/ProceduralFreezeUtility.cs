@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Utility (§2b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Replace one ground candidate with a clear doorway socket and prioritize its hunter.
+//   - Use an authored template cake, or replace a fallback socket, and prioritize its hunter.
 //   - Spend a shared gimmick slot only after the first-contact check succeeds.
 // DEPENDENCIES:
 //   - Core graph utility and own generation data only.
@@ -42,6 +42,7 @@ namespace Worsen.Domain.Procedural
                 foreach (int roomId in new[] { door.FromRoomId, door.ToRoomId })
                 {
                     int behind = roomId == door.FromRoomId ? door.ToRoomId : door.FromRoomId;
+                    if (layout.UsesTemplates && !layout.TemplateRooms.Any(r => r.RoomId == roomId && r.Template.Gimmick == "freeze")) continue;
                     if (behind == layout.Graph.ExitRoomId || roomId == layout.Graph.ExitRoomId || occupied.Contains(roomId) ||
                         layout.OrganicRooms.Any(r => r.RoomId == roomId)) continue;
                     var reduced = LevelGraphUtility.Build(layout.Graph.Rooms.Where(r => r.Id != behind).ToArray(),
@@ -59,6 +60,7 @@ namespace Worsen.Domain.Procedural
                     var axis = door.AlongX ? Vector3.forward : Vector3.right;
                     float sign = Vector3.Dot(cell.Center - door.Center, axis) > 0f ? 1f : -1f;
                     var position = door.Center + axis * (sign * config.CandidatePerimeterInset) + Vector3.up * config.AnchorHeight;
+                    if (layout.UsesTemplates) position = old.Position;
                     if (layout.Graph.Anchors.Any(a => a.Id != old.Id && Vector3.Distance(a.Position, position) < 0.01f)) continue;
                     var anchors = layout.Graph.Anchors.Select(a => a.Id == old.Id ?
                         new LevelAnchor(a.Id, roomId, CakeAnchorType.Flow, position) : a).ToArray();

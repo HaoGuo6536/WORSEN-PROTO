@@ -13,7 +13,7 @@
 //   - Sample supported cake sockets; leave required selection to Floor.
 //   - Protect hub spawns and exits while retaining first-contact validation.
 //   - Publish footprints, gaps, pockets and directed storeys in a seeded manifest.
-//   - Apply independently seeded themes, organic refinement and shared gimmick pacing.
+//   - Prefer seeded template layouts; record organic fallback and shared pacing.
 // DEPENDENCIES:
 //   - Core immutable level contracts and LevelGraphUtility; no Domain siblings.
 // USAGE NOTES:
@@ -46,15 +46,26 @@ namespace Worsen.Domain.Procedural
 
         public static int LayoutSeed(int runSeed, int roundIndex) => unchecked((runSeed * 397) ^ (roundIndex * 7919));
 
-        public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null)
+        public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1)
         {
             Reset();
             ValidateConfig(roundIndex);
             if (!Finite(optionalWindowMultiplier) || optionalWindowMultiplier < 0f || optionalWindowMultiplier > 1f)
                 throw new ArgumentOutOfRangeException(nameof(optionalWindowMultiplier));
+            if (requiredHunterCount < 0) throw new ArgumentOutOfRangeException(nameof(requiredHunterCount));
+            var selectedTheme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed));
+            if (new ProceduralTemplateController(_config, new System.Random(LayoutSeed(runSeed, roundIndex)))
+                .TryGenerate(runSeed, roundIndex, selectedTheme, merchantRefuge, requiredHunterCount, out var templateLayout, out string templateFailure))
+            {
+                ProceduralFreezeUtility.Apply(templateLayout, _config);
+                templateLayout.PresentationRooms = DescribeRooms(templateLayout, templateLayout.Graph.ExitRoomId);
+                templateLayout.Manifest = Manifest(templateLayout);
+                _state.Layout = templateLayout;
+                return templateLayout;
+            }
             int connectedCount = RoomCount(roundIndex);
             var footprints = GrowCells(connectedCount, roundIndex, out var gaps);
-            var theme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed));
+            var theme = selectedTheme;
             float height = theme?.WallHeight ?? (_config.CastleModules ? _config.CastleHeight : _config.RoomHeight);
             var rooms = footprints.Select((cells, index) => new LevelRoom(index + 1,
                 new Vector3(_config.Origin.x + (cells.Min(c => c.x) + cells.Max(c => c.x)) * _config.RoomSize * 0.5f,
@@ -114,6 +125,7 @@ namespace Worsen.Domain.Procedural
                 Seed = runSeed,
                 RoundIndex = roundIndex,
                 Theme = theme,
+                TemplateFallbackReason = templateFailure,
                 GimmickBudget = ProceduralGimmickUtility.Budget(_config.Challenges, roundIndex),
                 Graph = graph,
                 Cells = Array.AsReadOnly(footprints.SelectMany(c => c).ToArray()),
@@ -138,6 +150,8 @@ namespace Worsen.Domain.Procedural
                 out int minimumRooms, out string spawnReport);
             layout.MinimumHunterSpawnRooms = minimumRooms;
             layout.SpawnValidationReport = spawnReport;
+            if (layout.ValidatedHunterSpawnCapacity < requiredHunterCount)
+                throw new InvalidOperationException("Hunter spawn capacity " + layout.ValidatedHunterSpawnCapacity + " is below requested " + requiredHunterCount + ".");
             ProceduralFreezeUtility.Apply(layout, _config);
             ProceduralFootprintUtility.Validate(layout);
             ProceduralStoreyUtility.Validate(layout, _config);
@@ -504,6 +518,7 @@ namespace Worsen.Domain.Procedural
             text.Append(ProceduralThemeUtility.Manifest(layout.Theme));
             text.Append("|GimmickBudget:").Append(layout.GimmickBudget);
             text.Append(ProceduralOrganicUtility.Manifest(layout));
+            text.Append(ProceduralTemplateController.Manifest(layout));
             text.Append(ProceduralFreezeUtility.Manifest(layout));
             return text.ToString();
         }

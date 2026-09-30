@@ -12,7 +12,7 @@
 //   - Carry geometry commands, effective spawn policy and world-object plans.
 //   - Record footprints, pocket anchors and identified shrine/Passage sites.
 //   - Retain storeys, directed routes and permissioned navigation links.
-//   - Keep themes, organic shapes and the shared gimmick-room budget explicit.
+//   - Keep template provenance, organic fallback and admitted capacity explicit.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
@@ -42,6 +42,12 @@ namespace Worsen.Domain.Procedural
 
     public sealed class ProceduralLayout
     {
+        public IReadOnlyList<ProceduralTemplateRoom> TemplateRooms { get; internal set; } = System.Array.Empty<ProceduralTemplateRoom>();
+        public ProceduralTemplateCatalogue TemplateCatalogue { get; internal set; }
+        public string TemplateFallbackReason { get; internal set; } = string.Empty;
+        public bool UsesTemplates => TemplateRooms.Count != 0;
+        public int ValidatedHunterSpawnCapacity => HunterSpawnPositions?.Count ?? 0;
+        public int FuturePassageGoldenAnchorCount { get; internal set; }
         public int GimmickBudget { get; internal set; } = int.MaxValue;
         public IReadOnlyList<ProceduralOrganicRoom> OrganicRooms { get; internal set; } = System.Array.Empty<ProceduralOrganicRoom>();
         public ProceduralThemeData Theme { get; internal set; }
@@ -168,10 +174,14 @@ namespace Worsen.Domain.Procedural
         public ProceduralBlock(int roomId, ProceduralSurfaceKind kind, Vector3 center, Vector3 size,
             int surfaceId = 0, TraversalSurfaceKind traversalKind = TraversalSurfaceKind.None,
             Vector3 endpointA = default, Vector3 endpointB = default,
-            ProceduralBlockRole role = ProceduralBlockRole.Solid, Quaternion? rotation = null)
+            ProceduralBlockRole role = ProceduralBlockRole.Solid, Quaternion? rotation = null,
+            string pieceId = null, Vector3? piecePosition = null)
         { RoomId = roomId; Kind = kind; Center = center; Size = size; SurfaceId = surfaceId;
             TraversalKind = traversalKind; EndpointA = endpointA; EndpointB = endpointB;
-            Role = role; Rotation = rotation ?? Quaternion.identity; }
+            Role = role; Rotation = rotation ?? Quaternion.identity;
+            PieceId = pieceId; PiecePosition = piecePosition ?? center; }
+        public string PieceId { get; }
+        public Vector3 PiecePosition { get; }
         public int RoomId { get; }
         public ProceduralSurfaceKind Kind { get; }
         public Vector3 Center { get; }

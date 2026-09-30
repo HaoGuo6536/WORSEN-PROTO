@@ -11,7 +11,7 @@
 //   - Sample ordinary doors with injected randomness, always excluding exit links.
 //   - Keep prop envelopes clear of shell geometry, objective anchors and main routes.
 //   - Produce stable Core snapshots and a culture-independent construction manifest.
-//   - Keep props on occupied cells; omit crowded organic sockets rather than block routes.
+//   - Preserve authored template lights and omit crowded footprint props rather than block routes.
 // DEPENDENCIES:
 //   - Core contracts and own layout/config values; no Presentation dependency.
 // USAGE NOTES:
@@ -66,7 +66,16 @@ namespace Worsen.Domain.Procedural
             foreach (var room in layout.Graph.Rooms)
             {
                 var portals = layout.Doors.Where(d => d.FromRoomId == room.Id || d.ToRoomId == room.Id).Select(d => d.Center).ToArray();
-                for (int cell = 0; cell < room.Cells.Count; cell++) AddLights(result, room, portals, cell);
+                var template = layout.TemplateRooms.FirstOrDefault(r => r.RoomId == room.Id);
+                if (template != null)
+                    for (int i = 0; i < template.Template.Light.Length; i++)
+                        result.Add(new ProceduralInteractablePlan(new InteractableState(6000000 + room.Id * 10000 + i,
+                            InteractableKind.Light, room.Id, ProceduralTemplateUtility.Point(template, template.Template.Light[i], layout.Origin),
+                            InteractableStateValue.Lit), Vector3.zero));
+                else for (int cell = 0; cell < room.Cells.Count; cell++) AddLights(result, room, portals, cell);
+                // Template props are authored kit placements; do not insert new corner
+                // blockers into the artist's cake, spawn or exit clearances.
+                if (template != null) continue;
                 var volumes = ProceduralFootprintUtility.Volumes(layout, room);
                 int start = random.Next(volumes.Count * 4), count = 0;
                 for (int index = 0; index < volumes.Count * 4 && count < config.KnockablePropsPerRoom; index++)
@@ -85,9 +94,11 @@ namespace Worsen.Domain.Procedural
                         InteractableKind.KnockableProp, room.Id, position, InteractableStateValue.Inactive), size));
                     count++;
                 }
-                if (count != config.KnockablePropsPerRoom && !layout.OrganicRooms.Any(r => r.RoomId == room.Id))
+                if (count != config.KnockablePropsPerRoom && template == null && !layout.OrganicRooms.Any(r => r.RoomId == room.Id))
                     throw new InvalidOperationException("No safe prop sockets in room " + room.Id);
             }
+            result.RemoveAll(p => p.State.Kind == InteractableKind.Light && layout.OrganicRooms.Any(r =>
+                r.RoomId == p.State.RoomId && !ProceduralOrganicUtility.Clear(r, p.State.Position)));
             return Array.AsReadOnly(result.OrderBy(plan => plan.State.Id).ToArray());
         }
 
@@ -108,13 +119,13 @@ namespace Worsen.Domain.Procedural
         private static void AddLights(List<ProceduralInteractablePlan> result, LevelRoom room, Vector3[] portals, int cellIndex)
         {
             var bounds = room.Cells[cellIndex];
-            if (bounds.size.x < 5f || bounds.size.z < 5f || bounds.size.y < 3.4f) return;
+            if (bounds.size.x < 4f || bounds.size.z < 4f || bounds.size.y < 3.2f) return;
             int torchCount = 0, decorCount = 0, start = (room.Id & int.MaxValue) % 8;
             for (int n = 0; n < 8; n++)
             {
                 int index = (start + n) % 8, wall = index / 2;
                 float offset = index % 2 == 0 ? -0.28f : 0.28f;
-                Vector3 position = bounds.center; position.y = bounds.min.y + 2.75f;
+                Vector3 position = bounds.center; position.y = bounds.min.y + Mathf.Min(2.75f, bounds.size.y - .6f);
                 if (wall == 0 || wall == 2)
                 { position.x += bounds.size.x * offset; position.z = wall == 0 ? bounds.min.z + 0.3f : bounds.max.z - 0.3f; }
                 else

@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Calculate collision/render blocks and rotated navigation bounds without engine calls.
 //   - Seal every roof and the upper wall transitions between unequal room heights.
-//   - Tile coarse or organic footprints without same-room seams.
+//   - Dispatch authored template shells, or tile organic/coarse fallback footprints.
 //   - Frame gap views visually while retaining an unbroken wall collider/NavMesh barrier.
 //   - Add upper floors with real cutouts, climb staging and permissioned ramp collision.
 // DEPENDENCIES:
@@ -33,6 +33,7 @@ namespace Worsen.Domain.Procedural
         {
             if (layout?.Graph == null || config == null || driver == null) throw new ArgumentNullException();
             Validate(config, driver);
+            if (layout.UsesTemplates) return new ProceduralTemplateGeometryPresenter().Build(layout, config, driver);
             var blocks = new List<ProceduralBlock>();
             blocks.AddRange(new ProceduralOrganicShellPresenter().Build(layout, config, driver));
             foreach (var logicalRoom in layout.Graph.Rooms.Where(r => !layout.OrganicRooms.Any(o => o.RoomId == r.Id)))

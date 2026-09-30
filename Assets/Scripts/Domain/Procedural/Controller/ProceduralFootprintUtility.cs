@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Utility (§2b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Resolve carved or coarse cells, preserve pockets and validate required space.
+//   - Resolve template, carved or coarse cells and validate connected required space.
 // DEPENDENCIES:
 //   - Core graph values and own layout definitions; no engine calls or siblings.
 // USAGE NOTES:
@@ -27,7 +27,7 @@ namespace Worsen.Domain.Procedural
     {
         public static IReadOnlyList<LevelRoom> Volumes(ProceduralLayout layout, LevelRoom room)
         {
-            if (layout.OrganicRooms.Any(r => r.RoomId == room.Id))
+            if (layout.UsesTemplates || layout.OrganicRooms.Any(r => r.RoomId == room.Id))
                 return room.Cells.Select(c => new LevelRoom(room.Id, c.center, c.size, pocket: room.Pocket)).ToArray();
             var module = layout.Modules?.FirstOrDefault(m => m.RoomId == room.Id) ?? default;
             if (module.Cells == null || module.Cells.Count == 0) return new[] { room };
