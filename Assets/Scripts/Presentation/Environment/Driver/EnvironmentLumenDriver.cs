@@ -15,7 +15,7 @@
 //   - Build a deterministic exit fan and release its private mesh/profile on teardown.
 //
 // DEPENDENCIES:
-//   - Environment config/state; HorrorLumenPresenter pure math; Lumen runtime SDK.
+//   - Environment config/state; Core LumenMathUtility; Lumen runtime SDK.
 //
 // USAGE NOTES:
 //   Scene-owned and created beneath an inactive budget root. No global settings.
@@ -23,14 +23,14 @@
 // ============================================================================
 using UnityEngine;
 using DistantLands.Lumen;
-using Worsen.Presentation.Horror;
+using Worsen.Core;
 
 namespace Worsen.Presentation.Environment
 {
     public sealed class EnvironmentLumenDriver : MonoBehaviour
     {
         private readonly EnvironmentLumenDriverState _state = new EnvironmentLumenDriverState();
-        private readonly HorrorLumenPresenter _presenter = new HorrorLumenPresenter();
+
 
         public LumenEffectPlayer CreateLamp(EnvironmentDriverConfig config, bool moon, bool fluorescent = false)
         {
@@ -45,11 +45,11 @@ namespace Worsen.Presentation.Environment
                 {
                     if (layer is LumenLightLayer light)
                     {
-                        light.range = _presenter.RangeMultiplier(config.GroundPoolRadius, 1f);
+                        light.range = LumenMathUtility.RangeMultiplier(config.GroundPoolRadius, 1f);
                         light.intensity = config.GroundPoolStrength;
                         light.smoothness = config.GroundPoolSoftness;
                         light.isSpotlight = true;
-                        Vector2 angles = _presenter.ConeAngles(config.GroundPoolCone);
+                        Vector2 angles = LumenMathUtility.ConeAngles(config.GroundPoolCone);
                         light.minSpotlightAngle = angles.x; light.maxSpotlightAngle = angles.y;
                         light.rotation = new Vector3(90f, 0f, 0f);
                         light.color = fluorescent ? config.FluorescentColor : config.WarmColor;
@@ -65,7 +65,7 @@ namespace Worsen.Presentation.Environment
         public LumenEffectPlayer CreateExit(EnvironmentDriverConfig config)
         {
             _state.RayMesh = new Mesh { name = "Owned exit ray" };
-            _state.RayMesh.vertices = _presenter.RayVertices(config.ExitRaySize.x, config.ExitRaySize.y);
+            _state.RayMesh.vertices = LumenMathUtility.RayVertices(config.ExitRaySize.x, config.ExitRaySize.y);
             // Lumen Ray reads vertex red (not UV alpha) for its opacity envelope.
             _state.RayMesh.colors = new[] { Color.white, Color.black, Color.black };
             _state.RayMesh.uv = new[] { new Vector2(.5f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
@@ -76,7 +76,7 @@ namespace Worsen.Presentation.Environment
             int count = Mathf.Clamp(config.ExitRayCount, 1, 9);
             for (int i = 0; i < count; i++)
                 _state.Profile.layers.Add(new StaticRayLayer { mesh = _state.RayMesh,
-                    rotation = new Vector3(0f, _presenter.FanYaw(i, count, config.ExitRaySpread), 0f),
+                    rotation = new Vector3(0f, LumenMathUtility.FanYaw(i, count, config.ExitRaySpread), 0f),
                     color = config.WarmColor, sceneDepthFade = true, sceneDepthFadeEnd = config.ExitRaySize.y });
             var player = gameObject.AddComponent<LumenEffectPlayer>();
             Configure(player, 1f, 1f);

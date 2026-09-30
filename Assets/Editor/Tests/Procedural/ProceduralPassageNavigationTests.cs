@@ -13,6 +13,7 @@
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit, UnityEngine physics and native navigation.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Coordinator-only EditMode execution. Removes only owned objects and navigation.
 //   Link-family tests isolate the generated endpoint plan; full-floor detour and
 //   Driver-owned link teardown remain covered by ProceduralStoreyNavigationTests.
@@ -39,7 +40,7 @@ namespace Worsen.Tests.Procedural
         [SetUp] public void SetUp()
         {
             _config = ScriptableObject.CreateInstance<ProceduralConfig>();
-            _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            _driverConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<ProceduralDriverConfig>();
             Set(_config, "_origin", new Vector2(30000f, 30000f));
             Set(_config, "_castleModules", false); Set(_config, "_storeyProbability", 0f);
             Set(_config, "_gapProbability", 1f); Set(_config, "_pocketProbability", 1f);

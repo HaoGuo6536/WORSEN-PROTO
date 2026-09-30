@@ -11,6 +11,7 @@
 // DEPENDENCIES:
 //   NUnit, UnityEngine, Core, Floor and the existing Floor cake fixture.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Requires Unity: temporary scene objects only, no authored asset changes.
 // ============================================================================
 using System;
@@ -33,7 +34,7 @@ namespace Worsen.Tests.Floor
         {
             var root = new GameObject("Floor guidance integration"); root.SetActive(false);
             var config = ScriptableObject.CreateInstance<FloorConfig>();
-            var visual = ScriptableObject.CreateInstance<FloorDriverConfig>();
+            var visual = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
             var driver = root.AddComponent<FloorDriver>(); FloorCakeRulesTests.Set(driver, "_config", visual);
             var manager = root.AddComponent<FloorManager>();
             var player = new FloorCakeRulesTests.Player(); var hunter = new EntityId(901);

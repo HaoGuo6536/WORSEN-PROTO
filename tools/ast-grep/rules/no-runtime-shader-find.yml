@@ -1,0 +1,15 @@
+id: no-runtime-shader-find
+language: csharp
+severity: error
+message: "Serialize Shader or Material references on the owning Config; resolve shader names only in deterministic editor setup (§4, §7d, §10)."
+files:
+  - "Assets/Scripts/**/*.cs"
+rule:
+  any:
+    - pattern: Shader.Find($$$ARGS)
+    - pattern: UnityEngine.Shader.Find($$$ARGS)
+    - pattern: global::UnityEngine.Shader.Find($$$ARGS)
+# Debt (PLAN-027, review by 2026-12-31): wt/perf-alloc-2 (ce5d255) replaces this site with a
+# serialized shader; remove the entry when that branch merges with this rule.
+ignores:
+  - "Assets/Scripts/Domain/Hunter/Driver/HunterAttackDriver.cs"

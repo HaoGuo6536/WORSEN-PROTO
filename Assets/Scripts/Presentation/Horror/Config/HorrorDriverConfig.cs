@@ -25,6 +25,7 @@
 //   A missing ambience loop is allowed and produces silence without a warning.
 //   Legacy spotlight offset/inner-angle/shadow fields remain serialized for asset compatibility;
 //   Lumen uses camera-coincident authoritative aim and its profile's soft cone instead.
+//   Fallback attack and web shaders are serialized by HorrorShaderSetup for player builds.
 //
 // ============================================================================
 
@@ -35,6 +36,10 @@ namespace Worsen.Presentation.Horror
     [CreateAssetMenu(fileName = "HorrorDriverConfig", menuName = "Worsen/Horror/Driver Config")]
     public sealed class HorrorDriverConfig : ScriptableObject
     {
+        [SerializeField] private Shader _attackShader = null;
+        [SerializeField] private Shader _webShader = null;
+        public Shader AttackShader => _attackShader;
+        public Shader WebShader => _webShader;
         [Header("Deep dark in collapse (provisional)")]
         [SerializeField, Min(0f)] private float _sweepFogNearMeters = 24f;
         [SerializeField, Min(0f)] private float _collapsedFogNearMeters = 10f;

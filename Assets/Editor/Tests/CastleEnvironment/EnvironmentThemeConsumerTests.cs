@@ -11,6 +11,7 @@
 // DEPENDENCIES:
 //   NUnit, Core, Environment and Unity temporary object creation.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Edit Mode. No imported Lumen assets required; actual illumination is a live gate.
 // ============================================================================
 using System;
@@ -29,7 +30,7 @@ namespace Worsen.Tests.CastleEnvironment
         [Test]
         public void HospitalReplacesTorchesButPreservesEveryIdentityAndSocket()
         {
-            var root = new GameObject("Theme fixture"); var config = ScriptableObject.CreateInstance<EnvironmentDriverConfig>();
+            var root = new GameObject("Theme fixture"); var config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<EnvironmentDriverConfig>();
             var driver = root.AddComponent<EnvironmentDriver>();
             typeof(EnvironmentDriver).GetField("_config", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(driver, config);
             var state = (EnvironmentDriverState)typeof(EnvironmentDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(driver);

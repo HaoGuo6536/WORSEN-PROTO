@@ -220,7 +220,7 @@ namespace Worsen.Tests.Expedition
                 return root.AddComponent<T>();
             }
             private T Config<T>() where T : ScriptableObject
-            { T asset = ScriptableObject.CreateInstance<T>(); owned.Add(asset); return asset; }
+            { T asset = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<T>(); owned.Add(asset); return asset; }
             public void Dispose()
             {
                 if (Progression != null) Progression.SnapshotChanged -= ObserveProgression;

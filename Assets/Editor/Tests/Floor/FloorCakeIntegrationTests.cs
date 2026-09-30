@@ -12,6 +12,7 @@
 // DEPENDENCIES:
 //   NUnit, UnityEngine, Core, Floor, read-only Level/Hunter and pure Chase rules.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Unity Edit Mode only; temporary objects are destroyed without saving assets.
 //   Contact callbacks are invoked explicitly; physical collision/rendering needs live QA.
 // ============================================================================
@@ -156,7 +157,7 @@ namespace Worsen.Tests.Floor
         {
             public readonly GameObject Root = new GameObject("Cake integration fixture");
             public readonly FloorConfig Config = ScriptableObject.CreateInstance<FloorConfig>();
-            public readonly FloorDriverConfig VisualConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+            public readonly FloorDriverConfig VisualConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
             public readonly FloorManager Manager;
             public readonly FloorDriver Driver;
             public Fixture()

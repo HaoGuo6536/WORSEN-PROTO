@@ -23,6 +23,7 @@
 //   - Runtime code reads this asset without changing designer values.
 //   - Legacy look durations/limits and consumption motion fields do not drive the snap or catch.
 //   - Optional third-person detection experiment remains deferred until its chase gate.
+//   - The fallback hand shader is a serialized build dependency filled by Camera setup.
 //
 // ============================================================================
 
@@ -33,6 +34,8 @@ namespace Worsen.Presentation.Camera
     [CreateAssetMenu(fileName = "CameraDriverConfig", menuName = "Worsen/Camera/Driver Config")]
     public sealed class CameraDriverConfig : ScriptableObject
     {
+        [SerializeField] private Shader _handShader = null;
+        public Shader HandShader => _handShader;
         [SerializeField] private AnimationCurve _vaultHeight = new AnimationCurve(
             new Keyframe(0f, 0f), new Keyframe(0.2f, -0.04f), new Keyframe(0.65f, 0.08f), new Keyframe(1f, 0f));
         [SerializeField, Min(0.001f)] private float _vaultReturnSeconds = 0.18f;

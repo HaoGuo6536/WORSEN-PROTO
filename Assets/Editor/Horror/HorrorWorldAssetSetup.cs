@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Validate every required source before creating or saving owned assets.
 //   - Wire physical doors, URP castle surface copies and animated grasp hands.
-//   - Build the Environment configuration with the installed Lumen 2 effect prefab.
+//   - Build Environment/Lumen configuration and serialize required world shader references.
 //   - Replace standalone lights with broad soft Lumen effects and extract a freestanding door leaf.
 // DEPENDENCIES:
 //   - Common SetupKit creates asset folders while retaining existing identities.
@@ -65,6 +65,8 @@ namespace Worsen.Editor.Horror
             RequireIdle();
             RequirePersistent(floor, "Assets/Resources/ScriptableObjects/Domain/Floor/");
             RequirePersistent(procedural, "Assets/Resources/ScriptableObjects/Domain/Procedural/");
+            Worsen.Editor.Floor.FloorConfigGenerator.ConfigureShaders(floor);
+            Worsen.Editor.Procedural.ProceduralShaderSetup.Configure(procedural);
             var floorData = new SerializedObject(floor);
             var proceduralData = new SerializedObject(procedural);
             foreach (string field in new[] { "_usePhysicalExitDoor", "_exitDoorPrefab", "_exitDoorPrefabYaw", "_exitDoorMaterial",
@@ -133,6 +135,8 @@ namespace Worsen.Editor.Horror
             if (config == null)
             { EnsureParent(EnvironmentPath); config = ScriptableObject.CreateInstance<EnvironmentDriverConfig>(); AssetDatabase.CreateAsset(config, EnvironmentPath); }
             var data = new SerializedObject(config);
+            if (config.ChalkShader == null) Property(data, "_chalkShader").objectReferenceValue = RequireShader("Universal Render Pipeline/Particles/Unlit");
+            if (config.PanelShader == null) Property(data, "_panelShader").objectReferenceValue = RequireShader("Universal Render Pipeline/Unlit");
             Property(data, "_wallTorchPrefab").objectReferenceValue = torch;
             Property(data, "_firePrefab").objectReferenceValue = fire;
             SetArray(data, "_wallDecorationPrefabs", banners); SetArray(data, "_floorPropPrefabs", props);

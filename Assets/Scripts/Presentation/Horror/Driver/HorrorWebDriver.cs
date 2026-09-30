@@ -7,13 +7,14 @@
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by HorrorDriver · Presentation · Horror.
 // KEY RESPONSIBILITIES:
-//   - Apply presenter lifetimes and release owned lines, quads and fallback material.
+//   - Apply presenter lifetimes and release owned lines, quads and generated material.
 // DEPENDENCIES:
 //   - Core Weaver facts, own Horror config/state/presenter and Unity rendering.
 // USAGE NOTES:
 //   Scene-owned; shares HorrorDriverConfig. Time is supplied by the owner's Run
 //   clock, so pause freezes lifetimes. Disable/reset destroys all web objects.
 //   Door facts have no orientation: the placeholder uses two crossed upright quads.
+//   Missing WebMaterial and WebShader reports once per sub-driver and prevents visual admission.
 // ============================================================================
 using System.Linq;
 using UnityEngine;
@@ -27,17 +28,25 @@ namespace Worsen.Presentation.Horror
         private readonly HorrorWebPresenter _presenter = new HorrorWebPresenter();
         private HorrorDriverConfig _config;
         private Material _material;
+        private bool _missingMaterialReported;
         private bool _ownsMaterial;
         public int VisualCount => _state.Objects.Count;
         public void Initialize(HorrorDriverConfig config)
         {
-            Teardown(); _config = config; _material = config.WebMaterial;
-            if (_material == null)
+            Teardown();
+            _material = config != null ? config.WebMaterial : null;
+            if (_material == null && (config == null || config.WebShader == null))
             {
-                var shader = Shader.Find("Sprites/Default");
-                if (shader != null) { _material = new Material(shader) { name = "Owned web placeholder" }; _ownsMaterial = true; }
-                else Debug.LogWarning("Web placeholder shader unavailable; assign Horror WebMaterial.", this);
+                if (!_missingMaterialReported)
+                {
+                    _missingMaterialReported = true;
+                    Debug.LogError("HorrorDriverConfig requires WebMaterial or WebShader. Rebuild Horror assets.", this);
+                }
+                return;
             }
+            _config = config;
+            if (_material == null)
+            { _material = new Material(config.WebShader) { name = "Owned web placeholder" }; _ownsMaterial = true; }
         }
         public void Observe(WeaverFact fact)
         { if (_config != null && isActiveAndEnabled) { _presenter.Observe(_state, fact); Apply(); } }

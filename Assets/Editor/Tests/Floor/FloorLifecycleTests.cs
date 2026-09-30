@@ -18,6 +18,7 @@
 //   - Session Run receives normal completion through its actual Floor subscription.
 //   - UnityEngine creates temporary test objects; NUnit and reflection inspect them.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Unity Edit Mode engine tests only; exclude this fixture from standalone managed
 //   runners. The coordinator must hold the Unity lease while executing these tests.
 //   Every object and config is temporary and destroyed in finally. No assets or
@@ -396,7 +397,7 @@ namespace Worsen.Tests.Floor
                 {
                     Assert.That(Application.isPlaying, Is.False, "Run Floor lifecycle tests in Edit Mode.");
                     _config = ScriptableObject.CreateInstance<FloorConfig>();
-                    _driverConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                    _driverConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
                     SetField(_driverConfig, "_usePhysicalExitDoor", physicalDoor);
                     SetField(_config, "_requiredCakeCount", 1);
                     Root = new GameObject("Floor lifecycle test owner");

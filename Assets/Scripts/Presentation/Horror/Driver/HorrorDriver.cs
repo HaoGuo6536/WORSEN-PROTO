@@ -25,6 +25,7 @@
 //   The atmosphere sub-driver exclusively owns global render settings while enabled.
 //   No gameplay polling, global singleton reads or vendor API leaks outside this Driver stack.
 //   RunElapsedSeconds is NaN until initialized; disabled owners cannot advance the clock.
+//   Attack/web materials or shaders must be serialized; missing wiring reports once and prevents startup.
 //
 // ============================================================================
 
@@ -53,6 +54,9 @@ namespace Worsen.Presentation.Horror
         private HorrorMicroEventDriver _micro;
         private HorrorWebDriver _web;
         private HorrorAfterglowDriver _afterglow;
+        // DriverState (§7c): retained diagnostic, separate from resettable atmosphere state.
+        private sealed class ShaderReferenceDriverState { public bool Reported; }
+        private readonly ShaderReferenceDriverState _shaderState = new ShaderReferenceDriverState();
         public event Action<int, int, Vector3, float> MicroEventSelected;
         public event Action<float, bool> LightingHooksChanged;
         public float TorchCountMultiplier => _state != null ? HorrorCollapsePresenter.TorchMultiplier(_state, _config) : 1f;
@@ -70,6 +74,16 @@ namespace Worsen.Presentation.Horror
             Teardown();
             _config = config != null ? config :
                 Resources.Load<HorrorDriverConfig>("ScriptableObjects/Presentation/Horror/HorrorDriverConfig");
+            if (_config != null && ((_config.AttackMaterial == null && _config.AttackShader == null) ||
+                (_config.WebMaterial == null && _config.WebShader == null)))
+            {
+                if (!_shaderState.Reported)
+                {
+                    _shaderState.Reported = true;
+                    Debug.LogError("HorrorDriverConfig requires attack and web materials or shaders. Rebuild Horror assets.", this);
+                }
+                return;
+            }
             if (_config == null || _outputCamera == null)
             {
                 Debug.LogWarning("Horror needs its config and explicitly wired output camera.", this);
@@ -101,14 +115,8 @@ namespace Worsen.Presentation.Horror
             _state.CueMaterial = _config.AttackMaterial;
             if (_state.CueMaterial == null)
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-                if (shader == null) shader = Shader.Find("Sprites/Default");
-                if (shader != null)
-                {
-                    _state.CueMaterial = new Material(shader) { name = "Runtime attack cue fallback" };
-                    _state.OwnsCueMaterial = true;
-                }
-                Debug.LogWarning("Horror attack material was not assigned; assign one in setup for reliable build inclusion.", this);
+                _state.CueMaterial = new Material(_config.AttackShader) { name = "Owned attack cue" };
+                _state.OwnsCueMaterial = true;
             }
             if (_config.AttackGrowl == null)
                 Debug.LogWarning("Horror attack growl is missing. Assign the imported monster growl in its config.", this);

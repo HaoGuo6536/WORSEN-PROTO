@@ -14,6 +14,7 @@
 // USAGE NOTES:
 //   Scene-owned through EnvironmentDriver. No Update, clock or global effects.
 //   Lumen illumination is separately owned and budgeted by the parent Driver.
+//   The panel shader is serialized in the config; missing wiring reports once and aborts.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -24,10 +25,16 @@ namespace Worsen.Presentation.Environment
         private Material _material;
         private Material _cageMaterial;
         private Color _color;
+        private bool _missingShaderReported;
         public void Configure(Vector3 socket, float yaw, Vector3 envelope, EnvironmentDriverConfig config, bool cage = false)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            if (shader == null) throw new InvalidOperationException("Fluorescent panels require an unlit shader.");
+            var shader = config != null ? config.PanelShader : null;
+            if (shader == null)
+            {
+                const string error = "EnvironmentDriverConfig requires PanelShader. Rebuild Environment assets.";
+                if (!_missingShaderReported) { _missingShaderReported = true; Debug.LogError(error, this); }
+                throw new InvalidOperationException(error);
+            }
             _color = cage ? config.WarmColor : config.FluorescentColor;
             _material = new Material(shader) { name = "Owned fluorescent panel" };
             var panel = GameObject.CreatePrimitive(PrimitiveType.Cube);

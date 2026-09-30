@@ -13,6 +13,7 @@
 // DEPENDENCIES:
 //   NUnit, UnityEditor AssetDatabase, UnityEngine and Floor-owned door/config types.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Edit Mode only. Reads the imported castle leaf asset without modifying it.
 //   Creates only temporary objects/materials and destroys them after each test.
 // ============================================================================
@@ -43,7 +44,7 @@ namespace Worsen.Tests.Floor
                 Assert.That(source, Is.Not.Null);
                 var leaf = source.GetComponentsInChildren<Transform>(true).Single(item => item.name == "MC_Castle_Gates_01").gameObject;
                 Assert.That(leaf.GetComponentsInChildren<Renderer>(true).Length, Is.EqualTo(1), "Use the leaf child, never its surrounding castle facade.");
-                config = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
                 typeof(FloorDriverConfig).GetField("_exitDoorPrefab", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, leaf);
                 material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 root = new GameObject("Freestanding exit test");

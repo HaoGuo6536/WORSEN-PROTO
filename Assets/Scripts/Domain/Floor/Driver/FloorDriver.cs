@@ -22,6 +22,7 @@
 //   PathLength remains a complete-path-only query and does not mutate guidance history.
 //   Manager-injected identity resolution is used by room hand contacts only.
 //   No persistent singleton or competing simulation tick is created.
+//   Missing shader wiring aborts initialization before creating objects and logs once per owner.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,9 @@ namespace Worsen.Domain.Floor
         [SerializeField] private FloorDriverConfig _config;
         private readonly FloorDriverState _state = new FloorDriverState();
         private readonly FloorPresenter _presenter = new FloorPresenter();
+        // DriverState (§7c): diagnostics survive teardown/reinitialization, not asset mutation.
+        private sealed class ShaderReferenceDriverState { public bool Reported; }
+        private readonly ShaderReferenceDriverState _shaderState = new ShaderReferenceDriverState();
         public event Action<Collider, int, PickupKind> PickupContact;
         public event Action<Collider, int> TrapContact;
 
@@ -53,6 +57,12 @@ namespace Worsen.Domain.Floor
             Teardown();
             if (_config == null) _config = Resources.Load<FloorDriverConfig>("ScriptableObjects/Domain/Floor/FloorDriverConfig");
             if (_config == null) throw new InvalidOperationException("Build Floor assets before initialization.");
+            if (_config.SurfaceShader == null || (_config.MistMaterial == null && _config.MistShader == null))
+            {
+                const string error = "FloorDriverConfig requires SurfaceShader and MistMaterial or MistShader. Rebuild Floor assets.";
+                if (!_shaderState.Reported) { _shaderState.Reported = true; Debug.LogError(error, this); }
+                throw new InvalidOperationException(error);
+            }
             _state.Root = new GameObject("Generated Floor Runtime");
             _state.Root.SetActive(false); _state.Root.transform.SetParent(transform, false);
             _state.CakeMaterial = MakeMaterial(_config.CakeColor);
@@ -363,8 +373,7 @@ namespace Worsen.Domain.Floor
         }
         private Material MakeMaterial(Color color)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            if (shader == null) throw new InvalidOperationException("Floor requires a lit material shader.");
+            var shader = _config.SurfaceShader;
             var material = new Material(shader) { color = color }; _state.Materials.Add(material); return material;
         }
         private static void Release(UnityEngine.Object value)

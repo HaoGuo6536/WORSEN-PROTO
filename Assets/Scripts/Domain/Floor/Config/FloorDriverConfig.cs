@@ -21,6 +21,7 @@
 //   Physical exit is opt-in so authored legacy floor fixtures retain their trigger behavior.
 //   Guidance skip distance is provisional and measured horizontally in metres.
 //   No persistent singleton or competing simulation tick is created.
+//   Serialized shaders are required for generated surfaces and fallback mist; editor setup fills them.
 // ============================================================================
 using UnityEngine;
 
@@ -29,6 +30,10 @@ namespace Worsen.Domain.Floor
     [CreateAssetMenu(menuName = "Worsen/Floor/Driver Config")]
     public sealed class FloorDriverConfig : ScriptableObject
     {
+        [SerializeField] private Shader _surfaceShader = null;
+        [SerializeField] private Shader _mistShader = null;
+        public Shader SurfaceShader => _surfaceShader;
+        public Shader MistShader => _mistShader;
         [SerializeField] private float _pickupRadius = 0.55f;
         [SerializeField] private GameObject _cakePrefab;
 

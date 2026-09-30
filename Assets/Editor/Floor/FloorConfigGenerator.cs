@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Implement the Floor responsibility named by this file.
+//   - Build Floor assets and serialize surface/mist shader references for player builds.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Common SetupKit owns checked serialized wiring and asset-folder creation.
@@ -40,6 +40,7 @@ namespace Worsen.Editor.Floor
             RequireEditor();
             var config = EnsureAsset<FloorConfig>(ConfigPath);
             var driverConfig = EnsureAsset<FloorDriverConfig>(DriverConfigPath);
+            ConfigureShaders(driverConfig);
             EnsureFolder("Assets/Prefabs/Floor");
             bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null;
             var root = exists ? PrefabUtility.LoadPrefabContents(PrefabPath) : new GameObject("Floor");
@@ -76,6 +77,16 @@ namespace Worsen.Editor.Floor
             var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             root.name = GeneratedRootName;
             return root.GetComponent<FloorManager>();
+        }
+
+        public static void ConfigureShaders(FloorDriverConfig config)
+        {
+            RequireEditor();
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (config.SurfaceShader == null) Wire(config, "_surfaceShader", Shader.Find("Universal Render Pipeline/Lit")
+                ?? throw new InvalidOperationException("Floor setup requires URP Lit."));
+            if (config.MistShader == null) Wire(config, "_mistShader", Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                ?? throw new InvalidOperationException("Floor setup requires URP Particles Unlit."));
         }
 
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
