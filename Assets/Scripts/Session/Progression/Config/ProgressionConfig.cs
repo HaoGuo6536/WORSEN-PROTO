@@ -2,7 +2,7 @@
 // ProgressionConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Defines legacy effects and independent selection/shop cadences.
+//   Defines the approved run roster and independent selection/shop cadences.
 //   Designers can bind the shop, tune curse economy bonuses and effect traits
 //   without changing wallet, selection or round-transition code.
 // ARCHITECTURAL ROLE:
@@ -12,7 +12,7 @@
 //   - Delegate offers and economy tuning to EffectCatalogueConfig and ShopConfig.
 //   - Optionally bind provisional shrine rules; unbound assets use documented defaults.
 //   - Tune curse economy multipliers and independent selection/shop clocks.
-//   - Describe legacy hunter/curse traits alongside catalogue admission.
+//   - Describe run hunters and a small catalogue-free general-curse fallback.
 // DEPENDENCIES:
 //   - Domain Hunter profiles supply archetype mutation data, never runtime entity state.
 //   - Unity serialization, Core traits, catalogue and the delegated ShopConfig.
@@ -123,36 +123,22 @@ namespace Worsen.Session.Progression
         [SerializeField, Min(1f)] private float _maximumFlashlightMultiplier = 2f;
         [SerializeField] private ProgressionEntryConfig[] _threats =
         {
-            new ProgressionEntryConfig("watcher", "THE WATCHER", "A patient Satyr follows remembered light and tries to cut off your route."),
-            new ProgressionEntryConfig("rusher", "THE RUSHER", "A Werewolf commits to aggressive close-range lunges."),
-            new ProgressionEntryConfig("lurker", "THE LURKER", "A Goblin slips aside from your beam and attacks from the dark."),
-            new ProgressionEntryConfig("hexer", "THE HEXER", "A hovering Fairy casts clearly signalled projectiles along your route."),
-            new ProgressionEntryConfig("thorncaller", "THE THORNCALLER", "A rooted creature warns the ground before raising deadly thorns.")
+            new ProgressionEntryConfig("echo", "THE ECHO", "Removes safe backtracking by replaying your path."),
+            new ProgressionEntryConfig("weaver", "THE WEAVER", "Adds a ceiling hunter whose webs block safe routes."),
+            new ProgressionEntryConfig("ticking", "THE TICKING", "Adds a moving clock; collect keys before it winds down."),
+            new ProgressionEntryConfig("ram", "THE RAM", "Adds a charging hunter that commits to a straight line."),
+            new ProgressionEntryConfig("mannequin", "THE MANNEQUIN", "Adds a hunter that moves only in darkness while unobserved."),
+            new ProgressionEntryConfig("mimic", "THE MIMIC", "Adds false cakes that punish careless collection."),
+            new ProgressionEntryConfig("blinder", "THE BLINDER", "Adds traps and projectiles that remove vision."),
+            new ProgressionEntryConfig("skip", "THE SKIP", "Adds a hunter that intercepts reused routes."),
+            new ProgressionEntryConfig("herald", "THE HERALD", "Adds a screaming hunter that exposes your position."),
+            new ProgressionEntryConfig("stare", "THE STARE", "Adds a threat you must find and stare down.")
         };
         [SerializeField] private ProgressionEntryConfig[] _curses =
         {
-            new ProgressionEntryConfig("echo-debt", "ECHO DEBT", "Hard landings leave a delayed noise that hunters can investigate.", traits: ProgressionTraits.EchoDebt),
-            new ProgressionEntryConfig("afterimage", "AFTERIMAGE", "Switching off your flashlight leaves a brief light trace at your last position.", traits: ProgressionTraits.Afterimage),
-            new ProgressionEntryConfig("restless-masonry", "RESTLESS MASONRY", "Optional rooms begin cracking sooner. The escape route remains intact.", traits: ProgressionTraits.RestlessMasonry),
-            new ProgressionEntryConfig("gilded-hunger", "GILDED HUNGER", "Golden Cakes announce their collection with a sound that draws nearby hunters.", traits: ProgressionTraits.GildedHunger),
-            new ProgressionEntryConfig("borrowed-footsteps", "BORROWED FOOTSTEPS", "Your footsteps echo along your recent route after you have moved on.", traits: ProgressionTraits.BorrowedFootsteps),
-            new ProgressionEntryConfig("unquiet-flame", "UNQUIET FLAME", "Sprinting gutters nearby decorative flames; route lights keep a faint glow.", traits: ProgressionTraits.UnquietFlame),
-            new ProgressionEntryConfig("sealed-sills", "SEALED SILLS", "Some optional vault windows are sealed. Required routes and stairs remain passable.", traits: ProgressionTraits.SealedSills),
-            new ProgressionEntryConfig("rusher-long-stride", "LONG STRIDE", "The Rusher commits to a farther-reaching lunge. Sidestep its warning line.", traits: ProgressionTraits.RusherLongStride, requiredThreatId: "rusher"),
-            new ProgressionEntryConfig("rusher-second-wind", "SECOND WIND", "The Rusher recovers sooner after a missed lunge. Its next windup remains visible.", traits: ProgressionTraits.RusherSecondWind, requiredThreatId: "rusher"),
-            new ProgressionEntryConfig("rusher-blood-scent", "BLOOD SCENT", "The Rusher hears farther and remembers your last noise longer.", traits: ProgressionTraits.RusherBloodScent, requiredThreatId: "rusher"),
-            new ProgressionEntryConfig("lurker-dark-adaptation", "DARK ADAPTATION", "The Lurker sees a wider arc around itself in darkness.", traits: ProgressionTraits.LurkerDarkAdaptation, requiredThreatId: "lurker"),
-            new ProgressionEntryConfig("lurker-crooked-step", "CROOKED STEP", "The Lurker makes a stronger, longer sideways dodge when caught in your light.", traits: ProgressionTraits.LurkerCrookedStep, requiredThreatId: "lurker"),
-            new ProgressionEntryConfig("lurker-stolen-silence", "STOLEN SILENCE", "The Lurker attacks with a shorter but still readable windup.", traits: ProgressionTraits.LurkerStolenSilence, requiredThreatId: "lurker"),
-            new ProgressionEntryConfig("watcher-long-memory", "LONG MEMORY", "The Watcher remembers seen players and flashlight traces for longer.", traits: ProgressionTraits.WatcherLongMemory, requiredThreatId: "watcher"),
-            new ProgressionEntryConfig("watcher-cutting-corners", "CUTTING CORNERS", "The Watcher predicts your route earlier and aims farther ahead when cutting you off.", traits: ProgressionTraits.WatcherCuttingCorners, requiredThreatId: "watcher"),
-            new ProgressionEntryConfig("watcher-unquiet-gaze", "UNQUIET GAZE", "The Watcher sees farther and may scream as it attacks.", traits: ProgressionTraits.WatcherUnquietGaze, requiredThreatId: "watcher"),
-            new ProgressionEntryConfig("hexer-split-bolt", "SPLIT BOLT", "The Hexer fans three bolts across its warned firing line.", traits: ProgressionTraits.HexerSplitBolt, requiredThreatId: "hexer"),
-            new ProgressionEntryConfig("hexer-hasty-script", "HASTY SCRIPT", "The Hexer completes its casting warning sooner. Break line of sight before release.", traits: ProgressionTraits.HexerHastyScript, requiredThreatId: "hexer"),
-            new ProgressionEntryConfig("hexer-lingering-hex", "LINGERING HEX", "The Hexer fires slower, wider bolts that occupy your escape path longer.", traits: ProgressionTraits.HexerLingeringHex, requiredThreatId: "hexer"),
-            new ProgressionEntryConfig("thorncaller-thorn-ring", "THORN RING", "The Thorncaller raises a ring of thorns around its warned target. Move out of the marked zone.", traits: ProgressionTraits.ThorncallerThornRing, requiredThreatId: "thorncaller"),
-            new ProgressionEntryConfig("thorncaller-quick-roots", "QUICK ROOTS", "The Thorncaller shortens the ground warning before its thorns erupt.", traits: ProgressionTraits.ThorncallerQuickRoots, requiredThreatId: "thorncaller"),
-            new ProgressionEntryConfig("thorncaller-reaching-roots", "REACHING ROOTS", "The Thorncaller marks a larger eruption area before striking.", traits: ProgressionTraits.ThorncallerReachingRoots, requiredThreatId: "thorncaller")
+            new ProgressionEntryConfig("no-look-back", "NO LOOK-BACK", "Removes the look-back snap."),
+            new ProgressionEntryConfig("hidden-count", "HIDDEN COUNT", "Hides the cake counter during a floor."),
+            new ProgressionEntryConfig("short-grace", "SHORT GRACE", "Shortens the grace window after a hit.")
         };
         // Retained for serialized/source compatibility, never used to draw or purchase offers.
         [SerializeField] private ProgressionEntryConfig[] _offers = Array.Empty<ProgressionEntryConfig>();
