@@ -13,6 +13,7 @@
 //   - Relay Hunter-local stall facts for evidence consumers without recovery commands.
 //   - Publish deliberation facts and route collision-limited stumble/facing commands.
 //   - Publish habit/mutation facts and route explicit accepted-catch and chase inputs.
+//   - Construct per-life archetype rules and acknowledge recording motion before facts.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -45,6 +46,7 @@ namespace Worsen.Domain.Hunter
         public bool IsPursuing => _state != null && !_state.PursuitSuppressed &&
             (_state.PlayerVisible || _state.BeliefConfidence > 0f);
         public EntityId Id => _state?.Id ?? EntityId.None;
+        public int DuplicateIndex => _state?.DuplicateIndex ?? 0;
         public IReadOnlyHunterState ReadOnlyState => _state;
         public string ArchetypeKey => _profile != null ? _profile.ArchetypeKey : string.Empty;
         public HunterAttackSample AttackSample => _profile != null && _profile.AttackStyle == HunterAttackStyle.Lunge ?
@@ -56,6 +58,7 @@ namespace Worsen.Domain.Hunter
         public event Action<EntityId, Vector3, long> OnDeliberation;
         public event Action<HunterHabitFact> OnHabit;
         public event Action<HunterMutationFact> OnMutation;
+        public event Action<HunterArchetypeFact> OnArchetypeFact;
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
@@ -78,15 +81,21 @@ namespace Worsen.Domain.Hunter
             }
             HunterRegistry.Unregister(this);
         }
-        public void Initialize(HunterProfile profile, EntityContext context, IReadOnlyPlayerState player, IReadOnlyLevelState level)
+        public void Initialize(HunterProfile profile, EntityContext context, IReadOnlyPlayerState player, IReadOnlyLevelState level, int duplicateIndex = 0)
         {
             if (profile == null || player == null || level == null || context.Random == null || !context.Id.IsValid)
                 throw new ArgumentException("Hunter initialization requires profile, identity, shared random and typed state views.");
             if (_driver == null) _driver = GetComponent<HunterDriver>();
-            _profile = profile; _player = player; _level = level; _driver.Initialize();
+            if (duplicateIndex < 0) throw new ArgumentOutOfRangeException(nameof(duplicateIndex));
+            IHunterArchetypeController archetype = new Archetypes.Default.DefaultHunterController();
+            if (profile.ArchetypeRules is Archetypes.Echo.EchoConfig echo)
+                archetype = new Archetypes.Echo.EchoController(echo);
+            else if (profile.ArchetypeRules != null) throw new ArgumentException("Unregistered Hunter rules config.");
+            _profile = profile; _player = player; _level = level; _driver.Initialize(profile.MotorOverride);
             _state = new HunterBehaviorState();
-            _controller = new HunterController(_state, profile, context.Random, player, level);
+            _controller = new HunterController(_state, profile, context.Random, player, level, archetype);
             _controller.Reset(context.Id, _driver.Position, _driver.Forward);
+            _state.DuplicateIndex = duplicateIndex;
             _driver.SetTargetFilter(IsTarget);
             _driver.ConfigureAttackFeedback(context.Id, profile.ArchetypeKey);
         }
@@ -116,7 +125,12 @@ namespace Worsen.Domain.Hunter
             if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
                 _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
             _driver.SetEmergence(_controller.PreferEmergence, _state.LastKnownPosition, _profile.EmergenceWaypointBudget);
-            _driver.Move(result.Target, result.Speed, _controller.EffectiveAcceleration, _controller.EffectiveTurnRate, dt,
+            if (_controller.ReplayPath != null && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
+            {
+                int reached = _driver.MoveRecording(_controller.ReplayPath, dt, out bool unreachable);
+                _controller.CommitReplay(reached, unreachable);
+            }
+            else _driver.Move(result.Target, result.Speed, _controller.EffectiveAcceleration, _controller.EffectiveTurnRate, dt,
                 !reactionValid || !_state.IsActive || result.HoldPosition ||
                     result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
                     (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
@@ -129,6 +143,7 @@ namespace Worsen.Domain.Hunter
             _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
             while (_controller.TryTakeHabit(out HunterHabitFact habit)) OnHabit?.Invoke(habit);
+            while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact fact)) OnArchetypeFact?.Invoke(fact);
             if (_controller.TryTakeDeliberation(out Vector3 candidate)) OnDeliberation?.Invoke(Id, candidate, tick);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
@@ -183,6 +198,8 @@ namespace Worsen.Domain.Hunter
         public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise, 1f); }
         public void SetFloorView(IReadOnlyFloorState floor) { _controller?.SetFloorView(floor); }
         public void SetClosedDoors(System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
+        public void SetInteractables(IReadOnlyInteractableSet interactables) { _controller?.SetInteractables(interactables); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { _controller?.SetActiveEffects(effects); }
         public bool RequestRetreat() => _controller != null &&
             _controller.RequestRetreat(_driver.ProbeOccludedRooms(_level.Graph, _player.Position));
         public void ReceiveRegionHint(HintPayload hint, int roomId) { _controller?.ReceiveRegionHint(hint, roomId); }
