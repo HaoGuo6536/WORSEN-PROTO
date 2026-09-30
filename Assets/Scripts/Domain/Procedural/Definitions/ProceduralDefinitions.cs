@@ -9,13 +9,10 @@
 //   Definitions (§5) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Describe one reproducible layout and its physical construction commands.
-//   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
-//   - Retain the effective spawn policy and immutable world-object construction plans.
-//   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
-//   - Carry kind-free shrine candidates for admitted floors; Shrine owns selection.
-//   - Bind gap-edge candidates to the first pocket room directly across their gap.
-//   - Retain storeys, directed vertical routes and permissioned navigation link plans.
-//   - Keep theme metadata, optional cages and threshold staging outside required edges.
+//   - Carry geometry commands, effective spawn policy and world-object plans.
+//   - Record footprints, pocket anchors and identified shrine/Passage sites.
+//   - Retain storeys, directed routes and permissioned navigation links.
+//   - Keep template provenance, organic fallback and admitted capacity explicit.
 // DEPENDENCIES:
 //   - Core LevelGraph and UnityEngine value types only.
 // USAGE NOTES:
@@ -45,6 +42,14 @@ namespace Worsen.Domain.Procedural
 
     public sealed class ProceduralLayout
     {
+        public IReadOnlyList<ProceduralTemplateRoom> TemplateRooms { get; internal set; } = System.Array.Empty<ProceduralTemplateRoom>();
+        public ProceduralTemplateCatalogue TemplateCatalogue { get; internal set; }
+        public string TemplateFallbackReason { get; internal set; } = string.Empty;
+        public bool UsesTemplates => TemplateRooms.Count != 0;
+        public int ValidatedHunterSpawnCapacity => HunterSpawnPositions?.Count ?? 0;
+        public int FuturePassageGoldenAnchorCount { get; internal set; }
+        public int GimmickBudget { get; internal set; } = int.MaxValue;
+        public IReadOnlyList<ProceduralOrganicRoom> OrganicRooms { get; internal set; } = System.Array.Empty<ProceduralOrganicRoom>();
         public ProceduralThemeData Theme { get; internal set; }
         public string ThemeId => Theme?.Id ?? "castle";
         public IReadOnlyList<ProceduralFreezePlan> FreezeRooms { get; internal set; } = System.Array.Empty<ProceduralFreezePlan>();
@@ -132,13 +137,14 @@ namespace Worsen.Domain.Procedural
     public readonly struct ProceduralRoomModule
     {
         public ProceduralRoomModule(int roomId, ProceduralModuleKind kind, bool alongX,
-            IReadOnlyList<Vector2Int> cells = null, int pocketId = 0)
-        { RoomId = roomId; Kind = kind; AlongX = alongX; Cells = cells; PocketId = pocketId; }
+            IReadOnlyList<Vector2Int> cells = null, int pocketId = 0, bool traversalObstacles = true)
+        { RoomId = roomId; Kind = kind; AlongX = alongX; Cells = cells; PocketId = pocketId; TraversalObstacles = traversalObstacles; }
         public int RoomId { get; }
         public ProceduralModuleKind Kind { get; }
         public bool AlongX { get; }
         public IReadOnlyList<Vector2Int> Cells { get; }
         public int PocketId { get; }
+        public bool TraversalObstacles { get; }
     }
 
     public readonly struct ProceduralShrineSite
@@ -168,10 +174,14 @@ namespace Worsen.Domain.Procedural
         public ProceduralBlock(int roomId, ProceduralSurfaceKind kind, Vector3 center, Vector3 size,
             int surfaceId = 0, TraversalSurfaceKind traversalKind = TraversalSurfaceKind.None,
             Vector3 endpointA = default, Vector3 endpointB = default,
-            ProceduralBlockRole role = ProceduralBlockRole.Solid, Quaternion? rotation = null)
+            ProceduralBlockRole role = ProceduralBlockRole.Solid, Quaternion? rotation = null,
+            string pieceId = null, Vector3? piecePosition = null)
         { RoomId = roomId; Kind = kind; Center = center; Size = size; SurfaceId = surfaceId;
             TraversalKind = traversalKind; EndpointA = endpointA; EndpointB = endpointB;
-            Role = role; Rotation = rotation ?? Quaternion.identity; }
+            Role = role; Rotation = rotation ?? Quaternion.identity;
+            PieceId = pieceId; PiecePosition = piecePosition ?? center; }
+        public string PieceId { get; }
+        public Vector3 PiecePosition { get; }
         public int RoomId { get; }
         public ProceduralSurfaceKind Kind { get; }
         public Vector3 Center { get; }

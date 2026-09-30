@@ -8,17 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Create enclosed rooms and bake bounded navigation from explicit owned sources.
-//   - Exclude visual-only treads from physics and navigation; keep ramps and landings invisible.
-//   - Verify native paths to every cake, room, hunter spawn and exit before admission.
-//   - Apply crack textures and bounded masonry splitting with matching colliders.
-//   - Tear down only the navigation instance, materials and geometry this Driver owns.
-//   - Build physical interactables and apply routed Level state to owned sub-drivers.
-//   - Keep safety slabs inside occupied cells and verify optional pocket isolation.
-//   - Exclude player-only staging/drops from hunter paths and own opt-in partition links.
-//   - Apply theme palettes and own optional puzzle cages, contacts and solved facts.
-//   - Filter shrine sockets against physical geometry and admit only reachable sites.
-//   - Open Passage apertures, bake walkable tiles and remove their support as they fall.
+//   - Build kit visuals with primitive collision/fallback and owned collapse fragments.
+//   - Bake navigation and verify objectives, spawn capacity and pocket isolation.
+//   - Own interactables, puzzles and routed state changes without sibling calls.
+//   - Admit shrine sites and Passage apertures, tiles and future reward counts.
+//   - Release only owned geometry, materials, links and navigation on teardown.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -109,6 +103,7 @@ namespace Worsen.Domain.Procedural
                 var ceiling = MaterialOrFallback(themed == null ? driverConfig.CeilingMaterial : null,
                     themed?.Ceiling ?? driverConfig.CeilingColor, driverConfig, themed?.Smoothness);
                 _state.Config = driverConfig; _state.PassageMaterial = floor;
+                _state.Catalogue = config.RoomCatalogue; _state.ThemeId = layout.ThemeId;
                 foreach (var block in blocks)
                     CreateBlock(block, block.Kind == ProceduralSurfaceKind.Floor ? floor :
                         block.Kind == ProceduralSurfaceKind.Ceiling ? ceiling : wall, driverConfig.GeometryLayer);
@@ -150,6 +145,8 @@ namespace Worsen.Domain.Procedural
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(navigationBlocks);
                 layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks);
                 BuildNavigation(layout, navigationBlocks, driverConfig);
+                layout.FuturePassageGoldenAnchorCount = new ProceduralPassagePresenter().FutureGoldenAnchorCount(layout, config, driverConfig, navigationBlocks);
+                layout.InteractableManifest += "|FuturePassageGold:" + layout.FuturePassageGoldenAnchorCount;
                 layout.InteractableManifest += new ProceduralShrineSitePresenter().Manifest(layout.ShrineSites, config);
                 foreach (var room in layout.Graph.Rooms)
                 foreach (var cell in ProceduralFootprintUtility.Volumes(layout, room)) CreateSafetySlab(cell, driverConfig.GeometryLayer);
@@ -163,6 +160,7 @@ namespace Worsen.Domain.Procedural
         public void Teardown()
         {
             _state.Ready = false;
+            _state.Catalogue = null; _state.ThemeId = null;
             _state.Passages.Clear(); _state.LinedPocketAnchors.Clear();
             _state.NavigationSources.Clear(); _state.Config = null; _state.PassageMaterial = null;
             _state.Puzzles.Clear(); _state.PuzzlePlayer = EntityId.None;
@@ -222,6 +220,17 @@ namespace Worsen.Domain.Procedural
             item.transform.localScale = block.Size;
             var renderer = item.GetComponent<Renderer>();
             renderer.sharedMaterial = material; renderer.enabled = block.HasRenderer;
+            var prefab = block.PieceId == null ? null : _state.Catalogue?.Piece(_state.ThemeId, block.PieceId);
+            if (prefab != null && block.HasRenderer)
+            {
+                var visual = Instantiate(prefab);
+                visual.name = "Kit " + block.PieceId;
+                visual.transform.SetPositionAndRotation(block.PiecePosition, block.Rotation);
+                visual.transform.SetParent(item.transform, true);
+                foreach (var child in visual.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = layer;
+                foreach (var collider in visual.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+                renderer.enabled = false;
+            }
             if (!block.HasCollision)
             {
                 var collider = item.GetComponent<Collider>(); collider.enabled = false; Release(collider);

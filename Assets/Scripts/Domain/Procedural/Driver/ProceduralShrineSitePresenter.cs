@@ -9,7 +9,7 @@
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Produce deterministic, separated placement candidates without random draws.
-//   - Check footprint, standing envelope and floor support before native admission.
+//   - Size sockets to their actual cells and check standing envelope and floor support.
 //   - Record candidate positions, room ownership, gap flags and facing in the manifest.
 //   - Admit gap sockets only when their straight crossing reaches an identified pocket.
 // DEPENDENCIES:
@@ -65,7 +65,10 @@ namespace Worsen.Domain.Procedural
                 {
                     var tangent = new Vector3(normal.z, 0f, -normal.x);
                     var position = cell.center; position.y = cell.min.y;
-                    position += normal * (config.RoomSize * .5f - config.ShrineSiteInset) + tangent * (config.RoomSize * config.ShrineSiteLateralFraction * sign);
+                    float depth = normal.x == 0f ? cell.size.z : cell.size.x;
+                    float width = normal.x == 0f ? cell.size.x : cell.size.z;
+                    if (depth <= config.ShrineSiteInset * 2f) continue;
+                    position += normal * (depth * .5f - config.ShrineSiteInset) + tangent * (width * config.ShrineSiteLateralFraction * sign);
                     Add(room.Id, position, false, -normal);
                 }
             }
@@ -77,6 +80,7 @@ namespace Worsen.Domain.Procedural
                 if (gapEdge && destination == 0) return;
                 var room = layout.Graph.Rooms.Single(r => r.Id == roomId);
                 if (room.Pocket || reachable[roomId] < 0 || !room.ContainsXZ(position) || facing.sqrMagnitude == 0f) return;
+                if (layout.OrganicRooms.Any(r => r.RoomId == roomId && !ProceduralOrganicUtility.Clear(r, position))) return;
                 if (forbidden.Any(p => DistanceXZ(p, position) < config.ShrineSiteClearance) ||
                     result.Any(s => DistanceXZ(s.Position, position) < config.ShrineSiteClearance)) return;
                 var body = new Bounds(position + Vector3.up * (size.y * .5f), size);
