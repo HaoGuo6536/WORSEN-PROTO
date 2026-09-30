@@ -16,7 +16,6 @@
 //   - Republish Core audio feedback for UI navigation and intent; purchases sound only after Session commits.
 //   - Forward catch gates and completion without delaying authoritative death.
 //   - Expose snapshot, hide and lifecycle commands without game rules.
-
 //
 // DEPENDENCIES:
 //   Core ProgressionSnapshot and own ProgressionUIDriver/DriverConfig only.

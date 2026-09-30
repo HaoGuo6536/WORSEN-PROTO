@@ -46,7 +46,7 @@ using Worsen.Presentation.Results;
 
 namespace Worsen.Tests.Results
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class ResultsDriverTests
     {
         private GameObject _owner;

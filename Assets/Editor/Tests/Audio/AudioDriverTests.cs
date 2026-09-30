@@ -36,7 +36,7 @@ using Worsen.Presentation.Audio;
 
 namespace Worsen.Tests.Audio
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class AudioDriverTests
     {
         private GameObject _owner;

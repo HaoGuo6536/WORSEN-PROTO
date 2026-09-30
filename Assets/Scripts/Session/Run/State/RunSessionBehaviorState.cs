@@ -16,7 +16,6 @@
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
 //   - Hold pending input and same-tick Mimic facts awaiting damage admission.
 //   - Retain capture lifecycle so closing a run is idempotent.
-
 //
 // DEPENDENCIES:
 //   - Core InputFrame, RunPhase, and SceneKey value types only.

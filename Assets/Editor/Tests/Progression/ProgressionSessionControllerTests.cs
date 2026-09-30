@@ -13,7 +13,6 @@
 //   - Verify independent selection/shop cadence and committed eligible choices.
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
 //   - Verify catalogue pedestals, retired healing, automatic ward use and curse exhaustion.
-
 // DEPENDENCIES:
 //   - Core contracts, Session Progression, NUnit and Unity asset allocation.
 // USAGE NOTES:

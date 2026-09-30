@@ -14,7 +14,6 @@
 //   - Fade a native Lumen threshold effect with the same opening progress.
 //   - Expose continuous normalized opening progress.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
-
 // DEPENDENCIES:
 //   - Core shared values and Floor-owned visual configuration only.
 // USAGE NOTES:

@@ -11,10 +11,8 @@
 //   - Scale collapse durations by a provisional 0.75 for Faster Collapse (not hand timers).
 //   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
 //   - Tune per-room placement, the required share and shared pickup loudness.
-
 //   - Tune the simulation-time delay before an explicitly activated pocket starts its warning.
 //   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
-
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.

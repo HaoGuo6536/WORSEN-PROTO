@@ -13,7 +13,6 @@
 //   - Pair floor, movement and visual-effect subscriptions with scene lifetime.
 //   - Route authored boundaries/sockets and synchronize dressing with light/destruction facts.
 //   - Publish the exit frame after room dressing exists and forward continuous opening progress.
-
 // DEPENDENCIES:
 //   Session Expedition/Run (including FloorFacts)/HorrorEffects; Presentation Environment/Horror; Core values.
 //   Domain Level supplies graph/light facts; Procedural supplies boundaries/sockets; Floor supplies door yaw.

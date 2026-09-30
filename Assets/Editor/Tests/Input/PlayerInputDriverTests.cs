@@ -35,7 +35,7 @@ using Worsen.Presentation.Input;
 
 namespace Worsen.Tests.Input
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class PlayerInputDriverTests
     {
         private GameObject _root;

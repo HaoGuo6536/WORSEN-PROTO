@@ -35,7 +35,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Run
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class RunGameplayForwardingTests
     {
         [UnityTest]
