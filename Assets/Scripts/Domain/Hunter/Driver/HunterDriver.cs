@@ -15,6 +15,7 @@
 //   - Probe occluded retreat rooms and apply swept, non-damaging stumble commands.
 //   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
 //   - Apply ordered recording segments without pathfinding shortcuts or corner smoothing.
+//   - Own the optional Weaver sweep/ceiling sub-driver and admit verified partition links.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -27,6 +28,7 @@ using System;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
+using Worsen.Domain.Hunter.Archetypes.Weaver;
 namespace Worsen.Domain.Hunter
 {
     [RequireComponent(typeof(CapsuleCollider), typeof(Rigidbody))]
@@ -37,6 +39,7 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private Rigidbody _body;
         [SerializeField] private HunterAnimationDriver _animation;
         [SerializeField] private HunterAttackDriver _attacks;
+        private WeaverWebDriver _weaver;
         private readonly HunterRoutePresenter _routePresenter = new HunterRoutePresenter();
         private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
         private HunterDriverState _state;
@@ -121,6 +124,21 @@ namespace Worsen.Domain.Hunter
         { if (_attacks != null) _attacks.BeginWarning(style, serial, target, range, radius, split, ring); }
         public void FireAttack(float speed, float radius) { if (_attacks != null) _attacks.Fire(speed, radius); }
         public void TickAttacks(float dt, long tick) { if (_attacks != null) _attacks.Tick(dt, tick); }
+        public void ConfigureWeaver(WeaverDriverConfig config)
+        {
+            _weaver = GetComponent<WeaverWebDriver>();
+            if (_weaver == null) _weaver = gameObject.AddComponent<WeaverWebDriver>();
+            _weaver.Initialize(config, _config);
+        }
+        public float WeaverShotHeight => _weaver.ShotHeight;
+        public WeaverObservation ProbeWeaver(Vector3 target, float radius, float range, long tick)
+            => _weaver.Probe(target, radius, range, tick, _state.TargetFilter);
+        public void SetWeaverCeiling(float height, bool ceiling) { _weaver.SetCeiling(height, ceiling); }
+        public bool LaunchWeb(Vector3 origin, Vector3 target, float radius, float speed, float range, int serial)
+            => _weaver.Launch(origin, target, radius, speed, range, serial, _state.TargetFilter);
+        public void AddWeaverNest(WeaverFact fact) { _weaver.AddNest(fact); }
+        public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<Collider, int>> TickWebs(float dt)
+            => _weaver.TickWebs(dt, _state.TargetFilter);
         public void Initialize(HunterMotorDriverConfig configOverride = null)
         {
             Teardown();
@@ -241,6 +259,15 @@ namespace Worsen.Domain.Hunter
                 Vector3.SqrMagnitude(target - _state.LastTarget) > _config.CornerTolerance * _config.CornerTolerance);
             if (refresh)
                 RequestPath(target);
+            if (!stopped && !lungeActive && _state.PathAvailable && _weaver != null &&
+                _weaver.TryCrossPartition(_state.Steering.Corners, _state.Steering.CornerIndex, out Vector3 linkEnd))
+            {
+                // Kinematic endpoint transfer only; no global/layer collision changes.
+                transform.position = linkEnd; _body.position = linkEnd;
+                _presenter.Reset(_state.Steering, linkEnd, Forward);
+                _state.PathCooldown = 0f; _state.VerticalSpeed = 0f;
+                Physics.SyncTransforms(); return;
+            }
             Vector3 start = Position;
             _state.Steering.Position = start;
             if (refresh) _state.ClearCornerArc = HasClearCornerArc(speed, acceleration, turnRate);
@@ -489,6 +516,7 @@ namespace Worsen.Domain.Hunter
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
         public void Teardown()
         {
+            if (_weaver != null) _weaver.Teardown();
             if (_state != null && _state.IKDriver != null)
             {
                 _state.IKDriver.Unbind();

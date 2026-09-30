@@ -11,6 +11,7 @@
 //   - Record a bounded ring and acknowledge only physically completed motion.
 //   - Publish delayed footsteps, door passages and copied Trail Reader segments.
 //   - Read capped active-effect multipliers without changing shared assets.
+//   - Use the hyphenated catalogue identifiers for all three Echo curses.
 // DEPENDENCIES:
 //   - Hunter definitions/default rules, injected Player/Level/Floor views and Core effects.
 // USAGE NOTES:
@@ -29,9 +30,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Echo
 {
     public sealed class EchoController : DefaultHunterController
     {
-        public static readonly EffectId ShorterDelay = new EffectId("echo.shorter-delay");
-        public static readonly EffectId FasterPlayback = new EffectId("echo.faster-playback");
-        public static readonly EffectId SilentSteps = new EffectId("echo.silent-steps");
+        public static readonly EffectId ShorterDelay = new EffectId("echo-shorter-delay");
+        public static readonly EffectId FasterPlayback = new EffectId("echo-faster-playback");
+        public static readonly EffectId SilentSteps = new EffectId("echo-silent-steps");
         public static readonly EffectId TrailReader = new EffectId("trail-reader");
         private readonly EchoBehaviorState _state;
         private readonly EchoConfig _config;
