@@ -699,6 +699,11 @@ Waivers for §13f alarms and the Manager rules are rows in this table, which `to
 | A-03 | Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs | manager-creates-manager | coordinator | Create archetype modules through the same factory (audit L1-02). | 2026-12-31 |
 | A-04 | Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs | manager-creates-manager | coordinator | Create `ShrineManager` from the SceneRoot or a factory and bind it per floor (audit L1-03). | 2026-12-31 |
 | A-05 | Assets/Scripts/Orchestrator/Scenes | scene-root-duplication | coordinator | About 100 duplicated wiring lines per SceneRoot: extract the shared wiring into one helper (audit L1-10). | 2026-12-31 |
+| A-06 | Assets/Scripts/Domain/Floor/Manager/FloorManager.cs | relay-surface | coordinator | 16 public events (measured 2026-09-30): move display-only facts to one floor snapshot channel (PLAN-027). | 2026-12-31 |
+| A-07 | Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs | relay-surface | coordinator | 24 public events (measured 2026-09-30): archetype modules publish through one module-fact channel after the plug-in refactor (PLAN-027, A-02). | 2026-12-31 |
+| A-08 | Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs | fan-out | coordinator | 11 systems (measured 2026-09-30): the floor-assembly coordinator by §8b; move system creation and binding to the SceneRoot or a factory (PLAN-027, A-04). | 2026-12-31 |
+| A-09 | Assets/Scripts/Session/Run/Manager/RunSessionManager.cs | fan-out | coordinator | 7 systems (measured 2026-09-30): falls with the Run fact-relay split (PLAN-027, A-01). | 2026-12-31 |
+| A-10 | Assets/Scripts/Session/HorrorEffects/Manager/HorrorEffectsManager.cs | fan-out | coordinator | 6 systems (measured 2026-09-30): move world binding of consumables to the Expedition floor assembly (PLAN-027). | 2026-12-31 |
 
 Further rows come from the first full `architecture.py` run; each states its measured value in the exit plan when added.
 
