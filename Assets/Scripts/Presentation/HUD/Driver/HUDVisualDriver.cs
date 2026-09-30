@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Build quiet cake/golden counters and honor floor hiding independently of other HUD.
-//   - Render occupied inventory within chase-hidden chrome and independent guidance.
+//   - Render occupied inventory within chase-hidden chrome and independent Exit Sense/guidance.
 //   - Keep numerical shield/health information off the in-run surface.
 //   - Pair vector callbacks across document binding, replacement and teardown.
 //   - Apply chrome visibility and restoration without suppressing guidance.
@@ -41,6 +41,7 @@ namespace Worsen.Presentation.HUD
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
         private VisualElement _goldenDirectionGroup, _goldenArrow;
+        private VisualElement _exitDirectionGroup, _exitArrow;
         private Label _count, _golden, _overflow, _selected;
 
         private VisualElement _threatGroup;
@@ -100,6 +101,14 @@ namespace Worsen.Presentation.HUD
             _goldenArrow = Element("golden-direction-cue", _goldenDirectionGroup);
             _goldenArrow.style.width = _goldenArrow.style.height = config.CompassSize;
             _goldenArrow.generateVisualContent += PaintGoldenArrow;
+            _exitDirectionGroup = Element("exit-sense-group", root);
+            _exitDirectionGroup.style.position = Position.Absolute;
+            _exitDirectionGroup.style.left = Length.Percent(50);
+            _exitDirectionGroup.style.marginLeft = -config.CompassSize * 2f;
+            _exitDirectionGroup.style.bottom = config.ScreenMargin * 3;
+            _exitArrow = Element("exit-sense-cue", _exitDirectionGroup);
+            _exitArrow.style.width = _exitArrow.style.height = config.CompassSize;
+            _exitArrow.generateVisualContent += PaintExitArrow;
 
             var inventory = Element("inventory-panel", _extra);
             inventory.style.position = Position.Absolute;
@@ -150,6 +159,9 @@ namespace Worsen.Presentation.HUD
             _goldenDirectionGroup.style.display = state.GoldenSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _goldenArrow.style.rotate = new Rotate(new Angle(state.GoldenSenseArrowDegrees, AngleUnit.Degree));
             _goldenArrow.MarkDirtyRepaint();
+            _exitDirectionGroup.style.display = state.ExitSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _exitArrow.style.rotate = new Rotate(new Angle(state.ExitSenseArrowDegrees, AngleUnit.Degree));
+            _exitArrow.MarkDirtyRepaint();
             _overflow.text = state.SlotOverflowText;
             _selected.text = state.SelectedSlotText;
             _selected.style.display = string.IsNullOrEmpty(state.SelectedSlotText) ? DisplayStyle.None : DisplayStyle.Flex;
@@ -167,6 +179,8 @@ namespace Worsen.Presentation.HUD
             if (_arrow != null) _arrow.generateVisualContent -= PaintArrow;
             if (_goldenArrow != null) _goldenArrow.generateVisualContent -= PaintGoldenArrow;
             _goldenArrow = _goldenDirectionGroup = null;
+            if (_exitArrow != null) _exitArrow.generateVisualContent -= PaintExitArrow;
+            _exitArrow = _exitDirectionGroup = null;
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _extra = _directionGroup = _arrow = _slots = null;
@@ -193,6 +207,14 @@ namespace Worsen.Presentation.HUD
             var painter = context.painter2D;
             painter.fillColor = _config.GoldenSenseColor;
             Path(painter, _geometry.Arrow(_goldenArrow.contentRect)); painter.Fill();
+        }
+
+        private void PaintExitArrow(MeshGenerationContext context)
+        {
+            if (_state == null || !_state.ExitSenseVisible) return;
+            var painter = context.painter2D;
+            painter.fillColor = _config.ExitSenseColor;
+            Path(painter, _geometry.Arrow(_exitArrow.contentRect)); painter.Fill();
         }
 
         private void PaintSlots(MeshGenerationContext context)

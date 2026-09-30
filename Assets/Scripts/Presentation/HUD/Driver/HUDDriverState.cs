@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Retain fixed-total counter text, Hidden Count and phantom presentation lifetime.
-//   - Retain independent objective/threat guidance and supplied camera orientation.
+//   - Retain independent objective/threat/Exit Sense guidance and supplied camera orientation.
 //   - Retain shield and selected occupied inventory presentation.
 //   - Retain chrome visibility and fade progress independently of guidance.
 //
@@ -43,6 +43,10 @@ namespace Worsen.Presentation.HUD
         public Vector3 GoldenSenseDirection;
         public Vector3 GoldenSenseViewDirection;
         public float GoldenSenseDegrees, GoldenSensePitchDegrees, GoldenSenseArrowDegrees;
+        public Worsen.Core.GuidanceTarget? ExitSenseTarget;
+        public bool ExitSenseVisible;
+        public Vector3 ExitSenseViewDirection;
+        public float ExitSenseDegrees, ExitSensePitchDegrees, ExitSenseArrowDegrees;
         public string GoldenText = "Golden: —";
         public float ArrowDegrees;
         public string ExitText = "Exit: —";

@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Distinguish the entity-keyed threat arrow from white and golden guidance.
-//   - Distinguish the Golden Sense arrow using a designer-owned color.
+//   - Distinguish Golden Sense and Exit Sense arrows using designer-owned colors.
 //   - Expose restoration, display limits and the vector interface palette and geometry.
 //   - Keep shared asset values read-only at runtime.
 //   - Size the white three-dimensional compass independently of inventory slots.
@@ -48,6 +48,8 @@ namespace Worsen.Presentation.HUD
         [SerializeField, Min(0f)] private float _slotGap = 8f;
         [SerializeField, Min(48f)] private float _compassSize = 84f;
         [SerializeField] private Color _goldenSenseColor = new Color(1f, 0.75f, 0.15f, 1f);
+        [SerializeField] private Color _exitSenseColor = new Color(0.3f, 0.85f, 1f, 1f);
+        public Color ExitSenseColor => _exitSenseColor;
         [SerializeField] private Color _threatArrowColor = new Color(0.9f, 0.3f, 0.25f, 1f);
         public Color ThreatArrowColor => _threatArrowColor;
         public Color GoldenSenseColor => _goldenSenseColor;

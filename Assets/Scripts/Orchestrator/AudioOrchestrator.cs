@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Route roster, progression tells, world acoustics and committed transactions.
 //   - Pair Session, camera, UI and scoped deliberation subscriptions symmetrically.
-//   - Route Blinder muffling, Herald deafness, cleansing and pause to Audio.
+//   - Route typed expansion sounds and raw sensory durations once; never publish AI noise.
 //   - Preserve legacy cues and replace aggregate threat facts without accumulation.
 //   - Reset floor playback while retaining contact only within an expedition.
 // DEPENDENCIES:
@@ -105,6 +105,13 @@ namespace Worsen.Orchestrator
             _run.HunterHabitPublished += OnHabit;
             _run.WeaverFactPublished += OnWeaver;
             _run.TickingSoundPublished += OnTicking;
+            _run.RamFactPublished += OnRam;
+            _run.MimicFactPublished += OnMimic;
+            _run.BlinderSoundPublished += OnBlinder;
+            _run.HeraldScreamPublished += OnHerald;
+            _run.HeraldBreathPublished += OnHeraldBreath;
+            _run.MannequinFactPublished += OnMannequin;
+            _run.StareFactPublished += OnStare;
             _run.BlinderHitPublished += OnBlinderHit;
             _run.HeraldDeafenPublished += OnHeraldDeafen;
             _run.HitAccepted += OnHit;
@@ -152,6 +159,13 @@ namespace Worsen.Orchestrator
                 _run.HunterHabitPublished -= OnHabit;
                 _run.WeaverFactPublished -= OnWeaver;
                 _run.TickingSoundPublished -= OnTicking;
+                _run.RamFactPublished -= OnRam;
+                _run.MimicFactPublished -= OnMimic;
+                _run.BlinderSoundPublished -= OnBlinder;
+                _run.HeraldScreamPublished -= OnHerald;
+                _run.HeraldBreathPublished -= OnHeraldBreath;
+                _run.MannequinFactPublished -= OnMannequin;
+                _run.StareFactPublished -= OnStare;
                 _run.BlinderHitPublished -= OnBlinderHit;
                 _run.HeraldDeafenPublished -= OnHeraldDeafen;
                 _run.HitAccepted -= OnHit;
@@ -226,8 +240,15 @@ namespace Worsen.Orchestrator
         private void OnHabit(HunterHabitFact fact) => _audio.ObserveHabit(fact);
         private void OnWeaver(WeaverFact fact) => _audio.ObserveWeaver(fact);
         private void OnTicking(TickingSoundFact fact) => _audio.ObserveTicking(fact);
-        private void OnBlinderHit(BlinderHitFact fact) { if (fact.MuffledDark) OnMuffledDark(fact.Duration); }
-        private void OnHeraldDeafen(HeraldDeafenFact fact) => OnDeafening(fact.Duration);
+        private void OnRam(RamFact fact) => _audio.ObserveRam(fact);
+        private void OnMimic(MimicFact fact) => _audio.ObserveMimic(fact);
+        private void OnBlinder(BlinderSoundFact fact) => _audio.ObserveBlinder(fact);
+        private void OnHerald(HeraldScreamFact fact) => _audio.ObserveHerald(fact);
+        private void OnHeraldBreath(HeraldBreathFact fact) => _audio.ObserveHeraldBreath(fact);
+        private void OnMannequin(MannequinFact fact) => _audio.ObserveMannequin(fact);
+        private void OnStare(StareFact fact) => _audio.ObserveStare(fact);
+        private void OnBlinderHit(BlinderHitFact fact) => _audio.ObserveBlinderHit(fact);
+        private void OnHeraldDeafen(HeraldDeafenFact fact) => _audio.ObserveHeraldDeafen(fact);
         private void OnHit(HunterHit fact) => _audio.ObserveHit(fact);
         private void OnDeliberation(EntityId hunter, Vector3 position, long tick)
         { if (_run != null && !_run.IsPaused) _audio.ObserveDeliberation(hunter, position, tick); }
