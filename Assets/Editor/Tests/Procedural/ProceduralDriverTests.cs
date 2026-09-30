@@ -11,6 +11,7 @@
 //   - Check native door/cake clearance, enclosed ceilings and complete paths.
 //   - Verify visual-only treads have no collider and invisible ramp/landing poses match their plans.
 //   - Verify regeneration and teardown remove owned geometry/navigation.
+//   - Preserve legacy single-cell fixtures; explicitly opt into footprints in their own case.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit, UnityEditor configuration and UnityEngine.AI.
 // USAGE NOTES:
@@ -47,6 +48,9 @@ namespace Worsen.Tests.Procedural
             var serialized = new SerializedObject(_config);
             serialized.FindProperty("_castleModules").boolValue = false;
             serialized.FindProperty("_initialRoomCount").intValue = 5;
+            serialized.FindProperty("_twoCellWeight").floatValue = 0f;
+            serialized.FindProperty("_threeCellWeight").floatValue = 0f;
+            serialized.FindProperty("_gapProbability").floatValue = 0f;
             serialized.FindProperty("_origin").vector2Value = new Vector2(10000f, 10000f);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _owner = new GameObject("Procedural native verification owner");
@@ -101,6 +105,26 @@ namespace Worsen.Tests.Procedural
             _manager.Initialize(_config, _driverConfig, 51, 2);
             Assert.That(_manager.IsReady, Is.True); Assert.That(_manager.Graph.Rooms.Count, Is.EqualTo(7));
             Assert.That(_manager.LayoutManifest, Is.Not.EqualTo(firstManifest));
+        }
+
+        [Test]
+        public void LargerIrregularRoomsAndPocketsPassNativeAdmission()
+        {
+            var settings = new SerializedObject(_config);
+            settings.FindProperty("_castleModules").boolValue = true;
+            settings.FindProperty("_initialRoomCount").intValue = 9;
+            settings.FindProperty("_oneCellWeight").floatValue = 0f;
+            settings.FindProperty("_threeCellWeight").floatValue = 1f;
+            settings.FindProperty("_lShapeWeight").floatValue = 1f;
+            settings.FindProperty("_gapProbability").floatValue = 1f;
+            settings.FindProperty("_pocketProbability").floatValue = 1f;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            _manager.Initialize(_config, _driverConfig, 19, 3);
+            Assert.That(_manager.IsReady, Is.True);
+            Assert.That(_manager.RoomModules.Any(m => m.Cells.Count == 3), Is.True);
+            Assert.That(_manager.RoomModules.Any(m => m.PocketId != 0), Is.True);
+            Assert.That(_manager.Graph.Anchors.All(a => _manager.RoomModules.Single(m => m.RoomId == a.RoomId).PocketId == 0), Is.True);
+            Assert.That(_manager.LayoutManifest, Does.Contain("Passage"));
         }
 
         [TestCase(1, false)] [TestCase(1, true)] [TestCase(2, false)] [TestCase(2, true)]

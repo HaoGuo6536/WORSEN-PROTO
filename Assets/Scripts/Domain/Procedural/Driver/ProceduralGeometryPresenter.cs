@@ -11,6 +11,8 @@
 //   - Calculate collision/render blocks and navigation bounds without engine calls.
 //   - Include rotated ramp corners in the bounded navigation volume.
 //   - Seal every roof and the upper wall transitions between unequal room heights.
+//   - Tile occupied cells only; omit same-room seams and seal every gap-facing edge.
+//   - Frame gap views visually while retaining an unbroken wall collider/NavMesh barrier.
 // DEPENDENCIES:
 //   - Core room values and Procedural layout/configuration only.
 // USAGE NOTES:
@@ -19,6 +21,7 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Worsen.Core;
 
@@ -31,7 +34,8 @@ namespace Worsen.Domain.Procedural
             if (layout?.Graph == null || config == null || driver == null) throw new ArgumentNullException();
             Validate(config, driver);
             var blocks = new List<ProceduralBlock>();
-            foreach (var room in layout.Graph.Rooms)
+            foreach (var logicalRoom in layout.Graph.Rooms)
+            foreach (var room in ProceduralFootprintUtility.Volumes(layout, logicalRoom))
             {
                 int tiles = config.CastleModules ? 3 : 1;
                 for (int x = 0; x < tiles; x++)
@@ -73,11 +77,15 @@ namespace Worsen.Domain.Procedural
             float sign = side < 2 ? 1f : -1f;
             var center = new Vector3(room.Center.x, room.Size.y * 0.5f, room.Center.z) +
                 (alongX ? Vector3.forward : Vector3.right) * (sign * config.RoomSize * 0.5f);
+            var neighborCenter = room.Center + (alongX ? Vector3.forward : Vector3.right) * (sign * config.RoomSize);
+            if (ProceduralFootprintUtility.Volumes(layout, layout.Graph.Rooms[room.Id - 1])
+                .Any(r => (r.Center - neighborCenter).sqrMagnitude < 0.001f)) return;
             var openings = new List<ProceduralDoorPlan>();
             foreach (var door in layout.Doors)
             {
                 if (door.FromRoomId != room.Id && door.ToRoomId != room.Id) continue;
-                if (door.AlongX == alongX && (alongX ? door.Center.z == center.z : door.Center.x == center.x))
+                if (door.AlongX == alongX && (alongX ? door.Center.z == center.z : door.Center.x == center.x) &&
+                    Mathf.Abs(alongX ? door.Center.x - center.x : door.Center.z - center.z) < config.RoomSize * 0.5f)
                     openings.Add(door);
             }
             if (openings.Count > 0 && openings[0].ToRoomId == room.Id)
@@ -94,7 +102,10 @@ namespace Worsen.Domain.Procedural
             }
             if (openings.Count == 0)
             {
-                blocks.Add(Wall(room.Id, center, config.RoomSize, room.Size.y, alongX, driver.WallThickness));
+                bool gap = layout.GapCells.Any(c => Mathf.Abs(neighborCenter.x - layout.Origin.x - c.x * config.RoomSize) < 0.001f &&
+                    Mathf.Abs(neighborCenter.z - layout.Origin.y - c.y * config.RoomSize) < 0.001f);
+                if (gap) AddGapView(blocks, room, center, alongX, config, driver);
+                else blocks.Add(Wall(room.Id, center, config.RoomSize, room.Size.y, alongX, driver.WallThickness));
                 return;
             }
             openings.Sort((a, b) => (alongX ? a.Center.x : a.Center.z).CompareTo(alongX ? b.Center.x : b.Center.z));
@@ -114,7 +125,7 @@ namespace Worsen.Domain.Procedural
                 float bottom = opening.TraversalKind == TraversalSurfaceKind.Vault ? driver.VaultHeight : 0f;
                 float top = opening.TraversalKind == TraversalSurfaceKind.Vault ? driver.WindowTopHeight :
                     opening.TraversalKind == TraversalSurfaceKind.SlideGate ? driver.SlideClearance : config.DoorHeight;
-                int surfaceId = 80000 + room.Id * 100 + side * 10 + (opening.IsOptional ? 1 : 0);
+                int surfaceId = 80000 + layout.Doors.TakeWhile(d => !d.Equals(opening)).Count();
                 var normal = alongX ? Vector3.forward : Vector3.right;
                 var a = opening.Center - normal * driver.LandingOffset;
                 var b = opening.Center + normal * driver.LandingOffset;
@@ -134,6 +145,27 @@ namespace Worsen.Domain.Procedural
             if (cursor < wallMax)
                 blocks.Add(Wall(room.Id, center + axis * ((cursor + wallMax) * 0.5f - middle),
                     wallMax - cursor, room.Size.y, alongX, driver.WallThickness));
+        }
+
+        private static void AddGapView(List<ProceduralBlock> blocks, LevelRoom room, Vector3 center,
+            bool alongX, ProceduralConfig config, ProceduralDriverConfig driver)
+        {
+            var wall = Wall(room.Id, center, config.RoomSize, room.Size.y, alongX, driver.WallThickness);
+            blocks.Add(new ProceduralBlock(room.Id, wall.Kind, wall.Center, wall.Size, role: ProceduralBlockRole.CollisionOnly));
+            // Reuse the existing window/door dimensions. No traversal surface, graph
+            // edge or navigation opening is emitted: this is a sealed view, not a shortcut.
+            float side = (config.RoomSize - config.DoorWidth) * 0.5f;
+            var axis = alongX ? Vector3.right : Vector3.forward;
+            Visual(center - axis * ((config.RoomSize + config.DoorWidth) * 0.25f), side, room.Size.y);
+            Visual(center + axis * ((config.RoomSize + config.DoorWidth) * 0.25f), side, room.Size.y);
+            Visual(new Vector3(center.x, driver.VaultHeight * 0.5f, center.z), config.DoorWidth, driver.VaultHeight);
+            Visual(new Vector3(center.x, (room.Size.y + driver.WindowTopHeight) * 0.5f, center.z),
+                config.DoorWidth, room.Size.y - driver.WindowTopHeight);
+            void Visual(Vector3 position, float length, float height)
+            {
+                var piece = Wall(room.Id, position, length, height, alongX, driver.WallThickness);
+                blocks.Add(new ProceduralBlock(room.Id, piece.Kind, piece.Center, piece.Size, role: ProceduralBlockRole.VisualOnly));
+            }
         }
 
         private static ProceduralBlock Wall(int roomId, Vector3 center, float length, float height, bool alongX, float thickness)
