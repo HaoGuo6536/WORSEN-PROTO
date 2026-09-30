@@ -11,11 +11,14 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Traverse physically clear stair risers and verify rounded-edge tread support.
 //   - Preserve open-turn inertia after bounded capsule/floor prediction at path refresh.
+//   - Sample resolved path progress and report stalls without touching motor decisions.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
 //   Scene-owned, no independent simulation loop. Teardown destroys only owned transient effects.
+//   Stall observation uses the default navigation query agent (type 0), matching
+//   existing AllAreas path queries. It does not measure avoidance or change paths.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -35,6 +38,7 @@ namespace Worsen.Domain.Hunter
         private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
         private HunterDriverState _state;
         private readonly HunterSteeringPresenter _presenter = new HunterSteeringPresenter();
+        private readonly HunterStallPresenter _stallPresenter = new HunterStallPresenter();
         public Vector3 Position => transform.position;
         public Vector3 Forward => transform.forward;
         public Vector3 Velocity => _state?.Steering.Velocity ?? Vector3.zero;
@@ -43,6 +47,18 @@ namespace Worsen.Domain.Hunter
         public event Action<Collider, int> OnRangedContact;
         public event Action<int> OnRangedMiss;
         public event Action<HunterFeedbackEvent> OnAttackFeedback;
+        public event Action<HunterStallFact> OnStall;
+        public void ObserveStall(float dt, long tick, Worsen.Core.EntityId hunter, HunterAction action, int lastRoom)
+        {
+            if (_state == null) return;
+            Vector3[] corners = _state.Steering.Corners;
+            if (!_stallPresenter.Observe(_state.Stall, Position, corners, _state.PathAvailable, dt,
+                _config.StallDuration, _config.StallMinimumProgress, _config.StallMinimumRemaining, out double remaining)) return;
+            Vector3 scale = _capsule.transform.lossyScale;
+            OnStall?.Invoke(new HunterStallFact(hunter, tick, Position, lastRoom > 0 ? lastRoom : (int?)null,
+                corners, NavMesh.GetSettingsByID(0).agentRadius,
+                _capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)), _config.Radius, action, remaining));
+        }
         private void OnEnable()
         {
             if (_attacks == null) _attacks = GetComponent<HunterAttackDriver>();

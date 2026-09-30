@@ -10,11 +10,13 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Relay Hunter-local stall facts for evidence consumers without recovery commands.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
 //   Scene-owned entity; Session is sole tick owner. Subscriptions pair OnEnable/OnDisable.
+//   PLAN-014 stall payload stays Hunter-local pending coordinator-owned Core telemetry.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -34,11 +36,13 @@ namespace Worsen.Domain.Hunter
         private IReadOnlyPlayerState _player;
         public EntityId Id => _state?.Id ?? EntityId.None;
         public IReadOnlyHunterState ReadOnlyState => _state;
+        public string ArchetypeKey => _profile != null ? _profile.ArchetypeKey : string.Empty;
         public HunterAttackSample AttackSample => _profile != null && _profile.AttackStyle == HunterAttackStyle.Lunge ?
             _controller?.AttackSample() ?? default : default;
         public event Action<HunterHit> OnLungeHit;
         public event Action<HunterSighting> OnSighting;
         public event Action<HunterFeedbackEvent> OnFeedback;
+        public event Action<HunterStallFact> OnStall;
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
@@ -47,6 +51,7 @@ namespace Worsen.Domain.Hunter
             _driver.OnRangedContact += HandleRangedContact;
             _driver.OnRangedMiss += HandleRangedMiss;
             _driver.OnAttackFeedback += HandleAttackFeedback;
+            _driver.OnStall += HandleStall;
         }
         private void OnDisable()
         {
@@ -56,6 +61,7 @@ namespace Worsen.Domain.Hunter
                 _driver.OnRangedContact -= HandleRangedContact;
                 _driver.OnRangedMiss -= HandleRangedMiss;
                 _driver.OnAttackFeedback -= HandleAttackFeedback;
+                _driver.OnStall -= HandleStall;
             }
             HunterRegistry.Unregister(this);
         }
@@ -101,6 +107,7 @@ namespace Worsen.Domain.Hunter
                     (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
                 result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+            _driver.ObserveStall(dt, tick, Id, _state.CurrentAction, _state.LastRoom);
             if (!_driver.PathAvailable && result.Phase == HunterLungePhase.None) _controller.ReportPathFailure();
             _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
@@ -126,6 +133,7 @@ namespace Worsen.Domain.Hunter
             if (handle != null && _controller.TryAcceptRangedContact(handle.Id, serial, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
         private void HandleAttackFeedback(HunterFeedbackEvent feedback) { OnFeedback?.Invoke(feedback); }
+        private void HandleStall(HunterStallFact fact) { OnStall?.Invoke(fact); }
         private void HandleRangedMiss(int serial) { _controller?.ReportAttackMiss(serial); }
         public void SetRoomPhase(RoomPhaseChangedFact fact)
         { if (_controller == null) return; _controller.SetRoomPhase(fact); _driver.SetUnavailableRooms(_controller.UnavailableRooms); }

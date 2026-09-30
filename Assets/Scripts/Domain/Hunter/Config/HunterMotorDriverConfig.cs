@@ -3,10 +3,12 @@
 // ============================================================================
 // PURPOSE:
 //   Holds the physical probe dimensions used by the hunter engine boundary. The separate profile supplies gameplay speeds and phases so changes remain explicit.
+//   Shared stall thresholds measure motor progress consistently across archetypes.
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Keep authored data and system-local value contracts separate from execution.
+//   - Supply provisional, observation-only stall window and distance thresholds.
 // DEPENDENCIES:
 //   - The owning Hunter system and pure UnityEngine values only.
 // USAGE NOTES:
@@ -26,6 +28,9 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private float _pathSampleRadius = 2f;
         [SerializeField] private float _pathRepathSeconds = 0.15f;
         [SerializeField] private float _cornerTolerance = 0.25f;
+        [SerializeField, Min(0.001f)] private float _stallDuration = 0.75f;
+        [SerializeField, Min(0.001f)] private float _stallMinimumProgress = 0.25f;
+        [SerializeField, Min(0f)] private float _stallMinimumRemaining = 1f;
         [SerializeField] private LayerMask _collisionMask = ~0;
         [SerializeField] private LayerMask _sightMask = ~0;
         [SerializeField] private float _gravity = 24f;
@@ -40,6 +45,9 @@ namespace Worsen.Domain.Hunter
         public float PathSampleRadius => _pathSampleRadius;
         public float PathRepathSeconds => _pathRepathSeconds;
         public float CornerTolerance => _cornerTolerance;
+        public float StallDuration => _stallDuration;
+        public float StallMinimumProgress => _stallMinimumProgress;
+        public float StallMinimumRemaining => _stallMinimumRemaining;
         public int CollisionMask => _collisionMask.value;
         public int SightMask => _sightMask.value;
         public float Gravity => _gravity;
