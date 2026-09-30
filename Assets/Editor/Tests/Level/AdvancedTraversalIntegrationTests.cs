@@ -163,8 +163,8 @@ namespace Worsen.Tests.Level
         [UnityTest]
         public IEnumerator DefaultCapsuleStepsClimbsSlopeSnapsSmallDropAndFallsFromEdge()
         {
-            Assert.That(_config.StepHeight, Is.EqualTo(0.3f).Within(0.001f));
-            Assert.That(_config.GroundSnapDistance, Is.EqualTo(0.2f).Within(0.001f));
+            Assert.That(_config.StepHeight, Is.EqualTo(0.4f).Within(0.001f));
+            Assert.That(_config.GroundSnapDistance, Is.EqualTo(0.25f).Within(0.001f));
             Box("0.2m ordinary step", new Vector3(3f, 0.1f, 0f), new Vector3(2f, 0.2f, 3f));
             var normal = new Vector3(-1f, 4f, 0f).normalized;
             var ramp = Box("1:4 ordinary ramp", new Vector3(6f, 0.7f, 0f) - normal * 0.1f,
