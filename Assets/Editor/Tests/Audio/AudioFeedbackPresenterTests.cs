@@ -10,7 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Verify one pickup/outcome sound and health-owned damage without suppressing different actions.
+//   - Verify ordinary pickups never become combo stings, and health owns damage sounds.
 //   - Verify per-action mapping and duplicate suppression.
 //   - Verify silent posture seeding, slide suppression, exertion fades and critical/death priority.
 //
@@ -58,7 +58,7 @@ namespace Worsen.Tests.Audio
             }
         }
         [Test]
-        public void EachPickupSelectsOneCueEvenWhenGoldenCoincidesWithChainMilestone()
+        public void RapidPickupsKeepTheirSingleCueWithoutAChainSting()
         {
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState();
             for (int i = 1; i <= 6; i++)
@@ -66,7 +66,8 @@ namespace Worsen.Tests.Audio
                 var kind = i == 6 ? PickupKind.GoldenCake : PickupKind.Cake;
                 var fact = new PickupCollectedFact(new EntityId(1), i, kind, 0, 1, i);
                 presenter.Pickup(state, fact, Vector3.zero); Assert.That(state.Commands.Count, Is.EqualTo(1));
-                Assert.That(state.Commands[0].Cue, Is.EqualTo(i == 6 ? CueId.GoldenCakeCollect : i == 3 ? CueId.CakeChain : CueId.CakeCollect));
+                Assert.That(state.Commands[0].Cue, Is.EqualTo(i == 6 ? CueId.GoldenCakeCollect : CueId.CakeCollect));
+                Assert.That(state.Commands.Exists(command => command.Cue == CueId.CakeChain), Is.False);
                 presenter.Pickup(state, fact, Vector3.zero); Assert.That(state.Commands, Is.Empty);
             }
         }

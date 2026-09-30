@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
 // KEY RESPONSIBILITIES:
-//   - Observe intro-to-loop playback, multi-hunter continuity and one ending.
+//   - Observe intro-to-loop playback, multi-hunter continuity and no loss outro.
 //   - Verify early loss, reacquisition, death and reset cancel scheduled sources.
 // DEPENDENCIES:
 //   - AudioSoundscapeDriver, configuration, Unity Test Framework and NUnit.
@@ -47,7 +47,7 @@ namespace Worsen.Tests.Audio
                 Assert.That(AssetDatabase.GetAssetPath(actual[i]), Does.StartWith("Assets/External/Audio/Horror Elements/Ambient/"));
             }
         }
-        [UnityTest] public IEnumerator IntroThenLoopSurvivesAnotherHunterAndEndingPlaysExactlyOnce()
+        [UnityTest] public IEnumerator IntroThenLoopSurvivesAnotherHunterAndLossLeavesTensionWithoutOutro()
         {
             yield return new EnterPlayMode(); Setup();
             driver.SetThreat(1, true, .9f);
@@ -60,8 +60,9 @@ namespace Worsen.Tests.Audio
             yield return Delay(.3f);
             Assert.That(Source("Run Loop").isPlaying, Is.True); Assert.That(Source("Run Intro").isPlaying, Is.False);
             driver.RemoveThreat(2);
-            yield return WaitFor(() => Source("Run End").timeSamples > 0, "Single ending");
-            Assert.That(Source("Run Loop").isPlaying, Is.False); Assert.That(Source("Run End").loop, Is.False);
+            yield return WaitFor(() => !Source("Run Loop").isPlaying, "Loss cancels loop");
+            Assert.That(Source("Run End").isPlaying, Is.False);
+            Assert.That(Source("Tension").volume, Is.GreaterThan(0f));
             yield return Delay(.4f); Assert.That(Source("Run End").isPlaying, Is.False);
             yield return Delay(.25f); Assert.That(Source("Run End").isPlaying, Is.False);
         }

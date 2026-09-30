@@ -15,12 +15,13 @@
 //   - Give health sole ownership of player damage/death; never replay a swing for its miss outcome.
 //   - Choose presentation commands without changing gameplay.
 //   - Suppress initialization damage and repeated same-event sounds.
+//   - Preserve one ordinary or golden pickup cue without a combo replacement.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
 //
 // USAGE NOTES:
-//   Tick-based pickup chain window assumes the shared 60 Hz simulation.
+//   Pickup anchor identities deduplicate collection; cadence never changes its cue.
 //   Progression revisions and generation identities clear per-floor deduplication state.
 //
 // ============================================================================
@@ -147,9 +148,7 @@ namespace Worsen.Presentation.Audio
         public void Pickup(AudioFeedbackDriverState state, PickupCollectedFact fact, Vector3 position)
         {
             state.Commands.Clear(); if (!state.Pickups.Add(fact.AnchorId)) return;
-            state.Chain = fact.Tick - state.PickupTick <= 120 ? state.Chain + 1 : 1; state.PickupTick = fact.Tick;
-            CueId cue = fact.Kind == PickupKind.GoldenCake ? CueId.GoldenCakeCollect :
-                state.Chain >= 3 && state.Chain % 3 == 0 ? CueId.CakeChain : CueId.CakeCollect;
+            CueId cue = fact.Kind == PickupKind.GoldenCake ? CueId.GoldenCakeCollect : CueId.CakeCollect;
             Add(state, cue, position);
         }
         public void Hand(AudioFeedbackDriverState state, CollapseHandFact fact)
@@ -211,7 +210,7 @@ namespace Worsen.Presentation.Audio
             {
                 state.Health.Clear(); state.Rooms.Clear(); state.EventTicks.Clear(); state.Pickups.Clear(); state.MovementTick = -1;
                 state.ProjectileEmitters.Clear(); state.FlyingProjectiles.Clear(); state.NextProjectileEmitter = 0;
-                state.HasFlashlight = false; state.Chain = 0; state.PickupTick = -1000; state.Movement = MovementState.Ground;
+                state.HasFlashlight = false; state.Movement = MovementState.Ground;
                 state.HasMovement = state.IsCrouched = state.IsSprinting = state.IsCritical = state.ExertionActive = false;
                 state.IsAlive = true; state.ExertionGain = 0f;
             }

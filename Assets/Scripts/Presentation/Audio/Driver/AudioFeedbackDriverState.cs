@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Remember prior health, movement, flashlight and phase observations.
 //   - Retain posture initialization and the continuous exertion envelope independently of gameplay.
-//   - Deduplicate committed event identities and maintain short pickup chains.
+//   - Deduplicate committed event and pickup anchor identities without combo state.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -51,8 +51,6 @@ namespace Worsen.Presentation.Audio
         public bool IsCritical;
         public float ExertionGain;
         public bool ExertionActive;
-        public long PickupTick = -1000;
-        public int Chain;
         public bool HasFlashlight;
         public bool Flashlight;
         public int Generation = -1;
