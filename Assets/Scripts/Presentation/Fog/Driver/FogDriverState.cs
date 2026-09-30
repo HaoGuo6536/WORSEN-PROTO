@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Fog.
 // KEY RESPONSIBILITIES:
+//   - Keep the selected optical look separate from the density field.
 //   - Retain accepted progress, portal links, dirty rooms and upload telemetry.
 // DEPENDENCIES:
 //   - Core room samples; UnityEngine values and passive texture references.
@@ -32,6 +33,7 @@ namespace Worsen.Presentation.Fog
         public int LastRebuiltRooms;
         public bool UploadPending;
         public bool Enabled = true;
+        public string Look;
         public Texture3D Texture;
         public double LastUploadMilliseconds;
         public int UploadRevision;

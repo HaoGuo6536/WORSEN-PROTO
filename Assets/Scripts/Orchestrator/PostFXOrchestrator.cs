@@ -8,11 +8,13 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · PostFX target.
 // KEY RESPONSIBILITIES:
+//   - Pair HorrorEffects cleanse/revival facts with targeted blindness and catch-latch clearing.
 //   - Pair Run grace/Blind trap and Progression effects; restore effects after capture resets.
 //   - Forward confirmed consumption before terminal presentation; preserve ordinary injury.
 //   - Pair subscriptions and clear presentation through the existing capture reset.
 //   - Share Horror's single startle admission with the Director intrusion's visual strength.
 // DEPENDENCIES:
+//   - Session.HorrorEffects publishes consumable cleanse and revival boundaries.
 //   - Session.Run/Progression and Presentation.PostFX/Horror; Core payloads downstream.
 //   - Domain.Floor trap facts are translated into duration-only presentation commands.
 //   - CameraManager supplies a configured consumption duration only during Configure.
@@ -25,6 +27,8 @@
 //   Missing or uninitialized Horror degrades to subtle feedback, never an unbudgeted startle.
 //   An explicitly injected clock takes precedence; invalid readings still fail closed.
 //   Run.ElapsedSeconds is floor-local in Expedition and must not be used as the whole-run clock.
+//   Legacy scene setup initializes HorrorEffects after Configure. CaptureStarted retries
+//   that persistent-service binding before gameplay; explicit injection remains preferred.
 // ============================================================================
 
 using System;
@@ -33,6 +37,7 @@ using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 using Worsen.Session.Run;
 using Worsen.Session.Progression;
+using Worsen.Session.HorrorEffects;
 using Worsen.Domain.Floor;
 using Worsen.Presentation.PostFX;
 using Worsen.Presentation.Camera;
@@ -46,13 +51,16 @@ namespace Worsen.Orchestrator
         [SerializeField] private PostFXManager _postFX;
         [SerializeField] private HorrorManager _horror;
         private ProgressionSessionManager _progression;
+        private HorrorEffectsManager _effects;
         private Func<double> _runSeconds;
         [SerializeField, Range(0.1f, 2f)] private float _consumptionSeconds = 0.9f;
         public void Configure(RunSessionManager run, PostFXManager postFX, CameraManager camera = null,
-            HorrorManager horror = null, Func<double> runSeconds = null, ProgressionSessionManager progression = null)
+            HorrorManager horror = null, Func<double> runSeconds = null, ProgressionSessionManager progression = null,
+            HorrorEffectsManager effects = null)
         {
             OnDisable(); _run = run; _postFX = postFX; _horror = horror; _runSeconds = runSeconds;
             _progression = progression;
+            _effects = effects;
             if (camera != null) _consumptionSeconds = camera.ConsumptionSeconds;
             if (isActiveAndEnabled) OnEnable();
         }
@@ -62,6 +70,9 @@ namespace Worsen.Orchestrator
             if (_run == null || _postFX == null) return;
             _run = RunSessionManager.Instance ?? _run;
             _postFX.Initialize();
+            _effects = _effects != null ? _effects : HorrorEffectsManager.Instance;
+            if (_effects != null)
+            { _effects.SensesCleansed += OnSensesCleansed; _effects.PlayerRevived += OnPlayerRevived; }
             _run.PlayerMovementPublished += OnMovement;
             _run.CaptureStarted += OnCaptureStarted;
             _run.ProximityPublished += OnProximity;
@@ -76,6 +87,8 @@ namespace Worsen.Orchestrator
         }
         private void OnDisable()
         {
+            if (_effects != null)
+            { _effects.SensesCleansed -= OnSensesCleansed; _effects.PlayerRevived -= OnPlayerRevived; }
             if (_progression != null) _progression.EffectsSnapshotChanged -= OnEffectsSnapshot;
             if (_run == null) return;
             _run.PlayerMovementPublished -= OnMovement;
@@ -97,8 +110,11 @@ namespace Worsen.Orchestrator
         public void OnGraceEnded(GraceWindowFact fact) => _postFX.SetGrace(fact, false);
         public void OnActiveEffectsChanged(IReadOnlyActiveEffects effects) => _postFX.SetActiveEffects(effects);
         public void OnBlindTrap(float seconds) => _postFX.SetBlindness(seconds);
+        private void OnSensesCleansed(SensoryCleanseFact fact) => _postFX.SetBlindness(0f);
+        private void OnPlayerRevived(EntityId id) => _postFX.ClearConsumed();
         private void OnCaptureStarted(RunCaptureMetadata metadata)
         {
+            if (_effects == null) OnEnable();
             _postFX.ResetEffects();
             OnActiveEffectsChanged(_progression != null ? _progression.EffectsSnapshot.ActiveEffects : null);
         }

@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Route Session-timed consumable healing/speed, cleansing and floor-spawn revival.
+//   - Forward Core web contacts to the sole timed slow path; cleanse cancels its timer.
 //   - Route the independent trap speed factor; its lifetime belongs to Session.
 //   - Queue external impulses and explicitly timed acceleration without publishing new facts.
 //   - Expose read-only shield HP, grants and explicit floor-replacement restoration.
@@ -138,6 +140,23 @@ namespace Worsen.Domain.Player
             return result.Changed;
         }
 
+        public void HealOverTime(float perSecond, float movingSeconds)
+        {
+            if (_controller != null && _controller.HealOverTime(perSecond, movingSeconds))
+                OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
+        }
+        public void SetConsumableSpeedMultiplier(float multiplier) => _controller?.SetConsumableSpeedMultiplier(multiplier);
+
+        public void ClearSlows() => _controller?.ClearSlows();
+        public bool RespawnAtFloorStart(float healthFraction)
+        {
+            if (_controller == null || !_controller.RespawnAtFloorStart(healthFraction)) return false;
+            _driver.Teleport(_state.Position, _state.HeadingDegrees);
+            _driver.SetGraceActive(false);
+            OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
+            return true;
+        }
+
         public bool GrantShield(float hitPoints)
         {
             if (_controller == null || !_controller.GrantShield(hitPoints)) return false;
@@ -193,6 +212,7 @@ namespace Worsen.Domain.Player
         { _controller?.SetMovementEffects(footstepNoiseMultiplier, reboundCooldownMultiplier, grabSpeedMultiplier); }
         public void SetGrabSpeedMultiplier(float multiplier) { _controller?.SetGrabSpeedMultiplier(multiplier); }
         public void SetTrapSpeedMultiplier(float multiplier) { _controller?.SetTrapSpeedMultiplier(multiplier); }
+        public void ApplyWebSlow(WebHitFact fact) { _controller?.ApplyWebSlow(fact); }
         public void ApplyLungeHit(Vector3 killerPosition) { if (_profile != null) ApplyHit(_profile.LungeDamage, killerPosition); }
         public void Teardown()
         {

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Swap torch art for cold hospital panels before construction, without moving or renumbering sockets.
 //   - Apply a density budget to eligible torches only; moon/exit lights keep the shared cap.
 //   - Apply safe wall slots, remove decorative collision and own every spawned object.
 //   - Replace imported real lights with configured Lumen fake-light strengths without exposing vendor commands to gameplay systems.
@@ -50,8 +51,13 @@ namespace Worsen.Presentation.Environment
             else if (_config.LumenLanternPrefab == null || _config.LumenMoonPrefab == null) Debug.LogWarning("Environment requires the project-owned Lumen torch and moon profiles. Rebuild HorrorRun assets.", this);
         }
 
-        public void BeginFloor()
+        public void SetTheme(string theme, string lightSource)
+        { _state.ThemeId = theme; _state.LightSource = lightSource; }
+        public void SetRoomTheme(int room, string theme, string family) => _state.RoomThemes[room] = (theme, family);
+
+        public void BeginFloor(bool clearTheme = true)
         {
+            if (clearTheme) { _state.ThemeId = null; _state.LightSource = null; _state.RoomThemes.Clear(); }
             foreach (EnvironmentFlameDriverState flame in _state.Flames) if (flame.Grammar != null) flame.Grammar.Teardown();
             _state.ExitLightIndex = -1;
             _state.DarkerFloors = _state.Wick = false;
@@ -71,7 +77,9 @@ namespace Worsen.Presentation.Environment
             IReadOnlyList<Bounds> cells = null)
         {
             if (_config == null || _state.Rooms.ContainsKey(id)) return;
-            var root = new GameObject("Room " + id + " Medieval Dressing");
+            bool fluorescent = EnvironmentThemePresenter.IsFluorescent(_state, id);
+            string family = _state.RoomThemes.TryGetValue(id, out var roomTheme) ? roomTheme.Family : string.Empty;
+            var root = new GameObject("Room " + id + (fluorescent ? " Hospital " : " Castle ") + family + " Dressing");
             root.transform.SetParent(transform, false); root.SetActive(false);
             _state.Rooms.Add(id, root);
             _state.RoomBounds.Add(id, bounds);
@@ -81,10 +89,11 @@ namespace Worsen.Presentation.Environment
                 EnvironmentSlot slot = slots[i];
                 if (slot.Torch)
                 {
-                    SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
-                    AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false, slot.Position);
+                    if (!fluorescent) SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
+                    AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false,
+                        slot.Position, fluorescent, slot.Yaw, slot.Envelope);
                 }
-                else
+                else if (!fluorescent)
                 {
                     bool groundProp = slot.Kind == EnvironmentDecorationKind.FloorProp || slot.Kind == EnvironmentDecorationKind.MerchantDisplay;
                     if (groundProp && Physics.CheckBox(slot.Position, slot.Envelope * .5f - Vector3.one * .025f,
@@ -143,17 +152,24 @@ namespace Worsen.Presentation.Environment
         }
 
         private void AddFlame(int roomId, int identity, Transform parent, Vector3 position, bool refuge, bool moon,
-            Vector3 socketPosition = default)
+            Vector3 socketPosition = default, bool fluorescent = false, float yaw = 0f, Vector3 envelope = default)
         {
-            var holder = new GameObject(moon ? "Lumen 2 Moon Pool" : "Lumen 2 Torch Pool");
+            var holder = new GameObject(moon ? "Lumen 2 Moon Pool" : fluorescent ? "Lumen 2 Fluorescent Pool" : "Lumen 2 Torch Pool");
             holder.transform.SetParent(parent, false); holder.transform.position = position;
             // Vendor shader compares surface-to-source with local -Z, so the beam points +Z.
             if (moon) holder.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             var effectRoot = new GameObject("Budgeted Flame FX");
             effectRoot.transform.SetParent(holder.transform, false); effectRoot.SetActive(false);
             var grammar = effectRoot.AddComponent<EnvironmentLumenDriver>();
-            LumenEffectPlayer lumen = grammar.CreateLamp(_config, moon);
-            if (!moon && _config.FirePrefab != null)
+            LumenEffectPlayer lumen = grammar.CreateLamp(_config, moon, fluorescent);
+            EnvironmentFluorescentFixture panel = null;
+            if (fluorescent)
+            {
+                var panelRoot = new GameObject("Cold fluorescent panel"); panelRoot.transform.SetParent(holder.transform, false);
+                panel = panelRoot.AddComponent<EnvironmentFluorescentFixture>();
+                panel.Configure(socketPosition, yaw, envelope, _config);
+            }
+            if (!moon && !fluorescent && _config.FirePrefab != null)
             {
                 GameObject fire = Instantiate(_config.FirePrefab, effectRoot.transform);
                 fire.transform.localPosition = Vector3.zero; fire.transform.localScale *= 0.35f;
@@ -164,6 +180,7 @@ namespace Worsen.Presentation.Environment
             _state.Flames.Add(new EnvironmentFlameDriverState
             {
                 RoomId = roomId, Identity = identity, EffectRoot = effectRoot, Lumen = lumen, Grammar = grammar,
+                Fluorescent = fluorescent, Panel = panel,
                 Intensity = refuge ? 1.4f : 1f, Moon = moon, SocketPosition = socketPosition
             });
             _state.Positions.Add(position); _state.Available.Add(true);
@@ -298,9 +315,10 @@ namespace Worsen.Presentation.Environment
                 float intensity = flame.Exit ? _lumen.ExitRayIntensity(flame.OpeningProgress,
                     _config.ExitRayClosedIntensity, _config.ExitRayOpenIntensity) * (1f - flame.Destruction) :
                     flame.Moon ? 1f - flame.Destruction :
-                    EnvironmentPresenter.LampBrightness(_state.Elapsed, flame.Identity, gutter,
-                        flame.Destruction, _state.Wick, false, 1f);
+                    EnvironmentThemePresenter.LampBrightness(flame.Fluorescent, _state.Elapsed, flame.Identity, gutter,
+                        flame.Destruction, _state.Wick, _config.FluorescentFlickerDepth, _config.FluorescentFlickerRate);
                 if (_state.DarkerFloors) intensity *= Mathf.Clamp01(_config.DarkerLightMultiplier);
+                if (flame.Panel != null) flame.Panel.SetBrightness(effectActive ? intensity : 0f);
                 if (flame.EffectRoot.activeSelf != effectActive) flame.EffectRoot.SetActive(effectActive);
                 if (effectActive && flame.Lumen != null)
                 { flame.Lumen.brightness = intensity * flame.Intensity * _config.LumenBrightness;

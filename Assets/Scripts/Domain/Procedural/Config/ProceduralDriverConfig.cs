@@ -12,13 +12,14 @@
 //   - Tune the flat collision extension beyond both ends of each stair flight.
 //   - Bound knockable corner props and thin doorway mark visuals.
 //   - Separate ordinary hunter masks from opt-in partition-ignoring navigation links.
+//   - Tune Passage tile dimensions, ordered collapse delays and falling presentation.
 // DEPENDENCIES:
 //   - UnityEngine materials and serialization; no other gameplay system.
 // USAGE NOTES:
 //   Assign imported or project materials through deterministic scene setup.
 //   Missing materials use declared dark, rough runtime materials owned by Driver.
-//   Enable partition links only after Hunter replaces AllAreas queries with these
-//   masks and the coordinator names the configured area in NavMeshAreas.asset.
+//   Partition links default on; ordinary admission still uses mask 1. Existing
+//   serialized assets need owner migration and area 3 needs its coordinator name.
 // ============================================================================
 using UnityEngine;
 
@@ -45,7 +46,19 @@ namespace Worsen.Domain.Procedural
         [SerializeField] private int _hunterAreaMask = 1;
         [SerializeField, Range(3, 31)] private int _partitionIgnoringArea = 3;
         [SerializeField] private int _partitionIgnoringAreaMask = 9;
-        [SerializeField] private bool _enablePartitionIgnoringLinks = false;
+        [SerializeField] private bool _enablePartitionIgnoringLinks = true;
+        [SerializeField, Min(0.1f)] private float _passageTileLength = 2f;
+        [SerializeField, Min(0.1f)] private float _passageWidth = 2.4f;
+        [SerializeField, Min(0f)] private float _passageFirstTileDelay = 4f;
+        [SerializeField, Min(0.01f)] private float _passageTileInterval = 0.4f;
+        [SerializeField, Min(0.1f)] private float _passageFallAcceleration = 18f;
+        [SerializeField, Min(0.1f)] private float _passageFallDuration = 1.5f;
+        public float PassageTileLength => _passageTileLength;
+        public float PassageWidth => _passageWidth;
+        public float PassageFirstTileDelay => _passageFirstTileDelay;
+        public float PassageTileInterval => _passageTileInterval;
+        public float PassageFallAcceleration => _passageFallAcceleration;
+        public float PassageFallDuration => _passageFallDuration;
         public int HunterAreaMask => _hunterAreaMask;
         public int PartitionIgnoringArea => _partitionIgnoringArea;
         public int PartitionIgnoringAreaMask => _partitionIgnoringAreaMask;

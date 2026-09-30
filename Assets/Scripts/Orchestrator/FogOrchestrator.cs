@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Fog target.
 // KEY RESPONSIBILITIES:
+//   - Route theme optics before room construction and clear them on floor release.
 //   - Pair room and destruction subscriptions and reset on floor replacement.
 // DEPENDENCIES:
 //   - Session Expedition publishes rooms; Domain Level supplies the Core graph;
@@ -36,6 +37,10 @@ namespace Worsen.Orchestrator
         private void OnEnable()
         {
             if (_expedition == null || _level == null || _floor == null || _fog == null) return;
+            _expedition.ThemePublished -= OnTheme;
+            _expedition.FloorReleased -= OnFloorReleased;
+            _expedition.ThemePublished += OnTheme;
+            _expedition.FloorReleased += OnFloorReleased;
             _expedition.RoomsReady -= OnRooms;
             _floor.OnRoomDestruction -= OnDestruction;
             _expedition.RoomsReady += OnRooms;
@@ -44,9 +49,13 @@ namespace Worsen.Orchestrator
         private void OnDisable()
         {
             if (_expedition != null) _expedition.RoomsReady -= OnRooms;
+            if (_expedition != null) { _expedition.ThemePublished -= OnTheme; _expedition.FloorReleased -= OnFloorReleased; }
             if (_floor != null) _floor.OnRoomDestruction -= OnDestruction;
             if (_fog != null) _fog.ResetFloor();
         }
+        private void OnTheme(string theme, string light, string sound, string fog, string hands) => _fog.SetLook(fog);
+        private void OnFloorReleased() => _fog.ResetFloor();
+        private void OnDestroy() => OnDisable();
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _fog.SetRooms(rooms, _level.ReadOnlyState.Graph);
         private void OnDestruction(RoomDestructionSample sample) => _fog.SetRoomProgress(sample.RoomId, sample.Progress);
     }

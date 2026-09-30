@@ -18,6 +18,7 @@
 //   - Exclude player-only staging/drops from hunter paths and own opt-in partition links.
 //   - Apply theme palettes and own optional puzzle cages, contacts and solved facts.
 //   - Filter shrine sockets against physical geometry and admit only reachable sites.
+//   - Open Passage apertures, bake walkable tiles and remove their support as they fall.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -36,21 +37,41 @@ using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Procedural
 {
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(ProceduralPassageBridge))]
     public sealed class ProceduralDriver : MonoBehaviour
     {
         private readonly ProceduralDriverState _state = new ProceduralDriverState();
         private readonly ProceduralGeometryPresenter _presenter = new ProceduralGeometryPresenter();
         private readonly ProceduralFracturePresenter _fracture = new ProceduralFracturePresenter();
+        private ProceduralPassageBridge _passageBridge;
         public int OwnedBlockCount => _state.BlockCount;
         public bool IsReady => _state.Ready;
         public EntityId PuzzlePlayerId => _state.PuzzlePlayer;
         public event Action<int, int, int> PuzzleSolved;
+        public event Action<int, int, int, Vector3> PassageTileCollapsed;
+        public IReadOnlyList<LevelAnchor> LinedPocketAnchors => _state.LinedPocketAnchors.AsReadOnly();
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers => _state.TraversalMarkers ?? Array.Empty<LevelMarkerRecord>();
+
+        private void OnEnable()
+        {
+            EnsurePassageBridge();
+            _passageBridge.TileCollapsed += OnPassageTileCollapsed;
+        }
+        private void OnDisable() { if (_passageBridge != null) _passageBridge.TileCollapsed -= OnPassageTileCollapsed; }
+        private void OnPassageTileCollapsed(int site, int pocket, int tile, Vector3 position)
+            => PassageTileCollapsed?.Invoke(site, pocket, tile, position);
+        private void EnsurePassageBridge()
+        {
+            if (_passageBridge == null) _passageBridge = GetComponent<ProceduralPassageBridge>();
+            if (_passageBridge == null) _passageBridge = gameObject.AddComponent<ProceduralPassageBridge>();
+            _passageBridge.Configure(_state);
+        }
 
         public void Build(ProceduralLayout layout, ProceduralConfig config, ProceduralDriverConfig driverConfig,
             Func<Collider, bool> puzzleActor = null)
         {
             Teardown();
+            EnsurePassageBridge();
             if (transform.lossyScale != Vector3.one) throw new InvalidOperationException("Procedural owner requires unit world scale.");
             var blocks = _presenter.Build(layout, config, driverConfig);
             ProceduralStoreyUtility.Validate(layout, config);
@@ -87,6 +108,7 @@ namespace Worsen.Domain.Procedural
                     themed?.Floor ?? driverConfig.FloorColor, driverConfig, themed?.Smoothness);
                 var ceiling = MaterialOrFallback(themed == null ? driverConfig.CeilingMaterial : null,
                     themed?.Ceiling ?? driverConfig.CeilingColor, driverConfig, themed?.Smoothness);
+                _state.Config = driverConfig; _state.PassageMaterial = floor;
                 foreach (var block in blocks)
                     CreateBlock(block, block.Kind == ProceduralSurfaceKind.Floor ? floor :
                         block.Kind == ProceduralSurfaceKind.Ceiling ? ceiling : wall, driverConfig.GeometryLayer);
@@ -141,6 +163,8 @@ namespace Worsen.Domain.Procedural
         public void Teardown()
         {
             _state.Ready = false;
+            _state.Passages.Clear(); _state.LinedPocketAnchors.Clear();
+            _state.NavigationSources.Clear(); _state.Config = null; _state.PassageMaterial = null;
             _state.Puzzles.Clear(); _state.PuzzlePlayer = EntityId.None;
             foreach (var link in _state.NavigationLinks) if (NavMesh.IsLinkValid(link)) NavMesh.RemoveLink(link);
             _state.NavigationLinks.Clear();
@@ -164,6 +188,14 @@ namespace Worsen.Domain.Procedural
         }
 
         private void OnDestroy() => Teardown();
+
+        public bool ActivatePassage(ProceduralLayout layout, int siteIndex, ProceduralConfig config, out ProceduralPassagePlan plan)
+            => _passageBridge.Open(layout, siteIndex, config, out plan);
+
+        // Engine time is sampled here, never in the pure collapse presenter.
+        private void Update() { if (_state.Ready) TickPassages(Time.deltaTime); }
+        public void TickPassages(float deltaTime)
+            => _passageBridge.Tick(deltaTime);
 
         public void TickPuzzles(PlayerMovementSample sample, float deltaTime)
         {
@@ -308,6 +340,8 @@ namespace Worsen.Domain.Procedural
             foreach (var plan in layout.Interactables.Where(p => p.State.Kind == InteractableKind.KnockableProp))
                 sources.Add(new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box,
                     transform = Matrix4x4.TRS(plan.State.Position, Quaternion.identity, Vector3.one), size = plan.Size, area = 1 });
+            _state.NavigationSettings = settings; _state.NavigationBounds = bounds;
+            _state.NavigationSources.AddRange(sources);
             _state.NavigationData = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
             if (_state.NavigationData == null) throw new InvalidOperationException("Runtime navigation bake returned no data.");
             _state.NavigationData.name = "Procedural Navigation - Round " + layout.RoundIndex;

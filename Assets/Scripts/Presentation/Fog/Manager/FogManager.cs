@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Fog (Service system).
 // KEY RESPONSIBILITIES:
+//   - Forward theme look tags without changing room progress or gameplay rules.
 //   - Forward field commands and coalesce rendering work through the own Driver.
 // DEPENDENCIES:
 //   - Core room samples/graph and own FogDriver/DriverConfig.
@@ -38,6 +39,7 @@ namespace Worsen.Presentation.Fog
         }
         public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms, LevelGraph graph) => _driver?.SetRooms(rooms, graph);
         public void SetRoomProgress(int roomId, float progress) => _driver?.SetRoomProgress(roomId, progress);
+        public void SetLook(string look) => _driver?.SetLook(look);
         public void ResetFloor() => _driver?.ResetFloor();
         public void SetEnabled(bool value) => _driver?.SetEnabled(value);
         private void Awake() { if (_driver == null) _driver = GetComponent<FogDriver>(); }

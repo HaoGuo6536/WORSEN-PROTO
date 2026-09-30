@@ -8,6 +8,9 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain the admitted traversal surface until its resolved outcome is published.
+//   - Retain floor spawn pose and independent web/consumable speed factors.
+//   - Keep the web timer and factor independent of grab and trap owners.
 //   - Retain an independent trap speed factor, composed with grabs by the Controller.
 //   - Accumulate external velocity deltas until one movement tick consumes them.
 //   - Store shield HP separately from regenerating and floor-reset health.
@@ -47,6 +50,9 @@ namespace Worsen.Domain.Player
         public bool IsUngrabbable => IsAlive && LowProfileEnabled && MovementState == MovementState.Slide;
         public EntityId Id { get; set; }
         public Vector3 Position { get; set; }
+        internal Vector3 FloorStartPosition;
+        internal float FloorStartHeading;
+        internal float ConsumableSpeedMultiplier = 1f;
         public Vector3 Velocity { get; set; }
         public Vector3 PendingExternalVelocity { get; set; }
         public Vector3 Forward { get; set; } = Vector3.forward;
@@ -93,6 +99,8 @@ namespace Worsen.Domain.Player
         public float ReboundCooldownMultiplier { get; set; } = 1f;
         public float GrabSpeedMultiplier { get; set; } = 1f;
         public float TrapSpeedMultiplier { get; set; } = 1f;
+        public float WebSpeedMultiplier { get; set; } = 1f;
+        public float WebSlowRemaining { get; set; }
         public float StumbleRemaining { get; set; }
         public float StumbleSpeedLimit { get; set; }
         public float StumbleStartedSeconds { get; set; }
@@ -106,6 +114,7 @@ namespace Worsen.Domain.Player
         public float VaultDuration { get; set; }
         public float VaultHeight { get; set; }
         public TraversalKind VaultKind { get; set; }
+        public int VaultSurfaceId { get; set; }
         public bool PreserveVelocityOnCommit { get; set; }
         public bool VaultCompletionPending { get; set; }
         public PlayerTraversalFact? CompletedTraversal { get; set; }

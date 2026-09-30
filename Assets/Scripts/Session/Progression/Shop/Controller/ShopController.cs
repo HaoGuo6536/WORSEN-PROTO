@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.Shop delegated subtree.
 // KEY RESPONSIBILITIES:
+//   - Cycle physical slots, spend uses and release capacity only on the final use.
 //   - Multiply new Golden Cake yield before rounding; carry fractions without re-multiplying them.
 //   - Filter and sample offers without replacement using an injected visit random stream.
 //   - Quote scaled prices, scarce rerolls and explicit unavailability reasons.
@@ -49,6 +50,7 @@ namespace Worsen.Session.Progression.Shop
         public void Reset()
         {
             state.Inventory.Clear(); state.Offers.Clear(); state.Sold.Clear();
+            state.RemainingUses.Clear(); state.SelectedSlot = 0;
             state.PendingOfferId = null; state.BargainNextVisit = state.BargainThisVisit = false;
             state.RerollsUsed = state.FreeRerollsUsed = state.PaidRerolls = state.Round = 0; state.GoldenRemainder = 0;
         }
@@ -161,6 +163,7 @@ namespace Worsen.Session.Progression.Shop
                 if (Stacks(active, "refund") > 0)
                     refund = (int)Math.Floor(previous.PaidPrice * (decimal)rules.RefundFraction);
                 state.Inventory[slot] = new ProgressionInventorySlot(entry.Id, entry.Title, price);
+                state.RemainingUses[slot] = UsesFor(entry.Id);
             }
             walletAfter = (int)Math.Min(int.MaxValue, (long)wallet - price + refund);
             state.Sold.Add(id); state.PendingOfferId = null;
@@ -214,11 +217,47 @@ namespace Worsen.Session.Progression.Shop
             return Array.AsReadOnly(state.Inventory.ToArray());
         }
 
+        private int UsesFor(string id) => id == "firecracker" ? rules.FirecrackerUses :
+            id == "doorstop" ? rules.DoorstopUses : rules.SingleItemUses;
+
+        public ConsumableInventorySnapshot Consumables(IReadOnlyActiveEffects active)
+        {
+            var inventory = Inventory(active);
+            var uses = new int[inventory.Count];
+            for (int i = 0; i < uses.Length; i++) uses[i] = Remaining(i);
+            return new ConsumableInventorySnapshot(inventory, Array.AsReadOnly(uses), state.SelectedSlot);
+        }
+
+        public bool Cycle(int direction, IReadOnlyActiveEffects active)
+        {
+            EnsureSlots(active);
+            if (direction == 0 || state.Inventory.Count == 0) return false;
+            state.SelectedSlot = (state.SelectedSlot + (direction > 0 ? 1 : state.Inventory.Count - 1)) % state.Inventory.Count;
+            return true;
+        }
+
+        private int Remaining(int slot) => slot < 0 || slot >= state.Inventory.Count ||
+            string.IsNullOrEmpty(state.Inventory[slot].Id) ? 0 :
+            state.RemainingUses.TryGetValue(slot, out int count) ? count : UsesFor(state.Inventory[slot].Id);
+
+        public bool ConsumeSelected(string expectedId, out bool exhausted)
+        {
+            exhausted = false;
+            int slot = state.SelectedSlot;
+            if (Remaining(slot) <= 0 || state.Inventory[slot].Id != expectedId) return false;
+            int remaining = Remaining(slot) - 1;
+            state.RemainingUses[slot] = remaining;
+            exhausted = remaining == 0;
+            if (exhausted) state.Inventory[slot] = default;
+            return true;
+        }
+
         public bool ConsumeWard()
         {
             int slot = state.Inventory.FindIndex(item => item.Id == "wax-ward");
             if (slot < 0) return false;
             state.Inventory[slot] = default;
+            state.RemainingUses.Remove(slot);
             return true;
         }
 
@@ -251,7 +290,8 @@ namespace Worsen.Session.Progression.Shop
 
         private void ValidateRules()
         {
-            if (rules.Pedestals < 1 || rules.InventorySlots < 1 || rules.FreeRerolls < 0 || rules.RerollPrice < 0 ||
+            if (rules.FirecrackerUses < 1 || rules.DoorstopUses < 1 || rules.SingleItemUses < 1 ||
+                rules.Pedestals < 1 || rules.InventorySlots < 1 || rules.FreeRerolls < 0 || rules.RerollPrice < 0 ||
                 rules.RerollIncrease < 0 || rules.ExpensivePrice < 0 || rules.ExpensiveUnlockRound < 1 ||
                 rules.BiggerPocketsSlots < 0 || rules.LuckyRerolls < 0 || rules.ShopRerolls < 0 ||
                 rules.GoldenTouchBonus < 0 || rules.InterestCap < 0 || rules.ExtraPedestals < 0 ||

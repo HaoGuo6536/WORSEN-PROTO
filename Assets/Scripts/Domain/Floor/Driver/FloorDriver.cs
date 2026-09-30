@@ -8,6 +8,9 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Keep player guidance on Walkable areas, never Weaver-only partition links.
+//   - Register optional gold sockets and avoid duplicate spawns when collapse creates ordinary gold.
+//   - Push cosmetic hand look tags into owned room visuals without changing probes.
 //   - Build tiered candle-lit cakes independently of unchanged pickup triggers; retain authored art overrides.
 //   - Tint owned golden material copies while retaining authored cake textures and alpha.
 //   - Own Lumen glow layers and a candle point light; warnings and exit remain fake-light only.
@@ -103,9 +106,17 @@ namespace Worsen.Domain.Floor
         public void SpawnGoldenCakes(IReadOnlyList<LevelAnchor> anchors)
         {
             OnDisable();
-            foreach (var anchor in anchors) BuildPickup(anchor, PickupKind.GoldenCake);
+            foreach (var anchor in anchors)
+            {
+                if (_state.Pickups.Exists(p => p != null && p.AnchorId == anchor.Id && p.Kind == PickupKind.GoldenCake)) continue;
+                _state.Anchors[anchor.Id] = anchor;
+                BuildPickup(anchor, PickupKind.GoldenCake);
+            }
             if (isActiveAndEnabled) OnEnable();
         }
+
+        public void SetHandLook(string look)
+        { foreach (var room in _state.Rooms.Values) room.SetHandLook(look); }
 
         public void RemoveTrap(int id) { if (_state.Traps.TryGetValue(id, out var trap)) trap.gameObject.SetActive(false); }
         public void PlayTrapTick(int id, float volume) { if (_state.Traps.TryGetValue(id, out var trap)) trap.PlayTick(volume); }
@@ -183,12 +194,12 @@ namespace Worsen.Domain.Floor
         private Vector3[] QueryCorners(Vector3 from, Vector3 to, out Vector3 sampledStart)
         {
             sampledStart = from;
-            if (!NavMesh.SamplePosition(from, out var start, _config.PathSampleRadius, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(to, out var end, _config.PathSampleRadius, NavMesh.AllAreas))
+            if (!NavMesh.SamplePosition(from, out var start, _config.PathSampleRadius, 1) ||
+                !NavMesh.SamplePosition(to, out var end, _config.PathSampleRadius, 1))
                 return null;
             sampledStart = start.position;
             var path = new NavMeshPath();
-            if (!NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
+            if (!NavMesh.CalculatePath(start.position, end.position, 1, path) || path.status != NavMeshPathStatus.PathComplete)
                 return null;
             return path.corners;
         }

@@ -11,6 +11,7 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Cover injected pose cadence, catch priority, rig fallback and independent foot weights.
+//   - Invoke the no-rig IK callback directly, without Edit Mode native message dispatch.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -92,9 +93,16 @@ namespace Worsen.Tests.Hunter
             try
             {
                 var backend = root.AddComponent<HunterAnimatorIKDriver>();
-                backend.Bind(root.AddComponent<Animator>(), root.transform, config, new HunterAnimationDriverState());
-                Assert.DoesNotThrow(() => root.SendMessage("OnAnimatorIK", 0));
-                backend.Unbind(); Assert.DoesNotThrow(() => root.SendMessage("OnAnimatorIK", 0));
+                var state = new HunterAnimationDriverState();
+                backend.Bind(root.AddComponent<Animator>(), root.transform, config, state);
+                var callback = typeof(HunterAnimatorIKDriver).GetMethod("OnAnimatorIK",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                Assert.That(callback, Is.Not.Null);
+                Assert.DoesNotThrow(() => callback.Invoke(backend, new object[] { 0 }));
+                Assert.That(state.IKApplied, Is.False);
+                backend.Unbind();
+                Assert.DoesNotThrow(() => callback.Invoke(backend, new object[] { 0 }));
+                Assert.That(state.IKApplied, Is.False);
             }
             finally { Object.DestroyImmediate(root); Object.DestroyImmediate(config); }
         }

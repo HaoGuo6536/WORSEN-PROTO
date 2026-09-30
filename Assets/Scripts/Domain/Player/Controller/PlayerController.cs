@@ -8,6 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Publish captured Vault identity on admission failure and resolved completion.
+//   - Own the single timed web-slow path; cleansing cancels both its factor and timer.
+//   - Apply Session-timed healing/speed, clear slows and revive at the retained floor spawn.
+//   - Compose a separately timed Core web slow with grab/trap factors without disabling slides.
 //   - Emit soft/hard landing severity independently of the stumble duration.
 //   - Compose trap and grab speed factors multiplicatively without sharing their lifetimes.
 //   - Consume bounded external velocity once after locomotion, regardless of hit grace.
@@ -86,12 +90,16 @@ namespace Worsen.Domain.Player
             _state.LookBackEnabled = true;
             _state.Position = position;
             _state.Velocity = Vector3.zero;
+            _state.FloorStartPosition = position;
+            _state.FloorStartHeading = headingDegrees;
+            _state.ConsumableSpeedMultiplier = 1f;
             _state.PendingExternalVelocity = Vector3.zero;
             _state.HeadingDegrees = headingDegrees;
             _state.Forward = Quaternion.Euler(0f, headingDegrees, 0f) * Vector3.forward;
             _state.MovementSpeedMultiplier = 1f;
             _state.FootstepNoiseMultiplier = _state.ReboundCooldownMultiplier = _state.GrabSpeedMultiplier = 1f;
             _state.TrapSpeedMultiplier = 1f;
+            _state.WebSpeedMultiplier = 1f; _state.WebSlowRemaining = 0f;
             _state.SlideTurnRateDegrees = _state.MovementDeltaTime = 0f;
             _state.PreviousHorizontalVelocity = Vector3.zero;
             _state.SprintSpeed = _profile.SprintSpeed;
@@ -120,6 +128,7 @@ namespace Worsen.Domain.Player
             _state.VaultSteeringOffset = Vector3.zero;
             _state.VaultHeight = 0f;
             _state.VaultKind = TraversalKind.None;
+            _state.VaultSurfaceId = 0;
             _state.VaultCompletionPending = _state.PreserveVelocityOnCommit = false;
             _state.CompletedTraversal = null;
             _state.VaultAttemptResolvedForPress = false;
@@ -222,7 +231,7 @@ namespace Worsen.Domain.Player
                 bool mantle = probe.VaultHeight > _profile.VaultMaximumHeight;
                 _state.VaultAttemptResolvedForPress = true;
                 facts.Add(Fact(mantle ? TraversalKind.Mantle : TraversalKind.Vault, false,
-                    _state.Forward, TraversalDuration(mantle)));
+                    _state.Forward, TraversalDuration(mantle), probe.SurfaceId));
                 StartStumble(_profile.FailedVaultStumbleDuration, _profile.StumbleSpeedMultiplier);
                 ConsumeJump();
                 jump = false;
@@ -250,7 +259,7 @@ namespace Worsen.Domain.Player
                 facts.Add(Fact(TraversalKind.Jump, true, _state.Forward, 0f));
             }
             else if (!cancelSlide && grounded && _state.StumbleRemaining <= 0f && (frame.Pressed & InputButtons.Crouch) != 0
-                && Horizontal(_state.Velocity).magnitude >= _profile.SlideMinimumSpeed
+                && Horizontal(_state.Velocity).magnitude >= _profile.SlideMinimumSpeed * _state.WebSpeedMultiplier
                 && _state.MovementState != MovementState.Slide)
             {
                 Vector3 horizontal = Horizontal(_state.Velocity);
@@ -333,7 +342,7 @@ namespace Worsen.Domain.Player
             {
                 bool succeeded = Vector3.Distance(_state.Position, _state.VaultTarget + _state.VaultSteeringOffset) <= _profile.VaultCompletionTolerance;
                 _state.CompletedTraversal = Fact(_state.VaultKind, succeeded,
-                    (_state.VaultTarget - _state.VaultStart).normalized, _state.VaultDuration);
+                    (_state.VaultTarget - _state.VaultStart).normalized, _state.VaultDuration, _state.VaultSurfaceId);
                 if (!succeeded) StartStumble(_profile.FailedVaultStumbleDuration, _profile.StumbleSpeedMultiplier);
                 _state.VaultCompletionPending = false;
             }
@@ -361,7 +370,7 @@ namespace Worsen.Domain.Player
             Vector3 horizontal = Horizontal(record.Resolution.Velocity);
             if (!Finite(move.x) || !Finite(move.y) || !Finite(horizontal)) return false;
             Vector3 desired = _state.Forward * move.y + Vector3.Cross(Vector3.up, _state.Forward) * move.x;
-            float walkingSpeed = _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier;
+            float walkingSpeed = _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.ConsumableSpeedMultiplier * _state.HitBoostMultiplier;
             // Acceleration below walking pace, idle intent and wall-arrested motion
             // are not an achieved sprint. Modifier-scaled walking pace keeps grabs meaningful.
             return Vector3.Dot(horizontal, desired) > 0f && horizontal.magnitude > walkingSpeed + 0.0001f;
@@ -390,6 +399,41 @@ namespace Worsen.Domain.Player
             if (!_state.IsAlive) { _state.IsSprinting = false; _state.Velocity = Vector3.zero; _state.LookBack = false; _state.HeadLookDelta = Vector2.zero; }
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
             return new PlayerHitResult(true, !_state.IsAlive, graceStarted: _state.GraceWindow);
+        }
+
+        public bool HealOverTime(float perSecond, float movingSeconds)
+        {
+            if (!_state.IsAlive || !Finite(perSecond) || perSecond <= 0f || !Finite(movingSeconds) || movingSeconds <= 0f) return false;
+            _state.Health = (float)Math.Min(_state.MaxHealth, _state.Health + (double)perSecond * movingSeconds);
+            _state.HealthState = HealthTier(_state.Health);
+            return true;
+        }
+
+        public void SetConsumableSpeedMultiplier(float multiplier)
+        { _state.ConsumableSpeedMultiplier = Finite(multiplier) ? Mathf.Max(1f, multiplier) : 1f; }
+
+        public void ClearSlows()
+        { _state.WebSlowRemaining = 0f; _state.WebSpeedMultiplier = _state.TrapSpeedMultiplier = 1f; }
+
+        public bool RespawnAtFloorStart(float healthFraction)
+        {
+            if (_state.IsAlive || !Finite(healthFraction) || healthFraction <= 0f || healthFraction > 1f) return false;
+            var effects = _state.ActiveEffects;
+            float maximum = _state.BaseMaximumHealth, movement = _state.MovementSpeedMultiplier;
+            float footsteps = _state.FootstepNoiseMultiplier, rebound = _state.ReboundCooldownMultiplier;
+            float regeneration = _state.RegenerationMultiplier, startFraction = _state.FloorStartHealthFraction;
+            bool lookBack = _state.LookBackEnabled;
+            long tick = _state.Tick;
+            Reset(_state.Id, _state.FloorStartPosition, _state.FloorStartHeading, _state.RecoveryTickSeconds);
+            SetActiveEffects(effects);
+            ApplyActiveEffects();
+            ApplyRunModifiers(Effect(PlayerEffectStat.MaximumHealth, maximum) * healthFraction, maximum, movement);
+            SetMovementEffects(footsteps, rebound, 1f);
+            SetHealthRecoveryEffects(regeneration, startFraction);
+            SetLookBackEnabled(lookBack);
+            _state.Tick = tick;
+            _state.RegenerationDelayRemaining = _profile.HealthRegenerationDelay;
+            return true;
         }
 
         public bool GrantShield(float hitPoints)
@@ -567,6 +611,8 @@ namespace Worsen.Domain.Player
 
         private void AdvanceTimers(float dt)
         {
+            _state.WebSlowRemaining = Mathf.Max(0f, _state.WebSlowRemaining - dt);
+            if (_state.WebSlowRemaining <= 0f) _state.WebSpeedMultiplier = 1f;
             if (_state.MovementState != MovementState.Vault)
                 _state.StoredMomentumRemaining = Mathf.Max(0f, _state.StoredMomentumRemaining - dt);
             if (_state.StoredMomentumRemaining <= 0f) _state.StoredMomentumSpeed = 0f;
@@ -596,6 +642,19 @@ namespace Worsen.Domain.Player
         public void SetTrapSpeedMultiplier(float multiplier)
         {
             _state.TrapSpeedMultiplier = Finite(multiplier) ? Mathf.Clamp01(multiplier) : 1f;
+            _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
+            _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
+        }
+
+        public void ApplyWebSlow(WebHitFact fact)
+        {
+            if (fact.Player != _state.Id || !_state.IsAlive || !Finite(fact.Duration) || fact.Duration <= 0f ||
+                !Finite(fact.SlowMultiplier) || !Finite(fact.SlowStrengthMultiplier)) return;
+            float multiplier = 1f - (1f - Mathf.Clamp01(fact.SlowMultiplier)) * Mathf.Clamp01(fact.SlowStrengthMultiplier);
+            if (multiplier >= 1f) return;
+            // Overlapping webs retain the strongest slow and longest remaining lifetime.
+            _state.WebSpeedMultiplier = Mathf.Min(_state.WebSpeedMultiplier, multiplier);
+            _state.WebSlowRemaining = Mathf.Max(_state.WebSlowRemaining, fact.Duration);
             _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
         }
@@ -644,7 +703,7 @@ namespace Worsen.Domain.Player
                 else
                 {
                     float speed = (frame.Held & InputButtons.Sprint) != 0
-                        ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier;
+                        ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.ConsumableSpeedMultiplier * _state.HitBoostMultiplier;
                     if (_state.StumbleRemaining > 0f) speed *= _profile.StumbleSpeedMultiplier;
                     // Preserve a landing's retained momentum on its transition tick.
                     bool landed = _state.LandingImpactSpeed < 0f;
@@ -713,6 +772,7 @@ namespace Worsen.Domain.Player
             _state.VaultHeight = probe.VaultHeight;
             _state.VaultStart = _state.Position;
             _state.VaultKind = mantle ? TraversalKind.Mantle : TraversalKind.Vault;
+            _state.VaultSurfaceId = probe.SurfaceId;
             _state.VaultTarget = probe.VaultTarget;
             _state.VaultExitVelocity = Horizontal(_state.Velocity);
             if (!mantle && HasEffect(PlayerEffectStat.StoredMomentum))
@@ -798,13 +858,13 @@ namespace Worsen.Domain.Player
                 : health <= _state.MaxHealth * (_profile.InjuredThreshold / _profile.MaximumHealth) ? PlayerHealthState.Injured : PlayerHealthState.Healthy;
         private float InjuryMultiplier() => _state.HealthState == PlayerHealthState.Injured || _state.HealthState == PlayerHealthState.Critical
             ? _profile.InjuredSpeedMultiplier : 1f;
-        private float EffectiveMaximumSpeed() => CapEffectSpeed(_state.MaxDesignSpeed * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier);
+        private float EffectiveMaximumSpeed() => CapEffectSpeed(_state.MaxDesignSpeed * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
         private float EffectiveSprintSpeed() => CapEffectSpeed(Effect(PlayerEffectStat.SprintSpeed,
-            _state.SprintSpeed * _state.MovementSpeedMultiplier) * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier);
+            _state.SprintSpeed * _state.MovementSpeedMultiplier) * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
         private float CapEffectSpeed(float speed) => PlayerEffectUtility.HasModifier(_effectConfig, _state.AppliedEffects, PlayerEffectStat.SprintSpeed)
             ? Mathf.Min(speed, PlayerEffectUtility.SprintCeiling(_effectConfig)) : speed;
-        private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration)
-            => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration);
+        private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration, int surfaceId = 0)
+            => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration, surfaceId: surfaceId);
         private void AddNoise(float loudness, NoiseSourceKind sourceKind)
         {
             var noise = new NoiseEvent(_state.Id, _state.Position, loudness, _state.Tick, sourceKind);

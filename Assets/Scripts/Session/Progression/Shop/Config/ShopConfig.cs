@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.Shop delegated subtree.
 // KEY RESPONSIBILITIES:
+//   - Author uses per held consumable; receipts remain unchanged until its last use.
 //   - Tune pedestals, rerolls, round pricing, inventory and economy upgrades.
 // DEPENDENCIES:
 //   - Unity serialization only; no runtime state or other systems.
@@ -31,6 +32,12 @@ namespace Worsen.Session.Progression.Shop
         [SerializeField, Min(0)] private int _expensivePrice = 8;
         [SerializeField, Min(1)] private int _expensiveUnlockRound = 5;
         [SerializeField, Min(1)] private int _inventorySlots = 3;
+        [SerializeField, Min(1)] private int _firecrackerUses = 2;
+        [SerializeField, Min(1)] private int _doorstopUses = 2;
+        [SerializeField, Min(1)] private int _singleItemUses = 1;
+        public int FirecrackerUses => _firecrackerUses;
+        public int DoorstopUses => _doorstopUses;
+        public int SingleItemUses => _singleItemUses;
         [SerializeField, Min(0)] private int _biggerPocketsSlots = 1;
         [SerializeField, Min(0)] private int _luckyRerolls = 1;
         [SerializeField, Min(0)] private int _shopRerolls = 1;

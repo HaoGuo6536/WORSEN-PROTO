@@ -12,6 +12,7 @@
 //   Owns the rules over RunSessionBehaviorState without touching a Unity scene.
 //
 // KEY RESPONSIBILITIES:
+//   - Count Progression's physical slots and cancel only an admitted Extra Life death.
 //   - Gate pause before input/time consumption and derive detailed summaries from committed facts.
 //   - Admit the runtime-generated horror scene to the same fixed-step lifecycle.
 //   - Define phase transitions and gate ticks on scene readiness and run state.
@@ -33,6 +34,7 @@
 // ============================================================================
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
@@ -181,6 +183,15 @@ namespace Worsen.Session.Run
             return true;
         }
 
+        public bool CancelDeathForRevival(EntityId player)
+        {
+            if (state.Phase == RunPhase.Ended || state.PendingEndReason != RunEndReason.Died || state.DeadPlayer != player) return false;
+            state.PendingEndReason = RunEndReason.Unknown; state.PendingBailed = false;
+            state.DeathCause = DeathCause.None; state.KillerArchetypeId = string.Empty;
+            state.DeadPlayer = EntityId.None; state.KillerPosition = Vector3.zero; state.PendingInput = default;
+            return true;
+        }
+
         public long NextTelemetryEventId() => ++state.TelemetryEventId;
 
         public float NormalizeSpeed(Vector3 velocity, float maximum)
@@ -190,8 +201,12 @@ namespace Worsen.Session.Run
             return double.IsNaN(horizontal) || double.IsInfinity(horizontal) ? 0 : (float)Math.Min(1, horizontal / maximum);
         }
 
-        public int EmptySlots(InventorySnapshot inventory) =>
-            (string.IsNullOrEmpty(inventory.SlotOne) ? 1 : 0) + (string.IsNullOrEmpty(inventory.SlotTwo) ? 1 : 0);
+        public int EmptySlots(IReadOnlyList<ProgressionInventorySlot> inventory)
+        {
+            int count = 0;
+            if (inventory != null) foreach (var slot in inventory) if (string.IsNullOrEmpty(slot.Id)) count++;
+            return count;
+        }
 
         public void ConfigureCapture(string revision, string configHash)
         {

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Progression (Session system).
 // KEY RESPONSIBILITIES:
+//   - Publish selected slots with uses and transact consumable/Extra Life admission once.
 //   - Commit shrine costs and transient Player shield grants before publishing outcomes.
 //   - Publish belief-drop/world-effect intent and delayed shared-hearing noise facts.
 //   - Own persistent state and explicitly seeded new-run/replay initialization.
@@ -49,6 +50,8 @@ namespace Worsen.Session.Progression
         private bool ownsCatalogue;
         public static ProgressionSessionManager Instance { get; private set; }
         public event Action<ProgressionSnapshot> SnapshotChanged;
+        public event Action<ConsumableInventorySnapshot> ConsumablesChanged;
+        public ConsumableInventorySnapshot Consumables => controller == null ? default : controller.Consumables();
         public event Action<ProgressionSnapshot, IReadOnlyActiveEffects> EffectsSnapshotChanged;
         public event Action<ProgressionGenerationRequest> GenerationRequested;
         public event Action<ShrineResolvedFact> ShrineResolved;
@@ -127,6 +130,9 @@ namespace Worsen.Session.Progression
             reason: bailed ? "EarlyBail" : nameof(CompleteFloor));
         public bool RecordGoldenCollected(int generationId, int anchorId) => Change(() => controller.RecordGoldenCollected(generationId, anchorId));
         public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId));
+        public bool CycleConsumable(int generationId, int direction) => Change(() => controller.CycleConsumable(generationId, direction));
+        public bool TryConsumeSelected(int generationId, int revision, string id) => Change(() => controller.TryConsumeSelected(generationId, revision, id), id);
+        public bool TryConsumeExtraLife(int generationId) => Change(() => controller.TryConsumeExtraLife(generationId));
         public bool RecordHealth(int generationId, float health) => Change(() => controller.RecordHealth(generationId, health));
         public bool EndRun(int generationId) => Change(() => controller.EndRun(generationId));
 
@@ -172,8 +178,11 @@ namespace Worsen.Session.Progression
             ProgressionEffectsSnapshot paired = controller.EffectsSnapshot();
             ProgressionSnapshot snapshot = paired.Progression;
             ProgressionGenerationRequest request = controller.GenerationRequest();
+            ConsumableInventorySnapshot slots = controller.Consumables();
             SnapshotChanged?.Invoke(snapshot);
             // A legacy listener can synchronously commit a replacement revision.
+            if (state.Revision != snapshot.Revision) return;
+            ConsumablesChanged?.Invoke(slots);
             if (state.Revision != snapshot.Revision) return;
             EffectsSnapshotChanged?.Invoke(snapshot, paired.ActiveEffects);
             if (request.GenerationId != previousGeneration && state.GenerationId == request.GenerationId &&
@@ -191,6 +200,7 @@ namespace Worsen.Session.Progression
         {
             if (Instance == this) Instance = null;
             SnapshotChanged = null;
+            ConsumablesChanged = null;
             EffectsSnapshotChanged = null;
             GenerationRequested = null;
             ShrineResolved = null;

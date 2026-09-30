@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Capture authored Vault surface identity independently of rebound wall identity.
+//   - Apply explicit revival teleports without interpolation from the death position.
 //   - Keep snap support across rounded drop edges independently of sweep-contact separation.
 //   - Resolve the Player-owned effect config through its mirrored Resources path.
 //   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
@@ -78,6 +80,19 @@ namespace Worsen.Domain.Player
             ShowMovement(MovementState.Ground);
         }
 
+        public void Teleport(Vector3 position, float heading)
+        {
+            _state.Position = _state.PreviousPosition = position;
+            _state.Heading = _state.PreviousHeading = heading;
+            _state.Velocity = Vector3.zero;
+            _state.LastStepDuration = 0f;
+            _state.Grounded = false;
+            SetCapsule(false);
+            _body.position = position;
+            _body.rotation = Quaternion.Euler(0f, heading, 0f);
+            transform.SetPositionAndRotation(position, _body.rotation);
+        }
+
         public MovementProbe Probe(float ledgeReach = 0f, float ledgeMinimumHeight = 0f,
             float ledgeMaximumHeight = 0f, float ledgeChestHeight = 0f)
         {
@@ -109,7 +124,7 @@ namespace Worsen.Domain.Player
                 rebound ? wall.normal : Vector3.zero, rebound ? Vector3.Angle(forward, -wall.normal) : 0f,
                 rebound ? wallSurface.SurfaceId : 0, candidate,
                 height, clearance, target,
-                _state.Height < _config.Height && IsBlocked(feet, _config.Height));
+                _state.Height < _config.Height && IsBlocked(feet, _config.Height), candidate ? vaultSurface.SurfaceId : 0);
         }
 
         public PlayerMoveResult Move(Vector3 displacement, Vector3 velocity, bool crouched, float heading, float dt,

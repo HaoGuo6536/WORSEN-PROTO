@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Fog.
 // KEY RESPONSIBILITIES:
+//   - Preserve the pending look during room construction and apply only optical colours.
 //   - Apply pure density changes, upload R8 data and own shader globals.
 //   - Release texture/global ownership on disable and record actual upload CPU time.
 // DEPENDENCIES:
@@ -42,12 +43,16 @@ namespace Worsen.Presentation.Fog
         public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms, LevelGraph graph)
         {
             bool enabledBefore = _state.Enabled;
+            string look = _state.Look;
             ResetFloor();
             if (_config == null) return;
             _state = FogDensityPresenter.Build(rooms, graph, _config);
             _state.Enabled = enabledBefore;
+            _state.Look = look;
             if (_state.UnmatchedEdges > 0) Debug.LogWarning($"Fog omitted {_state.UnmatchedEdges} graph edges without matching shared-wall portal centers.", this);
         }
+        public void SetLook(string look)
+        { _state.Look = look; _state.UploadPending = true; }
         public void SetRoomProgress(int id, float progress)
         { if (_config != null) FogDensityPresenter.SetProgress(_state, id, progress, _config); }
         public void SetEnabled(bool value)
@@ -84,8 +89,8 @@ namespace Worsen.Presentation.Fog
             Shader.SetGlobalMatrix("_WorsenFogWorldToGrid", Matrix4x4.Scale(new Vector3(1f / size.x, 1f / size.y, 1f / size.z)) * Matrix4x4.Translate(-_state.Bounds.min));
             Shader.SetGlobalVector("_WorsenFogMin", _state.Bounds.min);
             Shader.SetGlobalVector("_WorsenFogMax", _state.Bounds.max);
-            Shader.SetGlobalColor("_WorsenFogBody", _config.BodyColor);
-            Shader.SetGlobalColor("_WorsenFogThin", _config.ThinColor);
+            Shader.SetGlobalColor("_WorsenFogBody", FogLookPresenter.Body(_state.Look, _config));
+            Shader.SetGlobalColor("_WorsenFogThin", FogLookPresenter.Thin(_state.Look, _config));
             Shader.SetGlobalVector("_WorsenFogOptics", new Vector4(_config.Extinction, _config.Intensity, _config.GlowIntensity, _config.ThinThreshold));
             Shader.SetGlobalVector("_WorsenFogMarch", new Vector4(_config.MaxSteps, _config.EarlyExit, 0f, 0f));
             Shader.SetGlobalFloat("_WorsenFogEnabled", 1f);

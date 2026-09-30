@@ -11,7 +11,7 @@
 //   - Distinguish a historical Player pose from the current pose at delivery.
 //   - Verify default hint age, uncertainty, aged belief and actual investigation.
 //   - Distinguish the SPEC-004 deliberation hold from subsequent motor path publication.
-//   - Allow floating-point roundoff in the delivered radius, not changed tuning.
+//   - Verify historical room centres and portal/closed-door radius expansion at delivery.
 //   - Bound timing by consecutive real Session ticks and detect early/duplicate hints.
 // DEPENDENCIES:
 //   - Core facts; Director, Player, Hunter, Chase; Session.Run; FloorLoopSceneRoot.
@@ -240,7 +240,6 @@ namespace Worsen.Tests.Director
                     Assert.That(hint.DeliveredTick, Is.EqualTo(run.Tick));
                     Assert.That(hint.ObservedTick, Is.LessThan(hint.DeliveredTick));
                     Assert.That(hint.AgeSeconds, Is.EqualTo(config.HintAgeSeconds).Within(0.0001f));
-                    Assert.That(hint.Radius, Is.EqualTo(config.HintRadiusMeters).Within(0.0001f));
                     Assert.That(hint.Confidence, Is.EqualTo(config.HintConfidence));
                     double deliveredSeconds = hint.DeliveredTick * stepSeconds;
                     Assert.That(deliveredSeconds, Is.InRange(config.HeatThresholdSeconds - 0.00001,
@@ -252,8 +251,10 @@ namespace Worsen.Tests.Director
                     float fraction = Mathf.Clamp01((float)((sampledSeconds - hint.ObservedTick * stepSeconds) / stepSeconds));
                     historicalPose = Vector3.Lerp(history[hint.ObservedTick], history[hint.ObservedTick + 1], fraction);
                     currentAtHint = player.ReadOnlyState.Position;
-                    Assert.That(Vector3.Distance(hint.Position, historicalPose), Is.LessThan(0.002f),
-                        "The Director must use actual previously committed Player history.");
+                    Assert.That(Vector3.Distance(historicalPose, currentAtHint), Is.GreaterThan(2f),
+                        "Physical walking must separate the recorded history from the current pose.");
+                    DirectorHintAssertions.Region(director, config, hint, historicalPose,
+                        hunterState.Position, hunter.HearingModel);
                     Assert.That(Vector3.Distance(hint.Position, currentAtHint), Is.GreaterThan(2f),
                         "Late physical walking must distinguish stale history from the current Player pose.");
                     Assert.That(hunterState.PlayerVisible || chase.ReadOnlyState.HasActiveChase, Is.False);

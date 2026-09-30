@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
+//   - Require explicit slot activation before the one-charge ward can break a grab.
 //   - Check all four effect kinds, reroll-restocked pedestals, held items and frozen revisions.
 //   - Check configurable cadence, mandatory choices and catalogue offer requirements.
 // DEPENDENCIES:
@@ -144,6 +145,7 @@ namespace Worsen.Tests.Progression
             Assert.That(Active.Stacks(new EffectId("speed-boost")), Is.EqualTo(3));
             Assert.That(Active.Single(e => e.Id.Value == "wax-ward").Kind, Is.EqualTo(EffectKind.Consumable));
             controller.ContinueShop(Snapshot.Revision); OpenFloor();
+            Assert.That(controller.TryConsumeSelected(Snapshot.GenerationId, Snapshot.Revision, "wax-ward"), Is.True);
             Assert.That(controller.TryConsumeWaxWard(Snapshot.GenerationId), Is.True);
             Assert.That(Active.Has(new EffectId("wax-ward")), Is.False);
             Assert.That(stocked.ActiveEffects.Has(new EffectId("wax-ward")), Is.True);

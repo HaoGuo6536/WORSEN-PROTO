@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
+//   - Project empty capacity from Progression's variable-length slots, not Player's legacy pair.
 //   - Verify confirmed chase durations, restart reset and exactly-once completion.
 //   - Cover flagged early escapes, death priority, summary compatibility and bail reset.
 // DEPENDENCIES:
@@ -155,8 +156,8 @@ namespace Worsen.Tests.Run
             Assert.That(controller.NormalizeSpeed(new Vector3(30, 0, 40), 10), Is.EqualTo(1));
             Assert.That(controller.NormalizeSpeed(Vector3.one, 0), Is.Zero);
             Assert.That(controller.NormalizeSpeed(new Vector3(float.NaN, 0, 0), 10), Is.Zero);
-            Assert.That(controller.EmptySlots(default), Is.EqualTo(2));
-            Assert.That(controller.EmptySlots(new InventorySnapshot("reserved", "")), Is.EqualTo(1));
+            Assert.That(controller.EmptySlots(default), Is.Zero);
+            Assert.That(controller.EmptySlots(new[] { new ProgressionInventorySlot("reserved", "Reserved", 0), default, default }), Is.EqualTo(2));
         }
     }
 }

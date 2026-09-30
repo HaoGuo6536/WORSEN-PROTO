@@ -10,6 +10,7 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Verify deterministic candidates, support, separation and marked gap edges.
+//   - Require an explicit pocket room directly ahead of every gap-edge candidate.
 //   - Reject unsupported/blocked sockets and invalid designer dimensions.
 //   - Keep the candidate manifest culture-independent and manager admission gated.
 // DEPENDENCIES:
@@ -87,11 +88,16 @@ namespace Worsen.Tests.Procedural
                             new Bounds(Vector3.zero, b.Size).Contains(Quaternion.Inverse(b.Rotation) * (foot - b.Center))), Is.True);
                     }
                     if (site.GapEdge)
+                    {
+                        Assert.That(layout.Graph.Rooms.Single(r => r.Id == site.DestinationPocketRoomId).Pocket, Is.True);
+                        Assert.That(new ProceduralPassagePresenter().Destination(layout, site.RoomId, site.Position, site.Facing),
+                            Is.EqualTo(site.DestinationPocketRoomId));
                         Assert.That(layout.GapSites.Any(g => g.RoomId == site.RoomId &&
                             Vector3.Dot(g.Edge - site.Position, site.Facing) > 0f &&
                             Mathf.Abs(Vector3.Dot(g.Edge - site.Position, site.Facing) - _config.ShrineSiteInset) < .001f &&
                             Vector3.Dot((g.Landing - g.Edge).normalized, site.Facing) > .99f), Is.True);
-                    else Assert.That(site.RoomId, Is.Not.EqualTo(layout.Graph.ExitRoomId));
+                    }
+                    else { Assert.That(site.RoomId, Is.Not.EqualTo(layout.Graph.ExitRoomId)); Assert.That(site.DestinationPocketRoomId, Is.Zero); }
                 }
                 var culture = CultureInfo.CurrentCulture;
                 string manifest = presenter.Manifest(sites, _config);

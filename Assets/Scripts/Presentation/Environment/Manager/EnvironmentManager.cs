@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Environment (Service system).
 // KEY RESPONSIBILITIES:
+//   - Receive floor/room theme tags before building dressing, retaining exact light sockets.
 //   - Forward the active-effects torch-count multiplier without changing Level light state.
 //   - Own and initialize the EnvironmentDriver, forwarding scene lifecycle and pushed facts.
 //   - Route room batches, threshold chalk and localized flame dimming into the own Driver.
@@ -43,10 +44,12 @@ namespace Worsen.Presentation.Environment
             _driver.Initialize(_config); _driver.SetOwnerEnabled(isActiveAndEnabled); return this;
         }
         public void BeginFloor() { if (_driver != null) _driver.BeginFloor(); }
+        public void SetTheme(string theme, string lightSource) => _driver?.SetTheme(theme, lightSource);
+        public void SetRoomTheme(int room, string theme, string family) => _driver?.SetRoomTheme(room, theme, family);
         public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms)
         {
             if (_driver == null) return;
-            _driver.BeginFloor();
+            _driver.BeginFloor(clearTheme: false);
             if (rooms == null) return;
             foreach (GeneratedRoomSample room in rooms)
                 _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters, cells: room.Cells);

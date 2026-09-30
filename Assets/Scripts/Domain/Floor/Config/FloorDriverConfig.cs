@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Tune the provisional gloved-hand scale independently of all collapse timings and reach.
 //   - Tune code-built named cakes, candle flicker, layered glow and the placeholder trap tick.
 //   - Reference native Lumen room and exit prefabs; no real-light fallback.
 //   - Reference cake art and an optional medieval panel visual for the physical exit.
@@ -82,6 +83,8 @@ namespace Worsen.Domain.Floor
         [SerializeField, Range(3, 6)] private int _handGridWidth = 5;
         [SerializeField, Range(0.05f, 0.8f)] private float _portalInset = 0.25f;
         [SerializeField, Range(0.1f, 3f)] private float _handVisualScale = 1f;
+        [SerializeField, Range(0.1f, 3f)] private float _glovedHandScaleMultiplier = 1.15f;
+        public float GlovedHandScaleMultiplier => Mathf.Clamp(_glovedHandScaleMultiplier, 0.1f, 3f);
         [SerializeField] private bool _usePhysicalExitDoor;
         [SerializeField] private GameObject _exitDoorPrefab;
         [SerializeField] private Material _exitDoorMaterial;

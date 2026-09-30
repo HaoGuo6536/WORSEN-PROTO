@@ -2,7 +2,8 @@
 // PlayerLimbStandIn.cs
 // ============================================================================
 // PURPOSE:
-//   Shows the existing placeholder hands in the first-person view during play.
+//   Positions the placeholder hands in the first-person view when enabled. Hidden by
+//   default (owner decision 2026-09-30: no arms until an approved blocky model exists).
 //   Camera rendering supplies the final pose so pitch, interpolation and look-back
 //   cannot drag the hands through the near plane. Feet remain hidden.
 // ARCHITECTURAL ROLE:
@@ -28,6 +29,7 @@ namespace Worsen.Domain.Player
 {
     public sealed class PlayerLimbStandIn : MonoBehaviour
     {
+        [SerializeField] private bool _showHands = false;
         [SerializeField] private GameObject _leftHand;
         [SerializeField] private GameObject _rightHand;
         [SerializeField] private GameObject _leftFoot;
@@ -47,7 +49,7 @@ namespace Worsen.Domain.Player
 
         public void Apply(MovementState movement, float eyeHeight, Vector3 handOffset, Vector3 footOffset)
         {
-            _visible = eyeHeight > 0f;
+            _visible = _showHands && eyeHeight > 0f;
             _handOffset = handOffset;
             if (_leftHand != null)
             {

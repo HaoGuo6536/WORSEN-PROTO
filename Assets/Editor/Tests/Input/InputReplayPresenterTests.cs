@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Input.
 // KEY RESPONSIBILITIES:
+//   - Preserve additive consumable use and directional cycle bits through playback.
 //   - Exercise source isolation, exact frames, rejected records and interrupted gates.
 // DEPENDENCIES:
 //   - NUnit, Core values, InputReplayPresenter and InputDriverState.
@@ -54,6 +55,14 @@ namespace Worsen.Tests.Input
             Assert.That(_presenter.Record(_state, Record(2, default)), Is.False);
             _presenter.TryReadPlayback(_state, true, out var frame);
             Assert.That(frame.Move, Is.EqualTo(Vector2.up));
+        }
+        [TestCase(InputButtons.UseConsumable)] [TestCase(InputButtons.CycleConsumable)] [TestCase(InputButtons.CycleConsumablePrevious)]
+        public void ConsumableMasksRemainValidAndRoundTrip(InputButtons button)
+        {
+            var frame = new InputFrame(Vector2.up, Vector2.zero, button, button, InputButtons.None);
+            Assert.That(_presenter.StartPlayback(_state, _metadata, new[] { Record(1, frame) }, true), Is.True);
+            Assert.That(_presenter.TryReadPlayback(_state, true, out var result), Is.True);
+            Assert.That(result.Pressed, Is.EqualTo(button)); Assert.That(result.Move, Is.EqualTo(Vector2.up));
         }
         [Test]
         public void ClosedGateAbortsPlaybackWithoutLeakingNextEdge()

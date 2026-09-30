@@ -11,6 +11,7 @@
 //   - Exercise variable batches, history warmup/wraparound, and pressure thresholds.
 //   - Verify multiple-player assignment, lifecycle reset, and intrusion episodes.
 //   - Verify seeded retreat trials, room-region uncertainty and delivered noise identity.
+//   - Check exact occlusion expansion at transparent, partial and fully blocked boundaries.
 //   - Distinguish tick delivery deadlines from earlier evaluation boundaries at
 //     60 Hz and with fractional multi-evaluation batches, without early delivery.
 // DEPENDENCIES:
@@ -117,25 +118,30 @@ namespace Worsen.Tests.Director
             }
             Assert.That(accepted, Is.InRange(1, 19));
         }
-        [Test] public void RegionUsesHistoricalRoomAndWidensWithClosedDoorOcclusion()
+        [TestCase(0.7f, 0.35f)] [TestCase(1f, 1f)] [TestCase(0.7f, 0f)] [TestCase(0f, 0.35f)]
+        public void RegionUsesHistoricalRoomAndWidensWithClosedDoorOcclusion(float portalTransmission, float doorTransmission)
         {
             Tune("_heatThresholdSeconds", 0f); Tune("_reliefMinimumSeconds", 0f);
             Tune("_hintAgeSeconds", 0.5f); Tune("_hintCadenceSeconds", 0.5f); Tune("_proximityRadiusMeters", 0f);
             _controller.SetLevelView(new LevelFixture());
-            var hearing = new HearingModelSettings(2f, 1f, 0.7f, 0.35f, 0.08f);
+            var hearing = new HearingModelSettings(2f, 1f, portalTransmission, doorTransmission, 0.08f);
             var hunters = new[] { new DirectorHunterSample(Hunter, Player, Vector3.zero, true, false, hearing) };
             Step(position: Vector3.forward * 10f, hunters: hunters);
             var open = Step(position: Vector3.forward * 10f, hunters: hunters).Regions;
             Assert.That(open.Count, Is.EqualTo(1));
             Assert.That(open[0].RoomId, Is.EqualTo(2));
             Assert.That(open[0].Hint.Position, Is.EqualTo(Vector3.forward * 10f));
-            Assert.That(open[0].Hint.Radius, Is.GreaterThan(_config.HintRadiusMeters));
+            Assert.That(open[0].Hint.Radius, Is.EqualTo(_config.HintRadiusMeters +
+                _config.OcclusionHintRadiusMeters * (1f - portalTransmission)).Within(0.0001f));
             _controller.SetClosedDoors(new Dictionary<int, bool> { [1] = true });
             var closed = Step(position: Vector3.right, hunters: hunters).Regions;
             Assert.That(closed.Count, Is.EqualTo(1));
             Assert.That(closed[0].RoomId, Is.EqualTo(2), "No fallback to current player room.");
-            Assert.That(closed[0].Hint.Radius, Is.GreaterThan(open[0].Hint.Radius));
-            Assert.That(closed[0].Hint.Radius, Is.EqualTo(8f + 12f * (1f - 0.7f * 0.35f)).Within(0.0001f));
+            Assert.That(closed[0].Hint.Radius, Is.GreaterThanOrEqualTo(open[0].Hint.Radius));
+            Assert.That(closed[0].Hint.Radius, Is.EqualTo(_config.HintRadiusMeters +
+                _config.OcclusionHintRadiusMeters * (1f - portalTransmission * doorTransmission)).Within(0.0001f));
+            Assert.That(closed[0].Hint.Radius, Is.InRange(_config.HintRadiusMeters,
+                _config.HintRadiusMeters + _config.OcclusionHintRadiusMeters));
         }
         [Test] public void DirectorFeedsAudibleNoiseOnceWithoutLosingSourceKind()
         {

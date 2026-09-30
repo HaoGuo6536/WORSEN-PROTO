@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward selected inventory and use counts to the pure Presenter.
 //   - Route typed arrows and admit phantom counts only on a bound, enabled display.
 //   - Own document binding and the HUDVisualDriver lifetime.
 //   - Preserve supplied facts across document recreation and disable/enable.
@@ -84,6 +85,12 @@ namespace Worsen.Presentation.HUD
             if (_state == null || _config == null) return;
             _presenter.SetHeldItemCount(_state, count, _config.MaximumDisplayedSlots);
             Apply();
+        }
+
+        public void SetConsumables(ConsumableInventorySnapshot snapshot)
+        {
+            if (_state == null || _config == null) return;
+            _presenter.SetConsumables(_state, snapshot, _config.MaximumDisplayedSlots); Apply();
         }
 
         public void SetExitState(ExitState exitState)

@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Map Progression inventory and selection to a caption and occupied-slot highlight.
 //   - Replace both typed guidance channels atomically; phantom cakes never change supplied counts.
 //   - Format cake/golden counts and show only occupied consumable slots, never empty capacity.
 //   - Compute a flat arrow bearing; vertical-only targets point up or down.
@@ -149,10 +150,31 @@ namespace Worsen.Presentation.HUD
 
         public void SetHeldItemCount(HUDDriverState state, int heldItemCount, int maximumDisplayedSlots)
         {
+            state.SelectedDisplaySlot = -1; state.SelectedSlotText = "";
             int count = Math.Max(0, heldItemCount);
             state.DisplayedSlots = Math.Min(count, Math.Max(1, maximumDisplayedSlots));
             int overflow = count - state.DisplayedSlots;
             state.SlotOverflowText = overflow > 0 ? "+" + overflow.ToString(CultureInfo.InvariantCulture) + " items" : "";
+        }
+
+        public void SetConsumables(HUDDriverState state, ConsumableInventorySnapshot snapshot, int maximumDisplayedSlots)
+        {
+            int occupied = 0, selected = -1;
+            if (snapshot.Inventory != null)
+                for (int i = 0; i < snapshot.Inventory.Count; i++)
+                {
+                    if (string.IsNullOrEmpty(snapshot.Inventory[i].Id)) continue;
+                    if (i == snapshot.SelectedIndex) selected = occupied;
+                    occupied++;
+                }
+            SetHeldItemCount(state, occupied, maximumDisplayedSlots);
+            state.SelectedDisplaySlot = selected < state.DisplayedSlots ? selected : -1;
+            if (snapshot.Inventory == null || snapshot.SelectedIndex < 0 || snapshot.SelectedIndex >= snapshot.Inventory.Count) return;
+            var slot = snapshot.Inventory[snapshot.SelectedIndex];
+            string title = string.IsNullOrEmpty(slot.Id) ? "Empty" : slot.Title;
+            string uses = snapshot.RemainingUses != null && snapshot.SelectedIndex < snapshot.RemainingUses.Count && !string.IsNullOrEmpty(slot.Id)
+                ? " ×" + snapshot.RemainingUses[snapshot.SelectedIndex].ToString(CultureInfo.InvariantCulture) : "";
+            state.SelectedSlotText = (snapshot.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture) + ": " + title + uses;
         }
 
         public void SetChaseMode(HUDDriverState state, bool chasing)

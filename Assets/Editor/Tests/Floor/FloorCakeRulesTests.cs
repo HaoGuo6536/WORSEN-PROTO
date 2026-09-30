@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify optional-only traps, counts, one-shot contacts, tell timing and hooks.
 //   - Verify Greedy Door quotas, collapse safety and typed guidance identities.
+//   - Require the published guidance snapshot to retain white-first ordering and clear stale targets.
 // DEPENDENCIES:
 //   NUnit, Core, Floor and a read-only Player fixture; managed config field setup.
 // USAGE NOTES:
@@ -176,6 +177,27 @@ namespace Worsen.Tests.Floor
             sense.Controller.TryGoldenTarget(Vector3.zero, out nearest); Assert.That(nearest.Id, Is.EqualTo(required[1].Id));
             sense.Controller.SelectCue(new[] { new FloorPathCandidate(0, 2f, Vector3.back), new FloorPathCandidate(nearest.Id, 1f, Vector3.right) });
             sense.Controller.TryWhiteGuidance(false, out white); Assert.That(white.AnchorId, Is.Zero);
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void GuidanceSnapshotKeepsWhiteBeforeGoldWhileGreedyDoorIsLocked(bool fallback)
+        {
+            var f = Start(hooks: new FloorCakeHooks(greedyDoor: true, goldenSense: true));
+            CollectRequired(f);
+            Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
+            f.Controller.SelectCue(new[] { new FloorPathCandidate(0, 2f, Vector3.back) });
+            Assert.That(f.Controller.TryGoldenTarget(Vector3.zero, out var nearest), Is.True);
+            var golden = new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.right, nearest.Position, nearest.Id, isFallback: fallback);
+            var targets = f.Controller.GuidanceTargets(fallback, golden);
+            Assert.That(targets.Select(target => target.Kind), Is.EqualTo(new[] { GuidanceKind.WhiteArrow, GuidanceKind.GoldenSense }));
+            Assert.That(targets[0].AnchorId, Is.Zero);
+            Assert.That(targets[0].TargetPosition, Is.EqualTo(f.Graph.ExitPosition));
+            Assert.That(targets[0].IsFallback, Is.EqualTo(fallback));
+            Assert.That(targets[1], Is.EqualTo(golden));
+            Assert.That(f.Controller.GuidanceTargets(false).Select(target => target.Kind), Is.EqualTo(new[] { GuidanceKind.WhiteArrow }));
+            f.Controller.SelectCue(null);
+            Assert.That(f.Controller.GuidanceTargets(false), Is.Empty);
+            Assert.That(targets.Count, Is.EqualTo(2), "Later publications cannot mutate an earlier snapshot.");
         }
 
         [Test]

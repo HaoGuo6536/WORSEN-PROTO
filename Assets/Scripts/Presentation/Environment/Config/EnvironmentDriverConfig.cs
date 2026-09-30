@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Tune cold flat fluorescent panels and their slight deterministic flicker.
 //   - Hold imported visual assets, palettes, fake-light strengths and strict effect budgets.
 //   - Reference project-owned fake torch and moon profiles; no runtime real lights.
 //   - Tune restrained lantern halos, ground pools, exit fans, thin fog and optional hunter rim.
@@ -23,6 +24,14 @@ namespace Worsen.Presentation.Environment
     [CreateAssetMenu(fileName = "EnvironmentDriverConfig", menuName = "Worsen/Environment/Driver Config")]
     public sealed class EnvironmentDriverConfig : ScriptableObject
     {
+        [SerializeField] private Color _fluorescentColor = new Color(0.65f, 0.85f, 1f);
+        [SerializeField] private Vector3 _fluorescentPanelSize = new Vector3(0.5f, 0.8f, 0.08f);
+        [SerializeField, Range(0f, 0.2f)] private float _fluorescentFlickerDepth = 0.04f;
+        [SerializeField, Min(0f)] private float _fluorescentFlickerRate = 9f;
+        public Color FluorescentColor => _fluorescentColor;
+        public Vector3 FluorescentPanelSize => _fluorescentPanelSize;
+        public float FluorescentFlickerDepth => Mathf.Clamp(_fluorescentFlickerDepth, 0f, 0.2f);
+        public float FluorescentFlickerRate => Mathf.Max(0f, _fluorescentFlickerRate);
         [SerializeField, Range(0f, 1f)] private float _lanternHaloStrength = 0.18f;
         [SerializeField, Min(0f)] private float _groundPoolStrength = 0.35f;
         [SerializeField, Min(0.01f)] private float _groundPoolRadius = 4f;

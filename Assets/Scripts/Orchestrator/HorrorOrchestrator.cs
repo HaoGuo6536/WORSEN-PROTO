@@ -9,6 +9,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
+//   - Route pending revival into the existing catch camera and return its completion to Session.
 //   - Bind each assembled floor's world and player-open provenance; route phantom cakes to HUD.
 //   - Synchronize authoritative active effects on connect, generation and committed restart.
 //   - Route chase admission and apply micro-events through Level or Horror, reporting outcomes.
@@ -35,6 +36,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Worsen.Domain.Level;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Horror;
 using Worsen.Presentation.Input;
 using Worsen.Presentation.Camera;
@@ -60,6 +62,7 @@ namespace Worsen.Orchestrator
         {
             if (_level != level)
             { OnDisable(); _level = level; if (isActiveAndEnabled) OnEnable(); }
+            _effects?.ConfigureConsumableWorld(level);
             _horror.SetMicroEventWorld(level != null ? level.Interactables : null, unreachableAnchors);
         }
         public void OnPlayerOpenedDoor(int id, Bounds bounds) => _horror.ObservePlayerOpenedDoor(id, bounds);
@@ -76,6 +79,8 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            _run.PlayerDeathPending += OnDeathPending;
+            if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
             _run.TickAdvanced += OnTickAdvanced;
             _run.ChaseStarted += OnChaseStarted;
             _run.ChaseEnded += OnChaseEnded;
@@ -98,6 +103,8 @@ namespace Worsen.Orchestrator
             if (_level != null) _level.DoorOpened -= OnDoorOpened;
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
+            if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
+            if (_camera != null) _camera.CatchHoldEnded -= OnRevivalCatchEnded;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
             if (_run != null) { _run.ChaseStarted -= OnChaseStarted; _run.ChaseEnded -= OnChaseEnded; }
             if (_run != null) _run.ProximityPublished -= OnMicroEventProximity;
@@ -120,6 +127,14 @@ namespace Worsen.Orchestrator
                 if (room.Id == door.RoomId) { OnPlayerOpenedDoor(door.Id, room.Bounds); return; }
         }
         private void OnLight(FlashlightSample sample) => _horror.SetFlashlight(sample);
+        private void OnDeathPending(EntityId player, Vector3 killer)
+        {
+            if (_camera == null || !_camera.IsReady || _effects == null || !_effects.TryBeginRevival(player)) return;
+            _run.CancelDeathForRevival(player);
+            _camera.PlayDeathSnap(killer);
+        }
+        private void OnRevivalCatchEnded(EntityId player)
+        { if (_effects != null && _effects.CompleteRevival(player)) _camera.ResetView(); }
         private void OnAfterimage(FlashlightSample sample, float seconds) => _horror.SetAfterimage(sample, seconds);
         private void OnMovement(PlayerMovementSample sample)
         {
@@ -143,6 +158,7 @@ namespace Worsen.Orchestrator
         {
             if (operation != nameof(ProgressionSessionManager.StartRun)) return;
             _horror.ResetRun(current.Seed);
+            _effects?.ResetRun();
             OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects);
         }
         private void OnGeneration(ProgressionGenerationRequest request)

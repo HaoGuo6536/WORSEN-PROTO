@@ -2,9 +2,9 @@
 // WeaverDefinitions.cs
 // ============================================================================
 // PURPOSE:
-//   Carries Weaver-local observations, commands and immutable published facts.
-//   These payloads remain in Hunter until the coordinator promotes the outward
-//   contracts to Core; Player and Presentation must not import Hunter to use them.
+//   Carries Weaver-local observations and commands for its pure decision module.
+//   Outward web hits and cue facts live in Core so their consumers need no
+//   dependency on Hunter implementation types.
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
@@ -18,11 +18,11 @@
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
-using EntityId = Worsen.Core.EntityId;
+
 namespace Worsen.Domain.Hunter.Archetypes.Weaver
 {
     public enum WeaverAction { None, Reposition, Shoot }
-    public enum WeaverFactKind { SkitteringAbove, WetClick, WebLaunched, WebGlow, DoorwayWebbed, WarningCancelled }
+
     public readonly struct WeaverShotSpot
     {
         public WeaverShotSpot(Vector3 position, bool reachable, bool clear)
@@ -44,33 +44,5 @@ namespace Worsen.Domain.Hunter.Archetypes.Weaver
         public bool Grounded { get; }
         public IReadOnlyList<WeaverShotSpot> Spots { get; }
     }
-    public readonly struct WeaverFact
-    {
-        public WeaverFact(EntityId hunter, WeaverFactKind kind, long tick, Vector3 position,
-            Vector3 end = default, float radius = 0f, float duration = 0f, int serial = 0)
-        { Hunter = hunter; Kind = kind; Tick = tick; Position = position; End = end;
-            Radius = radius; Duration = duration; Serial = serial; }
-        public EntityId Hunter { get; }
-        public WeaverFactKind Kind { get; }
-        public long Tick { get; }
-        public Vector3 Position { get; }
-        public Vector3 End { get; }
-        public float Radius { get; }
-        public float Duration { get; }
-        public int Serial { get; }
-    }
-    public readonly struct WebHitFact
-    {
-        public WebHitFact(EntityId hunter, EntityId player, long tick, int serial,
-            float slowMultiplier, float duration, float slowStrengthMultiplier)
-        { Hunter = hunter; Player = player; Tick = tick; Serial = serial; SlowMultiplier = slowMultiplier;
-            Duration = duration; SlowStrengthMultiplier = slowStrengthMultiplier; }
-        public EntityId Hunter { get; }
-        public EntityId Player { get; }
-        public long Tick { get; }
-        public int Serial { get; }
-        public float SlowMultiplier { get; }
-        public float Duration { get; }
-        public float SlowStrengthMultiplier { get; }
-    }
+
 }

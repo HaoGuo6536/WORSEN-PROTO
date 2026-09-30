@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Consume revision-guarded selected item uses, arm one ward and spend one revival per run.
 //   - Apply the current shrine yield to later Golden Cake credit through the shared remainder path.
 //   - Retain current-floor health for reporting, but refill it after choices before each generation.
 //   - Advance independent selection and shop clocks using completed combat floors.
@@ -100,6 +101,7 @@ namespace Worsen.Session.Progression
             state.Traits = ProgressionTraits.None;
             state.WaxWardCharges = 0;
             shop.Reset();
+            state.ExtraLifeConsumed = false;
             shrines = new ShrineProgressionController(state.Shrines, config.ShrineConfig?.Rules ?? new ShrineProgressionRules(),
                 shopCatalogue, new System.Random(seed));
             shrines.ResetRun();
@@ -237,7 +239,6 @@ namespace Worsen.Session.Progression
                 state.ActiveEffectEntries[id] = new ActiveEffect(new EffectId(id), entry.Kind, stacks + 1);
                 state.SelectionCounts[id] = Count(id) + 1;
                 shop.ExpandPedestals(Active());
-                state.WaxWardCharges = Active().Has(new EffectId("wax-ward")) ? 1 : 0;
                 state.Message = entry.Title + " purchased.";
             }
             state.Revision++;
@@ -310,10 +311,41 @@ namespace Worsen.Session.Progression
 
         public bool TryConsumeWaxWard(int generationId)
         {
-            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || state.WaxWardCharges != 1 || !shop.ConsumeWard()) return false;
+            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || state.WaxWardCharges != 1) return false;
             state.WaxWardCharges = 0;
             state.Message = "Your Wax Ward broke the shadow's grip.";
-            state.ActiveEffectEntries.Remove("wax-ward");
+            state.Revision++;
+            return true;
+        }
+
+        public ConsumableInventorySnapshot Consumables() => shop.Consumables(Active());
+
+        public bool CycleConsumable(int generationId, int direction)
+        {
+            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || !shop.Cycle(direction, Active())) return false;
+            state.Revision++;
+            return true;
+        }
+
+        public bool TryConsumeSelected(int generationId, int revision, string id)
+        {
+            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || revision != state.Revision ||
+                (id == "wax-ward" && state.WaxWardCharges > 0) || !shop.ConsumeSelected(id, out bool exhausted)) return false;
+            if (exhausted && state.ActiveEffectEntries.TryGetValue(id, out var active))
+            {
+                if (active.StackCount <= 1) state.ActiveEffectEntries.Remove(id);
+                else state.ActiveEffectEntries[id] = new ActiveEffect(active.Id, active.Kind, active.StackCount - 1);
+            }
+            if (id == "wax-ward") state.WaxWardCharges = 1;
+            state.Revision++;
+            return true;
+        }
+
+        public bool TryConsumeExtraLife(int generationId)
+        {
+            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || state.ExtraLifeConsumed ||
+                !Active().Has(new EffectId("extra-life"))) return false;
+            state.ExtraLifeConsumed = true;
             state.Revision++;
             return true;
         }
