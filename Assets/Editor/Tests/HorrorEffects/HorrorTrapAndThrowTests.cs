@@ -8,6 +8,7 @@
 // KEY RESPONSIBILITIES:
 //   - Check accepted, duplicate, lethal, grace and ward outcomes; pair hazard subscriptions.
 //   - Check independent slow/grab composition, expiry and floor reset.
+//   - Verify revival rejects real hand admission and queued grab/hit facts until immunity ends.
 // DEPENDENCIES:
 //   Core, Player/Floor, HorrorEffects/Progression, NUnit and transient Unity objects.
 // USAGE NOTES:
@@ -125,6 +126,30 @@ namespace Worsen.Tests.HorrorEffects
             effects.BeginFloor(3, default); Call(effects, "OnEnable");
             effects.ClearHazards(); Assert.That(Get(floor, "OnTrapSprung"), Is.Null);
         }
+        [Test]
+        public void RevivalPreventsHandAdmissionDamageAndThrowUntilExactImmunityEnd()
+        {
+            player.ApplyHit(1000f, Vector3.zero);
+            GraceWindowFact immunity = default;
+            player.OnGraceStarted += fact => immunity = fact;
+            Assert.That(player.ReviveInPlace(.5f), Is.True);
+            var probe = new FloorHandProbe(1, 0, Vector3.zero, 0f, true, Vector3.right);
+            player.AdvanceRecovery(immunity.EndTick - 1);
+            Assert.That(hands.Tick(player.Id, true, probe, 10f, motion.Tick, out _, motion), Is.False);
+            Publish(floor, "OnCollapseHand", new CollapseHandFact(player.Id, 1, CollapseHandEventKind.Grabbed,
+                Vector3.zero, .5f, 0f, motion.Tick));
+            Publish(floor, "OnCollapseHand", new CollapseHandFact(player.Id, 1, CollapseHandEventKind.Hit,
+                Vector3.zero, 1f, 25f, motion.Tick, throwVelocity: Vector3.right * 8f));
+            Assert.That(motion.GrabSpeedMultiplier, Is.EqualTo(1f));
+            Assert.That(motion.Health, Is.EqualTo(50f)); Assert.That(motion.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            player.AdvanceRecovery(immunity.EndTick);
+            Assert.That(hands.Tick(player.Id, true, probe, 0f, motion.Tick, out var warning, motion), Is.True);
+            Assert.That(warning.Kind, Is.EqualTo(CollapseHandEventKind.Warning));
+            Publish(floor, "OnCollapseHand", new CollapseHandFact(player.Id, 1, CollapseHandEventKind.Hit,
+                Vector3.zero, 1f, 25f, motion.Tick, throwVelocity: Vector3.right * 8f));
+            Assert.That(motion.Health, Is.EqualTo(25f)); Assert.That(motion.PendingExternalVelocity, Is.EqualTo(Vector3.right * 8f));
+        }
+
         private static void ResetRegistry() => typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         private void Step(FloorHandProbe probe, float dt, long tick)
         { Set(floorState, "Tick", tick); if (hands.Tick(player.Id, true, probe, dt, tick, out var fact)) Publish(floor, "OnCollapseHand", fact); }

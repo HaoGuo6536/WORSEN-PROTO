@@ -8,19 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (section 1), Entity system - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Expose Pacification belief clearing without resetting the Hunter life or attack.
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
-//   - Relay Hunter-local stall facts for evidence consumers without recovery commands.
-//   - Publish deliberation facts and route collision-limited stumble/facing commands.
-//   - Publish habit/mutation facts and route explicit accepted-catch and chase inputs.
-//   - Construct per-life archetype rules and acknowledge recording motion before facts.
-//   - Route Weaver sweep evidence, web contacts and ceiling commands without Player writes.
-//   - Bind the optional Ticking facet for world keys and Core-typed guidance/sound/noise facts.
-//   - Register Ram/Skip/Mimic rules and relay their motion, contact and Core facts.
-//   - Route Blinder swept throws and Herald screams as Core facts for external owners.
-//   - Route stun/slip/Wick/world inputs and publish completed door-break facts to Session.
-//   - Register Mannequin/Stare modules and relay their light, presence and sound facts.
+//   - Own per-life controller, archetype/facet construction and paired driver subscriptions.
+//   - Sequence sensing, navigation, committed motion and presentation commands.
+//   - Gate shared and specialised contacts on Player revival protection before acceptance.
+//   - Route accepted catch/chase, reactions, effects and world inputs.
+//   - Publish archetype, attack, habit, mutation and navigation evidence facts.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -332,7 +324,7 @@ namespace Worsen.Domain.Hunter
         }
         private void HandleContact(Collider collider)
         {
-            if (_controller == null) return;
+            if (_controller == null || _controller.PlayerRevivalProtected) return;
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle == null) return;
             if (_ram != null)

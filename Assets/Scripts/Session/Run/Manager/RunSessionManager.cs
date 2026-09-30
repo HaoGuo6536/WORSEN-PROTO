@@ -12,11 +12,11 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
-//   - Own canonical run timing, randomness, input publication and authoritative pause.
-//   - Bind gameplay services and pair actor, movement, hearing and environmental relays.
-//   - Relay initial/change floor counters, shields, inventory and guidance for presentation.
-//   - Publish committed combat, pickup, shrine and collapse facts without presentation rules.
-//   - Resolve terminal/revival/escape outcomes while retaining bail and generation identity.
+//   - Own the canonical seeded run, timing, randomness, synchronous input, pause and ordered fixed ticks.
+//   - Bind gameplay services; pair actor, movement, hearing, environmental, recovery and shrine/world relays.
+//   - Relay initial/changed floor counters, shields, inventory and guidance for presentation.
+//   - Reject protected hit candidates before damage; publish committed combat, pickup, shrine and collapse facts.
+//   - Resolve terminal, pending-death/revival and escape outcomes; close capture before terminal notification.
 //
 // DEPENDENCIES:
 //   - Domain Shrine and Session Progression resolve generation-bound shrine activation.
@@ -517,6 +517,7 @@ namespace Worsen.Session.Run
             PlayerManager target = players.Find(player => player != null && player.Id == hit.Target);
             if (target == null || !target.ReadOnlyState.IsAlive) return;
             target.AdvanceRecovery(Math.Max(Tick, target.ReadOnlyState.Tick));
+            if (target.RevivalDamageImmune || target.RevivalCollisionGraceActive) return;
             float previousHealth = target.ReadOnlyState.Health;
             int chaseId = state.ActiveChaseId;
             if (!target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source)) return;
