@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own file IO, Unity JSON serialization, atomic replacement and warning logging.
 //   - Preserve the prior file as a backup and report unsuccessful saves to the Manager.
+//   - Treat invalid schema data as recoverable for both settings and history.
 // DEPENDENCIES:
 //   Core records and own serialization definitions; System.IO and Unity JsonUtility.
 // USAGE NOTES:
@@ -97,7 +98,7 @@ namespace Worsen.Session.Settings
         }
         protected virtual void LogWarning(string message) => Debug.LogWarning(message, this);
         private void Warn(string message) { _state.LastError = message; LogWarning(message); }
-        private static bool Recoverable(Exception error) => error is IOException || error is UnauthorizedAccessException
+        private static bool Recoverable(Exception error) => error is InvalidDataException || error is IOException || error is UnauthorizedAccessException
             || error is ArgumentException || error is NotSupportedException || error is System.Security.SecurityException;
         private static SettingsFileData ToData(PlayerSettingsRecord value) => new SettingsFileData {
             schemaVersion = value.SchemaVersion, mouseSensitivity = value.MouseSensitivity, invertY = value.InvertY,

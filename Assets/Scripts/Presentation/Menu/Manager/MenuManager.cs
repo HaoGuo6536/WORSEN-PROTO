@@ -10,6 +10,7 @@
 //   - Own Driver initialization and paired interaction subscriptions.
 //   - Forward authoritative pause acknowledgements and sanitized preference snapshots.
 //   - Forward explicit application-exit commands to the owned engine boundary.
+//   - Explicitly release pause on disable, even when native callbacks do not run.
 // DEPENDENCIES:
 //   Core records and own Menu Driver/Config only; no sibling presentation systems.
 // USAGE NOTES:
@@ -58,6 +59,7 @@ namespace Worsen.Presentation.Menu
             if (_driver == null) return;
             _driver.StartClicked -= OnStart; _driver.QuitClicked -= OnQuit;
             _driver.PauseSelected -= OnPause; _driver.SettingsApplied -= OnSettings;
+            _driver.Teardown();
             _driver.enabled = false;
         }
         private void OnDestroy() => _driver?.Teardown();

@@ -13,9 +13,9 @@
 //   HorrorRunSceneSetup, FogSpikeSetup, Presentation Fog, UnityEditor and NUnit.
 //   Renderer wiring is inspected through serialized fields, not a new URP reference.
 // USAGE NOTES:
-//   Coordinator-only Edit Mode check under the Unity lease. Uses a disposable
-//   additive scene, but the real installer creates/saves its documented config
-//   assets and PC_Renderer feature. No scene or unrelated asset is saved.
+//   Uses a disposable single scene with Test Framework scene restoration.
+//   Currently ignored: RestoreFog unconditionally installs into PC_Renderer.asset.
+//   Enable only after setup can inject a temporary renderer and config boundary.
 // ============================================================================
 using System.Linq;
 using NUnit.Framework;
@@ -34,10 +34,10 @@ namespace Worsen.Tests.Scenes
     {
         [TestCase(false)]
         [TestCase(true)]
+        [Ignore("RestoreFog calls FogSpikeSetup.Install, which saves PC_Renderer.asset. Requires an injectable temporary renderer/config boundary before this fixture can run safely.")]
         public void RestoreTwicePreservesReferencesAndOneRendererFeature(bool authored)
         {
-            Scene previous = SceneManager.GetActiveScene();
-            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             FogDriverConfig custom = null;
             try
             {
@@ -88,8 +88,7 @@ namespace Worsen.Tests.Scenes
             }
             finally
             {
-                EditorSceneManager.CloseScene(scene, true);
-                if (previous.IsValid() && previous.isLoaded) SceneManager.SetActiveScene(previous);
+                foreach (var owner in scene.GetRootGameObjects()) Object.DestroyImmediate(owner);
                 if (custom != null) Object.DestroyImmediate(custom);
             }
         }

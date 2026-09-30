@@ -2,19 +2,19 @@
 // ProgressionConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Defines legacy effects, shop stock and independent selection/shop cadences.
-//   Designers can tune prices, the early-bail wallet fraction and effect traits
+//   Defines legacy effects and independent selection/shop cadences.
+//   Designers can bind the shop, tune the early-bail wallet fraction and effect traits
 //   without changing wallet, selection or round-transition code.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
-//   - Keep all balance values and offer descriptions in designer-owned data.
+//   - Delegate offers and economy tuning to EffectCatalogueConfig and ShopConfig.
 //   - Set the fraction lost on a bail; the currency debit is rounded down.
 //   - Supply safe defaults for a shop after every two completed combat floors.
 //   - Describe five hunter identities and hunter-dependent plus general curse traits.
 //   - Optionally extend curses and effect admission with the additive catalogue.
 // DEPENDENCIES:
-//   - Unity ScriptableObject serialization and System collection interfaces.
+//   - Unity serialization, Core traits, catalogue and the delegated ShopConfig.
 // USAGE NOTES:
 //   Mirrored asset: ScriptableObjects/Session/Progression/ProgressionConfig.
 //   Runtime code only reads this asset. Counts, purchases and health live in State.
@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
+using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Session.Progression
 {
@@ -82,6 +83,7 @@ namespace Worsen.Session.Progression
     public sealed class ProgressionConfig : ScriptableObject
     {
         [SerializeField] private EffectCatalogueConfig _effectCatalogue = null;
+        [SerializeField] private ShopConfig _shopConfig = null;
         [SerializeField, Min(1)] private int _selectionInterval = 2;
         [SerializeField, Min(2)] private int _shopInterval = 2;
         [SerializeField, Min(1)] private int _maximumActiveThreats = 5;
@@ -128,16 +130,10 @@ namespace Worsen.Session.Progression
             new ProgressionEntryConfig("thorncaller-quick-roots", "QUICK ROOTS", "The Thorncaller shortens the ground warning before its thorns erupt.", traits: ProgressionTraits.ThorncallerQuickRoots, requiredThreatId: "thorncaller"),
             new ProgressionEntryConfig("thorncaller-reaching-roots", "REACHING ROOTS", "The Thorncaller marks a larger eruption area before striking.", traits: ProgressionTraits.ThorncallerReachingRoots, requiredThreatId: "thorncaller")
         };
-        [SerializeField] private ProgressionEntryConfig[] _offers =
-        {
-            new ProgressionEntryConfig("shuttered-lens", "SHUTTERED LENS", "Narrow your beam to reduce incidental exposure while preserving aimed visibility.", price: 3, traits: ProgressionTraits.ShutteredLens),
-            new ProgressionEntryConfig("felt-soles", "FELT SOLES", "Quieten ordinary footsteps. Sprinting, hard landings and cursed echoes still carry.", price: 3, traits: ProgressionTraits.FeltSoles),
-            new ProgressionEntryConfig("climber-wraps", "CLIMBER'S WRAPS", "Recover control sooner after wall rebounds, within the normal movement limits.", price: 4, traits: ProgressionTraits.ClimberWraps),
-            new ProgressionEntryConfig("pilgrim-chalk", "PILGRIM'S CHALK", "Mark doorways you have crossed on this floor. Unvisited rooms remain unknown.", price: 2, traits: ProgressionTraits.PilgrimChalk),
-            new ProgressionEntryConfig("field-dressing", "FIELD DRESSING", "Restore 35 health immediately. One dressing per visit; no purchase at full health.", price: 2, healing: 35f, repeatable: true),
-            new ProgressionEntryConfig("wax-ward", "WAX WARD", "Automatically break the next shadow-hand grab. Carry one charge; one ward per visit.", price: 2, repeatable: true, grantsWaxWard: true)
-        };
+        // Retained for serialized/source compatibility, never used to draw or purchase offers.
+        [SerializeField] private ProgressionEntryConfig[] _offers = Array.Empty<ProgressionEntryConfig>();
         public EffectCatalogueConfig EffectCatalogue => _effectCatalogue;
+        public ShopConfig ShopConfig => _shopConfig;
         // Combat floors 1, 1+interval, ... select; shop visits never advance this clock.
         public int SelectionInterval => _selectionInterval;
         public int ShopInterval => _shopInterval;

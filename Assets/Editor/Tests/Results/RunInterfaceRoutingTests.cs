@@ -13,6 +13,7 @@
 // USAGE NOTES:
 //   Inactive Edit Mode objects bypass UI creation and persistent initialization.
 //   Reflection injects state and publishes existing event boundaries; no file IO.
+//   Finally restores pause globals and both Session backing fields, even after SetUp failure.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,7 @@ using Worsen.Session.Settings;
 using Worsen.Presentation.Menu;
 using Worsen.Presentation.Results;
 using Worsen.Tests.Settings;
+using Worsen.Tests.Menu;
 using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Results
@@ -42,12 +44,11 @@ namespace Worsen.Tests.Results
         private ResultsManager _results;
         private ResultsOrchestrator _resultsRoute;
         private ResultsDriverState _view;
-        private float _timeScale;
         [SetUp] public void SetUp()
         {
-            _timeScale = Time.timeScale;
-            Assert.That(ProgressionSessionManager.Instance, Is.Null);
-            Assert.That(RunSessionManager.Instance, Is.Null);
+            Assert.That(ProgressionSessionManager.Instance == null, Is.True, "No live foreign Progression owner.");
+            Assert.That(RunSessionManager.Instance == null, Is.True, "No live foreign Run owner.");
+            PauseFixtureCleanup.Restore();
             _run = Component<RunSessionManager>(); var runState = new RunSessionBehaviorState(73);
             var clock = new RunSessionController(runState, new System.Random(73)); clock.StartScene(SceneKey.HorrorRun);
             Set(_run, "state", runState); Set(_run, "controller", clock);
@@ -74,10 +75,16 @@ namespace Worsen.Tests.Results
         }
         [TearDown] public void TearDown()
         {
-            Invoke(_menuRoute, "OnDisable"); Invoke(_resultsRoute, "OnDisable"); Invoke(_menu, "OnDisable");
-            foreach (Object item in _owned) if (item is GameObject) Object.DestroyImmediate(item);
-            foreach (Object item in _owned) if (item != null) Object.DestroyImmediate(item);
-            _owned.Clear(); Time.timeScale = _timeScale;
+            try
+            {
+                if (_menuRoute != null) Invoke(_menuRoute, "OnDisable");
+                if (_resultsRoute != null) Invoke(_resultsRoute, "OnDisable");
+                if (_menu != null) Invoke(_menu, "OnDisable");
+                foreach (Object item in _owned) if (item is GameObject) Object.DestroyImmediate(item);
+                foreach (Object item in _owned) if (item != null) Object.DestroyImmediate(item);
+                _owned.Clear();
+            }
+            finally { PauseFixtureCleanup.Restore(); }
         }
         [Test]
         public void PauseIntentAcknowledgesRunAndDisableRestoresTimeScale()
@@ -109,6 +116,27 @@ namespace Worsen.Tests.Results
             int revision = _progression.Snapshot.Revision; restart(true, 99);
             Assert.That(_progression.Snapshot.Revision, Is.EqualTo(revision)); Assert.That(_progression.Snapshot.Seed, Is.EqualTo(-731));
             Invoke(_resultsRoute, "OnDisable"); Assert.That(Get(_results, "RestartWithSeedRequested"), Is.Null);
+        }
+        [TestCase("end")]
+        [TestCase("restart")]
+        [TestCase("scene-load")]
+        public void SessionBoundaryReleasesAcknowledgedPause(string boundary)
+        {
+            Time.timeScale = .75f; _menu.TogglePause();
+            Assert.That(Time.timeScale, Is.Zero);
+            if (boundary == "end") _progression.EndRun(_progression.Snapshot.GenerationId);
+            else if (boundary == "restart") _run.PrepareScene(SceneKey.HorrorRun, 91);
+            else _run.SuspendForSceneLoad();
+            Assert.That(Time.timeScale, Is.EqualTo(.75f));
+        }
+        [Test]
+        public void RouterDisableReleasesPauseAfterSessionOwnerIsDestroyed()
+        {
+            Time.timeScale = .75f; _menu.TogglePause();
+            Assert.That(Time.timeScale, Is.Zero);
+            Object.DestroyImmediate(_run.gameObject);
+            Invoke(_menuRoute, "OnDisable");
+            Assert.That(Time.timeScale, Is.EqualTo(.75f));
         }
         private T Component<T>() where T : Component
         { var go = new GameObject(typeof(T).Name); go.SetActive(false); _owned.Add(go); return go.AddComponent<T>(); }

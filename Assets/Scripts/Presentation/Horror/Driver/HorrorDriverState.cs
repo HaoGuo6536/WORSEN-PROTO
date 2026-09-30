@@ -11,6 +11,7 @@
 //   DriverState (§7c) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain injected effect identity view, torch count multiplier and Wick presentation flag.
 //   - Retain externally authoritative flashlight facts without owning gameplay light rules.
 //   - Retain run startle count/clock separately from floor resets and optional fog hooks.
 //   - Retain the exact camera, daylight, and render values to restore on release.
@@ -43,6 +44,9 @@ namespace Worsen.Presentation.Horror
         public double LastIntrusionSeconds = double.NegativeInfinity;
         public float HookFogDistanceMultiplier = 1f;
         public float HookFogStartMultiplier = 1f;
+        public IReadOnlyActiveEffects ActiveEffects;
+        public float TorchCountMultiplier = 1f;
+        public bool Wick;
         public bool HasAuthoritativeFlashlight;
         public FlashlightSample AuthoritativeFlashlight;
         public bool FlashlightEnabled = true;

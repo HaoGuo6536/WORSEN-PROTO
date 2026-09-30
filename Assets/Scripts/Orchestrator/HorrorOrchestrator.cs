@@ -9,11 +9,13 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
+//   - Route chase admission and apply micro-events through Level or Horror, reporting outcomes.
 //   - Forward committed attack samples and HorrorEffects' flashlight state; never consume UseItem.
 //   - Reset transient cues when a generated floor replaces the previous one.
 //   - Reset the run clock and budget once per committed StartRun, including same-seed restarts.
 //   - Forward completed Run tick durations with paired subscriptions.
 // DEPENDENCIES:
+//   - Domain Level commits reopenable door closure; Core views describe injected safe candidates.
 //   - Session Run/Progression/HorrorEffects, Presentation Horror/Input/Camera and Core.
 //   Authoritative aim is sampled before the Session tick; cosmetic shake never changes it.
 // USAGE NOTES:
@@ -26,6 +28,8 @@
 //   TickAdvanced is emitted only for accepted gameplay ticks; suspended or ended runs emit none.
 // ============================================================================
 using UnityEngine;
+using System.Collections.Generic;
+using Worsen.Domain.Level;
 using Worsen.Core;
 using Worsen.Presentation.Horror;
 using Worsen.Presentation.Input;
@@ -43,6 +47,11 @@ namespace Worsen.Orchestrator
         private HorrorManager _horror;
         private HorrorEffectsManager _effects;
         private CameraManager _camera;
+        private LevelManager _level;
+        public void ConfigureMicroEvents(LevelManager level, IReadOnlyList<Vector3> unreachableAnchors)
+        { _level = level; _horror.SetMicroEventWorld(level != null ? level.Interactables : null, unreachableAnchors); }
+        public void OnPlayerOpenedDoor(int id, Bounds bounds) => _horror.ObservePlayerOpenedDoor(id, bounds);
+        public void OnActiveEffectsChanged(IReadOnlyActiveEffects effects) => _horror.SetActiveEffects(effects);
         public void Configure(RunSessionManager run, ProgressionSessionManager progression, InputManager input, HorrorManager horror, HorrorEffectsManager effects = null, CameraManager camera = null)
         { OnDisable(); _run = run; _progression = progression; _input = input; _horror = horror; _effects = effects; _camera = camera; if (isActiveAndEnabled) OnEnable(); }
         private void OnEnable()
@@ -50,6 +59,10 @@ namespace Worsen.Orchestrator
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
             _run.TickAdvanced += OnTickAdvanced;
+            _run.ChaseStarted += OnChaseStarted;
+            _run.ChaseEnded += OnChaseEnded;
+            _run.ProximityPublished += OnMicroEventProximity;
+            _horror.MicroEventSelected += OnMicroEventSelected;
             if (_effects != null) { _effects.FlashlightChanged += OnLight; _effects.AfterimageChanged += OnAfterimage; _run.PlayerMovementPublished += OnMovement; }
             _progression.GenerationRequested += OnGeneration;
             _progression.SnapshotChanged += OnSnapshot;
@@ -59,6 +72,10 @@ namespace Worsen.Orchestrator
         {
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
+            if (_run != null) { _run.ChaseStarted -= OnChaseStarted; _run.ChaseEnded -= OnChaseEnded; }
+            if (_run != null) _run.ProximityPublished -= OnMicroEventProximity;
+            if (_horror != null) _horror.InvalidateMicroEventChase();
+            if (_horror != null) _horror.MicroEventSelected -= OnMicroEventSelected;
             if (_run != null) _run.PlayerMovementPublished -= OnMovement;
             if (_effects != null) { _effects.FlashlightChanged -= OnLight; _effects.AfterimageChanged -= OnAfterimage; }
             if (_progression != null)
@@ -72,6 +89,15 @@ namespace Worsen.Orchestrator
                 _camera.AimPosition, _camera.AimRotation * Vector3.forward, 18f, 52f));
         }
         private void OnAttack(HunterAttackSample sample) => _horror.SetAttack(sample);
+        private void OnChaseStarted(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, true);
+        private void OnChaseEnded(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, false);
+        private void OnMicroEventProximity(ProximitySample sample) => _horror.ObserveMicroEventProximity(sample);
+        public void OnMicroEventSelected(int kind, int target, Vector3 position, float seconds)
+        {
+            bool applied = kind == 1 ? _level != null && _level.CloseDoor(target)
+                : kind == 2 && _horror.ShowMicroSilhouette(position, seconds);
+            _horror.ReportMicroEvent(kind, target, position, seconds, applied);
+        }
         private void OnTickAdvanced(InputFrame frame, float deltaSeconds, long tick) => _horror.AdvanceRunClock(deltaSeconds);
         private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
         {

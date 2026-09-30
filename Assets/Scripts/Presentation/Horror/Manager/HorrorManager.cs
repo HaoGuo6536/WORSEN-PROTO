@@ -11,6 +11,7 @@
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward injected candidates/effects and publish micro-event outcomes for telemetry.
 //   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
 //   - Forward explicit run reset, injected clock deltas, startle admission and default-off fog hooks.
 //   - Pair owner enable, disable and destruction with rendering restoration.
@@ -26,6 +27,8 @@
 // ============================================================================
 
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 
@@ -37,6 +40,11 @@ namespace Worsen.Presentation.Horror
     {
         [SerializeField] private HorrorDriverConfig _config;
         [SerializeField] private HorrorDriver _driver;
+        public event Action<int, int, Vector3, float> MicroEventSelected;
+        public event Action<int, int, Vector3, float, bool> MicroEventOccurred;
+        public event Action<float, bool> LightingHooksChanged;
+        public float TorchCountMultiplier => _driver != null ? _driver.TorchCountMultiplier : 1f;
+        public bool Wick => _driver != null && _driver.Wick;
         public bool IsReady => _driver != null && _driver.IsReady;
         public bool FlashlightEnabled => _driver != null && _driver.FlashlightEnabled;
         public float FogCurveStart => _driver != null ? _driver.FogCurveStart : 0f;
@@ -52,6 +60,7 @@ namespace Worsen.Presentation.Horror
             if (config != null) _config = config;
             _driver.Initialize(_config);
             _driver.SetOwnerEnabled(isActiveAndEnabled);
+            if (isActiveAndEnabled) OnEnable();
             return this;
         }
 
@@ -61,6 +70,18 @@ namespace Worsen.Presentation.Horror
         public void SetEffects(float fogMultiplier, float flashlightMultiplier)
         { if (_driver != null) _driver.SetEffects(fogMultiplier, flashlightMultiplier); }
         public void ResetRound() { if (_driver != null) _driver.ResetRound(); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_driver != null) _driver.SetActiveEffects(effects); }
+        public void SetMicroEventWorld(IReadOnlyInteractableSet world, IReadOnlyList<Vector3> unreachableAnchors)
+        { if (_driver != null) _driver.SetMicroEventWorld(world, unreachableAnchors); }
+        public void ObservePlayerOpenedDoor(int id, Bounds bounds) { if (_driver != null) _driver.ObservePlayerOpenedDoor(id, bounds); }
+        public void SetMicroEventChase(int id, bool active) { if (_driver != null) _driver.SetMicroEventChase(id, active); }
+        public void ObserveMicroEventProximity(ProximitySample sample) { if (_driver != null) _driver.ObserveMicroEventProximity(sample); }
+        public void InvalidateMicroEventChase() { if (_driver != null) _driver.InvalidateMicroEventChase(); }
+        public void SetCounterAvailable(bool available) { if (_driver != null) _driver.SetCounterAvailable(available); }
+        public bool ShowMicroSilhouette(Vector3 position, float seconds)
+            => _driver != null && _driver.ShowMicroSilhouette(position, seconds);
+        public void ReportMicroEvent(int kind, int target, Vector3 position, float seconds, bool applied)
+            => MicroEventOccurred?.Invoke(kind, target, position, seconds, applied);
         public void ResetRun(int seed) { if (_driver != null) _driver.ResetRun(seed); }
         public bool AdvanceRunClock(float deltaSeconds)
             => _driver != null && isActiveAndEnabled && _driver.AdvanceRunClock(deltaSeconds);
@@ -72,8 +93,25 @@ namespace Worsen.Presentation.Horror
         { if (_driver != null && isActiveAndEnabled) _driver.SetAttack(sample); }
         public void RemoveAttack(EntityId hunter) { if (_driver != null) _driver.RemoveAttack(hunter); }
 
-        private void OnEnable() { if (_driver != null) _driver.SetOwnerEnabled(true); }
-        private void OnDisable() { if (_driver != null) _driver.SetOwnerEnabled(false); }
+        private void OnEnable()
+        {
+            if (_driver == null) return;
+            _driver.MicroEventSelected -= OnMicroEventSelected;
+            _driver.LightingHooksChanged -= OnLightingHooksChanged;
+            _driver.MicroEventSelected += OnMicroEventSelected;
+            _driver.LightingHooksChanged += OnLightingHooksChanged;
+            _driver.SetOwnerEnabled(true);
+        }
+        private void OnDisable()
+        {
+            if (_driver == null) return;
+            _driver.MicroEventSelected -= OnMicroEventSelected;
+            _driver.LightingHooksChanged -= OnLightingHooksChanged;
+            _driver.SetOwnerEnabled(false);
+        }
+        private void OnMicroEventSelected(int kind, int target, Vector3 position, float seconds)
+            => MicroEventSelected?.Invoke(kind, target, position, seconds);
+        private void OnLightingHooksChanged(float torches, bool wick) => LightingHooksChanged?.Invoke(torches, wick);
         private void OnDestroy() { if (_driver != null) _driver.Teardown(); }
     }
 }

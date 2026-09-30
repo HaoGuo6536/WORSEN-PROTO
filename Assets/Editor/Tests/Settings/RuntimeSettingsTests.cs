@@ -13,6 +13,7 @@
 // USAGE NOTES:
 //   Transient Edit Mode fixtures; no disk writes, scene assets or audio-quality claims.
 //   Native volume components are injected so teardown need not defer asset destruction.
+//   Finally clears pause time-scale ownership and Run/Progression singleton state.
 // ============================================================================
 using System.Collections.Generic;
 using System.Reflection;
@@ -26,6 +27,7 @@ using Worsen.Presentation.Input;
 using Worsen.Presentation.Camera;
 using Worsen.Presentation.PostFX;
 using Worsen.Presentation.Audio;
+using Worsen.Tests.Menu;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Settings
 {
@@ -35,10 +37,14 @@ namespace Worsen.Tests.Settings
         private static PlayerSettingsRecord Preferences => new PlayerSettingsRecord(1, .27f, true, 107, false, false, false, .5f, .25f, .4f);
         [TearDown] public void TearDown()
         {
-            // Destroy behaviours before their injected configs/components.
-            foreach (Object item in _owned) if (item is GameObject) Object.DestroyImmediate(item);
-            foreach (Object item in _owned) if (item != null) Object.DestroyImmediate(item);
-            _owned.Clear();
+            try
+            {
+                // Destroy behaviours before their injected configs/components.
+                foreach (Object item in _owned) if (item is GameObject) Object.DestroyImmediate(item);
+                foreach (Object item in _owned) if (item != null) Object.DestroyImmediate(item);
+                _owned.Clear();
+            }
+            finally { PauseFixtureCleanup.Restore(); }
         }
         [Test]
         public void FanOutAppliesOnceAndDisableUnpairsWithoutChangingConfigs()

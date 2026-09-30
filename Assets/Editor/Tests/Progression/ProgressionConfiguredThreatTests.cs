@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Check the shipped roster, all curse families and the first reachable shop.
 //   - Require a pure combat floor between the opening selection and first shop.
-//   - Fail when setup leaves the obsolete placeholder catalog serialized.
+//   - Check hunter content independently of ignored legacy shop serialization.
 // DEPENDENCIES:
 //   - UnityEditor asset loading, NUnit, Core contracts and Session Progression.
 // USAGE NOTES:
@@ -35,7 +35,7 @@ namespace Worsen.Tests.Progression
             Assert.That(config.ShopInterval, Is.EqualTo(2));
             Assert.That(config.Threats.Count, Is.EqualTo(5));
             Assert.That(config.Curses.Count, Is.EqualTo(22));
-            Assert.That(config.Offers.Count, Is.EqualTo(6));
+
             int general = 0;
             foreach (var curse in config.Curses)
             {

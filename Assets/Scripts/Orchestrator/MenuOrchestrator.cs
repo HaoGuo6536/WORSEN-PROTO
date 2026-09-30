@@ -13,6 +13,7 @@
 //   - Persist history at the committed expedition end, never at each floor escape.
 //   - Forward the independent input pause action to menu intent admission.
 //   - Route pause intent to Run and acknowledge only authoritative admitted state.
+//   - Release the view's pause on teardown even if its Session owner is already gone.
 // DEPENDENCIES:
 //   Presentation Menu/Input, Session Run/Settings/Progression, Core records and a scene callback.
 // USAGE NOTES:
@@ -69,6 +70,7 @@ namespace Worsen.Orchestrator
             if (_progression != null) _progression.SnapshotChanged -= OnSnapshot;
             if (_menu != null)
             {
+                _menu.SetRunState(false, false);
                 _menu.PauseSelected -= OnPauseSelected;
                 _menu.StartClicked -= OnStart;
                 _menu.QuitClicked -= OnQuit;

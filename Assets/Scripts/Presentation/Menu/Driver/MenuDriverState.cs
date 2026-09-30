@@ -8,6 +8,7 @@
 //   DriverState (§7c) · Presentation · Menu.
 // KEY RESPONSIBILITIES:
 //   - Retain the previous engine time scale while an acknowledged pause owns it.
+//   - Identify the sole pause owner across overlapping scene lifetimes.
 //   - Store title, pause and settings state without clocks or engine calls.
 // DEPENDENCIES:
 //   Core PlayerSettingsRecord only.
@@ -19,6 +20,7 @@ namespace Worsen.Presentation.Menu
 {
     public sealed class MenuDriverState
     {
+        public static MenuDriverState TimeScaleOwner;
         public bool TitleVisible, CanPause, Paused, Pending, SettingsReady;
         public bool OwnsTimeScale;
         public float PreviousTimeScale;

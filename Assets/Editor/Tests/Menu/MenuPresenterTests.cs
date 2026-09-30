@@ -9,9 +9,9 @@
 // KEY RESPONSIBILITIES:
 //   - Test click debounce, pause acknowledgement and complete sanitized preferences.
 // DEPENDENCIES:
-//   NUnit, Core and Menu pure presentation.
+//   NUnit, Core, Menu pure presentation and common pause/Session cleanup support.
 // USAGE NOTES:
-//   No engine globals, time, configuration objects or Session dependencies.
+//   Test bodies are pure; common teardown restores engine time and Session singletons.
 // ============================================================================
 using NUnit.Framework;
 using Worsen.Core;
@@ -20,6 +20,7 @@ namespace Worsen.Tests.Menu
 {
     public sealed class MenuPresenterTests
     {
+        [TearDown] public void TearDown() => PauseFixtureCleanup.Restore();
         [Test]
         public void TitleBlocksPauseAndStartStaysPendingUntilRunAcknowledgement()
         {

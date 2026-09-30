@@ -9,7 +9,7 @@
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
 //   - Verify paired immutable effects events and state retention across repeated initialization.
-//   - Confirm shops, purchases, explicit new seeds and deterministic replay restarts.
+//   - Confirm catalogue purchases, explicit new seeds and deterministic replay restarts.
 //   - Require pure intervening floors and full floor-start health at the shop.
 // DEPENDENCIES:
 //   - Core contracts, Session Progression, NUnit and Unity Test Framework.
@@ -19,6 +19,7 @@
 // ============================================================================
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -37,6 +38,10 @@ namespace Worsen.Tests.Progression
             var owner = new GameObject("Progression Session test");
             var duplicateOwner = new GameObject("Duplicate Progression Session test");
             var config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+            typeof(EffectCatalogueConfig).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(catalogue,
+                new[] { new EffectCatalogueEntry("wax-ward", EffectKind.Consumable, FearAxis.Agency, "Wax Ward", "Breaks a grab.", price: 4) });
+            typeof(ProgressionConfig).GetField("_effectCatalogue", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, catalogue);
             var snapshots = new List<ProgressionSnapshot>();
             var effectsSnapshots = new List<ProgressionEffectsSnapshot>();
             System.Action<ProgressionSnapshot, IReadOnlyActiveEffects> collectEffects = (snapshot, effects) =>
@@ -75,16 +80,15 @@ namespace Worsen.Tests.Progression
                 }
                 Assert.That(requests.Count, Is.EqualTo(3));
                 Assert.That(requests[2].IsShop, Is.True);
-                // Health no longer carries between floors (SPEC-004 §2.9): the shop starts full.
                 Assert.That(requests[2].Effects.Health, Is.EqualTo(100f));
                 Assert.That(requests[2].Effects.ActiveThreatBudget, Is.Zero);
                 Assert.That(manager.ConfirmFloorReady(requests[2].GenerationId), Is.True);
                 int beforePurchase = snapshots.Count;
-                Assert.That(manager.Purchase("pilgrim-chalk", manager.Snapshot.Revision), Is.True);
-                Assert.That(snapshots.Count, Is.EqualTo(beforePurchase + 1));
-                Assert.That(manager.Snapshot.Wallet, Is.EqualTo(4));
-                Assert.That(manager.Snapshot.Health, Is.EqualTo(100f));
                 Assert.That(manager.Purchase("wax-ward", manager.Snapshot.Revision), Is.True);
+                Assert.That(snapshots.Count, Is.EqualTo(beforePurchase + 1));
+                Assert.That(manager.Snapshot.Wallet, Is.Zero);
+                Assert.That(manager.Snapshot.Health, Is.EqualTo(100f));
+                Assert.That(manager.Snapshot.Inventory[0].Id, Is.EqualTo("wax-ward"));
                 Assert.That(manager.Snapshot.Effects.WaxWardCharges, Is.EqualTo(1));
                 Assert.That(manager.ContinueShop(manager.Snapshot.Revision), Is.True);
                 Assert.That(manager.Snapshot.Round, Is.EqualTo(4));
@@ -130,6 +134,7 @@ namespace Worsen.Tests.Progression
                 Object.DestroyImmediate(duplicateOwner);
                 Object.DestroyImmediate(owner);
                 Object.DestroyImmediate(config);
+                Object.DestroyImmediate(catalogue);
             }
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
         }

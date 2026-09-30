@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Own the micro-event sub-driver and republish decisions and lighting hook changes.
 //   - Render external light authority independently of camera shake and bank.
 //   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
 //   - Forward fog hooks and gate intrusions; preserve the run clock and budget across floor resets.
@@ -28,6 +29,9 @@
 // ============================================================================
 
 using UnityEngine;
+using System;
+using System.Collections.Generic;
+using Object = UnityEngine.Object;
 using UnityEngine.Rendering;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
@@ -46,6 +50,11 @@ namespace Worsen.Presentation.Horror
         private System.Random _startleRandom;
         private HorrorAtmosphereDriver _atmosphere;
         private HorrorAmbienceDriver _ambience;
+        private HorrorMicroEventDriver _micro;
+        public event Action<int, int, Vector3, float> MicroEventSelected;
+        public event Action<float, bool> LightingHooksChanged;
+        public float TorchCountMultiplier => _state?.TorchCountMultiplier ?? 1f;
+        public bool Wick => _state != null && _state.Wick;
         public bool IsReady => _state != null && _atmosphere != null && _atmosphere.IsReady
             && _state.CueMaterial != null && _config.AttackGrowl != null;
         public bool FlashlightEnabled => _state != null && _state.FlashlightEnabled;
@@ -65,6 +74,9 @@ namespace Worsen.Presentation.Horror
                 return;
             }
             _state = new HorrorDriverState();
+            var microObject = new GameObject("Owned horror micro-events");
+            microObject.transform.SetParent(transform, false);
+            _micro = microObject.AddComponent<HorrorMicroEventDriver>();
             _presenter = new HorrorPresenter();
             _startleRandom = new System.Random();
             var atmosphereObject = new GameObject("Owned horror atmosphere");
@@ -98,6 +110,8 @@ namespace Worsen.Presentation.Horror
         {
             if (_state == null) return;
             _state.OwnerEnabled = value;
+            if (_micro != null) _micro.enabled = value && isActiveAndEnabled;
+            if (value && isActiveAndEnabled) OnEnable();
             _atmosphere.SetOwnershipEnabled(value && isActiveAndEnabled);
             if (_ambience != null) _ambience.SetOwnerEnabled(value && isActiveAndEnabled);
             ApplyAtmosphere();
@@ -152,8 +166,34 @@ namespace Worsen.Presentation.Horror
         }
 
         public bool AdvanceRunClock(float deltaSeconds)
-            => _state != null && _state.OwnerEnabled && isActiveAndEnabled
-                && _presenter.AdvanceRunClock(_state, deltaSeconds);
+        {
+            if (_state == null || !_state.OwnerEnabled || !isActiveAndEnabled
+                || !_presenter.AdvanceRunClock(_state, deltaSeconds)) return false;
+            if (_state.ActiveEffects != null) SetActiveEffects(_state.ActiveEffects);
+            if (_micro != null) _micro.Tick(_config, _outputCamera, _state.RunElapsedSeconds, deltaSeconds);
+            return true;
+        }
+
+        public void SetActiveEffects(IReadOnlyActiveEffects effects)
+        {
+            if (_state == null) return;
+            float previous = _state.TorchCountMultiplier; bool wick = _state.Wick;
+            _presenter.SetActiveEffects(_state, _config, effects);
+            ApplyAtmosphere();
+            if (previous != _state.TorchCountMultiplier || wick != _state.Wick)
+                LightingHooksChanged?.Invoke(_state.TorchCountMultiplier, _state.Wick);
+        }
+        public void SetMicroEventWorld(IReadOnlyInteractableSet world, IReadOnlyList<Vector3> unreachableAnchors)
+        { if (_micro != null) _micro.SetWorld(world, unreachableAnchors); }
+        public void ObservePlayerOpenedDoor(int id, Bounds bounds) { if (_micro != null) _micro.ObservePlayerOpenedDoor(id, bounds); }
+        public void SetMicroEventChase(int id, bool active) { if (_micro != null) _micro.SetChase(id, active); }
+        public void ObserveMicroEventProximity(ProximitySample sample) { if (_micro != null) _micro.ObserveProximity(sample); }
+        public void InvalidateMicroEventChase() { if (_micro != null) _micro.InvalidateChase(); }
+        public void SetCounterAvailable(bool available) { if (_micro != null) _micro.SetCounterAvailable(available); }
+        public bool ShowMicroSilhouette(Vector3 position, float seconds)
+            => _micro != null && _state != null && _micro.ShowSilhouette(position, seconds, _config, _state.CueMaterial);
+        private void OnMicroEventSelected(int kind, int target, Vector3 position, float seconds)
+            => MicroEventSelected?.Invoke(kind, target, position, seconds);
 
         public bool TryStartle(double runSeconds, bool earned)
             => _state != null && _state.OwnerEnabled && isActiveAndEnabled
@@ -165,6 +205,8 @@ namespace Worsen.Presentation.Horror
             ResetRound();
             _presenter.ResetRun(_state);
             _startleRandom = new System.Random(seed);
+            if (_micro != null) _micro.ResetRun(_config, new System.Random(seed));
+            LightingHooksChanged?.Invoke(_state.TorchCountMultiplier, _state.Wick);
             ApplyAtmosphere();
         }
 
@@ -189,12 +231,15 @@ namespace Worsen.Presentation.Horror
             if (_state == null) return;
             ClearCues();
             _presenter.ResetRound(_state);
+            if (_micro != null) _micro.ResetFloor();
             _atmosphere.ClearAfterimage();
             ApplyAtmosphere();
         }
 
         public void Teardown()
         {
+            if (_micro != null)
+            { _micro.Selected -= OnMicroEventSelected; _micro.ResetFloor(); DestroyOwned(_micro.gameObject); _micro = null; }
             if (_state != null)
             {
                 ClearCues();
@@ -229,6 +274,8 @@ namespace Worsen.Presentation.Horror
 
         private void OnEnable()
         {
+            if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.Selected += OnMicroEventSelected; }
+            if (_micro != null) _micro.enabled = _state != null && _state.OwnerEnabled;
             if (_state != null && _state.OwnerEnabled)
             {
                 _atmosphere.SetOwnershipEnabled(true);
@@ -238,6 +285,7 @@ namespace Worsen.Presentation.Horror
         }
         private void OnDisable()
         {
+            if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.enabled = false; }
             if (_state == null) return;
             _atmosphere.SetOwnershipEnabled(false);
             if (_ambience != null) _ambience.SetOwnerEnabled(false);
