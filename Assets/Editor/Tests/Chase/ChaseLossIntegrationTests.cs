@@ -142,7 +142,7 @@ namespace Worsen.Tests.Chase
             private AudioDriverConfig audioConfig;
             private HUDDriver hud;
             private HUDDriverConfig hudConfig;
-            private VisualElement hudExtra;
+            private VisualElement hudExtra, hudPanel;
             private Label hudCount, hudExit;
             private string initialCount, initialExit;
             private AudioSource[] cueSources;
@@ -230,8 +230,9 @@ namespace Worsen.Tests.Chase
                     Assert.That(hudConfig.RestoreSeconds, Is.EqualTo(0.5f));
                     VisualElement document = hud.GetComponent<UIDocument>().rootVisualElement;
                     hudExtra = document.Q<VisualElement>("hud-extra");
+                    hudPanel = document.Q<VisualElement>("hud");
                     hudCount = document.Q<Label>("cake-count"); hudExit = document.Q<Label>("exit-state");
-                    Assert.That(hudExtra != null && hudCount != null && hudExit != null, Is.True);
+                    Assert.That(hudExtra != null && hudPanel != null && hudCount != null && hudExit != null, Is.True);
                     initialCount = hudCount.text; initialExit = hudExit.text;
                     Assert.That(run.Tick, Is.Zero, "Observe readiness before the first real tick.");
                     Assert.That(PlayerRegistry.Items.Count, Is.EqualTo(1));
@@ -559,6 +560,8 @@ namespace Worsen.Tests.Chase
                     Assert.That(hudExit.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None));
                     if (ends.Count == 0)
                     {
+                        // SPEC-004 §2.3: the whole panel hides during a chase; its facts are retained.
+                        Assert.That(hudPanel.style.display.value, Is.EqualTo(DisplayStyle.None));
                         Assert.That(hudExtra.style.display.value, Is.EqualTo(DisplayStyle.None));
                         Assert.That(hudExtra.style.opacity.value, Is.Zero);
                         Assert.That(PlayingLoseSources(), Is.Empty,
@@ -567,6 +570,7 @@ namespace Worsen.Tests.Chase
                         return;
                     }
                     Assert.That(hudExtra.style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                    Assert.That(hudPanel.style.display.value, Is.EqualTo(DisplayStyle.Flex));
                     if (feedbackRestored)
                     { Assert.That(hudExtra.style.opacity.value, Is.EqualTo(1f)); return; }
                     float dt = Time.unscaledDeltaTime;

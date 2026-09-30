@@ -11,6 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Store only transient UI text, direction, slot counts, gauge fill, and fade progress.
+//   - Retain presenter-computed chrome visibility separately from guidance visibility.
 //   - Retain a supplied camera orientation and full three-dimensional compass direction.
 //
 // DEPENDENCIES:
@@ -44,6 +45,7 @@ namespace Worsen.Presentation.HUD
         public Quaternion ViewRotation = Quaternion.identity;
         public Vector3 ViewDirection;
         public bool ChaseMode;
+        public bool ChromeVisible = true;
         public float ExtraOpacity = 1f;
     }
 }

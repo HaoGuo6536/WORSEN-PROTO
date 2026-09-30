@@ -15,6 +15,7 @@
 //   - Group retained choices without truncation; distinguish UI intent from committed purchase audio.
 //   - Delay only terminal presentation with supplied time; leave progression authority unchanged.
 //   - Reject hidden, stale or repeated UI clicks using the displayed snapshot.
+//   - Format health only for selection, shelter and terminal screens, never a live floor or generation.
 //
 // DEPENDENCIES:
 //   Core progression snapshots and own ProgressionUI stack only.
@@ -61,8 +62,11 @@ namespace Worsen.Presentation.ProgressionUI
             state.CanRestart = snapshot.CanRestart;
             state.RoundText = "ROUND " + Number(snapshot.Round);
             state.WalletText = "WALLET  " + Number(snapshot.Wallet);
-            state.HealthText = "HEALTH  " + Health(snapshot.Health) + " / " + Health(snapshot.MaxHealth);
-            state.HealthFraction = Fraction(snapshot.Health, snapshot.MaxHealth);
+            state.HealthVisible = snapshot.Phase == ProgressionPhase.ChooseThreat || snapshot.Phase == ProgressionPhase.ChooseCurse
+                || snapshot.Phase == ProgressionPhase.Shop || snapshot.Phase == ProgressionPhase.Ended
+                || snapshot.Phase == ProgressionPhase.GenerationFailed;
+            state.HealthText = state.HealthVisible ? "HEALTH  " + Health(snapshot.Health) + " / " + Health(snapshot.MaxHealth) : "";
+            state.HealthFraction = state.HealthVisible ? Fraction(snapshot.Health, snapshot.MaxHealth) : 0f;
             state.BurdenText = Number(snapshot.ThreatCount) + " THREATS  /  " + Number(snapshot.CurseCount) + " CURSES";
             state.Message = snapshot.Message ?? "";
             state.Title = Title(snapshot.Phase);
