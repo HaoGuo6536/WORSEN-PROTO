@@ -12,6 +12,7 @@
 //   - Verify deterministic placement, counters, cues and ordered room transitions.
 //   - Reject invalid contacts and verify a fresh initialization clears prior life.
 //   - Verify timed bail, cancellation and death without granting cakes or collapse.
+//   - Keep the exit permanently safe; cover warning pulses, optional losses and opt-in collapse hooks.
 // DEPENDENCIES:
 //   - Core level/floor values and Domain Floor pure classes.
 //   - Domain Player read-only interface implemented by an immutable fixture.
@@ -231,15 +232,16 @@ namespace Worsen.Tests.Floor
 
             var facts = fixture.Controller.Tick(70f, 90);
 
-            CollectionAssert.AreEqual(new[] { 5, 40, 20, 30, 10 }, facts.Where(fact => fact.Phase == RoomPhase.Telegraph).Select(fact => fact.RoomId));
-            CollectionAssert.AreEqual(new[] { 5, 40, 20, 30, 10 }, facts.Where(fact => fact.Phase == RoomPhase.Closed).Select(fact => fact.RoomId));
-            Assert.That(fixture.State.RoomPhases.Values.All(phase => phase == RoomPhase.Closed), Is.True);
+            CollectionAssert.AreEqual(new[] { 5, 40, 20, 30 }, facts.Where(fact => fact.Phase == RoomPhase.Telegraph).Select(fact => fact.RoomId));
+            CollectionAssert.AreEqual(new[] { 5, 40, 20, 30 }, facts.Where(fact => fact.Phase == RoomPhase.Closed).Select(fact => fact.RoomId));
+            Assert.That(fixture.State.RoomPhases[10], Is.EqualTo(RoomPhase.Open));
+            Assert.That(fixture.Controller.ContactExit(new EntityId(1), 91, out _), Is.True);
         }
 
         [Test]
         public void LockedExitDoesNotAdvanceCollapseAndFirstTelegraphStartsWhenCollectionFinishes()
         {
-            var fixture = Start(SingleRoom(1), Config(1));
+            var fixture = Start(CollapsibleRoom(), Config(1));
 
             Assert.That(fixture.Controller.Tick(100f, 1), Is.Empty);
             Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
@@ -250,7 +252,7 @@ namespace Worsen.Tests.Floor
         [Test]
         public void CollapseHasCrackingTearingEncroachingAndConsumedStagesAtExactBoundaries()
         {
-            var fixture = Start(SingleRoom(1), Config(1)); CollectAll(fixture);
+            var fixture = Start(CollapsibleRoom(), Config(1)); CollectAll(fixture);
             AssertPhases(fixture.Controller.Tick(0f, 1), new[] { 1 }, new[] { RoomPhase.Telegraph });
             Assert.That(fixture.Controller.Tick(5.5f, 2), Is.Empty);
             AssertPhases(fixture.Controller.Tick(0.5f, 3), new[] { 1 }, new[] { RoomPhase.Tearing });
@@ -269,8 +271,8 @@ namespace Worsen.Tests.Floor
             var facts = fixture.Controller.Tick(13.9f, 1);
             Assert.That(facts.All(fact => fact.RoomId == 1), Is.True);
             var rest = fixture.Controller.Tick(28.1f, 2);
-            Assert.That(rest.Count(fact => fact.Phase == RoomPhase.Closed), Is.EqualTo(3));
-            Assert.That(fixture.State.RoomPhases.Values.All(phase => phase == RoomPhase.Closed), Is.True);
+            Assert.That(rest.Count(fact => fact.Phase == RoomPhase.Closed), Is.EqualTo(2));
+            Assert.That(fixture.State.RoomPhases[3], Is.EqualTo(RoomPhase.Open));
         }
 
         [TestCase(-1f)]
@@ -306,7 +308,7 @@ namespace Worsen.Tests.Floor
         [Test]
         public void GoldenCakeCannotBeCollectedInsideAClosedRoom()
         {
-            var fixture = Start(SingleRoom(1), Config(1));
+            var fixture = Start(CollapsibleRoom(), Config(1));
             CollectAll(fixture);
             fixture.Controller.Tick(14f, 2);
 
@@ -335,7 +337,7 @@ namespace Worsen.Tests.Floor
         [Test]
         public void ConsumedRoomDoesNotDirectlyKillALivingPlayer()
         {
-            var fixture = Start(SingleRoom(1), Config(1)); CollectAll(fixture); fixture.Controller.Tick(14f, 2);
+            var fixture = Start(CollapsibleRoom(), Config(1)); CollectAll(fixture); fixture.Controller.Tick(14f, 2);
             Assert.That(fixture.Controller.ContactLethalRoom(new EntityId(1), 1, 2, out _), Is.False);
             Assert.That(fixture.State.IsReady, Is.True);
         }
@@ -343,7 +345,7 @@ namespace Worsen.Tests.Floor
         public void ConfirmedDeadRegisteredPlayerEndsOnceOnlyInAnActiveHazardRoom()
         {
             var player = new PlayerFixture(1);
-            var fixture = Start(SingleRoom(1), Config(1), players:new[]{player}); CollectAll(fixture);
+            var fixture = Start(CollapsibleRoom(), Config(1), players:new[]{player}); CollectAll(fixture);
             player.IsAlive = false;
             Assert.That(fixture.Controller.ContactLethalRoom(player.Id, 1, 1, out _), Is.False);
             fixture.Controller.Tick(6f, 2);
@@ -354,8 +356,9 @@ namespace Worsen.Tests.Floor
         [Test]
         public void OptionalCracksDoNotChangeGameplayScheduleAndDeduplicate()
         {
-            var fixture = Start(SingleRoom(1), Config(1));
+            var fixture = Start(CollapsibleRoom(), Config(1));
             Assert.That(fixture.Controller.TelegraphOptionalRoom(1), Is.True);
+            Assert.That(fixture.Controller.TelegraphOptionalRoom(2), Is.False, "The exit never even previews collapse.");
             Assert.That(fixture.Controller.TelegraphOptionalRoom(1), Is.False);
             Assert.That(fixture.Controller.TelegraphOptionalRoom(99), Is.False);
             Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
@@ -555,6 +558,109 @@ namespace Worsen.Tests.Floor
             var fixture = Start(SingleRoom(1), config);
             Assert.Throws<ArgumentException>(() => fixture.Controller.ContactExit(new EntityId(1), 1, out _));
         }
+
+        [Test]
+        public void ExitOnlyFloorStaysOpenForeverAndEvenStaleClosedStateCannotRefuseExit()
+        {
+            var fixture = Start(SingleRoom(1), Config(1)); CollectAll(fixture);
+            Assert.That(fixture.Controller.Tick(10000f, 1), Is.Empty);
+            Assert.That(fixture.Controller.Destruction(1).Phase, Is.EqualTo(RoomPhase.Open));
+            var phases = (Dictionary<int, RoomPhase>)typeof(FloorBehaviorState)
+                .GetField("MutableRoomPhases", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(fixture.State);
+            phases[1] = RoomPhase.Closed;
+            Assert.That(fixture.Controller.ContactExit(new EntityId(1), 2, out _), Is.True);
+        }
+
+        [Test]
+        public void WarningRateAcceleratesAcrossEveryStageWithoutPhaseResets()
+        {
+            var fixture = Start(CollapsibleRoom(), Config(1)); CollectAll(fixture);
+            fixture.Controller.Tick(0f, 0);
+            float previous = 0f;
+            for (int step = 0; step < 56; step++)
+            {
+                var sample = fixture.Controller.Destruction(1);
+                Assert.That(sample.PulseRate, Is.GreaterThan(previous));
+                Assert.That(sample.PulsePhase, Is.InRange(0f, 1f));
+                previous = sample.PulseRate;
+                fixture.Controller.Tick(0.25f, step + 1);
+            }
+            Assert.That(fixture.Controller.Destruction(1).Phase, Is.EqualTo(RoomPhase.Closed));
+            Assert.That(fixture.Controller.Destruction(1).PulseRate, Is.Zero);
+            Assert.That(fixture.Controller.Destruction(2).PulseRate, Is.Zero);
+        }
+
+        [Test]
+        public void CompletedRoomSnatchesGoldenAndOptionalRewardsOnceWithoutChangingExitRequirement()
+        {
+            var graph = Graph(new[] { 1, 2 }, new[] { new LevelEdge(1, 1, 2, true) },
+                new[] { Anchor(101, 1), Anchor(102, 1), Anchor(103, 1) }, 2);
+            var fixture = Start(graph, Config(1));
+            int required = fixture.State.ActiveCakeAnchors.Single().Id;
+            Assert.That(fixture.Controller.Tick(1000f, 1), Is.Empty);
+            Assert.That(fixture.Controller.DrainCakeLosses(), Is.Empty);
+            CollectAll(fixture);
+            fixture.Controller.Tick(13.9f, 2);
+            Assert.That(fixture.Controller.DrainCakeLosses(), Is.Empty);
+            fixture.Controller.Tick(0.2f, 3);
+            var lost = fixture.Controller.DrainCakeLosses();
+            Assert.That(lost.Count, Is.EqualTo(3));
+            Assert.That(lost.Single(value => value.AnchorId == required).Kind, Is.EqualTo(PickupKind.GoldenCake));
+            Assert.That(lost.Count(value => value.Kind == PickupKind.Cake), Is.EqualTo(2));
+            Assert.That(lost.All(value => value.RoomId == 1 && value.Tick == 3), Is.True);
+            fixture.Controller.Tick(100f, 4);
+            Assert.That(fixture.Controller.DrainCakeLosses(), Is.Empty);
+            Assert.That(fixture.State.CakeCount, Is.EqualTo(fixture.State.RequiredCakeCount));
+            Assert.That(fixture.State.GoldenCakeCount, Is.Zero);
+            Assert.That(fixture.Controller.ContactExit(new EntityId(1), 5, out _), Is.True);
+        }
+
+        [Test]
+        public void CollectedOptionalCakeDoesNotUnlockExitAndIsNotLostAgain()
+        {
+            var graph = Graph(new[] { 1, 2 }, new[] { new LevelEdge(1, 1, 2, true) },
+                new[] { Anchor(101, 1), Anchor(102, 1) }, 2);
+            var fixture = Start(graph, Config(1));
+            int optional = graph.Anchors.Single(value => value.Id != fixture.State.ActiveCakeAnchors[0].Id).Id;
+            Assert.That(fixture.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 1, out _), Is.True);
+            Assert.That(fixture.State.CakeCount, Is.Zero);
+            Assert.That(fixture.State.ExitState, Is.EqualTo(ExitState.Locked));
+            CollectAll(fixture);
+            fixture.Controller.Tick(14f, 2);
+            Assert.That(fixture.Controller.DrainCakeLosses().Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void FasterCollapseIsOptInAndShuffledShellsRetainADirectedRouteToExit()
+        {
+            var normal = Start(CollapsibleRoom(), Config(1)); CollectAll(normal);
+            var fast = new FloorController(new FloorBehaviorState(), Config(1), new System.Random(1));
+            fast.Initialize(CollapsibleRoom(), Players(), fasterCollapse: true);
+            fast.Collect(new EntityId(1), 101, PickupKind.Cake, 0, out _);
+            normal.Controller.Tick(4f, 1); fast.Tick(4f, 1);
+            Assert.That(normal.Controller.Destruction(1).Phase, Is.EqualTo(RoomPhase.Telegraph));
+            Assert.That(fast.Destruction(1).Phase, Is.EqualTo(RoomPhase.Tearing));
+
+            var graph = Graph(new[] { 1, 2, 3, 4 }, new[] { new LevelEdge(1, 1, 3, false),
+                new LevelEdge(2, 2, 3, false), new LevelEdge(3, 3, 4, false) }, new[] { Anchor(101, 1) }, 4);
+            var seen = new HashSet<int>();
+            for (int seed = 0; seed < 12; seed++)
+            {
+                var state = new FloorBehaviorState();
+                var controller = new FloorController(state, Config(1), new System.Random(seed));
+                controller.Initialize(graph, Players(), shuffledCollapse: true);
+                controller.Collect(new EntityId(1), 101, PickupKind.Cake, 0, out _);
+                var sequence = controller.Tick(100f, 1).Where(value => value.Phase == RoomPhase.Closed).Select(value => value.RoomId).ToArray();
+                seen.Add(sequence[0]);
+                Assert.That(sequence.Take(2), Is.EquivalentTo(new[] { 1, 2 }));
+                Assert.That(sequence[2], Is.EqualTo(3));
+                Assert.That(state.RoomPhases[4], Is.EqualTo(RoomPhase.Open));
+            }
+            Assert.That(seen.Count, Is.EqualTo(2), "The opt-in shuffle actually permutes equal-distance rooms.");
+        }
+
+        private static LevelGraph CollapsibleRoom() => Graph(new[] { 1, 2 },
+            new[] { new LevelEdge(1, 1, 2, true) }, new[] { Anchor(101, 1) }, 2);
 
         private static Fixture Start(LevelGraph graph, FloorConfig config, int seed = 1337, IReadOnlyList<IReadOnlyPlayerState> players = null)
         {

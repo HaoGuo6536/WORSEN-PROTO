@@ -13,6 +13,7 @@
 //   - Prevent terminal callbacks from publishing an old run's display after restart.
 //   - Verify bail flags do not publish normal opening or spawn Golden Cakes.
 //   - Drive physical door overlaps through Run and cancel last-collider departures before timing.
+//   - Cover legacy-volume departure and use a separate non-exit room for hazard lifecycle tests.
 // DEPENDENCIES:
 //   - Domain Floor components, read-only Level/Player interfaces and Core values.
 //   - Session Run receives the physical bail through its actual Floor subscription.
@@ -163,6 +164,7 @@ namespace Worsen.Tests.Floor
                 }
                 else
                 {
+                    if (boundary == "room") fixture.Initialize(new System.Random(1337), true);
                     fixture.Manager.Collect(new EntityId(1), 101, PickupKind.Cake);
                     if (boundary == "room")
                     {
@@ -227,7 +229,7 @@ namespace Worsen.Tests.Floor
                 var displays = new List<FloorDisplaySnapshot>();
                 var restarts = 0;
                 fixture.Manager.OnDisplayChanged += snapshot => displays.Add(snapshot);
-                fixture.Initialize();
+                fixture.Initialize(new System.Random(1337), terminal == "hand");
                 fixture.Manager.Collect(new EntityId(1), 101, PickupKind.Cake);
                 Assert.That(fixture.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                 Action restart = () => { restarts++; fixture.Initialize(); };
@@ -328,6 +330,37 @@ namespace Worsen.Tests.Floor
             }
         }
 
+        [TestCase("exit")] [TestCase("disable")] [TestCase("destroy")]
+        [TestCase("inactive")] [TestCase("volume-disabled")] [TestCase("trigger-disabled")]
+        public void LegacyExitLastColliderDepartureCancelsHold(string departure)
+        {
+            using (var fixture = new LifecycleFixture())
+            {
+                fixture.Initialize();
+                var exit = fixture.Root.GetComponentInChildren<FloorExitVolume>();
+                var first = fixture.ContactCollider;
+                var second = first.gameObject.AddComponent<SphereCollider>();
+                int bails = 0;
+                fixture.Manager.OnEscapeResolved += (_, bailed) => { if (bailed) bails++; };
+                InvokeTrigger(exit, "OnTriggerEnter", first); InvokeTrigger(exit, "OnTriggerStay", second);
+                fixture.Manager.Tick(0.6f, 1); InvokeTrigger(exit, "OnTriggerExit", first);
+                fixture.Manager.Tick(0.4f, 2);
+                Assert.That(bails, Is.EqualTo(1), "The remaining collider keeps the hold alive.");
+
+                fixture.Initialize(); exit = fixture.Root.GetComponentInChildren<FloorExitVolume>();
+                InvokeTrigger(exit, "OnTriggerEnter", first); InvokeTrigger(exit, "OnTriggerEnter", second);
+                fixture.Manager.Tick(0.6f, 3); InvokeTrigger(exit, "OnTriggerExit", first);
+                if (departure == "exit") InvokeTrigger(exit, "OnTriggerExit", second);
+                else if (departure == "disable") second.enabled = false;
+                else if (departure == "destroy") Object.DestroyImmediate(second);
+                else if (departure == "inactive") first.gameObject.SetActive(false);
+                else if (departure == "volume-disabled") exit.enabled = false;
+                else exit.GetComponent<BoxCollider>().enabled = false;
+                fixture.Manager.Tick(1f, 4);
+                Assert.That(bails, Is.EqualTo(1));
+            }
+        }
+
         [Test]
         public void PhysicalBailReachesRunSummaryWithoutNormalOpeningOrGoldenCakes()
         {
@@ -425,9 +458,9 @@ namespace Worsen.Tests.Floor
 
             public void Initialize() => Initialize(new System.Random(1337));
 
-            public void Initialize(System.Random random)
+            public void Initialize(System.Random random, bool hazardRoom = false)
             {
-                Manager.Initialize(_config, new LevelFixture(), new IReadOnlyPlayerState[] { new PlayerFixture() }, random);
+                Manager.Initialize(_config, new LevelFixture(hazardRoom), new IReadOnlyPlayerState[] { new PlayerFixture() }, random);
             }
 
             public void Dispose()
@@ -446,10 +479,15 @@ namespace Worsen.Tests.Floor
         private sealed class LevelFixture : IReadOnlyLevelState
         {
             public bool IsReady => true;
-            public LevelGraph Graph { get; } = LevelGraphUtility.Build(
-                new[] { new LevelRoom(1, new Vector3(0f, 2f, 0f), new Vector3(8f, 4f, 8f)) },
-                new LevelEdge[0], new[] { new LevelAnchor(101, 1, CakeAnchorType.Flow, new Vector3(1f, 0f, 0f)) },
-                1, new Vector3(2f, 0f, 0f));
+            public LevelGraph Graph { get; }
+            public LevelFixture(bool hazardRoom = false)
+            {
+                var rooms = new List<LevelRoom> { new LevelRoom(1, new Vector3(0f, 2f, 0f), new Vector3(8f, 4f, 8f)) };
+                if (hazardRoom) rooms.Add(new LevelRoom(2, new Vector3(8f, 2f, 0f), new Vector3(8f, 4f, 8f)));
+                Graph = LevelGraphUtility.Build(rooms, hazardRoom ? new[] { new LevelEdge(1, 1, 2, true) } : new LevelEdge[0],
+                    new[] { new LevelAnchor(101, 1, CakeAnchorType.Flow, new Vector3(1f, 0f, 0f)) },
+                    hazardRoom ? 2 : 1, new Vector3(hazardRoom ? 8f : 2f, 0f, 0f));
+            }
         }
 
         private sealed class PlayerFixture : IReadOnlyPlayerState

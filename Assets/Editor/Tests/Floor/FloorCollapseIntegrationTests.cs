@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises generated visual pools, room clipping, pickups, and hand facts against live engine probes.
+//   Dedicated boundary overlaps, not visual hand positions, drive the registered actor.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -55,20 +56,26 @@ namespace Worsen.Tests.Floor
             }
         }
         [Test]
-        public void GoldenCakesRemainDuringCrackingAndTearingThenDisappearOnlyAtTheirMistFront()
+        public void GoldenCakesRemainUntilClosureThenPublishTheirLoss()
         {
             using (var fixture = new Fixture())
             {
                 fixture.Open(); fixture.Manager.Tick(6.5f, 1);
                 Assert.That(fixture.Driver.PickupAvailable(101), Is.True);
                 Assert.That(fixture.Driver.PickupAvailable(102), Is.True);
+                var losses = new List<int>();
+                fixture.Manager.OnCakeLost += (anchor, roomId, kind, tick) => losses.Add(anchor);
                 fixture.Manager.Tick(3.5f, 2);
-                Assert.That(fixture.Driver.PickupAvailable(102), Is.False, "Outer cake is overtaken first.");
-                Assert.That(fixture.Driver.PickupAvailable(101), Is.True, "Central cake remains accessible.");
+                Assert.That(fixture.Driver.PickupAvailable(102), Is.True, "Hands reach but only snatch on completion.");
+                Assert.That(fixture.Driver.PickupAvailable(101), Is.True);
                 fixture.Manager.Collect(fixture.Player.Id, 101, PickupKind.GoldenCake);
                 Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.EqualTo(1));
+                fixture.Manager.Tick(4f, 3);
                 fixture.Manager.Collect(fixture.Player.Id, 102, PickupKind.GoldenCake);
                 Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.EqualTo(1));
+                Assert.That(losses, Is.EqualTo(new[] { 102 }));
+                Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true)
+                    .Single(value => value.AnchorId == 102 && value.Kind == PickupKind.GoldenCake).gameObject.activeSelf, Is.False);
             }
         }
         [Test]
@@ -78,14 +85,18 @@ namespace Worsen.Tests.Floor
             {
                 fixture.Open(); fixture.Manager.Tick(8f, 1);
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
-                var hand = room.GetComponentsInChildren<Transform>(true).First(t => t.name == "Shadow Hand 0");
-                fixture.Player.Position = hand.position;
+                Assert.That(room.GetComponent<BoxCollider>().isTrigger, Is.True);
+                Assert.That(room.GetComponent<BoxCollider>().enabled, Is.True);
+                fixture.Move(fixture.Origin + Vector3.right * 6.25f);
                 var facts = new List<CollapseHandEventKind>(); int deaths = 0;
+                int noises = 0;
+                fixture.Manager.OnHandNoise += noise => { noises++; Assert.That(noise.Loudness, Is.GreaterThan(0f)); };
                 fixture.Manager.OnCollapseHand += fact =>
                 {
                     facts.Add(fact.Kind);
                     if (fact.Kind == CollapseHandEventKind.Hit)
                     {
+                        Assert.That(fact.ThrowVelocity, Is.EqualTo(Vector3.right * 8f));
                         fixture.Player.Health -= fact.Damage;
                         if (!fixture.Player.IsAlive) fixture.Manager.ConfirmCollapseDeath(fact.PlayerId, fact.RoomId);
                     }
@@ -96,6 +107,9 @@ namespace Worsen.Tests.Floor
                 fixture.Manager.Tick(1.4f, 4);
                 CollectionAssert.AreEqual(new[]{CollapseHandEventKind.Warning,CollapseHandEventKind.Grabbed,CollapseHandEventKind.Hit},facts);
                 Assert.That(fixture.Player.Health, Is.EqualTo(75f)); Assert.That(deaths, Is.Zero);
+                Assert.That(noises, Is.EqualTo(1));
+                Assert.That(fixture.Manager.ReadOnlyState.RoomHandPhases[1], Is.EqualTo(FloorHandPhase.Cooldown));
+                Assert.That(fixture.Manager.ReadOnlyState.RoomPhases[2], Is.EqualTo(RoomPhase.Open));
                 fixture.Player.Health = 25f;
                 fixture.Manager.Tick(2f, 5); fixture.Manager.Tick(0f, 6);
                 fixture.Manager.Tick(0.7f, 7); fixture.Manager.Tick(1.4f, 8);
@@ -112,20 +126,39 @@ namespace Worsen.Tests.Floor
             {
                 fixture.Open(); fixture.Manager.Tick(14f, 1);
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
-                Assert.That(fixture.Driver.QueryHand(fixture.Origin + new Vector3(6.1f,0f,0f)).Available, Is.False);
+                Assert.That(fixture.Driver.QueryHand(fixture.Origin + new Vector3(6.1f,0f,0f)).Available, Is.True);
                 Assert.That(fixture.Driver.QueryHand(fixture.Origin + new Vector3(0f,7.2f,0f)).Available, Is.False);
-                var hand = room.GetComponentsInChildren<Transform>(true).First(t => t.name == "Shadow Hand 0");
-                Vector3 target = hand.position + Vector3.right;
-                Assert.That(room.Probe(target,0).Available, Is.True);
+                Vector3 target = fixture.Origin + Vector3.right * 6.8f;
+                Assert.That(room.Probe(target,1).Available, Is.True);
                 var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 try
                 {
-                    wall.transform.position = hand.position + new Vector3(0.5f,0.6f,0f);
+                    wall.transform.position = fixture.Origin + new Vector3(6.4f,0.6f,0f);
                     wall.transform.localScale = new Vector3(0.2f,2f,2f);
                     Physics.SyncTransforms();
-                    Assert.That(room.Probe(target,0).Available, Is.False);
+                    Assert.That(room.Probe(target,1).Available, Is.False);
                 }
                 finally { Object.DestroyImmediate(wall); }
+            }
+        }
+        [Test]
+        public void BoundarySpringPublishesDuringCooldownAndDisabledActorReleasesGrab()
+        {
+            using (var fixture = new Fixture())
+            {
+                fixture.Open(); fixture.Manager.Tick(14f, 1);
+                fixture.Move(fixture.Origin + Vector3.right * 5.8f);
+                var accelerations = new List<Vector3>();
+                var facts = new List<CollapseHandEventKind>();
+                fixture.Manager.OnBoundaryContact += (id, room, acceleration, point, tick) => accelerations.Add(acceleration);
+                fixture.Manager.OnCollapseHand += fact => facts.Add(fact.Kind);
+                fixture.Manager.Tick(0f, 2);
+                fixture.Move(fixture.Origin + Vector3.right * 5f);
+                fixture.Manager.Tick(0.7f, 3);
+                Assert.That(accelerations[1].x, Is.GreaterThan(accelerations[0].x));
+                fixture.Actor.GetComponent<Collider>().enabled = false;
+                fixture.Manager.Tick(0.1f, 4);
+                Assert.That(facts.Last(), Is.EqualTo(CollapseHandEventKind.Escaped));
             }
         }
         private sealed class Fixture : IDisposable
@@ -135,6 +168,7 @@ namespace Worsen.Tests.Floor
             public readonly FloorManager Manager;
             public readonly FloorDriver Driver;
             public readonly PlayerView Player = new PlayerView();
+            public readonly GameObject Actor;
             private readonly FloorConfig _config;
             private readonly FloorDriverConfig _visual;
             public Fixture()
@@ -146,13 +180,19 @@ namespace Worsen.Tests.Floor
                 Driver = Root.AddComponent<FloorDriver>(); Manager = Root.AddComponent<FloorManager>();
                 typeof(FloorDriver).GetField("_config",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(Driver,_visual);
                 Player.Position = Origin;
-                var graph = LevelGraphUtility.Build(new[]{new LevelRoom(1,Origin+Vector3.up*3.5f,new Vector3(12f,7f,12f))},
-                    Array.Empty<LevelEdge>(),new[]{new LevelAnchor(101,1,CakeAnchorType.Flow,Origin),new LevelAnchor(102,1,CakeAnchorType.Flow,Origin+Vector3.right*4.4f)},1,Origin+Vector3.forward*4f);
+                Actor = new GameObject("Registered boundary player"); Actor.transform.position = Origin;
+                Actor.AddComponent<FloorLifecycleEntityHandle>(); Actor.AddComponent<CapsuleCollider>();
+                Actor.AddComponent<Rigidbody>().isKinematic = true;
+                var graph = LevelGraphUtility.Build(new[]{new LevelRoom(1,Origin+Vector3.up*3.5f,new Vector3(12f,7f,12f)),
+                    new LevelRoom(2, Origin + new Vector3(12f,3.5f,0f),new Vector3(12f,7f,12f))},
+                    new[]{new LevelEdge(1,1,2,true)},new[]{new LevelAnchor(101,1,CakeAnchorType.Flow,Origin),new LevelAnchor(102,1,CakeAnchorType.Flow,Origin+Vector3.right*4.4f)},2,Origin+Vector3.right*12f);
                 Root.SetActive(true); Manager.Initialize(_config,new LevelView(graph),new[]{Player},new System.Random(3));
             }
-            public void Open() { Manager.Collect(Player.Id,101,PickupKind.Cake);Manager.Collect(Player.Id,102,PickupKind.Cake); }
+            public void Move(Vector3 position) { Player.Position = position; Actor.transform.position = position; }
+            public void Open()
+            { Manager.Collect(Player.Id,101,PickupKind.Cake);Manager.Collect(Player.Id,102,PickupKind.Cake);Move(Origin+Vector3.right*12f); }
             public void Dispose()
-            { if(Manager!=null)Manager.Teardown();Object.DestroyImmediate(Root);Object.DestroyImmediate(_config);Object.DestroyImmediate(_visual); }
+            { if(Manager!=null)Manager.Teardown();Object.DestroyImmediate(Actor);Object.DestroyImmediate(Root);Object.DestroyImmediate(_config);Object.DestroyImmediate(_visual); }
         }
         private sealed class LevelView : IReadOnlyLevelState
         {

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Exercise native fake-light profiles through FloorDriver's public lifecycle.
 //   - Check visibility, brightness, source-profile preservation and teardown.
+//   - Consume the per-room warning cycle through encroaching, rather than a fixed global pulse.
 // DEPENDENCIES:
 //   NUnit, UnityEditor asset reads, UnityEngine, Core/Floor and DistantLands.Lumen.
 // USAGE NOTES:
@@ -79,13 +80,17 @@ namespace Worsen.Tests.Floor
                 Assert.That(exit.brightness, Is.EqualTo(0.3f));
                 Assert.That(exit.updateFrequency, Is.EqualTo(LumenEffectPlayer.UpdateFrequency.ViaScripting));
                 driver.ApplyRoomPhase(1, RoomPhase.Telegraph);
+                var sample = new RoomDestructionSample(1, RoomPhase.Telegraph, 0.1f, 1f, 0.25f);
+                driver.ApplyDestruction(sample, 0.15f);
                 driver.TickWarnings(0.15f);
                 Assert.That(warning.isActiveAndEnabled, Is.True);
                 Assert.That(warning.color, Is.EqualTo(config.WarningColor));
-                float expected = new FloorPresenter().WarningIntensity(0.15f, config.WarningPulsePeriod, config.WarningIntensity);
+                float expected = new RoomCollapsePresenter().Pulse(sample) * config.WarningIntensity;
                 Assert.That(warning.brightness, Is.EqualTo(expected).Within(0.0001f));
                 Assert.That(warning.transform.childCount, Is.GreaterThan(0), "Native fake layers are instantiated when visible.");
                 driver.ApplyRoomPhase(1, RoomPhase.Encroaching);
+                Assert.That(warning.gameObject.activeInHierarchy, Is.True, "Warning accelerates until closure.");
+                driver.ApplyRoomPhase(1, RoomPhase.Closed);
                 Assert.That(warning.gameObject.activeInHierarchy, Is.False);
                 Assert.That(warning.transform.childCount, Is.Zero, "Disabling releases vendor-generated meshes.");
                 driver.OpenExit(Array.Empty<LevelAnchor>());

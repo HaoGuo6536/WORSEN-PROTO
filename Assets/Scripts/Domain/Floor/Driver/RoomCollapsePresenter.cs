@@ -3,6 +3,8 @@
 // ============================================================================
 // PURPOSE:
 //   Calculates clipped fog advance, five-finger reveal, and deterministic surface fissures.
+//   Boundary planes and cake reach are independent of visual hand activation.
+//   Collapsing rooms use a boundary shell; only consumed rooms include their full interior.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -23,6 +25,32 @@ namespace Worsen.Domain.Floor
 {
     public sealed class RoomCollapsePresenter
     {
+        public FloorHandProbe BoundaryProbe(Bounds bounds, int roomId, RoomPhase phase, Vector3 feet,
+            float reach, int preferredFace = -1)
+        {
+            if (phase != RoomPhase.Tearing && phase != RoomPhase.Encroaching && phase != RoomPhase.Closed) return default;
+            if (feet.y < bounds.min.y || feet.y >= bounds.max.y ||
+                feet.x < bounds.min.x - reach || feet.x > bounds.max.x + reach ||
+                feet.z < bounds.min.z - reach || feet.z > bounds.max.z + reach) return default;
+            float[] depths = { feet.x - bounds.min.x, bounds.max.x - feet.x,
+                feet.z - bounds.min.z, bounds.max.z - feet.z };
+            Vector3[] normals = { Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
+            int face = preferredFace >= 0 && preferredFace < 4 ? preferredFace : 0;
+            if (preferredFace < 0)
+                for (int i = 1; i < depths.Length; i++) if (depths[i] < depths[face]) face = i;
+            if (phase != RoomPhase.Closed && depths[face] > reach) return default;
+            var point = feet + normals[face] * depths[face];
+            point.x = Mathf.Clamp(point.x, bounds.min.x, bounds.max.x);
+            point.z = Mathf.Clamp(point.z, bounds.min.z, bounds.max.z);
+            float distance = Mathf.Max(0f, -depths[face]);
+            return new FloorHandProbe(roomId, face, point, distance, distance <= reach,
+                normals[face], Mathf.Max(0f, depths[face]), phase == RoomPhase.Closed, feet);
+        }
+        public float Pulse(RoomDestructionSample sample) => sample.PulseRate > 0f
+            ? 0.5f + 0.5f * Mathf.Sin(sample.PulsePhase * Mathf.PI * 2f) : 0f;
+        public Vector3 CakeReach(Vector3 origin, Vector3 cake, RoomPhase phase, float progress)
+            => Vector3.Lerp(origin, cake, MistProgress(phase, progress));
+
         public float GripWeight(CollapseHandEventKind kind)
         {
             if (kind == CollapseHandEventKind.Grabbed || kind == CollapseHandEventKind.Consumed) return 100f;

@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Exposes collection and room facts without granting other systems mutation access.
+//   The extended collapse view exposes per-room hand phases without breaking legacy view implementers.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
@@ -31,5 +32,10 @@ namespace Worsen.Domain.Floor
         ExitState ExitState { get; }
         IReadOnlyDictionary<int, RoomPhase> RoomPhases { get; }
         IReadOnlyList<LevelAnchor> ActiveCakeAnchors { get; }
+    }
+
+    public interface IReadOnlyFloorCollapseState : IReadOnlyFloorState
+    {
+        IReadOnlyDictionary<int, FloorHandPhase> RoomHandPhases { get; }
     }
 }

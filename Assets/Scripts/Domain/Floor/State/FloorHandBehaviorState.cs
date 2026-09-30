@@ -2,7 +2,7 @@
 // FloorHandBehaviorState.cs
 // ============================================================================
 // PURPOSE:
-//   Retains one independently timed hand interaction per player and damage confirmation.
+//   Retains one independently timed boundary grab per player and one-shot Wax Ward charges.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -26,6 +26,7 @@ namespace Worsen.Domain.Floor
     public sealed class FloorHandBehaviorState
     {
         public readonly Dictionary<EntityId, FloorHandContactBehaviorState> Contacts = new Dictionary<EntityId, FloorHandContactBehaviorState>();
+        public readonly HashSet<EntityId> WaxWards = new HashSet<EntityId>();
     }
     public sealed class FloorHandContactBehaviorState
     {
@@ -34,6 +35,8 @@ namespace Worsen.Domain.Floor
         public int RoomId;
         public int HandId;
         public Vector3 Position;
+        public Vector3 Outward;
+        public Vector3 GrabOrigin;
         public bool AwaitingDamageResult;
         public long HitTick;
     }

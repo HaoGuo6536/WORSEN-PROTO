@@ -9,6 +9,7 @@
 //   Config (§4) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Tune deliberate locked-exit holds independently of cake-driven collapse.
+//   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -43,6 +44,20 @@ namespace Worsen.Domain.Floor
         [SerializeField, Min(1f)] private float _handDamage = 25f;
         [SerializeField, Min(0.2f)] private float _handReach = 1.7f;
         [SerializeField, Min(0.3f)] private float _handEscapeDistance = 2.1f;
+        [SerializeField, Min(0.1f)] private float _handThrowSpeed = 8f;
+        [SerializeField, Min(0f)] private float _boundaryContactAcceleration = 4f;
+        [SerializeField, Min(0.1f)] private float _boundarySpringAcceleration = 18f;
+        [SerializeField, Range(0f, 1f)] private float _handNoiseLoudness = 0.8f;
+        [SerializeField, Min(0.1f)] private float _warningPulseStartRate = 0.5f;
+        [SerializeField, Min(0.1f)] private float _warningPulseEndRate = 4f;
+        [SerializeField, Min(1f)] private float _fasterCollapseMultiplier = 1.5f;
+        public float HandThrowSpeed => _handThrowSpeed > 0f ? _handThrowSpeed : 8f;
+        public float BoundaryContactAcceleration => Mathf.Max(0f, _boundaryContactAcceleration);
+        public float BoundarySpringAcceleration => _boundarySpringAcceleration > 0f ? _boundarySpringAcceleration : 18f;
+        public float HandNoiseLoudness => Mathf.Clamp01(_handNoiseLoudness);
+        public float WarningPulseStartRate => _warningPulseStartRate > 0f ? _warningPulseStartRate : 0.5f;
+        public float WarningPulseEndRate => Mathf.Max(WarningPulseStartRate, _warningPulseEndRate > 0f ? _warningPulseEndRate : 4f);
+        public float FasterCollapseMultiplier => _fasterCollapseMultiplier >= 1f ? _fasterCollapseMultiplier : 1.5f;
         public float TearingDuration => _tearingDuration > 0f ? _tearingDuration : 2f;
         public float EncroachingDuration => _encroachingDuration > 0f ? _encroachingDuration : 6f;
         public float HandWarningDuration => _handWarningDuration > 0f ? _handWarningDuration : 0.7f;

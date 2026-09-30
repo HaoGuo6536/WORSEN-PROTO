@@ -11,6 +11,7 @@
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
 //   - Resolve door identities, cancel departed holds before timing, and present bails without rewards.
+//   - Publish cake loss, hand noise and rubber-band acceleration facts for upward routing.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -22,6 +23,9 @@
 //   Door integration must report locked contact and LeaveExit when its last player
 //   collider leaves. OnEscapeResolved carries (exit fact, bailed); consumers must
 //   use it instead of OnExitReached to preserve the penalty through run resolution.
+//   OnBoundaryContact carries player, room, outward acceleration (m/s squared),
+//   boundary point and tick. Player's motion owner must enforce the boundary; Floor
+//   never writes a foreign Transform or Rigidbody. Hit throw travels with OnCollapseHand.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -41,7 +45,7 @@ namespace Worsen.Domain.Floor
         private FloorBehaviorState _state;
         private FloorController _controller;
         private FloorHandController _hands;
-        public IReadOnlyFloorState ReadOnlyState => _state;
+        public IReadOnlyFloorCollapseState ReadOnlyState => _state;
         public event Action<PickupCollectedFact> OnPickupCollected;
         public event Action<RoomPhaseChangedFact> OnRoomPhaseChanged;
         public event Action<ExitReachedFact> OnExitReached;
@@ -52,9 +56,13 @@ namespace Worsen.Domain.Floor
         public event Action<CollapseHandFact> OnCollapseHand;
         public event Action<RoomDestructionSample> OnRoomDestruction;
         public event Action<int> OnOptionalRoomCracked;
+        public event Action<NoiseEvent> OnHandNoise;
+        public event Action<int, int, PickupKind, long> OnCakeLost;
+        public event Action<EntityId, int, Vector3, Vector3, long> OnBoundaryContact;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<FloorDriver>(); }
-        public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random, int requiredCakeCount = -1)
+        public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random,
+            int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false)
         {
             if (level == null || !level.IsReady) throw new InvalidOperationException("Floor requires a ready authored Level.");
             Teardown();
@@ -65,9 +73,9 @@ namespace Worsen.Domain.Floor
             try
             {
                 _controller = new FloorController(_state, _config, random);
-                _controller.Initialize(level.Graph, players, requiredCakeCount);
-                _hands = new FloorHandController(new FloorHandBehaviorState(), _config);
-                _driver.Initialize(level.Graph, _state.SelectedAnchors, Resolve);
+                _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse);
+                _hands = new FloorHandController(_state.Hands, _config);
+                _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance);
                 if (isActiveAndEnabled) OnEnable();
                 RefreshCue();
             }
@@ -137,8 +145,10 @@ namespace Worsen.Domain.Floor
         public bool CancelCollapseGrab(EntityId playerId)
         {
             if (_hands == null || !_hands.Cancel(playerId, _state.Tick, out var fact)) return false;
+            _hands.CopyRoomPhases(_state.MutableRoomHandPhases);
             _driver.ApplyHandFact(fact); OnCollapseHand?.Invoke(fact); return true;
         }
+        public bool ArmWaxWard(EntityId playerId) => _hands != null && _hands.ArmWaxWard(playerId);
         public bool TelegraphOptionalRoom(int roomId)
         {
             if (_controller == null || !_controller.TelegraphOptionalRoom(roomId)) return false;
@@ -198,6 +208,12 @@ namespace Worsen.Domain.Floor
                 if (!ReferenceEquals(owner, _controller)) return;
                 _driver.ApplyRoomPhase(fact.RoomId, fact.Phase);
             }
+            foreach (var loss in owner.DrainCakeLosses())
+            {
+                _driver.RemovePickup(loss.AnchorId, loss.Kind);
+                OnCakeLost?.Invoke(loss.AnchorId, loss.RoomId, loss.Kind, loss.Tick);
+                if (!ReferenceEquals(owner, _controller)) return;
+            }
         }
         private void TickDestruction(float dt)
         {
@@ -209,12 +225,27 @@ namespace Worsen.Domain.Floor
                 OnRoomDestruction?.Invoke(sample);
                 if (!ReferenceEquals(owner, _controller)) return;
             }
+            _driver.RefreshHandContacts();
             foreach (var player in _state.Players)
             {
                 if (player == null) continue;
                 _hands.Target(player.Id, out int roomId, out int handId);
-                var probe = _driver.QueryHand(player.Position, roomId, handId);
-                if (_hands.Tick(player.Id, player.IsAlive, probe, dt, _state.Tick, out var fact)) { _driver.ApplyHandFact(fact); OnCollapseHand?.Invoke(fact); }
+                var probe = _driver.QueryHand(player.Position, roomId, handId, player.Id);
+                bool changed = _hands.Tick(player.Id, player.IsAlive, probe, dt, _state.Tick, out var fact);
+                _hands.CopyRoomPhases(_state.MutableRoomHandPhases);
+                if (changed)
+                {
+                    // Emit once on entry, including grabs subsequently broken by Wax Ward.
+                    if (fact.Kind == CollapseHandEventKind.Warning) OnHandNoise?.Invoke(_hands.GrabNoise(fact));
+                    if (!ReferenceEquals(owner, _controller)) return;
+                    _driver.ApplyHandFact(fact); OnCollapseHand?.Invoke(fact);
+                }
+                if (!ReferenceEquals(owner, _controller)) return;
+                if (_state.Ended) return;
+                var boundary = _driver.QueryHand(player.Position, playerId: player.Id, closedOnly: true);
+                var acceleration = _hands.BoundaryAcceleration(boundary);
+                if (player.IsAlive && acceleration.sqrMagnitude > 0f)
+                    OnBoundaryContact?.Invoke(player.Id, boundary.RoomId, acceleration, boundary.Position, _state.Tick);
                 if (!ReferenceEquals(owner, _controller)) return;
             }
         }

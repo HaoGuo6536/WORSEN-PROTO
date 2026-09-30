@@ -9,6 +9,7 @@
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
+//   - Exclude the exit from collapse, accelerate warning pulses and snatch only remaining rewards.
 //   - Resolve uninterrupted locked-exit holds without collecting cakes or opening collapse.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
@@ -19,6 +20,8 @@
 //   the default preserves the authored-floor configuration without editing assets.
 //   Reads injected Player views only. Shared graph utility supplies directed distances to the exit; unreachable rooms close first and cannot contain required cakes.
 //   No persistent singleton or competing simulation tick is created.
+//   Faster/Shuffled Collapse are explicit default-off initialization hooks. Shuffle
+//   only permutes equal exit-distance shells, preserving a descending escape path.
 //   ContactExit begins a locked hold; LeaveExit cancels it. TickExitHold receives
 //   elapsed contact time once per simulation step and returns only bailed escapes.
 // ============================================================================
@@ -44,7 +47,8 @@ namespace Worsen.Domain.Floor
             _random = random ?? throw new ArgumentNullException(nameof(random));
         }
 
-        public void Initialize(LevelGraph graph, IReadOnlyList<IReadOnlyPlayerState> players, int requiredCakeCount = -1)
+        public void Initialize(LevelGraph graph, IReadOnlyList<IReadOnlyPlayerState> players, int requiredCakeCount = -1,
+            bool fasterCollapse = false, bool shuffledCollapse = false)
         {
             if (graph == null || players == null) throw new ArgumentNullException();
             RequirePositive(_config.CollapseInterval, nameof(_config.CollapseInterval));
@@ -56,6 +60,7 @@ namespace Worsen.Domain.Floor
                 if (!Finite(Weight(type)) || Weight(type) < 0f) throw new ArgumentException("Anchor weights must be finite and nonnegative.");
             Reset();
             _state.Graph = graph;
+            _state.FasterCollapse = fasterCollapse;
             _state.Players = players.ToArray();
             var distances = LevelGraphUtility.DistancesTo(graph, graph.ExitRoomId, TraversalAccess.Player);
             var reachable = new HashSet<int>();
@@ -74,6 +79,7 @@ namespace Worsen.Domain.Floor
                 .OrderBy(anchor => anchor.Id).ToList();
             if (candidates.Count < required)
                 throw new InvalidOperationException("Floor requires " + required + " weighted reachable anchors; graph has " + candidates.Count + ".");
+            _state.SpawnedAnchors.AddRange(candidates);
             while (_state.SelectedAnchors.Count < required)
             {
                 double total = candidates.Sum(anchor => (double)Weight(anchor.Type));
@@ -88,11 +94,31 @@ namespace Worsen.Domain.Floor
                 candidates.RemoveAt(selected);
             }
             _state.MutableActiveAnchors.AddRange(_state.SelectedAnchors);
-            var order = graph.Rooms.OrderByDescending(room => distances[room.Id] < 0 ? int.MaxValue : distances[room.Id])
+            foreach (var anchor in _state.SpawnedAnchors) _state.RemainingRewards.Add(anchor.Id, PickupKind.Cake);
+            foreach (var room in graph.Rooms)
+            {
+                _state.MutableRoomPhases.Add(room.Id, RoomPhase.Open);
+                _state.MutableRoomHandPhases.Add(room.Id, FloorHandPhase.Idle);
+            }
+            var order = graph.Rooms.Where(room => room.Id != graph.ExitRoomId)
+                .OrderByDescending(room => distances[room.Id] < 0 ? int.MaxValue : distances[room.Id])
                 .ThenBy(room => room.Id).ToArray();
+            if (shuffledCollapse)
+            {
+                for (int first = 0; first < order.Length;)
+                {
+                    int end = first + 1;
+                    while (end < order.Length && distances[order[end].Id] == distances[order[first].Id]) end++;
+                    for (int index = end - 1; index > first; index--)
+                    {
+                        int other = _random.Next(first, index + 1);
+                        var room = order[index]; order[index] = order[other]; order[other] = room;
+                    }
+                    first = end;
+                }
+            }
             for (int index = 0; index < order.Length; index++)
             {
-                _state.MutableRoomPhases.Add(order[index].Id, RoomPhase.Open);
                 double duration = _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration;
                 double start = index * Math.Max(_config.CollapseInterval, duration);
                 _state.CollapseStarts.Add(order[index].Id, start);
@@ -117,25 +143,30 @@ namespace Worsen.Domain.Floor
         {
             fact = default;
             if (!_state.IsReady || _state.Ended || !LivingPlayer(playerId)) return false;
-            var anchor = _state.SelectedAnchors.FirstOrDefault(value => value.Id == anchorId);
-            if (anchor.Id == 0 || _state.MutableRoomPhases[anchor.RoomId] == RoomPhase.Closed) return false;
+            var anchor = _state.SpawnedAnchors.FirstOrDefault(value => value.Id == anchorId);
+            if (anchor.Id == 0 || _state.MutableRoomPhases[anchor.RoomId] == RoomPhase.Closed ||
+                !_state.RemainingRewards.TryGetValue(anchorId, out var available) || available != kind) return false;
             if (kind == PickupKind.Cake)
             {
-                if (_state.ExitState != ExitState.Locked || !_state.CollectedCakes.Add(anchorId)) return false;
-                _state.CakeCount++;
+                if (!_state.CollectedCakes.Add(anchorId)) return false;
+                _state.RemainingRewards.Remove(anchorId);
+                bool required = _state.SelectedAnchors.Any(value => value.Id == anchorId);
+                if (required) _state.CakeCount++;
                 _state.MutableActiveAnchors.RemoveAll(value => value.Id == anchorId);
-                if (_state.CakeCount == _state.RequiredCakeCount)
+                if (_state.ExitState == ExitState.Locked && _state.CakeCount == _state.RequiredCakeCount)
                 {
                     CancelExitHolds();
                     _state.ExitState = ExitState.Open;
                     _state.CollapseElapsed = 0d;
                     _state.CueElapsed = _config.DirectionCueInterval;
+                    foreach (var selected in _state.SelectedAnchors) _state.RemainingRewards.Add(selected.Id, PickupKind.GoldenCake);
                 }
             }
             else if (kind == PickupKind.GoldenCake)
             {
                 if (_state.ExitState != ExitState.Open || !_state.CollectedGoldenCakes.Add(anchorId)) return false;
                 _state.GoldenCakeCount++;
+                _state.RemainingRewards.Remove(anchorId);
             }
             else return false;
             fact = new PickupCollectedFact(playerId, anchorId, kind, _state.CakeCount, _state.GoldenCakeCount, tick);
@@ -150,13 +181,27 @@ namespace Worsen.Domain.Floor
             _state.Tick = tick;
             _state.CueElapsed += dt;
             if (_state.ExitState != ExitState.Open) return facts;
-            _state.CollapseElapsed += dt;
+            _state.CollapseElapsed += dt * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
             while (_state.NextTransition < _state.Schedule.Count && _state.Schedule[_state.NextTransition].At <= _state.CollapseElapsed)
             {
                 var transition = _state.Schedule[_state.NextTransition++];
                 _state.MutableRoomPhases[transition.RoomId] = transition.Phase;
+                if (transition.Phase == RoomPhase.Closed)
+                    foreach (var anchor in _state.SpawnedAnchors.Where(value => value.RoomId == transition.RoomId))
+                        if (_state.RemainingRewards.TryGetValue(anchor.Id, out var kind))
+                        {
+                            _state.RemainingRewards.Remove(anchor.Id);
+                            _state.CakeLosses.Add(new FloorCakeLoss(anchor.Id, anchor.RoomId, kind, tick));
+                        }
                 facts.Add(new RoomPhaseChangedFact(transition.RoomId, transition.Phase, tick));
             }
+            return facts;
+        }
+
+        public IReadOnlyList<FloorCakeLoss> DrainCakeLosses()
+        {
+            var facts = _state.CakeLosses.ToArray();
+            _state.CakeLosses.Clear();
             return facts;
         }
 
@@ -199,8 +244,7 @@ namespace Worsen.Domain.Floor
                 if (!_state.ExitHolds.ContainsKey(id)) _state.ExitHolds.Add(id, 0d);
                 return false;
             }
-            if (_state.ExitState != ExitState.Open ||
-                _state.MutableRoomPhases[_state.Graph.ExitRoomId] == RoomPhase.Closed) return false;
+            if (_state.ExitState != ExitState.Open) return false;
             _state.Ended = true;
             CancelExitHolds();
             fact = new ExitReachedFact(id, tick);
@@ -245,20 +289,29 @@ namespace Worsen.Domain.Floor
 
         public bool TelegraphOptionalRoom(int roomId)
         {
-            return _state.IsReady && !_state.Ended && _state.MutableRoomPhases.TryGetValue(roomId, out var phase) &&
+            return _state.IsReady && !_state.Ended && roomId != _state.Graph.ExitRoomId && _state.MutableRoomPhases.TryGetValue(roomId, out var phase) &&
                 phase == RoomPhase.Open && _state.OptionalCrackedRooms.Add(roomId);
         }
 
         public RoomDestructionSample Destruction(int roomId)
         {
             if (!_state.IsReady || !_state.MutableRoomPhases.TryGetValue(roomId, out var phase)) return default;
+            if (!_state.CollapseStarts.ContainsKey(roomId)) return new RoomDestructionSample(roomId, RoomPhase.Open, 0f);
             double age = Math.Max(0d, _state.CollapseElapsed - _state.CollapseStarts[roomId]);
             float progress = 0f;
             if (phase == RoomPhase.Telegraph) progress = (float)(age / _config.TelegraphDuration);
             else if (phase == RoomPhase.Tearing) progress = (float)((age - _config.TelegraphDuration) / _config.TearingDuration);
             else if (phase == RoomPhase.Encroaching) progress = (float)((age - _config.TelegraphDuration - _config.TearingDuration) / _config.EncroachingDuration);
             else if (phase == RoomPhase.Closed) progress = 1f;
-            return new RoomDestructionSample(roomId, phase, Mathf.Clamp01(progress));
+            double duration = _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration;
+            bool warning = phase != RoomPhase.Open && phase != RoomPhase.Closed;
+            double warningAge = Math.Min(age, duration);
+            double slope = (_config.WarningPulseEndRate - _config.WarningPulseStartRate) / duration;
+            double cycles = _config.WarningPulseStartRate * warningAge + 0.5d * slope * warningAge * warningAge;
+            float rate = warning ? (float)(_config.WarningPulseStartRate + slope * warningAge) : 0f;
+            rate *= _state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f;
+            return new RoomDestructionSample(roomId, phase, Mathf.Clamp01(progress), rate,
+                warning ? (float)(cycles - Math.Floor(cycles)) : 0f);
         }
 
         public IReadOnlyPlayerState CuePlayer() => _state.Players.Where(player => player != null && player.IsAlive).OrderBy(player => player.Id.Value).FirstOrDefault();
@@ -270,6 +323,8 @@ namespace Worsen.Domain.Floor
             _state.CakeCount = 0; _state.GoldenCakeCount = 0; _state.RequiredCakeCount = 0;
             _state.ExitState = ExitState.Locked; _state.CollapseElapsed = 0d; _state.CueElapsed = 0d; _state.NextTransition = 0;
             _state.SelectedAnchors.Clear(); _state.MutableActiveAnchors.Clear(); _state.MutableRoomPhases.Clear();
+            _state.SpawnedAnchors.Clear(); _state.RemainingRewards.Clear(); _state.CakeLosses.Clear();
+            _state.MutableRoomHandPhases.Clear(); _state.Hands.Contacts.Clear(); _state.Hands.WaxWards.Clear(); _state.FasterCollapse = false;
             _state.CollectedCakes.Clear(); _state.CollectedGoldenCakes.Clear(); _state.Schedule.Clear(); _state.CollapseStarts.Clear(); _state.OptionalCrackedRooms.Clear();
             _state.Players = Array.Empty<IReadOnlyPlayerState>(); _state.Graph = null; _state.Display = default;
         }
