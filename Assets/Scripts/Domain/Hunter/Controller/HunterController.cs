@@ -11,7 +11,7 @@
 //   - Maintain observable sight, hearing, light and imperfect pursuit memory.
 //   - Plan committed goals, search routes, predictions and retreat behaviour.
 //   - Sequence archetype rules, mutations, habits, dormancy and temporary reactions.
-//   - Admit attack contacts only outside Player revival protection.
+//   - Admit lunge and silent body contacts only outside catch, reactions and revival protection.
 //   - Publish bounded movement decisions and Core attack/feedback facts.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
@@ -55,7 +55,7 @@ namespace Worsen.Domain.Hunter
         private IReadOnlyActiveEffects _effects;
         private readonly IHunterArchetypeController _archetype;
         private IHunterObservationRules ObservationRules => _archetype as IHunterObservationRules;
-        public bool Silent => ObservationRules?.Silent ?? false;
+        public bool Silent => (ObservationRules?.Silent ?? false) || _archetype is IHunterContactRules;
         public bool NeedsViewObservation => ObservationRules != null;
         public bool ArchetypeHeld => ObservationRules?.Hold ?? false;
         public bool PlayerRevivalProtected => _player is IReadOnlyPlayerRevivalState protection &&
@@ -573,6 +573,10 @@ namespace Worsen.Domain.Hunter
         { foreach (Bounds room in _state.UnavailableRooms) if (room.Contains(point)) return true; return false; }
         public void SetTraits(ProgressionTraits traits)
         {
+            // Legacy flags belong only to the default compatibility machinery. A
+            // borrowed legacy profile/prefab must not leak flags into a new module.
+            if (_profile.ArchetypeRules != null || _archetype.GetType() != typeof(Archetypes.Default.DefaultHunterController))
+                traits = ProgressionTraits.None;
             const ProgressionTraits rusher = ProgressionTraits.RusherLongStride | ProgressionTraits.RusherSecondWind | ProgressionTraits.RusherBloodScent;
             const ProgressionTraits lurker = ProgressionTraits.LurkerDarkAdaptation | ProgressionTraits.LurkerCrookedStep | ProgressionTraits.LurkerStolenSilence;
             const ProgressionTraits watcher = ProgressionTraits.WatcherLongMemory | ProgressionTraits.WatcherCuttingCorners | ProgressionTraits.WatcherUnquietGaze;
@@ -775,10 +779,19 @@ namespace Worsen.Domain.Hunter
             hit = default;
             if (PlayerRevivalProtected) return false;
             if (_state.StunRemaining > 0f || _state.SlipRemaining > 0f || _state.ReactionHeld || _state.BreakingDoor != 0 ||
-                ArchetypeHeld || Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
+                ArchetypeHeld || _state.CatchActive ||
                 target != _state.TargetId || !_player.IsAlive || !_state.IsActive) return false;
-            _state.LungeHitAccepted = true;
-            _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
+            if (_archetype is IHunterContactRules contact)
+            {
+                if (!contact.ContactReady) return false;
+                contact.CommitContact();
+            }
+            else
+            {
+                if (Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted) return false;
+                _state.LungeHitAccepted = true;
+                _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
+            }
             hit = new HunterHit(_state.Id, target, _profile.LungeDamage, _state.Tick, _state.Position);
             return true;
         }
