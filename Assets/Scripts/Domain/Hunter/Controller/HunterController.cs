@@ -15,6 +15,7 @@
 //   - Emit gated habit facts and validate run-long single-rule overrides without editing assets.
 //   - Bound prediction by observed motion and sight; budget walking travel separately from search.
 //   - Consult injected archetype rules without branching on specialised archetype names.
+//   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
@@ -56,6 +57,20 @@ namespace Worsen.Domain.Hunter
         private IReadOnlyInteractableSet _interactables;
         private IReadOnlyActiveEffects _effects;
         private readonly IHunterArchetypeController _archetype;
+        public bool Dormant => (_archetype as Archetypes.Ticking.IHunterDormancyRules)?.Dormant ?? false;
+        public void RefreshDormancy()
+        {
+            if (!Dormant) return;
+            _state.PursuitSuppressed = true; _state.RetreatRemaining = 0f; _state.ChaseActive = false;
+            _state.PlayerVisible = false; _state.PlayerHeard = false; _state.HasHint = false;
+            _state.BeliefConfidence = _state.BeliefInitialConfidence = 0f;
+            _state.LungePhase = HunterLungePhase.None; _state.PhaseSeconds = 0f; _state.AttackBecameActive = false;
+            _state.FiredRangedAttacks.Clear(); _state.Feedback.Clear();
+            _state.SearchActive = false; _state.SearchRoute.Clear(); _state.PendingNoiseDecision = false;
+            _state.DeliberationFactPending = false;
+            _state.DeliberationRemaining = 0f; _state.LightReactionRemaining = 0f; _state.LightMemoryRemaining = 0f;
+            _state.Action = HunterAction.Patrol; _state.SensorInitialized = false; _state.PlannedFacts = ulong.MaxValue;
+        }
         public IReadOnlyList<Vector3> ReplayPath => _archetype.ReplayPath;
         private HunterArchetypeContext ArchetypeContext => new HunterArchetypeContext(_state, _player, _level,
             _floor, _closedDoors, _interactables, _effects, _state.DeltaTime, _state.Tick,
@@ -114,6 +129,7 @@ namespace Worsen.Domain.Hunter
             _state.DuplicateIndex = 0;
             _archetype.Reset(ArchetypeContext);
             if (_archetype.NeverLoses) { _state.LossSeconds = float.PositiveInfinity; _state.LossDistance = float.PositiveInfinity; }
+            RefreshDormancy();
         }
         public bool ShouldProbe(long tick) => !_state.CatchActive && (!_state.SensorInitialized || tick % Math.Max(1, _profile.SensorIntervalTicks) == 0);
         public HunterTickResult Tick(SightProbe probe, float dt, long tick)
@@ -124,6 +140,7 @@ namespace Worsen.Domain.Hunter
             _state.AttackBecameActive = false;
             _state.Tick = tick; _state.DeltaTime = dt;
             _archetype.Tick(ArchetypeContext);
+            RefreshDormancy();
             UpdateFloorMemory(); // Consume removals even during a catch; never replay them afterward.
             if (_state.CatchActive)
                 return new HunterTickResult(_state.Position, 0f, HunterLungePhase.None, Vector3.zero, false, false, true);
@@ -143,6 +160,15 @@ namespace Worsen.Domain.Hunter
                 _state.Feedback.Clear(); return default;
             }
             _state.FootstepCooldown = Mathf.Max(0f, _state.FootstepCooldown - dt);
+            if (Dormant)
+            {
+                TrackRooms();
+                _archetype.TryMovement(out Vector3 dormantTarget, out float dormantSpeed);
+                bool holdDormant = dormantSpeed <= 0f || _state.ThresholdPauseRemaining > 0f;
+                _state.NavigationTarget = dormantTarget;
+                return new HunterTickResult(dormantTarget, holdDormant ? 0f : dormantSpeed,
+                    HunterLungePhase.None, Vector3.zero, false, false, holdDormant);
+            }
             _state.ScreamCooldown = Mathf.Max(0f, _state.ScreamCooldown - dt);
             UpdateLightTimers(dt);
             if (_state.PursuitSuppressed)
@@ -293,7 +319,7 @@ namespace Worsen.Domain.Hunter
         public IReadOnlyList<Bounds> UnavailableRooms => _state.UnavailableRooms;
         public float EffectiveAcceleration => Effective(HunterTunable.Acceleration);
         public float EffectiveTurnRate => Effective(HunterTunable.TurnRate);
-        public bool ActiveChase => _state.ChaseActive || _state.PlayerVisible;
+        public bool ActiveChase => !Dormant && (_state.ChaseActive || _state.PlayerVisible);
         public bool PreferEmergence => _profile.EmergenceBias && !ActiveChase && !_state.CatchActive &&
             _state.LungePhase == HunterLungePhase.None && (_state.Action == HunterAction.Stalk ||
             _state.Action == HunterAction.InvestigateHint || _state.Action == HunterAction.SearchLastKnown);
@@ -496,7 +522,7 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptRangedContact(EntityId target, int attackSerial, out HunterHit hit)
         {
             hit = default;
-            if (_profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
+            if (Dormant || _profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
                 attackSerial <= 0 || !_state.FiredRangedAttacks.Contains(attackSerial) || attackSerial > _state.AttackSerial || attackSerial < _state.AttackSerial - 8 ||
                 !_state.AcceptedRangedAttacks.Add(attackSerial)) return false;
             _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
@@ -575,7 +601,7 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptContact(EntityId target, out HunterHit hit)
         {
             hit = default;
-            if (_state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
+            if (Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
                 target != _state.TargetId || !_player.IsAlive || !_state.IsActive) return false;
             _state.LungeHitAccepted = true;
             _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
