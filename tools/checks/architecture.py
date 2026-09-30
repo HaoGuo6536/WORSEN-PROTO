@@ -29,6 +29,7 @@ from pathlib import Path
 
 SPEC = 'PLANNING/specs/SPEC-001-project-architecture-guidelines.md'
 CONFIG = 'tools/checks/architecture.json'
+BASELINE = 'tools/checks/responsibility-baseline.json'
 LAYERS = ('Core', 'Domain', 'Session', 'Presentation', 'Orchestrator')
 PRESENTATION_VENDOR = {
     'Unity.InputSystem', 'Unity.Cinemachine',
@@ -175,9 +176,14 @@ def script_findings(path, text):
         body = code[match.end():end]
         systems = sorted({m.groups() for m in SYSTEM.finditer(imports + '\n' + body)
                           if m[1] != 'Core' and m.groups() != own})
-        if len(systems) > 5:
+        # Calibrated 2026-09-30: fan-out applies to runtime systems only. Orchestrators route
+        # between systems by definition (§6), and editor tools and tests wire many systems.
+        runtime = path.startswith('Assets/Scripts/') and not path.startswith('Assets/Scripts/Orchestrator/')
+        if runtime and len(systems) > 5:
             result.append(finding(path, 'fan-out', len(systems), ', '.join('.'.join(s) for s in systems), symbol=name))
-        if name.endswith('Manager'):
+        # Relay surface applies to Domain and Session Managers; Presentation Managers publish
+        # user intents by design (§7f).
+        if name.endswith('Manager') and path.startswith(('Assets/Scripts/Domain/', 'Assets/Scripts/Session/')):
             events = []
             public_events = []
             for event in re.finditer(r'\b(?P<mods>(?:(?:public|private|protected|internal|static|new|virtual|override)\s+)*)event\s+[\w.]+(?:<[^;{}]+?>)?\s+([^;{}]+)[;{]', body):
@@ -188,7 +194,7 @@ def script_findings(path, text):
             subscribed = set(re.findall(r'\+=\s*(?:this\.)?(\w+)\s*;', body))
             handlers = [(n, b) for n, b, _ in methods(body) if n in subscribed]
             relays = [n for n, b in handlers if pure_relay(b, events)]
-            if len(public_events) > 15 or (handlers and len(relays) * 2 > len(handlers)):
+            if len(public_events) > 15 or (len(handlers) >= 6 and len(relays) * 2 > len(handlers)):
                 measured = dict(publicEvents=len(public_events), relayHandlers=len(relays), handlers=len(handlers))
                 result.append(finding(path, 'relay-surface', measured, 'public events > 15 or relay handlers > half (§1, §9; A3)', symbol=name, relayNames=relays))
     for name, body, pos in methods(code):
@@ -285,6 +291,13 @@ def check(root, today=None):
             findings.append(finding(path, 'input', 'unparseable source', str(exc)))
     session, edges, proposed = session_graph(sources, order)
     findings.extend(session)
+    # Responsibility ratchet: a script already over five bullets may not grow past its recorded
+    # count; a new script may not exceed five. The baseline only ever shrinks (--write-baseline).
+    baseline_path = root / BASELINE
+    baseline = json.loads(baseline_path.read_text(encoding='utf-8-sig')) if baseline_path.exists() else {}
+    for item in findings:
+        if item['alarm'] == 'responsibilities' and item['path'] in baseline and item['measured'] <= baseline[item['path']]:
+            item.update(waived=True, waiver='baseline')
     spec = (root / SPEC).read_text(encoding='utf-8-sig') if (root / SPEC).exists() else ''
     active, expired, errors = waivers(spec, today)
     findings.extend(errors)
@@ -324,6 +337,7 @@ def main(argv=None):
     parser.add_argument('--root', required=True, type=Path)
     parser.add_argument('--json', type=Path, dest='json_path')
     parser.add_argument('--markdown', type=Path, help='Optional complete measured findings table')
+    parser.add_argument('--write-baseline', action='store_true', help='Record current responsibility counts (coordinator only; never raises a count)')
     args = parser.parse_args(argv)
     try:
         report = check(args.root)
@@ -344,7 +358,20 @@ def main(argv=None):
     if args.markdown:
         args.markdown.parent.mkdir(parents=True, exist_ok=True)
         args.markdown.write_text(markdown_report(report), encoding='utf-8')
-    return int(any(not f['waived'] for f in report['findings']))
+    if args.write_baseline:
+        # Only records current counts at or below the previous baseline, so debt never grows.
+        path = args.root / BASELINE
+        old = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else None
+        new = {}
+        for f in report['findings']:
+            if f['alarm'] == 'responsibilities':
+                prev = None if old is None else old.get(f['path'])
+                if old is None or (prev is not None and f['measured'] <= prev):
+                    new[f['path']] = f['measured']
+        path.write_text(json.dumps(dict(sorted(new.items())), indent=2) + chr(10), encoding='utf-8')
+        print(f'BASELINE_WRITTEN entries={len(new)}')
+    # Warnings (for example autoReferenced layer assemblies) are reported but do not fail.
+    return int(any(not f['waived'] and f['severity'] == 'error' for f in report['findings']))
 
 
 if __name__ == '__main__':

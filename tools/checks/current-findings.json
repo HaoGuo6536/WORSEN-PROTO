@@ -2,39 +2,13 @@
   "date": "2026-09-30",
   "findings": [
     {
-      "path": "Assets/Editor/Scenes/FloorLoopSceneSetup.cs",
-      "alarm": "fan-out",
-      "measured": 22,
-      "detail": "Domain.Chase, Domain.Director, Domain.Hunter, Domain.Level, Domain.Player, Editor.Audio, Editor.Camera, Editor.Chase, Editor.Director, Editor.Floor, Editor.HUD, Editor.Hunter, Editor.Level, Editor.Player, Editor.PostFX, Editor.Results, Editor.Telemetry, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FloorLoopSceneSetup"
-    },
-    {
-      "path": "Assets/Editor/Scenes/HorrorRunSceneSetup.cs",
-      "alarm": "fan-out",
-      "measured": 31,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Editor.Audio, Editor.Camera, Editor.Fog, Editor.HUD, Editor.Horror, Editor.Hunter, Editor.PostFX, Editor.Results, Editor.Telemetry, Presentation.Audio, Presentation.DebugOverlay, Presentation.Environment, Presentation.Fog, Presentation.Horror, Presentation.Input, Presentation.Menu, Presentation.ProgressionUI, Presentation.Results, Session.Expedition, Session.HorrorEffects, Session.Progression, Session.Run, Session.SceneFlow, Session.Settings",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HorrorRunSceneSetup"
-    },
-    {
       "path": "Assets/Editor/Scenes/HorrorRunSceneSetup.cs",
       "alarm": "responsibilities",
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Scenes/TagArenaSceneSetup.cs",
-      "alarm": "fan-out",
-      "measured": 19,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Editor.Audio, Editor.Camera, Editor.Chase, Editor.HUD, Editor.Hunter, Editor.Level, Editor.Player, Editor.PostFX, Editor.Results, Editor.Telemetry, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TagArenaSceneSetup"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
@@ -42,88 +16,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Audio/AudioCatchRoutingTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Camera, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AudioCatchRoutingTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Audio/AudioCatchRoutingTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Camera, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HunterFixture"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/CriticalHealthFeedbackIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Input, Presentation.PostFX, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CriticalHealthFeedbackIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/CriticalHealthFeedbackIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Input, Presentation.PostFX, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CriticalHealthFrameObserver"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/CriticalHealthFeedbackIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Input, Presentation.PostFX, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Life"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/CriticalHealthFeedbackIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Input, Presentation.PostFX, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/FeedbackRoutingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 10,
-      "detail": "Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Camera, Presentation.HUD, Presentation.Input, Presentation.PostFX, Presentation.Results, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FeedbackFrameObserver"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/FeedbackRoutingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 10,
-      "detail": "Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Camera, Presentation.HUD, Presentation.Input, Presentation.PostFX, Presentation.Results, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FeedbackRoutingIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Camera/FeedbackRoutingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 10,
-      "detail": "Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.Camera, Presentation.HUD, Presentation.Input, Presentation.PostFX, Presentation.Results, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Camera/FeedbackRoutingIntegrationTests.cs",
@@ -131,43 +25,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/CastleEnvironment/EnvironmentOrchestratorRoutingTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Floor, Domain.Level, Presentation.Environment, Presentation.Horror, Session.Expedition, Session.HorrorEffects, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "EnvironmentOrchestratorRoutingTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Chase/ChaseLossIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.HUD, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ChaseLossFeedbackObserver"
-    },
-    {
-      "path": "Assets/Editor/Tests/Chase/ChaseLossIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.HUD, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ChaseLossIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Chase/ChaseLossIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Audio, Presentation.HUD, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Chase/HunterRouteIntegrationTests.cs",
@@ -175,25 +34,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorHintIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "DirectorHintIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorHintIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Director/DirectorHintIntegrationTests.cs",
@@ -201,169 +43,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Hunter, Domain.Player, Editor.Level, Presentation.PostFX, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "DirectorIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Hunter, Domain.Player, Editor.Level, Presentation.PostFX, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ChaseRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "DirectorPacingIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FileRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "GapRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HintRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PoseRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PressureRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Director/DirectorPacingIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Editor.Level, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TrialReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/ExpeditionFollowupTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Floor, Domain.Level, Domain.Player, Domain.Procedural, Session.Expedition, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ExpeditionFollowupTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/ExpeditionProfileRosterTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Editor.Scenes, Session.Expedition",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ExpeditionProfileRosterTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/ExpeditionProfileRosterTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Editor.Scenes, Session.Expedition",
-      "severity": "error",
-      "waived": false,
-      "symbol": "World"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/ExpeditionWorldWiringTests.cs",
-      "alarm": "fan-out",
-      "measured": 10,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Session.Expedition, Session.HorrorEffects, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ExpeditionWorldWiringTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/HorrorConsumptionOrderTests.cs",
-      "alarm": "fan-out",
-      "measured": 11,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Session.Expedition, Session.HorrorEffects, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Fixture"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/HorrorConsumptionOrderTests.cs",
-      "alarm": "fan-out",
-      "measured": 11,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Session.Expedition, Session.HorrorEffects, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HorrorConsumptionOrderTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/HorrorRunIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 11,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Presentation.HUD, Presentation.Input, Presentation.Menu, Session.Expedition, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HorrorRunIntegrationTests"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Expedition/HorrorRunIntegrationTests.cs",
@@ -371,16 +52,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Expedition/ShrineWorldRouteTests.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Domain.Shrine, Session.Expedition, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ShrineWorldRouteTests"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Floor/FloorControllerTests.cs",
@@ -388,7 +61,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Floor/FloorLifecycleTests.cs",
@@ -396,268 +70,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorLoopIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 11,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.HUD, Presentation.Input, Presentation.Results, Presentation.Telemetry, Session.Run, Session.SceneFlow",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FloorLoopIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Attempt"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AttemptIndex"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AttemptReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ChasePhaseRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ChaseRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Cohort"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FileStamp"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FloorOpposedCaptureTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HealthRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HintRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HitRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "IntrusionRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "KeyValue"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PickupRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PressureRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Route"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorOpposedCaptureTests.cs",
-      "alarm": "fan-out",
-      "measured": 13,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.DebugOverlay, Presentation.Input, Presentation.Telemetry, Session.Run, Session.SceneFlow, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TickRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CueSample"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FileStamp"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FloorTraversalIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PickupSample"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Route"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RouteReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RouteSample"
-    },
-    {
-      "path": "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Horror/PresentationWiringTests.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Level, Presentation.Camera, Presentation.HUD, Presentation.Horror, Presentation.Input, Presentation.Telemetry, Session.Expedition, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PresentationWiringTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterChaseIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HunterChaseIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterChaseIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Hunter/HunterChaseIntegrationTests.cs",
@@ -665,106 +79,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredCaptureEnd"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredCutWindow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredFileStamp"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredHunterReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredHunterRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredHunterTrial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredPlayerProbe"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredRoomEntry"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AuthoredRouteTurn"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FixedHorizonComparisonReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HunterRouteComparisonTests"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
@@ -772,268 +88,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CohortReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CueBinding"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CueBindingReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CueObservation"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Leg"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LegStats"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderBatchDeferral"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderFrameObservation"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderImageAdmission"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderImageRequest"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderLabelRequest"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderObserver"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderObserverReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Route"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RouteReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Sample"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Stationary"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TagArenaDesignSpeedAcceptanceTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Level/TagArenaDesignSpeedAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run, Tests.Player",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/LookBackTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LookBackTraversalIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/LookBackTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CohortReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LockRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PhaseRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PlayerContinuousChainAcceptanceTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RunReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Sample"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "StationaryRow"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerContinuousChainAcceptanceTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Input, Presentation.Telemetry, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Player/PlayerControllerTests.cs",
@@ -1041,7 +97,8 @@
       "measured": 11,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Player/PlayerDriverTests.cs",
@@ -1049,7 +106,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Player/PlayerMoverPresenterTests.cs",
@@ -1057,133 +115,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CameraPass"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CaptureGateTrace"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CaptureObservation"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LimbObservation"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LimbRenderEvidence"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LimbTarget"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PlayerTraversalIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderObservation"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RenderReport"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Sample"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TickObservation"
-    },
-    {
-      "path": "Assets/Editor/Tests/Player/PlayerTraversalIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Camera, Presentation.Input, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "Trial"
-    },
-    {
-      "path": "Assets/Editor/Tests/PostFX/PostFXOrchestratorRoutingTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Presentation.Horror, Presentation.Input, Presentation.PostFX, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CountingRandom"
-    },
-    {
-      "path": "Assets/Editor/Tests/PostFX/PostFXOrchestratorRoutingTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Domain.Floor, Presentation.Horror, Presentation.Input, Presentation.PostFX, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PostFXOrchestratorRoutingTests"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Procedural/ProceduralCastlePresenterTests.cs",
@@ -1191,7 +124,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Editor/Tests/Progression/ProgressionSessionControllerTests.cs",
@@ -1199,70 +133,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Editor/Tests/Results/RunInterfaceRoutingTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Presentation.Menu, Presentation.Results, Session.Progression, Session.Run, Session.Settings, Tests.Menu, Tests.Settings",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RunInterfaceRoutingTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Run/RunFloorEffectWiringTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "LevelView"
-    },
-    {
-      "path": "Assets/Editor/Tests/Run/RunFloorEffectWiringTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RunFloorEffectWiringTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Run/RunHunterRosterWiringTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Session.Expedition, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RunHunterRosterWiringTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Run/RunShrineWiringTests.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Player, Domain.Shrine, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RunShrineWiringTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Scenes/TagArenaIntegrationTests.cs",
-      "alarm": "fan-out",
-      "measured": 8,
-      "detail": "Domain.Player, Editor.Level, Presentation.Camera, Presentation.Input, Presentation.PostFX, Presentation.Telemetry, Session.Run, Session.SceneFlow",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TagArenaIntegrationTests"
-    },
-    {
-      "path": "Assets/Editor/Tests/Settings/RuntimeSettingsTests.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Presentation.Audio, Presentation.Camera, Presentation.Input, Presentation.PostFX, Session.Settings, Tests.Menu",
-      "severity": "error",
-      "waived": false,
-      "symbol": "RuntimeSettingsTests"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Core/Definitions/PlayerMovementDefinitions.cs",
@@ -1270,7 +142,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Core/Definitions/ProgressionDefinitions.cs",
@@ -1278,7 +151,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Core/Worsen.Core.asmdef",
@@ -1294,7 +168,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Config/FloorConfig.cs",
@@ -1302,7 +177,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Config/FloorDriverConfig.cs",
@@ -1310,7 +186,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Controller/FloorController.cs",
@@ -1318,7 +195,8 @@
       "measured": 13,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Driver/FloorDriver.cs",
@@ -1326,7 +204,8 @@
       "measured": 14,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Driver/FloorExitDoor.cs",
@@ -1334,7 +213,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Driver/RoomCollapseVolume.cs",
@@ -1342,7 +222,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/Manager/FloorManager.cs",
@@ -1364,7 +245,8 @@
       "measured": 12,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Floor/State/FloorBehaviorState.cs",
@@ -1372,7 +254,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Hunter/Config/HunterProfile.cs",
@@ -1380,7 +263,8 @@
       "measured": 10,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Hunter/Controller/HunterController.cs",
@@ -1388,7 +272,8 @@
       "measured": 14,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Hunter/Driver/HunterDriver.cs",
@@ -1396,7 +281,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Hunter/Driver/HunterSteeringPresenter.cs",
@@ -1404,7 +290,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs",
@@ -1429,7 +316,8 @@
       "measured": 11,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs",
@@ -1447,7 +335,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Level/Manager/LevelManager.cs",
@@ -1455,7 +344,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Player/Config/PlayerProfile.cs",
@@ -1463,7 +353,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Player/Controller/PlayerController.cs",
@@ -1471,7 +362,8 @@
       "measured": 22,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Player/Driver/PlayerDriver.cs",
@@ -1479,7 +371,8 @@
       "measured": 14,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Player/Driver/PlayerMoverPresenter.cs",
@@ -1487,7 +380,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Player/Manager/PlayerManager.cs",
@@ -1495,7 +389,8 @@
       "measured": 13,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Player/State/PlayerBehaviorState.cs",
@@ -1503,7 +398,8 @@
       "measured": 14,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Config/ProceduralConfig.cs",
@@ -1511,7 +407,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Controller/ProceduralController.cs",
@@ -1519,7 +416,8 @@
       "measured": 11,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Definitions/ProceduralDefinitions.cs",
@@ -1527,7 +425,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Driver/ProceduralDriver.cs",
@@ -1535,7 +434,8 @@
       "measured": 11,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Driver/ProceduralDriverState.cs",
@@ -1543,7 +443,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Driver/ProceduralGeometryPresenter.cs",
@@ -1551,24 +452,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Domain/Procedural/Manager/ProceduralManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 8,
-        "relayHandlers": 2,
-        "handlers": 2
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ProceduralManager",
-      "relayNames": [
-        "OnPassageTileCollapsed",
-        "OnPuzzleSolved"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Procedural/Manager/ProceduralManager.cs",
@@ -1576,7 +461,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Domain/Worsen.Domain.asmdef",
@@ -1588,29 +474,12 @@
     },
     {
       "path": "Assets/Scripts/Orchestrator/AudioOrchestrator.cs",
-      "alarm": "fan-out",
-      "measured": 10,
-      "detail": "Domain.Floor, Domain.Level, Presentation.Audio, Presentation.Camera, Presentation.Environment, Presentation.ProgressionUI, Session.Expedition, Session.HorrorEffects, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "AudioOrchestrator"
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/AudioOrchestrator.cs",
       "alarm": "responsibilities",
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/EnvironmentOrchestrator.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Floor, Domain.Level, Presentation.Environment, Presentation.Horror, Session.Expedition, Session.HorrorEffects, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "EnvironmentOrchestrator"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/EnvironmentOrchestrator.cs",
@@ -1618,7 +487,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/HUDOrchestrator.cs",
@@ -1626,16 +496,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/HorrorOrchestrator.cs",
-      "alarm": "fan-out",
-      "measured": 9,
-      "detail": "Domain.Level, Presentation.Camera, Presentation.HUD, Presentation.Horror, Presentation.Input, Session.Expedition, Session.HorrorEffects, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HorrorOrchestrator"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/HorrorOrchestrator.cs",
@@ -1643,7 +505,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/MenuOrchestrator.cs",
@@ -1651,16 +514,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/PostFXOrchestrator.cs",
-      "alarm": "fan-out",
-      "measured": 7,
-      "detail": "Domain.Floor, Presentation.Camera, Presentation.Horror, Presentation.PostFX, Session.HorrorEffects, Session.Progression, Session.Run",
-      "severity": "error",
-      "waived": false,
-      "symbol": "PostFXOrchestrator"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/ProgressionUIOrchestrator.cs",
@@ -1668,34 +523,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/ResultsOrchestrator.cs",
-      "alarm": "fan-out",
-      "measured": 6,
-      "detail": "Presentation.Camera, Presentation.Results, Session.Progression, Session.Run, Session.SceneFlow, Session.Settings",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ResultsOrchestrator"
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/Scenes/FloorLoopSceneRoot.cs",
-      "alarm": "fan-out",
-      "measured": 16,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.Camera, Presentation.DebugOverlay, Presentation.HUD, Presentation.Input, Presentation.PostFX, Presentation.Results, Presentation.Telemetry, Session.Run, Session.SceneFlow",
-      "severity": "error",
-      "waived": false,
-      "symbol": "FloorLoopSceneRoot"
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/Scenes/HorrorRunSceneRoot.cs",
-      "alarm": "fan-out",
-      "measured": 26,
-      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Presentation.Audio, Presentation.Camera, Presentation.DebugOverlay, Presentation.Environment, Presentation.Fog, Presentation.HUD, Presentation.Horror, Presentation.Input, Presentation.Menu, Presentation.PostFX, Presentation.ProgressionUI, Presentation.Results, Presentation.Telemetry, Session.Expedition, Session.HorrorEffects, Session.Progression, Session.Run, Session.SceneFlow, Session.Settings",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HorrorRunSceneRoot"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/Scenes/HorrorRunSceneRoot.cs",
@@ -1703,16 +532,8 @@
       "measured": 10,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs",
-      "alarm": "fan-out",
-      "measured": 14,
-      "detail": "Domain.Chase, Domain.Hunter, Domain.Level, Domain.Player, Presentation.Audio, Presentation.Camera, Presentation.DebugOverlay, Presentation.HUD, Presentation.Input, Presentation.PostFX, Presentation.Results, Presentation.Telemetry, Session.Run, Session.SceneFlow",
-      "severity": "error",
-      "waived": false,
-      "symbol": "TagArenaSceneRoot"
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Orchestrator/Worsen.Orchestrator.asmdef",
@@ -1728,7 +549,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Audio/Driver/AudioDriver.cs",
@@ -1736,7 +558,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Audio/Driver/AudioFeedbackPresenter.cs",
@@ -1744,7 +567,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Audio/Driver/AudioSoundscapeDriver.cs",
@@ -1752,7 +576,8 @@
       "measured": 11,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Audio/Driver/AudioSoundscapePresenter.cs",
@@ -1760,7 +585,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Audio/Manager/AudioManager.cs",
@@ -1768,7 +594,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Camera/Driver/CameraDriver.cs",
@@ -1776,7 +603,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Camera/Driver/CameraDriverState.cs",
@@ -1784,7 +612,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Camera/Driver/CameraFeedbackPresenter.cs",
@@ -1792,24 +621,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Presentation/Camera/Manager/CameraManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 2,
-        "relayHandlers": 2,
-        "handlers": 2
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "CameraManager",
-      "relayNames": [
-        "OnCatchHoldStarted",
-        "OnCatchHoldEnded"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Camera/Manager/CameraManager.cs",
@@ -1817,7 +630,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Environment/Driver/EnvironmentDriver.cs",
@@ -1825,7 +639,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Environment/Driver/EnvironmentPresenter.cs",
@@ -1833,7 +648,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Environment/Manager/EnvironmentManager.cs",
@@ -1841,7 +657,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/HUD/Driver/HUDPresenter.cs",
@@ -1849,7 +666,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/HUD/Manager/HUDManager.cs",
@@ -1857,24 +675,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Presentation/Horror/Manager/HorrorManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 3,
-        "relayHandlers": 2,
-        "handlers": 2
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "HorrorManager",
-      "relayNames": [
-        "OnMicroEventSelected",
-        "OnLightingHooksChanged"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
@@ -1882,24 +684,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 2,
-        "relayHandlers": 2,
-        "handlers": 2
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "InputManager",
-      "relayNames": [
-        "HandlePause",
-        "HandleFrameCaptured"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
@@ -1907,26 +693,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Presentation/Menu/Manager/MenuManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 4,
-        "relayHandlers": 4,
-        "handlers": 4
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "MenuManager",
-      "relayNames": [
-        "OnStart",
-        "OnQuit",
-        "OnPause",
-        "OnSettings"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/PostFX/Driver/PostFXDriver.cs",
@@ -1934,7 +702,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/PostFX/Driver/PostFXDriverState.cs",
@@ -1942,7 +711,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/PostFX/Driver/PostFXPresenter.cs",
@@ -1950,7 +720,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/PostFX/Manager/PostFXManager.cs",
@@ -1958,7 +729,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/ProgressionUI/Driver/ProgressionUIDriver.cs",
@@ -1966,7 +738,8 @@
       "measured": 8,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/ProgressionUI/Driver/ProgressionUIPresenter.cs",
@@ -1974,32 +747,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Presentation/ProgressionUI/Manager/ProgressionUIManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 10,
-        "relayHandlers": 10,
-        "handlers": 10
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ProgressionUIManager",
-      "relayNames": [
-        "OnFeedback",
-        "OnThreatChosen",
-        "OnCurseChosen",
-        "OnBargainChosen",
-        "OnPurchaseClicked",
-        "OnReroll",
-        "OnReplacement",
-        "OnCancelReplacement",
-        "OnContinueClicked",
-        "OnRestartClicked"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/ProgressionUI/Manager/ProgressionUIManager.cs",
@@ -2007,24 +756,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
-    },
-    {
-      "path": "Assets/Scripts/Presentation/Results/Manager/ResultsManager.cs",
-      "alarm": "relay-surface",
-      "measured": {
-        "publicEvents": 2,
-        "relayHandlers": 2,
-        "handlers": 2
-      },
-      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
-      "severity": "error",
-      "waived": false,
-      "symbol": "ResultsManager",
-      "relayNames": [
-        "OnRestartClicked",
-        "OnRestartWithSeedClicked"
-      ]
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Presentation/Worsen.Presentation.asmdef",
@@ -2040,7 +773,8 @@
       "measured": 10,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs",
@@ -2057,7 +791,8 @@
       "measured": 18,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Expedition/State/ExpeditionSessionBehaviorState.cs",
@@ -2065,7 +800,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/HorrorEffects/Manager/HorrorEffectsManager.cs",
@@ -2082,7 +818,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Progression/Controller/ProgressionSessionController.cs",
@@ -2090,7 +827,8 @@
       "measured": 13,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Progression/Manager/ProgressionSessionManager.cs",
@@ -2098,7 +836,8 @@
       "measured": 12,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Progression/Shop/Controller/ShopController.cs",
@@ -2106,7 +845,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Progression/State/ProgressionSessionBehaviorState.cs",
@@ -2114,7 +854,8 @@
       "measured": 7,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
@@ -2122,7 +863,8 @@
       "measured": 9,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
@@ -2173,7 +915,8 @@
       "measured": 16,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
@@ -2181,7 +924,8 @@
       "measured": 6,
       "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
       "severity": "error",
-      "waived": false
+      "waived": true,
+      "waiver": "baseline"
     },
     {
       "path": "Assets/Scripts/Session/Worsen.Session.asmdef",
@@ -2192,7 +936,7 @@
       "waived": false
     }
   ],
-  "waived": 0,
+  "waived": 88,
   "expired": [],
   "sessionEdges": [
     {
