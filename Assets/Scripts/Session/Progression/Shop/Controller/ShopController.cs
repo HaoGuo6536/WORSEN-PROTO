@@ -273,6 +273,13 @@ namespace Worsen.Session.Progression.Shop
         public int SelectionRerolls(IReadOnlyActiveEffects active) =>
             (int)Math.Min(int.MaxValue, (long)Stacks(active, "lucky-reroll") * rules.LuckyRerolls);
 
+        // Exit-only inventory loss; already activated effects (such as a ward) persist.
+        public void ClearConsumables()
+        {
+            state.Inventory.Clear(); state.RemainingUses.Clear();
+            state.SelectedSlot = 0; state.PendingOfferId = null;
+        }
+
 
         public int Interest(int wallet, IReadOnlyActiveEffects active) => Stacks(active, "interest") == 0 ? 0 :
             (int)Math.Min(int.MaxValue - wallet, Math.Min(rules.InterestCap, Math.Floor(wallet * (decimal)rules.InterestFraction)));
@@ -281,6 +288,7 @@ namespace Worsen.Session.Progression.Shop
         {
             if (!float.IsFinite(shrineMultiplier) || shrineMultiplier < 1f || shrineMultiplier > 2f) { credit = 0; return false; }
             decimal yield = ((decimal)baseValue + (decimal)Stacks(active, "golden-touch") * rules.GoldenTouchBonus)
+                * (Stacks(active, "gilded-greed") > 0 ? (decimal)rules.GildedGreedMultiplier : 1m)
                 * (1m + (decimal)rules.BusinessYieldPerStack * Stacks(active, "business-license"))
                 * (decimal)shrineMultiplier + state.GoldenRemainder;
             if (Math.Floor(yield) > int.MaxValue - wallet) { credit = 0; return false; }
@@ -304,6 +312,8 @@ namespace Worsen.Session.Progression.Shop
                 rules.GoldenTouchBonus < 0 || rules.InterestCap < 0 || rules.ExtraPedestals < 0 ||
                 float.IsNaN(rules.RoundPriceGrowth) || float.IsInfinity(rules.RoundPriceGrowth) || rules.RoundPriceGrowth < 0)
                 throw new ArgumentException("Invalid shop counts or round pricing.");
+            if (!float.IsFinite(rules.GildedGreedMultiplier) || rules.GildedGreedMultiplier < 1f)
+                throw new ArgumentException("Invalid Gilded Greed multiplier.");
             foreach (float value in new[] { rules.BargainDiscount, rules.LoyaltyDiscount,
                 rules.InterestFraction, rules.RefundFraction, rules.BusinessYieldPerStack })
                 if (float.IsNaN(value) || value < 0 || value > 1) throw new ArgumentException("Invalid shop economy fraction.");

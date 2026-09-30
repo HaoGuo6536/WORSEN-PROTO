@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Creates the approved effect catalogue after Unity has generated script metadata.
-//   It binds the existing Progression config without replacing its legacy content
+//   It binds the existing Progression config and migrates its run roster
 //   while migrating catalogue rows by identity to the approved code defaults.
 //   Retired ids are removed; unknown designer rows are retained.
 // ARCHITECTURAL ROLE:
@@ -46,11 +46,30 @@ namespace Worsen.Editor.Progression
                 AssetDatabase.SaveAssetIfDirty(catalogue);
             }
             AppendMissingEntries(progression.EffectCatalogue != null ? progression.EffectCatalogue : catalogue);
+            MigrateRunRoster(progression);
             if (progression.EffectCatalogue != null) return;
             var serialized = new SerializedObject(progression);
             serialized.FindProperty("_effectCatalogue").objectReferenceValue = catalogue;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssetIfDirty(progression);
+        }
+
+        public static void MigrateRunRoster(ProgressionConfig progression)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+                throw new InvalidOperationException("Roster migration requires idle Edit Mode.");
+            if (progression == null) throw new ArgumentNullException(nameof(progression));
+            var defaults = ScriptableObject.CreateInstance<ProgressionConfig>();
+            try
+            {
+                var serialized = new SerializedObject(progression);
+                var source = new SerializedObject(defaults);
+                serialized.CopyFromSerializedProperty(source.FindProperty("_threats"));
+                serialized.CopyFromSerializedProperty(source.FindProperty("_curses"));
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                if (AssetDatabase.Contains(progression)) AssetDatabase.SaveAssetIfDirty(progression);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(defaults); }
         }
 
         public static void AppendMissingEntries(EffectCatalogueConfig catalogue)
@@ -67,7 +86,7 @@ namespace Worsen.Editor.Progression
                 for (int i = 0; i < entries.arraySize;)
                 {
                     string id = entries.GetArrayElementAtIndex(i).FindPropertyRelative("_id").stringValue;
-                    if (id == "thin-skin" || id == "bail-bond" || ids.ContainsKey(id))
+                    if (ProgressionRosterUtility.Retired(id) || ids.ContainsKey(id))
                     { entries.DeleteArrayElementAtIndex(i); continue; }
                     ids.Add(id, i++);
                 }

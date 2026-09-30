@@ -25,6 +25,26 @@ namespace Worsen.Tests.Progression
     public sealed class EffectCatalogueSetupTests
     {
         [Test]
+        public void RunRosterMigrationIsIdempotentAndLeavesCadenceUntouched()
+        {
+            var config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            try
+            {
+                typeof(ProgressionConfig).GetField("_threats", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config,
+                    new[] { new ProgressionEntryConfig("watcher", "Old", "Old") });
+                int cadence = config.ShopInterval;
+                EffectCatalogueSetup.MigrateRunRoster(config);
+                Assert.That(config.Threats.Count, Is.EqualTo(10));
+                Assert.That(config.Threats.Any(entry => ProgressionRosterUtility.Retired(entry.Id)), Is.False);
+                Assert.That(config.Curses.All(entry => entry.Traits == ProgressionTraits.None), Is.True);
+                string first = EditorJsonUtility.ToJson(config);
+                EffectCatalogueSetup.MigrateRunRoster(config);
+                Assert.That(EditorJsonUtility.ToJson(config), Is.EqualTo(first));
+                Assert.That(config.ShopInterval, Is.EqualTo(cadence));
+            }
+            finally { Object.DestroyImmediate(config); }
+        }
+        [Test]
         public void MigrationReconcilesByIdRemovesRetiredAddsMissingAndIsIdempotent()
         {
             var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
@@ -35,10 +55,12 @@ namespace Worsen.Tests.Progression
                 var custom = new EffectCatalogueEntry("owner-custom", EffectKind.Upgrade, FearAxis.Agency, "Custom", "Adds a test rule.");
                 typeof(EffectCatalogueConfig).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(catalogue,
                     new[] { old, new EffectCatalogueEntry("thin-skin", EffectKind.Curse, FearAxis.Stakes, "Old", "Old"),
-                        new EffectCatalogueEntry("bail-bond", EffectKind.Upgrade, FearAxis.Stakes, "Old", "Old"), old, custom });
+                        new EffectCatalogueEntry("bail-bond", EffectKind.Upgrade, FearAxis.Stakes, "Old", "Old"),
+                        new EffectCatalogueEntry("watcher", EffectKind.Threat, FearAxis.Time, "Old", "Old"),
+                        new EffectCatalogueEntry("rusher-long-stride", EffectKind.Curse, FearAxis.Time, "Old", "Old"), old, custom });
                 EffectCatalogueSetup.AppendMissingEntries(catalogue);
                 Assert.That(catalogue.Entries.Select(e => e.Id).Distinct().Count(), Is.EqualTo(catalogue.Entries.Count));
-                Assert.That(catalogue.Entries.Any(e => e.Id == "thin-skin" || e.Id == "bail-bond"), Is.False);
+                Assert.That(catalogue.Entries.Any(e => ProgressionRosterUtility.Retired(e.Id)), Is.False);
                 Assert.That(catalogue.Entries.Single(e => e.Id == "owner-custom").CardCopy, Is.EqualTo(custom.CardCopy));
                 foreach (var expected in defaults.Entries)
                 {

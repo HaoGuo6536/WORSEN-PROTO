@@ -12,7 +12,7 @@
 //   - Delegate shop transactions and retain consumed Extra Life independently of purchases.
 //   - Resolve shrines, temporary effects and economy without mutating foreign state.
 //   - Grow Nothing??? stacks and the retained roster once per shop round.
-//   - Publish immutable effects and refill legacy health before each generation.
+//   - Publish type-wide catalogue effects, enforce roster gates and refill floor health.
 // DEPENDENCIES:
 //   - Own Config and BehaviorState; Core progression value contracts.
 //   - Delegated Progression.Shop controller/state/config; no foreign system state.
@@ -65,20 +65,17 @@ namespace Worsen.Session.Progression
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.random = random ?? throw new ArgumentNullException(nameof(random));
             ValidateConfig(config);
-            catalogue = config.EffectCatalogue;
+            catalogue = config.EffectCatalogue ?? shopCatalogue;
             this.shopCatalogue = catalogue ?? shopCatalogue;
-            if (!(this.shopCatalogue is null) && catalogue is null)
-            {
-                var legacyHunters = new List<string>();
-                foreach (var entry in config.Threats) legacyHunters.Add(entry.Id);
-                EffectCatalogueUtility.Validate(this.shopCatalogue, legacyHunters);
-            }
+
             shopRules = (config.ShopConfig ?? shopConfig)?.Rules ?? new ShopRules();
             events = new ProgressionEventController(state, config, this.shopCatalogue, new System.Random(0));
             shop = new ShopController(state.Shop, shopRules, this.shopCatalogue, new System.Random(0), config.NothingShopPriceMultiplier);
             shrines = new ShrineProgressionController(state.Shrines, config.ShrineConfig?.Rules ?? new ShrineProgressionRules(),
                 this.shopCatalogue, new System.Random(0));
-            var combined = new List<ProgressionEntryConfig>(config.Curses);
+            var combined = new List<ProgressionEntryConfig>();
+            foreach (var entry in config.Curses)
+                if (!ProgressionRosterUtility.Retired(entry.Id)) combined.Add(entry);
             if (!(catalogue is null))
             {
                 var hunters = new List<string>();
@@ -89,7 +86,7 @@ namespace Worsen.Session.Progression
                     var legacy = Find(config.Threats, entry.Id) ?? Find(config.Curses, entry.Id);
                     if (legacy != null && entry.Kind != LegacyKind(legacy))
                         throw new ArgumentException("Catalogue kind conflicts with legacy entry: " + entry.Id);
-                    if (entry.Kind == EffectKind.Curse && Find(combined, entry.Id) == null)
+                    if (entry.Kind == EffectKind.Curse && !ProgressionRosterUtility.Retired(entry.Id) && Find(combined, entry.Id) == null)
                         combined.Add(new ProgressionEntryConfig(entry.Id, entry.Title, entry.CardCopy));
                 }
             }
@@ -174,6 +171,13 @@ namespace Worsen.Session.Progression
         public bool CompleteFloor(int generationId)
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
+            // Evaluate floor-scoped curses before clearing Chance and event hazards.
+            if (Active().Has(new EffectId("spent-pockets")))
+            {
+                shop.ClearConsumables();
+                foreach (string id in new List<string>(state.ActiveEffectEntries.Keys))
+                    if (state.ActiveEffectEntries[id].Kind == EffectKind.Consumable) state.ActiveEffectEntries.Remove(id);
+            }
             events.EndCombatFloor();
             shrines.EndFloor();
             state.Wallet += shop.Interest(state.Wallet, Active());
@@ -291,7 +295,8 @@ namespace Worsen.Session.Progression
             resolution = default;
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
             if (!shrines.Resolve(generationId, state.Round, fact, state.Wallet, shieldCapacity, collectedFraction,
-                events.Combined(new ActiveEffects(state.ActiveEffectEntries.Values)), out resolution)) return false;
+                events.Combined(new ActiveEffects(state.ActiveEffectEntries.Values)), out resolution,
+                state.ExtraLifeConsumed)) return false;
             state.Wallet -= resolution.Cost;
             state.Revision++;
             return true;
@@ -506,7 +511,7 @@ namespace Worsen.Session.Progression
                 int stacks = state.ActiveEffectEntries.TryGetValue(entry.Id, out var active) ? active.StackCount : 0;
                 state.ActiveEffectEntries[entry.Id] = new ActiveEffect(new EffectId(entry.Id), kind, stacks + 1);
             }
-            state.Traits |= entry.Traits;
+            // Trait payloads remain a compatibility contract, never a run effect source.
             bool playerOwned = !(catalogue is null) && EffectCatalogueUtility.Find(catalogue, entry.Id) != null;
             state.MovementSpeedMultiplier = Clamp(state.MovementSpeedMultiplier * (playerOwned ? 1d : entry.MovementSpeedMultiplier),
                 config.MinimumMultiplier, config.MaximumMovementMultiplier);
@@ -563,6 +568,7 @@ namespace Worsen.Session.Progression
         private void BuildCurseChoices(string preferredThreat)
         {
             state.OfferedCurseIds.Clear();
+            if (curses.Count == 0) return;
             // Reuse the committed floor seed; UI reads and purchases never draw layout randomness.
             int offset = (int)(((long)(uint)state.RoundSeed + state.CurseRerollsUsed) % curses.Count);
             // Preserve a real map choice beside hunter-specific choices while both pools remain.
@@ -593,6 +599,8 @@ namespace Worsen.Session.Progression
 
         private bool EligibleEntry(ProgressionEntryConfig entry, EffectKind kind)
         {
+            if (ProgressionRosterUtility.Retired(entry.Id) ||
+                (kind == EffectKind.Threat && !ProgressionRosterUtility.Admits(entry.Id, state.Round))) return false;
             if (!string.IsNullOrEmpty(entry.RequiredThreatId) && !state.ActiveThreatIds.Contains(entry.RequiredThreatId)) return false;
             var data = EffectCatalogueUtility.Find(catalogue, entry.Id);
             return data == null ? kind != EffectKind.Curse || Count(entry.Id) == 0
@@ -648,7 +656,7 @@ namespace Worsen.Session.Progression
             ValidateCatalog(value.Curses, identifiers, false);
             ValidateCatalog(value.Offers, identifiers, true);
             foreach (ProgressionEntryConfig curse in value.Curses)
-                if (!string.IsNullOrEmpty(curse.RequiredThreatId) && Find(value.Threats, curse.RequiredThreatId) == null)
+                if (!ProgressionRosterUtility.Retired(curse.Id) && !string.IsNullOrEmpty(curse.RequiredThreatId) && Find(value.Threats, curse.RequiredThreatId) == null)
                     throw new ArgumentException("A curse requires a hunter missing from the threat catalog.", nameof(value));
         }
 
