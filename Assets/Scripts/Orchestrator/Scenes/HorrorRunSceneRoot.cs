@@ -14,6 +14,7 @@
 //   - Compose preferences and results with fresh or explicitly fixed seed selection.
 //   - Publish preferences and show the title before accepting a user start.
 // DEPENDENCIES:
+//   - SharedSceneRoot initializes common services and scopes audio catches.
 //   - Session Expedition/Progression/Run/SceneFlow/Settings, Domain factory/service APIs,
 //     and Presentation manager APIs. No game rules are implemented here.
 // USAGE NOTES:
@@ -117,15 +118,9 @@ namespace Worsen.Orchestrator
         {
             int runSeed = _useFixedSeed ? _seed : CreateRunSeed();
             _seed = runSeed;
-            _run = _run.Initialize(runSeed);
-            _sceneFlow = _sceneFlow.Initialize();
-            _input = _input.Initialize();
-            _inputRoute = _input.GetComponent<InputOrchestrator>();
-            _overlay = _overlay.Initialize();
-            _audio = _audio.Initialize();
-            _telemetry = _telemetry.Initialize();
-            _hud.Initialize(); _camera.Initialize(); _postFX.Initialize();
-            _camera.GetComponent<CameraOrchestrator>().Configure(_run, _camera);
+            SharedSceneRoot.InitializeGeneratedServices(runSeed,
+                ref _run, ref _sceneFlow, ref _input, ref _inputRoute, ref _overlay, ref _audio, ref _telemetry,
+                _hud, _camera, _postFX);
             _horror.Initialize(_horrorConfig); _progressionUI.Initialize();
             _progression = _progression.Initialize(_progressionConfig, runSeed);
 
@@ -144,7 +139,7 @@ namespace Worsen.Orchestrator
                 _useFixedSeed ? null : (Func<int>)CreateRunSeed, terminalResults: true);
             _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera, _expedition, _level, _hud);
             _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment, _level);
-            _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
+            SharedSceneRoot.ConfigureCatch(_audio, _camera, null, requireAudioRoute: true);
             // Exit rays need the level and the exit door visuals the FloorDriver uses.
             _environmentRoute.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals, _horror, _procedural);
             _inputRoute.ConfigureProgression(_progression);
@@ -184,11 +179,7 @@ namespace Worsen.Orchestrator
         private void OnDestroy()
         {
             if (_telemetry != null) _telemetry.GetComponent<TelemetryOrchestrator>()?.ConfigureHorror(null);
-            if (_audio != null)
-            {
-                _audio.GetComponent<AudioOrchestrator>()?.ClearCatch();
-                _audio.GetComponent<AudioOrchestrator>()?.ClearExpansion();
-            }
+            SharedSceneRoot.ClearCatch(null, _audio, clearExpansion: true);
             if (_assembled && _expedition != null) _expedition.ClearScene();
         }
     }
