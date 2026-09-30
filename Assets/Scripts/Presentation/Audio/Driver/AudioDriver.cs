@@ -21,6 +21,7 @@
 //   - Own, play and tear down two cue sources, footsteps and two loop sources.
 //   - Resolve the mirrored config and report unavailable clips before playback.
 //   - Preserve fractional health facts and reset voices across run changes and owner disable.
+//   - Forward live aggregate belief/proximity and retain music contact across floor replacement only.
 //
 // DEPENDENCIES:
 //   - Core CueId and MovementState; Unity Audio only, with no gameplay queries.
@@ -33,6 +34,7 @@
 //   - Presentation Update uses unscaled time; Session remains the gameplay tick owner.
 //   - Teardown destroys all created sources; disable stops playback immediately.
 //   - ResetRun replaces feedback state, rearming the sting on restart and capture reset.
+//   - Generation changes clear floor-local soundscape state, not expedition contact memory.
 //
 // ============================================================================
 
@@ -204,7 +206,7 @@ namespace Worsen.Presentation.Audio
         public void ObserveProgression(ProgressionSnapshot sample)
         {
             if (_feedback == null) return;
-            if (_feedbackState.Generation >= 0 && _feedbackState.Generation != sample.GenerationId && _soundscape != null) _soundscape.ResetRun();
+            if (_feedbackState.Generation >= 0 && _feedbackState.Generation != sample.GenerationId && _soundscape != null) _soundscape.ResetRun(true);
             _feedback.Progression(_feedbackState, sample); ApplyFeedback();
         }
         public void ObserveFlashlight(FlashlightSample sample) { if (_feedback == null) return; _feedback.Flashlight(_feedbackState, sample); ApplyFeedback(); }
@@ -222,17 +224,18 @@ namespace Worsen.Presentation.Audio
         public bool PlayCueAt(CueId cue, Vector3 position, float gain = 1f, int emitterId = 0) =>
             _soundscape != null ? _soundscape.Play(cue, position, gain, emitterId) : PlayCue(cue);
         public void SetThreat(int id, bool chasing, float closeness) { if (_soundscape != null) _soundscape.SetThreat(id, chasing, closeness); }
+        public void ObserveProximity(ProximitySample sample) { if (_soundscape != null) _soundscape.ObserveProximity(sample); }
         public void RemoveThreat(int id) { if (_soundscape != null) _soundscape.RemoveThreat(id); }
         public void SetAmbience(float openness, float collapse) { if (_soundscape != null) _soundscape.SetAmbience(openness, collapse); }
         public void SetListenerPosition(Vector3 position) { if (_soundscape != null) _soundscape.SetListenerPosition(position); }
         public void SetFootstepGain(float gain) { if (_soundscape != null) _soundscape.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_soundscape != null) _soundscape.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_soundscape != null) _soundscape.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun()
+        public void ResetRun(bool preserveMusicContact = false)
         {
             SetPaused(false);
             StopSources();
-            if (_soundscape != null) _soundscape.ResetRun();
+            if (_soundscape != null) _soundscape.ResetRun(preserveMusicContact);
             _feedbackState = new AudioFeedbackDriverState();
             if (_state == null) return;
             _presenter.Reset(_state);

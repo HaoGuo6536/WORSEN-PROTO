@@ -20,6 +20,7 @@
 //   - Supply the seeded cosmetic random source to music loss-episode decisions.
 //   - Stop gameplay loops immediately on death while preserving ambience and one-shots.
 //   - Release each stopped emitter's clip and loop state as well as its voice lease.
+//   - Replace aggregate chase snapshots so obsolete hunters cannot retain music belief.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -28,6 +29,8 @@
 //   Persistent tier, owned by the persistent AudioDriver; no global audio settings change.
 //   Own DriverConfig: AudioSoundscapeDriverConfig. All created children are destroyed on teardown.
 //   Portal occlusion must be pushed by the owning Manager; empty configuration produces visible missing-bank warnings.
+//   Floor reset retains only music contact/floor and the cosmetic random stream;
+//   full run reset clears them. AudioThreatSample.Chasing carries belief for live snapshots.
 //
 // ============================================================================
 
@@ -156,6 +159,12 @@ namespace Worsen.Presentation.Audio
         public void SetThreat(int id, bool chasing, float closeness)
         { if (_state != null) _state.Threats[id] = new AudioThreatSample { Chasing = chasing, Closeness = closeness }; }
         public void RemoveThreat(int id) { if (_state != null) _state.Threats.Remove(id); }
+        public void ObserveProximity(ProximitySample sample)
+        {
+            if (_state == null) return;
+            _state.Threats.Clear();
+            if (sample.Hunter.IsValid) SetThreat(sample.Hunter.Value, sample.HasBelief, sample.ActualCloseness);
+        }
         public void SetAmbience(float openness, float collapse)
         { if (_state != null) { _state.Openness = openness; _state.Collapse = collapse; } }
         public void SetListenerPosition(Vector3 position) { if (_state != null) _state.ListenerPosition = position; }
@@ -217,11 +226,14 @@ namespace Worsen.Presentation.Audio
                 for (int i = 0; i < _torches.Length; i++)
                     _torches[i].volume = _world.Slots[i].Gain * torch.Gain * _master * _state.RuntimeEffects * _config.AmbienceGain * (_world.Slots[i].AcrossPortal ? .5f : 1f);
         }
-        public void ResetRun()
+        public void ResetRun(bool preserveMusicContact = false)
         {
             if (_state == null) return;
-            StopSources(); _world = new AudioWorldDriverState(); _presenter.Reset(_state, _config.VoiceCount, new System.Random(76103));
-            _music = new AudioChaseMusicDriverState { ImpactPitch = _config.ImpactMinimumPitch };
+            StopSources(); _world = new AudioWorldDriverState();
+            _presenter.Reset(_state, _config.VoiceCount, preserveMusicContact ? _state.CosmeticRandom : new System.Random(76103));
+            _music = new AudioChaseMusicDriverState { ImpactPitch = _config.ImpactMinimumPitch,
+                HasContact = preserveMusicContact && _music.HasContact,
+                TensionGain = preserveMusicContact ? _music.TensionGain : 0f };
             if (_state.OwnerEnabled && isActiveAndEnabled) StartLayers();
         }
         private void Update()

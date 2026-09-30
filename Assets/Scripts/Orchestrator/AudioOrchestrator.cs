@@ -12,7 +12,8 @@
 //   - Route scene camera hold start to per-run catch sting admission, not PlayerDied.
 //   - Pair run, progression, effects, expedition and UI subscriptions symmetrically.
 //   - Preserve legacy cue fallback and feed rich threat layers in every scene.
-//   - Reset playback at capture start, then restore room and retained-health facts.
+//   - Replace aggregate threat facts, never accumulate nearest-hunter snapshots.
+//   - Reset floor playback at capture/end; retain contact only within an expedition.
 // DEPENDENCIES:
 //   - Core payloads; Session Run, Progression, HorrorEffects and Expedition.
 //   - Presentation Audio target, Camera catch, ProgressionUI feedback and Environment anchor publishers.
@@ -22,6 +23,8 @@
 //   the SceneRoot must call ClearExpansion before scene teardown.
 //   ConfigureCatch/ClearCatch separately scope the scene camera; disable unhooks it.
 //   Capture restores supplied Environment torch anchors after resetting playback.
+//   Run.Ended is floor-local in Expedition. Progression StartRun/Ended transactions
+//   reset contact memory; ordinary floor captures and generation changes do not.
 //   Optional-room cracks already arrive through
 //   the authoritative destruction stream and never receive a duplicate cue here.
 // ============================================================================
@@ -93,7 +96,8 @@ namespace Worsen.Orchestrator
             _run.PhaseChanged += OnPhase;
             _run.RoomPhaseChanged += OnRoom;
             if (_camera != null) _camera.CatchHoldStarted += OnCatchStarted;
-            if (_progression != null) _progression.SnapshotChanged += OnSnapshot;
+            if (_progression != null)
+            { _progression.SnapshotChanged += OnSnapshot; _progression.TransactionCommitted += OnTransaction; }
             if (_expedition != null) _expedition.RoomsReady += OnRooms;
             if (_ui != null) _ui.Feedback += OnUiFeedback;
             if (_effects == null) return;
@@ -123,7 +127,8 @@ namespace Worsen.Orchestrator
                 _run.RoomPhaseChanged -= OnRoom;
             }
             if (_camera != null) _camera.CatchHoldStarted -= OnCatchStarted;
-            if (_progression != null) _progression.SnapshotChanged -= OnSnapshot;
+            if (_progression != null)
+            { _progression.SnapshotChanged -= OnSnapshot; _progression.TransactionCommitted -= OnTransaction; }
             if (_expedition != null) _expedition.RoomsReady -= OnRooms;
             if (_ui != null) _ui.Feedback -= OnUiFeedback;
             if (_effects == null) return;
@@ -134,7 +139,7 @@ namespace Worsen.Orchestrator
         }
         private void OnCapture(RunCaptureMetadata metadata)
         {
-            _audio.ResetRun();
+            _audio.ResetRun(_progression != null);
             if (_expedition != null)
             {
                 _audio.SetRooms(_expedition.PresentationRooms);
@@ -148,17 +153,16 @@ namespace Worsen.Orchestrator
         }
         private void OnChase(ChaseFact fact)
         {
-            _audio.SetThreat(fact.Hunter.Value, true, 0f);
             if (_expedition == null) _audio.PlayCue(CueId.Detection);
         }
         private void OnChaseEnd(ChaseFact fact)
         {
-            _audio.RemoveThreat(fact.Hunter.Value);
+            _audio.ObserveProximity(default);
             if (_expedition == null && fact.EndReason == ChaseEndReason.Lost) _audio.PlayCue(CueId.Lose);
         }
         private void OnProximity(ProximitySample sample)
         {
-            _audio.SetThreat(sample.Hunter.Value, sample.InChase, sample.Closeness);
+            _audio.ObserveProximity(sample);
             if (_expedition == null) _audio.SetProximity(sample.Closeness);
         }
         private void OnHealth(EntityId id, float health, float maximum)
@@ -179,6 +183,11 @@ namespace Worsen.Orchestrator
         private void OnDestruction(RoomDestructionSample sample) { if (_expedition != null) _audio.ObserveRoom(sample); }
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _audio.SetRooms(rooms);
         private void OnSnapshot(ProgressionSnapshot snapshot) => _audio.ObserveProgression(snapshot);
+        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
+        {
+            if (operation == nameof(ProgressionSessionManager.StartRun) || current.Phase == ProgressionPhase.Ended)
+                _audio.ResetRun();
+        }
         private void OnFlashlight(FlashlightSample sample) => _audio.ObserveFlashlight(sample);
         private void OnUiFeedback(CueId cue) => _audio.PlayCue(cue);
         private void OnEcho(NoiseEvent fact) => _audio.PlayCueAt(CueId.Footstep, fact.Position, .25f, fact.Source.Value);
@@ -187,7 +196,11 @@ namespace Worsen.Orchestrator
         private void OnSpeed(float speed) => _audio.SetSpeedNormalized(speed);
         private void OnCatchStarted(EntityId player) => _audio.PlayCatchSting(player);
         private void OnPause(bool paused) => _audio.SetPaused(paused);
-        private void OnPhase(RunPhase phase) { if (phase == RunPhase.ExitOpen) _audio.PlayCue(CueId.ExitOpen); }
+        private void OnPhase(RunPhase phase)
+        {
+            if (phase == RunPhase.ExitOpen) _audio.PlayCue(CueId.ExitOpen);
+            if (phase == RunPhase.Ended) _audio.ResetRun(_progression != null && _progression.Snapshot.Phase != ProgressionPhase.Ended);
+        }
         private void OnRoom(RoomPhaseChangedFact fact)
         { if (_expedition == null && fact.Phase == RoomPhase.Telegraph) _audio.PlayCue(CueId.RoomTelegraph); }
     }
