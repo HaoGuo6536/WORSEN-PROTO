@@ -10,7 +10,7 @@
 //   DriverConfig (§7d) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Supply the Blind trap duration independently of effect catalogue lifetimes.
+//   - Supply Blind trap, Mirror Skin and brief Glimpse outline tuning.
 //   - Configure grace easing and exact catalogue ids that enable blindness.
 //   - Expose optional re-acquire blur and bounded effect strength.
 //   - Tune the text-free camcorder frame, constant degradation and timed intrusion/blindness.
@@ -31,6 +31,7 @@ namespace Worsen.Presentation.PostFX
     [CreateAssetMenu(fileName = "PostFXDriverConfig", menuName = "Worsen/PostFX/Driver Config")]
     public sealed class PostFXDriverConfig : ScriptableObject
     {
+        public const float DefaultMirrorSkinDurationMultiplier = 0.5f;
         [Header("Old camcorder (provisional)")]
         [SerializeField] private bool _camcorderEnabled = true;
         [SerializeField, Range(0f, 1f)] private float _camcorderCorners = 0.22f;
@@ -62,6 +63,15 @@ namespace Worsen.Presentation.PostFX
         public float TapeCriticalInjury => _tapeCriticalInjury;
 
         [SerializeField] private string[] _blindnessEffectIds = { "blinded" };
+        [Header("Presentation upgrades (provisional)")]
+        [SerializeField, Range(0f, 1f)] private float _mirrorSkinDurationMultiplier = DefaultMirrorSkinDurationMultiplier;
+        [SerializeField, Min(0f)] private float _glimpseSeconds = 0.65f;
+        [SerializeField, Range(0f, 0.1f)] private float _glimpseWidth = 0.025f;
+        [SerializeField] private Color _glimpseColor = new Color(0.55f, 0.7f, 0.8f, 0.35f);
+        public float MirrorSkinDurationMultiplier => _mirrorSkinDurationMultiplier;
+        public float GlimpseSeconds => _glimpseSeconds;
+        public float GlimpseWidth => _glimpseWidth;
+        public Color GlimpseColor => _glimpseColor;
         [SerializeField, Min(0f)] private float _blindTrapSeconds = 2.5f;
         public float BlindTrapSeconds => _blindTrapSeconds;
         [SerializeField, Range(-100f, 0f)] private float _graceSaturation = -35f;

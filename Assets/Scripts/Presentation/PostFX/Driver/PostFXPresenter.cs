@@ -10,9 +10,9 @@
 //   Presenter (§7b) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Preserve independent cleanse, revival, grace and runtime blur commands.
+//   - Preserve independent cleanse, revival, grace, Glimpse and runtime blur commands.
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
-//   - Expire optional blur and intrusion without clearing injury or proximity.
+//   - Apply Mirror Skin once to timed blindness; expire responses independently.
 //   - Keep catches visible: legacy consumption never fades to black.
 //   - Compose existing degradation with the independently timed camcorder frame.
 //
@@ -53,6 +53,8 @@ namespace Worsen.Presentation.PostFX
             state.ConsumptionElapsed = state.ConsumptionDuration = state.Blackout = state.Exposure = 0f;
             state.SceneTint = Color.white;
             state.LookBack = false;
+            state.GlimpseRemaining = 0f;
+            state.HunterRim = 0f;
             state.SubtleIntrusionRemaining = state.BlindnessRemaining = 0f;
             state.Proximity = state.Injury = state.IntrusionRemaining = state.BlurRemaining = 0f;
             state.Chromatic = state.Distortion = state.Vignette = state.Saturation = state.Grain = state.Blur = 0f;
@@ -61,12 +63,22 @@ namespace Worsen.Presentation.PostFX
 
         public void SetLookBack(PostFXDriverState state, PostFXDriverConfig config, bool held)
         {
+            if (!state.LookBack && held && state.ActiveEffects?.Has(new EffectId("glimpse")) == true)
+                state.GlimpseRemaining = Mathf.Max(0f, Finite(config.GlimpseSeconds));
+            if (!held) state.GlimpseRemaining = 0f;
             if (state.LookBack && !held) PlayReacquireBlur(state, config);
             state.LookBack = held;
         }
 
         public void SetProximity(PostFXDriverState state, float closeness)
             => state.Proximity = Mathf.Clamp01(Finite(closeness));
+
+        public void SetHunterRim(PostFXDriverState state, float strength)
+            => state.HunterRim = Mathf.Clamp01(Finite(strength));
+
+        public float OutlineStrength(PostFXDriverState state)
+            => state.LookBack && !state.Consumed && state.Injury < 1f && state.Blackout <= 0f
+                ? Mathf.Max(state.HunterRim, state.GlimpseRemaining > 0f ? 1f : 0f) : 0f;
 
         public void SetInjury(PostFXDriverState state, float currentHealth, float maxHealth)
         {
@@ -91,6 +103,8 @@ namespace Worsen.Presentation.PostFX
         public void SetBlindness(PostFXDriverState state, float seconds, PostFXDriverConfig config = null)
         {
             state.BlindnessRemaining = Mathf.Max(0f, Finite(seconds));
+            if (state.ActiveEffects?.Has(new EffectId("mirror-skin")) == true)
+                state.BlindnessRemaining *= config != null ? Mathf.Clamp01(Finite(config.MirrorSkinDurationMultiplier)) : PostFXDriverConfig.DefaultMirrorSkinDurationMultiplier;
             if (seconds != 0f || config == null || config.BlindnessEffectIds == null) return;
             foreach (string id in config.BlindnessEffectIds)
                 if (!string.IsNullOrWhiteSpace(id) && state.ActiveEffects?.Has(new EffectId(id)) == true)
@@ -100,6 +114,7 @@ namespace Worsen.Presentation.PostFX
         public void SetActiveEffects(PostFXDriverState state, IReadOnlyActiveEffects effects)
         {
             state.ActiveEffects = effects;
+            if (effects?.Has(new EffectId("glimpse")) != true) state.GlimpseRemaining = 0f;
             state.CleansedBlindness.RemoveWhere(id => effects == null || !effects.Has(id));
         }
 
@@ -144,6 +159,9 @@ namespace Worsen.Presentation.PostFX
         public void Tick(PostFXDriverState state, PostFXDriverConfig config, float dt)
         {
             dt = Mathf.Max(0f, Finite(dt));
+            state.GlimpseRemaining = state.LookBack && !state.Consumed && state.Injury < 1f
+                && state.ActiveEffects?.Has(new EffectId("glimpse")) == true
+                ? Mathf.Max(0f, state.GlimpseRemaining - dt) : 0f;
             state.IntrusionRemaining = Mathf.Max(0f, state.IntrusionRemaining - dt);
             state.SubtleIntrusionRemaining = Mathf.Max(0f, state.SubtleIntrusionRemaining - dt);
             state.BlindnessRemaining = Mathf.Max(0f, state.BlindnessRemaining - dt);

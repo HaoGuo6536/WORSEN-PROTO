@@ -10,13 +10,11 @@
 //   Manager (§1) · Presentation · PostFX (Service system).
 //
 // KEY RESPONSIBILITIES:
-//   - Forward targeted sensory cleansing and revival without resetting unrelated feedback.
-//   - Expose the configured Blind trap duration to the routing boundary.
-//   - Forward Run grace boundaries and the injected active-effects view.
-//   - Forward runtime blur enablement without changing the designer config.
-//   - Initialize the serialized Driver and mirrored config fallback.
-//   - Forward confirmed consumption with a duration supplied by the coordinator.
-//   - Forward budgeted intrusion and blindness hooks; pair Driver lifetime.
+//   - Forward independent cleanse, revival, grace and catch commands.
+//   - Expose Blind trap duration and forward injected effects and hunter-rim strength.
+//   - Forward runtime blur preferences without editing designer configuration.
+//   - Initialize and pair the owned Driver lifetime with mirrored config fallback.
+//   - Forward budgeted intrusion and timed blindness hooks.
 //
 // DEPENDENCIES:
 //   - Core read-only effects and grace facts; no gameplay implementation references.
@@ -61,6 +59,7 @@ namespace Worsen.Presentation.PostFX
 
         public void SetProximity(float closeness) { if (_initialized) _driver.SetProximity(closeness); }
         public void SetLookBack(bool held) { if (_initialized) _driver.SetLookBack(held); }
+        public void SetHunterRim(float strength) { if (_initialized) _driver.SetHunterRim(strength); }
         public void SetInjury(float currentHealth, float maxHealth) { if (_initialized) _driver.SetInjury(currentHealth, maxHealth); }
         public void PlayReacquireBlur() { if (_initialized) _driver.PlayReacquireBlur(); }
         public void SetReacquireBlurEnabled(bool enabled) { if (_initialized) _driver.SetReacquireBlurEnabled(enabled); }
