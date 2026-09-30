@@ -21,6 +21,7 @@ using Worsen.Session.Expedition;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionLightControllerTests
     {
         private static InteractableState Lamp(int id, bool lit = true) => new InteractableState(id,

@@ -22,6 +22,7 @@ using Worsen.Session.Expedition;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionHunterControllerTests
     {
         private sealed class Items : IReadOnlyInteractableSet
