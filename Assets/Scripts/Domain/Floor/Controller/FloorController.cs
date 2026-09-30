@@ -19,7 +19,8 @@
 // USAGE NOTES:
 //   Density mode ignores legacy requiredCakeCount overrides. Explicitly disabling
 //   density preserves authored count fixtures; only that mode spawns every eligible socket.
-//   Reads injected Player views only. Footprint cells establish room membership.
+//   Reads injected Player views only. Managed bounds math establishes cell membership.
+//   Pocket phases follow schedule order, not legacy serialized enum ordinals.
 //   Rooms without an exit route and flagged pockets remain dormant until activation;
 //   their delay uses the floor clock, independently of the cake-driven collapse clock.
 //   No persistent singleton or competing simulation tick is created.
@@ -84,7 +85,7 @@ namespace Worsen.Domain.Floor
                 Finite(value.Position.x) && Finite(value.Position.y) && Finite(value.Position.z)))
             foreach (var room in graph.Rooms)
             {
-                if (!room.ContainsXZ(player.Position) || !room.Cells.Any(cell => cell.Contains(player.Position))) continue;
+                if (!room.ContainsXZ(player.Position) || !room.Cells.Any(cell => FloorBoundsUtility.Contains(cell, player.Position))) continue;
                 foreach (var distance in LevelGraphUtility.TopologicalDistancesFrom(graph, room.Id, TraversalAccess.Player))
                     if (distance.Value >= 0) reachable.Add(distance.Key);
             }
@@ -173,7 +174,7 @@ namespace Worsen.Domain.Floor
                 !Finite(position.x) || !Finite(position.y) || !Finite(position.z) ||
                 _state.PuzzleRewards.ContainsKey(puzzleId) || _state.Graph.Anchors.Any(a => a.Id == anchorId) ||
                 _state.PuzzleRewards.Values.Any(a => a.Id == anchorId) || _state.PassageRewards.Contains(anchorId)) return false;
-            var rooms = _state.Graph.Rooms.Where(r => r.ContainsXZ(position) && r.Cells.Any(c => c.Contains(position))).ToArray();
+            var rooms = _state.Graph.Rooms.Where(r => r.ContainsXZ(position) && r.Cells.Any(c => FloorBoundsUtility.Contains(c, position))).ToArray();
             if (rooms.Length != 1) return false;
             _state.PuzzleRewards.Add(puzzleId, new LevelAnchor(anchorId, rooms[0].Id, CakeAnchorType.Risk, position));
             return true;
@@ -197,7 +198,7 @@ namespace Worsen.Domain.Floor
             if (!_state.IsReady || _state.Ended || anchor.Id == 0 || !_state.PocketRooms.Contains(anchor.RoomId) ||
                 _state.MutableRoomPhases[anchor.RoomId] == RoomPhase.Closed ||
                 !Finite(anchor.Position.x) || !Finite(anchor.Position.y) || !Finite(anchor.Position.z) ||
-                !_state.Graph.Rooms.Any(r => r.Id == anchor.RoomId && r.ContainsXZ(anchor.Position) && r.Cells.Any(c => c.Contains(anchor.Position))) ||
+                !_state.Graph.Rooms.Any(r => r.Id == anchor.RoomId && r.ContainsXZ(anchor.Position) && r.Cells.Any(c => FloorBoundsUtility.Contains(c, anchor.Position))) ||
                 _state.Graph.Anchors.Any(a => a.Id == anchor.Id) || _state.PuzzleRewards.Values.Any(a => a.Id == anchor.Id) ||
                 !_state.PassageRewards.Add(anchor.Id)) return false;
             _state.SpawnedAnchors.Add(anchor);
@@ -297,9 +298,13 @@ namespace Worsen.Domain.Floor
                 var phases = new[] { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed };
                 double[] thresholds = { 0d, _config.TelegraphDuration, _config.TelegraphDuration + _config.TearingDuration,
                     _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration };
+                int completed = Array.IndexOf(phases, _state.MutableRoomPhases[pocket.Key]);
                 for (int i = 0; i < phases.Length; i++)
-                    if (age >= thresholds[i] && _state.MutableRoomPhases[pocket.Key] < phases[i])
+                    if (age >= thresholds[i] && completed < i)
+                    {
                         ApplyTransition(pocket.Key, phases[i], tick, facts);
+                        completed = i;
+                    }
             }
             UpdateExitLock();
             return facts;
