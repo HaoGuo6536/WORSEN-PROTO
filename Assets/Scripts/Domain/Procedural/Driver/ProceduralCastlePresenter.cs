@@ -12,7 +12,7 @@
 //   - Preserve stepped visuals over one continuous ramp and two flush landing colliders.
 //   - Keep perimeter door circulation and lower bailout routes unobstructed.
 //   - Support interior slide lintels with grounded end piers instead of floating panels.
-//   - Keep authored furniture in the primary cell; extension cells remain open halls.
+//   - Build traversal furniture only in budgeted primary cells; leave safe rooms clear.
 // DEPENDENCIES:
 //   - Core traversal value types and this system's immutable layout/config data.
 // USAGE NOTES:
@@ -35,6 +35,7 @@ namespace Worsen.Domain.Procedural
             var blocks = new List<ProceduralBlock>();
             foreach (var module in layout.Modules)
             {
+                if (!module.TraversalObstacles) continue; // Safe rooms have no traversal gimmicks.
                 var room = ProceduralFootprintUtility.Volumes(layout, layout.Graph.Rooms[module.RoomId - 1])[0];
                 if (module.Kind == ProceduralModuleKind.OpenStairHall || module.Kind == ProceduralModuleKind.SplitLevelLibrary ||
                     module.Kind == ProceduralModuleKind.BrokenGallery)
