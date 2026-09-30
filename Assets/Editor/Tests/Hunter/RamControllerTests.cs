@@ -49,6 +49,16 @@ namespace Worsen.Tests.Hunter
         private void Advance(float dt) { _tick++; _ram.Tick(Context(dt)); }
         private List<RamFact> Facts() { var facts = new List<RamFact>(); while (_ram.TakeFact(out var fact)) facts.Add(fact); return facts; }
         private void Charge() { Advance(.1f); Advance(_ram.WindupSeconds); Advance(.1f); }
+        [TestCase(true)] [TestCase(false)]
+        public void ChargeHitClassifiesContactNormalAndSuppliesKnockback(bool glancing)
+        {
+            Charge(); var normal = glancing ? Vector3.right : Vector3.forward;
+            Assert.That(_ram.TryHit(_player.Id, normal, out var hit), Is.True);
+            Assert.That(hit.IsRam, Is.True); Assert.That(hit.Glancing, Is.EqualTo(glancing));
+            Assert.That(hit.ContactNormal, Is.EqualTo(normal));
+            Assert.That(hit.Knockback, Is.EqualTo(normal * _config.KnockbackSpeed));
+            Assert.That(_ram.TryHit(_player.Id, normal, out _), Is.False);
+        }
         [Test] public void StampPrecedesBellowAndHeadingStaysFixedThroughWarningAndCharge()
         {
             Advance(.1f); Assert.That(_ram.Phase, Is.EqualTo(RamPhase.Windup)); Assert.That(_ram.Motion, Is.EqualTo(Vector3.zero));

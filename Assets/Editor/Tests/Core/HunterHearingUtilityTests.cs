@@ -49,8 +49,7 @@ namespace Worsen.Tests.Core
         {
             foreach (var constructor in typeof(RunSummary).GetConstructors())
                 foreach (var parameter in constructor.GetParameters()) Assert.That(parameter.Name, Is.Not.EqualTo("bailed"));
-            Assert.That(new RunSummary(0, 0, 0, 0, 0, 0, RunEndReason.Escaped).Bailed, Is.False,
-                "Temporary Floor fixture compatibility property must never represent a bail.");
+            Assert.That(typeof(RunSummary).GetProperty("Bailed"), Is.Null);
         }
     }
 }

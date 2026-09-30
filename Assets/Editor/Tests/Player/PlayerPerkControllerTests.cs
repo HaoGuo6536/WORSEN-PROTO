@@ -58,6 +58,34 @@ namespace Worsen.Tests.Player
             => perks.ReceiveChase(new ChaseFact(id, state.Id, hunter, tick, phase));
         private bool Bounce(Vector3 normal) => perks.TryBodyRebound(hunter, normal, 3f, 14f, out _);
 
+        [Test]
+        public void MimicHoldTracksPerHunterDeadlinesAndDoesNotMistakePoseRemovalForBiteEnd()
+        {
+            var motion = MotionController(); state.RecoveryTickSeconds = .25f;
+            motion.ReceiveMimic(new MimicFact(hunter, state.Id, MimicFactKind.PoseRemoved, 0, Vector3.zero));
+            motion.ReceiveMimic(new MimicFact(hunter, state.Id, MimicFactKind.BiteStarted, 0, Vector3.zero, 2f));
+            var holds = (System.Collections.IDictionary)typeof(PlayerBehaviorState).GetField("MimicHolds", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(state);
+            Assert.That(holds[hunter], Is.EqualTo(8L));
+            motion.ReceiveMimic(new MimicFact(new EntityId(-2), state.Id, MimicFactKind.BiteStarted, 1, Vector3.zero, 3f));
+            motion.ReceiveMimic(new MimicFact(hunter, state.Id, MimicFactKind.BiteEnded, 1, Vector3.zero));
+            Assert.That(holds.Count, Is.EqualTo(1));
+            motion.ReceiveMimic(new MimicFact(hunter, state.Id, MimicFactKind.BiteStarted, 0, Vector3.zero, 20f));
+            Assert.That(holds.Contains(hunter), Is.False);
+        }
+
+        [Test]
+        public void HeraldRunningRestrictionRequiresTypedFlagAndUsesFactTickDeadline()
+        {
+            var motion = MotionController(); state.RecoveryTickSeconds = .25f;
+            long End() => (long)typeof(PlayerBehaviorState).GetField("PreventRunningEndTick", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(state);
+            motion.ReceiveHeraldDeafen(new HeraldDeafenFact(hunter, state.Id, 4, Vector3.zero, 9f, 0, 2f, false));
+            Assert.That(End(), Is.Zero);
+            motion.ReceiveHeraldDeafen(new HeraldDeafenFact(hunter, state.Id, 4, Vector3.zero, 9f, 0, 2f, true));
+            Assert.That(End(), Is.EqualTo(12));
+            motion.ReceiveHeraldDeafen(new HeraldDeafenFact(hunter, state.Id, 4, Vector3.zero, 9f, 0, 99f, true));
+            Assert.That(End(), Is.EqualTo(12));
+        }
+
         private PlayerController MotionController()
         {
             var profile = (PlayerProfile)FormatterServices.GetUninitializedObject(typeof(PlayerProfile));
@@ -128,6 +156,7 @@ namespace Worsen.Tests.Player
             Assert.That(fact.Kind, Is.EqualTo(TraversalKind.Rebound)); Assert.That(fact.Succeeded, Is.True);
             Assert.That(state.RecentNoises.Count, Is.EqualTo(1));
             Assert.That(state.RecentNoises[0].SourceKind, Is.EqualTo(NoiseSourceKind.Rebound));
+            Assert.That(state.RecentNoises[0].Origin, Is.EqualTo(NoiseOrigin.PlayerMovement));
             Assert.That(state.RecentNoises[0].Position, Is.EqualTo(state.Position));
         }
 

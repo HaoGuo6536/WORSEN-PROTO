@@ -87,7 +87,8 @@ namespace Worsen.Core
     public readonly struct FloorDisplaySnapshot
     {
         public FloorDisplaySnapshot(int collected, int required, int golden, ExitState exit, bool hasCue, Vector3 cueDirection,
-            float openingProgress = 0f, int totalCakes = 0, int totalGoldenCakes = 0, bool hiddenCount = false)
+            float openingProgress = 0f, int totalCakes = 0, int totalGoldenCakes = 0, bool hiddenCount = false,
+            int optionalGoldenCakeCount = 0)
         {
             Collected = collected;
             Required = required;
@@ -99,6 +100,7 @@ namespace Worsen.Core
             TotalCakes = totalCakes;
             TotalGoldenCakes = totalGoldenCakes;
             HiddenCount = hiddenCount;
+            OptionalGoldenCakeCount = optionalGoldenCakeCount;
         }
         public int Collected { get; }
         public int Required { get; }
@@ -110,5 +112,6 @@ namespace Worsen.Core
         public int TotalCakes { get; }
         public int TotalGoldenCakes { get; }
         public bool HiddenCount { get; }
+        public int OptionalGoldenCakeCount { get; }
     }
 }

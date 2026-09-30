@@ -90,6 +90,7 @@ namespace Worsen.Domain.Player
             _state.FootstepNoiseMultiplier = _state.ReboundCooldownMultiplier = _state.GrabSpeedMultiplier = 1f;
             _state.TrapSpeedMultiplier = 1f;
             _state.WebSpeedMultiplier = 1f; _state.WebSlowRemaining = 0f;
+            _state.MimicHolds.Clear(); _state.MimicTicks.Clear(); _state.HeraldTicks.Clear(); _state.PreventRunningEndTick = 0;
             _state.SlideTurnRateDegrees = _state.MovementDeltaTime = 0f;
             _state.PreviousHorizontalVelocity = Vector3.zero;
             _state.SprintSpeed = _profile.SprintSpeed;
@@ -159,6 +160,14 @@ namespace Worsen.Domain.Player
             }
             RegenerateHealth(deltaTime);
             ApplyLook(frame);
+            foreach (var hold in _state.MimicHolds)
+                if (hold.Value > tick)
+                {
+                    _state.Velocity = _state.PendingExternalVelocity; _state.PendingExternalVelocity = Vector3.zero;
+                    _state.MovementState = probe.Grounded ? MovementState.Ground : MovementState.Air;
+                    _state.VaultRemaining = 0f;
+                    return new PlayerTickResult(_state.Velocity * deltaTime, _state.Crouched, facts.ToArray());
+                }
             bool externalMotion = _state.PendingExternalVelocity.sqrMagnitude > 0f;
             if (externalMotion && _state.MovementState == MovementState.Vault)
             {
@@ -285,7 +294,7 @@ namespace Worsen.Domain.Player
             if (_state.Grounded && Horizontal(_state.Velocity).magnitude >= 0.5f
                 && _state.FootstepRemaining <= 0f && _state.MovementState != MovementState.Slide)
             {
-                bool sprinting = (frame.Held & InputButtons.Sprint) != 0;
+                bool sprinting = _state.Tick >= _state.PreventRunningEndTick && (frame.Held & InputButtons.Sprint) != 0;
                 AddNoise(sprinting ? _profile.SprintLoudness : _profile.WalkingLoudness * _state.FootstepNoiseMultiplier,
                     NoiseSourceKind.Footstep);
                 _state.FootstepRemaining = _profile.FootstepInterval;
@@ -355,7 +364,7 @@ namespace Worsen.Domain.Player
 
         private bool AchievedSprinting(InputProbeRecord record)
         {
-            if (!_state.IsAlive || _state.Crouched || _state.MovementState != MovementState.Ground
+            if (!_state.IsAlive || _state.Tick < _state.PreventRunningEndTick || _state.Crouched || _state.MovementState != MovementState.Ground
                 || !record.Resolution.Present || !record.Resolution.Grounded
                 || (record.Input.Held & InputButtons.Sprint) == 0) return false;
             Vector2 move = record.Input.Move;
@@ -405,6 +414,27 @@ namespace Worsen.Domain.Player
         { _state.ConsumableSpeedMultiplier = Finite(multiplier) ? Mathf.Max(1f, multiplier) : 1f; }
 
         public void ReceiveChase(ChaseFact fact) => _perks.ReceiveChase(fact);
+        public void ReceiveMimic(MimicFact fact)
+        {
+            if (fact.Player != _state.Id || !fact.Hunter.IsValid || fact.Tick < 0 ||
+                _state.MimicTicks.TryGetValue(fact.Hunter, out var last) && fact.Tick < last) return;
+            if (fact.Kind == MimicFactKind.BiteEnded)
+            { _state.MimicHolds.Remove(fact.Hunter); _state.MimicTicks[fact.Hunter] = fact.Tick; return; }
+            if (fact.Kind != MimicFactKind.BiteStarted || !Finite(fact.Seconds) || fact.Seconds <= 0f ||
+                !_state.IsAlive || _state.IsUngrabbable ||
+                _state.MimicTicks.TryGetValue(fact.Hunter, out last) && fact.Tick <= last) return;
+            _state.MimicTicks[fact.Hunter] = fact.Tick;
+            _state.MimicHolds[fact.Hunter] = checked(fact.Tick + (long)Math.Ceiling(fact.Seconds / _state.RecoveryTickSeconds));
+        }
+        public void ReceiveHeraldDeafen(HeraldDeafenFact fact)
+        {
+            if (fact.Player != _state.Id || !fact.Hunter.IsValid || fact.Tick < 0 || !fact.PreventsRunning ||
+                !Finite(fact.Duration) || fact.Duration <= 0f || !_state.IsAlive || _state.RevivalDamageImmune ||
+                _state.HeraldTicks.TryGetValue(fact.Hunter, out var last) && fact.Tick <= last) return;
+            _state.HeraldTicks[fact.Hunter] = fact.Tick;
+            _state.PreventRunningEndTick = Math.Max(_state.PreventRunningEndTick,
+                checked(fact.Tick + (long)Math.Ceiling(fact.Duration / _state.RecoveryTickSeconds)));
+        }
         public bool TakeHeartbeat(out NoiseEvent noise) => _perks.TakeHeartbeat(out noise);
         public bool TryLatchDoor(int roomId, int doorId) => _perks.TryLatchDoor(roomId, doorId);
 
@@ -753,7 +783,7 @@ namespace Worsen.Domain.Player
                 }
                 else
                 {
-                    float speed = (frame.Held & InputButtons.Sprint) != 0
+                    float speed = _state.Tick >= _state.PreventRunningEndTick && (frame.Held & InputButtons.Sprint) != 0
                         ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.ConsumableSpeedMultiplier * _state.HitBoostMultiplier;
                     if (_state.StumbleRemaining > 0f) speed *= _profile.StumbleSpeedMultiplier;
                     // Preserve a landing's retained momentum on its transition tick.
@@ -919,7 +949,7 @@ namespace Worsen.Domain.Player
         private void AddNoise(float loudness, NoiseSourceKind sourceKind)
         {
             Vector3 origin = sourceKind == NoiseSourceKind.Footstep ? _perks.FootstepOrigin() : _state.Position;
-            var noise = new NoiseEvent(_state.Id, origin, loudness, _state.Tick, sourceKind);
+            var noise = new NoiseEvent(_state.Id, origin, loudness, _state.Tick, sourceKind, NoiseOrigin.PlayerMovement);
             _state.NoiseRing[_state.NextNoiseIndex] = noise;
             _state.NextNoiseIndex = (_state.NextNoiseIndex + 1) % _state.NoiseRing.Length;
             _state.NoiseCount = Math.Min(_state.NoiseCount + 1, _state.NoiseRing.Length);

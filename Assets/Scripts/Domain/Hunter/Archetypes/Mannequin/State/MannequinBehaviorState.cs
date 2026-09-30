@@ -27,6 +27,8 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         internal int Room, FailureRoom, LampStacks = -1;
         internal long LastTick = -1;
         internal readonly HashSet<int> BrokenRooms = new HashSet<int>();
+        internal IReadOnlyActiveEffects Effects;
+        internal readonly Dictionary<int, float> Afterglow = new Dictionary<int, float>();
         internal readonly Queue<MannequinFact> Facts = new Queue<MannequinFact>();
     }
 }

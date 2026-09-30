@@ -603,6 +603,7 @@ namespace Worsen.Domain.Hunter
         }
         public bool HearNoise(NoiseEvent noise, float transmission, bool floorWide = false)
         {
+            if (!HunterHearingUtility.Allows(noise)) return false;
             if (!floorWide && (_archetype.OwnsPursuit || _state.PursuitSuppressed || noise.Tick > _state.Tick)) return false;
             if (!_state.IsActive || noise.Source == _state.Id || noise.Tick < 0 || _state.HeardNoises.Contains(noise) ||
                 !Finite(noise.Position) || !Finite(noise.Loudness) || !Finite(transmission)) return false;
@@ -852,7 +853,8 @@ namespace Worsen.Domain.Hunter
                 _state.ObservedPlayerVelocity = _player.Velocity;
             }
             if (_player.RecentNoises != null)
-                foreach (NoiseEvent noise in _player.RecentNoises) HearNoise(noise, 1f);
+                foreach (NoiseEvent noise in _player.RecentNoises)
+                    if (noise.SourceKind != NoiseSourceKind.Heartbeat) HearNoise(noise, 1f);
         }
 
         private void Observe(Vector3 position, long tick, float confidence)

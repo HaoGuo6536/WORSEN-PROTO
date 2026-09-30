@@ -63,6 +63,20 @@ namespace Worsen.Tests.Hunter
             _shared.CommitPose(Vector3.forward * 3, Vector3.forward, Vector3.forward);
             Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
         }
+        [Test]
+        public void AuthoritativeAfterglowProtectsOnlyItsRoomAndExpiresOrClearsWithEffect()
+        {
+            var effects = new ActiveEffects(new[] { new ActiveEffect(new EffectId("afterglow"), EffectKind.Upgrade, 1) });
+            _shared.SetActiveEffects(effects); _module.SetEffects(effects);
+            Assert.That(_module.BeginAfterglow(99), Is.EqualTo(_config.AfterglowSeconds));
+            Assert.That(Step().Speed, Is.GreaterThan(0));
+            Assert.That(_module.BeginAfterglow(1), Is.EqualTo(_config.AfterglowSeconds));
+            Assert.That(Step().HoldPosition, Is.True);
+            Assert.That(Step(dt: _config.AfterglowSeconds).Speed, Is.GreaterThan(0));
+            _module.BeginAfterglow(1); _shared.SetActiveEffects(default(ActiveEffects));
+            Assert.That(Step().Speed, Is.GreaterThan(0));
+            Assert.That(_module.BeginAfterglow(1), Is.Zero);
+        }
         [Test] public void DarknessPolicyCannotInvertAndWickAndMissingWorldStillHold()
         {
             Assert.That(_config.MovesInDarkness, Is.True);

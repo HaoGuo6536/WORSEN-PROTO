@@ -39,6 +39,10 @@ namespace Worsen.Domain.Floor
         internal readonly List<LevelAnchor> BonusGoldenAnchors = new List<LevelAnchor>();
         internal int TotalCakes;
         internal int TotalGoldenCakes;
+        public int OptionalGoldenCakeCount { get; internal set; }
+        internal IReadOnlyActiveEffects ActiveEffects;
+        internal readonly Dictionary<EntityId, BlinderTrapPolicyFact> BlinderPolicies = new Dictionary<EntityId, BlinderTrapPolicyFact>();
+        internal int AddedBlinderTraps;
         internal readonly Dictionary<int, LevelAnchor> PuzzleRewards = new Dictionary<int, LevelAnchor>();
         internal readonly HashSet<int> UnlockedPuzzleRewards = new HashSet<int>();
         internal readonly HashSet<int> PassageRewards = new HashSet<int>();

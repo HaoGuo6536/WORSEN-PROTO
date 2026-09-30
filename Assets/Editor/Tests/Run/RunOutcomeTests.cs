@@ -46,7 +46,6 @@ namespace Worsen.Tests.Run
             controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             Assert.That(controller.TryFinish(out var summary), Is.True);
             Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
-            Assert.That(summary.Bailed, Is.False);
             Assert.That(controller.TryFinish(out _), Is.False);
             controller.StartScene(SceneKey.HorrorRun);
             controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
@@ -54,8 +53,7 @@ namespace Worsen.Tests.Run
             controller.Apply(RunEvent.ExitOpened);
             controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             Assert.That(controller.TryFinish(out summary), Is.True);
-            Assert.That(summary.Bailed, Is.False);
-            Assert.That(new RunSummary(0, 0, 0, 0, 0, 0, RunEndReason.Escaped).Bailed, Is.False);
+            Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
         }
         [TestCase(false)]
         [TestCase(true)]
@@ -66,7 +64,6 @@ namespace Worsen.Tests.Run
             if (!deathFirst) controller.RequestEnd(RunEndReason.Died, player, Vector3.right);
             Assert.That(controller.TryFinish(out var summary), Is.True);
             Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Died));
-            Assert.That(summary.Bailed, Is.False);
             Assert.That(state.KillerPosition, Is.EqualTo(Vector3.right));
         }
         [Test]

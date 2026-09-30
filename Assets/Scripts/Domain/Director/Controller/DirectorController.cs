@@ -12,7 +12,7 @@
 //   - Maintain per-player heat, relief, target-compatible assignment, and bounded history.
 //   - Return delayed hints and one intrusion per qualifying slow episode.
 //   - Produce raw pressure observations without resetting gaps on hint emission.
-//   - Request seeded withdrawals after continuous pursuit; emit room regions and audible noises.
+//   - Request seeded withdrawals; project admitted noises without changing their provenance.
 // DEPENDENCIES:
 //   - Director state/config, Core hearing/topology and optional injected Level read-only view.
 // USAGE NOTES:
@@ -120,7 +120,7 @@ namespace Worsen.Domain.Director
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _closedDoors = doors; }
         public void HearNoise(NoiseEvent noise)
         {
-            if (!Finite(noise.Position) || float.IsNaN(noise.Loudness) || float.IsInfinity(noise.Loudness) ||
+            if (!HunterHearingUtility.Allows(noise) || !Finite(noise.Position) || float.IsNaN(noise.Loudness) || float.IsInfinity(noise.Loudness) ||
                 _state.Noises.Contains(noise) || _state.DeliveredNoises.Contains(noise)) return;
             _state.Noises.Add(noise);
         }
@@ -187,7 +187,7 @@ namespace Worsen.Domain.Director
             _state.DeliveredNoises.RemoveAll(noise => (tick - noise.Tick) * dt > _config.NoiseMaxAgeSeconds);
             foreach (var noise in _state.Noises)
             {
-                if (noise.Tick > tick || (tick - noise.Tick) * dt > _config.NoiseMaxAgeSeconds || RoomAt(noise.Position) == 0) continue;
+                if (!HunterHearingUtility.Allows(noise) || noise.Tick > tick || (tick - noise.Tick) * dt > _config.NoiseMaxAgeSeconds || RoomAt(noise.Position) == 0) continue;
                 foreach (var hunter in hunters)
                 {
                     if (!hunter.IsActive || hunter.HunterId == noise.Source || hunter.Hearing.ReferenceDistance <= 0f) continue;

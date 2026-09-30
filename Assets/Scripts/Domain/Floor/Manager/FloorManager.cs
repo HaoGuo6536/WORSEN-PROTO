@@ -60,6 +60,7 @@ namespace Worsen.Domain.Floor
         public event Action<NoiseEvent> OnHandNoise;
         public event Action<NoiseEvent> OnPickupNoise;
         public event Action<FloorTrapSprungFact> OnTrapSprung;
+        public event Action<BlinderHitFact> OnBlinderHit;
         public event Action<NoiseEvent> OnTrapNoise;
         public event Action<IReadOnlyList<GuidanceTarget>> OnGuidanceChanged;
         public event Action<int, int, PickupKind, long> OnCakeLost;
@@ -106,8 +107,15 @@ namespace Worsen.Domain.Floor
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
         {
             if (_guidance == null) return;
+            _controller.SetActiveEffects(effects);
             _guidance.SetActiveEffects(effects);
             RefreshCue();
+        }
+        public void ReceiveBlinderTrapPolicy(BlinderTrapPolicyFact fact)
+        {
+            if (_controller == null) return;
+            var added = _controller.ReceiveBlinderTrapPolicy(fact);
+            if (added.Count > 0) { _driver.SpawnTraps(added); RefreshCue(); }
         }
         public void ReceiveMimic(MimicFact fact)
         {
@@ -191,6 +199,8 @@ namespace Worsen.Domain.Floor
                 !owner.SpringTrap(playerId, trapId, _state.Tick, out var fact, out var noise)) return;
             _driver.RemoveTrap(trapId);
             OnTrapSprung?.Invoke(fact);
+            if (!ReferenceEquals(owner, _controller)) return;
+            if (owner.TryBlinderHit(fact, out var blind)) OnBlinderHit?.Invoke(blind);
             if (!ReferenceEquals(owner, _controller)) return;
             if (fact.Kind == FloorTrapKind.Announce) OnTrapNoise?.Invoke(noise);
         }

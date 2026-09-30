@@ -75,6 +75,15 @@ namespace Worsen.Domain.Hunter
             return Array.Empty<Vector3>();
         }
         public event Action<Collider> OnLungeContact;
+        public Vector3 ContactNormal(Collider other)
+        {
+            if (other == null || _capsule == null) return Vector3.zero;
+            if (Physics.ComputePenetration(other, other.transform.position, other.transform.rotation,
+                _capsule, _capsule.transform.position, _capsule.transform.rotation, out var normal, out _)) return normal;
+            Vector3 delta = other.bounds.center - _capsule.bounds.center;
+            delta.y = 0f;
+            return delta.normalized;
+        }
         public event Action<Collider, int> OnRangedContact;
         public event Action<int> OnRangedMiss;
         public event Action<HunterFeedbackEvent> OnAttackFeedback;

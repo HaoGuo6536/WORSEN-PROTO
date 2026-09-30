@@ -25,6 +25,10 @@ namespace Worsen.Domain.Hunter.Archetypes.Ram
         [SerializeField, Min(.01f)] private float _chargeDistance = 18f;
         [SerializeField, Min(.01f)] private float _staggerSeconds = 1.2f;
         [SerializeField, Min(.01f)] private float _strideMeters = 3f;
+        [SerializeField, Range(0f, 1f)] private float _glancingDotThreshold = .5f;
+        [SerializeField, Min(0f)] private float _knockbackSpeed = 8f;
+        public float GlancingDotThreshold => Mathf.Clamp01(_glancingDotThreshold);
+        public float KnockbackSpeed => Mathf.Max(0f, _knockbackSpeed);
         [SerializeField, Min(1f)] private float _longerChargeMultiplier = 1.25f;
         [SerializeField, Range(.1f, 1f)] private float _shorterWindupMultiplier = .8f;
         [SerializeField] private bool _partitionBreakerVariant = false;

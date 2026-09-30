@@ -301,6 +301,7 @@ namespace Worsen.Session.Run
             {
                 player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
                 player.OnShieldChanged += HandleShield;
+                player.OnHeartbeat += HandleHeartbeat;
                 player.OnGraceStarted += HandleGraceStarted; player.OnGraceEnded += HandleGraceEnded;
                 player.OnTraversalProgress += HandleTraversalProgress; player.OnStumbled += HandleStumbled;
             }
@@ -320,6 +321,7 @@ namespace Worsen.Session.Run
                 floor.OnHandNoise += HandlePickupNoise;
                 floor.OnTrapNoise += HandleTrapNoise;
                 floor.OnTrapSprung += HandleTrapSprung;
+                floor.OnBlinderHit += HandleBlinderHit;
                 floor.OnGuidanceChanged += HandleGuidance;
                 floor.OnBoundaryContact += HandleBoundaryContact;
                 floor.OnCakeLost += HandleCakeLost;
@@ -347,6 +349,7 @@ namespace Worsen.Session.Run
                 {
                     player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath;
                     player.OnShieldChanged -= HandleShield;
+                    player.OnHeartbeat -= HandleHeartbeat;
                     player.OnGraceStarted -= HandleGraceStarted; player.OnGraceEnded -= HandleGraceEnded;
                     player.OnTraversalProgress -= HandleTraversalProgress; player.OnStumbled -= HandleStumbled;
                 }
@@ -366,6 +369,7 @@ namespace Worsen.Session.Run
                 floor.OnHandNoise -= HandlePickupNoise;
                 floor.OnTrapNoise -= HandleTrapNoise;
                 floor.OnTrapSprung -= HandleTrapSprung;
+                floor.OnBlinderHit -= HandleBlinderHit;
                 floor.OnGuidanceChanged -= HandleGuidance;
                 floor.OnBoundaryContact -= HandleBoundaryContact;
                 floor.OnCakeLost -= HandleCakeLost;
@@ -390,6 +394,7 @@ namespace Worsen.Session.Run
             hunter.OnArchetypeFact += HandleHunterArchetype; hunter.OnHabit += HandleHunterHabit;
             hunter.OnMutation += HandleHunterMutation; hunter.OnWeaverFact += HandleWeaver;
             hunter.OnWebHit += HandleWebHit;
+            hunter.OnBodyContact += HandleBodyContact;
             hunter.OnRamFact += HandleRam; hunter.OnSkipFact += HandleSkip; hunter.OnMimicFact += HandleMimic;
             hunter.OnBlinderHit += HandleBlinderHit; hunter.OnBlinderThrow += HandleBlinderThrow;
             hunter.OnBlinderSound += HandleBlinderSound; hunter.OnBlinderTrapPolicy += HandleBlinderTrapPolicy;
@@ -406,6 +411,7 @@ namespace Worsen.Session.Run
             hunter.OnArchetypeFact -= HandleHunterArchetype; hunter.OnHabit -= HandleHunterHabit;
             hunter.OnMutation -= HandleHunterMutation; hunter.OnWeaverFact -= HandleWeaver;
             hunter.OnWebHit -= HandleWebHit;
+            hunter.OnBodyContact -= HandleBodyContact;
             hunter.OnRamFact -= HandleRam; hunter.OnSkipFact -= HandleSkip; hunter.OnMimicFact -= HandleMimic;
             hunter.OnBlinderHit -= HandleBlinderHit; hunter.OnBlinderThrow -= HandleBlinderThrow;
             hunter.OnBlinderSound -= HandleBlinderSound; hunter.OnBlinderTrapPolicy -= HandleBlinderTrapPolicy;
@@ -442,11 +448,20 @@ namespace Worsen.Session.Run
 
         private void HandleRam(RamFact fact) { if (!IsPaused) RamFactPublished?.Invoke(fact); }
         private void HandleSkip(SkipFact fact) { if (!IsPaused) SkipFactPublished?.Invoke(fact); }
-        private void HandleMimic(MimicFact fact) { if (!IsPaused) MimicFactPublished?.Invoke(fact); }
+        private void HandleMimic(MimicFact fact)
+        {
+            if (IsPaused) return;
+            if (fact.Kind == MimicFactKind.BiteStarted)
+            { state?.PendingMimicBites.Add(fact); return; }
+            floor?.ReceiveMimic(fact);
+            players.Find(player => player != null && player.Id == fact.Player)?.ReceiveMimic(fact);
+            MimicFactPublished?.Invoke(fact);
+        }
         private void HandleBlinderHit(BlinderHitFact fact) { if (!IsPaused) BlinderHitPublished?.Invoke(fact); }
         private void HandleBlinderThrow(BlinderThrowFact fact) { if (!IsPaused) BlinderThrowPublished?.Invoke(fact); }
         private void HandleBlinderSound(BlinderSoundFact fact) { if (!IsPaused) BlinderSoundPublished?.Invoke(fact); }
-        private void HandleBlinderTrapPolicy(BlinderTrapPolicyFact fact) { if (!IsPaused) BlinderTrapPolicyPublished?.Invoke(fact); }
+        private void HandleBlinderTrapPolicy(BlinderTrapPolicyFact fact)
+        { if (IsPaused) return; floor?.ReceiveBlinderTrapPolicy(fact); BlinderTrapPolicyPublished?.Invoke(fact); }
         private void HandleHeraldScream(HeraldScreamFact fact) { if (!IsPaused) HeraldScreamPublished?.Invoke(fact); }
         private void HandleHeraldBreath(HeraldBreathFact fact) { if (!IsPaused) HeraldBreathPublished?.Invoke(fact); }
         private void HandleHeraldDeafen(HeraldDeafenFact fact)
@@ -454,10 +469,20 @@ namespace Worsen.Session.Run
             if (IsPaused) return;
             QueueHit(new HunterHit(fact.Hunter, fact.Player, fact.Damage, fact.Tick, fact.Origin,
                 ChaseEndReason.Unknown, HitSeverity.Light, HitSource.Scream));
+            players.Find(player => player != null && player.Id == fact.Player)?.ReceiveHeraldDeafen(fact);
             HeraldDeafenPublished?.Invoke(fact);
         }
         private void HandleDoorBreak(HunterDoorBreakFact fact) { if (!IsPaused) HunterDoorBreakPublished?.Invoke(fact); }
         private void HandleMannequin(MannequinFact fact) { if (!IsPaused) MannequinFactPublished?.Invoke(fact); }
+        public event Action<int, float> AfterglowWindowPublished;
+        public void ObserveLightExtinguished(int roomId)
+        {
+            if (IsPaused || roomId <= 0) return;
+            float seconds = 0f;
+            foreach (var hunter in hunters)
+                if (hunter != null) seconds = Math.Max(seconds, hunter.BeginAfterglow(roomId));
+            if (seconds > 0f) AfterglowWindowPublished?.Invoke(roomId, seconds);
+        }
         private void HandleStare(StareFact fact) { if (!IsPaused) StareFactPublished?.Invoke(fact); }
 
         private void OnDisable() { SetPaused(false); UnsubscribeGameplay(); }
@@ -469,7 +494,7 @@ namespace Worsen.Session.Run
             players.Clear(); hunters.Clear(); pendingHits.Clear();
             chase = null; floor = null; director = null;
             BindShrines(null, null, 0, EntityId.None, null);
-            if (state != null) state.FloorDeltaSeconds = 0f;
+            if (state != null) { state.FloorDeltaSeconds = 0f; state.PendingMimicBites.Clear(); }
         }
 
         private void FixedUpdate()
@@ -518,6 +543,15 @@ namespace Worsen.Session.Run
         { if (!IsPaused) TraversalProgressed?.Invoke(player, tick, kind, progress, active); }
         private void HandleStumbled(EntityId player, long tick, float duration)
         { if (!IsPaused) PlayerStumbled?.Invoke(player, tick, duration); }
+        private void HandleHeartbeat(NoiseEvent noise)
+        {
+            if (IsPaused || noise.SourceKind != NoiseSourceKind.Heartbeat ||
+                noise.Origin != NoiseOrigin.PlayerMovement || !players.Exists(player => player != null &&
+                    player.Id == noise.Source && player.ReadOnlyState?.IsAlive == true)) return;
+            ForwardGameplayNoise(noise);
+        }
+        private void HandleBodyContact(EntityId hunter, EntityId player, Vector3 normal)
+        { if (!IsPaused) players.Find(value => value != null && value.Id == player)?.TryReboundFromHunter(hunter, normal); }
         private void HandleCakeLost(int anchorId, int roomId, PickupKind kind, long tick)
         { if (!IsPaused) CakeLost?.Invoke(anchorId, roomId, kind, tick); }
         private void HandlePickupNoise(NoiseEvent noise)
@@ -560,13 +594,20 @@ namespace Worsen.Session.Run
         { if (!IsPaused) RoomDestructionPublished?.Invoke(sample); }
         private void HandleCollapseHand(CollapseHandFact fact)
         { if (IsPaused) return; controller.RecordHand(fact); CollapseHandPublished?.Invoke(fact); }
-        private void QueueHit(HunterHit hit) { if (!IsPaused) pendingHits.Add(hit); }
+        private void QueueHit(HunterHit hit)
+        {
+            if (IsPaused) return;
+            var player = players.Find(value => value != null && value.Id == hit.Target);
+            if (hit.ContactNormal.sqrMagnitude > 0f && player != null && player.TryReboundFromHunter(hit.Hunter, hit.ContactNormal)) return;
+            pendingHits.Add(hit);
+        }
         private void DrainPendingHits()
         {
             if (IsPaused) return;
             var hits = pendingHits.ToArray();
             pendingHits.Clear();
             foreach (HunterHit hit in hits) ApplyAcceptedHit(hit);
+            state.PendingMimicBites.Clear();
         }
         private void ApplyAcceptedHit(HunterHit hit)
         {
@@ -574,9 +615,18 @@ namespace Worsen.Session.Run
             if (target == null || !target.ReadOnlyState.IsAlive) return;
             target.AdvanceRecovery(Math.Max(Tick, target.ReadOnlyState.Tick));
             if (target.RevivalDamageImmune || target.RevivalCollisionGraceActive) return;
+
             float previousHealth = target.ReadOnlyState.Health;
             int chaseId = state.ActiveChaseId;
-            if (!target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source)) return;
+            bool accepted = hit.IsRam ? target.ApplyRamHit(hit.Damage, hit.HunterPosition, hit.Knockback, hit.Glancing) :
+                target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source);
+            if (!accepted) return;
+            foreach (var bite in state.PendingMimicBites.ToArray())
+                if (bite.Hunter == hit.Hunter && bite.Player == hit.Target && bite.Tick == hit.Tick)
+                {
+                    state.PendingMimicBites.Remove(bite);
+                    target.ReceiveMimic(bite); MimicFactPublished?.Invoke(bite);
+                }
             float healthLoss = Mathf.Max(0f, previousHealth - target.ReadOnlyState.Health);
             if (healthLoss == 0f) hit = new HunterHit(hit.Hunter, hit.Target, 0, hit.Tick,
                 hit.HunterPosition, hit.Reason, hit.Severity, hit.Source);
@@ -603,6 +653,7 @@ namespace Worsen.Session.Run
         {
             if (IsPaused) return;
             controller.RecordChaseStarted(fact);
+            players.Find(player => player != null && player.Id == fact.Player)?.ReceiveChase(fact);
             Emit(TelemetrySampleKind.ChaseStarted, fact.Player, fact.Tick, chaseId: fact.ChaseId);
             ChaseStarted?.Invoke(fact);
         }
@@ -611,9 +662,11 @@ namespace Worsen.Session.Run
             if (IsPaused) return;
             Emit(TelemetrySampleKind.ChaseEnded, fact.Player, fact.Tick, outcome: fact.EndReason, chaseId: fact.ChaseId);
             controller.RecordChaseEnded(fact);
+            players.Find(player => player != null && player.Id == fact.Player)?.ReceiveChase(fact);
             ChaseEnded?.Invoke(fact);
         }
-        private void HandleChasePhase(ChaseFact fact) { if (!IsPaused) ChasePhaseChanged?.Invoke(fact); }
+        private void HandleChasePhase(ChaseFact fact)
+        { if (IsPaused) return; players.Find(player => player != null && player.Id == fact.Player)?.ReceiveChase(fact); ChasePhaseChanged?.Invoke(fact); }
         private void HandleProximity(ProximitySample sample)
         {
             if (IsPaused) return;

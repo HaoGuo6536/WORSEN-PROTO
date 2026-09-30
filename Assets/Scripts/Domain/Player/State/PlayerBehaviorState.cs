@@ -32,6 +32,10 @@ namespace Worsen.Domain.Player
     public sealed class PlayerBehaviorState : IReadOnlyPlayerShieldState, IReadOnlyPlayerEffectState, IReadOnlyPlayerRevivalState
     {
         internal PlayerPerkBehaviorState Perks { get; } = new PlayerPerkBehaviorState();
+        internal readonly Dictionary<EntityId, long> MimicHolds = new Dictionary<EntityId, long>();
+        internal readonly Dictionary<EntityId, long> MimicTicks = new Dictionary<EntityId, long>();
+        internal readonly Dictionary<EntityId, long> HeraldTicks = new Dictionary<EntityId, long>();
+        internal long PreventRunningEndTick;
         public IReadOnlyActiveEffects ActiveEffects { get; set; }
         public ActiveEffects AppliedEffects { get; set; }
         public float BaseMaximumHealth { get; set; }

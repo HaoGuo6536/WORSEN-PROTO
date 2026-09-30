@@ -167,7 +167,7 @@ namespace Worsen.Session.HorrorEffects
         {
             if (!state.Flights.Remove(flightId)) return false;
             state.Noises.Add(new HorrorNoiseFact(new NoiseEvent(EntityId.None, point, config.FirecrackerLoudness,
-                tick, NoiseSourceKind.Firecracker), HorrorNoiseOrigin.Firecracker)); return true;
+                tick, NoiseSourceKind.Firecracker, NoiseOrigin.Firecracker), HorrorNoiseOrigin.Firecracker)); return true;
         }
         public bool IsJammed(int door) => state.Jams.ContainsKey(door);
         public float DoorBreakSeconds => config.DoorBreakSeconds;
@@ -176,7 +176,7 @@ namespace Worsen.Session.HorrorEffects
             if (!state.Jams.TryGetValue(door, out var jam)) return false;
             state.Jams.Remove(door); state.DoorFacts.Add(Jam(door, jam.Position, false));
             if (broken) state.Noises.Add(new HorrorNoiseFact(new NoiseEvent(EntityId.None, jam.Position,
-                config.DoorBreakLoudness, tick, NoiseSourceKind.Door), HorrorNoiseOrigin.World));
+                config.DoorBreakLoudness, tick, NoiseSourceKind.Door, NoiseOrigin.World), HorrorNoiseOrigin.World));
             return true;
         }
         private DoorJamFact Jam(int id, Vector3 position, bool active) => new DoorJamFact(id, position, active ? config.DoorstopSeconds : 0f, config.DoorBreakSeconds, active);

@@ -14,7 +14,7 @@
 //   - Retain the exact in-flight Floor tick delta for synchronous boundary acceleration.
 //   - Retain pause admission and detailed outcome bookkeeping without engine clocks.
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
-//   - Hold pending input so button edges and look deltas survive between ticks.
+//   - Hold pending input and same-tick Mimic facts awaiting damage admission.
 //   - Retain capture lifecycle so closing a run is idempotent.
 
 //
@@ -54,6 +54,7 @@ namespace Worsen.Session.Run
         public int SummarySeed { get; internal set; }
         public long Tick { get; internal set; }
         internal float FloorDeltaSeconds;
+        internal readonly System.Collections.Generic.List<MimicFact> PendingMimicBites = new System.Collections.Generic.List<MimicFact>();
         public double ElapsedSeconds { get; internal set; }
         public InputFrame PendingInput { get; internal set; }
         public bool CaptureIsOpen { get; internal set; }

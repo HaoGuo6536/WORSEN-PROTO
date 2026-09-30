@@ -53,6 +53,16 @@ namespace Worsen.Tests.Expedition
             Assert.That(spawns[1].ArchetypeKey, Is.EqualTo("thorncaller"));
         }
 
+        [TestCase(false, 5)] [TestCase(true, 0)]
+        public void GenerationCapacityIncludesRetainedRosterAndNothingExtras(bool shop, int expected)
+        {
+            _controller.Queue(Request(shop: shop, threats: 2)); _controller.Begin(1);
+            Assert.That(_controller.RequiredHunterCount(3), Is.EqualTo(expected));
+            Assert.DoesNotThrow(() => _controller.RequireHunterCapacity(3, expected));
+            Assert.Throws<InvalidOperationException>(() => _controller.RequireHunterCapacity(3, expected - 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.RequiredHunterCount(-1));
+        }
+
         [Test]
         public void RosterBudgetMismatchRejectsRatherThanSpawningWrongModel()
         {

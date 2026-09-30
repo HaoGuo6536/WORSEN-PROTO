@@ -96,7 +96,7 @@ namespace Worsen.Tests.Hunter
         {
             Initialize(key); _controller.SetTraits(ProgressionTraits.RusherBloodScent);
             _controller.Tick(default, 0.5f, 3);
-            var noise = new NoiseEvent(_player.Id, Vector3.zero, 1f, 0);
+            var noise = new NoiseEvent(_player.Id, Vector3.zero, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement);
             Assert.That(_controller.HearNoise(noise, 1f), Is.EqualTo(accepts));
             Assert.That(_state.BeliefConfidence > 0f, Is.EqualTo(accepts));
         }

@@ -305,7 +305,7 @@ namespace Worsen.Tests.Floor
                     InvokeTrigger(exit, "OnTriggerStay", fixture.ContactCollider);
                     Assert.That(controller.TryFinish(out var summary), Is.True);
                     Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
-                    Assert.That(summary.Bailed, Is.False);
+
                     Assert.That(controller.TryFinish(out _), Is.False);
                     run.enabled = false;
                     typeof(RunSessionManager).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(run, null);

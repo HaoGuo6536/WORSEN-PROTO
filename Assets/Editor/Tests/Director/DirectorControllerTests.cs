@@ -149,13 +149,14 @@ namespace Worsen.Tests.Director
             _controller.SetLevelView(new LevelFixture());
             var hunters = new[] { new DirectorHunterSample(Hunter, Player, Vector3.zero, true, false,
                 new HearingModelSettings(2f, 1f, 0.7f, 0.35f, 0.08f)) };
-            var noise = new NoiseEvent(Player, Vector3.forward * 2f, 1f, 0, NoiseSourceKind.KnockedProp);
+            var noise = new NoiseEvent(Player, Vector3.forward * 2f, 1f, 0, NoiseSourceKind.Footstep, NoiseOrigin.PlayerMovement);
             _controller.HearNoise(noise);
             var first = Step(hunters: hunters).Noises;
             Assert.That(first.Count, Is.EqualTo(1));
             Assert.That(first[0].Hunter, Is.EqualTo(Hunter));
             Assert.That(first[0].Noise, Is.EqualTo(noise));
             Assert.That(first[0].Noise.SourceKind, Is.EqualTo(noise.SourceKind));
+            Assert.That(first[0].Noise.Origin, Is.EqualTo(noise.Origin));
             _controller.HearNoise(noise);
             Assert.That(Step(hunters: hunters).Noises, Is.Empty);
         }
