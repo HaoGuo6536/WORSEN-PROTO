@@ -28,7 +28,7 @@ namespace Worsen.Presentation.Audio
         public readonly Dictionary<int, float> PulseDue = new Dictionary<int, float>();
         public readonly List<AudioFeedbackCommand> Commands = new List<AudioFeedbackCommand>();
         public Vector3 Listener;
-        public bool SilentPresence, KeenEars, InChase;
+        public bool SilentPresence, KeenEars, InChase, EarPlugs, MirrorSkin;
         public float Closeness, DeafenedRemaining, MuffledRemaining, GraceRemaining;
         public float Time, FalsePositiveDue = -1f, HeartbeatDue, HeartbeatEnvelope;
         public float HeartbeatStrength, BreathGain, MaskGain = 1f;

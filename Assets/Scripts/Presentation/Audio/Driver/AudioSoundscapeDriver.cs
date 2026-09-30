@@ -166,6 +166,24 @@ namespace Worsen.Presentation.Audio
         { if (RosterReady && _rosterPresenter.Weaver(_roster, fact, out var command)) PlayRoster(command); }
         public void ObserveTicking(TickingSoundFact fact)
         { if (RosterReady && _rosterPresenter.Ticking(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveHerald(HeraldScreamFact fact)
+        { if (RosterReady && _rosterPresenter.Herald(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveHeraldBreath(HeraldBreathFact fact)
+        { if (RosterReady && _rosterPresenter.HeraldBreath(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveHeraldDeafen(HeraldDeafenFact fact)
+        { if (RosterReady && _rosterPresenter.AcceptHeraldDeafen(_roster, fact)) { _worldPresenter.HeraldDeafen(_state.WorldMix, fact, _config.EarPlugsDurationMultiplier); ApplyGains(); } }
+        public void ObserveBlinder(BlinderSoundFact fact)
+        { if (RosterReady && _rosterPresenter.Blinder(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveBlinderHit(BlinderHitFact fact)
+        { if (RosterReady && _rosterPresenter.AcceptBlinderHit(_roster, fact)) { _worldPresenter.BlinderHit(_state.WorldMix, fact, _config.MirrorSkinDurationMultiplier); ApplyGains(); } }
+        public void ObserveRam(RamFact fact)
+        { if (RosterReady && _rosterPresenter.Ram(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveMimic(MimicFact fact)
+        { if (RosterReady && _rosterPresenter.Mimic(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveStare(StareFact fact)
+        { if (RosterReady && _rosterPresenter.Stare(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveMannequin(MannequinFact fact)
+        { if (RosterReady) _rosterPresenter.Mannequin(_roster, fact); }
         public void ObserveHabit(HunterHabitFact fact)
         { if (RosterReady && _rosterPresenter.Habit(_roster, fact, out var command)) PlayRoster(command); }
         public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick)
@@ -213,8 +231,15 @@ namespace Worsen.Presentation.Audio
                 if (_roster.Missing.Add(command.Id)) Debug.LogWarning("Roster cue '" + command.Id + "' has no clip; silent placeholder.", this);
                 return false;
             }
-            if (binding.Value.Clip != null) bank = new AudioSoundDefinition { Cue = binding.Value.Bank, Clips = new[] { binding.Value.Clip },
-                Gain = _config.RosterClipGain, Priority = _config.RosterClipPriority, PitchMinimum = 1f, PitchMaximum = 1f };
+            if (binding.Value.Clip != null)
+            {
+                var clips = new AudioClip[1 + (binding.Value.Alternates?.Length ?? 0)]; clips[0] = binding.Value.Clip;
+                if (binding.Value.Alternates != null) System.Array.Copy(binding.Value.Alternates, 0, clips, 1, binding.Value.Alternates.Length);
+                bank = new AudioSoundDefinition { Cue = binding.Value.Bank, Clips = clips,
+                    Gain = binding.Value.OverrideGain ? binding.Value.Gain : _config.RosterClipGain,
+                    Priority = _config.RosterClipPriority, PitchMinimum = 1f - _config.RosterPitchVariation,
+                    PitchMaximum = 1f + _config.RosterPitchVariation, GainVariation = _config.RosterGainVariation };
+            }
             bool local = !command.Hunter.IsValid || command.Slot == HunterCueSlot.DeathSting;
             bool protect = command.Slot == HunterCueSlot.Presence || command.Slot == HunterCueSlot.AttackTiming;
             var entry = new AudioCueCatalogueEntry(CueCategory.Hunter, (int)command.Slot,

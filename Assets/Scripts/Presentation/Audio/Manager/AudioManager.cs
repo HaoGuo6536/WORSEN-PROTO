@@ -13,14 +13,11 @@
 //   Owns AudioDriver and forwards Core facts into its presentation stack.
 //
 // KEY RESPONSIBILITIES:
-//   - Forward roster facts, hidden tells, zone assignments and sensory cleansing to AudioDriver.
-//   - Forward level acoustics, active effects, grace, exit and committed shop facts.
-//   - Forward runtime category preferences and authoritative pause to the owned Driver.
-//   - Forward catch identity to the Driver's per-run sting admission, guarded by owner readiness.
+//   - Forward roster/tell, acoustic, movement, progression and sensory facts to AudioDriver.
+//   - Forward settings, pause, injury and aggregate proximity without gameplay rules.
+//   - Forward confirmed catch identity to guarded per-run sting admission.
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
-//   - Forward cue, movement, fractional injury and proximity commands without gameplay rules.
-//   - Pair owner enable/disable and teardown with the owned Driver lifetime.
-//   - Forward aggregate live proximity and the explicit expedition contact-retention boundary.
+//   - Pair owner lifecycle and floor/run resets with the owned Driver lifetime.
 //
 // DEPENDENCIES:
 //   - Core CueId and MovementState; Audio system's own Driver and DriverConfig.
@@ -86,6 +83,15 @@ namespace Worsen.Presentation.Audio
         public void ObserveArchetype(HunterArchetypeFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveArchetype(fact); }
         public void ObserveWeaver(WeaverFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveWeaver(fact); }
         public void ObserveTicking(TickingSoundFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveTicking(fact); }
+        public void ObserveHerald(HeraldScreamFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHerald(fact); }
+        public void ObserveHeraldBreath(HeraldBreathFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHeraldBreath(fact); }
+        public void ObserveHeraldDeafen(HeraldDeafenFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHeraldDeafen(fact); }
+        public void ObserveBlinder(BlinderSoundFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveBlinder(fact); }
+        public void ObserveBlinderHit(BlinderHitFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveBlinderHit(fact); }
+        public void ObserveRam(RamFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveRam(fact); }
+        public void ObserveMimic(MimicFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveMimic(fact); }
+        public void ObserveStare(StareFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveStare(fact); }
+        public void ObserveMannequin(MannequinFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveMannequin(fact); }
         public void ObserveHabit(HunterHabitFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHabit(fact); }
         public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick) { if (_initialized && isActiveAndEnabled) _driver.ObserveDeliberation(hunter, position, tick); }
         public void ObserveProgressionEvent(ProgressionEventFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgressionEvent(fact); }
