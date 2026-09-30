@@ -16,6 +16,8 @@
 //   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
 //   - Apply ordered recording segments without pathfinding shortcuts or corner smoothing.
 //   - Own the optional Weaver sweep/ceiling sub-driver and admit verified partition links.
+//   - Expose route evidence and clear physical momentum for externally delivered reactions.
+//   - Observe injected camera sight and own the Stare placement/visibility sub-driver.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -40,6 +42,23 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterAnimationDriver _animation;
         [SerializeField] private HunterAttackDriver _attacks;
         private WeaverWebDriver _weaver;
+        private Archetypes.Stare.StareDriver _stare;
+        public void ConfigureStare()
+        {
+            _stare = GetComponent<Archetypes.Stare.StareDriver>();
+            if (_stare == null) _stare = gameObject.AddComponent<Archetypes.Stare.StareDriver>();
+            _stare.Initialize();
+        }
+        public void SetStarePresent(bool present) { if (_stare != null) _stare.SetPresent(present); }
+        public bool ProbeStare(Vector3 candidate, Vector3 player, HunterPlayerView view, out Vector3 point)
+            => _stare.Probe(candidate, player, view, _config, out point);
+        public bool PlayerViewClear(HunterPlayerView view, Vector3 point, float height)
+            => ClearSegment(view.Origin, point + Vector3.up * height, _state.TargetFilter);
+        public void PlaceStare(Vector3 point)
+        {
+            _presenter.Reset(_state.Steering, point, Forward); _state.VerticalSpeed = 0f; _state.PathCooldown = 0f;
+            transform.position = point; _body.position = point; Physics.SyncTransforms();
+        }
         private readonly HunterRoutePresenter _routePresenter = new HunterRoutePresenter();
         private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
         private HunterDriverState _state;
@@ -49,6 +68,17 @@ namespace Worsen.Domain.Hunter
         public Vector3 Forward => transform.forward;
         public Vector3 Velocity => _state?.Steering.Velocity ?? Vector3.zero;
         public bool PathAvailable => _state != null && _state.PathAvailable;
+        public void RemoveMomentum()
+        { if (_state != null) { _state.Steering.Velocity = Vector3.zero; _state.VerticalSpeed = 0f; } }
+        public System.Collections.Generic.IReadOnlyList<Vector3> ProbeReactionPath(Vector3 target)
+        {
+            if (_state == null) return Array.Empty<Vector3>();
+            var path = new NavMeshPath();
+            if (NavMesh.SamplePosition(Position, out NavMeshHit start, _config.PathSampleRadius, _config.NavigationAreaMask) &&
+                NavMesh.SamplePosition(target, out NavMeshHit end, _config.PathSampleRadius, _config.NavigationAreaMask) &&
+                NavMesh.CalculatePath(start.position, end.position, _config.NavigationAreaMask, path)) return path.corners;
+            return Array.Empty<Vector3>();
+        }
         public event Action<Collider> OnLungeContact;
         public event Action<Collider, int> OnRangedContact;
         public event Action<int> OnRangedMiss;
@@ -516,6 +546,7 @@ namespace Worsen.Domain.Hunter
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
         public void Teardown()
         {
+            if (_stare != null) _stare.Teardown();
             if (_weaver != null) _weaver.Teardown();
             if (_state != null && _state.IKDriver != null)
             {

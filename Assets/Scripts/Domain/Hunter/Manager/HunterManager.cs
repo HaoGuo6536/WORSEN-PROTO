@@ -17,6 +17,8 @@
 //   - Construct per-life archetype rules and acknowledge recording motion before facts.
 //   - Route Weaver sweep evidence, web contacts and ceiling commands without Player writes.
 //   - Bind the optional Ticking facet for world keys and Core-typed guidance/sound/noise facts.
+//   - Route stun/slip/Wick/world inputs and publish completed door-break facts to Session.
+//   - Register Mannequin/Stare modules and relay their light, presence and sound facts.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -46,6 +48,9 @@ namespace Worsen.Domain.Hunter
         private HunterController _controller;
         private WeaverController _weaver;
         private WeaverConfig _weaverConfig;
+        private Archetypes.Mannequin.MannequinController _mannequin;
+        private Archetypes.Stare.StareController _stare;
+        private Archetypes.Stare.StareConfig _stareConfig;
         private HunterProfile _profile;
         private Archetypes.Ticking.TickingManager _ticking;
         public Archetypes.Ticking.TickingManager Ticking => _ticking;
@@ -70,6 +75,16 @@ namespace Worsen.Domain.Hunter
         public event Action<HunterArchetypeFact> OnArchetypeFact;
         public event Action<WebHitFact> OnWebHit;
         public event Action<WeaverFact> OnWeaverFact;
+        public event Action<HunterDoorBreakFact> OnDoorBreakCompleted;
+        public event Action<MannequinFact> OnMannequinFact;
+        public event Action<StareFact> OnStareFact;
+        public void ApplyStun(float seconds, float strength)
+        { _controller?.ApplyStun(seconds, strength); if (_state != null && _state.StunRemaining > 0f) _driver.RemoveMomentum(); }
+        public void ApplySlip(float seconds)
+        { _controller?.ApplySlip(seconds); if (_state != null && _state.SlipRemaining > 0f) _driver.RemoveMomentum(); }
+        public void SetWickActive(bool active) { _controller?.SetWickActive(active); }
+        public void SetWorldView(IReadOnlyHunterWorldView world) { _controller?.SetWorldView(world); }
+        public void SetPlayerView(HunterPlayerView view) { _controller?.SetPlayerView(view); }
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
@@ -106,9 +121,16 @@ namespace Worsen.Domain.Hunter
                 archetype = new WeaverController(new WeaverBehaviorState(), weaver, profile, context.Random);
             else if (profile.ArchetypeRules is Archetypes.Ticking.TickingConfig ticking)
                 archetype = new Archetypes.Ticking.TickingController(ticking, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Mannequin.MannequinConfig mannequin)
+                archetype = new Archetypes.Mannequin.MannequinController(mannequin, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Stare.StareConfig stare)
+                archetype = new Archetypes.Stare.StareController(stare, context.Random);
             else if (profile.ArchetypeRules != null) throw new ArgumentException("Unregistered Hunter rules config.");
             _profile = profile; _player = player; _level = level; _driver.Initialize(profile.MotorOverride);
             _weaver = archetype as WeaverController; _weaverConfig = profile.ArchetypeRules as WeaverConfig;
+            _mannequin = archetype as Archetypes.Mannequin.MannequinController;
+            _stare = archetype as Archetypes.Stare.StareController; _stareConfig = profile.ArchetypeRules as Archetypes.Stare.StareConfig;
+            if (_stare != null) _driver.ConfigureStare();
             if (_weaver != null) _driver.ConfigureWeaver(_weaverConfig.DriverConfig);
             _state = new HunterBehaviorState();
             _controller = new HunterController(_state, profile, context.Random, player, level, archetype);
@@ -139,7 +161,10 @@ namespace Worsen.Domain.Hunter
                     _weaver.Warning ? _weaver.WarnedRadius : _weaver.Radius, _weaverConfig.ShotRange, tick));
             }
             if (_ticking != null) _ticking.PrepareTick();
-            bool sample = _controller.ShouldProbe(tick);
+            bool sample = _controller.NeedsViewObservation || _controller.ShouldProbe(tick);
+            if (_controller.NeedsViewObservation)
+                _controller.ObservePlayerView(_driver.PlayerViewClear(_state.PlayerView, _state.Position,
+                    _stareConfig != null ? _stareConfig.ObservationHeight : ((Archetypes.Mannequin.MannequinConfig)_profile.ArchetypeRules).ObservationHeight));
             SightProbe sight = sample ? _driver.ProbeSight(_player.Position, IsTarget) : default;
             HunterLightObservation light = sample ? _driver.ProbeLight(_state.Flashlight, tick,
                 _controller.EffectiveSightRange, _controller.EffectiveSightCone, _profile.SensorIntervalTicks * 2, IsTarget) : default;
@@ -151,9 +176,28 @@ namespace Worsen.Domain.Hunter
                 light = new HunterLightObservation(observed.Observed, false, observed.Position, observed.Tick);
             }
             HunterTickResult result = _controller.Tick(sight, light, dt, tick);
+            if ((_state.WorldView?.JammedDoors?.Count > 0 || _state.BreakingDoor != 0) && !_controller.ArchetypeHeld && (!result.HoldPosition || _state.BreakingDoor != 0) &&
+                _controller.BlockJammedPath(_controller.ReactionPath(result, _driver.ProbeReactionPath(result.Target)), dt, result.Target)) result = _controller.HoldMotion();
+            while (_controller.TryTakeDoorBreak(out HunterDoorBreakFact broken)) OnDoorBreakCompleted?.Invoke(broken);
+            if (_stare != null)
+            {
+                if (!_controller.ReactionHeld && _stare.NeedsPlacement)
+                {
+                    bool placed = false;
+                    for (int attempt = 0; attempt < 2; attempt++)
+                    {
+                        bool valid = _driver.ProbeStare(_stare.Candidate(attempt), _player.Position, _state.PlayerView, out Vector3 point);
+                        if (!_stare.AcceptPlacement(point, valid, valid && _driver.PlayerViewClear(_state.PlayerView, point, _stareConfig.ObservationHeight))) continue;
+                        _driver.PlaceStare(point); placed = true; break;
+                    }
+                    if (!placed) _stare.PlacementFailed();
+                }
+                _driver.SetStarePresent(_stare.Present);
+                if (result.BeginLunge) _stare.AttackCue();
+            }
             if (_weaver != null)
             {
-                if (result.Phase != HunterLungePhase.None || _state.CatchActive || _state.PursuitSuppressed) _weaver.SuspendAttack();
+                if (result.HoldPosition || result.Phase != HunterLungePhase.None || _state.CatchActive || _state.PursuitSuppressed) _weaver.SuspendAttack();
                 _driver.SetWeaverCeiling(_weaver.CeilingHeight, _weaver.Ceiling && result.Phase == HunterLungePhase.None && !_state.CatchActive);
                 if (_weaver.Fire) _weaver.CommitLaunch(_driver.LaunchWeb(_weaver.WarnedOrigin, _weaver.WarnedTarget,
                     _weaver.WarnedRadius, _weaverConfig.ProjectileSpeed, _weaverConfig.ShotRange, _weaver.Serial + 1));
@@ -170,7 +214,8 @@ namespace Worsen.Domain.Hunter
             if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
                 _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
             _driver.SetEmergence(_controller.PreferEmergence, _state.LastKnownPosition, _profile.EmergenceWaypointBudget);
-            if (_controller.ReplayPath != null && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
+            if (_controller.ReactionHeld || _controller.ArchetypeHeld || _state.BreakingDoor != 0) _driver.RemoveMomentum();
+            else if (_controller.ReplayPath != null && !result.HoldPosition && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
             {
                 int reached = _driver.MoveRecording(_controller.ReplayPath, dt, out bool unreachable);
                 _controller.CommitReplay(reached, unreachable);
@@ -195,6 +240,8 @@ namespace Worsen.Domain.Hunter
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
             while (_controller.TryTakeHabit(out HunterHabitFact habit)) OnHabit?.Invoke(habit);
             while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact fact)) OnArchetypeFact?.Invoke(fact);
+            if (_mannequin != null) while (_mannequin.TakeFact(out MannequinFact mannequin)) OnMannequinFact?.Invoke(mannequin);
+            if (_stare != null) while (_stare.TakeFact(out StareFact stare)) OnStareFact?.Invoke(stare);
             if (_controller.TryTakeDeliberation(out Vector3 candidate)) OnDeliberation?.Invoke(Id, candidate, tick);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
@@ -217,7 +264,7 @@ namespace Worsen.Domain.Hunter
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle != null && _controller.TryAcceptRangedContact(handle.Id, serial, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
-        private void HandleAttackFeedback(HunterFeedbackEvent feedback) { OnFeedback?.Invoke(feedback); }
+        private void HandleAttackFeedback(HunterFeedbackEvent feedback) { if (!(_controller?.Silent ?? false)) OnFeedback?.Invoke(feedback); }
         private void HandleStall(HunterStallFact fact) { OnStall?.Invoke(fact); }
         private void HandleRangedMiss(int serial) { _controller?.ReportAttackMiss(serial); }
         public void SetRoomPhase(RoomPhaseChangedFact fact)
@@ -233,6 +280,8 @@ namespace Worsen.Domain.Hunter
         {
             if (_controller == null) return;
             _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
+            if (_stare != null)
+            { _stare.CatchCue(); while (_stare.TakeFact(out StareFact fact)) OnStareFact?.Invoke(fact); }
             if (_weaver != null) { _weaver.SuspendAttack(); _driver.SetWeaverCeiling(_weaver.CeilingHeight, false); }
         }
         public void TickCatch(float dt, Vector3 playerPosition)
@@ -267,6 +316,7 @@ namespace Worsen.Domain.Hunter
             HunterRegistry.Unregister(this);
             _controller = null; _state = null; _profile = null; _player = null; _level = null;
             _weaver = null; _weaverConfig = null;
+            _mannequin = null; _stare = null; _stareConfig = null;
         }
         private void OnDestroy() { Teardown(); }
     }

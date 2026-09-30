@@ -20,6 +20,8 @@
 //   - Budget walking travel separately from search; keep CutOff's room intercept distinct from chase lead.
 //   - Consult injected archetype rules without branching on specialised archetype names.
 //   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
+//   - Freeze/flinch/slip without clearing belief; gate jammed route segments and Wick sight.
+//   - Apply optional camera-rule motion, silence and dynamic loss policy before attacks.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
@@ -61,6 +63,11 @@ namespace Worsen.Domain.Hunter
         private IReadOnlyInteractableSet _interactables;
         private IReadOnlyActiveEffects _effects;
         private readonly IHunterArchetypeController _archetype;
+        private IHunterObservationRules ObservationRules => _archetype as IHunterObservationRules;
+        public bool Silent => ObservationRules?.Silent ?? false;
+        public bool NeedsViewObservation => ObservationRules != null;
+        public bool ArchetypeHeld => ObservationRules?.Hold ?? false;
+        public void ObservePlayerView(bool clear) { _state.PlayerViewClear = clear; }
         public bool Dormant => (_archetype as Archetypes.Ticking.IHunterDormancyRules)?.Dormant ?? false;
         public void RefreshDormancy()
         {
@@ -77,10 +84,111 @@ namespace Worsen.Domain.Hunter
         }
         public IReadOnlyList<Vector3> ReplayPath => _archetype.ReplayPath;
         private HunterArchetypeContext ArchetypeContext => new HunterArchetypeContext(_state, _player, _level,
-            _floor, _closedDoors, _interactables, _effects, _state.DeltaTime, _state.Tick,
-            !_state.CatchActive && _state.LungePhase == HunterLungePhase.None,
+            _floor, ArchetypeDoors(), _interactables, _effects, _state.DeltaTime, _state.Tick,
+            !_state.ReactionHeld && !_state.CatchActive && _state.LungePhase == HunterLungePhase.None,
             Effective(HunterTunable.ChaseSpeedMultiplier) * _state.RunSpeedMultiplier, _state.UnavailableRooms);
+        private IReadOnlyDictionary<int, bool> ArchetypeDoors()
+        {
+            if (_closedDoors == null || _interactables == null || _state.WorldView?.JammedDoors == null) return _closedDoors;
+            Dictionary<int, bool> doors = null;
+            foreach (HunterDoorJam jam in _state.WorldView.JammedDoors)
+                if (_interactables.TryGet(jam.DoorId, out InteractableState door) && door.EdgeId >= 0)
+                {
+                    if (doors == null) { doors = new Dictionary<int, bool>(); foreach (var pair in _closedDoors) doors.Add(pair.Key, pair.Value); }
+                    doors[door.EdgeId] = false; // Shared reaction gate owns this crossing, not replay truncation.
+                }
+            return doors ?? _closedDoors;
+        }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { _effects = effects; }
+        public void SetWorldView(IReadOnlyHunterWorldView world) { _state.WorldView = world; }
+        public void SetPlayerView(HunterPlayerView view) { _state.PlayerView = view; }
+        public void SetWickActive(bool active)
+        {
+            _state.WickActive = active;
+            ObservationRules?.Observe(_state.PlayerView, _state.PlayerViewClear, _state.DirectlyIlluminated, _state.WorldView, active);
+        }
+        public bool ReactionHeld => _state.ReactionHeld;
+        public void ApplyStun(float seconds, float strength)
+        {
+            if (!Finite(seconds) || !Finite(strength) || seconds <= 0f || strength <= 0f) return;
+            // Full strength freezes; weaker hits are proportionally shorter flinches.
+            _state.StunRemaining = Mathf.Max(_state.StunRemaining, seconds * Mathf.Clamp01(strength));
+            CancelReactionAttack();
+        }
+        public void ApplySlip(float seconds)
+        {
+            if (!Finite(seconds) || seconds <= 0f) return;
+            _state.SlipRemaining = Mathf.Max(_state.SlipRemaining, seconds);
+            CancelReactionAttack();
+        }
+        private void CancelReactionAttack()
+        {
+            _state.Velocity = Vector3.zero; _state.LungePhase = HunterLungePhase.None;
+            _state.PhaseSeconds = 0f; _state.AttackBecameActive = false;
+            _state.FiredRangedAttacks.Clear(); _state.Feedback.Clear();
+            _state.PlannedFacts = ulong.MaxValue;
+        }
+        public HunterTickResult HoldMotion()
+        {
+            CancelReactionAttack();
+            return new HunterTickResult(_state.Position, 0f, HunterLungePhase.None, Vector3.zero, false, false, true);
+        }
+        public IReadOnlyList<Vector3> ReactionPath(HunterTickResult result, IReadOnlyList<Vector3> route)
+        {
+            if (result.Phase != HunterLungePhase.None)
+                return new[] { _state.Position, _state.Position + result.LungeDirection * EffectiveAttackDistance };
+            if (_archetype.ReplayPath == null) return route;
+            var points = new List<Vector3> { _state.Position }; points.AddRange(_archetype.ReplayPath); return points;
+        }
+        public bool BlockJammedPath(IReadOnlyList<Vector3> path, float dt, Vector3? intendedTarget = null)
+        {
+            if (!Finite(dt) || dt <= 0f || _state.CatchActive) return false;
+            var jams = _state.WorldView?.JammedDoors;
+            bool retained = false;
+            if (jams != null) foreach (HunterDoorJam jam in jams)
+                if (jam.DoorId == _state.BreakingDoor && jam.Revision == _state.DoorRevision) { retained = true; break; }
+            if (!retained) _state.BreakingDoor = 0;
+            HunterDoorJam selected = default;
+            if (jams != null) foreach (HunterDoorJam jam in jams)
+            {
+                if (jam.DoorId <= 0 || !Finite(jam.BreakSeconds) || jam.BreakSeconds < 0f || !Finite(jam.Bounds.center) || !Finite(jam.Bounds.size)) continue;
+                if (_state.BreakingDoor == jam.DoorId && _state.DoorRevision == jam.Revision)
+                { selected = jam; break; }
+                if (_state.BreakingDoor != 0 || path == null || path.Count < 2 ||
+                    Vector3.Distance(_state.Position, jam.Bounds.ClosestPoint(_state.Position)) > _profile.DoorBreakReach) continue;
+                for (int i = 1; i < path.Count; i++)
+                {
+                    Vector3 delta = path[i] - path[i - 1];
+                    if (jam.Bounds.Contains(path[i - 1]) || jam.Bounds.Contains(path[i]) ||
+                        (delta.sqrMagnitude > 0f && jam.Bounds.IntersectRay(new Ray(path[i - 1], delta.normalized), out float distance) && distance <= delta.magnitude))
+                    { selected = jam; break; }
+                }
+                // A carved/closed door can terminate a partial path on its near face.
+                if (selected.DoorId == 0 && intendedTarget.HasValue &&
+                    Vector3.Distance(path[path.Count - 1], jam.Bounds.ClosestPoint(path[path.Count - 1])) <= _profile.DoorBreakReach)
+                {
+                    Vector3 end = path[path.Count - 1], delta = intendedTarget.Value - end;
+                    if (delta.sqrMagnitude > 0f && jam.Bounds.IntersectRay(new Ray(end, delta.normalized), out float distance) && distance <= delta.magnitude) selected = jam;
+                }
+                if (selected.DoorId != 0) break;
+            }
+            if (selected.DoorId == 0)
+            { _state.BreakingDoor = 0; _state.DoorBreakPublished = false; return false; }
+            if (_state.BreakingDoor == 0)
+            {
+                _state.BreakingDoor = selected.DoorId; _state.DoorRevision = selected.Revision;
+                _state.DoorBreakRemaining = selected.BreakSeconds; _state.DoorBreakPublished = false;
+            }
+            if (!_state.ReactionHeld) _state.DoorBreakRemaining = Mathf.Max(0f, _state.DoorBreakRemaining - dt);
+            if (!_state.DoorBreakPublished && _state.DoorBreakRemaining <= 0.000001f)
+            {
+                _state.DoorBreakPublished = true;
+                _state.DoorBreakFacts.Enqueue(new HunterDoorBreakFact(_state.Id, selected.DoorId, selected.Revision, _state.Tick));
+            }
+            CancelReactionAttack(); return true;
+        }
+        public bool TryTakeDoorBreak(out HunterDoorBreakFact fact)
+        { fact = default; if (_state.DoorBreakFacts.Count == 0) return false; fact = _state.DoorBreakFacts.Dequeue(); return true; }
         public void SetInteractables(IReadOnlyInteractableSet interactables) { _interactables = interactables; }
         public void CommitReplay(int reachedPoints, bool unreachable = false) { _archetype.CommitReplay(reachedPoints, unreachable); }
         public bool TryTakeArchetypeFact(out HunterArchetypeFact fact) => _archetype.TryTakeFact(out fact);
@@ -96,6 +204,9 @@ namespace Worsen.Domain.Hunter
         }
         public void Reset(EntityId id, Vector3 position, Vector3 forward)
         {
+            _state.StunRemaining = _state.SlipRemaining = _state.DoorBreakRemaining = 0f;
+            _state.ReactionHeld = _state.WickActive = _state.DoorBreakPublished = false;
+            _state.BreakingDoor = 0; _state.DoorBreakFacts.Clear(); _state.WorldView = null; _state.PlayerView = default;
             _state.LossSeconds = Effective(HunterTunable.LossSeconds); _state.LossDistance = Effective(HunterTunable.LossDistance);
             _state.CatchActive = false; _state.ChaseActive = false; _state.LossHabitObserved = false;
             _state.ThresholdPauseRemaining = 0f; _state.HabitFacts.Clear(); _state.CakePositions.Clear();
@@ -166,10 +277,28 @@ namespace Worsen.Domain.Hunter
         public HunterTickResult Tick(SightProbe probe, HunterLightObservation light, float dt, long tick)
         {
             if (!(dt > 0f) || float.IsNaN(dt) || float.IsInfinity(dt)) return default;
+            float beliefAgeBefore = BeliefAge(_state.DeltaTime, _state.Tick);
             _state.AttackBecameActive = false;
             _state.Tick = tick; _state.DeltaTime = dt;
-            _archetype.Tick(ArchetypeContext);
+            _state.ReactionHeld = _state.StunRemaining > 0f || _state.SlipRemaining > 0f;
+            _state.StunRemaining = Mathf.Max(0f, _state.StunRemaining - dt);
+            _state.SlipRemaining = Mathf.Max(0f, _state.SlipRemaining - dt);
+            ObservationRules?.Observe(_state.PlayerView, _state.PlayerViewClear,
+                light.Tick == tick && light.Illuminated, _state.WorldView, _state.WickActive);
+            _archetype.Tick(ArchetypeContext); // Record prey even while an interruption prevents playback.
+            if (_state.ReactionHeld)
+            {
+                // Move the memory reference forward so the interruption does not age it out.
+                _state.BeliefAgeAtReference = beliefAgeBefore; _state.BeliefReferenceTick = tick;
+                return HoldMotion();
+            }
+            if (ObservationRules != null)
+            {
+                _state.LossSeconds = Effective(HunterTunable.LossSeconds) * ObservationRules.LossMultiplier;
+                _state.LossDistance = Effective(HunterTunable.LossDistance) * ObservationRules.LossMultiplier;
+            }
             RefreshDormancy();
+            if (ArchetypeHeld) return HoldMotion();
             UpdateFloorMemory(); // Consume removals even during a catch; never replay them afterward.
             if (_state.CatchActive)
                 return new HunterTickResult(_state.Position, 0f, HunterLungePhase.None, Vector3.zero, false, false, true);
@@ -309,7 +438,7 @@ namespace Worsen.Domain.Hunter
             float speed = hold ? 0f : MovementSpeed();
             if (_state.LungePhase == HunterLungePhase.None && _archetype.TryMovement(out Vector3 target, out float overrideSpeed))
             { _state.NavigationTarget = target; speed = overrideSpeed; hold = false; face = Vector3.zero; }
-            return new HunterTickResult(_state.NavigationTarget, speed * _state.RunSpeedMultiplier, _state.LungePhase,
+            return new HunterTickResult(_state.NavigationTarget, speed * _state.RunSpeedMultiplier * (ObservationRules?.SpeedMultiplier ?? 1f), _state.LungePhase,
                 _state.LungeDirection, begin, _state.LungePhase == HunterLungePhase.Active, hold, stumble, face);
         }
         private float MovementSpeed()
@@ -337,7 +466,8 @@ namespace Worsen.Domain.Hunter
         }
         public float EffectiveAttackDistance => _profile.AttackStyle == HunterAttackStyle.Lunge ?
             _profile.LungeDistance * (Cursed(ProgressionTraits.RusherLongStride) ? 1.35f : 1f) : _profile.RangedAttackDistance;
-        public float EffectiveSightRange => _profile.SightRange * (Cursed(ProgressionTraits.WatcherUnquietGaze) ? 1.25f : 1f);
+        public float EffectiveSightRange => _profile.SightRange * (Cursed(ProgressionTraits.WatcherUnquietGaze) ? 1.25f : 1f) *
+            (_state.WickActive ? _profile.WickSightMultiplier : 1f);
         public float EffectiveSightCone => _profile.SightConeDegrees * (Cursed(ProgressionTraits.LurkerDarkAdaptation) ? 1.3f : 1f);
         public float WindupDuration => Duration(HunterLungePhase.Windup);
         public float ProjectileSpeed => _profile.ProjectileSpeed * (Cursed(ProgressionTraits.HexerLingeringHex) ? 0.65f : 1f);
@@ -558,7 +688,8 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptRangedContact(EntityId target, int attackSerial, out HunterHit hit)
         {
             hit = default;
-            if (Dormant || _profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
+            if (_state.StunRemaining > 0f || _state.SlipRemaining > 0f || _state.ReactionHeld || _state.BreakingDoor != 0 ||
+                ArchetypeHeld || Dormant || _profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
                 attackSerial <= 0 || !_state.FiredRangedAttacks.Contains(attackSerial) || attackSerial > _state.AttackSerial || attackSerial < _state.AttackSerial - 8 ||
                 !_state.AcceptedRangedAttacks.Add(attackSerial)) return false;
             _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
@@ -575,7 +706,7 @@ namespace Worsen.Domain.Hunter
         public bool TryDequeueFeedback(out HunterFeedbackEvent feedback)
         {
             feedback = default;
-            if (!_player.IsAlive) { _state.Feedback.Clear(); return false; }
+            if (!_player.IsAlive || Silent) { _state.Feedback.Clear(); return false; }
             if (_state.Feedback.Count == 0) return false;
             feedback = new HunterFeedbackEvent(_state.Id, _profile.ArchetypeKey, _state.Feedback.Dequeue(), _state.Position, _state.Tick);
             return true;
@@ -600,7 +731,7 @@ namespace Worsen.Domain.Hunter
             _state.LastLightPosition = observation.Position;
             _state.LightMemoryRemaining = _profile.LightMemorySeconds * (Cursed(ProgressionTraits.WatcherLongMemory) ? 1.75f : 1f);
         }
-        public float LungeSpeed => _profile.LungeSpeed * _state.RunSpeedMultiplier;
+        public float LungeSpeed => _profile.LungeSpeed * _state.RunSpeedMultiplier * (ObservationRules?.SpeedMultiplier ?? 1f);
         public void ApplyRunSpeedMultiplier(float multiplier)
         {
             if (!Finite(multiplier) || multiplier <= 0f || !Finite(_profile.PatrolSpeed * multiplier)
@@ -647,7 +778,8 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptContact(EntityId target, out HunterHit hit)
         {
             hit = default;
-            if (Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
+            if (_state.StunRemaining > 0f || _state.SlipRemaining > 0f || _state.ReactionHeld || _state.BreakingDoor != 0 ||
+                ArchetypeHeld || Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
                 target != _state.TargetId || !_player.IsAlive || !_state.IsActive) return false;
             _state.LungeHitAccepted = true;
             _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);

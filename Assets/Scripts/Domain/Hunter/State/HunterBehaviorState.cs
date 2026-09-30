@@ -15,6 +15,7 @@
 //   - Retain the fixed travel budget of the current walking search leg.
 //   - Retain run overrides across Controller.Reset, but clear transient habit/catch state.
 //   - Retain the spawn request's duplicate index independently of entity identity.
+//   - Store reaction timers, injected world/camera evidence and once-only door facts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -52,6 +53,13 @@ namespace Worsen.Domain.Hunter
         public int LastPickupRoom { get; internal set; }
         public bool CatchActive { get; internal set; }
         internal bool ChaseActive, LossHabitObserved;
+        internal float StunRemaining, SlipRemaining, DoorBreakRemaining;
+        internal bool ReactionHeld, WickActive, DoorBreakPublished, PlayerViewClear;
+        internal int BreakingDoor;
+        internal long DoorRevision;
+        internal IReadOnlyHunterWorldView WorldView;
+        internal HunterPlayerView PlayerView;
+        internal readonly Queue<HunterDoorBreakFact> DoorBreakFacts = new Queue<HunterDoorBreakFact>();
         internal float ThresholdPauseRemaining;
         internal readonly Queue<HunterHabitFact> HabitFacts = new Queue<HunterHabitFact>();
         internal readonly Dictionary<HunterTunable, float> Mutations = new Dictionary<HunterTunable, float>();
