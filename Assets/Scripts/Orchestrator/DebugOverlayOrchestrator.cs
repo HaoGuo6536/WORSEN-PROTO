@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · DebugOverlay target.
 // KEY RESPONSIBILITIES:
+//   - Pair hand-fact routing and clear prior-floor diagnostics at capture/load boundaries.
 //   - Forward completed simulation ticks and phase changes to the overlay.
 // DEPENDENCIES:
 //   - Session.Run publishes facts; Presentation.DebugOverlay displays them.
@@ -36,10 +37,13 @@ namespace Worsen.Orchestrator
                 return;
             }
             if (_overlay.Initialize() != _overlay) return;
+            OnDisable();
             _run = RunSessionManager.Instance ?? _run;
             _run.TickAdvanced += OnTickAdvanced;
             _run.PlayerMovementPublished += OnMovement;
             _run.PhaseChanged += OnPhaseChanged;
+            _run.CollapseHandPublished += OnHand;
+            _run.CaptureStarted += OnCapture;
         }
 
         private void OnDisable()
@@ -48,6 +52,9 @@ namespace Worsen.Orchestrator
             _run.TickAdvanced -= OnTickAdvanced;
             _run.PlayerMovementPublished -= OnMovement;
             _run.PhaseChanged -= OnPhaseChanged;
+            _run.CollapseHandPublished -= OnHand;
+            _run.CaptureStarted -= OnCapture;
+            if (_overlay != null) _overlay.ResetHands();
         }
 
         private void OnMovement(PlayerMovementSample sample)
@@ -57,6 +64,11 @@ namespace Worsen.Orchestrator
             => _overlay.SetRunStatus(tick, _run.Phase.ToString());
 
         private void OnPhaseChanged(RunPhase phase)
-            => _overlay.SetRunStatus(_run.Tick, phase.ToString());
+        {
+            _overlay.SetRunStatus(_run.Tick, phase.ToString());
+            if (phase == RunPhase.Boot) _overlay.ResetHands();
+        }
+        private void OnHand(CollapseHandFact fact) => _overlay.SetCollapseHand(fact);
+        private void OnCapture(RunCaptureMetadata metadata) => _overlay.ResetHands();
     }
 }

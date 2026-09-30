@@ -12,12 +12,13 @@
 //   Owns and commands DebugOverlayDriver; all text and visual work stays in its stack.
 //
 // KEY RESPONSIBILITIES:
+//   - Route Core hand facts and explicit floor resets without inspecting gameplay state.
 //   - Return the canonical persistent instance when another scene creates a duplicate.
 //   - Resolve and inject the DriverConfig and own the Driver lifecycle.
 //   - Forward run and player display commands without performing calculations.
 //
 // DEPENDENCIES:
-//   - No other project systems. Receives only primitive status values from callers.
+//   - Core hand facts and primitive status values supplied by callers.
 //
 // USAGE NOTES:
 //   - Persistent tier (§8), using DontDestroyOnLoad. Initialize is called explicitly
@@ -29,6 +30,7 @@
 // ============================================================================
 
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Presentation.DebugOverlay
 {
@@ -78,6 +80,9 @@ namespace Worsen.Presentation.DebugOverlay
         {
             if (_driver != null) _driver.SetPlayerStatus(speed, state);
         }
+
+        public void SetCollapseHand(CollapseHandFact fact) { if (_driver != null) _driver.SetCollapseHand(fact); }
+        public void ResetHands() { if (_driver != null) _driver.ResetHands(); }
 
         public void SetPlayerUnavailable()
         {

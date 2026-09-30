@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Session · HorrorEffects (Service system).
 // KEY RESPONSIBILITIES:
+//   Throw only surviving accepted hand hits and own trap slows independently of grab speed.
 //   Own the controller lifecycle and publish light, noise and spatial-effect facts.
 //   Sequence Domain Player/Floor hand outcomes and Progression ward consumption.
 //   Route light/hand damage at the Floor fact tick without rewinding Player recovery.
@@ -69,7 +70,7 @@ namespace Worsen.Session.HorrorEffects
             DontDestroyOnLoad(gameObject);
             return this;
         }
-        public void BeginFloor(int generationId, ProgressionEffects effects) { controller?.BeginFloor(generationId, effects); RefreshActors(); Publish(); }
+        public void BeginFloor(int generationId, ProgressionEffects effects) { Suspend(); controller?.BeginFloor(generationId, effects); RefreshActors(); Publish(); }
         public void UpdateEffects(ProgressionEffects effects) { controller?.UpdateEffects(effects); RefreshActors(); Publish(); }
         public void ObserveAim(FlashlightSample aim) { controller?.ObserveAim(aim); Publish(); }
         public void ReceiveInput(InputFrame frame) { controller?.ReceiveInput(frame); Publish(); }
@@ -79,8 +80,8 @@ namespace Worsen.Session.HorrorEffects
         { controller?.RecordGoldenCollected(source, position, tick); Publish(); }
         public void SetOptionalRooms(int[] roomIds) => controller?.SetOptionalRooms(roomIds);
         public void RecordDoorCrossed(int doorId, Vector3 position) { controller?.RecordDoorCrossed(doorId, position); Publish(); }
-        public void Tick(InputFrame frame, float dt, long tick) { RefreshActors(); controller?.Tick(frame, dt, tick); Publish(); }
-        public void Tick(float dt, long tick) { RefreshActors(); controller?.Tick(dt, tick); Publish(); }
+        public void Tick(InputFrame frame, float dt, long tick) { RefreshActors(); controller?.Tick(frame, dt, tick); RefreshTrapSlows(); Publish(); }
+        public void Tick(float dt, long tick) { RefreshActors(); controller?.Tick(dt, tick); RefreshTrapSlows(); Publish(); }
         public void BindActors() => RefreshActors();
         public void RefreshActors()
         {
@@ -99,7 +100,8 @@ namespace Worsen.Session.HorrorEffects
         }
         public void Suspend()
         {
-            foreach (PlayerManager player in PlayerRegistry.Items) player.SetGrabSpeedMultiplier(1f);
+            foreach (PlayerManager player in PlayerRegistry.Items)
+                if (player != null) { player.SetGrabSpeedMultiplier(1f); player.SetTrapSpeedMultiplier(1f); }
             controller?.Suspend(); Publish();
         }
         public void ConfigureHazards(ProgressionSessionManager progressionService, FloorManager floorService,
@@ -114,6 +116,8 @@ namespace Worsen.Session.HorrorEffects
         public void ClearHazards()
         {
             UnbindHazards();
+            controller?.ClearTrapSlows();
+            RefreshTrapSlows();
             floor = null;
             director = null;
             progression = null;
@@ -122,11 +126,13 @@ namespace Worsen.Session.HorrorEffects
         {
             if (hazardsBound || !isActiveAndEnabled || floor == null) return;
             floor.OnCollapseHand += HandleCollapseHand;
+            floor.OnTrapSprung += HandleTrapSprung;
             hazardsBound = true;
         }
         private void UnbindHazards()
         {
-            if (hazardsBound && floor != null) floor.OnCollapseHand -= HandleCollapseHand;
+            if (hazardsBound && floor != null)
+            { floor.OnCollapseHand -= HandleCollapseHand; floor.OnTrapSprung -= HandleTrapSprung; }
             hazardsBound = false;
         }
         private void HandleCollapseHand(CollapseHandFact fact)
@@ -145,9 +151,26 @@ namespace Worsen.Session.HorrorEffects
             player.SetGrabSpeedMultiplier(result.SpeedMultiplier);
             if (result.Damage <= 0f) return;
             player.AdvanceRecovery(Math.Max(fact.Tick, player.ReadOnlyState.Tick));
-            player.ApplyHit(result.Damage, fact.Position, HitSeverity.Light, HitSource.Hand);
+            bool accepted = player.ApplyHit(result.Damage, fact.Position, HitSeverity.Light, HitSource.Hand);
             if (player.ReadOnlyState != null && !player.ReadOnlyState.IsAlive)
                 eventFloor?.ConfirmCollapseDeath(fact.PlayerId, fact.RoomId);
+            else if (accepted && player.ReadOnlyState != null)
+                player.ApplyExternalVelocity(fact.ThrowVelocity, ExternalMotionKind.CollapseHandThrow);
+        }
+
+        private void HandleTrapSprung(FloorTrapSprungFact fact)
+        {
+            if (fact.Kind != FloorTrapKind.Slow || controller == null ||
+                !PlayerRegistry.TryGet(fact.PlayerId, out PlayerManager player) || player.ReadOnlyState?.IsAlive != true) return;
+            if (controller.StartTrapSlow(fact.PlayerId, fact.TrapId))
+                player.SetTrapSpeedMultiplier(controller.TrapSpeedMultiplier(fact.PlayerId));
+        }
+
+        private void RefreshTrapSlows()
+        {
+            if (controller == null) return;
+            foreach (PlayerManager player in PlayerRegistry.Items)
+                if (player != null) player.SetTrapSpeedMultiplier(controller.TrapSpeedMultiplier(player.Id));
         }
 
         private void Publish()

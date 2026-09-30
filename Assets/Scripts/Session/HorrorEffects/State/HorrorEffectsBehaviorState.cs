@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
+//   Retain floor-scoped trap deduplication and independent per-player slow deadlines.
 //   Retain bounded schedules, effect state and committed result records.
 // DEPENDENCIES:
 //   Core value contracts and the HorrorEffects system's own data only.
@@ -54,6 +55,8 @@ namespace Worsen.Session.HorrorEffects
         public int ActorEffectsRevision;
         public readonly Dictionary<EntityId, int> AppliedActorEffects = new Dictionary<EntityId, int>();
         public readonly Dictionary<EntityId, float> GrabMultipliers = new Dictionary<EntityId, float>();
+        public readonly Dictionary<EntityId, double> TrapSlowExpires = new Dictionary<EntityId, double>();
+        public readonly HashSet<int> ResolvedSlowTraps = new HashSet<int>();
         public readonly HashSet<EntityId> BoundHunters = new HashSet<EntityId>();
     }
 }

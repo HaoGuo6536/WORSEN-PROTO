@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Retain seeded pending collapse priorities and the next safely admitted room deadline.
 //   - Retain trap identities, default-off cake hooks, typed guidance and separate collapse readiness.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Retain elapsed locked-exit contact until cancellation or a terminal outcome.
@@ -48,6 +49,10 @@ namespace Worsen.Domain.Floor
         internal readonly Dictionary<int, FloorHandPhase> MutableRoomHandPhases = new Dictionary<int, FloorHandPhase>();
         internal readonly FloorHandBehaviorState Hands = new FloorHandBehaviorState();
         internal bool FasterCollapse;
+        internal bool ShuffledCollapse;
+        internal readonly List<int> PendingCollapseRooms = new List<int>();
+        internal double NextShuffledStart;
+        public int Round { get; internal set; }
         internal readonly List<LevelAnchor> MutableActiveAnchors = new List<LevelAnchor>();
         internal readonly Dictionary<int, RoomPhase> MutableRoomPhases = new Dictionary<int, RoomPhase>();
         internal readonly HashSet<int> OptionalCrackedRooms = new HashSet<int>();

@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · HUD target.
 // KEY RESPONSIBILITIES:
+//   - Route typed guidance snapshots; display counters must never overwrite either arrow.
 //   - Forward supplied values and pair every subscription with teardown.
 //   - Reset chase presentation when a new generated floor capture begins.
 //   - Route authoritative golden totals and translate empty slots to held-item count.
@@ -19,6 +20,7 @@
 //   Execution order 100 samples the camera aim after its default-order LateUpdate.
 // ============================================================================
 using UnityEngine;
+using System.Collections.Generic;
 using Worsen.Core;
 using Worsen.Session.Run;
 using Worsen.Presentation.HUD;
@@ -43,6 +45,7 @@ namespace Worsen.Orchestrator
             if (_hud == null) return;
             _hud.Initialize();
             _run.FloorDisplayChanged += OnDisplay;
+            _run.GuidanceChanged += OnGuidance;
             _run.PlayerMovementPublished += OnMovement;
             _run.EmptyItemSlotsChanged += OnSlots;
             _run.ChaseStarted += OnChase;
@@ -53,6 +56,8 @@ namespace Worsen.Orchestrator
         {
             if (_run == null) return;
             _run.FloorDisplayChanged -= OnDisplay;
+            _run.GuidanceChanged -= OnGuidance;
+            if (_hud != null) { _hud.ResetRunView(); _hud.SetGuidance(null); }
             _run.PlayerMovementPublished -= OnMovement;
             _run.EmptyItemSlotsChanged -= OnSlots;
             _run.ChaseStarted -= OnChase;
@@ -64,13 +69,13 @@ namespace Worsen.Orchestrator
             _hud.SetCount(display.Collected, display.Required);
             _hud.SetGoldenCount(display.Golden);
             _hud.SetExitState(display.Exit);
-            _hud.SetDirection(display.CueDirection, display.HasCue);
         }
         private void OnMovement(PlayerMovementSample sample) => _hud.SetHeading(sample.HeadingDegrees);
+        private void OnGuidance(IReadOnlyList<GuidanceTarget> targets) => _hud.SetGuidance(targets);
         private void OnSlots(int count) => _hud.SetHeldItemCount(2 - count);
         private void OnChase(ChaseFact fact) => _hud.SetChaseMode(true);
         private void OnChaseEnd(ChaseFact fact) => _hud.SetChaseMode(false);
         private void OnCaptureStarted(RunCaptureMetadata metadata)
-        { _hud.ResetRunView(); _hud.SetGoldenCount(0); _hud.SetHeldItemCount(0); }
+        { _hud.ResetRunView(); _hud.SetGuidance(null); _hud.SetGoldenCount(0); _hud.SetHeldItemCount(0); }
     }
 }

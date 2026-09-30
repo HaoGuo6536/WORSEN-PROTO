@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Compose trap and grab speed factors multiplicatively without sharing their lifetimes.
 //   - Consume bounded external velocity once after locomotion, regardless of hit grace.
 //   - Snapshot active effects each tick; combine Player config rules through PlayerEffectUtility.
 //   - Release vault momentum once, suppress slide noise and expose sliding grab protection.
@@ -85,6 +86,7 @@ namespace Worsen.Domain.Player
             _state.Forward = Quaternion.Euler(0f, headingDegrees, 0f) * Vector3.forward;
             _state.MovementSpeedMultiplier = 1f;
             _state.FootstepNoiseMultiplier = _state.ReboundCooldownMultiplier = _state.GrabSpeedMultiplier = 1f;
+            _state.TrapSpeedMultiplier = 1f;
             _state.SlideTurnRateDegrees = _state.MovementDeltaTime = 0f;
             _state.PreviousHorizontalVelocity = Vector3.zero;
             _state.SprintSpeed = _profile.SprintSpeed;
@@ -353,7 +355,7 @@ namespace Worsen.Domain.Player
             Vector3 horizontal = Horizontal(record.Resolution.Velocity);
             if (!Finite(move.x) || !Finite(move.y) || !Finite(horizontal)) return false;
             Vector3 desired = _state.Forward * move.y + Vector3.Cross(Vector3.up, _state.Forward) * move.x;
-            float walkingSpeed = _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.HitBoostMultiplier;
+            float walkingSpeed = _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier;
             // Acceleration below walking pace, idle intent and wall-arrested motion
             // are not an achieved sprint. Modifier-scaled walking pace keeps grabs meaningful.
             return Vector3.Dot(horizontal, desired) > 0f && horizontal.magnitude > walkingSpeed + 0.0001f;
@@ -569,6 +571,13 @@ namespace Worsen.Domain.Player
             _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
         }
 
+        public void SetTrapSpeedMultiplier(float multiplier)
+        {
+            _state.TrapSpeedMultiplier = Finite(multiplier) ? Mathf.Clamp01(multiplier) : 1f;
+            _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
+            _state.VaultExitVelocity = ClampHorizontal(_state.VaultExitVelocity, EffectiveMaximumSpeed());
+        }
+
         private void ApplyLook(InputFrame frame)
         {
             _state.LookBack = _state.LookBackEnabled && !HasEffect(PlayerEffectStat.NoLookBack)
@@ -613,7 +622,7 @@ namespace Worsen.Domain.Player
                 else
                 {
                     float speed = (frame.Held & InputButtons.Sprint) != 0
-                        ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.HitBoostMultiplier;
+                        ? EffectiveSprintSpeed() : _profile.WalkSpeed * _state.MovementSpeedMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier;
                     if (_state.StumbleRemaining > 0f) speed *= _profile.StumbleSpeedMultiplier;
                     // Preserve a landing's retained momentum on its transition tick.
                     bool landed = _state.LandingImpactSpeed < 0f;
@@ -766,9 +775,9 @@ namespace Worsen.Domain.Player
                 : health <= _state.MaxHealth * (_profile.InjuredThreshold / _profile.MaximumHealth) ? PlayerHealthState.Injured : PlayerHealthState.Healthy;
         private float InjuryMultiplier() => _state.HealthState == PlayerHealthState.Injured || _state.HealthState == PlayerHealthState.Critical
             ? _profile.InjuredSpeedMultiplier : 1f;
-        private float EffectiveMaximumSpeed() => CapEffectSpeed(_state.MaxDesignSpeed * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.HitBoostMultiplier);
+        private float EffectiveMaximumSpeed() => CapEffectSpeed(_state.MaxDesignSpeed * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier);
         private float EffectiveSprintSpeed() => CapEffectSpeed(Effect(PlayerEffectStat.SprintSpeed,
-            _state.SprintSpeed * _state.MovementSpeedMultiplier) * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.HitBoostMultiplier);
+            _state.SprintSpeed * _state.MovementSpeedMultiplier) * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.HitBoostMultiplier);
         private float CapEffectSpeed(float speed) => PlayerEffectUtility.HasModifier(_effectConfig, _state.AppliedEffects, PlayerEffectStat.SprintSpeed)
             ? Mathf.Min(speed, PlayerEffectUtility.SprintCeiling(_effectConfig)) : speed;
         private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration)

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain an independent trap speed factor, composed with grabs by the Controller.
 //   - Accumulate external velocity deltas until one movement tick consumes them.
 //   - Store the pending effects view, tick snapshot, floor health baseline and one-use vault momentum.
 //   - Retain regeneration delay and neutral-by-default health effect hooks per life.
@@ -89,6 +90,7 @@ namespace Worsen.Domain.Player
         public float FootstepNoiseMultiplier { get; set; } = 1f;
         public float ReboundCooldownMultiplier { get; set; } = 1f;
         public float GrabSpeedMultiplier { get; set; } = 1f;
+        public float TrapSpeedMultiplier { get; set; } = 1f;
         public float StumbleRemaining { get; set; }
         public float StumbleSpeedLimit { get; set; }
         public float StumbleStartedSeconds { get; set; }

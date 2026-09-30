@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Route typed arrows and admit phantom counts only on a bound, enabled display.
 //   - Own document binding and the HUDVisualDriver lifetime.
 //   - Preserve supplied facts across document recreation and disable/enable.
 //   - Receive camera aim, golden count and occupied-item facts for a flat, decluttered HUD.
@@ -26,6 +27,7 @@
 // ============================================================================
 
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using Worsen.Core;
 
@@ -105,6 +107,19 @@ namespace Worsen.Presentation.HUD
             Apply();
         }
 
+        public void SetGuidance(IReadOnlyList<GuidanceTarget> targets)
+        {
+            if (_state == null) return;
+            _presenter.SetGuidance(_state, targets); Apply();
+        }
+
+        public bool TryShowPhantomCake(float seconds)
+        {
+            if (!isActiveAndEnabled || _state == null || _boundRoot == null || _boundRoot.panel == null ||
+                _document == null || !_document.isActiveAndEnabled || !_presenter.TryShowPhantomCake(_state, seconds)) return false;
+            Apply(); return true;
+        }
+
         public void SetViewRotation(Quaternion rotation)
         {
             if (_state == null) return;
@@ -142,7 +157,11 @@ namespace Worsen.Presentation.HUD
         }
 
         private void OnEnable() { if (_state != null) BindAndApply(); }
-        private void OnDisable() => HideAndUnbind();
+        private void OnDisable()
+        {
+            if (_state != null) _presenter.ClearPhantomCake(_state);
+            HideAndUnbind();
+        }
         private void OnDestroy()
         {
             Teardown();

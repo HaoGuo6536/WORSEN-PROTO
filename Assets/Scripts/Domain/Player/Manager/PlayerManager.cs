@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Route the independent trap speed factor; its lifetime belongs to Session.
 //   - Queue external impulses and explicitly timed acceleration without publishing new facts.
 //   - Route active-effect views to the Controller and publish effect/regen health changes.
 //   - Expose read-only Low Profile protection; Floor owns consulting it before grabs.
@@ -170,6 +171,7 @@ namespace Worsen.Domain.Player
         public void SetMovementEffects(float footstepNoiseMultiplier, float reboundCooldownMultiplier, float grabSpeedMultiplier)
         { _controller?.SetMovementEffects(footstepNoiseMultiplier, reboundCooldownMultiplier, grabSpeedMultiplier); }
         public void SetGrabSpeedMultiplier(float multiplier) { _controller?.SetGrabSpeedMultiplier(multiplier); }
+        public void SetTrapSpeedMultiplier(float multiplier) { _controller?.SetTrapSpeedMultiplier(multiplier); }
         public void ApplyLungeHit(Vector3 killerPosition) { if (_profile != null) ApplyHit(_profile.LungeDamage, killerPosition); }
         public void Teardown()
         {

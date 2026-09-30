@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Consume the floor's Wax Heart before any per-player Wax Ward, never both.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Break one grab per armed Wax Ward and publish room phases without mutating Player.
@@ -80,6 +81,8 @@ namespace Worsen.Domain.Floor
             contact.Elapsed += dt;
             if (contact.Phase == FloorHandPhase.Warning && contact.Elapsed >= _config.HandWarningDuration)
             {
+                if (_state.WaxHeartAvailable)
+                { _state.WaxHeartAvailable = false; return Release(contact, player, tick, CollapseHandEventKind.Escaped, out fact); }
                 if (_state.WaxWards.Remove(player)) return Release(contact, player, tick, CollapseHandEventKind.Escaped, out fact);
                 contact.Phase = FloorHandPhase.Grabbed; contact.Elapsed = 0f;
                 fact = Fact(contact, player, CollapseHandEventKind.Grabbed, tick); return true;
@@ -129,7 +132,7 @@ namespace Worsen.Domain.Floor
                 rooms[contact.RoomId] = contact.Phase;
             }
         }
-        public void Reset() { _state.Contacts.Clear(); _state.WaxWards.Clear(); }
+        public void Reset() { _state.Contacts.Clear(); _state.WaxWards.Clear(); _state.WaxHeartAvailable = false; }
         private bool Release(FloorHandContactBehaviorState contact, EntityId player, long tick, CollapseHandEventKind kind, out CollapseHandFact fact)
         {
             fact = default;

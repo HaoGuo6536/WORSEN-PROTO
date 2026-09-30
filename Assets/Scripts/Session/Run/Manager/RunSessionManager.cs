@@ -12,6 +12,8 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward typed guidance/traps and route boundary acceleration using the Floor tick delta.
+//   - Share pickup/hand/trap hearing; environmental sources use Director only when bound.
 //   - Pair traversal, stumble and cake-loss relays; route pickup noise to bound active hunters.
 //   - Drop gameplay facts raised during pause rather than replaying them on resume.
 //   - Own authoritative pause, gate queued damage before ticks, and publish detailed end facts.
@@ -40,6 +42,8 @@
 //   Accepted hits are recorded even before chase confirmation. Terminal outcomes
 //   are committed after facts, then capture closes before input/results notification.
 //   Recovery uses the processing Run tick, not a queued hit's historical timestamp.
+//   EntityId.None noises go through Director's acoustic hint path, never both paths.
+//   Without Director the legacy direct-hearing fallback is retained. No source is forged.
 //
 // ============================================================================
 
@@ -82,6 +86,8 @@ namespace Worsen.Session.Run
         public event Action<PickupCollectedFact, Vector3> PickupCollected;
         public event Action<RoomDestructionSample> RoomDestructionPublished;
         public event Action<CollapseHandFact> CollapseHandPublished;
+        public event Action<FloorTrapSprungFact> TrapSprung;
+        public event Action<IReadOnlyList<GuidanceTarget>> GuidanceChanged;
         public event Action<PlayerTraversalFact> PlayerTraversalPublished;
         public event Action<EntityId, long, TraversalKind, float, bool> TraversalProgressed;
         public event Action<EntityId, long, float> PlayerStumbled;
@@ -230,6 +236,11 @@ namespace Worsen.Session.Run
             {
                 floor.OnPickupCollected += HandlePickup;
                 floor.OnPickupNoise += HandlePickupNoise;
+                floor.OnHandNoise += HandlePickupNoise;
+                floor.OnTrapNoise += HandlePickupNoise;
+                floor.OnTrapSprung += HandleTrapSprung;
+                floor.OnGuidanceChanged += HandleGuidance;
+                floor.OnBoundaryContact += HandleBoundaryContact;
                 floor.OnCakeLost += HandleCakeLost;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
@@ -268,6 +279,11 @@ namespace Worsen.Session.Run
             {
                 floor.OnPickupCollected -= HandlePickup;
                 floor.OnPickupNoise -= HandlePickupNoise;
+                floor.OnHandNoise -= HandlePickupNoise;
+                floor.OnTrapNoise -= HandlePickupNoise;
+                floor.OnTrapSprung -= HandleTrapSprung;
+                floor.OnGuidanceChanged -= HandleGuidance;
+                floor.OnBoundaryContact -= HandleBoundaryContact;
                 floor.OnCakeLost -= HandleCakeLost;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
@@ -292,6 +308,7 @@ namespace Worsen.Session.Run
             UnsubscribeGameplay();
             players.Clear(); hunters.Clear(); pendingHits.Clear();
             chase = null; floor = null; director = null;
+            if (state != null) state.FloorDeltaSeconds = 0f;
         }
 
         private void FixedUpdate()
@@ -315,7 +332,12 @@ namespace Worsen.Session.Run
             DrainPendingHits();
             if (state.PendingEndReason == RunEndReason.Unknown)
             {
-                if (floor != null) floor.Tick(deltaTime, state.Tick);
+                if (floor != null)
+                {
+                    state.FloorDeltaSeconds = deltaTime;
+                    try { floor.Tick(deltaTime, state.Tick); }
+                    finally { state.FloorDeltaSeconds = 0f; }
+                }
                 if (director != null) director.Tick(deltaTime, state.Tick);
             }
             foreach (PlayerManager player in PlayerRegistry.Items)
@@ -339,9 +361,20 @@ namespace Worsen.Session.Run
         private void HandlePickupNoise(NoiseEvent noise)
         {
             if (IsPaused) return;
+            if (!noise.Source.IsValid && director != null) { director.HearNoise(noise); return; }
             foreach (HunterManager hunter in hunters)
                 if (hunter != null && hunter.isActiveAndEnabled && hunter.ReadOnlyState?.IsActive == true)
                     hunter.HearNoise(noise);
+        }
+        private void HandleTrapSprung(FloorTrapSprungFact fact)
+        { if (!IsPaused) TrapSprung?.Invoke(fact); }
+        private void HandleGuidance(IReadOnlyList<GuidanceTarget> targets)
+        { if (!IsPaused) GuidanceChanged?.Invoke(targets); }
+        private void HandleBoundaryContact(EntityId id, int room, Vector3 acceleration, Vector3 position, long tick)
+        {
+            if (IsPaused || state == null || state.FloorDeltaSeconds <= 0f) return;
+            PlayerManager player = players.Find(value => value != null && value.Id == id);
+            player?.ApplyExternalAcceleration(acceleration, state.FloorDeltaSeconds);
         }
         private void HandleHunterFeedback(HunterFeedbackEvent fact)
         { if (!IsPaused) HunterFeedbackPublished?.Invoke(fact); }
@@ -477,6 +510,7 @@ namespace Worsen.Session.Run
             HunterFeedbackPublished = null; HitAccepted = null; PickupCollected = null;
             OnGraceStarted = null; OnGraceEnded = null;
             RoomDestructionPublished = null; CollapseHandPublished = null;
+            TrapSprung = null; GuidanceChanged = null;
             PlayerTraversalPublished = null;
             TraversalProgressed = null; PlayerStumbled = null; CakeLost = null;
             PlayerProbeRecorded = null;

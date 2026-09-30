@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
+//   - Snapshot catalogue cake/collapse hooks and the actual round into each non-shop Floor.
 //   - Start each spawned Player at its effective maximum, never the previous floor's current health.
 //   - Route immutable active effects before floor health and on current-floor revisions.
 //   - Bind scene-owned services explicitly and release every binding on disable.
@@ -256,8 +257,11 @@ namespace Worsen.Session.Expedition
             else
             {
                 _chase.Initialize(_chaseConfig, player.ReadOnlyState);
+                var activeEffects = _progression.EffectsSnapshot.ActiveEffects;
                 _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState },
-                    _run.RandomSource);
+                    _run.RandomSource, fasterCollapse: ExpeditionFloorEffectUtility.FasterCollapse(activeEffects),
+                    shuffledCollapse: ExpeditionFloorEffectUtility.ShuffledCollapse(activeEffects), round: request.Round,
+                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects));
                 _director.Initialize(_directorConfig, _run.RandomSource, _chase.ReadOnlyState, _floor.ReadOnlyState);
                 _director.SetLevelView(_level.ReadOnlyState);
                 _run.BindGameplay(_chase, _floor, _director);

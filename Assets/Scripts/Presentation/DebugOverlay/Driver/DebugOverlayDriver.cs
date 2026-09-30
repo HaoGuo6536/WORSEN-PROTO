@@ -13,12 +13,13 @@
 //   prepares text in a DriverState before the Driver applies it to labels.
 //
 // KEY RESPONSIBILITIES:
+//   - Display floor-scoped hand diagnostics independently of player movement telemetry.
 //   - Own the procedural DebugOverlaySurfaceDriver and bind its diagnostic ribbon.
 //   - Rebind when UIDocument replaces its root, including disable/enable cycles.
 //   - Resolve missing document assets by mirrored Resources paths and report failure.
 //
 // DEPENDENCIES:
-//   - No other project systems. UnityEngine.UIElements owns the display surface.
+//   - Core hand facts; UnityEngine.UIElements owns the display surface.
 //
 // USAGE NOTES:
 //   - Persistent: owned by the persistent DebugOverlayManager and its GameObject.
@@ -30,6 +31,7 @@
 // ============================================================================
 
 using UnityEngine;
+using Worsen.Core;
 using UnityEngine.UIElements;
 
 namespace Worsen.Presentation.DebugOverlay
@@ -53,6 +55,7 @@ namespace Worsen.Presentation.DebugOverlay
         private Label _phaseLabel;
         private Label _speedLabel;
         private Label _movementLabel;
+        private Label _handsLabel;
 
         public void Initialize(DebugOverlayDriverConfig config)
         {
@@ -98,6 +101,11 @@ namespace Worsen.Presentation.DebugOverlay
             ApplyText();
         }
 
+        public void SetCollapseHand(CollapseHandFact fact)
+        { if (_state == null) return; _presenter.SetCollapseHand(_state, fact); ApplyText(); }
+        public void ResetHands()
+        { if (_state == null) return; _presenter.ResetHands(_state); ApplyText(); }
+
         public void Teardown()
         {
             HideAndUnbind();
@@ -135,6 +143,7 @@ namespace Worsen.Presentation.DebugOverlay
             _phaseLabel = root.Q<Label>("phase-value");
             _speedLabel = root.Q<Label>("speed-value");
             _movementLabel = root.Q<Label>("movement-value");
+            _handsLabel = root.Q<Label>("hands-value");
             _boundRoot = root;
             if (panel == null || _tickLabel == null || _phaseLabel == null || _speedLabel == null || _movementLabel == null)
             {
@@ -160,6 +169,7 @@ namespace Worsen.Presentation.DebugOverlay
             _phaseLabel.text = _state.PhaseText;
             _speedLabel.text = _state.SpeedText;
             _movementLabel.text = _state.MovementText;
+            if (_handsLabel != null) _handsLabel.text = _state.HandsText;
         }
 
         private void HideAndUnbind()
@@ -171,6 +181,7 @@ namespace Worsen.Presentation.DebugOverlay
             _phaseLabel = null;
             _speedLabel = null;
             _movementLabel = null;
+            _handsLabel = null;
         }
     }
 }

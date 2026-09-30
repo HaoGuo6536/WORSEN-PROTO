@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Build quiet cake and golden counts without panel chrome, title or controls hints.
 //   - Pair all vector callbacks when binding, unbinding or replacing a document.
-//   - Paint one flat white arrow without a ring, shaded facets or caption.
+//   - Paint separate white and golden arrows, each independent of chase chrome.
 //   - Apply chrome visibility and restoration without suppressing the independent compass.
 //
 // DEPENDENCIES:
@@ -37,6 +37,7 @@ namespace Worsen.Presentation.HUD
         private HUDDriverState _state;
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
+        private VisualElement _goldenDirectionGroup, _goldenArrow;
         private Label _count, _golden, _overflow;
 
         public void Bind(VisualElement root, HUDDriverConfig config)
@@ -79,6 +80,14 @@ namespace Worsen.Presentation.HUD
             _arrow = Element("direction-cue", _directionGroup);
             _arrow.style.width = _arrow.style.height = config.CompassSize;
             _arrow.generateVisualContent += PaintArrow;
+            _goldenDirectionGroup = Element("golden-direction-group", root);
+            _goldenDirectionGroup.style.position = Position.Absolute;
+            _goldenDirectionGroup.style.left = Length.Percent(50);
+            _goldenDirectionGroup.style.marginLeft = config.CompassSize;
+            _goldenDirectionGroup.style.bottom = config.ScreenMargin * 3;
+            _goldenArrow = Element("golden-direction-cue", _goldenDirectionGroup);
+            _goldenArrow.style.width = _goldenArrow.style.height = config.CompassSize;
+            _goldenArrow.generateVisualContent += PaintGoldenArrow;
 
             var inventory = Element("inventory-panel", _extra);
             inventory.style.position = Position.Absolute;
@@ -104,6 +113,9 @@ namespace Worsen.Presentation.HUD
             _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _extra.style.opacity = state.ExtraOpacity;
             _directionGroup.style.display = state.DirectionVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _goldenDirectionGroup.style.display = state.GoldenSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _goldenArrow.style.rotate = new Rotate(new Angle(state.GoldenSenseArrowDegrees, AngleUnit.Degree));
+            _goldenArrow.MarkDirtyRepaint();
             _overflow.text = state.SlotOverflowText;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
             _slots.style.display = state.DisplayedSlots > 0 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -116,6 +128,8 @@ namespace Worsen.Presentation.HUD
         {
 
             if (_arrow != null) _arrow.generateVisualContent -= PaintArrow;
+            if (_goldenArrow != null) _goldenArrow.generateVisualContent -= PaintGoldenArrow;
+            _goldenArrow = _goldenDirectionGroup = null;
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _extra = _directionGroup = _arrow = _slots = null;
@@ -134,6 +148,14 @@ namespace Worsen.Presentation.HUD
             painter.fillColor = Color.white;
             Path(painter, _geometry.Arrow(_arrow.contentRect));
             painter.Fill();
+        }
+
+        private void PaintGoldenArrow(MeshGenerationContext context)
+        {
+            if (_state == null || !_state.GoldenSenseVisible) return;
+            var painter = context.painter2D;
+            painter.fillColor = _config.GoldenSenseColor;
+            Path(painter, _geometry.Arrow(_goldenArrow.contentRect)); painter.Fill();
         }
 
         private void PaintSlots(MeshGenerationContext context)
