@@ -9,7 +9,7 @@
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Decide locomotion, traversal, posture and noise from injected input/probes.
-//   - Compose active effects, timed slows, external motion and recovery speed limits.
+//   - Compose active effects, chase/contact perks, external motion and recovery limits.
 //   - Apply shield-first damage, health regeneration and floor/run resets.
 //   - Revive in place with independent collision and damage protection deadlines.
 //   - Commit resolved movement, replay records and traversal facts.
@@ -26,6 +26,8 @@
 //   Effects do not retime published grace or admitted traversal intervals. Heavy Legs cancels a live boost.
 //   Floor reset reconciles next-tick effects once, preserving intervening damage and never reviving deaths.
 //   External motion interrupts scripted traversal and uses normal swept movement.
+//   PlayerPerkController owns contact allowances and delayed footstep history;
+//   Session must supply chase/body/door facts. Without perks, traversal is unchanged.
 //   Its next ticks use ordinary friction, gravity and locomotion caps; replay callers
 //   must supply external commands at matching ticks, as they already do for hits.
 //   No other Domain system or Presentation system is referenced.
@@ -45,6 +47,7 @@ namespace Worsen.Domain.Player
         private readonly PlayerBehaviorState _state;
         private readonly PlayerProfile _profile;
         private readonly PlayerEffectConfig _effectConfig;
+        private readonly PlayerPerkController _perks;
         public float MaximumMovementSpeed => EffectiveMaximumSpeed();
         public float ShieldCapacity => _state.IsAlive ? float.MaxValue - _state.Shield : 0f;
         public float SlideWallSpeedRetention => Effect(PlayerEffectStat.SlideRetention, _profile.SlideWallSpeedRetention);
@@ -53,6 +56,7 @@ namespace Worsen.Domain.Player
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile));
             _effectConfig = effectConfig;
+            _perks = new PlayerPerkController(_state, effectConfig);
             if (random == null) throw new ArgumentNullException(nameof(random));
         }
 
@@ -124,6 +128,7 @@ namespace Worsen.Domain.Player
             _state.LastMovementSample = default;
             _state.LastProbeRecord = default;
             _state.LastTraversalFacts = Array.Empty<PlayerTraversalFact>();
+            _perks.Reset();
         }
 
         public PlayerTickResult Tick(InputFrame frame, MovementProbe probe, float deltaTime, long tick)
@@ -132,6 +137,7 @@ namespace Worsen.Domain.Player
             var facts = new List<PlayerTraversalFact>(2);
             AdvanceRecovery(tick);
             ApplyActiveEffects();
+            _perks.Tick();
             _state.MovementDeltaTime = deltaTime;
             _state.PreviousHorizontalVelocity = Horizontal(_state.Velocity);
             _state.SlideTurnRateDegrees = 0f;
@@ -398,6 +404,33 @@ namespace Worsen.Domain.Player
         public void SetConsumableSpeedMultiplier(float multiplier)
         { _state.ConsumableSpeedMultiplier = Finite(multiplier) ? Mathf.Max(1f, multiplier) : 1f; }
 
+        public void ReceiveChase(ChaseFact fact) => _perks.ReceiveChase(fact);
+        public bool TakeHeartbeat(out NoiseEvent noise) => _perks.TakeHeartbeat(out noise);
+        public bool TryLatchDoor(int roomId, int doorId) => _perks.TryLatchDoor(roomId, doorId);
+
+        public bool TryReboundFromHunter(EntityId hunter, Vector3 contactNormal, out PlayerTraversalFact fact)
+        {
+            fact = default;
+            if (!_perks.TryBodyRebound(hunter, contactNormal, _profile.ReboundUpwardBoost,
+                EffectiveMaximumSpeed(), out Vector3 velocity)) return false;
+            _state.Velocity = velocity;
+            ReleaseStoredMomentum();
+            _state.Grounded = false;
+            _state.CoyoteRemaining = 0f;
+            ConsumeJump();
+            fact = Fact(TraversalKind.Rebound, true, _state.Velocity.normalized, 0f);
+            AddNoise(_profile.TraversalLoudness, NoiseSourceKind.Rebound);
+            return true;
+        }
+
+        public bool TryDeflectGlancingRam(bool glancing, Vector3 knockback)
+        {
+            if (!glancing || !_perks.ProtectsGlancingRam || _state.GraceActive
+                || _state.RevivalCollisionGraceActive || _state.RevivalDamageImmune) return false;
+            QueueExternalVelocity(knockback);
+            return true;
+        }
+
         public void ClearSlows()
         { _state.WebSlowRemaining = 0f; _state.WebSpeedMultiplier = _state.TrapSpeedMultiplier = 1f; }
 
@@ -567,6 +600,8 @@ namespace Worsen.Domain.Player
 
         public PlayerHitResult BeginFloorHealth(float maximumHealth, float movementMultiplier)
         {
+            _perks.Reset();
+            _state.IsSprinting = false;
             _state.RevivalCollisionEndTick = 0;
             _state.RevivalImmunityWindow = default;
             PlayerHitResult result = ApplyRunModifiers(Effect(PlayerEffectStat.MaximumHealth, maximumHealth)
@@ -874,16 +909,17 @@ namespace Worsen.Domain.Player
                 : health <= _state.MaxHealth * (_profile.InjuredThreshold / _profile.MaximumHealth) ? PlayerHealthState.Injured : PlayerHealthState.Healthy;
         private float InjuryMultiplier() => _state.HealthState == PlayerHealthState.Injured || _state.HealthState == PlayerHealthState.Critical
             ? _profile.InjuredSpeedMultiplier : 1f;
-        private float EffectiveMaximumSpeed() => CapEffectSpeed(_state.MaxDesignSpeed * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
+        private float EffectiveMaximumSpeed() => CapEffectSpeed(_state.MaxDesignSpeed * _perks.SprintMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
         private float EffectiveSprintSpeed() => CapEffectSpeed(Effect(PlayerEffectStat.SprintSpeed,
-            _state.SprintSpeed * _state.MovementSpeedMultiplier) * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
-        private float CapEffectSpeed(float speed) => PlayerEffectUtility.HasModifier(_effectConfig, _state.AppliedEffects, PlayerEffectStat.SprintSpeed)
+            _state.SprintSpeed * _state.MovementSpeedMultiplier) * _perks.SprintMultiplier * InjuryMultiplier() * _state.GrabSpeedMultiplier * _state.TrapSpeedMultiplier * _state.WebSpeedMultiplier * _state.HitBoostMultiplier) * _state.ConsumableSpeedMultiplier;
+        private float CapEffectSpeed(float speed) => _perks.LoudHeartActive || PlayerEffectUtility.HasModifier(_effectConfig, _state.AppliedEffects, PlayerEffectStat.SprintSpeed)
             ? Mathf.Min(speed, PlayerEffectUtility.SprintCeiling(_effectConfig)) : speed;
         private PlayerTraversalFact Fact(TraversalKind kind, bool succeeded, Vector3 direction, float duration, int surfaceId = 0)
             => new PlayerTraversalFact(_state.Id, _state.Tick, kind, succeeded, direction, duration, surfaceId: surfaceId);
         private void AddNoise(float loudness, NoiseSourceKind sourceKind)
         {
-            var noise = new NoiseEvent(_state.Id, _state.Position, loudness, _state.Tick, sourceKind);
+            Vector3 origin = sourceKind == NoiseSourceKind.Footstep ? _perks.FootstepOrigin() : _state.Position;
+            var noise = new NoiseEvent(_state.Id, origin, loudness, _state.Tick, sourceKind);
             _state.NoiseRing[_state.NextNoiseIndex] = noise;
             _state.NextNoiseIndex = (_state.NextNoiseIndex + 1) % _state.NoiseRing.Length;
             _state.NoiseCount = Math.Min(_state.NoiseCount + 1, _state.NoiseRing.Length);
