@@ -47,6 +47,8 @@ Close six contained defects from the 2026-09-30 survey that hold whichever direc
 
 Item 3 changes a Core definition, so the coordinator applies it. The Telemetry subtree is delegated to this plan's worker for the duration of this plan. Item 6 only confirms or restores the four cues; their final form follows PLAN-021's budget.
 
+Amended 2026-09-30: C4's later title-scene replacement and C6's four-cue obligation above are superseded. Deterministic setup puts title-capable HorrorRun first, retaining agreed test scenes, and must prove normal build boot; the audited serialized build list is not compliant. Verify detection/presence, held-catch sting and telegraph on the expedition path. No distinct clean Lose/all-clear cue is required or allowed by PLAN-021; record intentional removal, not missing playback. This also supersedes the four-cue wording in §1 and §4.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `OptionalWindowMultiplier` (both), `HorrorOrchestrator.OnInput`, the UseItem handler in `HorrorEffectsController` and the `AudioOrchestrator` cue handlers. Record callers.
@@ -58,6 +60,8 @@ Item 3 changes a Core definition, so the coordinator applies it. The Telemetry s
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: use the amended C4/C6 for the build and cue checks below and §8 E4/E6; the historical “all four cues” and separate title-scene exits are superseded. Evidence must name exact integrated hash, setup version, fresh result counts, build seed and owner date. Old logs/headless tests do not prove live audio, rendering, physics, input focus or feel.
 
 - Expedition/HorrorEffects tests: a changed `HorrorEffectsConfig` value changes the window multiplier; no literal remains (`rg "0\.4f" Assets/Scripts/Session/Expedition`).
 - A test that feeds one UseItem press and asserts one toggle, with orchestrator and effects state agreeing after 1, 2 and 3 presses. A live check in HorrorRun confirms the beam and hunter light response agree.

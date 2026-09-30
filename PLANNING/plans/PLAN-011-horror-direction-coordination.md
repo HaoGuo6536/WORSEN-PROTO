@@ -6,7 +6,7 @@ status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Coordinator role (assignee UNKNOWN — owner input needed); design authority Hao Guo
-specs: [SPEC-004, SPEC-001, SPEC-002, SPEC-003]
+specs: [SPEC-004, SPEC-001, SPEC-002, SPEC-003, SPEC-005]
 direction_ids: n/a
 supersedes: none
 superseded_by: none
@@ -74,6 +74,10 @@ Ownership follows [PLAN-002 §3](../archive/plans/PLAN-002-parallel-coordination
 
 ### 3.3 Contract decisions at H1
 
+Amended 2026-09-30: the hearing and persistence requirements in the historical table below are superseded. Shared acoustic attenuation remains, but hunter hearing admits player movement, Firecracker and player-triggered cake traps, never Pacification, world audio (including grabs/pickups) or false positives. Explicit hunter-rule broadcasts remain separately typed mechanics, never inferred from playback. Test negative ingress at Hunter, Director and Session routes. Persistence serves settings and run history/best depth; no lifetime prerequisite, persistent curse or debt is required.
+
+Amended 2026-09-30: [SPEC-005](../specs/SPEC-005-hunter-briefs.md) is LIVE. Only the ten new hunters enter run selection: Echo/Weaver/Ticking from round 1, Ram/Mannequin 4, Mimic/Blinder 5, Skip/Herald/Stare 6. Gates govern first admission only; all retained instances stay active. Generator capacity must cover the complete request, including duplicates and Nothing extras, or fail/retry explicitly; a roster shortfall is never a successful floor. Track module source, generated/bound assets, fact consumers and live evidence separately. Collector guidance in the old table is superseded by the declined candidate decision.
+
 | Boundary | Decision to freeze |
 |---|---|
 | Effect identity | Replace `ProgressionTraits` flags with catalogue identifiers plus stack count and cap. Consumers receive one read-only view of active effects. Each rule's implementation stays with its owning system. |
@@ -103,6 +107,8 @@ Ownership follows [PLAN-002 §3](../archive/plans/PLAN-002-parallel-coordination
 Resolved at H0 on 2026-09-30: the owner directed that the old LIVE plans be archived. PLAN-001 to PLAN-003 and PLAN-005 to PLAN-010 are SUPERSEDED by the plans named in the registry. Their unchecked criteria are not carried forward unless a successor restates them, and their evidence remains as history.
 
 ### 3.5 Coverage matrix
+
+Amended 2026-09-30: the obsolete early-bail/persistent-hell and unused-Interact assignments below are superseded: PLAN-023 removes bail and Bail Bond, while shrine Interact belongs to PLAN-025. The run-scoped worsen options in [SPEC-006](../specs/SPEC-006-worsen-verb-persistent-hell.md) remain DRAFT/not approved; persistent hell is dropped, not deferred implementation. SPEC-005 governs PLAN-016/017 roster briefs, PLAN-023 admission/curses, PLAN-024 hunter-gated upgrades and PLAN-021 sounds. PLAN-017 records collector, lingering-room and touch-screamer as declined; Faithless Arrow is the ordinary Mimic curse, not another threat. [PLAN-027](PLAN-027-audit-remediation-structural-refactors.md) owns audit remediation, not additional gameplay scope.
 
 | SPEC-004 | Plan |
 |---|---|
@@ -157,9 +163,13 @@ Resolved at H0 on 2026-09-30: the owner directed that the old LIVE plans be arch
 
 With four agent slots, run the coordinator plus three workers. Rotate ready work; do not weaken dependencies.
 
+Amended 2026-09-30: Wave 1's “023 early bail” is superseded by removal of the physical, input and completion path and Bail Bond. No SPEC-006 implementation is admitted without a later owner approval of a run-scoped option; no persistent-hell work. Historical wave numbering above is distinct from the audit's WP wave 1 recorded in §9.
+
 ## 5. Verification
 
 These common gates apply to every child plan:
+
+Amended 2026-09-30: §5 and every child's §8 require evidence tied to the exact integrated hash, setup version, fresh result counts, build seed and owner-review date. Earlier log entries and accepted branches are history, not proof of current exits. Headless unit tests cannot establish rendering, physics, input focus, audio or owner feel. Retain failed gates and distinguish accepted work from promoted work.
 
 - Run GitNexus upstream impact before editing an indexed symbol. Warn on HIGH or CRITICAL; treat UNKNOWN or partial results as unresolved.
 - Complete SPEC-001 §13: script headers, pure-layer tests, assembly compilation, `ast-grep scan`, the saved graph conformance queries, `ArchitectureConformanceTests` and the project suite.
@@ -189,6 +199,8 @@ For this plan: every SPEC-004 §2 requirement maps to a plan or to §7; the H1 c
 | 14. SPEC-004 §5 and plan open questions answered on 2026-09-30 | Design | Recorded in each owning plan's open-question table (PLAN-014, 016, 017, 019, 021 to 026); Echo's per-shrine changed outcome (PLAN-025) and the worsen verb and persistent hell designs (SPEC-006, DRAFT) remain open |
 | 15. Public repository | Governance | Decided 2026-09-30: never commit Asset Store or other third-party content; project assets stay uncommitted for now; [VENDOR.md](../../VENDOR.md) records sources |
 
+Amended 2026-09-30: items 8 and 14 are superseded where they request decisions already settled: Mannequin moves only in darkness while unobserved, lit rooms are refuges and Wick always freezes it; Faithless Arrow is ordinary Mimic curse content; four distinct themes are Castle/Hospital/School/Basement; shrine/event fear-axis exclusion is removed. Echo repeats the last shrine at its normal cost, with no changed-outcome/doubling table. SPEC-006 is not approved and persistent hell is dropped. Final IK's vendor assembly definition is approved; Steam Audio 4.8.1 is imported with routing pending; the High Definition Render Pipeline (HDRP) is removed. Remaining owner questions are tuning, pending run-scoped worsen design/binding and actual play acceptance, not these settled policies.
+
 ## 7. Deferred follow-ups
 
 Deferred by SPEC-004: declining a hunter at selection; bring-in items between runs; the wallet wager and Wagered Haul; the Shrine of Purgatory revive; co-op and networking. Not covered: survivor classes beyond the flashlight; the shelter and shop screen redesign beyond PLAN-020/024; permanent unlocks beyond hunter gating. Each needs a new DRAFT plan or spec.
@@ -210,3 +222,6 @@ Deferred by SPEC-004: declining a hunter at selection; bring-in items between ru
 | 2026-09-30 | H1 contracts and integration batches 1–5 | Shared Core contracts landed (1685893). Five integration batches merged worker branches into local main under the Unity lease; full Edit Mode suites: batch 1 1126/1135, batch 2 1194/1209, batch 4 1323/1342, batch 5 1375/1395 passing. Remaining failures are tracked per owning plan; four focus-dependent capture tests fail only when Unity is not the foreground window | Commits 1685893, e6e297f, acb8e29, 7bdabbd, 46781b9, 3da4714; `Logs/AgentValidation/PLAN-011/integration/` |
 | 2026-09-30 | Integration batches 6–11 | Full Edit Mode suites: batch 6 1428/1457, batch 7 1497/1549, batch 8 1723/1783 (a leaked `Time.timeScale = 0` caused most failures; fixed), batch 9 1882/1918, batch 10 2085/2114, batch 11 2290/2329 passing (35 failed, 4 skipped; 7 failures are focus-dependent). `main` was fast-forwarded and pushed before each suite ran | Coordinator tracker; batch 11 failures are the bootstrap baseline in [evidence/gate-ledger.jsonl](../../evidence/gate-ledger.jsonl) |
 | 2026-09-30 | Audit follow-up: gates versioned | Fail-closed integration gate, delegation scripts with run records and scope checks, hooks with LFS, vendor ignores and VENDOR.md committed (7e7c4bd); instructions slimmed to a 6 KB AGENTS.md plus on-demand skills; SPEC-001 amended (Session run-rules layer and edges, bounded Manager engine calls, responsibility alarms, legacy-scene compatibility layer, Appendix A ledger) | `tools/integration/README.md`, `tools/delegation/README.md`, SPEC-001 §8b, §13f, Appendix A |
+| 2026-09-30 | Amended 2026-09-30: batch 12 gate | fail-setup, not promoted; setup array invocation failed. Blocking failures 25 against baseline 28, including 6 new failures; a lower total did not permit promotion. Candidate retained; main unchanged | [Gate ledger](../../evidence/gate-ledger.jsonl), label `batch12`; exact candidate and counts in ledger |
+| 2026-09-30 | Amended 2026-09-30: audit WP wave 1 | WP-I, WP-P, WP-H, WP-A, WP-U, WP-F, WP-M and WP-C accepted with the headless tier on each. Acceptance is not promotion or H2/H3/H4 owner acceptance; integrated candidate still needs the gate | Coordinator tracker 2026-09-30; branches `wt/wp-routing`, `wt/wp-progression`, `wt/wp-hunter`, `wt/wp-audio`, `wt/wp-ui`, `wt/wp-floor`, `wt/wp-player`, `wt/wp-present`; [gate ledger](../../evidence/gate-ledger.jsonl) retains failed batch13 prechecks separately |
+| 2026-09-30 | Amended 2026-09-30: theme restyle | Four-theme restyles and predefined room templates assigned: Gothic Castle, 1970s Hospital, post-war School, industrial boiler-room Basement; distinct architecture and palettes, not swapped props. Kit v1 exports accepted; Castle partial and runtime import/template wiring/visual acceptance still outstanding | Coordinator tracker 2026-09-30; kit bases `477e7ff`, `ad3e066`; [PLAN-026](PLAN-026-level-diversity-gaps-multifloor.md) |

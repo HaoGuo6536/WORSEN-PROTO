@@ -47,6 +47,8 @@ Preview rounding and remaining reward opportunity; don't promise a coin. On a va
 
 ### 2.2 Persistent hell — choose one option
 
+Amended 2026-09-30: this heading and every P1/P2 recommendation, prerequisite and settlement exception below are superseded by the owner's drop decision. Retained only as rejected design history, not open options. References to P1 in §2.1, §4 and §5 impose no requirement on the pending run-scoped worsen verb.
+
 Offer an explicitly confirmed **shelter contract**, never a surprise death penalty. Use menu selection/confirm, not Interact. Show clearance terms before acceptance and remaining burden at each run start. One contract at a time; declining adds nothing. No equipment, wallet or Extra Life carries across runs: bring-in stakes remain deferred.
 
 **P1 — Carry a known curse until you climb out (recommended).** Accept `no-look-back` across runs; earn a one-time **4 Golden Cake wallet credit** in the accepting run. Clear the contract after **3 successful floor exits**, cumulative across runs. Death preserves earned exit progress, adds no stacks, and never grants the acceptance credit again. A normal death is still terminal; the next run starts with this one explicit burden. A player who already lacks look-back cannot accept it; while contracted, exclude duplicate no-look-back offers. Do not count it as the mandatory curse pick.
@@ -75,6 +77,8 @@ A/P1 remove information with bounded recovery, not hidden damage inflation. Sepa
 
 ## 5. Open questions
 
+Amended 2026-09-30: questions about choosing P1/P2 or cumulative persistent clearance below are superseded and closed as dropped. Only run-scoped A/B choice, binding, reward/temporary-effect ownership and once-only settlement on abandon/reload remain pending owner review. No cross-run contract/save migration is authorised.
+
 | Question | Why it matters | Owner | Needed by |
 |---|---|---|---|
 | Approve A and/or P1, or choose their alternatives? | These recommendations are not execution approval. | Hao Guo | Before implementation |
@@ -85,17 +89,15 @@ A/P1 remove information with bounded recovery, not hidden damage inflation. Sepa
 
 ## 6. Plans implementing this spec
 
-[PLAN-023][p23] is the prospective owner; [PLAN-024][p24] economy and [PLAN-025][p25] shrines are dependencies, with shared input/persistence routing assigned by [PLAN-011][p11]. Their LIVE status does not approve these proposals. The hunter rules remain in the separate [SPEC-005 draft][s5].
+Amended 2026-09-30: none approved. [PLAN-023][p23] is only the prospective owner if a run-scoped worsen option is approved; [PLAN-024][p24] economy and [PLAN-025][p25] shrines are conditional dependencies, with shared input/settlement routing assigned by [PLAN-011][p11]. Their LIVE status does not approve SPEC-006. Persistent hell is dropped. The separate hunter authority is [SPEC-005 — LIVE][s5], superseding the old “draft” reference.
 
 ### Requests
 
-Coordinator: add this proposed row to [PLANNING/index.md](../index.md), with the path interpreted relative to that registry; do not promote the status. The registry was not edited.
-
-| ID | Type | Title | Status | Created | Updated | Direction | Specs | Supersedes | Path |
-|---|---|---|---|---|---|---|---|---|---|
-| SPEC-006 | spec | In-run worsen verb and persistent hell | DRAFT | 2026-09-30 | 2026-09-30 | n/a | — | none | `specs/SPEC-006-worsen-verb-persistent-hell.md` |
+Amended 2026-09-30: the previous proposed row is superseded by the single DRAFT row in [PLANNING/index.md](../index.md); no promotion or approved implementing plan.
 
 Coordinator hand-offs: [SPEC-004 §2.4][s4] and [PLAN-023 §§1–3, 5–8][p23] need the settled no-bail/shrine-Interact decisions reconciled. [EffectCatalogueConfig.cs][catalogue] `_entries` retains `bail-bond` and old `extra-life` wording: retire obsolete bail offers and align revival copy through their owners, not this draft. After approval only, scope [ProgressionSessionController][selection] contract settlement and [RunHistoryRecord][persistence] versioned persistence, with exact shared input fields assigned by the coordinator. No speculative API name or source edit is proposed as already available.
+
+Amended 2026-09-30: the planning-reconciliation request above is fulfilled by this WP-D amendment. The historical persistence hand-off does not authorise a cross-run curse/debt schema; persistent hell is dropped. Any future run-scoped settlement contract remains conditional on owner approval.
 
 ## 7. History
 
@@ -103,6 +105,7 @@ Coordinator hand-offs: [SPEC-004 §2.4][s4] and [PLAN-023 §§1–3, 5–8][p23]
 |---|---|---|
 | 2026-09-30 | Drafted two options per idea, recommended A/P1, recorded owner constraints and deferred all implementation pending approval. | Hermes, for Hao Guo |
 | 2026-09-30 | Owner: not approved; persistent hell dropped (run-scoped worsening only); worsen verb under review | Hao Guo / coordinator |
+| 2026-09-30 | Amended 2026-09-30: registered DRAFT; §6 records no approved implementation; P1/P2 questions retained as rejected history, not pending scope | WP-D, owner-requested $docs-plans |
 
 [s4]: SPEC-004-horror-direction-content-proposals.md#24-stakes-and-the-make-it-worse-ladder
 [s5]: SPEC-005-hunter-briefs.md

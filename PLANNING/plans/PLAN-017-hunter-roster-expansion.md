@@ -6,7 +6,7 @@ status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Hunter roster workers, one per archetype (assignees UNKNOWN — owner input needed)
-specs: [SPEC-004, SPEC-001]
+specs: [SPEC-004, SPEC-001, SPEC-005]
 direction_ids: n/a
 supersedes: none
 superseded_by: none
@@ -32,6 +32,8 @@ Add the rest of the requested roster behind depth gates, so each arrival returns
 
 ## 3. Changes
 
+Amended 2026-09-30: [SPEC-005](../specs/SPEC-005-hunter-briefs.md) is LIVE and supplies approved briefs. The optional collector, lingering-room rule and touch-screamer rows below are superseded by the owner's decision to decline all three. Counterfeit arrow is covered by ordinary Mimic Faithless Arrow, not a second independent lie. No new candidate implementation is authorised.
+
 | Hunter (kind) | New mechanics needed | Depends on |
 |---|---|---|
 | The Echo (pursuer) | Record the player's path; replay with a fixed delay; never backtrack or take an untaken route; blocked by closed doors, collapse and drops | Player pose history view; PLAN-026 doors |
@@ -54,6 +56,10 @@ Add the rest of the requested roster behind depth gates, so each arrival returns
 
 Each hunter also gets: its brief section in the PLAN-016 briefs spec; a per-archetype cue set within the PLAN-021 budget; its §2.16 curses (3–5 each) as catalogue entries with stacking caps; a depth or lifetime gate; and a PLAN-014 sweep pass.
 
+Amended 2026-09-30: the common depth/lifetime gate above is superseded: Echo/Weaver/Ticking round 1, Ram/Mannequin 4, Mimic/Blinder 5, Skip/Herald/Stare 6; no lifetime condition, first admission only, every retained instance active. Hunter-type curses affect every instance of that type. Skip interception uses ordinary hit damage/grace. Mannequin moves only in darkness while unobserved; lit rooms are refuges and Wick always freezes it. Its silent-catch wording is superseded by a short snap/crunch, never the loud shared sting. Herald broadcasts are explicit rule facts, not permission to admit world audio into hearing.
+
+Amended 2026-09-30: source modules/setup recipes are not generated and bound content. Track seven recipes separately: Ram, Skip and Mimic (`RosterBProfileSetup`); Blinder and Herald (`BlinderHeraldProfileSetup`); Mannequin and Stare (`ObservedHunterProfileSetup`). Each needs its actual profile/config binding, fact subscribers, audible tells (intentional silence excepted), registered curses/caps and completed sweeps. Coordinator selects installed-pack or in-house sounds with provenance; silhouettes/gaits/tunables remain provisional for play tuning.
+
 ## 4. Sequence
 
 1. Hao Guo approves each brief. §2.17 candidates also need approval, since SPEC-004 lists them as candidates rather than approved rows.
@@ -64,6 +70,8 @@ Each hunter also gets: its brief section in the PLAN-016 briefs spec; a per-arch
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §8's candidate criterion is resolved as declined for the three optional candidates, not a ship obligation; no completion status follows. §5/§8 require exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs do not establish rendering, physics, input focus, audio or owner feel.
 
 - Per archetype: rule tests (for example, the Echo never backtracks, the Mannequin never moves while observed, the Ram cannot turn mid-charge, the Mimic is never a white-arrow target without Faithless Arrow); counterplay works; every tell is present; every curse applies and stacks to its cap.
 - The Herald: a scream produces one noise event per listener, using the shared occlusion model; deafening muffles the mix; attack scream pitch stays fixed.
@@ -76,7 +84,7 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 |---|---|---|---|
 | Mannequin: dark-only or light-only | SPEC-004 §5 | Refuge rooms | Decided 2026-09-30 (owner): darkness only; lit rooms are refuges, Wick lamps always freeze it |
 | Faithless Arrow breaks arrow trust | SPEC-004 §5 | Curse catalogue | Decided 2026-09-30 (owner): keep it as an ordinary Mimic curse in the pool |
-| §2.17 "Marionette already listed" does not exist | Spec gap | Unknown candidate | Hao Guo (PLAN-011 §6 item 5) |
+| Superseded nonexistent-candidate reference | Closed spec gap | No implementation | Amended 2026-09-30: removed from active scope per PLAN-011 §6 item 5; historical source remains in git |
 | Ceiling traversal for the Weaver | Technical | New navigation | Prototype spike before committing |
 | Voice lines for the Stare | Assets | Missing content | Placeholder recording allowed; real voice later |
 | Many active hunters with no cap | Performance, audio legibility | Frame time and mix | PLAN-021 priority; profiling |

@@ -6,7 +6,7 @@ status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Audio worker (assignee UNKNOWN — owner input needed)
-specs: [SPEC-004, SPEC-001]
+specs: [SPEC-004, SPEC-001, SPEC-005]
 direction_ids: n/a
 supersedes: none
 superseded_by: none
@@ -56,6 +56,10 @@ Make silence the default and sound the main presence channel:
 
 Emitting noise events is each gameplay owner's job (PLAN-013 player, PLAN-019 pickups, PLAN-015/016/017 hunters, PLAN-018 grabs). This plan owns the mix and the parity check.
 
+Amended 2026-09-30: §1's “if you heard it” promise, C15's all-world parity and the pickup/grab emitter obligation above are superseded. Shared acoustic attenuation remains; ordinary hunter hearing accepts player movement, Firecracker and player-triggered cake traps only, never Pacification, world or false-positive audio. Explicit hunter-rule broadcasts use typed gameplay routing, not playback-derived sensing. Test positive allowed origins and negative ingress through Session, Hunter and Director; cue metadata alone is not proof.
+
+Amended 2026-09-30: [SPEC-005](../specs/SPEC-005-hunter-briefs.md) supplies the approved roster sound rules. Mannequin catch uses a short snap/crunch rather than the loud shared sting. PLAN-012 verifies detection/presence, held catch and telegraph; no distinct clean Lose/all-clear cue. Coordinator chooses installed-pack/in-house clips with provenance. C3's installation prerequisite is superseded by Steam Audio 4.8.1 imported (`947395e`); spatializer/mixer routing and live headphone acceptance remain, not another download request.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `CueId` consumers (expect HIGH), `AudioChaseMusicPresenter`, `AudioFeedbackPresenter`, `AudioWorldPresenter` and `AudioOrchestrator`.
@@ -66,6 +70,8 @@ Emitting noise events is each gameplay owner's job (PLAN-013 player, PLAN-019 pi
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: the parity test below and §8 E3 are superseded by the origin-admission/negative-ingress tests in amended C15. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs cannot establish rendering, physics, input focus, audible tells, spatialization or owner feel.
 
 - Presenter tests: the music floor never reaches zero; the fade delay is randomised within bounds using injected randomness; entry happens only with a belief; one voice per category; presence never ducked; jitter disabled for tell cues.
 - Parity test: each world cue has a noise source kind; interface and music have none.
@@ -81,6 +87,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Does a false-positive sound also reach hunters? | Spec gap (shared hearing rule) | Trust and AI | Decided 2026-09-30 (owner): no; world noises without a player source do not reach hunters either |
 | Cue removal breaks boilerplate tests and PLAN-007 evidence | Regression | Test churn | Migrate tests; PLAN-011 §3.4 note |
 | Legibility with many active hunters | Mix | Noise | Priority rules; owner playtest |
+
+Amended 2026-09-30: the false-positive question is closed (no), as is Pacification (not heard); Firecracker and player-triggered cake traps are heard. World sounds never become hunter stimuli merely because they play. Steam Audio import is complete, but configuration and listening evidence are pending; no licence/download decision is reopened here.
 
 ## 7. Deferred follow-ups
 

@@ -49,6 +49,8 @@ Find, with evidence, why hunters stall or jitter against corner obstacles in gen
 
 **Requests.** Stall telemetry is a Core change (coordinator). Bake or door-frame changes go to PLAN-026's owner. Until this plan completes, it owns `HunterSteeringPresenter`, `HunterRoutePresenter` and the stall path in `HunterDriver`; PLAN-015 waits on those files.
 
+Amended 2026-09-30: C3 and §8 E2/E3 require an implemented Session-owned sweep host, not only the editor window. Freeze the approved 25-seed/all-archetype/0.75 s declaration, radii and measured door/stair waypoints before runs; retain failed runs/replays and explicit replan counts. The tool-only implementation is partial, not regression acceptance.
+
 ## 4. Sequence
 
 1. Recover the history of the two earlier attempts and what each changed. Record it in §9.
@@ -60,6 +62,8 @@ Find, with evidence, why hunters stall or jitter against corner obstacles in gen
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests and old log entries cannot prove the native sweep, rendering, physics, input focus, audio or owner feel; zero tests or missing host/results is not a pass.
 
 - Pure tests for the stall detector's threshold boundaries and for corner-margin geometry.
 - Play Mode sweep over the declared set, held under the Unity lease, writing per-run CSV and replays.

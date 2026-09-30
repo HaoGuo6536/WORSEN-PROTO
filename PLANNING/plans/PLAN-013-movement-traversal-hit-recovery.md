@@ -54,6 +54,8 @@ Make the base movement kit stop fighting the player, and make a hit a chance to 
 
 **Requests to other owners.** To the coordinator: the grace physics layer and collision matrix, hit severity in the Session hit routing, and Session health carry-over removal. To PLAN-022: snap camera, vault curve, landing dip, stumble shake and grace desaturation. To PLAN-021: breathing and grace heartbeat spike. To PLAN-026: single ramp colliders under stepped visuals.
 
+Amended 2026-09-30: C3's unconditional full-health wording is superseded by full baseline each floor except explicit Rough Start. In-place Extra Life does not restart the floor or regenerate a used life. C4's Thin Skin requirement is superseded: retired by owner decision (`58ac976`); no obsolete consumer work. Retain old health-migration tests only if deliberately isolated as compatibility fixtures.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `PlayerController`, `PlayerDriver`, `PlayerProfile` and `PlayerLimbStandIn`, and on the Session health path. Record the risk level.
@@ -65,6 +67,8 @@ Make the base movement kit stop fighting the player, and make a hit a chance to 
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: floor-reset tests include Rough Start and prove Extra Life neither rebuilds the floor nor refreshes its once-per-run use. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date; old logs/headless tests cannot establish rendering, physics, input focus, audio or owner feel.
 
 - `PlayerControllerTests` and `PlayerMoverPresenterTests`: grace boundaries (a hit at window end), no damage inside grace, boost magnitude and duration per severity, regeneration rate and floor reset, snap state with heading steering, air-control floor at zero speed, boost window edges, stumble and speed cut, crouch with no loudness change, and noise source kinds.
 - Replay determinism: recorded `InputFrame` and `MovementProbe` still reproduce identical trajectories with the new mantle.

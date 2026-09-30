@@ -49,6 +49,10 @@ Make each cake a destination rather than a pellet. The white arrow should point 
 
 ## 4. Sequence
 
+Amended 2026-09-30: C4's hunter-audible pickup requirement and C5's piped name are superseded (`8d59c61`). Pickup audio/facts remain presentation/telemetry only; retain candle, saturation, Lumen glow, light pool and visual review, with no lore-name task. Player-triggered cake traps are an approved hearing source; ordinary pickups, grabs, Pacification, world and false-positive audio are not.
+
+Amended 2026-09-30: C6 publishes normal and golden collected/total counters, with totals fixed at generation and never reduced by collapse. Include reserved Passage/puzzle rewards exactly once in the generation/accounting contract. C8's early-bail request is superseded by removal of physical/input/completion paths and Bail Bond; collector guidance is dropped with the declined candidate. Greedy Door uses collected gold >= ceil(0.4 × gold originally placed in rooms not fully collapsed), regardless of whether that original gold was collected. Never collapse the exit; retain completed-collapse escape safety (`8d59c61`).
+
 1. Run GitNexus upstream impact on `FloorPresenter`, `FloorDriver`, `FloorController`, `CakePickup` and the HUD compass consumers.
 2. **Wave 1:** change 1 (playtest unblocker), with the regression test first. Then change 3 as soon as PLAN-026 provides typed anchors (SPEC-004 priority 2).
 3. **Wave 2:** 2, 4, 5 and 6.
@@ -57,6 +61,8 @@ Make each cake a destination rather than a pellet. The white arrow should point 
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §8 E3's hunter-hearing interpretation is superseded by presentation-only pickups plus screenshot acceptance; test negative pickup ingress and positive player-triggered traps. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs do not establish rendering, physics, input focus, audio or owner feel.
 
 - The SPEC-004 test: origin 1 m above the mesh, and the direction points along the path, not down at the sample. Also: airborne, on stairs, off-mesh, failed sample (fallback flagged), and a failed refresh (last good direction held).
 - Density tests: one to three anchors per room; typed anchors used; required subset reachable; optional cakes excluded from exit gating.

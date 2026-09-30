@@ -56,6 +56,10 @@ Generate floors that grow larger, taller and more varied with depth, without los
 
 ## 4. Sequence
 
+Amended 2026-09-30: §1/C10's two-theme slice is superseded by four themes: Castle, Hospital, School and Basement, with organic layouts and predefined-room-template restyles already assigned. Distinct architecture and colour are required, not one shell with swapped props. Accepted kit exports are not runtime import, generator registration, material/light binding or visual acceptance.
+
+Amended 2026-09-30: C3/C4 must supply all requested validated hunter positions, including retained duplicates and Nothing extras, or fail/retry explicitly. A successful floor may never have a roster shortfall; capacity acceptance is separate from first-contact safety.
+
 1. Reconcile existing generation with SPEC-003 §2. Record which requirements are met, with evidence (manifests, reachability tests) or as gaps. Run GitNexus upstream impact on `ProceduralController`, `ProceduralDriver`, the castle and geometry presenters and the spawn consumers.
 2. **Wave 1:** 1 and 2 (playtest unblocker; SPEC-004 priority 2).
 3. **Wave 2:** 3, 4 and 11.
@@ -64,6 +68,8 @@ Generate floors that grow larger, taller and more varied with depth, without los
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification). SPEC-003's acceptance list applies in full: matching seeds reproduce layout manifests; a declared seed sample shows variation; measured growth between small and large configurations; validation of every required anchor, the exit and directional traversal; retained failed attempts.
+
+Amended 2026-09-30: §8 E3's two-theme exit is superseded by all four assigned themes with runtime template/kit integration; test full-roster capacity and explicit failure/retry. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs cannot establish rendering, physics, input focus, audio or owner feel.
 
 - Generator tests: ramps replace stepped colliders; one to three typed anchors per room; spawns fail the check when visible or too close; retries increment the seed and report a fallback; gaps never disconnect required cakes or the exit; hunter routes exclude player-only shortcuts.
 - The PLAN-014 sweep passes on the new modules and multi-floor layouts.
@@ -80,9 +86,13 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Round from which puzzles and freeze rooms appear | Open value | Pacing | Decided 2026-09-30 (owner): gimmick rooms (puzzles, freeze, traversal obstacles) none in rounds 1–2, from round 3 at most one per floor, rising to about three by round 8 |
 | SPEC-003 generator built without a registered plan | Governance | Unclear acceptance | Step 1 records the evidence |
 
+Amended 2026-09-30: theme choice is closed. Castle is Gothic keep (slate/soot/amber), Hospital a 1970s institutional ward (mint/off-white/cyan/rust), School a post-war schoolhouse (mustard/teal/chalk/brown), Basement an industrial boiler room (wet grey/rust/oily black/sodium orange). Keep the active art/template owners; runtime integration and owner diversity review remain outstanding.
+
 ## 7. Deferred follow-ups
 
 Themes beyond the first two; boss floors; the forest and uncanny sequences from the GDD as content.
+
+Amended 2026-09-30: “themes beyond the first two” is superseded by themes beyond the approved four. School and Basement are current scope, not deferred follow-ups.
 
 ## 8. Definition of done
 

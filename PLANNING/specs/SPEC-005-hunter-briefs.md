@@ -20,6 +20,8 @@ archived: none
 
 Owner-review briefs for [PLAN-016][p16] and [PLAN-017][p17], grounded in the checkout containing `ddd2072`. They elaborate [SPEC-004 §2.2, §2.15–§2.17][s4], not an approval to model, tune or integrate. Working archetype labels are identifiers, not lore names. Identity proposals describe silhouette, gait and distant approach; no face or backstory is required.
 
+Amended 2026-09-30: the pre-approval wording above is superseded by the owner's LIVE approval in §5. Source/build observations remain dated evidence, not proof of current integration or arena/art acceptance. Earlier per-brief questions about gates, Skip damage, Ticking's slot, silhouettes and Mannequin catch are resolved by §5; tuning and runtime acceptance remain separate.
+
 “Built” below means source implementation exists, not that it passed a live Unity test. “Stubbed” means a contract, emitted fact or setup recipe exists without a complete consumer/content path. “Missing” means the inspected checkout lacks the named content or integration. No Unity operation was performed. Each brief is a compact standalone page of review content; references and shared evidence are outside its page budget.
 
 ## 2. Intended behaviour
@@ -236,6 +238,8 @@ All numerical tuning in this document is **provisional**, including values alrea
 
 The collector, lingering-room rule, touch-to-silence screamer and counterfeit-arrow candidate in SPEC-004 §2.17 are not additional approved hunter briefs. No new ids, gates or numbers are invented for them here. Ticking covers moving key maintenance, not proof of a bodyless systemic implementation. Counterfeit guidance overlaps the settled Mimic curse; it must not silently become a second independent exception. Generic `HunterProfile`/`FloorLoopHunterProfile` and `DefaultHunterController` are fixtures/shared machinery, not additional authored roster identities.
 
+Amended 2026-09-30: optional collector, lingering-room and touch-screamer are declined. The built moving-body Ticking satisfies the systemic slot; the old suggestion that a separate bodyless implementation needs approval is superseded. Faithless Arrow remains the ordinary Mimic curse, not a second candidate.
+
 ## 3. Constraints and non-negotiables
 
 - Owner decisions of 2026-09-30 override older alternatives: Mannequin is darkness-only, lit rooms are refuges, Wick always freezes it; Faithless Arrow is an ordinary Mimic curse. Neither is reopened by stale config/comments.
@@ -250,6 +254,8 @@ The collector, lingering-room rule, touch-to-silence screamer and counterfeit-ar
 The new modules already encode useful rules, but a class, emitted fact, setup recipe, serialized asset and playable threat are different evidence levels. Reporting their gaps prevents art from masking incomplete counterplay. Legacy entries remain visible here because retirement has not happened in this checkout; documenting them is not permission to keep them. Distinct cues matter most where sound itself teaches the rule: silent tick/skitter placeholders cannot pass that test.
 
 ## 5. Open questions
+
+Amended 2026-09-30: the first six historical questions below are superseded as decision requests by the approval list immediately following the table: provisional silhouette/gait/tunables accepted for play tuning; Skip normal hit/grace; built Ticking accepted; round gates fixed; Mannequin snap/crunch; coordinator sound sourcing authorised. Missing content/consumers and play acceptance remain implementation work, not renewed design approval. Hearing is explicitly player movement, Firecracker and player-triggered cake traps; never Pacification, world or false-positive audio. Dedicated hunter-rule broadcasts are not playback-derived stimuli.
 
 | Question | Why it matters | Owner | Needed by |
 |---|---|---|---|
@@ -274,17 +280,23 @@ The new modules already encode useful rules, but a class, emitted fact, setup re
 
 ## 6. Plans implementing this spec
 
-[PLAN-016][p16] and [PLAN-017][p17] are the related LIVE work, pending approval of these DRAFT briefs; this file does not amend their status or declare their exits met. [PLAN-023][p23] owns admission/curse catalogue reconciliation; [PLAN-021][p21] audio and [PLAN-022][p22] the catch. Shared routing remains coordinator-owned under [PLAN-011][p11].
+Amended 2026-09-30: supersedes the stale DRAFT/registration request; these briefs are LIVE. Implementing plans (their exits are not declared met):
+
+- PLAN-016 — LIVE — [roster foundation][p16]
+- PLAN-017 — LIVE — [roster expansion][p17]
+- PLAN-023 — LIVE — [admission and curse catalogue][p23]
+- PLAN-024 — LIVE — [hunter-gated upgrades](../plans/PLAN-024-shop-upgrades-consumables.md)
+- PLAN-021 — LIVE — [audio][p21]
+
+Related catch presentation remains [PLAN-022][p22]; shared routing remains coordinator-owned under [PLAN-011][p11].
 
 ### Requests
 
-Coordinator: register the row below in [PLANNING/index.md](../index.md), with the path interpreted relative to that registry. No registry edit was made here.
-
-| ID | Type | Title | Status | Created | Updated | Direction | Specs | Supersedes | Path |
-|---|---|---|---|---|---|---|---|---|---|
-| SPEC-005 | spec | Hunter briefs | DRAFT | 2026-09-30 | 2026-09-30 | n/a | — | none | `specs/SPEC-005-hunter-briefs.md` |
+Amended 2026-09-30: the prior proposed DRAFT registry row is superseded by the single LIVE row in [PLANNING/index.md](../index.md). Registration is no longer outstanding; no implementation exit is implied.
 
 Implementation hand-offs, not changes authorised by this draft: [ProgressionConfig][progression] `_threats` and [selection][selection] admission must replace legacy reachability and consume approved novelty data; [EffectCatalogueConfig][catalogue] `_entries` must reconcile the explicitly labelled hook-only curses/caps; [MimicConfig][mimic-config] `AllowFaithlessArrow` / [MimicController][mimic-controller] `FaithlessEnabled` must reflect the settled ordinary-curse rule. [HunterManager][manager] fact publishers need coordinator-owned consumers rather than edits from this writing task. Preserve borrowed prefabs during retirement.
+
+Amended 2026-09-30: “this draft” above is superseded by LIVE approval. These implementation hand-offs belong to the approved plans listed in §6, not to this documentation-only amendment.
 
 ### Verification — config provenance
 
@@ -314,6 +326,7 @@ Every brief's numbers were read from the following sources, not inferred from a 
 |---|---|---|
 | 2026-09-30 | Drafted source-grounded briefs, legacy retirement evidence and explicit integration gaps for owner review; recorded settled owner decisions without implementing them. | Hermes, for Hao Guo |
 | 2026-09-30 | Approved by the owner (LIVE); owner decisions recorded under §5 | Hao Guo / coordinator |
+| 2026-09-30 | Amended 2026-09-30: registered LIVE; corrected §6 implementing plans and closed stale approval questions by reference to §5; recorded declined candidates and hearing origins without claiming runtime acceptance | WP-D, owner-requested $docs-plans |
 
 [s4]: SPEC-004-horror-direction-content-proposals.md
 [architecture]: SPEC-001-project-architecture-guidelines.md

@@ -54,6 +54,10 @@ archived: none
 
 ## 4. Sequence
 
+Amended 2026-09-30: C2's uniform loud-sting/hunter-only interpretation is superseded. Mannequin gets a short snap/crunch; hand death is also held: a fog-coloured hand emerges slowly, then quickly grabs the face, followed by the correct hand sting and hard cut (`15e32bd`). Extra Life intercepts terminal catch once, reviving in place with collision grace and damage immunity. Final inverse kinematics (IK) must work on shipped rigs, or an explicit owner-approved equivalent must be recorded; humanoid Animator IK and generic no-op are not Final IK acceptance. Vendor asmdef permission is approved; implementation remains in PLAN-027.
+
+Amended 2026-09-30: C6's unspecified frame is superseded by old camcorder treatment: rounded vignette, soft edge blur, degradation-driven tape wobble, no text. Install the renderer feature and build-safe material, then measure its budget (`15e32bd`); source/shader presence alone does not prove installation.
+
 1. Run GitNexus upstream impact on `CameraDriver`, `CameraFeedbackPresenter`, `PostFXDriver`, `PostFXPresenter`, `HorrorLumenPresenter` and the intrusion routing in `PostFXOrchestrator`.
 2. **Wave 1:** 1 (priority 4) and 2 (priority 5).
 3. **Wave 2:** 3, 4, 5, 6, 7 and 9.
@@ -62,6 +66,8 @@ archived: none
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §8 E2 includes hand catch and the Mannequin/Extra Life exceptions in amended C2. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs cannot establish rendering, physics, input focus, audio or owner feel.
 
 - Camera presenter tests: the snap completes in one fixed frame with no yaw scanning during hold; the catch sequence order is hold, then sting, then cut, with a declared hold duration; the vault curve is sampled by progress; landing dip scales with impact.
 - Startle budget test: never more than the configured count per run from budgeted sources (injected randomness, seeded).
