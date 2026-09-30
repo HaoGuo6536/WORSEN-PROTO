@@ -16,6 +16,8 @@
 //   - Forward resolved bail flags with the admitted generation for exactly-once penalties.
 //   - Pass HorrorEffects' configured optional-window multiplier to procedural generation.
 //   - Announce assembled floors for the SceneRoot readiness hand-off.
+//   - Route Level interactables to geometry and door acoustics before hunter ticks.
+//   - Retain fallback manifests and spawn shortfalls through the existing diagnostic path.
 // DEPENDENCIES:
 //   - Session HorrorEffects owns retained gameplay effects; its actor and hazard binding is floor-scoped.
 //   - Session Progression owns requests/rewards; Session Run owns gameplay/capture.
@@ -29,6 +31,8 @@
 //   Shop floors contain a player and geometry, with no pickups, collapse or hunters.
 //   BeginFloor updates HorrorEffects before assembly reads its optional-window multiplier.
 //   Scenes without the effect service use neutral window density, not a second tuning source.
+//   Floor bindings pair BindWorld/UnbindWorld; late hunters receive doors on BeforeTick.
+//   Fallback layouts never publish readiness. FloorReleased clears presentation even on failure.
 // ============================================================================
 using System;
 using System.Collections;
@@ -73,6 +77,7 @@ namespace Worsen.Session.Expedition
         private DirectorConfig _directorConfig;
         private Coroutine _assembly;
         private bool _subscribed;
+        private bool _worldBound;
 
         public static ExpeditionSessionManager Instance { get; private set; }
         public ExpeditionAssemblyPhase AssemblyPhase => _state?.Phase ?? ExpeditionAssemblyPhase.Unbound;
@@ -81,8 +86,12 @@ namespace Worsen.Session.Expedition
         public int ActiveHunterCount => _state?.Hunters.Count ?? 0;
         public IReadOnlyList<GeneratedRoomSample> PresentationRooms => _state?.Rooms ?? Array.Empty<GeneratedRoomSample>();
         public string LastError => _state?.Failure ?? string.Empty;
+        public bool UsedFallback => _state?.UsedFallback ?? false;
+        public string LayoutManifest => _state?.LayoutManifest ?? string.Empty;
+        public int HunterSpawnShortfall => _state?.HunterSpawnShortfall ?? 0;
         public event Action<ProgressionGenerationRequest, Vector3, Quaternion> AssemblyReady;
         public event Action<IReadOnlyList<GeneratedRoomSample>> RoomsReady;
+        public event Action FloorReleased;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -203,11 +212,18 @@ namespace Worsen.Session.Expedition
         private void AssembleFloor()
         {
             var request = _state.Request;
-            _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
-                request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier);
+            try
+            {
+                _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
+                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier);
+            }
+            finally { _controller.RecordGenerationOutcome(_procedural.UsedFallback, _procedural.LayoutManifest); }
+            if (_state.UsedFallback || !_procedural.GenerationSucceeded)
+                throw new InvalidOperationException("Procedural generation did not succeed; fallback layouts are not playable floors.");
             if (!_procedural.IsReady || _procedural.Graph == null)
                 throw new InvalidOperationException("Procedural generation returned without a ready graph.");
-            _level.InitializeGenerated(_procedural.Graph);
+            _level.InitializeGenerated(_procedural.Graph, _procedural.Interactables);
+            BindWorld();
             _controller.RecordRooms(_procedural.PresentationRooms);
             _run.PrepareScene(_state.Scene, request.Seed);
             _playerFactory.Configure(_playerProfile, _run.RandomSource);
@@ -218,6 +234,9 @@ namespace Worsen.Session.Expedition
             player.BeginFloorHealth(request.Effects.MaximumHealth, request.Effects.MovementSpeedMultiplier);
 
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions);
+            if (_state.HunterSpawnShortfall > 0)
+                Debug.LogWarning("Floor " + request.Round + ", seed " + request.Seed + ": hunter spawn shortfall=" +
+                    _state.HunterSpawnShortfall + ", spawning=" + spawns.Count + ", requested=" + request.Effects.ActiveThreatBudget, this);
             if (_hunterRoster != null && _hunterRoster.Length > 0)
                 _hunterFactory.Configure(_hunterRoster, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
             else _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
@@ -228,6 +247,7 @@ namespace Worsen.Session.Expedition
                 if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Generated hunter failed to register.");
                 hunter.ApplyRunSpeedMultiplier(request.Effects.HunterSpeedMultiplier);
                 hunter.SetTraits(request.Effects.Traits);
+                hunter.SetClosedDoors(_level.ClosedDoors);
             }
 
             if (request.IsShop) _run.BindGameplay(null, null, null);
@@ -235,14 +255,16 @@ namespace Worsen.Session.Expedition
             {
                 _chase.Initialize(_chaseConfig, player.ReadOnlyState);
                 _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState },
-                    _run.RandomSource, _procedural.Graph.Anchors.Count);
+                    _run.RandomSource);
                 _director.Initialize(_directorConfig, _run.RandomSource, _chase.ReadOnlyState, _floor.ReadOnlyState);
+                _director.SetLevelView(_level.ReadOnlyState);
                 _run.BindGameplay(_chase, _floor, _director);
             }
+            RouteClosedDoors();
             _controller.Ready();
             if (_effects != null)
             {
-                _effects.ConfigureHazards(_progression, request.IsShop ? null : _floor);
+                _effects.ConfigureHazards(_progression, request.IsShop ? null : _floor, request.IsShop ? null : _director);
                 _effects.SetOptionalRooms(_controller.OptionalRooms());
                 _effects.BindActors();
             }
@@ -250,6 +272,37 @@ namespace Worsen.Session.Expedition
             AssemblyReady?.Invoke(request, _procedural.PlayerSpawnPosition, _procedural.PlayerSpawnRotation);
             if (!_progression.ConfirmFloorReady(request.GenerationId))
                 throw new InvalidOperationException("Progression rejected readiness for the generated floor.");
+        }
+
+        private void BindWorld()
+        {
+            if (_worldBound) return;
+            _level.InteractableChanged += HandleInteractable;
+            _run.BeforeTick += RouteClosedDoors;
+            _worldBound = true;
+        }
+
+        private void UnbindWorld()
+        {
+            if (!_worldBound) return;
+            if (_level != null) _level.InteractableChanged -= HandleInteractable;
+            if (_run != null) _run.BeforeTick -= RouteClosedDoors;
+            _director?.SetClosedDoors(null);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetClosedDoors(null);
+            _worldBound = false;
+        }
+
+        private void HandleInteractable(InteractableState before, InteractableState after)
+        {
+            _procedural.ApplyInteractableState(after);
+            if (after.Kind == InteractableKind.Door) RouteClosedDoors();
+        }
+
+        private void RouteClosedDoors()
+        {
+            if (!_worldBound || !_level.ReadOnlyState.IsReady) return;
+            _director.SetClosedDoors(_level.ClosedDoors);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetClosedDoors(_level.ClosedDoors);
         }
 
         private void HandleDestruction(RoomDestructionSample sample) => _procedural.SetRoomDestruction(sample);
@@ -302,6 +355,8 @@ namespace Worsen.Session.Expedition
         private void ReleaseFloor()
         {
             var failures = new List<Exception>();
+            UnbindWorld();
+            Release(() => FloorReleased?.Invoke(), failures);
             if (_effects != null) { _effects.ClearHazards(); _effects.Suspend(); }
             if (_director != null) Release(_director.Teardown, failures);
             if (_floor != null) Release(_floor.Teardown, failures);
@@ -326,7 +381,9 @@ namespace Worsen.Session.Expedition
             if (_run != null) _run.SuspendForSceneLoad();
             try { ReleaseFloor(); }
             catch (Exception cleanup) { exception = new AggregateException(exception, cleanup); }
-            _controller.Fail("Floor " + _state.Request.Round + ", seed " + _state.Request.Seed + ": " + exception.Message);
+            _controller.Fail("Floor " + _state.Request.Round + ", seed " + _state.Request.Seed +
+                ", usedFallback=" + _state.UsedFallback + ": " + exception.Message +
+                (_state.UsedFallback ? "\n" + _state.LayoutManifest : string.Empty));
             Debug.LogError(_state.Failure, this);
             if (_progression != null) _progression.FailGeneration(generationId, _state.Failure);
         }
@@ -335,7 +392,7 @@ namespace Worsen.Session.Expedition
         {
             ClearScene();
             if (Instance == this) Instance = null;
-            AssemblyReady = null; RoomsReady = null;
+            AssemblyReady = null; RoomsReady = null; FloorReleased = null;
         }
     }
 }

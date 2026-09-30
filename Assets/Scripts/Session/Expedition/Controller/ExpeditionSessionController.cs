@@ -10,7 +10,8 @@
 // KEY RESPONSIBILITIES:
 //   - Reject stale requests and preserve the queued phase during deferred cleanup.
 //   - Preserve selected hunter identities and validate real room crossings for retained perks.
-//   - Produce spawn requests and enforce the requested active hunter budget.
+//   - Cap spawn requests to validated positions and record the deterministic budget shortfall.
+//   - Reject fallback admission while preserving its manifest through actor cleanup.
 //   - Commit readiness only after every required actor has been registered.
 //   - Leave retained-effect tuning to the authoritative effect service routed by the Manager.
 // DEPENDENCIES:
@@ -52,6 +53,9 @@ namespace Worsen.Session.Expedition
             _state.LastGenerationId = request.GenerationId;
             _state.Request = request;
             _state.Failure = string.Empty;
+            _state.UsedFallback = false;
+            _state.LayoutManifest = string.Empty;
+            _state.HunterSpawnShortfall = 0;
             _state.Phase = ExpeditionAssemblyPhase.Queued;
             return true;
         }
@@ -75,11 +79,10 @@ namespace Worsen.Session.Expedition
         public IReadOnlyList<SpawnRequest> HunterSpawns(string archetype, IReadOnlyList<Vector3> positions)
         {
             RequireGenerating();
-            int count = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
-            if (positions == null || positions.Count < count)
-                throw new InvalidOperationException("Generated floor has fewer hunter spawns than the active threat budget.");
-            if (!_state.Request.IsShop && _state.Request.Effects.ActiveThreatIds != null && _state.Request.Effects.ActiveThreatIds.Count != count)
+            int requested = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
+            if (!_state.Request.IsShop && _state.Request.Effects.ActiveThreatIds != null && _state.Request.Effects.ActiveThreatIds.Count != requested)
                 throw new InvalidOperationException("Selected hunter identities must exactly match their budget.");
+            int count = Math.Min(requested, positions?.Count ?? 0);
             var requests = new SpawnRequest[count];
             for (int index = 0; index < count; index++)
             {
@@ -87,7 +90,15 @@ namespace Worsen.Session.Expedition
                 ValidatePlacement(selected, positions[index]);
                 requests[index] = new SpawnRequest(selected, positions[index], Quaternion.identity);
             }
+            _state.HunterSpawnShortfall = requested - count;
             return requests;
+        }
+
+        public void RecordGenerationOutcome(bool usedFallback, string layoutManifest)
+        {
+            RequireGenerating();
+            _state.UsedFallback = usedFallback;
+            _state.LayoutManifest = layoutManifest ?? string.Empty;
         }
 
         public void RecordRooms(IReadOnlyList<GeneratedRoomSample> rooms)
@@ -153,7 +164,8 @@ namespace Worsen.Session.Expedition
         public void Ready()
         {
             RequireGenerating();
-            int count = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
+            if (_state.UsedFallback) throw new InvalidOperationException("A fallback layout cannot be admitted as a floor.");
+            int count = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget - _state.HunterSpawnShortfall;
             if (!_state.Player.IsValid || _state.Hunters.Count != count)
                 throw new InvalidOperationException("Cannot admit a floor before all requested actors exist.");
             _state.Phase = ExpeditionAssemblyPhase.Ready;
@@ -185,6 +197,9 @@ namespace Worsen.Session.Expedition
             _state.Scene = SceneKey.None;
             _state.Request = default;
             _state.Failure = string.Empty;
+            _state.UsedFallback = false;
+            _state.LayoutManifest = string.Empty;
+            _state.HunterSpawnShortfall = 0;
             _state.Phase = ExpeditionAssemblyPhase.Unbound;
         }
 

@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Store generated roots, flame outputs, local dimming and owned chalk marks.
 //   - Retain optional lighting hooks and runtime-only Lumen profiles for paired cleanup.
+//   - Store exact torch socket positions and Level-authoritative lit state independently of budgets.
 // DEPENDENCIES:
 //   - Passive Unity references and the wrapped Lumen effect reference only.
 // USAGE NOTES:
@@ -55,6 +56,8 @@ namespace Worsen.Presentation.Environment
     {
         public int RoomId;
         public int Identity;
+        public Vector3 SocketPosition;
+        public bool Lit = true;
         public GameObject EffectRoot;
         public LumenEffectPlayer Lumen;
         public bool Moon;
