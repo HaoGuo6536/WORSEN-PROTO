@@ -9,6 +9,7 @@
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Delegate offers and economy tuning to EffectCatalogueConfig and ShopConfig.
+//   - Optionally bind provisional shrine rules; unbound assets use documented defaults.
 //   - Set the fraction lost on a bail; the currency debit is rounded down.
 //   - Supply safe defaults for a shop after every two completed combat floors.
 //   - Describe five hunter identities and hunter-dependent plus general curse traits.
@@ -84,6 +85,7 @@ namespace Worsen.Session.Progression
     {
         [SerializeField] private EffectCatalogueConfig _effectCatalogue = null;
         [SerializeField] private ShopConfig _shopConfig = null;
+        [SerializeField] private ShrineProgressionConfig _shrineConfig = null;
         [SerializeField, Min(1)] private int _selectionInterval = 2;
         [SerializeField, Min(2)] private int _shopInterval = 2;
         [SerializeField, Min(1)] private int _maximumActiveThreats = 5;
@@ -134,6 +136,7 @@ namespace Worsen.Session.Progression
         [SerializeField] private ProgressionEntryConfig[] _offers = Array.Empty<ProgressionEntryConfig>();
         public EffectCatalogueConfig EffectCatalogue => _effectCatalogue;
         public ShopConfig ShopConfig => _shopConfig;
+        public ShrineProgressionConfig ShrineConfig => _shrineConfig;
         // Combat floors 1, 1+interval, ... select; shop visits never advance this clock.
         public int SelectionInterval => _selectionInterval;
         public int ShopInterval => _shopInterval;

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Expedition.
 // KEY RESPONSIBILITIES:
+//   - Preserve living shield between floors, time Wick and count physical Golden Cake pickups.
 //   - Reject stale requests and preserve the queued phase during deferred cleanup.
 //   - Preserve selected hunter identities and validate real room crossings for retained perks.
 //   - Cap spawn requests to validated positions and record the deterministic budget shortfall.
@@ -18,7 +19,7 @@
 //   - Own BehaviorState/Definitions and immutable Core progression/spawn values.
 // USAGE NOTES:
 //   Pure C#: no clock, engine objects, factories or foreign mutable state.
-//   Generation supplies all seed-derived placements; this Controller draws no randomness.
+//   Generation supplies placements. Shrine stream seeds are separated from actor/layout draws.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -155,7 +156,8 @@ namespace Worsen.Session.Expedition
 
         public void RecordHunter(EntityId id)
         {
-            RequireGenerating();
+            if (_state.Phase != ExpeditionAssemblyPhase.Generating && _state.Phase != ExpeditionAssemblyPhase.Ready)
+                throw new InvalidOperationException("Hunters require an assembling or ready floor.");
             if (!id.IsValid || id == _state.Player || _state.Hunters.Contains(id))
                 throw new ArgumentException("Hunter identities must be valid and unique.", nameof(id));
             _state.Hunters.Add(id);
@@ -183,7 +185,75 @@ namespace Worsen.Session.Expedition
 
         public void ReleaseActors()
         { _state.Player = EntityId.None; _state.Hunters.Clear(); _state.Rooms = Array.Empty<GeneratedRoomSample>();
+          _state.RequiredAnchors.Clear(); _state.GoldenEligible.Clear(); _state.GoldenCollected.Clear();
+          _state.ResolvedShrines.Clear(); _state.GoldCreated = false;
           _state.HasPreviousPosition = false; _state.PreviousRoom = 0; }
+
+        public static int ShrineSeed(int runSeed, int round) => unchecked((runSeed * 397) ^ round ^ 0x534852);
+        public void CaptureShield(bool alive, float shield)
+        { _state.CarriedShield = _state.ShieldTransferAllowed && alive && Finite(shield) ? Mathf.Max(0f, shield) : 0f; }
+        public float CarriedShield => _state.CarriedShield;
+        public void ResetRun()
+        { _state.CarriedShield = 0f; _state.ShieldTransferAllowed = false; }
+        public void AdmitShieldTransfer() => _state.ShieldTransferAllowed = true;
+        public bool AcceptShrine(ShrineResolvedFact fact) => _state.Phase == ExpeditionAssemblyPhase.Ready &&
+            !_state.Request.IsShop && fact.GenerationId == _state.Request.GenerationId && _state.ResolvedShrines.Add(fact.Activation.ShrineId);
+        public void BeginCollection(IReadOnlyList<LevelAnchor> required, bool blindFaith)
+        {
+            _state.RequiredAnchors.Clear(); _state.GoldenEligible.Clear(); _state.GoldenCollected.Clear();
+            _state.BlindFaith = blindFaith; _state.GoldCreated = false;
+            foreach (var anchor in required) _state.RequiredAnchors.Add(anchor.Id);
+        }
+        public void ObservePickup(PickupCollectedFact fact, bool goldCreated)
+        {
+            if (!AcceptsGameplay(fact.PlayerId)) return;
+            if (!_state.GoldCreated && fact.Kind == PickupKind.Cake && (_state.BlindFaith || _state.RequiredAnchors.Contains(fact.AnchorId)))
+                _state.GoldenEligible.Add(fact.AnchorId);
+            if (fact.Kind == PickupKind.GoldenCake) _state.GoldenCollected.Add(fact.AnchorId);
+            _state.GoldCreated |= goldCreated;
+        }
+        public float CollectedFraction => _state.GoldCreated && _state.GoldenEligible.Count > 0 ?
+            Mathf.Clamp01((float)_state.GoldenCollected.Count / _state.GoldenEligible.Count) : 0f;
+        public bool WickActive => _state.WickRemaining > 0f;
+        public void BeginWick(float seconds, long tick, IEnumerable<InteractableState> lamps)
+        {
+            if (!Finite(seconds) || seconds <= 0f) return;
+            foreach (var lamp in lamps)
+                if (lamp.Kind == InteractableKind.Light && !_state.LampStates.ContainsKey(lamp.Id))
+                    _state.LampStates.Add(lamp.Id, lamp.Value == InteractableStateValue.Lit);
+            _state.WickRemaining = Mathf.Max(_state.WickRemaining, seconds); _state.WickTick = tick;
+        }
+        public bool TickWick(float dt, long tick)
+        {
+            if (!WickActive || !Finite(dt) || dt <= 0f || tick <= _state.WickTick) return false;
+            _state.WickTick = tick; _state.WickRemaining = Mathf.Max(0f, _state.WickRemaining - dt);
+            return !WickActive;
+        }
+        public IReadOnlyDictionary<int, bool> EndWick()
+        {
+            var restore = new Dictionary<int, bool>(_state.LampStates);
+            _state.LampStates.Clear(); _state.WickRemaining = 0f; _state.WickTick = -1;
+            return restore;
+        }
+
+        // The nearest room footprint along a producer-supplied gap facing must be a
+        // pocket; never pick a pocket behind an intervening connected room or behind us.
+        public static int PassagePocket(LevelGraph graph, ShrineSite site, Vector3 facing)
+        {
+            if (!site.GapEdge || graph == null || facing.sqrMagnitude == 0f) return 0;
+            int result = 0; float nearest = float.PositiveInfinity;
+            foreach (var room in graph.Rooms)
+            {
+                if (room.Id == site.RoomId) continue;
+                foreach (var cell in room.Cells)
+                {
+                    var start = site.Position; start.y = cell.center.y;
+                    if (!cell.IntersectRay(new Ray(start, facing), out float distance) || distance >= nearest) continue;
+                    nearest = distance; result = room.Pocket ? room.Id : 0;
+                }
+            }
+            return result;
+        }
 
         public void Fail(string reason)
         {
@@ -194,6 +264,7 @@ namespace Worsen.Session.Expedition
         public void ClearScene()
         {
             ReleaseActors();
+            ResetRun(); EndWick();
             _state.Scene = SceneKey.None;
             _state.Request = default;
             _state.Failure = string.Empty;

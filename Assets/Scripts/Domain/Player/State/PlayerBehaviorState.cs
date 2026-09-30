@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Retain an independent trap speed factor, composed with grabs by the Controller.
 //   - Accumulate external velocity deltas until one movement tick consumes them.
+//   - Store shield HP separately from regenerating and floor-reset health.
 //   - Store the pending effects view, tick snapshot, floor health baseline and one-use vault momentum.
 //   - Retain regeneration delay and neutral-by-default health effect hooks per life.
 //   - Store traversal progress/steering, regrab cooldown and one-tick stumble publication data.
@@ -33,7 +34,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Player
 {
-    public sealed class PlayerBehaviorState : IReadOnlyPlayerState, IReadOnlyPlayerEffectState
+    public sealed class PlayerBehaviorState : IReadOnlyPlayerShieldState, IReadOnlyPlayerEffectState
     {
         public IReadOnlyActiveEffects ActiveEffects { get; set; }
         public ActiveEffects AppliedEffects { get; set; }
@@ -55,6 +56,7 @@ namespace Worsen.Domain.Player
         public float SprintSpeed { get; set; }
         public float MaxDesignSpeed { get; set; }
         public float Health { get; set; }
+        public float Shield { get; set; }
         public float MaxHealth { get; set; }
         public double RegenerationDelayRemaining { get; set; }
         public float RegenerationMultiplier { get; set; } = 1f;

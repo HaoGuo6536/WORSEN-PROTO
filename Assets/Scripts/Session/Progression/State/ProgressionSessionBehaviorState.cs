@@ -12,6 +12,7 @@
 //   - Retain committed hunter/curse offers and stage-specific selection reroll counts.
 //   - Retain catalogue stacks separately from lifetime purchase/selection counts.
 //   - Own delegated shop state without moving the wallet out of Progression.
+//   - Retain shrine history, pending deals and separately expiring floor effects.
 // DEPENDENCIES:
 //   - Core progression types, System collections and the owned Shop state.
 // USAGE NOTES:
@@ -51,6 +52,7 @@ namespace Worsen.Session.Progression
         internal Dictionary<string, int> SelectionCounts { get; } = new Dictionary<string, int>();
         internal Dictionary<string, ActiveEffect> ActiveEffectEntries { get; } = new Dictionary<string, ActiveEffect>();
         internal ShopBehaviorState Shop { get; } = new ShopBehaviorState();
+        internal ShrineProgressionBehaviorState Shrines { get; } = new ShrineProgressionBehaviorState();
         internal int ThreatRerollsUsed, CurseRerollsUsed;
         internal List<string> ActiveThreatIds { get; } = new List<string>();
         internal List<string> OfferedThreatIds { get; } = new List<string>();

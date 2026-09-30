@@ -8,11 +8,14 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Apply the current shrine yield to later Golden Cake credit through the shared remainder path.
 //   - Retain current-floor health for reporting, but refill it after choices before each generation.
 //   - Advance independent selection and shop clocks using completed combat floors.
 //   - Debit the configured bail penalty once, inside generation-guarded completion.
 //   - Commit catalogue purchases and deferred replacements with one wallet debit.
 //   - Delegate shop draws, inventory and economy to the owned Shop subtree.
+//   - Resolve generation-guarded shrines, temporary effects and paid shelter bargains.
+//   - Keep temporary upgrades out of retained summaries and permanent inventory sizing.
 //   - Leave catalogue health/sprint effects to Player; legacy baselines stay unmodified.
 //   - Produce immutable snapshots and deterministic per-round generation inputs.
 //   - Commit at most three eligible hunter/curse choices and skip exhausted menus.
@@ -24,6 +27,8 @@
 //   Construct with a fresh seeded random source when starting/restarting a run.
 //   Generation and UI identities remain monotonic in the reused state. Exactly
 //   one random draw occurs per round; purchases and health do not alter layouts.
+//   Shrines use a separate seeded stream. A marked Bargain forces the next shelter;
+//   that visit resets the shop clock and walking away adds no bargain-specific cost.
 //   CompleteFloor defaults to a normal escape. The flagged overload is the only
 //   bail entry; ApplyBailPenalty is the extension point for a future curse cost.
 // ============================================================================
@@ -45,6 +50,10 @@ namespace Worsen.Session.Progression
         private readonly EffectCatalogueConfig shopCatalogue;
         private readonly ShopRules shopRules;
         private ShopController shop;
+        private ShrineProgressionController shrines;
+        public IReadOnlyList<ShrineResolvedFact> ShrineHistory => shrines.History;
+        public ActiveEffects FloorEffects => shrines.FloorEffects;
+        public float ShrineYieldMultiplier => shrines.YieldMultiplier;
 
         public ProgressionSessionController(ProgressionSessionBehaviorState state, ProgressionConfig config, System.Random random,
             ShopConfig shopConfig = null, EffectCatalogueConfig shopCatalogue = null)
@@ -63,6 +72,8 @@ namespace Worsen.Session.Progression
             }
             shopRules = (config.ShopConfig ?? shopConfig)?.Rules ?? new ShopRules();
             shop = new ShopController(state.Shop, shopRules, this.shopCatalogue, new System.Random(0));
+            shrines = new ShrineProgressionController(state.Shrines, config.ShrineConfig?.Rules ?? new ShrineProgressionRules(),
+                this.shopCatalogue, new System.Random(0));
             var combined = new List<ProgressionEntryConfig>(config.Curses);
             if (!(catalogue is null))
             {
@@ -89,6 +100,9 @@ namespace Worsen.Session.Progression
             state.Traits = ProgressionTraits.None;
             state.WaxWardCharges = 0;
             shop.Reset();
+            shrines = new ShrineProgressionController(state.Shrines, config.ShrineConfig?.Rules ?? new ShrineProgressionRules(),
+                shopCatalogue, new System.Random(seed));
+            shrines.ResetRun();
             state.OfferedThreatIds.Clear();
             state.OfferedCurseIds.Clear();
             state.ActiveThreatIds.Clear();
@@ -131,6 +145,7 @@ namespace Worsen.Session.Progression
         {
             if (!MatchesGeneration(ProgressionPhase.Generating, generationId)) return false;
             state.Phase = state.IsShop ? ProgressionPhase.Shop : ProgressionPhase.Exploring;
+            if (state.IsShop) shrines.OpenDeal(Active());
             state.Message = state.IsShop
                 ? "A moment of safety. Spend Golden Cakes, or continue without buying."
                 : "Collect the Cakes. Find the exit. Keep your light close.";
@@ -154,6 +169,7 @@ namespace Worsen.Session.Progression
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
             if (bailed) ApplyBailPenalty();
+            shrines.EndFloor();
             state.Wallet += shop.Interest(state.Wallet, Active());
             state.CompletedCombatFloors++;
             BeginNextRound();
@@ -171,6 +187,7 @@ namespace Worsen.Session.Progression
         {
             if (!Matches(ProgressionPhase.Shop, revision)) return false;
             if (shop.HasPending) return Reject("Choose a replacement slot or cancel first.");
+            shrines.CloseDeal();
             state.Wallet += shop.Interest(state.Wallet, Active());
             BeginNextRound();
             return true;
@@ -180,7 +197,7 @@ namespace Worsen.Session.Progression
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || anchorId < 0 ||
                 state.CollectedGoldenAnchors.Contains(anchorId)) return false;
-            if (!shop.GoldenCredit(state.Wallet, config.GoldenCakeValue, Active(), out int credit)) return false;
+            if (!shop.GoldenCredit(state.Wallet, config.GoldenCakeValue, Active(), out int credit, shrines.YieldMultiplier)) return false;
             state.CollectedGoldenAnchors.Add(anchorId);
             state.Wallet += credit;
             state.Revision++;
@@ -190,6 +207,7 @@ namespace Worsen.Session.Progression
         public bool Purchase(string id, int revision)
         {
             if (!Matches(ProgressionPhase.Shop, revision)) return false;
+            if (shrines.BargainMarked) return Reject("Take a bargain or walk away before shopping.");
             return CommitPurchase(id);
         }
 
@@ -237,6 +255,7 @@ namespace Worsen.Session.Progression
         public bool RerollShop(int revision)
         {
             if (!Matches(ProgressionPhase.Shop, revision)) return false;
+            if (shrines.BargainMarked) return Reject("Bargain offers cannot be rerolled.");
             if (!shop.Reroll(state.Wallet, Active(), out int wallet)) return Reject(shop.RerollUnavailable(state.Wallet, Active()));
             state.Wallet = wallet;
             state.Message = "New pedestals drawn.";
@@ -258,7 +277,36 @@ namespace Worsen.Session.Progression
         private int SelectionRerollsRemaining() => Math.Max(0, shop.SelectionRerolls(Active()) -
             (state.Phase == ProgressionPhase.ChooseThreat ? state.ThreatRerollsUsed : state.CurseRerollsUsed));
 
-        private ActiveEffects Active() => new ActiveEffects(state.ActiveEffectEntries.Values);
+        private ActiveEffects Active() => shrines.Combined(new ActiveEffects(state.ActiveEffectEntries.Values));
+
+        public bool ActivateShrine(int generationId, ShrineActivatedFact fact, float shieldCapacity,
+            float collectedFraction, out ShrineResolvedFact resolution)
+        {
+            resolution = default;
+            if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
+            if (!shrines.Resolve(generationId, state.Round, fact, state.Wallet, shieldCapacity, collectedFraction,
+                new ActiveEffects(state.ActiveEffectEntries.Values), out resolution)) return false;
+            state.Wallet -= resolution.Cost;
+            state.Revision++;
+            return true;
+        }
+
+        public IReadOnlyList<NoiseEvent> TickShrines(int generationId, float dt, long tick) =>
+            MatchesGeneration(ProgressionPhase.Exploring, generationId) ? shrines.Tick(dt, tick) : Array.Empty<NoiseEvent>();
+
+        public bool TakeBargain(string id, int revision)
+        {
+            if (!Matches(ProgressionPhase.Shop, revision)) return false;
+            if (!shrines.TakeDeal(id, state.Wallet, Active(), out var curse, out int payout))
+                return Reject("That bargain is unavailable. You can walk away for free.");
+            state.ActiveEffectEntries[id] = curse;
+            state.SelectionCounts[id] = Count(id) + 1;
+            state.CurseCount++;
+            state.Wallet += payout;
+            state.Message = "Bargain accepted. Paid " + payout + " Golden Cakes.";
+            state.Revision++;
+            return true;
+        }
 
         public bool TryConsumeWaxWard(int generationId)
         {
@@ -287,6 +335,7 @@ namespace Worsen.Session.Progression
             state.Phase = ProgressionPhase.Ended;
             state.Health = 0f;
             state.Wallet = 0;
+            shrines.EndFloor(); shrines.CloseDeal();
             state.Message = "The expedition ended on floor " + state.Round + ".";
             state.Revision++;
             return true;
@@ -312,25 +361,30 @@ namespace Worsen.Session.Progression
             bool inShop = state.Phase == ProgressionPhase.Shop;
             bool selection = state.Phase == ProgressionPhase.ChooseThreat || state.Phase == ProgressionPhase.ChooseCurse;
             var active = Active();
+            var permanent = new ActiveEffects(state.ActiveEffectEntries.Values);
             var offers = inShop ? shop.Offers(state.Wallet, active) : Array.AsReadOnly(Array.Empty<ProgressionOffer>());
             var retained = new List<ProgressionSelection>();
             AppendSelections(retained, config.Threats, ProgressionChoiceKind.Threat);
             AppendSelections(retained, curses, ProgressionChoiceKind.Curse);
             if (!(shopCatalogue is null))
                 foreach (var entry in shopCatalogue.Entries)
-                    if (entry.Kind == EffectKind.Upgrade && active.Has(new EffectId(entry.Id)))
-                        retained.Add(new ProgressionSelection(entry.Id, entry.Title, ProgressionChoiceKind.Upgrade, active.Stacks(new EffectId(entry.Id))));
-            string rerollReason = inShop ? shop.RerollUnavailable(state.Wallet, active) :
+                {
+                    if (entry.Kind == EffectKind.Upgrade && permanent.Has(new EffectId(entry.Id)))
+                        retained.Add(new ProgressionSelection(entry.Id, entry.Title, ProgressionChoiceKind.Upgrade, permanent.Stacks(new EffectId(entry.Id))));
+                    if (entry.Kind == EffectKind.Curse && Find(curses, entry.Id) == null && Count(entry.Id) > 0)
+                        retained.Add(new ProgressionSelection(entry.Id, entry.Title, ProgressionChoiceKind.Curse, Count(entry.Id)));
+                }
+            string rerollReason = inShop && shrines.BargainMarked ? "Bargain offers cannot be rerolled." : inShop ? shop.RerollUnavailable(state.Wallet, active) :
                 selection && SelectionRerollsRemaining() <= 0 ? "No selection rerolls remain." : null;
             return new ProgressionSnapshot(state.Revision, state.GenerationId, state.Round, state.Seed, state.Wallet,
                 state.ThreatCount, state.CurseCount, state.Phase, state.Health, state.MaximumHealth,
                 Array.AsReadOnly(choices.ToArray()), offers, Array.AsReadOnly(retained.ToArray()),
                 Effects(), state.Message, inShop && !shop.HasPending,
                 state.Phase == ProgressionPhase.Ended || state.Phase == ProgressionPhase.GenerationFailed,
-                shop.Inventory(active), inShop ? shop.Pending?.Id : null, inShop ? shop.Pending?.Title : null,
+                shop.Inventory(permanent), inShop ? shop.Pending?.Id : null, inShop ? shop.Pending?.Title : null,
                 inShop ? shop.Price(shop.Pending, active) : 0, (inShop || selection) && rerollReason == null,
                 inShop ? shop.RerollPrice(active) : 0, inShop ? shop.FreeRerolls(active) : selection ? SelectionRerollsRemaining() : 0,
-                rerollReason);
+                rerollReason, inShop ? shrines.Deal() : default);
         }
 
         private void BeginNextRound()
@@ -344,8 +398,8 @@ namespace Worsen.Session.Progression
             }
             state.Round++;
             state.RoundSeed = random.Next();
-            state.IsShop = state.CompletedCombatFloors > 0 &&
-                state.CompletedCombatFloors - state.LastShopAtCombatCount >= config.ShopInterval;
+            state.IsShop = shrines.BargainMarked || (state.CompletedCombatFloors > 0 &&
+                state.CompletedCombatFloors - state.LastShopAtCombatCount >= config.ShopInterval);
             if (state.IsShop) state.LastShopAtCombatCount = state.CompletedCombatFloors;
             state.ThreatRerollsUsed = state.CurseRerollsUsed = 0;
             if (state.IsShop)
@@ -385,7 +439,7 @@ namespace Worsen.Session.Progression
         }
 
         public ProgressionEffectsSnapshot EffectsSnapshot() => new ProgressionEffectsSnapshot(Snapshot(),
-            new ActiveEffects(state.ActiveEffectEntries.Values));
+            Active());
 
         private void ApplyEntry(ProgressionEntryConfig entry, EffectKind kind)
         {

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (section 1), Entity system - Domain - Hunter.
 // KEY RESPONSIBILITIES:
+//   - Expose Pacification belief clearing without resetting the Hunter life or attack.
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Relay Hunter-local stall facts for evidence consumers without recovery commands.
@@ -181,6 +182,7 @@ namespace Worsen.Domain.Hunter
         }
         public void SetAfterimage(FlashlightSample sample, float lifetime) { _controller?.SetAfterimage(sample, lifetime); }
         public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise, 1f); }
+        public void ClearBelief() { _controller?.ClearBelief(); }
         public void SetFloorView(IReadOnlyFloorState floor) { _controller?.SetFloorView(floor); }
         public void SetClosedDoors(System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
         public bool RequestRetreat() => _controller != null &&

@@ -12,6 +12,7 @@
 //   - Separate stepped visuals from rotated ramp and flat landing collision boxes.
 //   - Retain the effective spawn policy and immutable world-object construction plans.
 //   - Record exact occupied cells, optional pocket anchors and Passage placement sites.
+//   - Carry kind-free shrine candidates for admitted floors; Shrine owns selection.
 //   - Retain storeys, directed vertical routes and permissioned navigation link plans.
 //   - Keep theme metadata, optional cages and threshold staging outside required edges.
 // DEPENDENCIES:
@@ -56,6 +57,7 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<Vector2Int> GapCells { get; internal set; } = System.Array.Empty<Vector2Int>();
         public IReadOnlyList<LevelAnchor> PocketAnchors { get; internal set; } = System.Array.Empty<LevelAnchor>();
         public IReadOnlyList<ProceduralGapSite> GapSites { get; internal set; } = System.Array.Empty<ProceduralGapSite>();
+        public IReadOnlyList<ProceduralShrineSite> ShrineSites { get; internal set; } = System.Array.Empty<ProceduralShrineSite>();
         public IReadOnlyList<ProceduralStoreyPlan> Storeys { get; internal set; } = System.Array.Empty<ProceduralStoreyPlan>();
         public IReadOnlyList<ProceduralVerticalRoute> VerticalRoutes { get; internal set; } = System.Array.Empty<ProceduralVerticalRoute>();
         public IReadOnlyList<ProceduralDoorPlan> Doors { get; internal set; }
@@ -136,6 +138,16 @@ namespace Worsen.Domain.Procedural
         public bool AlongX { get; }
         public IReadOnlyList<Vector2Int> Cells { get; }
         public int PocketId { get; }
+    }
+
+    public readonly struct ProceduralShrineSite
+    {
+        public ProceduralShrineSite(int roomId, Vector3 position, bool gapEdge, Vector3 facing)
+        { RoomId = roomId; Position = position; GapEdge = gapEdge; Facing = facing; }
+        public int RoomId { get; }
+        public Vector3 Position { get; }
+        public bool GapEdge { get; }
+        public Vector3 Facing { get; }
     }
 
     public readonly struct ProceduralGapSite
