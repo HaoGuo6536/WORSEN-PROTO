@@ -10,6 +10,7 @@
 //   Sub-driver (§7e), owned by EnvironmentDriver · Presentation · Environment.
 //
 // KEY RESPONSIBILITIES:
+//   - Use a cold pool with no warm flare for fluorescent fixtures; preserve the shared budget.
 //   - Clone lantern profiles, soften ground pools and retain a small source halo.
 //   - Build a deterministic exit fan and release its private mesh/profile on teardown.
 //
@@ -31,7 +32,7 @@ namespace Worsen.Presentation.Environment
         private readonly EnvironmentLumenDriverState _state = new EnvironmentLumenDriverState();
         private readonly HorrorLumenPresenter _presenter = new HorrorLumenPresenter();
 
-        public LumenEffectPlayer CreateLamp(EnvironmentDriverConfig config, bool moon)
+        public LumenEffectPlayer CreateLamp(EnvironmentDriverConfig config, bool moon, bool fluorescent = false)
         {
             GameObject prefab = moon ? config.LumenMoonPrefab : config.LumenLanternPrefab;
             if (prefab == null) return null;
@@ -51,9 +52,9 @@ namespace Worsen.Presentation.Environment
                         Vector2 angles = _presenter.ConeAngles(config.GroundPoolCone);
                         light.minSpotlightAngle = angles.x; light.maxSpotlightAngle = angles.y;
                         light.rotation = new Vector3(90f, 0f, 0f);
-                        light.color = config.WarmColor;
+                        light.color = fluorescent ? config.FluorescentColor : config.WarmColor;
                     }
-                    else if (layer is LumenFlareLayer) layer.brightness = config.LanternHaloStrength;
+                    else if (layer is LumenFlareLayer) layer.brightness = fluorescent ? 0f : config.LanternHaloStrength;
                     else layer.active = false;
                 }
             Configure(player, config.LumenFlareScale, config.LumenRangeMultiplier);

@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
+//   - Subscribe before generation to theme, optional-reward and threshold-freeze facts.
+//   - Route committed puzzle ticks once, retain the run theme seed and release challenge state.
 //   - Assemble floor shrines, preserve shields and route Wick, Passage and Purgatory outcomes.
 //   - Snapshot catalogue cake/collapse hooks and the actual round into each non-shop Floor.
 //   - Start each spawned Player at its effective maximum, never the previous floor's current health.
@@ -40,6 +42,8 @@
 //   Purgatory fraction means physical Golden Cakes collected / created, not exit credit.
 //   Wick restores the first activation's lamp states; overlaps extend without replacing that snapshot.
 //   Missing late-spawn/mutation/Passage admission publishes unresolved intent, never an unsafe fallback.
+//   Vault completion needs an explicit surface identity through CompletePuzzleVault;
+//   the current Core PlayerTraversalFact has none, so the legacy relay cannot infer it.
 // ============================================================================
 using System;
 using System.Collections;
@@ -105,6 +109,9 @@ namespace Worsen.Session.Expedition
         public event Action<ProgressionGenerationRequest, Vector3, Quaternion> AssemblyReady;
         public event Action<IReadOnlyList<GeneratedRoomSample>> RoomsReady;
         public event Action FloorReleased;
+        public event Action<string, string, string, string, string> ThemePublished;
+        public event Action<int, string, string> RoomThemePublished;
+        public event Action<int, int, int, Vector3, Vector3> ThresholdFreezePublished;
         public bool WickActive => _controller?.WickActive ?? false;
         public event Action<bool> WickActiveChanged;
         public event Action<ShrineResolvedFact, string> ShrineWorldEffectUnresolved;
@@ -164,12 +171,28 @@ namespace Worsen.Session.Expedition
             _run.PlayerMovementPublished += HandleMovement;
             _run.PlayerTraversalPublished += HandleTraversal;
             _run.TickAdvanced += HandleTick;
+            if (_procedural != null)
+            {
+                _procedural.ThemePublished += HandleTheme;
+                _procedural.RoomThemePublished += HandleRoomTheme;
+                _procedural.ThresholdFreezePublished += HandleFreeze;
+                _procedural.OptionalPuzzleRewardPublished += HandlePuzzleReward;
+                _procedural.PuzzleSolved += HandlePuzzleSolved;
+            }
             _subscribed = true;
         }
 
         private void Unsubscribe()
         {
             if (!_subscribed) return;
+            if (_procedural != null)
+            {
+                _procedural.ThemePublished -= HandleTheme;
+                _procedural.RoomThemePublished -= HandleRoomTheme;
+                _procedural.ThresholdFreezePublished -= HandleFreeze;
+                _procedural.OptionalPuzzleRewardPublished -= HandlePuzzleReward;
+                _procedural.PuzzleSolved -= HandlePuzzleSolved;
+            }
             if (_progression != null)
             {
                 _progression.GenerationRequested -= HandleGeneration;
@@ -235,7 +258,7 @@ namespace Worsen.Session.Expedition
             try
             {
                 _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
-                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier);
+                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier, themeSeed: _progression.Snapshot.Seed);
             }
             finally { _controller.RecordGenerationOutcome(_procedural.UsedFallback, _procedural.LayoutManifest); }
             if (_state.UsedFallback || !_procedural.GenerationSucceeded)
@@ -281,7 +304,11 @@ namespace Worsen.Session.Expedition
                 _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState },
                     _run.RandomSource, fasterCollapse: ExpeditionFloorEffectUtility.FasterCollapse(activeEffects),
                     shuffledCollapse: ExpeditionFloorEffectUtility.ShuffledCollapse(activeEffects), round: request.Round,
-                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects));
+                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
+                    preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook);
+                foreach (var reward in _state.PuzzleRewards)
+                    if (!_floor.RegisterPuzzleReward(reward.Key, reward.Value.Anchor, reward.Value.Position))
+                        throw new InvalidOperationException("Floor rejected optional puzzle reward " + reward.Key + ".");
                 _director.Initialize(_directorConfig, _run.RandomSource, _chase.ReadOnlyState, _floor.ReadOnlyState);
                 _director.SetLevelView(_level.ReadOnlyState);
                 _run.BindGameplay(_chase, _floor, _director);
@@ -341,14 +368,39 @@ namespace Worsen.Session.Expedition
         { foreach (EntityId id in _state.Hunters) if (HunterRegistry.TryGet(id, out var hunter)) hunter.SetRoomPhase(fact); }
         private void HandleMovement(PlayerMovementSample sample)
         {
+            _controller.ObservePuzzleMovement(sample);
             _effects?.ObserveMovement(sample);
             if (_controller.ObserveCrossing(sample, out int door, out Vector3 position)) _effects?.RecordDoorCrossed(door, position);
         }
         private void HandleTraversal(PlayerTraversalFact fact) => _effects?.ObserveTraversal(fact);
         private void HandleTick(InputFrame frame, float dt, long tick)
         {
+            if (_controller.TryTickPuzzles(dt, tick, out var movement)) _procedural?.TickPuzzles(movement, dt);
             _effects?.Tick(frame, dt, tick);
             if (_controller.TickWick(dt, tick)) RestoreWick();
+        }
+
+        public void CompletePuzzleVault(PlayerTraversalFact fact, int surfaceId)
+        {
+            if (_controller != null && _controller.AcceptPuzzleVault(fact, surfaceId))
+                _procedural?.CompletePuzzleVault(surfaceId, fact.Succeeded);
+        }
+        private void HandleTheme(string theme, string light, string sound, string fog, string hands)
+        {
+            _controller.RecordHandLook(hands);
+            ThemePublished?.Invoke(theme, light, sound, fog, hands);
+        }
+        private void HandleRoomTheme(int room, string theme, string family) => RoomThemePublished?.Invoke(room, theme, family);
+        private void HandleFreeze(int room, int behind, int anchor, Vector3 doorway, Vector3 hunter)
+        {
+            _controller.RecordFreeze(room, behind, anchor);
+            ThresholdFreezePublished?.Invoke(room, behind, anchor, doorway, hunter);
+        }
+        private void HandlePuzzleReward(int puzzle, int anchor, Vector3 position) => _controller.RecordPuzzleReward(puzzle, anchor, position);
+        private void HandlePuzzleSolved(int puzzle, int room, int anchor)
+        {
+            if (_controller.AcceptsGameplay(_state.Player) && _floor.SolvePuzzle(puzzle, room, anchor))
+                _controller.ObservePuzzleGoldCreated(anchor);
         }
 
         private void AssembleShrines()
@@ -550,6 +602,7 @@ namespace Worsen.Session.Expedition
             ClearScene();
             if (Instance == this) Instance = null;
             AssemblyReady = null; RoomsReady = null; FloorReleased = null;
+            ThemePublished = null; RoomThemePublished = null; ThresholdFreezePublished = null;
             WickActiveChanged = null; ShrineWorldEffectUnresolved = null;
         }
     }

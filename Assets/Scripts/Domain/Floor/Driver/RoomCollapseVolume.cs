@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by FloorDriver Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
+//   - Apply FloorHandPresenter look scaling only to disabled-collider hand art.
 //   - Route warning phase and pulse changes to a native Lumen fake-light effect.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
@@ -81,6 +82,7 @@ namespace Worsen.Domain.Floor
             _state.HandBounds.Add(cell);
             _state.Mist.Add(addMist ? BuildMist(gridIndex,point,width,fogMaterial,cell) : null);
         }
+        public void SetHandLook(string look) => _state.HandLook = look;
         public void ApplyHandFact(CollapseHandFact fact)
         {
             for (int i=0;i<_state.HandPositions.Count;i++)
@@ -131,7 +133,8 @@ namespace Worsen.Domain.Floor
                 if (reaching) reveal = Mathf.Max(reveal, mist);
                 var hand = _state.Hands[i]; hand.gameObject.SetActive(reveal > 0.01f);
                 hand.position = reaching ? _presenter.CakeReach(_state.HandPositions[i], cakes[i], sample.Phase, sample.Progress) : _state.HandPositions[i];
-                hand.localScale = _presenter.HandScale(reveal, elapsed, i, _config.HandVisualScale);
+                hand.localScale = _presenter.HandScale(reveal, elapsed, i,
+                    FloorHandPresenter.VisualScale(_state.HandLook, _config.HandVisualScale, _config.GlovedHandScaleMultiplier));
                 hand.localRotation = Quaternion.Euler(Mathf.Sin(elapsed + i) * 6f, i * 137.5f, Mathf.Cos(elapsed * 0.7f + i) * 7f);
                 var fog = _state.Mist[i];
                 if (fog == null) continue;

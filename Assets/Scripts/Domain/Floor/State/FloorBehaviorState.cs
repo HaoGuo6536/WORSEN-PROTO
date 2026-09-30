@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Keep puzzle rewards separate from required selection and Greedy Door accounting.
 //   - Retain seeded pending collapse priorities and the next safely admitted room deadline.
 //   - Retain trap identities, default-off cake hooks, typed guidance and separate collapse readiness.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
@@ -38,6 +39,8 @@ namespace Worsen.Domain.Floor
         internal readonly List<FloorTrapSpawn> MutableTraps = new List<FloorTrapSpawn>();
         internal readonly HashSet<int> SprungTraps = new HashSet<int>();
         internal readonly List<LevelAnchor> GoldenAnchors = new List<LevelAnchor>();
+        internal readonly Dictionary<int, LevelAnchor> PuzzleRewards = new Dictionary<int, LevelAnchor>();
+        internal readonly HashSet<int> UnlockedPuzzleRewards = new HashSet<int>();
         internal FloorCakeHooks CakeHooks;
         internal double TrapTickElapsed;
         internal double Elapsed;
@@ -50,6 +53,7 @@ namespace Worsen.Domain.Floor
         internal readonly FloorHandBehaviorState Hands = new FloorHandBehaviorState();
         internal bool FasterCollapse;
         internal bool ShuffledCollapse;
+        internal bool RouteSafeCollapse;
         internal readonly List<int> PendingCollapseRooms = new List<int>();
         internal double NextShuffledStart;
         public int Round { get; internal set; }

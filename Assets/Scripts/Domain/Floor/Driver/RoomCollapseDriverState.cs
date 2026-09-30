@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
+//   - Retain the cosmetic hand look independently of hazard geometry and phase.
 //   - Retain the room-owned native Lumen warning effect.
 //   - Retain cell-local triggers and hand bounds without filling the room's bounding rectangle.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
@@ -37,6 +38,7 @@ namespace Worsen.Domain.Floor
         public float Progress;
         public float Elapsed;
         public bool OptionalCracks;
+        public string HandLook;
         public FloorLumenGlow Warning;
 
         public float BoundaryReach;

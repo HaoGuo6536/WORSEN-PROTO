@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Environment target.
 // KEY RESPONSIBILITIES:
+//   - Forward Expedition theme and room-family facts before RoomsReady constructs dressing.
 //   - Pair Horror lighting hooks and resynchronize torch density/Wick after floor dressing resets.
 //   - Pair floor, movement and visual-effect subscriptions with scene lifetime.
 //   - Keep decorations and local lighting synchronized with room destruction.
@@ -50,6 +51,8 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _expedition == null || _effects == null || _environment == null) return;
             _expedition.RoomsReady += OnRooms;
+            _expedition.ThemePublished += OnTheme;
+            _expedition.RoomThemePublished += OnRoomTheme;
             _expedition.FloorReleased += OnFloorReleased;
             if (_level != null) _level.InteractableChanged += OnInteractable;
             _run.PlayerMovementPublished += OnMovement;
@@ -64,10 +67,13 @@ namespace Worsen.Orchestrator
         {
             if (_horror != null) _horror.LightingHooksChanged -= OnLightingHooks;
             if (_expedition != null) { _expedition.RoomsReady -= OnRooms; _expedition.FloorReleased -= OnFloorReleased; }
+            if (_expedition != null) { _expedition.ThemePublished -= OnTheme; _expedition.RoomThemePublished -= OnRoomTheme; }
             if (_level != null) _level.InteractableChanged -= OnInteractable;
             if (_run != null) { _run.PlayerMovementPublished -= OnMovement; _run.RoomDestructionPublished -= OnDestruction; _run.FloorDisplayChanged -= OnFloorDisplay; }
             if (_effects != null) { _effects.FlameDimChanged -= OnFlame; _effects.DoorMarked -= OnMark; }
         }
+        private void OnTheme(string theme, string light, string sound, string fog, string hands) => _environment.SetTheme(theme, light);
+        private void OnRoomTheme(int room, string theme, string family) => _environment.SetRoomTheme(room, theme, family);
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms)
         {
             _environment.SetRooms(rooms);

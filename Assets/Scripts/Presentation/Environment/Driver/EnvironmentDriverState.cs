@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Retain floor light-source and room-family tags before dressing is constructed.
 //   - Keep the torch-budget multiplier separate from authoritative lit/destruction flags.
 //   - Store generated roots, flame outputs, local dimming and owned chalk marks.
 //   - Retain optional lighting hooks and runtime-only Lumen profiles for paired cleanup.
@@ -24,6 +25,9 @@ namespace Worsen.Presentation.Environment
 {
     public sealed class EnvironmentDriverState
     {
+        public string ThemeId;
+        public string LightSource;
+        public readonly Dictionary<int, (string Theme, string Family)> RoomThemes = new Dictionary<int, (string, string)>();
         public readonly Dictionary<int, GameObject> Rooms = new Dictionary<int, GameObject>();
         public readonly Dictionary<int, Bounds> RoomBounds = new Dictionary<int, Bounds>();
         public readonly HashSet<int> ConsumedRooms = new HashSet<int>();
@@ -63,6 +67,8 @@ namespace Worsen.Presentation.Environment
         public GameObject EffectRoot;
         public LumenEffectPlayer Lumen;
         public bool Moon;
+        public bool Fluorescent;
+        public EnvironmentFluorescentFixture Panel;
         public bool Exit;
         public float OpeningProgress;
         public EnvironmentLumenDriver Grammar;

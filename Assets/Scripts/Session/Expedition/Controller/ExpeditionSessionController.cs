@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Expedition.
 // KEY RESPONSIBILITIES:
+//   - Buffer admitted challenge facts and route one committed movement sample per tick.
+//   - Validate explicitly identified vault outcomes without guessing a traversal surface.
 //   - Preserve living shield between floors, time Wick and count physical Golden Cake pickups.
 //   - Reject stale requests and preserve the queued phase during deferred cleanup.
 //   - Preserve selected hunter identities and validate real room crossings for retained perks.
@@ -183,8 +185,41 @@ namespace Worsen.Session.Expedition
         public bool AcceptsGameplay(EntityId player) => _state.Phase == ExpeditionAssemblyPhase.Ready &&
             !_state.Request.IsShop && player == _state.Player;
 
+        public void RecordHandLook(string look) => _state.HandLook = look;
+        public void RecordFreeze(int roomId, int behindRoomId, int anchorId)
+        {
+            RequireGenerating();
+            if (roomId == 0 || behindRoomId == 0 || anchorId == 0) return;
+            if (!_state.FreezeAnchors.Contains(anchorId)) _state.FreezeAnchors.Add(anchorId);
+            if (!_state.FreezeBehindRooms.Contains(behindRoomId)) _state.FreezeBehindRooms.Add(behindRoomId);
+        }
+        public void RecordPuzzleReward(int puzzleId, int anchorId, Vector3 position)
+        { RequireGenerating(); _state.PuzzleRewards[puzzleId] = (anchorId, position); }
+        public void ObservePuzzleMovement(PlayerMovementSample sample)
+        {
+            if (AcceptsGameplay(sample.Id) && sample.Tick > _state.PuzzleTick &&
+                (!_state.PuzzleMovement.Id.IsValid || sample.Tick >= _state.PuzzleMovement.Tick)) _state.PuzzleMovement = sample;
+        }
+        public bool TryTickPuzzles(float dt, long tick, out PlayerMovementSample sample)
+        {
+            sample = _state.PuzzleMovement;
+            if (!Finite(dt) || dt < 0f || !AcceptsGameplay(sample.Id) || tick <= _state.PuzzleTick || sample.Tick != tick) return false;
+            _state.PuzzleTick = tick;
+            return true;
+        }
+        public bool AcceptPuzzleVault(PlayerTraversalFact fact, int surfaceId)
+        {
+            if (!AcceptsGameplay(fact.Id) || fact.Kind != TraversalKind.Vault || surfaceId == 0 ||
+                fact.Tick <= _state.PuzzleVaultTick) return false;
+            _state.PuzzleVaultTick = fact.Tick;
+            return true;
+        }
+        public void ObservePuzzleGoldCreated(int anchorId) => _state.PuzzleGoldenEligible.Add(anchorId);
+
         public void ReleaseActors()
         { _state.Player = EntityId.None; _state.Hunters.Clear(); _state.Rooms = Array.Empty<GeneratedRoomSample>();
+          _state.FreezeAnchors.Clear(); _state.FreezeBehindRooms.Clear(); _state.PuzzleRewards.Clear(); _state.HandLook = null;
+          _state.PuzzleMovement = default; _state.PuzzleTick = _state.PuzzleVaultTick = -1; _state.PuzzleGoldenEligible.Clear();
           _state.RequiredAnchors.Clear(); _state.GoldenEligible.Clear(); _state.GoldenCollected.Clear();
           _state.ResolvedShrines.Clear(); _state.GoldCreated = false;
           _state.HasPreviousPosition = false; _state.PreviousRoom = 0; }
@@ -200,6 +235,7 @@ namespace Worsen.Session.Expedition
             !_state.Request.IsShop && fact.GenerationId == _state.Request.GenerationId && _state.ResolvedShrines.Add(fact.Activation.ShrineId);
         public void BeginCollection(IReadOnlyList<LevelAnchor> required, bool blindFaith)
         {
+            _state.PuzzleGoldenEligible.Clear();
             _state.RequiredAnchors.Clear(); _state.GoldenEligible.Clear(); _state.GoldenCollected.Clear();
             _state.BlindFaith = blindFaith; _state.GoldCreated = false;
             foreach (var anchor in required) _state.RequiredAnchors.Add(anchor.Id);
@@ -212,8 +248,9 @@ namespace Worsen.Session.Expedition
             if (fact.Kind == PickupKind.GoldenCake) _state.GoldenCollected.Add(fact.AnchorId);
             _state.GoldCreated |= goldCreated;
         }
-        public float CollectedFraction => _state.GoldCreated && _state.GoldenEligible.Count > 0 ?
-            Mathf.Clamp01((float)_state.GoldenCollected.Count / _state.GoldenEligible.Count) : 0f;
+        public float CollectedFraction => (_state.GoldCreated || _state.PuzzleGoldenEligible.Count > 0) &&
+            _state.GoldenEligible.Count + _state.PuzzleGoldenEligible.Count > 0 ?
+            Mathf.Clamp01((float)_state.GoldenCollected.Count / (_state.GoldenEligible.Count + _state.PuzzleGoldenEligible.Count)) : 0f;
         public bool WickActive => _state.WickRemaining > 0f;
         public void BeginWick(float seconds, long tick, IEnumerable<InteractableState> lamps)
         {
