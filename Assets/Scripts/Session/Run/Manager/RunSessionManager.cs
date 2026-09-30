@@ -13,8 +13,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own the canonical seeded run, timing, randomness, synchronous input, pause and ordered fixed ticks.
-//   - Bind gameplay services; pair actor, movement, hearing, environmental, recovery and shrine/world relays.
-//   - Relay initial/changed floor counters, shields, inventory and guidance for presentation.
+//   - Bind gameplay services and pair typed fact-channel inputs with enable/disable.
+//   - Sequence committed snapshots and retain legacy facts required by external consumers.
 //   - Reject protected hit candidates before damage; publish committed combat, pickup, shrine and collapse facts.
 //   - Resolve terminal, pending-death/revival and escape outcomes; close capture before terminal notification.
 //
@@ -74,6 +74,19 @@ namespace Worsen.Session.Run
         private readonly List<HunterManager> hunters = new List<HunterManager>();
         private readonly List<HunterHit> pendingHits = new List<HunterHit>();
 
+        private RunHunterFactRelayController hunterFacts;
+        public RunHunterFactRelayController HunterFacts => hunterFacts ??
+            (hunterFacts = new RunHunterFactRelayController(() => IsPaused));
+        private RunFloorFactRelayController floorFacts;
+        public RunFloorFactRelayController FloorFacts => floorFacts ??
+            (floorFacts = new RunFloorFactRelayController(() => IsPaused));
+        private RunPlayerFactRelayController playerFacts;
+        public RunPlayerFactRelayController PlayerFacts => playerFacts ??
+            (playerFacts = new RunPlayerFactRelayController(() => IsPaused));
+        private RunWorldFactRelayController worldFacts;
+        public RunWorldFactRelayController WorldFacts => worldFacts ??
+            (worldFacts = new RunWorldFactRelayController(() => IsPaused));
+
         public static RunSessionManager Instance { get; private set; }
 
         public event Action BeforeTick;
@@ -82,67 +95,37 @@ namespace Worsen.Session.Run
         public event Action<RunPhase> PhaseChanged;
         public event Action<PlayerMovementSample> PlayerMovementPublished;
         public event Action<HunterAttackSample> HunterAttackPublished;
-        public event Action<HunterFeedbackEvent> HunterFeedbackPublished;
         public event Action<HunterArchetypeFact> HunterArchetypePublished;
-        public event Action<HunterHabitFact> HunterHabitPublished;
         public event Action<HunterMutationFact> HunterMutationPublished;
-        public event Action<WeaverFact> WeaverFactPublished;
-        public event Action<WebHitFact> WebHitPublished;
-        public event Action<TickingSoundFact> TickingSoundPublished;
-        public event Action<TickingGuidanceFact> TickingGuidancePublished;
-        public event Action<TickingNoiseFact> TickingNoisePublished;
         public event Action<RamFact> RamFactPublished;
         public event Action<SkipFact> SkipFactPublished;
-        public event Action<MimicFact> MimicFactPublished;
-        public event Action<BlinderHitFact> BlinderHitPublished;
-        public event Action<BlinderThrowFact> BlinderThrowPublished;
-        public event Action<BlinderSoundFact> BlinderSoundPublished;
-        public event Action<BlinderTrapPolicyFact> BlinderTrapPolicyPublished;
-        public event Action<HeraldScreamFact> HeraldScreamPublished;
-        public event Action<HeraldBreathFact> HeraldBreathPublished;
-        public event Action<HeraldDeafenFact> HeraldDeafenPublished;
         public event Action<HunterDoorBreakFact> HunterDoorBreakPublished;
         public event Action<MannequinFact> MannequinFactPublished;
-        public event Action<StareFact> StareFactPublished;
-        public event Action<NoiseEvent> WorldNoisePublished;
         public event Action<HunterHit> HitAccepted;
-        public event Action<GraceWindowFact> OnGraceStarted;
-        public event Action<GraceWindowFact> OnGraceEnded;
-        public event Action<PickupCollectedFact, Vector3> PickupCollected;
-        public event Action<RoomDestructionSample> RoomDestructionPublished;
         public event Action<CollapseHandFact> CollapseHandPublished;
         public event Action<FloorTrapSprungFact> TrapSprung;
-        public event Action<IReadOnlyList<GuidanceTarget>> GuidanceChanged;
         public event Action<PlayerTraversalFact> PlayerTraversalPublished;
-        public event Action<EntityId, long, TraversalKind, float, bool> TraversalProgressed;
-        public event Action<EntityId, long, float> PlayerStumbled;
-        public event Action<int, int, PickupKind, long> CakeLost;
         public event Action<InputProbeRecord> PlayerProbeRecorded;
         public event Action<RunCaptureMetadata> CaptureStarted;
         public event Action<long, bool> CaptureEnded;
         public event Action<ChaseFact> ChaseStarted;
         public event Action<ChaseFact> ChaseEnded;
         public event Action<ChaseFact> ChasePhaseChanged;
-        public event Action<ProximitySample> ProximityPublished;
         public event Action<EntityId, float, float> HealthChanged;
-        public event Action<EntityId, float> ShieldChanged;
         public void PublishShieldSnapshot()
         {
             foreach (PlayerManager player in players)
-                if (player != null && player.ReadOnlyShieldState != null) ShieldChanged?.Invoke(player.Id, player.ReadOnlyShieldState.Shield);
+                if (player != null && player.ReadOnlyShieldState != null) PlayerFacts.PublishShield(player.Id, player.ReadOnlyShieldState.Shield);
         }
         public event Action<EntityId, Vector3> PlayerDied;
         public event Action<EntityId, Vector3> PlayerDeathPending;
         public bool CancelDeathForRevival(EntityId player) => controller != null && controller.CancelDeathForRevival(player);
         public void PublishInventory(ConsumableInventorySnapshot inventory)
-        { if (controller != null) EmptyItemSlotsChanged?.Invoke(controller.EmptySlots(inventory.Inventory)); }
+        { if (controller != null) PlayerFacts.PublishEmptyItemSlots(controller.EmptySlots(inventory.Inventory)); }
         public event Action<FloorDisplaySnapshot> FloorDisplayChanged;
         public void PublishFloorSnapshot() => FloorDisplayChanged?.Invoke(floor != null ? floor.Snapshot() : default);
-        public event Action<RoomPhaseChangedFact> RoomPhaseChanged;
         public event Action<IntrusionSample> IntrusionPublished;
         public event Action<TelemetrySample> TelemetryPublished;
-        public event Action<int> EmptyItemSlotsChanged;
-        public event Action<float> SpeedNormalizedPublished;
         public event Action<RunSummary> RunEnded;
 
         public RunPhase Phase => state == null ? RunPhase.Boot : state.Phase;
@@ -229,7 +212,7 @@ namespace Worsen.Session.Run
             foreach (PlayerManager player in players)
             {
                 HealthChanged?.Invoke(player.Id, player.ReadOnlyState.Health, player.ReadOnlyState.MaxHealth);
-                ShieldChanged?.Invoke(player.Id, player.ReadOnlyShieldState.Shield);
+                PlayerFacts.PublishShield(player.Id, player.ReadOnlyShieldState.Shield);
             }
             PhaseChanged?.Invoke(state.Phase);
         }
@@ -254,12 +237,12 @@ namespace Worsen.Session.Run
             EntityId player, Func<float> collectedFraction)
         {
             if (shrines != null) shrines.Activated -= HandleShrineActivated;
-            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= HandleShrineNoise;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= WorldFacts.HandleShrineNoise;
             shrines = manager; shrineProgression = progression; shrineGeneration = generation;
             shrinePlayer = player; shrineCollectedFraction = collectedFraction;
             if (!isActiveAndEnabled) return;
             if (shrines != null) shrines.Activated += HandleShrineActivated;
-            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += HandleShrineNoise;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += WorldFacts.HandleShrineNoise;
         }
 
         public void BindAdditionalHunter(HunterManager hunter)
@@ -286,24 +269,18 @@ namespace Worsen.Session.Run
                 shrineProgression.ActivateShrine(shrineGeneration, fact, player, shrineCollectedFraction?.Invoke() ?? 0f);
         }
 
-        private void HandleShrineNoise(NoiseEvent noise)
-        {
-            if (IsPaused) return;
-            WorldNoisePublished?.Invoke(noise);
-        }
-
         private void OnEnable()
         {
             UnsubscribeGameplay();
             if (shrines != null) shrines.Activated += HandleShrineActivated;
-            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += HandleShrineNoise;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += WorldFacts.HandleShrineNoise;
             foreach (PlayerManager player in players)
             {
                 player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
-                player.OnShieldChanged += HandleShield;
+                player.OnShieldChanged += PlayerFacts.HandleShield;
                 player.OnHeartbeat += HandleHeartbeat;
-                player.OnGraceStarted += HandleGraceStarted; player.OnGraceEnded += HandleGraceEnded;
-                player.OnTraversalProgress += HandleTraversalProgress; player.OnStumbled += HandleStumbled;
+                player.OnGraceStarted += PlayerFacts.HandleGraceStarted; player.OnGraceEnded += PlayerFacts.HandleGraceEnded;
+                player.OnTraversalProgress += PlayerFacts.HandleTraversalProgress; player.OnStumbled += PlayerFacts.HandleStumbled;
             }
             foreach (HunterManager hunter in hunters)
                 SubscribeHunter(hunter);
@@ -317,20 +294,20 @@ namespace Worsen.Session.Run
             if (floor != null)
             {
                 floor.OnPickupCollected += HandlePickup;
-                floor.OnPickupNoise += HandlePickupNoise;
-                floor.OnHandNoise += HandlePickupNoise;
+                floor.OnPickupNoise += WorldFacts.HandlePickupNoise;
+                floor.OnHandNoise += WorldFacts.HandlePickupNoise;
                 floor.OnTrapNoise += HandleTrapNoise;
                 floor.OnTrapSprung += HandleTrapSprung;
-                floor.OnBlinderHit += HandleBlinderHit;
-                floor.OnGuidanceChanged += HandleGuidance;
+                floor.OnBlinderHit += HunterFacts.HandleBlinderHit;
+                floor.OnGuidanceChanged += FloorFacts.HandleGuidance;
                 floor.OnBoundaryContact += HandleBoundaryContact;
-                floor.OnCakeLost += HandleCakeLost;
+                floor.OnCakeLost += FloorFacts.HandleCakeLost;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
                 floor.OnExitReached += HandleExitReached;
                 floor.OnLethalContact += HandleLethal;
                 floor.OnDisplayChanged += HandleFloorDisplay;
-                floor.OnRoomDestruction += HandleRoomDestruction;
+                floor.OnRoomDestruction += FloorFacts.HandleRoomDestruction;
                 floor.OnCollapseHand += HandleCollapseHand;
             }
             if (director != null)
@@ -343,15 +320,15 @@ namespace Worsen.Session.Run
         private void UnsubscribeGameplay()
         {
             if (shrines != null) shrines.Activated -= HandleShrineActivated;
-            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= HandleShrineNoise;
+            if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= WorldFacts.HandleShrineNoise;
             foreach (PlayerManager player in players)
                 if (player != null)
                 {
                     player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath;
-                    player.OnShieldChanged -= HandleShield;
+                    player.OnShieldChanged -= PlayerFacts.HandleShield;
                     player.OnHeartbeat -= HandleHeartbeat;
-                    player.OnGraceStarted -= HandleGraceStarted; player.OnGraceEnded -= HandleGraceEnded;
-                    player.OnTraversalProgress -= HandleTraversalProgress; player.OnStumbled -= HandleStumbled;
+                    player.OnGraceStarted -= PlayerFacts.HandleGraceStarted; player.OnGraceEnded -= PlayerFacts.HandleGraceEnded;
+                    player.OnTraversalProgress -= PlayerFacts.HandleTraversalProgress; player.OnStumbled -= PlayerFacts.HandleStumbled;
                 }
             foreach (HunterManager hunter in hunters) if (hunter != null)
                 UnsubscribeHunter(hunter);
@@ -365,20 +342,20 @@ namespace Worsen.Session.Run
             if (floor != null)
             {
                 floor.OnPickupCollected -= HandlePickup;
-                floor.OnPickupNoise -= HandlePickupNoise;
-                floor.OnHandNoise -= HandlePickupNoise;
+                floor.OnPickupNoise -= WorldFacts.HandlePickupNoise;
+                floor.OnHandNoise -= WorldFacts.HandlePickupNoise;
                 floor.OnTrapNoise -= HandleTrapNoise;
                 floor.OnTrapSprung -= HandleTrapSprung;
-                floor.OnBlinderHit -= HandleBlinderHit;
-                floor.OnGuidanceChanged -= HandleGuidance;
+                floor.OnBlinderHit -= HunterFacts.HandleBlinderHit;
+                floor.OnGuidanceChanged -= FloorFacts.HandleGuidance;
                 floor.OnBoundaryContact -= HandleBoundaryContact;
-                floor.OnCakeLost -= HandleCakeLost;
+                floor.OnCakeLost -= FloorFacts.HandleCakeLost;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
                 floor.OnExitReached -= HandleExitReached;
                 floor.OnLethalContact -= HandleLethal;
                 floor.OnDisplayChanged -= HandleFloorDisplay;
-                floor.OnRoomDestruction -= HandleRoomDestruction;
+                floor.OnRoomDestruction -= FloorFacts.HandleRoomDestruction;
                 floor.OnCollapseHand -= HandleCollapseHand;
             }
             if (director != null)
@@ -390,60 +367,49 @@ namespace Worsen.Session.Run
 
         private void SubscribeHunter(HunterManager hunter)
         {
-            hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback;
-            hunter.OnArchetypeFact += HandleHunterArchetype; hunter.OnHabit += HandleHunterHabit;
-            hunter.OnMutation += HandleHunterMutation; hunter.OnWeaverFact += HandleWeaver;
+            hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HunterFacts.HandleHunterFeedback;
+            hunter.OnArchetypeFact += HandleHunterArchetype; hunter.OnHabit += HunterFacts.HandleHunterHabit;
+            hunter.OnMutation += HandleHunterMutation; hunter.OnWeaverFact += HunterFacts.HandleWeaver;
             hunter.OnWebHit += HandleWebHit;
             hunter.OnBodyContact += HandleBodyContact;
             hunter.OnRamFact += HandleRam; hunter.OnSkipFact += HandleSkip; hunter.OnMimicFact += HandleMimic;
-            hunter.OnBlinderHit += HandleBlinderHit; hunter.OnBlinderThrow += HandleBlinderThrow;
-            hunter.OnBlinderSound += HandleBlinderSound; hunter.OnBlinderTrapPolicy += HandleBlinderTrapPolicy;
-            hunter.OnHeraldScream += HandleHeraldScream; hunter.OnHeraldBreath += HandleHeraldBreath;
+            hunter.OnBlinderHit += HunterFacts.HandleBlinderHit; hunter.OnBlinderThrow += HunterFacts.HandleBlinderThrow;
+            hunter.OnBlinderSound += HunterFacts.HandleBlinderSound; hunter.OnBlinderTrapPolicy += HandleBlinderTrapPolicy;
+            hunter.OnHeraldScream += HunterFacts.HandleHeraldScream; hunter.OnHeraldBreath += HunterFacts.HandleHeraldBreath;
             hunter.OnHeraldDeafen += HandleHeraldDeafen; hunter.OnDoorBreakCompleted += HandleDoorBreak;
-            hunter.OnMannequinFact += HandleMannequin; hunter.OnStareFact += HandleStare;
+            hunter.OnMannequinFact += HandleMannequin; hunter.OnStareFact += HunterFacts.HandleStare;
             if (hunter.Ticking == null) return;
-            hunter.Ticking.OnSound += HandleTickingSound; hunter.Ticking.OnGuidance += HandleTickingGuidance;
-            hunter.Ticking.OnNoise += HandleTickingNoise;
+            hunter.Ticking.OnSound += HunterFacts.HandleTickingSound; hunter.Ticking.OnGuidance += HunterFacts.HandleTickingGuidance;
+            hunter.Ticking.OnNoise += HunterFacts.HandleTickingNoise;
         }
         private void UnsubscribeHunter(HunterManager hunter)
         {
-            hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HandleHunterFeedback;
-            hunter.OnArchetypeFact -= HandleHunterArchetype; hunter.OnHabit -= HandleHunterHabit;
-            hunter.OnMutation -= HandleHunterMutation; hunter.OnWeaverFact -= HandleWeaver;
+            hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HunterFacts.HandleHunterFeedback;
+            hunter.OnArchetypeFact -= HandleHunterArchetype; hunter.OnHabit -= HunterFacts.HandleHunterHabit;
+            hunter.OnMutation -= HandleHunterMutation; hunter.OnWeaverFact -= HunterFacts.HandleWeaver;
             hunter.OnWebHit -= HandleWebHit;
             hunter.OnBodyContact -= HandleBodyContact;
             hunter.OnRamFact -= HandleRam; hunter.OnSkipFact -= HandleSkip; hunter.OnMimicFact -= HandleMimic;
-            hunter.OnBlinderHit -= HandleBlinderHit; hunter.OnBlinderThrow -= HandleBlinderThrow;
-            hunter.OnBlinderSound -= HandleBlinderSound; hunter.OnBlinderTrapPolicy -= HandleBlinderTrapPolicy;
-            hunter.OnHeraldScream -= HandleHeraldScream; hunter.OnHeraldBreath -= HandleHeraldBreath;
+            hunter.OnBlinderHit -= HunterFacts.HandleBlinderHit; hunter.OnBlinderThrow -= HunterFacts.HandleBlinderThrow;
+            hunter.OnBlinderSound -= HunterFacts.HandleBlinderSound; hunter.OnBlinderTrapPolicy -= HandleBlinderTrapPolicy;
+            hunter.OnHeraldScream -= HunterFacts.HandleHeraldScream; hunter.OnHeraldBreath -= HunterFacts.HandleHeraldBreath;
             hunter.OnHeraldDeafen -= HandleHeraldDeafen; hunter.OnDoorBreakCompleted -= HandleDoorBreak;
-            hunter.OnMannequinFact -= HandleMannequin; hunter.OnStareFact -= HandleStare;
+            hunter.OnMannequinFact -= HandleMannequin; hunter.OnStareFact -= HunterFacts.HandleStare;
             if (hunter.Ticking == null) return;
-            hunter.Ticking.OnSound -= HandleTickingSound; hunter.Ticking.OnGuidance -= HandleTickingGuidance;
-            hunter.Ticking.OnNoise -= HandleTickingNoise;
+            hunter.Ticking.OnSound -= HunterFacts.HandleTickingSound; hunter.Ticking.OnGuidance -= HunterFacts.HandleTickingGuidance;
+            hunter.Ticking.OnNoise -= HunterFacts.HandleTickingNoise;
         }
         private void HandleHunterArchetype(HunterArchetypeFact fact)
         { if (!IsPaused) HunterArchetypePublished?.Invoke(fact); }
-        private void HandleHunterHabit(HunterHabitFact fact)
-        { if (!IsPaused) HunterHabitPublished?.Invoke(fact); }
+
         private void HandleHunterMutation(HunterMutationFact fact)
         { if (!IsPaused) HunterMutationPublished?.Invoke(fact); }
-        private void HandleWeaver(WeaverFact fact)
-        { if (!IsPaused) WeaverFactPublished?.Invoke(fact); }
+
         private void HandleWebHit(WebHitFact fact)
         {
             if (IsPaused) return;
             players.Find(player => player != null && player.Id == fact.Player)?.ApplyWebSlow(fact);
-            WebHitPublished?.Invoke(fact);
-        }
-        private void HandleTickingSound(TickingSoundFact fact)
-        { if (!IsPaused) TickingSoundPublished?.Invoke(fact); }
-        private void HandleTickingGuidance(TickingGuidanceFact fact)
-        { if (!IsPaused) TickingGuidancePublished?.Invoke(fact); }
-        private void HandleTickingNoise(TickingNoiseFact fact)
-        {
-            if (IsPaused) return;
-            TickingNoisePublished?.Invoke(fact);
+            HunterFacts.PublishWebHit(fact);
         }
 
         private void HandleRam(RamFact fact) { if (!IsPaused) RamFactPublished?.Invoke(fact); }
@@ -455,35 +421,29 @@ namespace Worsen.Session.Run
             { state?.PendingMimicBites.Add(fact); return; }
             floor?.ReceiveMimic(fact);
             players.Find(player => player != null && player.Id == fact.Player)?.ReceiveMimic(fact);
-            MimicFactPublished?.Invoke(fact);
+            HunterFacts.PublishMimic(fact);
         }
-        private void HandleBlinderHit(BlinderHitFact fact) { if (!IsPaused) BlinderHitPublished?.Invoke(fact); }
-        private void HandleBlinderThrow(BlinderThrowFact fact) { if (!IsPaused) BlinderThrowPublished?.Invoke(fact); }
-        private void HandleBlinderSound(BlinderSoundFact fact) { if (!IsPaused) BlinderSoundPublished?.Invoke(fact); }
         private void HandleBlinderTrapPolicy(BlinderTrapPolicyFact fact)
-        { if (IsPaused) return; floor?.ReceiveBlinderTrapPolicy(fact); BlinderTrapPolicyPublished?.Invoke(fact); }
-        private void HandleHeraldScream(HeraldScreamFact fact) { if (!IsPaused) HeraldScreamPublished?.Invoke(fact); }
-        private void HandleHeraldBreath(HeraldBreathFact fact) { if (!IsPaused) HeraldBreathPublished?.Invoke(fact); }
+        { if (IsPaused) return; floor?.ReceiveBlinderTrapPolicy(fact); HunterFacts.PublishBlinderTrapPolicy(fact); }
         private void HandleHeraldDeafen(HeraldDeafenFact fact)
         {
             if (IsPaused) return;
             QueueHit(new HunterHit(fact.Hunter, fact.Player, fact.Damage, fact.Tick, fact.Origin,
                 ChaseEndReason.Unknown, HitSeverity.Light, HitSource.Scream));
             players.Find(player => player != null && player.Id == fact.Player)?.ReceiveHeraldDeafen(fact);
-            HeraldDeafenPublished?.Invoke(fact);
+            HunterFacts.PublishHeraldDeafen(fact);
         }
         private void HandleDoorBreak(HunterDoorBreakFact fact) { if (!IsPaused) HunterDoorBreakPublished?.Invoke(fact); }
         private void HandleMannequin(MannequinFact fact) { if (!IsPaused) MannequinFactPublished?.Invoke(fact); }
-        public event Action<int, float> AfterglowWindowPublished;
+
         public void ObserveLightExtinguished(int roomId)
         {
             if (IsPaused || roomId <= 0) return;
             float seconds = 0f;
             foreach (var hunter in hunters)
                 if (hunter != null) seconds = Math.Max(seconds, hunter.BeginAfterglow(roomId));
-            if (seconds > 0f) AfterglowWindowPublished?.Invoke(roomId, seconds);
+            if (seconds > 0f) HunterFacts.PublishAfterglow(roomId, seconds);
         }
-        private void HandleStare(StareFact fact) { if (!IsPaused) StareFactPublished?.Invoke(fact); }
 
         private void OnDisable() { SetPaused(false); UnsubscribeGameplay(); }
 
@@ -531,7 +491,7 @@ namespace Worsen.Session.Run
             {
                 PlayerProbeRecorded?.Invoke(player.LastProbeRecord);
                 PlayerMovementPublished?.Invoke(player.LastMovementSample);
-                SpeedNormalizedPublished?.Invoke(controller.NormalizeSpeed(player.ReadOnlyState.Velocity, player.ReadOnlyState.MaxDesignSpeed));
+                PlayerFacts.PublishSpeedNormalized(controller.NormalizeSpeed(player.ReadOnlyState.Velocity, player.ReadOnlyState.MaxDesignSpeed));
                 foreach (PlayerTraversalFact fact in player.LastTraversalFacts)
                     PlayerTraversalPublished?.Invoke(fact);
             }
@@ -539,10 +499,7 @@ namespace Worsen.Session.Run
             FinishIfRequested();
         }
 
-        private void HandleTraversalProgress(EntityId player, long tick, TraversalKind kind, float progress, bool active)
-        { if (!IsPaused) TraversalProgressed?.Invoke(player, tick, kind, progress, active); }
-        private void HandleStumbled(EntityId player, long tick, float duration)
-        { if (!IsPaused) PlayerStumbled?.Invoke(player, tick, duration); }
+
         private void HandleHeartbeat(NoiseEvent noise)
         {
             if (IsPaused || noise.SourceKind != NoiseSourceKind.Heartbeat ||
@@ -552,13 +509,7 @@ namespace Worsen.Session.Run
         }
         private void HandleBodyContact(EntityId hunter, EntityId player, Vector3 normal)
         { if (!IsPaused) players.Find(value => value != null && value.Id == player)?.TryReboundFromHunter(hunter, normal); }
-        private void HandleCakeLost(int anchorId, int roomId, PickupKind kind, long tick)
-        { if (!IsPaused) CakeLost?.Invoke(anchorId, roomId, kind, tick); }
-        private void HandlePickupNoise(NoiseEvent noise)
-        {
-            if (IsPaused) return;
-            WorldNoisePublished?.Invoke(noise);
-        }
+
         private void HandleTrapNoise(NoiseEvent noise)
         {
             if (IsPaused) return;
@@ -567,7 +518,7 @@ namespace Worsen.Session.Run
             if (noise.Origin == NoiseOrigin.Unspecified && noise.Source.IsValid)
                 noise = new NoiseEvent(noise.Source, noise.Position, noise.Loudness, noise.Tick,
                     noise.SourceKind, NoiseOrigin.PlayerTriggeredCakeTrap);
-            WorldNoisePublished?.Invoke(noise);
+            WorldFacts.PublishNoise(noise);
             ForwardGameplayNoise(noise);
         }
         public void ForwardGameplayNoise(NoiseEvent noise)
@@ -578,20 +529,16 @@ namespace Worsen.Session.Run
                 if (hunter != null && hunter.isActiveAndEnabled && hunter.ReadOnlyState?.IsActive == true)
                     hunter.HearNoise(noise);
         }
+
         private void HandleTrapSprung(FloorTrapSprungFact fact)
         { if (!IsPaused) TrapSprung?.Invoke(fact); }
-        private void HandleGuidance(IReadOnlyList<GuidanceTarget> targets)
-        { if (!IsPaused) GuidanceChanged?.Invoke(targets); }
         private void HandleBoundaryContact(EntityId id, int room, Vector3 acceleration, Vector3 position, long tick)
         {
             if (IsPaused || state == null || state.FloorDeltaSeconds <= 0f) return;
             PlayerManager player = players.Find(value => value != null && value.Id == id);
             player?.ApplyExternalAcceleration(acceleration, state.FloorDeltaSeconds);
         }
-        private void HandleHunterFeedback(HunterFeedbackEvent fact)
-        { if (!IsPaused) HunterFeedbackPublished?.Invoke(fact); }
-        private void HandleRoomDestruction(RoomDestructionSample sample)
-        { if (!IsPaused) RoomDestructionPublished?.Invoke(sample); }
+
         private void HandleCollapseHand(CollapseHandFact fact)
         { if (IsPaused) return; controller.RecordHand(fact); CollapseHandPublished?.Invoke(fact); }
         private void QueueHit(HunterHit hit)
@@ -625,7 +572,7 @@ namespace Worsen.Session.Run
                 if (bite.Hunter == hit.Hunter && bite.Player == hit.Target && bite.Tick == hit.Tick)
                 {
                     state.PendingMimicBites.Remove(bite);
-                    target.ReceiveMimic(bite); MimicFactPublished?.Invoke(bite);
+                    target.ReceiveMimic(bite); HunterFacts.PublishMimic(bite);
                 }
             float healthLoss = Mathf.Max(0f, previousHealth - target.ReadOnlyState.Health);
             if (healthLoss == 0f) hit = new HunterHit(hit.Hunter, hit.Target, 0, hit.Tick,
@@ -643,10 +590,7 @@ namespace Worsen.Session.Run
         }
         private void HandleHealth(EntityId player, float health, float maximum)
         { if (!IsPaused) HealthChanged?.Invoke(player, health, maximum); }
-        private void HandleShield(EntityId player, float shield)
-        { if (!IsPaused) ShieldChanged?.Invoke(player, shield); }
-        private void HandleGraceStarted(GraceWindowFact fact) { if (!IsPaused) OnGraceStarted?.Invoke(fact); }
-        private void HandleGraceEnded(GraceWindowFact fact) { if (!IsPaused) OnGraceEnded?.Invoke(fact); }
+
         private void HandleDeath(EntityId player, Vector3 killer)
         { if (!IsPaused) controller.RequestEnd(RunEndReason.Died, player, killer); }
         private void HandleChaseStarted(ChaseFact fact)
@@ -671,14 +615,14 @@ namespace Worsen.Session.Run
         {
             if (IsPaused) return;
             Emit(TelemetrySampleKind.Proximity, sample.Player, sample.Tick, sample.Distance, chaseId: sample.ChaseId);
-            ProximityPublished?.Invoke(sample);
+            HunterFacts.PublishProximity(sample);
         }
         private void HandlePickup(PickupCollectedFact fact)
         {
             if (IsPaused) return;
             controller.RecordCollection(fact);
             if (PlayerRegistry.TryGet(fact.PlayerId, out var player))
-                PickupCollected?.Invoke(fact, player.ReadOnlyState.Position);
+                FloorFacts.PublishPickup(fact, player.ReadOnlyState.Position);
         }
         private void HandleExitOpened(long tick)
         { if (IsPaused) return; controller.Apply(RunEvent.ExitOpened); PhaseChanged?.Invoke(state.Phase); }
@@ -687,7 +631,7 @@ namespace Worsen.Session.Run
             if (IsPaused) return;
             if (fact.Phase == RoomPhase.Telegraph && state.Phase == RunPhase.ExitOpen)
             { controller.Apply(RunEvent.CollapseStarted); PhaseChanged?.Invoke(state.Phase); }
-            RoomPhaseChanged?.Invoke(fact);
+            FloorFacts.PublishRoomPhase(fact);
         }
         private void HandleExitReached(ExitReachedFact fact)
         { if (!IsPaused) controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero); }
@@ -744,28 +688,23 @@ namespace Worsen.Session.Run
             PhaseChanged = null;
             PlayerMovementPublished = null;
             HunterAttackPublished = null;
-            HunterFeedbackPublished = null; HitAccepted = null; PickupCollected = null;
-            HunterArchetypePublished = null; HunterHabitPublished = null; HunterMutationPublished = null;
-            WeaverFactPublished = null; WebHitPublished = null; TickingSoundPublished = null;
-            TickingGuidancePublished = null; TickingNoisePublished = null;
-            RamFactPublished = null; SkipFactPublished = null; MimicFactPublished = null;
-            BlinderHitPublished = null; BlinderThrowPublished = null; BlinderSoundPublished = null; BlinderTrapPolicyPublished = null;
-            HeraldScreamPublished = null; HeraldBreathPublished = null; HeraldDeafenPublished = null;
-            HunterDoorBreakPublished = null; MannequinFactPublished = null; StareFactPublished = null; WorldNoisePublished = null;
-            OnGraceStarted = null; OnGraceEnded = null;
-            RoomDestructionPublished = null; CollapseHandPublished = null;
-            TrapSprung = null; GuidanceChanged = null;
+            HitAccepted = null;
+            HunterArchetypePublished = null; HunterMutationPublished = null;
+            RamFactPublished = null; SkipFactPublished = null;
+            HunterDoorBreakPublished = null; MannequinFactPublished = null;
+            CollapseHandPublished = null;
+            TrapSprung = null;
             PlayerTraversalPublished = null;
-            TraversalProgressed = null; PlayerStumbled = null; CakeLost = null;
             PlayerProbeRecorded = null;
             CaptureStarted = null;
             CaptureEnded = null;
             ChaseStarted = null; ChaseEnded = null; ChasePhaseChanged = null;
-            ProximityPublished = null; HealthChanged = null; PlayerDied = null;
-            ShieldChanged = null;
+            HealthChanged = null; PlayerDied = null;
             PlayerDeathPending = null;
-            FloorDisplayChanged = null; RoomPhaseChanged = null; IntrusionPublished = null;
-            TelemetryPublished = null; EmptyItemSlotsChanged = null; SpeedNormalizedPublished = null; RunEnded = null;
+            FloorDisplayChanged = null; IntrusionPublished = null;
+            TelemetryPublished = null; RunEnded = null;
+            hunterFacts?.Teardown(); floorFacts?.Teardown();
+            playerFacts?.Teardown(); worldFacts?.Teardown();
             controller = null;
             state = null;
         }

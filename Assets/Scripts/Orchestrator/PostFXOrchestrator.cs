@@ -15,7 +15,7 @@
 //   - Share Horror's single startle admission with the Director intrusion's visual strength.
 // DEPENDENCIES:
 //   - Session.HorrorEffects publishes consumable cleanse and revival boundaries.
-//   - Session.Run/Progression and Presentation.PostFX/Horror; Core payloads downstream.
+//   - Session.Run typed fact channels/Progression and Presentation.PostFX/Horror; Core payloads downstream.
 //   - Domain.Floor trap facts are translated into duration-only presentation commands.
 //   - CameraManager supplies a configured consumption duration only during Configure.
 //   - HorrorManager supplies the whole-run clock unless Configure injects a test clock.
@@ -79,14 +79,14 @@ namespace Worsen.Orchestrator
             { _effects.SensesCleansed += OnSensesCleansed; _effects.PlayerRevived += OnPlayerRevived; }
             _run.PlayerMovementPublished += OnMovement;
             _run.CaptureStarted += OnCaptureStarted;
-            _run.ProximityPublished += OnProximity;
+            _run.HunterFacts.ProximityPublished += OnProximity;
             _run.HealthChanged += OnHealth;
             _run.IntrusionPublished += OnIntrusion;
             _run.CollapseHandPublished += OnCollapseHand;
-            _run.OnGraceStarted += OnGraceStarted;
-            _run.OnGraceEnded += OnGraceEnded;
+            _run.PlayerFacts.OnGraceStarted += OnGraceStarted;
+            _run.PlayerFacts.OnGraceEnded += OnGraceEnded;
             _run.TrapSprung += OnTrapSprung;
-            _run.BlinderHitPublished += OnBlinderHit;
+            _run.HunterFacts.BlinderHitPublished += OnBlinderHit;
             if (_progression != null) _progression.EffectsSnapshotChanged += OnEffectsSnapshot;
             OnActiveEffectsChanged(_progression != null ? _progression.EffectsSnapshot.ActiveEffects : null);
             RestoreHunterRim();
@@ -99,14 +99,14 @@ namespace Worsen.Orchestrator
             if (_run == null) return;
             _run.PlayerMovementPublished -= OnMovement;
             _run.CaptureStarted -= OnCaptureStarted;
-            _run.ProximityPublished -= OnProximity;
+            _run.HunterFacts.ProximityPublished -= OnProximity;
             _run.HealthChanged -= OnHealth;
             _run.IntrusionPublished -= OnIntrusion;
             _run.CollapseHandPublished -= OnCollapseHand;
-            _run.OnGraceStarted -= OnGraceStarted;
-            _run.OnGraceEnded -= OnGraceEnded;
+            _run.PlayerFacts.OnGraceStarted -= OnGraceStarted;
+            _run.PlayerFacts.OnGraceEnded -= OnGraceEnded;
             _run.TrapSprung -= OnTrapSprung;
-            _run.BlinderHitPublished -= OnBlinderHit;
+            _run.HunterFacts.BlinderHitPublished -= OnBlinderHit;
         }
         private void OnDestroy() => OnDisable();
         private void OnEffectsSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects effects) => OnActiveEffectsChanged(effects);

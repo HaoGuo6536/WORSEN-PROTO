@@ -44,8 +44,8 @@ namespace Worsen.Tests.HUD
                 Set(driver, "_state", state); Set(driver, "_presenter", new HUDPresenter()); Set(driver, "_config", config);
                 Set(hud, "_driver", driver); Set(hud, "_initialized", true); Set(route, "_run", run); Set(route, "_hud", hud);
                 Lifecycle("OnEnable"); Lifecycle("OnEnable");
-                var channel = typeof(RunSessionManager).GetField("GuidanceChanged", BindingFlags.Instance | BindingFlags.NonPublic);
-                var receiver = (Delegate)channel.GetValue(run); Assert.That(receiver.GetInvocationList().Length, Is.EqualTo(1));
+                var channel = typeof(RunFloorFactRelayController).GetField("GuidanceChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+                var receiver = (Delegate)channel.GetValue(run.FloorFacts); Assert.That(receiver.GetInvocationList().Length, Is.EqualTo(1));
                 var exit = new GuidanceTarget(GuidanceKind.ExitThroughWalls, Vector3.right, Vector3.right * 20f);
                 receiver.DynamicInvoke((object)new[] { exit }); hud.SetChaseMode(true);
                 Assert.That(state.ExitSenseTarget, Is.EqualTo(exit));
@@ -58,7 +58,7 @@ namespace Worsen.Tests.HUD
                     Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
                     visual.Unbind(); Assert.That(root.childCount, Is.Zero);
                 }
-                Lifecycle("OnDisable"); Assert.That(state.ExitSenseTarget, Is.Null); Assert.That(channel.GetValue(run), Is.Null);
+                Lifecycle("OnDisable"); Assert.That(state.ExitSenseTarget, Is.Null); Assert.That(channel.GetValue(run.FloorFacts), Is.Null);
             }
             finally { Lifecycle("OnDisable"); visual.Unbind(); UnityEngine.Object.DestroyImmediate(owner); UnityEngine.Object.DestroyImmediate(config); }
         }

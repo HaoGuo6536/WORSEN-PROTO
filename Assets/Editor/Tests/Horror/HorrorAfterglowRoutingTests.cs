@@ -55,10 +55,10 @@ namespace Worsen.Tests.Horror
                 Set(horror, "_driver", driver); Set(driver, "_state", new HorrorDriverState { OwnerEnabled = true }); Set(driver, "_afterglow", glow);
                 Set(route, "_run", run); Set(route, "_level", level); Set(route, "_horror", horror);
                 Call(route, "PairAfterglow", true);
-                var channel = typeof(RunSessionManager).GetEvent("AfterglowWindowPublished");
+                var channel = typeof(RunHunterFactRelayController).GetEvent("AfterglowWindowPublished");
                 if (channel != null)
                 {
-                    var receiver = Get<Delegate>(run, "AfterglowWindowPublished");
+                    var receiver = Get<Delegate>(run.HunterFacts, "AfterglowWindowPublished");
                     Assert.That(receiver.GetInvocationList().Length, Is.EqualTo(1)); receiver.DynamicInvoke(7, 3f);
                 }
                 else Call(route, "OnAfterglowWindow", 7, 3f);
@@ -72,7 +72,7 @@ namespace Worsen.Tests.Horror
                 Call(route, "OnAfterglowWindow", 7, 1f); Call(route, "OnLightChanged", broken, default(InteractableState));
                 Assert.That(state.Lights, Is.Empty);
                 Call(route, "PairAfterglow", false);
-                if (channel != null) Assert.That(Get<Delegate>(run, "AfterglowWindowPublished"), Is.Null);
+                if (channel != null) Assert.That(Get<Delegate>(run.HunterFacts, "AfterglowWindowPublished"), Is.Null);
             }
             finally
             {

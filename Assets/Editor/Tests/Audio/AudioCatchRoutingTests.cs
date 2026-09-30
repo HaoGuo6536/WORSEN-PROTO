@@ -380,8 +380,8 @@ namespace Worsen.Tests.Audio
         }
         private static FieldInfo Field(object target, string name) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
         private static void Set(object target, string name, object value) => Field(target, name).SetValue(target, value);
-        private static int Subscribers(object target, string name) => (Field(target, name).GetValue(target) as Delegate)?.GetInvocationList().Length ?? 0;
+        private static int Subscribers(object target, string name) => (Worsen.Tests.Run.RunFactRelayTestUtility.Read(target, name) as Delegate)?.GetInvocationList().Length ?? 0;
         private static void Publish(object target, string name, params object[] args) =>
-            (Field(target, name).GetValue(target) as Delegate)?.DynamicInvoke(args);
+            (Worsen.Tests.Run.RunFactRelayTestUtility.Read(target, name) as Delegate)?.DynamicInvoke(args);
     }
 }

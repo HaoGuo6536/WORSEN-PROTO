@@ -106,10 +106,10 @@ namespace Worsen.Tests.Run
                     if (i < 4) Registry(typeof(HunterRegistry), "Register", hunter);
                     hunters.Add(hunter);
                 }
-                Run.TraversalProgressed += (id, tick, kind, progress, active) => traversal.Add(new object[] { id, tick, kind, progress, active });
-                Run.PlayerStumbled += (id, tick, duration) => stumble.Add(new object[] { id, tick, duration });
-                Run.CakeLost += (anchor, room, kind, tick) => lost.Add(new object[] { anchor, room, kind, tick });
-                Run.OnGraceStarted += graceStarts.Add; Run.OnGraceEnded += graceEnds.Add;
+                Run.PlayerFacts.TraversalProgressed += (id, tick, kind, progress, active) => traversal.Add(new object[] { id, tick, kind, progress, active });
+                Run.PlayerFacts.PlayerStumbled += (id, tick, duration) => stumble.Add(new object[] { id, tick, duration });
+                Run.FloorFacts.CakeLost += (anchor, room, kind, tick) => lost.Add(new object[] { anchor, room, kind, tick });
+                Run.PlayerFacts.OnGraceStarted += graceStarts.Add; Run.PlayerFacts.OnGraceEnded += graceEnds.Add;
             }
             public void Bind() => Run.BindGameplay(null, floors[current], null);
             public void ReplacePublishers()
@@ -156,7 +156,8 @@ namespace Worsen.Tests.Run
             private void AssertSubscribers(object publisher, string name, int count)
             {
                 var handlers = Field(publisher, name).GetValue(publisher) as Delegate;
-                Assert.That(handlers?.GetInvocationList().Count(value => ReferenceEquals(value.Target, Run)) ?? 0, Is.EqualTo(count), name);
+                Assert.That(handlers?.GetInvocationList().Count(value => ReferenceEquals(value.Target, Run.PlayerFacts) ||
+                    ReferenceEquals(value.Target, Run.FloorFacts) || ReferenceEquals(value.Target, Run.WorldFacts)) ?? 0, Is.EqualTo(count), name);
             }
             private T Component<T>() where T : Component
             { var go = new GameObject(typeof(T).Name + " forwarding test"); owned.Add(go); return go.AddComponent<T>(); }

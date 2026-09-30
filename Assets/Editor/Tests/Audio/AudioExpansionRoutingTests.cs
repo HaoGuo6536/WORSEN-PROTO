@@ -117,7 +117,7 @@ namespace Worsen.Tests.Audio
         }
         private T Make<T>() where T : Component
         { var go = new GameObject(typeof(T).Name); go.SetActive(false); owned.Add(go); return go.AddComponent<T>(); }
-        private static T Get<T>(object target, string field) => (T)target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);
+        private static T Get<T>(object target, string field) => (T)Worsen.Tests.Run.RunFactRelayTestUtility.Read(target, field);
         private static void Set(object target, string field, object value) => target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
         private static void Call(object target, string method) => target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, null);
         private static void Publish(object target, string channel, params object[] args) => Get<Delegate>(target, channel)?.DynamicInvoke(args);

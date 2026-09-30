@@ -129,7 +129,7 @@ namespace Worsen.Tests.Run
             var targets = new[] { new GuidanceTarget(GuidanceKind.WhiteArrow, Vector3.forward, Vector3.forward),
                 new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.right, Vector3.right) };
             run.TrapSprung += value => { Assert.That(value, Is.EqualTo(trap)); traps++; };
-            run.GuidanceChanged += value => { Assert.That(value, Is.SameAs(targets)); guidance++; };
+            run.FloorFacts.GuidanceChanged += value => { Assert.That(value, Is.SameAs(targets)); guidance++; };
             run.BindGameplay(null, floor, null); AssertBindings(floor, 1);
             Publish(floor, "OnTrapSprung", trap); Publish(floor, "OnGuidanceChanged", (object)targets);
             Assert.That(traps, Is.EqualTo(1)); Assert.That(guidance, Is.EqualTo(1));
@@ -181,7 +181,9 @@ namespace Worsen.Tests.Run
         }
         private static IList Heard(HunterManager hunter) => (IList)Get(hunter.ReadOnlyState, "HeardNoises");
         private void AssertBindings(FloorManager publisher, int count)
-        { foreach (string name in Events) Assert.That((Get(publisher, name) as Delegate)?.GetInvocationList().Count(d => ReferenceEquals(d.Target, run)) ?? 0, Is.EqualTo(count), name); }
+        { foreach (string name in Events) Assert.That((Get(publisher, name) as Delegate)?.GetInvocationList().Count(d =>
+            ReferenceEquals(d.Target, run) || ReferenceEquals(d.Target, run.FloorFacts) ||
+            ReferenceEquals(d.Target, run.WorldFacts)) ?? 0, Is.EqualTo(count), name); }
         private T Component<T>() where T : Component
         { var go = new GameObject(typeof(T).Name + " floor wiring test"); go.SetActive(false); owned.Add(go); return go.AddComponent<T>(); }
         private T Config<T>() where T : ScriptableObject

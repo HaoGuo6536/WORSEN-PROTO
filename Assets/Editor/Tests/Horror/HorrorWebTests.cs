@@ -77,11 +77,11 @@ namespace Worsen.Tests.Horror
                 for (int i = 0; i < 2; i++)
                 {
                     route.Configure(run, progression, input, horror); Invoke(route, "OnEnable");
-                    var published = typeof(RunSessionManager).GetField("WeaverFactPublished", BindingFlags.Instance | BindingFlags.NonPublic);
-                    Assert.That(((Delegate)published.GetValue(run)).GetInvocationList().Length, Is.EqualTo(1));
+                    var published = typeof(RunHunterFactRelayController).GetField("WeaverFactPublished", BindingFlags.Instance | BindingFlags.NonPublic);
+                    Assert.That(((Delegate)published.GetValue(run.HunterFacts)).GetInvocationList().Length, Is.EqualTo(1));
                 }
                 Invoke(route, "OnDisable");
-                Assert.That(typeof(RunSessionManager).GetField("WeaverFactPublished", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(run), Is.Null);
+                Assert.That(typeof(RunHunterFactRelayController).GetField("WeaverFactPublished", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(run.HunterFacts), Is.Null);
             }
             finally { Invoke(route, "OnDisable"); for (int i = owned.Count - 1; i >= 0; i--) Object.DestroyImmediate(owned[i]); }
         }

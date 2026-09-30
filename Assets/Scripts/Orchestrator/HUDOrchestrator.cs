@@ -14,7 +14,7 @@
 //   - Forward chase facts without computing gameplay or presentation rules.
 // DEPENDENCIES:
 //   - Session Progression supplies held items; the legacy Player inventory is not read.
-//   - Core event payloads, Session Run, HUD and Camera Presentation Managers.
+//   - Core payloads, Session Run typed fact channels, HUD and Camera Presentation Managers.
 // USAGE NOTES:
 //   Setup wires references before activation. Handlers contain routing only.
 //   Scene-owned; disabled before its scene publishers and views are destroyed.
@@ -48,9 +48,9 @@ namespace Worsen.Orchestrator
             if (_hud == null) return;
             _hud.Initialize();
             _run.FloorDisplayChanged += OnDisplay;
-            _run.GuidanceChanged += OnGuidance;
-            _run.TickingGuidancePublished += OnThreat;
-            _run.ShieldChanged += OnShield;
+            _run.FloorFacts.GuidanceChanged += OnGuidance;
+            _run.HunterFacts.TickingGuidancePublished += OnThreat;
+            _run.PlayerFacts.ShieldChanged += OnShield;
             _run.PublishShieldSnapshot();
             _run.PlayerMovementPublished += OnMovement;
             BindProgression();
@@ -63,9 +63,9 @@ namespace Worsen.Orchestrator
         {
             if (_run == null) return;
             _run.FloorDisplayChanged -= OnDisplay;
-            _run.GuidanceChanged -= OnGuidance;
-            _run.TickingGuidancePublished -= OnThreat;
-            _run.ShieldChanged -= OnShield;
+            _run.FloorFacts.GuidanceChanged -= OnGuidance;
+            _run.HunterFacts.TickingGuidancePublished -= OnThreat;
+            _run.PlayerFacts.ShieldChanged -= OnShield;
             if (_hud != null) { _hud.ResetRunView(); _hud.SetGuidance(null); }
             _run.PlayerMovementPublished -= OnMovement;
             if (_progression != null) _progression.ConsumablesChanged -= OnSlots;

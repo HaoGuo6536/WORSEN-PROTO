@@ -89,10 +89,10 @@ namespace Worsen.Tests.Run
             var h = Hunter(-1); var ticking = h.gameObject.AddComponent<TickingManager>(); Set(h, "_module", ticking);
             run.BindAdditionalHunter(h); run.BindAdditionalHunter(h); run.BindGameplay(null, null, null);
             int facts = 0;
-            run.HunterArchetypePublished += _ => facts++; run.HunterHabitPublished += _ => facts++;
-            run.HunterMutationPublished += _ => facts++; run.WeaverFactPublished += _ => facts++;
-            run.WebHitPublished += _ => facts++; run.TickingSoundPublished += _ => facts++;
-            run.TickingGuidancePublished += _ => facts++; run.TickingNoisePublished += _ => facts++;
+            run.HunterArchetypePublished += _ => facts++; run.HunterFacts.HunterHabitPublished += _ => facts++;
+            run.HunterMutationPublished += _ => facts++; run.HunterFacts.WeaverFactPublished += _ => facts++;
+            run.HunterFacts.WebHitPublished += _ => facts++; run.HunterFacts.TickingSoundPublished += _ => facts++;
+            run.HunterFacts.TickingGuidancePublished += _ => facts++; run.HunterFacts.TickingNoisePublished += _ => facts++;
             void Emit()
             {
                 Publish(h, "OnArchetypeFact", new HunterArchetypeFact(h.Id, HunterArchetypeFactKind.ReplayedFootstep, Vector3.zero, 1));
@@ -199,7 +199,7 @@ namespace Worsen.Tests.Run
                 module.InitializeModule(rules, null, null, null, null, null, null);
                 Set(h, "_module", module); run.BindAdditionalHunter(h);
             }
-            int windows = 0; run.AfterglowWindowPublished += (room, seconds) => {
+            int windows = 0; run.HunterFacts.AfterglowWindowPublished += (room, seconds) => {
                 Assert.That(room, Is.EqualTo(1)); Assert.That(seconds, Is.EqualTo(config.AfterglowSeconds)); windows++; };
             run.ObserveLightExtinguished(1); Assert.That(windows, Is.EqualTo(1));
             foreach (var h in hunters)
@@ -261,7 +261,7 @@ namespace Worsen.Tests.Run
             var h = Hunter(-1); run.BindAdditionalHunter(h);
             motion.GraceActive = protectedByGrace;
             var bite = new MimicFact(h.Id, player.Id, MimicFactKind.BiteStarted, 0, Vector3.zero, 2f);
-            int published = 0; run.MimicFactPublished += fact => { if (fact.Kind == MimicFactKind.BiteStarted) published++; };
+            int published = 0; run.HunterFacts.MimicFactPublished += fact => { if (fact.Kind == MimicFactKind.BiteStarted) published++; };
             Publish(h, "OnLungeHit", new HunterHit(h.Id, player.Id, 10, 0, Vector3.zero, severity: HitSeverity.Light, source: HitSource.Trap));
             Publish(h, "OnMimicFact", new MimicFact(h.Id, player.Id, MimicFactKind.PoseRemoved, 0, Vector3.zero));
             Publish(h, "OnMimicFact", bite);
@@ -329,7 +329,8 @@ namespace Worsen.Tests.Run
         private void AssertRelay<T>(HunterManager hunter, string publisher, string relay) where T : struct
         {
             int count = 0; Action<T> observer = _ => count++;
-            var output = typeof(RunSessionManager).GetEvent(relay); output.AddEventHandler(run, observer);
+            var channel = RunFactRelayTestUtility.Publisher(run, relay);
+            var output = channel.GetType().GetEvent(relay); output.AddEventHandler(channel, observer);
             run.BindGameplay(null, null, null); run.BindAdditionalHunter(hunter);
             Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
             run.SetPaused(true); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
@@ -338,7 +339,7 @@ namespace Worsen.Tests.Run
             run.gameObject.SetActive(true); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
             run.DetachGameplay(); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
             Assert.That((Get(hunter, publisher) as Delegate)?.GetInvocationList().Length ?? 0, Is.Zero, publisher);
-            output.RemoveEventHandler(run, observer);
+            output.RemoveEventHandler(channel, observer);
         }
         [TestCase(NoiseOrigin.World)] [TestCase(NoiseOrigin.Pacification)]
         [TestCase(NoiseOrigin.Presentation)] [TestCase(NoiseOrigin.FalsePositive)]
@@ -348,7 +349,7 @@ namespace Worsen.Tests.Run
             director.Initialize(Config<DirectorConfig>(), new System.Random(1), new Worsen.Domain.Chase.ChaseBehaviorState(), new FloorBehaviorState());
             run.BindGameplay(null, null, director);
             var noise = new NoiseEvent(player.Id, Vector3.zero, 1000f, 1, NoiseSourceKind.Firecracker, origin);
-            run.ForwardGameplayNoise(noise); Call(run, "HandleTrapNoise", noise); Call(run, "HandlePickupNoise", noise);
+            run.ForwardGameplayNoise(noise); Call(run, "HandleTrapNoise", noise); Call(run.WorldFacts, "HandlePickupNoise", noise);
             Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises, Is.Empty);
         }
         [Test] public void UnspecifiedNoiseRequiresTheCommittedPlayerTrapBoundary()
@@ -358,10 +359,10 @@ namespace Worsen.Tests.Run
             run.BindGameplay(null, null, director);
             var noise = new NoiseEvent(player.Id, Vector3.zero, 1f, 1, NoiseSourceKind.Trap);
             var noises = ((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises;
-            run.ForwardGameplayNoise(noise); Call(run, "HandlePickupNoise", noise);
+            run.ForwardGameplayNoise(noise); Call(run.WorldFacts, "HandlePickupNoise", noise);
             Call(run, "HandleTrapNoise", new NoiseEvent(EntityId.None, Vector3.zero, 1f, 1, NoiseSourceKind.Trap));
             Assert.That(noises, Is.Empty);
-            NoiseEvent published = default; run.WorldNoisePublished += value => published = value;
+            NoiseEvent published = default; run.WorldFacts.WorldNoisePublished += value => published = value;
             Call(run, "HandleTrapNoise", noise);
             Assert.That(noises.Count, Is.EqualTo(1));
             Assert.That(published.Origin, Is.EqualTo(NoiseOrigin.PlayerTriggeredCakeTrap));

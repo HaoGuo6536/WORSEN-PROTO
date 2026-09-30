@@ -126,7 +126,7 @@ namespace Worsen.Tests.Run
         {
             player.GrantShield(40f);
             var hits = new List<HunterHit>(); var grace = new List<GraceWindowFact>(); var telemetry = new List<TelemetrySample>();
-            run.HitAccepted += hits.Add; run.OnGraceStarted += grace.Add; run.TelemetryPublished += telemetry.Add;
+            run.HitAccepted += hits.Add; run.PlayerFacts.OnGraceStarted += grace.Add; run.TelemetryPublished += telemetry.Add;
             var hit = new HunterHit(new EntityId(-1), player.Id, 10, 0, Vector3.back);
             Call(run, "ApplyAcceptedHit", hit); Call(run, "ApplyAcceptedHit", hit);
             Assert.That(player.ReadOnlyState.Health, Is.EqualTo(100f)); Assert.That(player.ReadOnlyShieldState.Shield, Is.EqualTo(30f));
