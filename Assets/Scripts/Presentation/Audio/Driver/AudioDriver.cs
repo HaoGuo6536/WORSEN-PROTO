@@ -13,6 +13,7 @@
 //   AudioManager alone commands this engine boundary.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward roster and mutation facts to budgeted playback; preserve generated zones at capture.
 //   - Apply runtime category gains without config writes and freeze audio clocks during pause.
 //   - Admit one catch sting per run through the normal cue path, never at lethal health.
 //   - Advance footstep cadence when a committed contact already supplied its sound.
@@ -132,7 +133,7 @@ namespace Worsen.Presentation.Audio
         public bool PlayCatchSting(EntityId player)
         {
             if (_feedback == null || _state == null || !_ownerEnabled || !isActiveAndEnabled) return false;
-            return _feedback.TryCatchSting(_feedbackState, player) && PlayCue(CueId.Death);
+            return _feedback.TryCatchSting(_feedbackState, player) && _soundscape != null && _soundscape.PlayDeath();
         }
 
         public void SetProximity(float closeness) { if (_state != null) _presenter.SetProximity(_state, closeness); }
@@ -157,7 +158,17 @@ namespace Worsen.Presentation.Audio
             if (sample.MovementState == MovementState.Slide && _soundscape != null) _soundscape.Play(CueId.SlideLoop, sample.Position, _feedback.SlideFrictionGain(sample.SlideTurnRateDegrees), -200000);
         }
         public void ObserveTraversal(PlayerTraversalFact fact) { if (_feedback == null) return; _feedback.Traversal(_feedbackState, fact); ApplyFeedback(); }
-        public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_feedback == null) return; _feedback.Hunter(_feedbackState, fact); ApplyFeedback(); }
+        public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_soundscape != null) _soundscape.ObserveHunter(fact); }
+        public void ObserveArchetype(HunterArchetypeFact fact) { if (_soundscape != null) _soundscape.ObserveArchetype(fact); }
+        public void ObserveWeaver(WeaverFact fact) { if (_soundscape != null) _soundscape.ObserveWeaver(fact); }
+        public void ObserveTicking(TickingSoundFact fact) { if (_soundscape != null) _soundscape.ObserveTicking(fact); }
+        public void ObserveHabit(HunterHabitFact fact) { if (_soundscape != null) _soundscape.ObserveHabit(fact); }
+        public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick) { if (_soundscape != null) _soundscape.ObserveDeliberation(hunter, position, tick); }
+        public void ObserveProgressionEvent(ProgressionEventFact fact) { if (_soundscape != null) _soundscape.ObserveProgressionEvent(fact); }
+        public void ObserveHit(HunterHit fact) { if (_soundscape != null) _soundscape.ObserveHit(fact); }
+        public void SetTheme(string zone) { if (_soundscape != null) _soundscape.SetTheme(zone); }
+        public void SetRoomTheme(int room, string theme, string family) { if (_soundscape != null) _soundscape.SetRoomTheme(room, theme, family); }
+        public void ClearSenses() { if (_soundscape != null) _soundscape.ClearSenses(); }
         public void ObservePickup(PickupCollectedFact fact, Vector3 position) { if (_feedback == null) return; _feedback.Pickup(_feedbackState, fact, position); ApplyFeedback(); }
         public void ObserveHand(CollapseHandFact fact) { if (_feedback == null) return; _feedback.Hand(_feedbackState, fact); ApplyFeedback(); }
         public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_feedback == null) return; if (_soundscape != null) _soundscape.ObserveDestruction(sample); _feedback.Room(_feedbackState, sample, position); ApplyFeedback(); }
@@ -214,11 +225,11 @@ namespace Worsen.Presentation.Audio
         public void SetFootstepGain(float gain) { if (_soundscape != null) _soundscape.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_soundscape != null) _soundscape.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_soundscape != null) _soundscape.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun(bool preserveMusicContact = false)
+        public void ResetRun(bool preserveMusicContact = false, bool preserveZones = false)
         {
             SetPaused(false);
             StopSources();
-            if (_soundscape != null) _soundscape.ResetRun(preserveMusicContact);
+            if (_soundscape != null) _soundscape.ResetRun(preserveMusicContact, preserveZones);
             _feedbackState = new AudioFeedbackDriverState();
             if (_state == null) return;
             _presenter.Reset(_state);

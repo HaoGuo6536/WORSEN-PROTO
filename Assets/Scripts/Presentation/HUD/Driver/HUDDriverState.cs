@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain entity-keyed threat bearings and supplied shield independently of objectives.
 //   - Retain a selected physical slot caption and its compact occupied-slot highlight.
 //   - Retain independent typed guidance channels and a display-only phantom count deadline.
 //   - Store quiet golden/count text, flat arrow rotation, occupied slots and fade progress.
@@ -25,11 +26,16 @@
 // ============================================================================
 
 using UnityEngine;
+using System.Collections.Generic;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.HUD
 {
     public sealed class HUDDriverState
     {
+        public readonly Dictionary<EntityId, HUDThreatDriverState> Threats = new Dictionary<EntityId, HUDThreatDriverState>();
+        public float Shield;
+        public string ShieldText = "Shield: 0";
         public string CountText = "Cakes: —";
         public int Collected = -1;
         public int Required = -1;
@@ -60,5 +66,12 @@ namespace Worsen.Presentation.HUD
         public bool ChaseMode;
         public bool ChromeVisible = true;
         public float ExtraOpacity = 1f;
+    }
+    public sealed class HUDThreatDriverState
+    {
+        public long Tick = -1;
+        public Vector3 Direction;
+        public bool Visible;
+        public float ArrowDegrees;
     }
 }

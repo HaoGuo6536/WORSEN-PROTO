@@ -7,7 +7,8 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
-//   - Scale the nearest eligible lit-torch budget, never reviving unlit or destroyed sockets.
+//   - Reserve eligible exit-room lights before ordinary lights; collapse and darkness cannot extinguish them.
+//   - Scale the nearest eligible non-exit lit-torch budget without reviving destroyed sockets.
 //   - Keep decoration above running lanes and away from door apertures.
 //   - Select the nearest effects under fixed budgets and preserve a readable flame minimum.
 //   - Compute local flame falloff and bounded chalk crosses with room ownership.
@@ -19,6 +20,7 @@
 // USAGE NOTES:
 //   Room bounds start at the walking surface, not the structural foundation.
 //   Time is explicit and cosmetic variation never consumes the game's random stream.
+//   Exit lights retain ordinary range/cap culling; priority prevents collapse-density starvation.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,7 +36,7 @@ namespace Worsen.Presentation.Environment
             for (int i = 0; i < state.Flames.Count; i++)
             {
                 var flame = state.Flames[i];
-                if (flame.Moon || flame.Exit || flame.RoomId != light.RoomId || !flame.SocketPosition.Equals(light.Position)) continue;
+                if (flame.Moon || IsExitRoomLight(state, flame) || flame.RoomId != light.RoomId || !flame.SocketPosition.Equals(light.Position)) continue;
                 flame.Lit = light.Value == InteractableStateValue.Lit;
                 state.Available[i] = flame.Lit && flame.Destruction < 1f;
                 return true;
@@ -263,19 +265,26 @@ namespace Worsen.Presentation.Environment
             return true;
         }
 
+        public static bool IsExitRoomLight(EnvironmentDriverState state, EnvironmentFlameDriverState flame)
+            => flame.Exit || (state.ExitLightIndex >= 0 && state.ExitLightIndex < state.Flames.Count &&
+                flame.RoomId == state.Flames[state.ExitLightIndex].RoomId);
+
         public static int[] BudgetedLights(EnvironmentDriverState state, int maximum, float distance)
         {
             int[] eligible = Nearest(state.Observer, state.Positions, state.Available, state.Flames.Count, distance);
             int torches = 0;
-            foreach (int i in eligible) if (!state.Flames[i].Moon && !state.Flames[i].Exit) torches++;
+            foreach (int i in eligible) if (!state.Flames[i].Moon && !IsExitRoomLight(state, state.Flames[i])) torches++;
             float multiplier = float.IsNaN(state.TorchCountMultiplier) || float.IsInfinity(state.TorchCountMultiplier)
                 ? 1f : Mathf.Clamp01(state.TorchCountMultiplier);
             int budget = Mathf.FloorToInt(Mathf.Min(Mathf.Max(0, maximum), torches) * multiplier);
             var visible = new List<int>();
             foreach (int i in eligible)
+                if (visible.Count < maximum && IsExitRoomLight(state, state.Flames[i])) visible.Add(i);
+            foreach (int i in eligible)
             {
                 if (visible.Count >= maximum) break;
-                if (!state.Flames[i].Moon && !state.Flames[i].Exit && budget-- <= 0) continue;
+                if (IsExitRoomLight(state, state.Flames[i])) continue;
+                if (!state.Flames[i].Moon && budget-- <= 0) continue;
                 visible.Add(i);
             }
             return visible.ToArray();

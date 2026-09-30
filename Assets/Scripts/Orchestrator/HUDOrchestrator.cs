@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · HUD target.
 // KEY RESPONSIBILITIES:
+//   - Route entity-keyed Ticking arrows and initial/change shield facts from Run.
 //   - Route Progression's variable-capacity inventory/selection to HUD and Run slot telemetry.
 //   - Route typed guidance snapshots; display counters must never overwrite either arrow.
 //   - Forward supplied values and pair every subscription with teardown.
@@ -50,6 +51,9 @@ namespace Worsen.Orchestrator
             _hud.Initialize();
             _run.FloorDisplayChanged += OnDisplay;
             _run.GuidanceChanged += OnGuidance;
+            _run.TickingGuidancePublished += OnThreat;
+            _run.ShieldChanged += OnShield;
+            _run.PublishShieldSnapshot();
             _run.PlayerMovementPublished += OnMovement;
             BindProgression();
             _run.ChaseStarted += OnChase;
@@ -61,6 +65,8 @@ namespace Worsen.Orchestrator
             if (_run == null) return;
             _run.FloorDisplayChanged -= OnDisplay;
             _run.GuidanceChanged -= OnGuidance;
+            _run.TickingGuidancePublished -= OnThreat;
+            _run.ShieldChanged -= OnShield;
             if (_hud != null) { _hud.ResetRunView(); _hud.SetGuidance(null); }
             _run.PlayerMovementPublished -= OnMovement;
             if (_progression != null) _progression.ConsumablesChanged -= OnSlots;
@@ -77,6 +83,8 @@ namespace Worsen.Orchestrator
         }
         private void OnMovement(PlayerMovementSample sample) => _hud.SetHeading(sample.HeadingDegrees);
         private void OnGuidance(IReadOnlyList<GuidanceTarget> targets) => _hud.SetGuidance(targets);
+        private void OnThreat(TickingGuidanceFact fact) => _hud.SetThreat(fact);
+        private void OnShield(Worsen.Core.EntityId player, float shield) => _hud.SetShield(shield);
         private void BindProgression()
         {
             if (_progression != null) return;
@@ -87,6 +95,6 @@ namespace Worsen.Orchestrator
         private void OnChase(ChaseFact fact) => _hud.SetChaseMode(true);
         private void OnChaseEnd(ChaseFact fact) => _hud.SetChaseMode(false);
         private void OnCaptureStarted(RunCaptureMetadata metadata)
-        { BindProgression(); _hud.ResetRunView(); _hud.SetGuidance(null); _hud.SetGoldenCount(0); OnSlots(_progression != null ? _progression.Consumables : default); }
+        { BindProgression(); _hud.ResetRunView(); _hud.SetGuidance(null); _hud.SetGoldenCount(0); OnSlots(_progression != null ? _progression.Consumables : default); _run.PublishShieldSnapshot(); }
     }
 }

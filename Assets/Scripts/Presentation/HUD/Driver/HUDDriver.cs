@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply independent threat guidance and shield snapshots through the recreated document.
 //   - Forward selected inventory and use counts to the pure Presenter.
 //   - Route typed arrows and admit phantom counts only on a bound, enabled display.
 //   - Own document binding and the HUDVisualDriver lifetime.
@@ -72,6 +73,11 @@ namespace Worsen.Presentation.HUD
             _presenter.SetCount(_state, collected, total);
             Apply();
         }
+
+        public void SetThreat(TickingGuidanceFact fact)
+        { if (_state != null) { _presenter.SetThreat(_state, fact); Apply(); } }
+        public void SetShield(float shield)
+        { if (_state != null) { _presenter.SetShield(_state, shield); Apply(); } }
 
         public void SetGoldenCount(int count)
         {
