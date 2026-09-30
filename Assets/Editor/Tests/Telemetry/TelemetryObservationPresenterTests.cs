@@ -11,7 +11,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Telemetry.
 //
 // KEY RESPONSIBILITIES:
-//   - Assert one row per new kind, exact identities, signed wallet values and outcomes.
+//   - Assert exact rows and identities; obsolete operation labels cannot produce bail outcomes.
 //   - Verify the immutable stall snapshot survives translation without Domain leakage.
 //   - Check locale independence and unavailable evidence without engine operations.
 //
@@ -92,7 +92,7 @@ namespace Worsen.Tests.Telemetry
         }
 
         [TestCase(ProgressionPhase.Exploring, ProgressionPhase.ChooseThreat, "CompleteFloor", "Escaped")]
-        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.ChooseThreat, "EarlyBail", "Bailed")]
+        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.ChooseThreat, "EarlyBail", "Escaped")]
         [TestCase(ProgressionPhase.Exploring, ProgressionPhase.Ended, "RecordHealth", "Died")]
         [TestCase(ProgressionPhase.Shop, ProgressionPhase.ChooseThreat, "ContinueShop", "ShopContinued")]
         [TestCase(ProgressionPhase.Generating, ProgressionPhase.GenerationFailed, "FailGeneration", "GenerationFailed")]

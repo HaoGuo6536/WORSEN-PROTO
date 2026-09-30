@@ -8,15 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
-//   - Append missing catalogue profiles without replacing authored roster entries or tuning.
-//   - Restore collapse fog references and its renderer feature without replacing distance fog.
-//   - Restore Results and the Settings-source router idempotently, preserving assigned references.
-//   - Wire five animated hunters, spatial sound, Lumen 2, curse rules and physical exit/collapse.
-//   - Preserve deterministic asset identity when rebuilding the complete expedition.
-//   - Preserve unrelated loaded scenes and existing configuration asset identities.
-//   - Keep the diagnostic service wired with its document hidden by default.
-//   - Supply the HUD compass with the explicit camera aim source.
-//   - Restore title/preferences wiring without replacing existing references or tuning.
+//   - Build the ten-profile expansion roster while preserving matching authored tuning.
+//   - Restore fog, Results, title/preferences and presentation routes idempotently.
+//   - Wire world services, diagnostics, spatial sound, Lumen and physical exit/collapse.
+//   - Promote the title-capable scene while retaining explicit test-scene order and flags.
+//   - Preserve unrelated loaded scenes and deterministic asset identities.
 // DEPENDENCIES:
 //   - Runtime layer APIs, existing presentation generators, UnityEditor and URP.
 // USAGE NOTES:
@@ -122,8 +118,7 @@ namespace Worsen.Editor.Scenes
                 if (old.IsValid() && old.isLoaded) EditorSceneManager.CloseScene(old, true);
                 if (!EditorSceneManager.SaveScene(scene, ScenePath)) throw new InvalidOperationException("Failed to save HorrorRun.");
                 saved = true;
-                if (!EditorBuildSettings.scenes.Any(value => value.path == ScenePath))
-                    EditorBuildSettings.scenes = EditorBuildSettings.scenes.Concat(new[] { new EditorBuildSettingsScene(ScenePath, true) }).ToArray();
+                EditorBuildSettings.scenes = OrderedBuildScenes(EditorBuildSettings.scenes);
             }
             finally
             {
@@ -233,22 +228,26 @@ namespace Worsen.Editor.Scenes
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
             if (root == null) throw new ArgumentNullException(nameof(root));
-            var paths = new[] { "Expansion/rusher", "Expansion/lurker", "Expansion/watcher", "Expansion/hexer", "Expansion/thorncaller",
-                "Archetypes/Echo/EchoProfile", "Archetypes/Weaver/WeaverProfile", "Archetypes/Ticking/TickingProfile" };
             // Resolve first: a missing asset must not leave a partially repaired roster.
-            var roster = paths.Select(path => Require<HunterProfile>(ConfigRoot + "Domain/Hunter/" + path + ".asset")).ToArray();
+            var roster = Worsen.Editor.Hunter.ExpansionHunterProfileSetup.LoadProfiles();
             var serialized = new SerializedObject(root); var entries = serialized.FindProperty("_hunterRoster");
-            foreach (var profile in roster)
+            for (int n = 0; n < roster.Length; n++)
             {
-                bool present = false;
                 for (int i = 0; i < entries.arraySize; i++)
                     if (entries.GetArrayElementAtIndex(i).objectReferenceValue is HunterProfile existing &&
-                        existing.ArchetypeKey == profile.ArchetypeKey) { present = true; break; }
-                if (present) continue;
-                int index = entries.arraySize; entries.InsertArrayElementAtIndex(index);
-                entries.GetArrayElementAtIndex(index).objectReferenceValue = profile;
+                        existing.ArchetypeKey == roster[n].ArchetypeKey) { roster[n] = existing; break; }
             }
+            entries.arraySize = roster.Length;
+            for (int i = 0; i < roster.Length; i++) entries.GetArrayElementAtIndex(i).objectReferenceValue = roster[i];
+            serialized.FindProperty("_hunterProfile").objectReferenceValue = roster[0];
             serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        public static EditorBuildSettingsScene[] OrderedBuildScenes(EditorBuildSettingsScene[] existing)
+        {
+            // Only the title scene is promoted/enabled; explicit test scenes retain order and admission.
+            return new[] { new EditorBuildSettingsScene(ScenePath, true) }.Concat(
+                (existing ?? Array.Empty<EditorBuildSettingsScene>()).Where(value => value.path != ScenePath)).ToArray();
         }
 
         private static void BuildWorldServices(HorrorRunSceneRoot root, GameObject cake)
@@ -260,7 +259,7 @@ namespace Worsen.Editor.Scenes
             Wire(root, "_playerFactory", Add<PlayerFactory>("Player Factory"));
             Wire(root, "_playerProfile", Require<PlayerProfile>(ConfigRoot + "Domain/Player/PlayerProfile.asset"));
             Wire(root, "_hunterFactory", Add<HunterFactory>("Hunter Factory"));
-            HunterProfile[] roster = Worsen.Editor.Hunter.HorrorHunterSetup.BuildProfiles();
+            HunterProfile[] roster = Worsen.Editor.Hunter.ExpansionHunterProfileSetup.BuildProfiles();
             Wire(root, "_hunterProfile", roster[0]);
             var rootRoster = new SerializedObject(root);
             var profiles = rootRoster.FindProperty("_hunterRoster"); profiles.arraySize = roster.Length;

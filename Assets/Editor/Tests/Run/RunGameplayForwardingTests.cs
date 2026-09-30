@@ -8,7 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
 //   - Verify payload preservation, single subscriptions, pause rejection and teardown.
-//   - Verify replacement publishers detach and only bound active hunters hear pickups.
+//   - Verify replacement publishers detach and pickups never become hunter stimuli.
 // DEPENDENCIES:
 //   Core, Domain Player/Hunter/Level/Floor, Session Run, NUnit and Unity Test Framework.
 // USAGE NOTES:
@@ -148,9 +148,7 @@ namespace Worsen.Tests.Run
                 }
                 for (int i = 0; i < hunters.Count; i++)
                 {
-                    bool receives = forwards && i < 2;
-                    Assert.That(Heard(hunters[i]).Count, Is.EqualTo(heardBefore[i] + (receives ? 1 : 0)), "Hunter " + i);
-                    if (receives) Assert.That(Heard(hunters[i]).Last(), Is.EqualTo(noise));
+                    Assert.That(Heard(hunters[i]).Count, Is.EqualTo(heardBefore[i]), "Pickup leaked to hunter " + i);
                 }
             }
             private static List<NoiseEvent> Heard(HunterManager hunter) => (List<NoiseEvent>)Field(hunter.ReadOnlyState, "HeardNoises").GetValue(hunter.ReadOnlyState);

@@ -6,7 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Keep the five legacy entries and append each new catalogue profile only once.
+//   - Select only the ten expansion entries while preserving matching authored profiles.
 //   - Carry Session requests through the Core overload into distinct Hunter entities.
 //   - Reuse Procedural first-contact validation rather than inventing placement policy.
 // DEPENDENCIES:
@@ -48,7 +48,9 @@ namespace Worsen.Tests.Expedition
                 var data = new SerializedObject(root); var entries = data.FindProperty("_hunterRoster"); entries.arraySize = 1;
                 entries.GetArrayElementAtIndex(0).objectReferenceValue = custom; data.ApplyModifiedPropertiesWithoutUndo();
                 HorrorRunSceneSetup.RestoreHunterRoster(root); HorrorRunSceneSetup.RestoreHunterRoster(root); data.Update();
-                Assert.That(entries.arraySize, Is.EqualTo(8)); Assert.That(entries.GetArrayElementAtIndex(0).objectReferenceValue, Is.SameAs(custom));
+                Assert.That(entries.arraySize, Is.EqualTo(10)); Assert.That(entries.GetArrayElementAtIndex(0).objectReferenceValue, Is.SameAs(custom));
+                Assert.That(Enumerable.Range(0, entries.arraySize).Select(i => ((HunterProfile)entries.GetArrayElementAtIndex(i).objectReferenceValue).ArchetypeKey),
+                    Is.EquivalentTo(new[] { "echo", "weaver", "ticking", "ram", "skip", "mimic", "blinder", "herald", "mannequin", "stare" }));
                 var profiles = new List<HunterProfile>();
                 foreach (string name in new[] { "Echo", "Weaver", "Ticking" })
                 {
