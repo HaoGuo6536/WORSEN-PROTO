@@ -571,8 +571,8 @@ namespace Worsen.Session.Expedition
             _run.BindShrines(_shrines, _progression, GenerationId, _state.Player, () => _controller.CollectedFraction);
         }
 
-        private void HandleProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
-        { if (operation == nameof(ProgressionSessionManager.StartRun)) _controller.ResetRun(); }
+        private void HandleProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choice)
+        { if (operation == ProgressionOperation.StartRun) _controller.ResetRun(); }
 
         private void HandleShrineResolved(ShrineResolvedFact fact)
         {

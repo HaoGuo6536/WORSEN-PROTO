@@ -96,7 +96,7 @@ namespace Worsen.Orchestrator
         private void OnSettingsApplied(PlayerSettingsRecord settings) => _settings.ApplySettings(settings);
         private void OnSettingsChanged(PlayerSettingsRecord settings) => _menu.SetSettings(settings);
         private void OnSaveCompleted(bool saved, string message) => _menu.SetSaveResult(saved, message);
-        private void OnProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
+        private void OnProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choice)
         {
             if (before.Phase != ProgressionPhase.Ended && after.Phase == ProgressionPhase.Ended)
                 _settings.RecordRunEnded(after.Round);

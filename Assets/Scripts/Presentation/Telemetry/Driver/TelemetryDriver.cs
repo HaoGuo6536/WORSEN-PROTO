@@ -101,9 +101,9 @@ namespace Worsen.Presentation.Telemetry
             foreach (var row in _presenter.ConvertMovement(_state, sample)) Record(row);
         }
         public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after,
-            string operation, string choiceId, long tick, bool? usedFallback = null, string layoutManifest = null)
+            ProgressionOperation operation, string choiceId, long tick, bool? usedFallback = null, string layoutManifest = null)
         {
-            if (operation == "StartRun")
+            if (operation == ProgressionOperation.StartRun)
             {
                 CloseObservations();
                 _state.ObservationOutputPath = _state.ObservationError = "";

@@ -9,11 +9,10 @@
 //   Definitions (§5) · Core · Progression shared contracts.
 // KEY RESPONSIBILITIES:
 //   - Publish progression event identity, resolved kind, affected ids and a tell, never mutation rules.
-//   - Describe immutable display snapshots and committed generation requests.
+//   - Describe typed operations, immutable display snapshots and committed generation requests.
 //   - Describe unique run traits, consumable stock, and actionable rejection reasons.
 //   - Carry the effective loadout without exposing mutable run state.
-//   - Add optional pedestal metadata, slot receipts and pending replacement/reroll views.
-//   - Carry an additive shelter bargain snapshot without changing legacy phase identities.
+//   - Carry pedestal, inventory, replacement, reroll and shelter bargain views.
 // DEPENDENCIES:
 //   - System collection interfaces only; no project layer dependencies.
 // USAGE NOTES:
@@ -26,6 +25,14 @@ using System.Collections.Generic;
 namespace Worsen.Core
 {
     public enum ProgressionPhase { Dormant, ChooseThreat, ChooseCurse, Generating, Exploring, Shop, Ended, GenerationFailed }
+    public enum ProgressionOperation
+    {
+        StartRun, ChooseThreat, ChooseCurse, TakeBargain, Purchase, ReservePurchase,
+        RerollShop, RerollSelection, CancelReplacement, ContinueShop, ConfirmFloorReady,
+        FailGeneration, CompleteFloor, RecordGoldenCollected, TryConsumeWaxWard,
+        CycleConsumable, TryConsumeSelected, TryConsumeExtraLife, RecordHealth, EndRun,
+        ActivateShrine
+    }
     [System.Flags]
     public enum ProgressionTraits
     {

@@ -8,9 +8,9 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
-//   - Publish separate slot activation and automatic ward-consumption transactions.
+//   - Publish typed accepted actions, separating slot activation and automatic ward consumption.
 //   - Verify paired immutable effects events and state retention across repeated initialization.
-//   - Confirm catalogue purchases, explicit new seeds and deterministic replay restarts.
+//   - Confirm purchase/reservation identities, explicit new seeds and deterministic replay restarts.
 //   - Require pure intervening floors and full floor-start health at the shop.
 //   - Bind an isolated catalogue and shop config; diagnose missing reflected fields explicitly.
 // DEPENDENCIES:
@@ -56,6 +56,13 @@ namespace Worsen.Tests.Progression
             System.Action<ProgressionSnapshot, IReadOnlyActiveEffects> collectEffects = (snapshot, effects) =>
                 effectsSnapshots.Add(new ProgressionEffectsSnapshot(snapshot, new ActiveEffects(effects)));
             var requests = new List<ProgressionGenerationRequest>();
+            var operations = new List<ProgressionOperation>();
+            System.Action<ProgressionSnapshot, ProgressionSnapshot, ProgressionOperation, string> collectTransaction =
+                (before, after, operation, choice) =>
+                {
+                    Assert.That(after.Revision, Is.GreaterThan(before.Revision));
+                    operations.Add(operation);
+                };
             ProgressionSessionManager manager = null;
             try
             {
@@ -69,6 +76,7 @@ namespace Worsen.Tests.Progression
                 manager.SnapshotChanged += snapshots.Add;
                 manager.EffectsSnapshotChanged += collectEffects;
                 manager.GenerationRequested += requests.Add;
+                manager.TransactionCommitted += collectTransaction;
                 manager.StartRun(412);
                 Assert.That(manager.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
                 var duplicate = duplicateOwner.AddComponent<ProgressionSessionManager>().Initialize(config, 999);
@@ -142,6 +150,20 @@ namespace Worsen.Tests.Progression
                 Assert.That(effectsSnapshots[0].ActiveEffects.Count, Is.Zero, "The initial revision remains empty after restart and later selections.");
                 Assert.That(effectsSnapshots[1].ActiveEffects.Count, Is.EqualTo(1), "The selected threat stays frozen on its revision.");
                 Assert.That(manager.EffectsSnapshot.ActiveEffects.Count, Is.EqualTo(2), "Restart retained only the newly chosen threat and curse.");
+                Assert.That(operations, Is.EqualTo(new[] {
+                    ProgressionOperation.StartRun, ProgressionOperation.ChooseThreat, ProgressionOperation.ChooseCurse,
+                    ProgressionOperation.ConfirmFloorReady, ProgressionOperation.RecordGoldenCollected,
+                    ProgressionOperation.RecordGoldenCollected, ProgressionOperation.RecordGoldenCollected,
+                    ProgressionOperation.RecordHealth, ProgressionOperation.CompleteFloor,
+                    ProgressionOperation.ConfirmFloorReady, ProgressionOperation.RecordGoldenCollected,
+                    ProgressionOperation.RecordGoldenCollected, ProgressionOperation.RecordGoldenCollected,
+                    ProgressionOperation.CompleteFloor, ProgressionOperation.ConfirmFloorReady,
+                    ProgressionOperation.Purchase, ProgressionOperation.ContinueShop,
+                    ProgressionOperation.ChooseThreat, ProgressionOperation.ChooseCurse,
+                    ProgressionOperation.ConfirmFloorReady, ProgressionOperation.TryConsumeSelected,
+                    ProgressionOperation.TryConsumeWaxWard, ProgressionOperation.EndRun,
+                    ProgressionOperation.StartRun, ProgressionOperation.ChooseThreat, ProgressionOperation.ChooseCurse
+                }), "Only accepted commands publish, and restart retains the StartRun operation.");
             }
             finally
             {
@@ -150,8 +172,79 @@ namespace Worsen.Tests.Progression
                     manager.SnapshotChanged -= snapshots.Add;
                     manager.EffectsSnapshotChanged -= collectEffects;
                     manager.GenerationRequested -= requests.Add;
+                    manager.TransactionCommitted -= collectTransaction;
                 }
                 Object.DestroyImmediate(duplicateOwner);
+                Object.DestroyImmediate(owner);
+                Object.DestroyImmediate(config);
+                Object.DestroyImmediate(catalogue);
+                Object.DestroyImmediate(shop);
+            }
+            Assert.That(ProgressionSessionManager.Instance, Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator ReservationCancellationAndReplacementPublishDistinctTypedTransactions()
+        {
+            yield return new EnterPlayMode();
+            ExerciseReplacementTransactions();
+        }
+
+        private static void ExerciseReplacementTransactions()
+        {
+            Assert.That(ProgressionSessionManager.Instance, Is.Null);
+            var owner = new GameObject("Progression replacement operation test");
+            var config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+            var shop = ScriptableObject.CreateInstance<ShopConfig>();
+            var operations = new List<ProgressionOperation>();
+            var choices = new List<string>();
+            ProgressionSessionManager manager = null;
+            System.Action<ProgressionSnapshot, ProgressionSnapshot, ProgressionOperation, string> collect =
+                (before, after, operation, choice) => { operations.Add(operation); choices.Add(choice); };
+            try
+            {
+                SetField(catalogue, "_entries", new[] {
+                    new EffectCatalogueEntry("a", EffectKind.Consumable, FearAxis.Agency, "A", "Test item.", price: 0),
+                    new EffectCatalogueEntry("b", EffectKind.Consumable, FearAxis.Agency, "B", "Test item.", price: 0),
+                    new EffectCatalogueEntry("c", EffectKind.Consumable, FearAxis.Agency, "C", "Test item.", price: 0),
+                    new EffectCatalogueEntry("d", EffectKind.Consumable, FearAxis.Agency, "D", "Test item.", price: 0) });
+                SetField(config, "_effectCatalogue", catalogue);
+                SetField(config, "_shopConfig", shop);
+                manager = owner.AddComponent<ProgressionSessionManager>().Initialize(config, 73);
+                manager.StartRun(73);
+                CommitFirstGeneration(manager);
+                for (int round = 1; round <= 2; round++)
+                {
+                    Assert.That(manager.ConfirmFloorReady(manager.Snapshot.GenerationId), Is.True);
+                    Assert.That(manager.CompleteFloor(manager.Snapshot.GenerationId), Is.True);
+                }
+                Assert.That(manager.ConfirmFloorReady(manager.Snapshot.GenerationId), Is.True);
+                Assert.That(manager.Snapshot.Phase, Is.EqualTo(ProgressionPhase.Shop));
+                manager.TransactionCommitted += collect;
+                foreach (string id in new[] { "a", "b", "c" })
+                    Assert.That(manager.Purchase(id, manager.Snapshot.Revision), Is.True);
+                int revision = manager.Snapshot.Revision;
+                Assert.That(manager.Purchase("d", revision), Is.True);
+                Assert.That(manager.Purchase("d", revision), Is.False);
+                Assert.That(manager.Snapshot.PendingOfferId, Is.EqualTo("d"));
+                Assert.That(manager.CancelReplacement(manager.Snapshot.Revision), Is.True);
+                Assert.That(manager.Purchase("d", manager.Snapshot.Revision), Is.True);
+                revision = manager.Snapshot.Revision;
+                Assert.That(manager.ReplaceInventorySlot(0, revision), Is.True);
+                Assert.That(manager.ReplaceInventorySlot(1, revision), Is.False);
+                Assert.That(manager.Snapshot.PendingOfferId, Is.Null.Or.Empty);
+                Assert.That(manager.Snapshot.Inventory[0].Id, Is.EqualTo("d"));
+                Assert.That(operations, Is.EqualTo(new[] {
+                    ProgressionOperation.Purchase, ProgressionOperation.Purchase, ProgressionOperation.Purchase,
+                    ProgressionOperation.ReservePurchase, ProgressionOperation.CancelReplacement,
+                    ProgressionOperation.ReservePurchase, ProgressionOperation.Purchase }));
+                Assert.That(choices, Is.EqualTo(new[] { "a", "b", "c", "d", "", "d", "d" }),
+                    "Replacement keeps the reserved identity; rejected revisions publish nothing.");
+            }
+            finally
+            {
+                if (manager != null) manager.TransactionCommitted -= collect;
                 Object.DestroyImmediate(owner);
                 Object.DestroyImmediate(config);
                 Object.DestroyImmediate(catalogue);

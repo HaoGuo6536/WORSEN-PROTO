@@ -11,7 +11,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Telemetry.
 //
 // KEY RESPONSIBILITIES:
-//   - Assert exact rows and identities; obsolete operation labels cannot produce bail outcomes.
+//   - Assert exact rows, identities and stable output labels for every typed operation.
 //   - Verify the immutable stall snapshot survives translation without Domain leakage.
 //   - Check locale independence and unavailable evidence without engine operations.
 //
@@ -59,10 +59,10 @@ namespace Worsen.Tests.Telemetry
             Assert.That(Cells(rows[0])["round_outcome"], Is.EqualTo("Started"));
         }
 
-        [TestCase("ChooseThreat", "Threat")]
-        [TestCase("ChooseCurse", "Curse")]
-        [TestCase("Purchase", "Purchase")]
-        public void EachAcceptedChoiceProducesOneRowAndPreservesItsExactId(string operation, string kind)
+        [TestCase(ProgressionOperation.ChooseThreat, "Threat")]
+        [TestCase(ProgressionOperation.ChooseCurse, "Curse")]
+        [TestCase(ProgressionOperation.Purchase, "Purchase")]
+        public void EachAcceptedChoiceProducesOneRowAndPreservesItsExactId(ProgressionOperation operation, string kind)
         {
             const string id = "id,\"quoted\";=%\nnext";
             var rows = presenter.Transaction(Snapshot(ProgressionPhase.Shop, 4, 12), Snapshot(ProgressionPhase.Shop, 4, 12),
@@ -75,15 +75,14 @@ namespace Worsen.Tests.Telemetry
             Assert.That(cells["tick"], Is.EqualTo("81"));
         }
 
-        [TestCase("RecordGoldenCollected", 12, 14, "2")]
-        [TestCase("Purchase", 14, 3, "-11")]
-        [TestCase("EarlyBail", 12, 6, "-6")]
-        [TestCase("EndRun", 6, 0, "-6")]
-        [TestCase("StartRun", 5, 0, "-5")]
-        public void EveryBalanceChangeProducesOneSignedWalletRow(string reason, int before, int after, string delta)
+        [TestCase(ProgressionOperation.RecordGoldenCollected, "RecordGoldenCollected", 12, 14, "2")]
+        [TestCase(ProgressionOperation.Purchase, "Purchase", 14, 3, "-11")]
+        [TestCase(ProgressionOperation.EndRun, "EndRun", 6, 0, "-6")]
+        [TestCase(ProgressionOperation.StartRun, "StartRun", 5, 0, "-5")]
+        public void EveryBalanceChangeProducesOneSignedWalletRow(ProgressionOperation operation, string reason, int before, int after, string delta)
         {
             var rows = presenter.Transaction(Snapshot(ProgressionPhase.Shop, 4, before), Snapshot(ProgressionPhase.Shop, 4, after),
-                reason, "purchase", 99, 1937123456).Where(s => s.Kind == TelemetrySampleKind.WalletChanged).ToArray();
+                operation, "purchase", 99, 1937123456).Where(s => s.Kind == TelemetrySampleKind.WalletChanged).ToArray();
             Assert.That(rows.Length, Is.EqualTo(1));
             var cells = Cells(rows[0]);
             Assert.That(cells["wallet_delta"], Is.EqualTo(delta));
@@ -92,12 +91,11 @@ namespace Worsen.Tests.Telemetry
             Assert.That(cells["generation_seed"], Is.EqualTo("1937123456"));
         }
 
-        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.ChooseThreat, "CompleteFloor", "Escaped")]
-        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.ChooseThreat, "EarlyBail", "Escaped")]
-        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.Ended, "RecordHealth", "Died")]
-        [TestCase(ProgressionPhase.Shop, ProgressionPhase.ChooseThreat, "ContinueShop", "ShopContinued")]
-        [TestCase(ProgressionPhase.Generating, ProgressionPhase.GenerationFailed, "FailGeneration", "GenerationFailed")]
-        public void RoundEndUsesTheCompletedRoundIdentity(ProgressionPhase from, ProgressionPhase to, string operation, string outcome)
+        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.ChooseThreat, ProgressionOperation.CompleteFloor, "Escaped")]
+        [TestCase(ProgressionPhase.Exploring, ProgressionPhase.Ended, ProgressionOperation.RecordHealth, "Died")]
+        [TestCase(ProgressionPhase.Shop, ProgressionPhase.ChooseThreat, ProgressionOperation.ContinueShop, "ShopContinued")]
+        [TestCase(ProgressionPhase.Generating, ProgressionPhase.GenerationFailed, ProgressionOperation.FailGeneration, "GenerationFailed")]
+        public void RoundEndUsesTheCompletedRoundIdentity(ProgressionPhase from, ProgressionPhase to, ProgressionOperation operation, string outcome)
         {
             bool advances = to == ProgressionPhase.ChooseThreat;
             var rows = presenter.Transaction(Snapshot(from, 4, 12), Snapshot(to, advances ? 5 : 4, 12),
@@ -114,9 +112,53 @@ namespace Worsen.Tests.Telemetry
         public void NonObservationalChangesDoNotInventRows()
         {
             Assert.That(presenter.Transaction(Snapshot(ProgressionPhase.Exploring, 4, 12), Snapshot(ProgressionPhase.Exploring, 4, 12),
-                "RecordHealth", "", 6, null), Is.Empty);
+                ProgressionOperation.RecordHealth, "", 6, null), Is.Empty);
             Assert.That(presenter.Transaction(Snapshot(ProgressionPhase.Generating, 4, 12), Snapshot(ProgressionPhase.Exploring, 4, 12),
-                "ConfirmFloorReady", "", 0, 123), Is.Empty, "Readiness must not duplicate the generation's round start.");
+                ProgressionOperation.ConfirmFloorReady, "", 0, 123), Is.Empty, "Readiness must not duplicate the generation's round start.");
+        }
+
+        [TestCase(ProgressionOperation.StartRun, "StartRun")]
+        [TestCase(ProgressionOperation.ChooseThreat, "ChooseThreat")]
+        [TestCase(ProgressionOperation.ChooseCurse, "ChooseCurse")]
+        [TestCase(ProgressionOperation.TakeBargain, "TakeBargain")]
+        [TestCase(ProgressionOperation.Purchase, "Purchase")]
+        [TestCase(ProgressionOperation.ReservePurchase, "ReservePurchase")]
+        [TestCase(ProgressionOperation.RerollShop, "RerollShop")]
+        [TestCase(ProgressionOperation.RerollSelection, "RerollSelection")]
+        [TestCase(ProgressionOperation.CancelReplacement, "CancelReplacement")]
+        [TestCase(ProgressionOperation.ContinueShop, "ContinueShop")]
+        [TestCase(ProgressionOperation.ConfirmFloorReady, "ConfirmFloorReady")]
+        [TestCase(ProgressionOperation.FailGeneration, "FailGeneration")]
+        [TestCase(ProgressionOperation.CompleteFloor, "CompleteFloor")]
+        [TestCase(ProgressionOperation.RecordGoldenCollected, "RecordGoldenCollected")]
+        [TestCase(ProgressionOperation.TryConsumeWaxWard, "TryConsumeWaxWard")]
+        [TestCase(ProgressionOperation.CycleConsumable, "CycleConsumable")]
+        [TestCase(ProgressionOperation.TryConsumeSelected, "TryConsumeSelected")]
+        [TestCase(ProgressionOperation.TryConsumeExtraLife, "TryConsumeExtraLife")]
+        [TestCase(ProgressionOperation.RecordHealth, "RecordHealth")]
+        [TestCase(ProgressionOperation.EndRun, "EndRun")]
+        [TestCase(ProgressionOperation.ActivateShrine, "ActivateShrine")]
+        public void EveryOperationKeepsLegacyWalletLabelAndChoiceRouting(ProgressionOperation operation, string label)
+        {
+            var rows = presenter.Transaction(Snapshot(ProgressionPhase.Shop, 4, 12), Snapshot(ProgressionPhase.Shop, 4, 10),
+                operation, "exact-id", 81, 12345).ToArray();
+            Assert.That(Cells(rows[0])["wallet_reason"], Is.EqualTo(label));
+            string kind = operation == ProgressionOperation.ChooseThreat ? "Threat" :
+                operation == ProgressionOperation.ChooseCurse ? "Curse" : operation == ProgressionOperation.Purchase ? "Purchase" : null;
+            Assert.That(rows.Length, Is.EqualTo(kind == null ? 1 : 2));
+            Assert.That(rows[0].Kind, Is.EqualTo(TelemetrySampleKind.WalletChanged));
+            if (kind == null) return;
+            Assert.That(rows[1].Kind, Is.EqualTo(TelemetrySampleKind.ProgressionChoice));
+            Assert.That(Cells(rows[1])["choice_kind"], Is.EqualTo(kind));
+            Assert.That(Cells(rows[1])["choice_id"], Is.EqualTo("exact-id"));
+        }
+
+        [Test]
+        public void UnknownOperationCannotWriteAnInventedWalletLabel()
+        {
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => presenter.Transaction(
+                Snapshot(ProgressionPhase.Shop, 4, 12), Snapshot(ProgressionPhase.Shop, 4, 10),
+                (ProgressionOperation)int.MaxValue, "", 81, null).ToArray());
         }
 
         [Test]

@@ -95,7 +95,7 @@ namespace Worsen.Orchestrator
         { _telemetry.BeginSession(metadata); OnEnable(); }
         private void OnCaptureEnded(long tick, bool complete)
         { _telemetry.EndSession(tick, complete); OnEnable(); }
-        private void OnProgression(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choiceId)
+        private void OnProgression(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choiceId)
             => _telemetry.RecordProgression(before, after, operation, choiceId, _run.Tick,
                 ExpeditionSessionManager.Instance != null ? ExpeditionSessionManager.Instance.UsedFallback : (bool?)null,
                 ExpeditionSessionManager.Instance != null ? ExpeditionSessionManager.Instance.LayoutManifest : null);
