@@ -15,7 +15,7 @@
 //   - Retain the injected effect view, torch count multiplier, Wick flag and authoritative flashlight facts, without owning gameplay light rules.
 //   - Retain the run startle count and clock separately from floor resets and optional fog hooks.
 //   - Retain the exact camera, daylight and render values to restore on release.
-//   - Retain owned Lumen effect handles and private profile clones for paired cleanup.
+//   - Retain owned Lumen handles, private profiles and pooled physics buffers for paired cleanup.
 //
 // DEPENDENCIES:
 //   - Core EntityId/RoomPhase; Unity rendering and Lumen references stored without operating on them.
@@ -90,8 +90,8 @@ namespace Worsen.Presentation.Horror
         public LumenEffectPlayer NearFill;
         public LumenEffectPlayer Afterimage;
         public readonly List<LumenEffectProfile> LightProfiles = new List<LumenEffectProfile>();
-        public readonly RaycastHit[] BeamHits = new RaycastHit[32];
-        public readonly Collider[] NearColliders = new Collider[32];
+        public RaycastHit[] BeamHits;
+        public Collider[] NearColliders;
         public float AfterimageRange;
         public float FlashlightRange;
         public float FlashlightBrightness;

@@ -9,6 +9,7 @@
 //   DriverState (§7c) · Domain · Hunter archetype presentation.
 // KEY RESPONSIBILITIES:
 //   - Hold per-instance engine references as passive data only.
+//   - Retain the Driver-rented capsule overlap buffer.
 // DEPENDENCIES:
 //   - Unity renderer and collider reference types.
 // USAGE NOTES:
@@ -21,6 +22,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Stare
     {
         internal Renderer[] Renderers;
         internal Collider[] Colliders;
+        internal Collider[] QueryOverlaps;
         internal bool[] RenderEnabled, ColliderEnabled;
     }
 }

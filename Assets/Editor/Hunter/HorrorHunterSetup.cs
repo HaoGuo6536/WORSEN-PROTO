@@ -201,6 +201,7 @@ namespace Worsen.Editor.Hunter
         {
             var serialized = new SerializedObject(config);
             Required(serialized, "_warningMaterial").objectReferenceValue = warning;
+            Required(serialized, "_fallbackShader").objectReferenceValue = spell.shader;
             Required(serialized, "_projectileMaterial").objectReferenceValue = spell;
             Required(serialized, "_spikeMaterial").objectReferenceValue = thorn;
             Required(serialized, "_projectilePrefab").objectReferenceValue = bolt;

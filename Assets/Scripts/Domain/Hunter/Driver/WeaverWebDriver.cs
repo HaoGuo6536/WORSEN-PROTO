@@ -12,6 +12,7 @@
 //   - Recheck the full warned sweep at launch; never use a visibility ray as proof.
 //   - Permit a kinematic partition crossing only on a verified area-3-only segment.
 //   - Return raw contacts synchronously for immediate Manager identity resolution.
+//   - Reuse pooled physics buffers, growing and retrying saturated queries before consumption.
 // DEPENDENCIES:
 //   - Core Weaver facts carry immutable nest commands from the owning Hunter.
 //   - Own DriverConfig, Hunter motor config, pure presenters and Unity physics/navigation.
@@ -24,6 +25,7 @@
 //   not through arbitrary walls; teardown restores all original local transforms.
 // ============================================================================
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -39,16 +41,17 @@ namespace Worsen.Domain.Hunter
         private readonly HunterSteeringPresenter _route = new HunterSteeringPresenter();
         public bool IsReady => _state != null;
         public float ShotHeight => _config.ShotHeight;
-        private int Mask
-        {
-            get { int gate = LayerMask.NameToLayer("HunterRouteGate"); return gate < 0 ? _motor.CollisionMask : _motor.CollisionMask & ~(1 << gate); }
-        }
+        private int Mask => _state.CollisionMask;
         public void Initialize(WeaverDriverConfig config, HunterMotorDriverConfig motor)
         {
             Teardown();
             _config = config != null ? config : Resources.Load<WeaverDriverConfig>("ScriptableObjects/Domain/Hunter/Archetypes/Weaver/WeaverDriverConfig");
             if (_config == null) throw new InvalidOperationException("Build Weaver profile/configs before spawning it.");
             _motor = motor; _state = new WeaverDriverState { Capsule = GetComponent<CapsuleCollider>() };
+            int gate = LayerMask.NameToLayer("HunterRouteGate");
+            _state.CollisionMask = gate < 0 ? _motor.CollisionMask : _motor.CollisionMask & ~(1 << gate);
+            _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
+            _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.CapsuleCenter = _state.Capsule.center;
             foreach (Transform child in transform)
             { _state.Children.Add(child); _state.ChildPositions.Add(child.localPosition); }
@@ -58,11 +61,19 @@ namespace Worsen.Domain.Hunter
         {
             if (_state == null || radius <= 0f || radius > .1f || (target - origin).sqrMagnitude <= 0f) return false;
             // SphereCast does not report starting overlaps: prove the muzzle too.
-            foreach (Collider overlap in Physics.OverlapSphere(origin, radius, Mask, QueryTriggerInteraction.Ignore))
+            int overlaps = SphereOverlap(origin, radius);
+            for (int i = 0; i < overlaps; i++)
+            {
+                Collider overlap = _state.QueryOverlaps[i];
                 if (!Own(overlap) && (isTarget == null || !isTarget(overlap))) return false;
+            }
             Vector3 delta = target - origin;
-            foreach (RaycastHit hit in Physics.SphereCastAll(origin, radius, delta.normalized, delta.magnitude, Mask, QueryTriggerInteraction.Ignore))
+            int hits = SphereQuery(origin, radius, delta.normalized, delta.magnitude);
+            for (int i = 0; i < hits; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i];
                 if (!Own(hit.collider) && (isTarget == null || !isTarget(hit.collider))) return false;
+            }
             return true;
         }
         public WeaverObservation Probe(Vector3 target, float radius, float range, long tick, Func<Collider, bool> isTarget)
@@ -114,15 +125,23 @@ namespace Worsen.Domain.Hunter
             foreach (WeaverWebDriverState web in _state.Webs)
             {
                 Collider hit = null;
-                foreach (Collider overlap in Physics.OverlapSphere(web.Position, web.Radius, Mask, QueryTriggerInteraction.Ignore))
+                int count = SphereOverlap(web.Position, web.Radius);
+                for (int i = 0; i < count; i++)
+                {
+                    Collider overlap = _state.QueryOverlaps[i];
                     if (!Own(overlap) && (!web.Nest || (isTarget?.Invoke(overlap) ?? false)))
                     { hit = overlap; if (!(isTarget?.Invoke(hit) ?? false)) break; }
+                }
                 float distance = web.Nest ? 0f : Mathf.Min(web.Remaining, web.Speed * dt);
                 if (hit == null && !web.Nest)
                 {
-                    RaycastHit[] hits = Physics.SphereCastAll(web.Position, web.Radius, web.Direction, distance, Mask, QueryTriggerInteraction.Ignore);
-                    Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-                    foreach (RaycastHit candidate in hits) if (!Own(candidate.collider)) { hit = candidate.collider; break; }
+                    count = SphereQuery(web.Position, web.Radius, web.Direction, distance);
+                    SortHits(count);
+                    for (int i = 0; i < count; i++)
+                    {
+                        RaycastHit candidate = _state.QueryHits[i];
+                        if (!Own(candidate.collider)) { hit = candidate.collider; break; }
+                    }
                 }
                 if (hit != null)
                 {
@@ -159,16 +178,63 @@ namespace Worsen.Domain.Hunter
         {
             Vector3 low = floor + Vector3.up * (_motor.Radius + _motor.SkinWidth);
             Vector3 high = floor + Vector3.up * (_motor.Height - _motor.Radius + _motor.SkinWidth);
-            foreach (Collider other in Physics.OverlapCapsule(low, high, Mathf.Max(.001f, _motor.Radius - _motor.SkinWidth), Mask, QueryTriggerInteraction.Ignore))
+            int count = CapsuleOverlap(low, high, Mathf.Max(.001f, _motor.Radius - _motor.SkinWidth));
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = _state.QueryOverlaps[i];
                 if (!Own(other)) return false;
+            }
             return true;
         }
+        private int SphereOverlap(Vector3 origin, float radius)
+        {
+            int count;
+            while ((count = Physics.OverlapSphereNonAlloc(origin, radius, _state.QueryOverlaps, Mask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
+        }
+        private int CapsuleOverlap(Vector3 low, Vector3 high, float radius)
+        {
+            int count;
+            while ((count = Physics.OverlapCapsuleNonAlloc(low, high, radius, _state.QueryOverlaps, Mask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
+        }
+        private int SphereQuery(Vector3 origin, float radius, Vector3 direction, float distance)
+        {
+            int count;
+            while ((count = Physics.SphereCastNonAlloc(origin, radius, direction, _state.QueryHits, distance, Mask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            return count;
+        }
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            T[] larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true); buffer = larger;
+            Debug.LogWarning($"Weaver physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
+        }
+        private void SortHits(int count)
+        {
+            for (int i = 1; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i]; int j = i - 1;
+                while (j >= 0 && (hit.distance < _state.QueryHits[j].distance ||
+                    (hit.distance == _state.QueryHits[j].distance && hit.collider.GetInstanceID() < _state.QueryHits[j].collider.GetInstanceID())))
+                { _state.QueryHits[j + 1] = _state.QueryHits[j]; j--; }
+                _state.QueryHits[j + 1] = hit;
+            }
+        }
+        private void OnDestroy() { Teardown(); }
         public void Teardown()
         {
             if (_state == null) return;
             if (_state.Capsule != null) _state.Capsule.center = _state.CapsuleCenter;
             for (int i = 0; i < _state.Children.Count; i++)
                 if (_state.Children[i] != null) _state.Children[i].localPosition = _state.ChildPositions[i];
+            ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+            ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+            _state.QueryHits = null; _state.QueryOverlaps = null;
             _state = null;
         }
     }

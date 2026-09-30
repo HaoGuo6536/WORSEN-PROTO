@@ -8,6 +8,7 @@
 //   DriverState (§7c) · Domain · Hunter shared swept-shot presentation stack.
 // KEY RESPONSIBILITIES:
 //   - Retain body/visual baselines and bounded projectile/nest records.
+//   - Retain pooled physics buffers and the configured collision mask.
 // DEPENDENCIES:
 //   - UnityEngine passive references and parent-owned sweep values only.
 // USAGE NOTES:
@@ -20,6 +21,9 @@ namespace Worsen.Domain.Hunter
     public sealed class WeaverDriverState
     {
         public CapsuleCollider Capsule;
+        public RaycastHit[] QueryHits;
+        public Collider[] QueryOverlaps;
+        public int CollisionMask;
         public Vector3 CapsuleCenter;
         public readonly List<Transform> Children = new List<Transform>();
         public readonly List<Vector3> ChildPositions = new List<Vector3>();

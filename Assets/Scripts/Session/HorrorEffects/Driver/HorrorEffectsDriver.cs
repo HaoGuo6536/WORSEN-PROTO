@@ -9,18 +9,21 @@
 // KEY RESPONSIBILITIES:
 //   - Sweep throw segments against non-trigger colliders, excluding the thrower.
 //   - Sample an animated humanoid head, or an explicit provisional root offset.
+//   - Reuse complete pooled ray queries stored in the passive DriverState below.
 // DEPENDENCIES:
 //   - Unity physics/animation only; no foreign Controllers, Managers or Registries.
 // USAGE NOTES:
 //   Persistent through HorrorEffectsManager; holds no scene objects across calls.
 //   No independent tunables or global side effects; values arrive as parameters (§7d).
 // ============================================================================
+using System.Buffers;
 using UnityEngine;
 
 namespace Worsen.Session.HorrorEffects
 {
     public sealed class HorrorEffectsDriver : MonoBehaviour
     {
+        private readonly HorrorEffectsDriverState _state = new HorrorEffectsDriverState();
         public Vector3 Head(GameObject actor, float fallbackHeight)
         {
             var animator = actor.GetComponentInChildren<Animator>();
@@ -44,13 +47,42 @@ namespace Worsen.Session.HorrorEffects
             Vector3 delta = to - from;
             float nearest = delta.magnitude;
             if (nearest <= 0f) return false;
-            foreach (var hit in Physics.RaycastAll(from, delta.normalized, nearest, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            int count = RayQuery(from, delta.normalized, nearest);
+            int nearestId = int.MaxValue;
+            for (int i = 0; i < count; i++)
             {
+                RaycastHit hit = _state.QueryHits[i];
                 if (ignored != null && hit.collider.transform.IsChildOf(ignored.transform)) continue;
-                if (hit.distance > nearest) continue;
+                int id = hit.collider.GetInstanceID();
+                if (hit.distance > nearest || (hit.distance == nearest && id >= nearestId)) continue;
+                nearestId = id;
                 nearest = hit.distance; point = hit.point; collider = hit.collider;
             }
             return collider != null;
         }
+        private int RayQuery(Vector3 origin, Vector3 direction, float distance)
+        {
+            if (_state.QueryHits == null) _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
+            int count;
+            while ((count = Physics.RaycastNonAlloc(origin, direction, _state.QueryHits, distance,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+            {
+                int previous = _state.QueryHits.Length;
+                RaycastHit[] larger = ArrayPool<RaycastHit>.Shared.Rent(checked(previous * 2));
+                ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true); _state.QueryHits = larger;
+                Debug.LogWarning($"Horror effects physics query buffer saturated; grew from {previous} to {larger.Length} and retrying.", this);
+            }
+            return count;
+        }
+        private void OnDestroy()
+        {
+            if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+            _state.QueryHits = null;
+        }
+    }
+    // DriverState (§7c) · Session · HorrorEffects. Passive ray-hit storage (no scene references).
+    internal sealed class HorrorEffectsDriverState
+    {
+        public RaycastHit[] QueryHits;
     }
 }
