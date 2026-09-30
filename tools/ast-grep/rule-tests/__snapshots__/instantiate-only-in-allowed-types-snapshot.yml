@@ -1,0 +1,14 @@
+id: instantiate-only-in-allowed-types
+snapshots:
+  class Logic { void Make() { Instantiate(prefab); } }:
+    labels:
+    - source: Instantiate(prefab)
+      style: primary
+      start: 28
+      end: 47
+  class Logic { void Make() { Object.Instantiate(prefab); } }:
+    labels:
+    - source: Object.Instantiate(prefab)
+      style: primary
+      start: 28
+      end: 54

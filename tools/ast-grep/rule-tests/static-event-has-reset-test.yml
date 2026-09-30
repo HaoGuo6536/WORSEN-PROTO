@@ -1,0 +1,6 @@
+id: static-event-has-reset
+valid:
+  - 'class Owner { public event Action Changed; }'
+  - 'class Owner { public static event Action Changed; [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void Reset() { Changed = null; } }'
+invalid:
+  - 'class Owner { public static event Action Changed; }'

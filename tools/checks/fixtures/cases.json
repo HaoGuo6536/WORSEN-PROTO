@@ -1,0 +1,8 @@
+{
+  "header": "// ============================================================================\n// Fixture.cs\n// ============================================================================\n// PURPOSE:\n//   Exercises an offline architecture boundary. The fixture is source text only.\n// ARCHITECTURAL ROLE:\n//   Controller · Session · Alpha\n// KEY RESPONSIBILITIES:\n//   - One\n//   - Two\n//   - Three\n//   - Four\n//   - Five\n//   - Six\n// DEPENDENCIES:\n//   - None\n// USAGE NOTES:\n//   Not imported by Unity.\n// ============================================================================\n",
+  "typeSwitch": "class Example { public bool Check(object x) { if (x is FooConfig) return true; if (x is BarState) return true; return x is BazProfile; } }",
+  "relay": "class ExampleManager { public event Action Changed; private void OnEnable() { source.Changed += Handle; } private void Handle() => Changed?.Invoke(); }",
+  "mixedHandler": "class ExampleManager { public event Action Changed; private void OnEnable() { source.Changed += Handle; } private void Handle() { UpdateState(); Changed?.Invoke(); } }",
+  "literalNoise": "// using Worsen.Session.Bad;\nclass Example { string x = @\"is FooConfig is BarState is BazProfile\"; string y = \"using Worsen.Domain.Foreign;\"; /* public event Action Fake; */ }",
+  "waiverHeading": "## Appendix A — Known Debt (migrate when touched)\n\n| ID | Path | Alarm | Owner | Exit plan | Review by |\n|---|---|---|---|---|---|\n"
+}

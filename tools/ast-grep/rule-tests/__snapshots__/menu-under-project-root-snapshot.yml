@@ -1,0 +1,16 @@
+id: menu-under-project-root
+snapshots:
+  class Tool { [MenuItem("Tools/Test/Run")] static void Run() {} }:
+    labels:
+    - source: MenuItem("Tools/Test/Run")
+      style: primary
+      start: 14
+      end: 40
+    - source: MenuItem
+      style: secondary
+      start: 14
+      end: 22
+    - source: '"Tools/Test/Run"'
+      style: secondary
+      start: 23
+      end: 39

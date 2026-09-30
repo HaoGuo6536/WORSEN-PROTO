@@ -1,0 +1,87 @@
+id: manager-resources-own-config
+language: csharp
+severity: error
+message: "Managers load only their own Config/Profile; foreign assets belong to their owner (§1, §4, §10; A2)."
+files:
+  - "Assets/Scripts/**/Manager/*.cs"
+ignores:
+  - "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs" # debt: SPEC-001 Appendix A
+# Fail-closed ownership allowlist, derived from Config declarations (not call sites).
+# New systems/types must extend the matching namespace/type pair with a test.
+rule:
+  kind: invocation_expression
+  regex: '^(?:UnityEngine\s*\.\s*)?Resources\s*\.\s*Load\b'
+  not:
+    any:
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Session\.Settings\.)?SettingsConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Session\.Settings\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Session\.Progression\.(?:Shop\.)?)?(ProgressionConfig|ProgressionEntryConfig|EffectCatalogueConfig|ShrineProgressionConfig|ShopConfig)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Session\.Progression\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Session\.HorrorEffects\.)?HorrorEffectsConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Session\.HorrorEffects\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Session\.Expedition\.)?ExpeditionSpawnDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Session\.Expedition\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Audio\.)?(AudioDriverConfig|AudioSoundscapeDriverConfig)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Audio\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Camera\.)?CameraDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Camera\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.DebugOverlay\.)?DebugOverlayDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.DebugOverlay\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Environment\.)?EnvironmentDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Environment\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Fog\.)?(FogDriverConfig|FogSpikeProfile)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Fog\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Horror\.)?HorrorDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Horror\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.HUD\.)?HUDDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.HUD\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Input\.)?InputDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Input\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Menu\.)?MenuDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Menu\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.PostFX\.)?PostFXDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.PostFX\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.ProgressionUI\.)?ProgressionUIDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.ProgressionUI\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Results\.)?ResultsDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Results\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Presentation\.Telemetry\.)?TelemetryDriverConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Presentation\.Telemetry\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Chase\.)?ChaseConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Chase\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Director\.)?DirectorConfig\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Director\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Floor\.)?(FloorConfig|FloorDriverConfig)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Floor\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Hunter\.(?:Archetypes\.\w+\.)?)?(HunterAnimationDriverConfig|HunterArchetypeConfig|HunterAttackDriverConfig|HunterMotorDriverConfig|HunterProfile|WeaverConfig|WeaverDriverConfig|TickingConfig|TickingDriverConfig|SkipConfig|RamConfig|MimicConfig|HeraldConfig|EchoConfig|BlinderConfig)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Hunter\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Player\.)?(PlayerEffectConfig|PlayerMoverDriverConfig|PlayerProfile)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Player\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Procedural\.)?(ProceduralChallengeConfig|ProceduralConfig|ProceduralDriverConfig|ProceduralThemeConfig)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Procedural\b', stopBy: end}
+      - all:
+          - regex: '^(?:UnityEngine\.)?Resources\s*\.\s*Load\s*<\s*(?:Worsen\.Domain\.Shrine\.)?(ShrineConfig|ShrineDriverConfig)\s*>\s*\('
+          - inside: {kind: namespace_declaration, regex: '^namespace Worsen\.Domain\.Shrine\b', stopBy: end}
