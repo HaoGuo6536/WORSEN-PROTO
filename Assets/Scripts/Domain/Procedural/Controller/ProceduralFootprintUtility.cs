@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Utility (§2b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Expand module cells into volumes and validate required versus optional space.
+//   - Expand module cells into volumes, preserve pocket flags and validate required space.
 // DEPENDENCIES:
 //   - Core graph values and own layout definitions; no engine calls or siblings.
 // USAGE NOTES:
@@ -31,7 +31,7 @@ namespace Worsen.Domain.Procedural
             if (module.Cells == null || module.Cells.Count == 0) return new[] { room };
             return module.Cells.Select(c => new LevelRoom(room.Id,
                 new Vector3(layout.Origin.x + c.x * layout.CellSize, room.Center.y, layout.Origin.y + c.y * layout.CellSize),
-                new Vector3(layout.CellSize, room.Size.y, layout.CellSize))).ToArray();
+                new Vector3(layout.CellSize, room.Size.y, layout.CellSize), pocket: room.Pocket)).ToArray();
         }
 
         public static LevelRoom At(ProceduralLayout layout, Vector3 position)
