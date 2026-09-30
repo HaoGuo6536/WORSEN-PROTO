@@ -28,6 +28,8 @@
 //   permutes all ordinary rooms, deferring the occupied shortest routes until vacated.
 //   Unknown occupancy defers collapse, never guesses a safe route. Wax Heart is one charge per floor.
 //   ContactExit ignores locked contact regardless of elapsed time.
+//   Tick scratch retains capacity; returned facts remain independent snapshots.
+//   Pocket ordering is start time then room id, matching the former LINQ order.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -44,6 +46,17 @@ namespace Worsen.Domain.Floor
         private readonly FloorBehaviorState _state;
         private readonly FloorConfig _config;
         private readonly System.Random _random;
+        private readonly List<RoomPhaseChangedFact> _phaseFacts = new List<RoomPhaseChangedFact>();
+        private readonly List<KeyValuePair<int, double>> _orderedPockets = new List<KeyValuePair<int, double>>();
+        private readonly List<FloorTrapSpawn> _trapTicks = new List<FloorTrapSpawn>();
+        private readonly List<GuidanceTarget> _guidanceTargets = new List<GuidanceTarget>();
+        private readonly FloorCollapseBehaviorState _escape = new FloorCollapseBehaviorState();
+        private static readonly RoomPhase[] PocketPhases = { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed };
+        private static readonly Comparison<KeyValuePair<int, double>> PocketOrder = (a, b) =>
+        {
+            int order = a.Value.CompareTo(b.Value);
+            return order != 0 ? order : a.Key.CompareTo(b.Key);
+        };
         public FloorController(FloorBehaviorState state, FloorConfig config, System.Random random)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
@@ -262,14 +275,14 @@ namespace Worsen.Domain.Floor
         public IReadOnlyList<RoomPhaseChangedFact> Tick(float dt, long tick)
         {
             if (!Finite(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
-            var facts = new List<RoomPhaseChangedFact>();
-            if (!_state.IsReady || _state.Ended) return facts;
+            var facts = _phaseFacts; facts.Clear();
+            if (!_state.IsReady || _state.Ended) return Array.Empty<RoomPhaseChangedFact>();
             _state.Tick = tick;
             _state.Elapsed += dt;
             _state.CueElapsed += dt;
             float collapseDt = dt * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
             if (_state.CollapseStarted) _state.CollapseElapsed += collapseDt;
-            var protectedRooms = _state.RouteSafeCollapse ? FloorCollapseUtility.EscapeRooms(_state.Graph, _state.RoomPhases, _state.Players) : null;
+            var protectedRooms = _state.RouteSafeCollapse ? FloorCollapseUtility.EscapeRooms(_state.Graph, _state.RoomPhases, _state.Players, _escape) : null;
             if (_state.RouteSafeCollapse && _state.NextTransition < _state.Schedule.Count &&
                 protectedRooms.Contains(_state.Schedule[_state.NextTransition].RoomId))
             {
@@ -291,24 +304,29 @@ namespace Worsen.Domain.Floor
                 var transition = _state.Schedule[_state.NextTransition++];
                 ApplyTransition(transition.RoomId, transition.Phase, tick, facts);
             }
-            foreach (var pocket in _state.PocketStarts.OrderBy(pair => pair.Value).ThenBy(pair => pair.Key).ToArray())
+            _orderedPockets.Clear();
+            foreach (var pocket in _state.PocketStarts) _orderedPockets.Add(pocket);
+            _orderedPockets.Sort(PocketOrder);
+            foreach (var pocket in _orderedPockets)
             {
                 if (protectedRooms != null && protectedRooms.Contains(pocket.Key))
                 { _state.PocketStarts[pocket.Key] += dt; continue; }
                 double age = (_state.Elapsed - pocket.Value) * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
-                var phases = new[] { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed };
-                double[] thresholds = { 0d, _config.TelegraphDuration, _config.TelegraphDuration + _config.TearingDuration,
-                    _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration };
-                int completed = Array.IndexOf(phases, _state.MutableRoomPhases[pocket.Key]);
-                for (int i = 0; i < phases.Length; i++)
-                    if (age >= thresholds[i] && completed < i)
+                int completed = Array.IndexOf(PocketPhases, _state.MutableRoomPhases[pocket.Key]);
+                for (int i = 0; i < PocketPhases.Length; i++)
+                {
+                    double threshold = i == 0 ? 0d : i == 1 ? _config.TelegraphDuration : i == 2 ?
+                        _config.TelegraphDuration + _config.TearingDuration :
+                        _config.TelegraphDuration + _config.TearingDuration + _config.EncroachingDuration;
+                    if (age >= threshold && completed < i)
                     {
-                        ApplyTransition(pocket.Key, phases[i], tick, facts);
+                        ApplyTransition(pocket.Key, PocketPhases[i], tick, facts);
                         completed = i;
                     }
+                }
             }
             UpdateExitLock();
-            return facts;
+            return Snapshot(facts);
         }
 
         public bool ActivatePocket(int roomId)
@@ -322,7 +340,9 @@ namespace Worsen.Domain.Floor
 
         private void ScheduleShuffledRoom(HashSet<int> protectedRooms)
         {
-            int index = _state.PendingCollapseRooms.FindIndex(room => !protectedRooms.Contains(room));
+            int index = -1;
+            for (int i = 0; i < _state.PendingCollapseRooms.Count; i++)
+                if (!protectedRooms.Contains(_state.PendingCollapseRooms[i])) { index = i; break; }
             if (index < 0)
             { _state.NextShuffledStart = _state.CollapseElapsed; return; }
             int roomId = _state.PendingCollapseRooms[index];
@@ -341,8 +361,8 @@ namespace Worsen.Domain.Floor
         {
             _state.MutableRoomPhases[roomId] = phase;
             if (phase == RoomPhase.Closed)
-                foreach (var anchor in _state.SpawnedAnchors.Where(value => value.RoomId == roomId))
-                    if (_state.RemainingRewards.TryGetValue(anchor.Id, out var kind))
+                foreach (var anchor in _state.SpawnedAnchors)
+                    if (anchor.RoomId == roomId && _state.RemainingRewards.TryGetValue(anchor.Id, out var kind))
                     {
                         _state.RemainingRewards.Remove(anchor.Id);
                         _state.CakeLosses.Add(new FloorCakeLoss(anchor.Id, anchor.RoomId, kind, tick));
@@ -352,7 +372,7 @@ namespace Worsen.Domain.Floor
 
         public IReadOnlyList<FloorCakeLoss> DrainCakeLosses()
         {
-            var facts = _state.CakeLosses.ToArray();
+            var facts = Snapshot(_state.CakeLosses);
             _state.CakeLosses.Clear();
             return facts;
         }
@@ -371,9 +391,10 @@ namespace Worsen.Domain.Floor
             float nearest = float.PositiveInfinity;
             int nearestId = int.MaxValue;
             if (_state.IsReady && !_state.Ended && !_state.CakeHooks.BlindFaith && paths != null)
-            foreach (var path in paths)
+            for (int p = 0; p < paths.Count; p++)
             {
-                bool wanted = _state.CollapseStarted ? path.AnchorId == 0 : _state.MutableActiveAnchors.Any(anchor => anchor.Id == path.AnchorId);
+                var path = paths[p];
+                bool wanted = _state.CollapseStarted ? path.AnchorId == 0 : HasAnchor(_state.MutableActiveAnchors, path.AnchorId);
                 if (!wanted || !Finite(path.Length) || path.Length < 0f || !Finite(path.Direction.x) || !Finite(path.Direction.y) || !Finite(path.Direction.z)) continue;
                 if (path.Length > nearest || path.Length == nearest && path.AnchorId >= nearestId) continue;
                 nearest = path.Length; nearestId = path.AnchorId; available = true; direction = path.Direction;
@@ -441,10 +462,22 @@ namespace Worsen.Domain.Floor
                 warning ? (float)(cycles - Math.Floor(cycles)) : 0f);
         }
 
-        public IReadOnlyPlayerState CuePlayer() => _state.Players.Where(player => player != null && player.IsAlive).OrderBy(player => player.Id.Value).FirstOrDefault();
+        public IReadOnlyPlayerState CuePlayer()
+        {
+            IReadOnlyPlayerState selected = null;
+            for (int i = 0; i < _state.Players.Count; i++)
+            {
+                var player = _state.Players[i];
+                if (player != null && player.IsAlive && (selected == null || player.Id.Value < selected.Id.Value)) selected = player;
+            }
+            return selected;
+        }
 
         public void Reset()
         {
+            _phaseFacts.Clear(); _orderedPockets.Clear(); _trapTicks.Clear(); _guidanceTargets.Clear();
+            _escape.Graph = null; _escape.Next.Clear(); _escape.Previous.Clear();
+            _escape.Distance.Clear(); _escape.Queue.Clear(); _escape.Occupied.Clear(); _escape.ProtectedRooms.Clear();
             _state.MutableTraps.Clear(); _state.SprungTraps.Clear(); _state.GoldenAnchors.Clear();
             _state.BonusGoldenAnchors.Clear(); _state.TotalCakes = 0; _state.TotalGoldenCakes = 0;
             _state.PuzzleRewards.Clear(); _state.UnlockedPuzzleRewards.Clear(); _state.RouteSafeCollapse = false;
@@ -501,18 +534,22 @@ namespace Worsen.Domain.Floor
         public IReadOnlyList<FloorTrapSpawn> TickTraps(float dt)
         {
             if (!Finite(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
-            if (!_state.IsReady || _state.Ended || _state.CakeHooks.SilentTraps ||
-                _state.BlinderPolicies.Values.Any(p => p.SilentTraps)) return Array.Empty<FloorTrapSpawn>();
+            if (!_state.IsReady || _state.Ended || _state.CakeHooks.SilentTraps) return Array.Empty<FloorTrapSpawn>();
+            foreach (var policy in _state.BlinderPolicies.Values)
+                if (policy.SilentTraps) return Array.Empty<FloorTrapSpawn>();
             _state.TrapTickElapsed += dt;
             if (_state.TrapTickElapsed < _config.TrapTickInterval) return Array.Empty<FloorTrapSpawn>();
             _state.TrapTickElapsed %= _config.TrapTickInterval;
-            return _state.MutableTraps.Where(t => t.Kind == FloorTrapKind.Blind && !_state.SprungTraps.Contains(t.Anchor.Id) &&
-                _state.MutableRoomPhases[t.Anchor.RoomId] != RoomPhase.Closed).ToArray();
+            _trapTicks.Clear();
+            foreach (var trap in _state.MutableTraps)
+                if (trap.Kind == FloorTrapKind.Blind && !_state.SprungTraps.Contains(trap.Anchor.Id) &&
+                    _state.MutableRoomPhases[trap.Anchor.RoomId] != RoomPhase.Closed) _trapTicks.Add(trap);
+            return Snapshot(_trapTicks);
         }
 
         public IReadOnlyList<GuidanceTarget> GuidanceTargets(bool whiteFallback, GuidanceTarget? golden = null)
         {
-            var targets = new List<GuidanceTarget>();
+            var targets = _guidanceTargets; targets.Clear();
             if (TryWhiteGuidance(whiteFallback, out var white)) targets.Add(white);
             if (_state.IsReady && !_state.Ended && !_state.CakeHooks.BlindFaith && golden.HasValue)
                 targets.Add(golden.Value);
@@ -521,7 +558,7 @@ namespace Worsen.Domain.Floor
                 (_state.ActiveEffects?.Has(new EffectId("exit-sense")) ?? false))
                 targets.Add(new GuidanceTarget(GuidanceKind.ExitThroughWalls,
                     (_state.Graph.ExitPosition - player.Position).normalized, _state.Graph.ExitPosition));
-            return targets.AsReadOnly();
+            return targets.Count == 0 ? Array.Empty<GuidanceTarget>() : Array.AsReadOnly(targets.ToArray());
         }
 
         public void SetActiveEffects(IReadOnlyActiveEffects effects) => _state.ActiveEffects = effects;
@@ -561,8 +598,14 @@ namespace Worsen.Domain.Floor
             target = default;
             if (!_state.IsReady || _state.Ended || _state.CakeHooks.BlindFaith || _state.CueAnchorId < 0) return false;
             int id = _state.CueAnchorId;
-            if (id != 0 && !_state.MutableActiveAnchors.Any(a => a.Id == id)) return false;
-            var position = id == 0 ? _state.Graph.ExitPosition : _state.MutableActiveAnchors.First(a => a.Id == id).Position;
+            var position = _state.Graph.ExitPosition;
+            if (id != 0)
+            {
+                bool found = false;
+                foreach (var anchor in _state.MutableActiveAnchors)
+                    if (anchor.Id == id) { position = anchor.Position; found = true; break; }
+                if (!found) return false;
+            }
             target = new GuidanceTarget(GuidanceKind.WhiteArrow, _state.Display.CueDirection, position, id, isFallback: fallback);
             return true;
         }
@@ -571,25 +614,46 @@ namespace Worsen.Domain.Floor
         {
             anchor = default;
             if (!_state.IsReady || _state.Ended || !_state.CakeHooks.GoldenSense || _state.CakeHooks.BlindFaith) return false;
-            anchor = _state.GoldenAnchors.Where(a => _state.RemainingRewards.TryGetValue(a.Id, out var kind) && kind == PickupKind.GoldenCake)
-                .OrderBy(a => (a.Position - from).sqrMagnitude).ThenBy(a => a.Id).FirstOrDefault();
+            bool found = false;
+            float nearest = 0f;
+            foreach (var candidate in _state.GoldenAnchors)
+            {
+                if (!_state.RemainingRewards.TryGetValue(candidate.Id, out var kind) || kind != PickupKind.GoldenCake) continue;
+                float distance = (candidate.Position - from).sqrMagnitude;
+                int order = distance.CompareTo(nearest); // Match LINQ's float comparer, including NaN.
+                if (found && (order > 0 || order == 0 && candidate.Id >= anchor.Id)) continue;
+                anchor = candidate; nearest = distance; found = true;
+            }
             return anchor.Id != 0;
         }
 
         private void UpdateExitLock()
         {
             if (!_state.CollapseStarted || _state.ExitState == ExitState.Open) return;
-            int possible = _state.GoldenAnchors.Count(anchor => !OptionalGold(anchor.Id) &&
-                _state.MutableRoomPhases[anchor.RoomId] != RoomPhase.Closed);
-            int collected = _state.CollectedGoldenCakes.Count(id => !OptionalGold(id));
+            int possible = 0;
+            bool anyOriginal = false;
+            foreach (var anchor in _state.GoldenAnchors)
+            {
+                if (OptionalGold(anchor.Id)) continue;
+                anyOriginal = true;
+                if (_state.MutableRoomPhases[anchor.RoomId] != RoomPhase.Closed) possible++;
+            }
+            int collected = 0;
+            foreach (int id in _state.CollectedGoldenCakes) if (!OptionalGold(id)) collected++;
             // A closed room removes its original gold even if that gold was collected.
             // Pickup credit never shrinks. Zero collected waits for completed collapse.
             bool quota = collected > 0 && collected >= Mathf.CeilToInt(possible * _config.GreedyDoorShare);
-            if (!_state.CakeHooks.GreedyDoor || !_state.GoldenAnchors.Any(a => !OptionalGold(a.Id)) || quota ||
+            if (!_state.CakeHooks.GreedyDoor || !anyOriginal || quota ||
                 (_state.PendingCollapseRooms.Count == 0 && _state.NextTransition == _state.Schedule.Count))
             { _state.ExitState = ExitState.Open; }
         }
         private bool OptionalGold(int id) => _state.UnlockedPuzzleRewards.Contains(id) || _state.PassageRewards.Contains(id);
+        private static T[] Snapshot<T>(List<T> values) => values.Count == 0 ? Array.Empty<T>() : values.ToArray();
+        private static bool HasAnchor(List<LevelAnchor> anchors, int id)
+        {
+            foreach (var anchor in anchors) if (anchor.Id == id) return true;
+            return false;
+        }
         private void PlanBonusGold(int count, HashSet<int> reachable, IReadOnlyDictionary<int, int> distances)
         {
             var unused = _state.Graph.Anchors.Where(a => reachable.Contains(a.RoomId) && distances[a.RoomId] >= 0 &&
