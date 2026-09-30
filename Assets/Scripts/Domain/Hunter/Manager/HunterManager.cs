@@ -17,6 +17,7 @@
 // USAGE NOTES:
 //   Scene-owned entity; Session is sole tick owner. Subscriptions pair OnEnable/OnDisable.
 //   PLAN-014 stall payload stays Hunter-local pending coordinator-owned Core telemetry.
+//   A Stalk reveal hold (HoldPosition) uses the motor's stopped input to discard inertia.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -103,7 +104,8 @@ namespace Worsen.Domain.Hunter
             if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
                 _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
             _driver.Move(result.Target, result.Speed, _profile.Acceleration, _profile.TurnRate, dt,
-                !reactionValid || !_state.IsActive || result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
+                !reactionValid || !_state.IsActive || result.HoldPosition ||
+                    result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
                     (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
                 result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
