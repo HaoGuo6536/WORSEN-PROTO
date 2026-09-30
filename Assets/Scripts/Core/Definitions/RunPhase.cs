@@ -12,19 +12,21 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Provide the run phase payload published by the Session Manager.
-//   - Reserve the planned floor-loop phases without implementing their gameplay.
+//   - Name the active floor-loop phases without implementing their gameplay.
 //
 // DEPENDENCIES:
 //   - None; this enum has no engine or project-layer dependencies.
 //
 // USAGE NOTES:
-//   Boot is the default and does not tick. M0 reaches FirstSweep after a scene
-//   readiness hand-off; later milestones supply the exit and collapse facts.
+//   Boot is the default and does not tick. Scene readiness begins FirstSweep;
+//   Session routes floor exit-open and collapse facts into the corresponding
+//   phases, and a committed escape or death ends the run.
 //
 // ============================================================================
 
 namespace Worsen.Core
 {
+    /// <summary>The public stages advanced by committed scene, floor and run facts.</summary>
     public enum RunPhase
     {
         Boot = 0,
