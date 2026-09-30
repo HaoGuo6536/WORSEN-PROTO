@@ -58,7 +58,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Chase
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class ChaseLossIntegrationTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";

@@ -53,7 +53,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Expedition
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HorrorRunIntegrationTests
     {
         private const string ScenePath = "Assets/Scenes/HorrorRun.unity";

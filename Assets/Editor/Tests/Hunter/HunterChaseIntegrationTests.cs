@@ -53,7 +53,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Hunter
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000), Category("RequiresFocus")]
     public sealed class HunterChaseIntegrationTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";

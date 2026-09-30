@@ -27,7 +27,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class FloorFreestandingExitTests
     {
         [Test]

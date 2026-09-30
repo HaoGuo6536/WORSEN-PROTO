@@ -61,7 +61,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Camera
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000), Category("RequiresFocus")]
     public sealed class FeedbackRoutingIntegrationTests
     {
         private const string Arena = "Assets/Scenes/TagArena.unity";

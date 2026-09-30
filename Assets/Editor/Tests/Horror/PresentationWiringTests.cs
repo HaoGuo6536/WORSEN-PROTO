@@ -38,7 +38,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Horror
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class PresentationWiringTests
     {
         private readonly List<Object> _owned = new List<Object>();

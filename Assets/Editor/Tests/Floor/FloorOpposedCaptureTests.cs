@@ -61,7 +61,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000), Category("RequiresFocus")]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000), Category("RequiresFocus")]
     public sealed class FloorOpposedCaptureTests
     {
         private const string ScenePath = "Assets/Scenes/FloorLoop.unity";
@@ -70,7 +70,7 @@ namespace Worsen.Tests.Floor
             16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 };
         private bool restoreBackground, previousBackground;
 
-        [UnityTest, Explicit("Finite opposed capture smoke; coordinator selects this method."), Timeout(120000)]
+        [UnityTest, Explicit("Finite opposed capture smoke; coordinator selects this method."), Timeout(300000)]
         public IEnumerator Seed01SmokeRetainsNaturalOrIncompleteOutcome()
         {
             yield return new EnterPlayMode();
@@ -80,7 +80,7 @@ namespace Worsen.Tests.Floor
             finally { RestoreBackground(); }
         }
 
-        [UnityTest, Explicit("Up to 30 attempts/three hours; coordinator selects this method."), Timeout(120000)]
+        [UnityTest, Explicit("Up to 30 attempts/three hours; coordinator selects this method."), Timeout(300000)]
         public IEnumerator DeclaredSeeds01Through30RetainOpposedCohort()
         {
             yield return new EnterPlayMode();

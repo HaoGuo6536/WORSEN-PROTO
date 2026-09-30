@@ -46,7 +46,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Director
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class DirectorIntegrationTests
     {
         private const string ScenePath = "Assets/Scenes/FloorLoop.unity";

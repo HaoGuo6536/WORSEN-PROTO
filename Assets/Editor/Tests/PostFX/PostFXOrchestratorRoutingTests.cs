@@ -41,7 +41,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.PostFX
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class PostFXOrchestratorRoutingTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

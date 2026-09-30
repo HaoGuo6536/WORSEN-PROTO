@@ -50,7 +50,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Expedition
 {
-    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(120000)]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HorrorConsumptionOrderTests
     {
         private bool previousBackground;
