@@ -16,6 +16,8 @@
 //   - Publish enclosed room volumes with higher ceilings for broad gallery spaces.
 //   - Start each castle floor in its exit hub with a clear approach to the center door.
 //   - Enforce reusable first-contact validation and record deterministic distance relaxation.
+//   - Reserve gaps before growth; separate optional pocket anchors from required candidates.
+//   - Keep the initial hub/loop single-cell; weight subsequent rooms without size fallback.
 // DEPENDENCIES:
 //   - Core immutable level contracts and LevelGraphUtility; no Domain siblings.
 // USAGE NOTES:
@@ -54,12 +56,15 @@ namespace Worsen.Domain.Procedural
             ValidateConfig(roundIndex);
             if (!Finite(optionalWindowMultiplier) || optionalWindowMultiplier < 0f || optionalWindowMultiplier > 1f)
                 throw new ArgumentOutOfRangeException(nameof(optionalWindowMultiplier));
-            var cells = GrowCells(RoomCount(roundIndex));
+            int connectedCount = RoomCount(roundIndex);
+            var footprints = GrowCells(connectedCount, roundIndex, out var gaps);
             float height = _config.CastleModules ? _config.CastleHeight : _config.RoomHeight;
-            var rooms = cells.Select((cell, index) => new LevelRoom(index + 1,
-                new Vector3(_config.Origin.x + cell.x * _config.RoomSize, height * 0.5f, _config.Origin.y + cell.y * _config.RoomSize),
-                new Vector3(_config.RoomSize, height, _config.RoomSize))).ToArray();
-            var doors = CreateDoors(cells, optionalWindowMultiplier);
+            var rooms = footprints.Select((cells, index) => new LevelRoom(index + 1,
+                new Vector3(_config.Origin.x + (cells.Min(c => c.x) + cells.Max(c => c.x)) * _config.RoomSize * 0.5f,
+                    height * 0.5f, _config.Origin.y + (cells.Min(c => c.y) + cells.Max(c => c.y)) * _config.RoomSize * 0.5f),
+                new Vector3((cells.Max(c => c.x) - cells.Min(c => c.x) + 1) * _config.RoomSize, height,
+                    (cells.Max(c => c.y) - cells.Min(c => c.y) + 1) * _config.RoomSize))).ToArray();
+            var doors = CreateDoors(footprints, connectedCount, optionalWindowMultiplier);
             var edges = doors.Select((door, index) => new LevelEdge(1001 + index,
                 door.FromRoomId, door.ToRoomId, true, door.IsOptional ? TraversalAccess.Player : TraversalAccess.All)).ToArray();
             int familyOffset = _random.Next(5);
@@ -67,7 +72,8 @@ namespace Worsen.Domain.Procedural
                 !_config.CastleModules ? (ProceduralModuleKind)((room.Id - 1) % 3) :
                 merchantRefuge ? ProceduralModuleKind.MerchantRefuge : room.Id == 1 ? ProceduralModuleKind.ExitHub :
                 (ProceduralModuleKind)((int)ProceduralModuleKind.TorchGallery + (room.Id - 2 + familyOffset) % 5),
-                _random.Next(2) == 0)).ToArray();
+                _random.Next(2) == 0, Array.AsReadOnly(footprints[room.Id - 1].ToArray()),
+                room.Id > connectedCount ? 1 : 0)).ToArray();
             if (_config.CastleModules)
                 foreach (var module in modules)
                 {
@@ -77,14 +83,17 @@ namespace Worsen.Domain.Procedural
                         new Vector3(room.Center.x, _config.HighCeilingHeight * 0.5f, room.Center.z),
                         new Vector3(room.Size.x, _config.HighCeilingHeight, room.Size.z));
                 }
-            var anchors = CreateAnchors(rooms, modules, doors);
+            var allAnchors = CreateAnchors(rooms, modules, doors);
+            var anchors = allAnchors.Where(a => a.RoomId <= connectedCount).ToArray();
             var preliminary = LevelGraphUtility.Build(rooms, edges, anchors, rooms[0].Id, Ground(rooms[0].Center));
             var distances = LevelGraphUtility.TopologicalDistancesFrom(preliminary, rooms[0].Id, TraversalAccess.Player);
-            var ordered = rooms.OrderByDescending(room => distances[room.Id]).ThenBy(room => room.Id).ToArray();
+            var ordered = rooms.Take(connectedCount).OrderByDescending(room => distances[room.Id]).ThenBy(room => room.Id).ToArray();
             var exit = _config.CastleModules ? rooms[0] : ordered[0];
             var graph = LevelGraphUtility.Build(rooms, edges, anchors, exit.Id,
                 _config.CastleModules ? Ground(exit.Center) : Approach(exit, modules[exit.Id - 1], 1f));
-            ValidateGraph(graph);
+            ValidateGraph(LevelGraphUtility.Build(rooms.Take(connectedCount).ToArray(),
+                edges.Where(e => e.FromRoomId <= connectedCount && e.ToRoomId <= connectedCount).ToArray(),
+                anchors, exit.Id, graph.ExitPosition));
             int spawnIndex = _config.CastleModules ? exit.Id - 1 : 0;
             var spawnRoom = rooms[spawnIndex];
             var layout = new ProceduralLayout
@@ -92,18 +101,26 @@ namespace Worsen.Domain.Procedural
                 Seed = runSeed,
                 RoundIndex = roundIndex,
                 Graph = graph,
-                Cells = Array.AsReadOnly(cells.ToArray()),
+                Cells = Array.AsReadOnly(footprints.SelectMany(c => c).ToArray()),
+                CellSize = _config.RoomSize,
+                Origin = _config.Origin,
+                GapCells = Array.AsReadOnly(gaps.ToArray()),
+                PocketAnchors = Array.AsReadOnly(allAnchors.Where(a => a.RoomId > connectedCount).ToArray()),
                 Doors = Array.AsReadOnly(doors.ToArray()),
                 Modules = Array.AsReadOnly(modules),
                 PlayerSpawnPosition = PlayerApproach(spawnRoom, modules[spawnIndex]),
                 PlayerSpawnRotation = Quaternion.LookRotation(modules[spawnIndex].AlongX ? Vector3.forward : Vector3.right, Vector3.up),
                 HunterSpawnPositions = Array.Empty<Vector3>()
             };
+            layout.GapSites = GapSites(layout);
+            layout.Manifest = Manifest(layout);
+            _state.Layout = layout; // Retain failed candidates for the existing retry journal.
             layout.HunterSpawnPositions = ProceduralSpawnUtility.Select(layout, _config,
                 ordered.Select(room => Approach(room, modules[room.Id - 1], 1f)).ToArray(),
                 out int minimumRooms, out string spawnReport);
             layout.MinimumHunterSpawnRooms = minimumRooms;
             layout.SpawnValidationReport = spawnReport;
+            ProceduralFootprintUtility.Validate(layout);
             layout.PresentationRooms = DescribeRooms(layout, spawnRoom.Id);
             layout.Manifest = Manifest(layout);
             _state.Layout = layout;
@@ -116,7 +133,7 @@ namespace Worsen.Domain.Procedural
         private int RoomCount(int roundIndex) => (int)Math.Min(_config.MaximumRoomCount,
             _config.InitialRoomCount + (long)(roundIndex - 1) * _config.RoomsPerRound);
 
-        private List<Vector2Int> GrowCells(int count)
+        private List<List<Vector2Int>> GrowCells(int count, int round, out List<Vector2Int> gaps)
         {
             int orientation = _random.Next(4);
             var cells = new List<Vector2Int>
@@ -128,38 +145,78 @@ namespace Worsen.Domain.Procedural
                 cells = new List<Vector2Int> { Vector2Int.zero, Rotate(Vector2Int.right, orientation),
                     Rotate(Vector2Int.up, orientation), Rotate(Vector2Int.left, orientation),
                     Rotate(Vector2Int.down, orientation), Rotate(new Vector2Int(1, 1), orientation) };
+            var footprints = cells.Select(c => new List<Vector2Int> { c }).ToList();
+            gaps = new List<Vector2Int>();
+            var pockets = new List<Vector2Int>();
+            if (round >= _config.GapStartRound && _random.NextDouble() < _config.GapProbability)
+            {
+                // Missing diagonal touches two core rooms in castle mode. Its outward
+                // continuation separates a collapsed wing, never a required route.
+                int length = _random.Next(1, _config.MaximumGapCells + 1);
+                int gapX = _config.CastleModules ? -1 : 0;
+                for (int i = 1; i <= length; i++) gaps.Add(Rotate(new Vector2Int(gapX, -i), orientation));
+                if (_random.NextDouble() < _config.PocketProbability)
+                    for (int i = 1; i <= _config.PocketRoomCount; i++)
+                        pockets.Add(Rotate(new Vector2Int(gapX, -length - i), orientation));
+            }
+            var reserved = new HashSet<Vector2Int>(gaps.Concat(pockets));
+            foreach (var pocket in pockets)
+            foreach (var direction in CardinalDirections()) reserved.Add(pocket + direction);
             var occupied = new HashSet<Vector2Int>(cells);
-            while (cells.Count < count)
+            while (footprints.Count < count)
             {
                 var frontier = new HashSet<Vector2Int>();
-                foreach (var cell in cells)
+                foreach (var cell in occupied)
                 foreach (var direction in CardinalDirections())
                 {
                     var candidate = cell + direction;
-                    if (!occupied.Contains(candidate)) frontier.Add(candidate);
+                    if (!occupied.Contains(candidate) && !reserved.Contains(candidate)) frontier.Add(candidate);
                 }
-                var candidates = frontier.OrderBy(cell => cell.x).ThenBy(cell => cell.y).ToArray();
-                if (candidates.Length == 0) throw new InvalidOperationException("Procedural growth exhausted its frontier.");
-                var next = candidates[_random.Next(candidates.Length)];
-                cells.Add(next);
-                occupied.Add(next);
+                double roll = round < _config.MultiCellStartRound ? -1d : _random.NextDouble() *
+                    (_config.OneCellWeight + _config.TwoCellWeight + _config.ThreeCellWeight);
+                int size = roll < _config.OneCellWeight ? 1 : roll < _config.OneCellWeight + _config.TwoCellWeight ? 2 : 3;
+                bool bent = size == 3 && _random.NextDouble() < _config.LShapeWeight;
+                var shape = Enumerable.Range(0, size).Select(i => bent && i == 2 ? Vector2Int.up : new Vector2Int(i, 0)).ToArray();
+                var candidates = new List<List<Vector2Int>>();
+                foreach (var origin in frontier.OrderBy(c => c.x).ThenBy(c => c.y))
+                for (int turns = 0; turns < 4; turns++)
+                {
+                    var next = shape.Select(c => origin + Rotate(c, turns)).ToList();
+                    var envelope = new List<Vector2Int>();
+                    for (int x = next.Min(c => c.x); x <= next.Max(c => c.x); x++)
+                    for (int y = next.Min(c => c.y); y <= next.Max(c => c.y); y++) envelope.Add(new Vector2Int(x, y));
+                    if (envelope.Any(c => occupied.Contains(c) || reserved.Contains(c))) continue;
+                    candidates.Add(next);
+                }
+                if (candidates.Count == 0) throw new InvalidOperationException("Procedural footprint growth exhausted its frontier.");
+                var chosen = candidates[_random.Next(candidates.Count)];
+                footprints.Add(chosen);
+                foreach (var cell in chosen) occupied.Add(cell);
+                // Do not put another room inside an L notch while Core uses bounding boxes.
+                for (int x = chosen.Min(c => c.x); x <= chosen.Max(c => c.x); x++)
+                for (int y = chosen.Min(c => c.y); y <= chosen.Max(c => c.y); y++)
+                    if (!occupied.Contains(new Vector2Int(x, y))) reserved.Add(new Vector2Int(x, y));
             }
-            return cells;
+            footprints.AddRange(pockets.Select(c => new List<Vector2Int> { c }));
+            return footprints;
         }
 
-        private List<ProceduralDoorPlan> CreateDoors(IReadOnlyList<Vector2Int> cells, float optionalWindowMultiplier)
+        private List<ProceduralDoorPlan> CreateDoors(IReadOnlyList<List<Vector2Int>> cells, int connectedCount, float optionalWindowMultiplier)
         {
             var doors = new List<ProceduralDoorPlan>();
             int optionalIndex = 0;
             for (int from = 0; from < cells.Count; from++)
             for (int to = from + 1; to < cells.Count; to++)
+            foreach (var a in cells[from])
+            foreach (var b in cells[to])
             {
-                var delta = cells[to] - cells[from];
+                if ((from < connectedCount) != (to < connectedCount)) continue;
+                var delta = b - a;
                 if (Math.Abs(delta.x) + Math.Abs(delta.y) != 1) continue;
                 float offset = (_random.Next(2) == 0 ? -1f : 1f) * _config.DoorOffset;
                 bool alongX = delta.y != 0;
-                var center = new Vector3(_config.Origin.x + (cells[from].x + cells[to].x) * _config.RoomSize * 0.5f,
-                    0f, _config.Origin.y + (cells[from].y + cells[to].y) * _config.RoomSize * 0.5f);
+                var center = new Vector3(_config.Origin.x + (a.x + b.x) * _config.RoomSize * 0.5f,
+                    0f, _config.Origin.y + (a.y + b.y) * _config.RoomSize * 0.5f);
                 center += alongX ? Vector3.right * offset : Vector3.forward * offset;
                 doors.Add(new ProceduralDoorPlan(from + 1, to + 1, center, alongX));
                 if (_config.CastleModules && from != 0)
@@ -186,16 +243,21 @@ namespace Worsen.Domain.Procedural
             var anchors = new List<LevelAnchor>();
             foreach (var room in rooms)
             {
-                var pool = CandidateSites(room, modules[room.Id - 1], doors)
+                var module = modules[room.Id - 1];
+                var pool = module.Cells.SelectMany((cell, index) => CandidateSites(CellRoom(room, cell), module, doors, index))
                     .Where(anchor => Preference(anchor.Type) > 0f).ToList();
                 int count = _random.Next(_config.MinimumCandidatesPerRoom, _config.MaximumCandidatesPerRoom + 1);
                 if (pool.Count < count)
                     throw new InvalidOperationException("Cake preferences leave too few supported candidates in room " + room.Id + ".");
                 var usedTypes = new HashSet<CakeAnchorType>();
+                var usedCells = new HashSet<int>();
                 for (int index = 0; index < count; index++)
                 {
                     // Prefer unused types before repeats; weights are per type, not per socket.
-                    var types = pool.Select(anchor => anchor.Type).Distinct().OrderBy(type => type).ToArray();
+                    int Cell(LevelAnchor a) => (a.Id - 10000 - room.Id * 100) / 1000000;
+                    var available = pool.Where(a => !usedCells.Contains(Cell(a))).ToArray();
+                    if (available.Length == 0) available = pool.ToArray();
+                    var types = available.Select(anchor => anchor.Type).Distinct().OrderBy(type => type).ToArray();
                     if (types.All(usedTypes.Contains)) usedTypes.Clear();
                     types = types.Where(type => !usedTypes.Contains(type)).ToArray();
                     double roll = _random.NextDouble() * types.Sum(type => (double)Preference(type));
@@ -205,23 +267,26 @@ namespace Worsen.Domain.Procedural
                         roll -= Preference(type);
                         if (roll < 0d) { selected = type; break; }
                     }
-                    var sites = pool.Where(anchor => anchor.Type == selected).ToArray();
+                    var sites = available.Where(anchor => anchor.Type == selected).ToArray();
                     var candidate = sites[_random.Next(sites.Length)];
                     anchors.Add(candidate);
                     pool.Remove(candidate);
                     usedTypes.Add(selected);
+                    usedCells.Add(Cell(candidate));
                 }
             }
             return anchors;
         }
 
         private List<LevelAnchor> CandidateSites(LevelRoom room, ProceduralRoomModule module,
-            IReadOnlyList<ProceduralDoorPlan> doors)
+            IReadOnlyList<ProceduralDoorPlan> doors, int cellIndex)
         {
             var sites = new List<LevelAnchor>();
-            var portals = doors.Where(door => door.FromRoomId == room.Id || door.ToRoomId == room.Id).ToArray();
-            bool raised = module.Kind == ProceduralModuleKind.OpenStairHall ||
-                module.Kind == ProceduralModuleKind.SplitLevelLibrary || module.Kind == ProceduralModuleKind.BrokenGallery;
+            var portals = doors.Where(door => (door.FromRoomId == room.Id || door.ToRoomId == room.Id) &&
+                room.Bounds.Contains(door.Center)).ToArray();
+            int baseId = 10000 + room.Id * 100 + cellIndex * 1000000;
+            bool raised = cellIndex == 0 && (module.Kind == ProceduralModuleKind.OpenStairHall ||
+                module.Kind == ProceduralModuleKind.SplitLevelLibrary || module.Kind == ProceduralModuleKind.BrokenGallery);
             var origin = new Vector3(room.Center.x, _config.AnchorHeight, room.Center.z);
             float side = _config.RoomSize * 0.5f - _config.CandidatePerimeterInset;
             var corners = new[] { new Vector3(-side, 0f, -side), new Vector3(-side, 0f, side),
@@ -229,10 +294,13 @@ namespace Worsen.Domain.Procedural
             // Corner pockets are off the door axes and outside partitions, piers and stairs.
             // In flat rooms the most remote pocket is Risk, measured against every exit.
             int farthest = Enumerable.Range(0, corners.Length).OrderByDescending(index =>
-                portals.Min(door => (origin + corners[index] - door.Center).sqrMagnitude)).First();
+                portals.Length == 0 ? 0f : portals.Min(door => (origin + corners[index] - door.Center).sqrMagnitude)).First();
             for (int index = 0; index < corners.Length; index++)
-                sites.Add(new LevelAnchor(10000 + room.Id * 100 + index, room.Id,
+                sites.Add(new LevelAnchor(baseId + index, room.Id,
                     !raised && index == farthest ? CakeAnchorType.Risk : CakeAnchorType.Detour, origin + corners[index]));
+            if (portals.Length == 0)
+                sites.Add(new LevelAnchor(baseId + 11, room.Id, CakeAnchorType.Flow,
+                    origin - (module.AlongX ? Vector3.forward : Vector3.right) * side));
             foreach (var door in portals.Where(door => !door.IsOptional))
             {
                 var delta = door.Center - origin;
@@ -241,7 +309,7 @@ namespace Worsen.Domain.Procedural
                 point.y = _config.AnchorHeight;
                 // Cardinal socket ids do not shift when other rooms select fewer candidates.
                 int socket = door.AlongX ? (delta.z > 0f ? 4 : 5) : (delta.x > 0f ? 6 : 7);
-                sites.Add(new LevelAnchor(10000 + room.Id * 100 + socket, room.Id, CakeAnchorType.Flow, point));
+                sites.Add(new LevelAnchor(baseId + socket, room.Id, CakeAnchorType.Flow, point));
             }
             if (raised)
             {
@@ -258,7 +326,7 @@ namespace Worsen.Domain.Procedural
             {
                 local.y = _config.UpperDeckHeight;
                 var point = origin + (module.AlongX ? local : new Vector3(local.z, local.y, local.x));
-                sites.Add(new LevelAnchor(10000 + room.Id * 100 + socket, room.Id, type, point));
+                sites.Add(new LevelAnchor(baseId + socket, room.Id, type, point));
             }
         }
 
@@ -277,6 +345,14 @@ namespace Worsen.Domain.Procedural
         private void ValidateConfig(int roundIndex)
         {
             if (roundIndex < 1) throw new ArgumentOutOfRangeException(nameof(roundIndex));
+            foreach (float weight in new[] { _config.OneCellWeight, _config.TwoCellWeight, _config.ThreeCellWeight })
+                if (!Finite(weight) || weight < 0f) throw new ArgumentException("Invalid footprint weight.");
+            RequirePositive(_config.OneCellWeight + _config.TwoCellWeight + _config.ThreeCellWeight, "footprint weight sum");
+            foreach (float chance in new[] { _config.LShapeWeight, _config.GapProbability, _config.PocketProbability })
+                if (!Finite(chance) || chance < 0f || chance > 1f) throw new ArgumentException("Invalid footprint/gap probability.");
+            if (_config.MultiCellStartRound < 1 || _config.GapStartRound < 1 || _config.MaximumGapCells < 1 ||
+                _config.MaximumGapCells > 8 || _config.PocketRoomCount < 1 || _config.PocketRoomCount > 3)
+                throw new ArgumentException("Invalid footprint/gap round or budget.");
             if (!Finite(_config.Origin.x) || !Finite(_config.Origin.y)) throw new ArgumentException("Layout origin must be finite.");
             if (_config.CastleModules && (_config.InitialRoomCount < 6 || _config.RoomSize < 12f ||
                 !Finite(_config.CastleHeight) || !Finite(_config.HighCeilingHeight) ||
@@ -365,22 +441,43 @@ namespace Worsen.Domain.Procedural
                     if (next != 0 && reached.Add(next)) frontier.Enqueue(next);
                 }
             }
-            return reached.Count == graph.Rooms.Count - 1;
+            return reached.Count == LevelGraphUtility.DistancesTo(graph, graph.ExitRoomId, TraversalAccess.Player)
+                .Count(pair => pair.Value >= 0) - 1;
         }
 
-        private static string Manifest(ProceduralLayout layout)
+        private string Manifest(ProceduralLayout layout)
         {
-            var text = new StringBuilder("castle-rooms-v4|");
+            var text = new StringBuilder("castle-rooms-v5|");
             text.Append(layout.Seed).Append('|').Append(layout.RoundIndex).Append('|').Append(layout.Graph.ExitRoomId);
+            text.Append("|FootprintPolicy:").Append(_config.MultiCellStartRound).Append(',').Append(_config.GapStartRound)
+                .Append(',').Append(_config.MaximumGapCells).Append(',').Append(_config.PocketRoomCount);
+            foreach (float value in new[] { _config.OneCellWeight, _config.TwoCellWeight, _config.ThreeCellWeight,
+                _config.LShapeWeight, _config.GapProbability, _config.PocketProbability })
+                text.Append(',').Append(value.ToString("R", CultureInfo.InvariantCulture));
             foreach (var room in layout.Graph.Rooms)
             { text.Append("|R:").Append(room.Id); Append(text, room.Center); Append(text, room.Size); }
             foreach (var door in layout.Doors)
-            { text.Append("|D:").Append(door.FromRoomId).Append(',').Append(door.ToRoomId); Append(text, door.Center); text.Append(',').Append((int)door.TraversalKind); }
+            { text.Append("|D:").Append(door.FromRoomId).Append(',').Append(door.ToRoomId); Append(text, door.Center); text.Append(',').Append((int)door.TraversalKind).Append(',').Append(door.AlongX ? 1 : 0); }
+            foreach (var edge in layout.Graph.Edges)
+                text.Append("|E:").Append(edge.Id).Append(',').Append(edge.FromRoomId).Append(',').Append(edge.ToRoomId)
+                    .Append(',').Append(edge.Bidirectional ? 1 : 0).Append(',').Append((int)edge.Access);
             foreach (var module in layout.Modules)
-                text.Append("|M:").Append(module.RoomId).Append(',').Append((int)module.Kind).Append(',').Append(module.AlongX ? 1 : 0);
+            {
+                text.Append("|M:").Append(module.RoomId).Append(',').Append((int)module.Kind).Append(',').Append(module.AlongX ? 1 : 0)
+                    .Append(",pocket=").Append(module.PocketId);
+                foreach (var cell in module.Cells) text.Append(";cell=").Append(cell.x).Append(',').Append(cell.y);
+            }
+            foreach (var cell in layout.GapCells) text.Append("|Gap:").Append(cell.x).Append(',').Append(cell.y);
+            foreach (var site in layout.GapSites)
+            { text.Append("|Passage:").Append(site.RoomId).Append(',').Append(site.PocketId); Append(text, site.Edge); Append(text, site.Landing); }
+            foreach (var anchor in layout.PocketAnchors)
+            { text.Append("|Optional:").Append(anchor.Id).Append(',').Append(anchor.RoomId).Append(',').Append((int)anchor.Type); Append(text, anchor.Position); }
             foreach (var anchor in layout.Graph.Anchors)
             { text.Append("|C:").Append(anchor.Id).Append(',').Append(anchor.RoomId).Append(',').Append((int)anchor.Type); Append(text, anchor.Position); }
             text.Append("|SpawnPolicy:").Append(layout.SpawnValidationReport);
+            text.Append("|Player:"); Append(text, layout.PlayerSpawnPosition);
+            Append(text, layout.PlayerSpawnRotation * Vector3.forward);
+            text.Append("|Exit:"); Append(text, layout.Graph.ExitPosition);
             foreach (var spawn in layout.HunterSpawnPositions) { text.Append("|H:"); Append(text, spawn); }
             return text.ToString();
         }
@@ -403,7 +500,31 @@ namespace Worsen.Domain.Procedural
             return Ground(room.Center) - (module.AlongX ? Vector3.forward : Vector3.right) * 3.1f;
         }
         private Vector3 Approach(LevelRoom room, ProceduralRoomModule module, float sign)
-            => Ground(room.Center) + (module.AlongX ? Vector3.forward : Vector3.right) * (_config.SpawnSideOffset * sign);
+            => Ground(CellRoom(room, module.Cells[0]).Center) + (module.AlongX ? Vector3.forward : Vector3.right) * (_config.SpawnSideOffset * sign);
+        private LevelRoom CellRoom(LevelRoom room, Vector2Int cell) => new LevelRoom(room.Id,
+            new Vector3(_config.Origin.x + cell.x * _config.RoomSize, room.Center.y, _config.Origin.y + cell.y * _config.RoomSize),
+            new Vector3(_config.RoomSize, room.Size.y, _config.RoomSize));
+
+        private IReadOnlyList<ProceduralGapSite> GapSites(ProceduralLayout layout)
+        {
+            var sites = new List<ProceduralGapSite>();
+            foreach (var module in layout.Modules.Where(m => m.PocketId == 0))
+            foreach (var cell in module.Cells)
+            foreach (var direction in CardinalDirections())
+            {
+                var cursor = cell + direction;
+                if (!layout.GapCells.Contains(cursor)) continue;
+                while (layout.GapCells.Contains(cursor)) cursor += direction;
+                var pocket = layout.Modules.FirstOrDefault(m => m.PocketId != 0 && m.Cells.Contains(cursor));
+                if (pocket.RoomId == 0) continue;
+                var edge = CellRoom(layout.Graph.Rooms[module.RoomId - 1], cell).Center;
+                edge.y = 0f;
+                edge += new Vector3(direction.x, 0f, direction.y) * (_config.RoomSize * 0.5f);
+                sites.Add(new ProceduralGapSite(module.RoomId, pocket.PocketId, edge,
+                    Ground(CellRoom(layout.Graph.Rooms[pocket.RoomId - 1], cursor).Center)));
+            }
+            return sites.AsReadOnly();
+        }
         private static Vector2Int Rotate(Vector2Int cell, int turns)
         {
             for (int index = 0; index < turns; index++) cell = new Vector2Int(-cell.y, cell.x);

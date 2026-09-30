@@ -16,6 +16,7 @@
 //   - Republish Core audio feedback for UI navigation and intent; purchases sound only after Session commits.
 //   - Forward catch gates and completion without delaying authoritative death.
 //   - Expose snapshot, hide and lifecycle commands without game rules.
+//   - Route the externally supplied Hidden Count flag, defaulting to shown.
 //
 // DEPENDENCIES:
 //   Core ProgressionSnapshot and own ProgressionUIDriver/DriverConfig only.
@@ -64,6 +65,7 @@ namespace Worsen.Presentation.ProgressionUI
         }
 
         public void SetSnapshot(ProgressionSnapshot snapshot) { if (_driver != null) _driver.SetSnapshot(snapshot); }
+        public void SetHiddenCount(bool hidden) { if (_driver != null) _driver.SetHiddenCount(hidden); }
         public void PrepareCatch(EntityId player) { if (_driver != null) _driver.PrepareCatch(player); }
         public void EndCatch(EntityId player) { if (_driver != null) _driver.EndCatch(player); }
         public void ResetCatch() { if (_driver != null) _driver.ResetCatch(); }

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Queue external impulses and explicitly timed acceleration without publishing new facts.
 //   - Route active-effect views to the Controller and publish effect/regen health changes.
 //   - Expose read-only Low Profile protection; Floor owns consulting it before grabs.
 //   - Publish normalized traversal progress and stumble starts using Core/primitive event payloads.
@@ -24,6 +25,8 @@
 //   Hits use the latest run tick; callers with a newer tick must advance recovery first.
 //   Disable/teardown cancels recovery; death publishes an empty grace interval rather than a lingering effect.
 //   SetActiveEffects follows Initialize; null clears on the next tick. Config resolves via the Driver.
+//   External commands accumulate until the next Tick, including during grace; callers
+//   supply acceleration time once per simulation interval, never per render frame.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -142,6 +145,10 @@ namespace Worsen.Domain.Player
         }
 
         public void SetLookBackEnabled(bool enabled) { _controller?.SetLookBackEnabled(enabled); }
+        public void ApplyExternalVelocity(Vector3 velocity, ExternalMotionKind kind)
+        { _controller?.ApplyExternalVelocity(velocity, kind); }
+        public void ApplyExternalAcceleration(Vector3 acceleration, float deltaSeconds)
+        { _controller?.ApplyExternalAcceleration(acceleration, deltaSeconds); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { _controller?.SetActiveEffects(effects); }
         public void SetHealthRecoveryEffects(float regenerationMultiplier = 1f, float floorStartHealthFraction = 1f)
         { _controller?.SetHealthRecoveryEffects(regenerationMultiplier, floorStartHealthFraction); }

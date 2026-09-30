@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Verify queued external motion, total speed limits, grace independence and traversal interruption.
 //   - Lock floor health, delayed regeneration, neutral hooks, posture-only crouch and typed noise.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -56,6 +57,98 @@ namespace Worsen.Tests.Player
             InputButtons held = InputButtons.None, Vector2 look = default)
             => new InputFrame(move, look, held, pressed, InputButtons.None);
         private float Speed => new Vector2(_state.Velocity.x, _state.Velocity.z).magnitude;
+
+        [Test]
+        public void ExternalImpulseAddsOnceOnNextTickAndCommitsCollisionVelocity()
+        {
+            _state.Velocity = Vector3.forward * 2f;
+            _controller.ApplyExternalVelocity(Vector3.right * 3f, ExternalMotionKind.CollapseHandThrow);
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            Assert.That(_state.Velocity, Is.EqualTo(Vector3.forward * 2f));
+            PlayerTickResult result = _controller.Tick(default, default, Dt, 1);
+            Assert.That(_state.Velocity.x, Is.EqualTo(4f).Within(0.00001f));
+            Assert.That(_state.Velocity.z, Is.EqualTo(2f).Within(0.00001f));
+            Assert.That(result.Displacement, Is.EqualTo(_state.Velocity * Dt));
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            var presenter = new PlayerMoverPresenter();
+            Vector3 resolved = presenter.ContactVelocity(_state.Velocity, Vector3.left, false);
+            _controller.CommitPose(new PlayerMoveResult(Vector3.zero, resolved, false, false));
+            _controller.Tick(default, default, Dt, 2);
+            Assert.That(_state.Velocity.x, Is.Zero, "A blocked impulse must not be reapplied.");
+            Assert.That(_state.Velocity.z, Is.EqualTo(2f).Within(0.00001f));
+        }
+
+        [Test]
+        public void ExternalImpulseClampsCombinedThreeDimensionalSpeedAndLeavesGround()
+        {
+            var data = new UnityEditor.SerializedObject(_profile);
+            data.FindProperty("_maximumExternalMotionSpeed").floatValue = 7f;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            _controller.ApplyExternalVelocity(new Vector3(30f, 40f, 0f), ExternalMotionKind.Impulse);
+            _controller.ApplyExternalAcceleration(Vector3.forward * 50f, 1f);
+            _controller.Tick(default, Ground, Dt, 1);
+            Assert.That(_state.Velocity.magnitude, Is.EqualTo(7f).Within(0.00001f));
+            Assert.That(_state.Velocity.x / _state.Velocity.y, Is.EqualTo(0.75f).Within(0.00001f));
+            Assert.That(_state.Grounded, Is.False);
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
+            Assert.That(_state.CoyoteRemaining, Is.Zero);
+        }
+
+        [Test]
+        public void ExternalAccelerationIntegratesExplicitIntervalsDuringGrace()
+        {
+            _controller.ApplyHit(1f, HitSeverity.Light);
+            for (int tick = 1; tick <= 3; tick++)
+            {
+                _controller.ApplyExternalAcceleration(Vector3.right * 6f, 0.1f);
+                _controller.ApplyExternalAcceleration(Vector3.right * 6f, 0.15f);
+                _controller.Tick(default, default, Dt, tick);
+                Assert.That(_state.Velocity.x, Is.EqualTo(tick * 1.5f).Within(0.00001f));
+                Assert.That(_state.GraceActive, Is.True);
+            }
+            _controller.Tick(default, default, Dt, 4);
+            Assert.That(_state.Velocity.x, Is.EqualTo(4.5f).Within(0.00001f));
+            Assert.That(_state.Health, Is.EqualTo(99f));
+        }
+
+        [Test]
+        public void ExternalMotionInterruptsVaultAndCannotEnterAnotherTraversalThatTick()
+        {
+            var ledge = new MovementProbe(false, Vector3.up, vaultHeight: 1f,
+                vaultClearance: 2f, vaultTarget: new Vector3(0f, 1f, 1f));
+            Assert.That(_controller.Tick(default, ledge, Dt, 1).Traversing, Is.True);
+            _controller.ApplyExternalVelocity(Vector3.back * 4f + Vector3.up * 2f, ExternalMotionKind.CollapseHandThrow);
+            PlayerTickResult result = _controller.Tick(default, ledge, Dt, 2);
+            Assert.That(result.Traversing, Is.False);
+            Assert.That(result.Displacement.z, Is.LessThan(0f));
+            Assert.That(_state.VaultRemaining, Is.Zero);
+            Assert.That(_state.PreserveVelocityOnCommit || _state.VaultCompletionPending, Is.False);
+            Assert.That(_state.TraversalSampleActive, Is.True, "Existing progress publication ends the interrupted traversal.");
+        }
+
+        [Test]
+        public void ExternalMotionRejectsInvalidInputsAndClearsAtLifeBoundaries()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalVelocity(Vector3.zero, (ExternalMotionKind)99));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalVelocity(Vector3.up * float.NaN, ExternalMotionKind.Impulse));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalAcceleration(Vector3.one, -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalAcceleration(Vector3.one, float.PositiveInfinity));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.ApplyExternalVelocity(Vector3.one * float.MaxValue, ExternalMotionKind.Impulse));
+            _controller.ApplyExternalAcceleration(Vector3.one, 0f);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            _controller.EndRecovery();
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            _controller.ApplyHit(100f);
+            _controller.Tick(default, Ground, Dt, 1);
+            _controller.ApplyExternalVelocity(Vector3.right, ExternalMotionKind.Impulse);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            Assert.That(_state.Velocity, Is.EqualTo(Vector3.zero));
+        }
 
         [Test]
         public void DefaultGroundMovementWalksAndSprintHoldRuns()

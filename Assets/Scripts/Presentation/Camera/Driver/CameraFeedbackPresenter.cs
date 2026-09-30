@@ -10,6 +10,7 @@
 //   Presenter (Â§7b) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply runtime lens/comfort overrides without mutating designer configuration.
 //   - Snap fully behind and forward on committed edges, ignoring rear-view look deltas.
 //   - Keep gameplay aim unshaken while composing bounded cosmetic effects.
 //   - Compose speed, detection, slide and rebound effects with comfort settings.
@@ -35,6 +36,15 @@ namespace Worsen.Presentation.Camera
 {
     public sealed class CameraFeedbackPresenter
     {
+        public void ApplySettings(CameraDriverState state, PlayerSettingsRecord settings)
+        {
+            state.BaseFieldOfView = Mathf.Clamp(Finite(settings.FieldOfView), 1f, 179f);
+            state.TiltEnabled = settings.CameraTilt;
+            state.PunchEnabled = settings.CameraPunch;
+            if (!state.PunchEnabled) state.DetectionElapsed = -1f;
+            if (!settings.CameraTilt) state.Roll = state.SlideBank = 0f;
+        }
+
         public void Reset(CameraDriverState state)
         {
             state.HasMovement = false;
@@ -94,7 +104,7 @@ namespace Worsen.Presentation.Camera
 
         public void PlayDetectionBeat(CameraDriverState state)
         {
-            if (!state.DeathSnapped) state.DetectionElapsed = 0f;
+            if (!state.DeathSnapped && state.PunchEnabled) state.DetectionElapsed = 0f;
         }
 
         public Vector3 DetectionImpulseVelocity(CameraDriverConfig config)
@@ -158,7 +168,7 @@ namespace Worsen.Presentation.Camera
             state.CatchApproachDuration = Mathf.Max(0f, Finite(config.CatchApproachSeconds));
             state.CatchHoldDuration = Mathf.Max(0f, Finite(config.CatchHoldSeconds));
             state.CatchHoldStarted = state.CatchHoldEnded = false;
-            state.HorizontalFieldOfView = Mathf.Clamp(Finite(config.HorizontalFieldOfView), 1f, 179f);
+            state.HorizontalFieldOfView = Mathf.Clamp(Finite(state.BaseFieldOfView ?? config.HorizontalFieldOfView), 1f, 179f);
             state.LookBack = false;
             state.HeadYaw = state.LookYaw = 0f;
             state.DetectionElapsed = state.ReboundElapsed = -1f;
@@ -198,8 +208,8 @@ namespace Worsen.Presentation.Camera
             }
             var speed = new Vector2(state.Velocity.x, state.Velocity.z).magnitude;
             var normalized = Mathf.Clamp01(speed / Mathf.Max(0.1f, config.MaxDesignSpeed));
-            state.HorizontalFieldOfView = Mathf.Clamp(config.HorizontalFieldOfView + config.SpeedFieldOfView * normalized
-                + config.DetectionFieldOfView * kick * Mathf.Max(0f, config.PunchIntensity), 1f, 179f);
+            state.HorizontalFieldOfView = Mathf.Clamp((state.BaseFieldOfView ?? config.HorizontalFieldOfView) + config.SpeedFieldOfView * normalized
+                + (state.PunchEnabled ? config.DetectionFieldOfView * kick * Mathf.Max(0f, config.PunchIntensity) : 0f), 1f, 179f);
             state.VerticalFieldOfView = HorizontalToVerticalFieldOfView(state.HorizontalFieldOfView, aspectRatio);
             float targetBank = state.Movement == MovementState.Slide
                 ? -config.SlideRoll * Mathf.Clamp(state.SlideTurnRateDegrees / Mathf.Max(1f, config.SlideBankFullTurnRate), -1f, 1f) : 0f;
@@ -212,7 +222,7 @@ namespace Worsen.Presentation.Camera
                 state.Roll = config.ReboundRoll * state.ReboundSign * rebound;
                 if (rebound <= 0f) state.ReboundElapsed = -1f;
             }
-            if (!config.TiltEnabled) state.Roll = 0f;
+            if (!(state.TiltEnabled ?? config.TiltEnabled)) state.Roll = 0f;
             state.AimRotation = Quaternion.Euler(state.Pitch, state.HeadingDegrees + state.LookYaw + state.HeadYaw, 0f);
             state.ShakeElapsed += dt;
             float envelope = state.ShakeDuration > 0f ? Mathf.Clamp01(1f - state.ShakeElapsed / state.ShakeDuration) : 0f;

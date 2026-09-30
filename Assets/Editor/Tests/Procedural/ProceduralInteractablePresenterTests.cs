@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Protect exit portals and required routes; check density and stable identities.
 //   - Match partitions to existing collision and lights to Environment placement.
+//   - Scope the legacy rectangular Environment socket contract to one-cell rooms.
 // DEPENDENCIES:
 //   - Core, Domain.Procedural/Level, Presentation.Environment and NUnit.
 // USAGE NOTES:
@@ -39,6 +40,9 @@ namespace Worsen.Tests.Procedural
                 var settings = new SerializedObject(config);
                 settings.FindProperty("_castleModules").boolValue = castle;
                 settings.FindProperty("_ordinaryDoorFraction").floatValue = 1f;
+                settings.FindProperty("_twoCellWeight").floatValue = 0f;
+                settings.FindProperty("_threeCellWeight").floatValue = 0f;
+                settings.FindProperty("_gapProbability").floatValue = 0f;
                 settings.ApplyModifiedPropertiesWithoutUndo();
                 var presenter = new ProceduralInteractablePresenter();
                 for (int seed = 0; seed < 32; seed++)

@@ -12,11 +12,13 @@
 //   Owned only by InputManager; calculation and buffering use InputFramePresenter.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply runtime look preferences and pause without interrupting the recording lifetime.
 //   - Create and dispose the gameplay map without editing the Unity template asset.
 //   - Capture device facts and ask the Presenter to buffer or publish one frame.
 //   - Own InputRecorder; select one source and clear stale live input on every switch.
 //   - Pair Input System subscriptions and clear pending input on disable or focus loss.
 //   - Capture the cursor only for ready, focused live gameplay; release it for UI.
+//   - Publish Escape/gamepad Start independently of the gameplay input gate.
 //
 // DEPENDENCIES:
 //   - Core InputFrame/InputButtons; Unity Input System; the Input presentation stack.
@@ -33,6 +35,7 @@
 //   - back; E/west interact; F/left shoulder use item. The template asset is untouched.
 //   - Serialized _config wins; Resources fallback warns and uses ephemeral defaults if absent.
 //   - Gamepad turn rate uses the render elapsed time passed to the Presenter.
+//   - Pause uses a separate owned action, available while gameplay is gated but not unfocused/disabled.
 //   - Mouse deltas are already accumulated by Input System; sample once after its update.
 //   - Subsystem hooks are paired in OnEnable/OnDisable; manager teardown disposes the map.
 //
@@ -55,6 +58,7 @@ namespace Worsen.Presentation.Input
         private InputActionMap _actions;
         private InputRecorder _recorder;
         private InputAction _look;
+        private InputAction _pause;
         private InputDriverState _state;
         private InputFramePresenter _presenter;
         private bool _initialized;
@@ -62,6 +66,7 @@ namespace Worsen.Presentation.Input
         private bool _ownsFallbackConfig;
 
         public event Action<InputFrame> FrameCaptured;
+        public event Action PausePressed;
         public InputSource Source => _recorder == null ? InputSource.Live : _recorder.Source;
         public InputProbeRecord CurrentPlaybackRecord => _recorder == null ? default : _recorder.CurrentPlaybackRecord;
         public string LastRecordingPath => _recorder == null ? "" : _recorder.LastRecordingPath;
@@ -103,6 +108,7 @@ namespace Worsen.Presentation.Input
             if (!_initialized)
                 return;
             if (!enabled) _recorder.Interrupt();
+            if (_state.InputEnabled != enabled) _presenter.Reset(_state);
             _presenter.SetInputEnabled(_state, enabled);
             RefreshActions();
         }
@@ -114,6 +120,21 @@ namespace Worsen.Presentation.Input
             if (!enabled) _recorder.Interrupt();
             _presenter.SetOwnerEnabled(_state, enabled);
             RefreshActions();
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (!_initialized) return;
+            _presenter.SetPaused(_state, paused);
+            RefreshActions();
+        }
+
+        public void ApplySettings(PlayerSettingsRecord settings)
+        {
+            if (!_initialized) return;
+            _state.MouseSensitivity = settings.MouseSensitivity;
+            _state.InvertY = settings.InvertY;
+            _presenter.Reset(_state);
         }
 
         public void FlushFrame()
@@ -179,6 +200,8 @@ namespace Worsen.Presentation.Input
             OnDisable();
             _recorder.Interrupt();
             _actions.Dispose();
+            _pause.Dispose();
+            _pause = null;
             _actions = null;
             _look = null;
             if (_ownsFallbackConfig)
@@ -196,6 +219,7 @@ namespace Worsen.Presentation.Input
             if (!_initialized || _subscribed)
                 return;
             _actions.actionTriggered += HandleActionTriggered;
+            _pause.performed += HandlePause;
             InputSystem.onAfterUpdate += CaptureMouseLook;
             _subscribed = true;
             _presenter.SetFocus(_state, Application.isFocused);
@@ -208,6 +232,8 @@ namespace Worsen.Presentation.Input
             if (!_subscribed)
                 return;
             _actions.actionTriggered -= HandleActionTriggered;
+            _pause.performed -= HandlePause;
+            _pause.Disable();
             InputSystem.onAfterUpdate -= CaptureMouseLook;
             _subscribed = false;
             _actions.Disable();
@@ -219,6 +245,7 @@ namespace Worsen.Presentation.Input
         {
             Teardown();
             FrameCaptured = null;
+            PausePressed = null;
         }
 
         private void OnApplicationFocus(bool focused)
@@ -234,11 +261,13 @@ namespace Worsen.Presentation.Input
         {
             if (_initialized && Source == InputSource.Live)
                 _presenter.AccumulateGamepadLook(_state, Time.unscaledDeltaTime,
-                    _config.GamepadDegreesPerSecond, _config.InvertLookY);
+                    _config.GamepadDegreesPerSecond, _state.InvertY ?? _config.InvertLookY);
         }
 
         private void RefreshActions()
         {
+            if (_subscribed && isActiveAndEnabled && _state.OwnerEnabled && _state.HasFocus) _pause.Enable();
+            else _pause.Disable();
             bool acceptingLiveInput = _subscribed && isActiveAndEnabled &&
                 Source == InputSource.Live && _presenter.IsAcceptingInput(_state);
             SetCursorCaptured(acceptingLiveInput);
@@ -275,9 +304,11 @@ namespace Worsen.Presentation.Input
             {
                 if (control is DeltaControl delta)
                     _presenter.AccumulateMouseLook(_state, delta.ReadValue(),
-                        _config.MouseDegreesPerPixel, _config.InvertLookY);
+                        _state.MouseSensitivity ?? _config.MouseDegreesPerPixel, _state.InvertY ?? _config.InvertLookY);
             }
         }
+
+        private void HandlePause(InputAction.CallbackContext context) => PausePressed?.Invoke();
 
         private void HandleActionTriggered(InputAction.CallbackContext context)
         {
@@ -313,6 +344,9 @@ namespace Worsen.Presentation.Input
 
         private void BuildActionMap()
         {
+            _pause = new InputAction("Pause", InputActionType.Button);
+            _pause.AddBinding("<Keyboard>/escape");
+            _pause.AddBinding("<Gamepad>/start");
             _actions = new InputActionMap("WorsenGameplay");
             InputAction move = _actions.AddAction("Move", InputActionType.Value,
                 expectedControlLayout: "Vector2");

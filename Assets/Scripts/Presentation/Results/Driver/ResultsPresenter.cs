@@ -14,6 +14,7 @@
 //   - Hold death summaries until the catch ends; flag a bounded missing-event fallback.
 //   - Format times and counts without changing run rules or inventing missing values.
 //   - Accept one restart interaction while visible; rearm only after explicit hiding.
+//   - Format every detailed HorrorRun field and validate exact signed decimal seed input.
 //
 // DEPENDENCIES:
 //   - Worsen.Core RunSummary and RunEndReason; System numeric/culture utilities.
@@ -86,6 +87,32 @@ namespace Worsen.Presentation.Results
                 summary.EndReason == RunEndReason.Died ? "You died" : "Unknown outcome";
             SetSummary(state, summary.ElapsedSeconds, summary.CakesCollected, summary.GoldenCakesCollected,
                 summary.ChaseCount, summary.ChasesEscaped, summary.TotalChaseSeconds, reason);
+            state.Cause = summary.EndReason != RunEndReason.Died ? "Not applicable" :
+                summary.DeathCause == DeathCause.None ? "Unreported" : summary.DeathCause.ToString();
+            state.Killer = summary.EndReason != RunEndReason.Died ? "Not applicable" :
+                string.IsNullOrWhiteSpace(summary.KillerArchetypeId) ? "Unreported" : summary.KillerArchetypeId;
+            state.GrabsEscaped = FormatCount(summary.GrabsEscaped);
+            state.ExitToEscape = FormatDuration(summary.SecondsFromExitOpenToEscape);
+            state.Depth = summary.DepthReached <= 0 ? "Unreported" : FormatCount(summary.DepthReached);
+            state.Seed = summary.Seed.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public void SetBestDepth(ResultsDriverState state, int bestDepth)
+            => state.BestDepth = FormatCount(bestDepth);
+
+        public bool SetNextSeed(ResultsDriverState state, string text)
+        {
+            if (state.RestartIssued) return false;
+            state.NextSeedText = text ?? "";
+            state.UseFixedSeed = state.NextSeedText.Length > 0;
+            state.NextSeed = 0;
+            bool digits = true;
+            for (int i = 0; i < state.NextSeedText.Length; i++)
+                if (!(i == 0 && state.NextSeedText[i] == '-') && (state.NextSeedText[i] < '0' || state.NextSeedText[i] > '9')) digits = false;
+            state.SeedValid = !state.UseFixedSeed || (digits && int.TryParse(state.NextSeedText,
+                NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out state.NextSeed));
+            state.SeedError = state.SeedValid ? "" : "Enter a signed 32-bit decimal seed, or leave blank for a new seed.";
+            return state.SeedValid;
         }
 
         public void SetSummary(ResultsDriverState state, double runSeconds, int cakes, int goldenCakes,
@@ -104,7 +131,7 @@ namespace Worsen.Presentation.Results
 
         public bool TryRestart(ResultsDriverState state)
         {
-            if (!state.Visible || state.RestartIssued) return false;
+            if (!state.Visible || state.RestartIssued || !state.SeedValid) return false;
             state.RestartIssued = true;
             return true;
         }
@@ -117,6 +144,8 @@ namespace Worsen.Presentation.Results
             state.CatchRemaining = 0f;
             state.Visible = false;
             state.RestartIssued = false;
+            SetNextSeed(state, "");
+            state.Cause = state.Killer = state.GrabsEscaped = state.ExitToEscape = state.Depth = state.Seed = "—";
             state.RunTime = state.Cakes = state.GoldenCakes = state.Chases = state.Escapes =
                 state.ChaseTime = state.EndReason = "—";
         }

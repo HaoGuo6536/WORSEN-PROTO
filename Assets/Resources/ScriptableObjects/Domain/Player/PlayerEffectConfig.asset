@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eff735c7c3d98d43bbf0269de5a3030, type: 3}
+  m_Name: PlayerEffectConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Player.PlayerEffectConfig
+  _hunterChaseSpeedCeiling: 9.5
+  _chaseSpeedMargin: 0.01
+  _minimumTraversalSeconds: 0.1
+  _standstillSpeed: 0.1
+  _storedMomentumWindow: 1
+  _mappings:
+  - _effectId: short-grace
+    _stat: 0
+    _operation: 0
+    _amount: 0.6
+    _stackCap: 1
+  - _effectId: thick-skin
+    _stat: 0
+    _operation: 1
+    _amount: 0.25
+    _stackCap: 3
+  - _effectId: short-burst
+    _stat: 1
+    _operation: 0
+    _amount: 0.5
+    _stackCap: 1
+  - _effectId: heavy-legs
+    _stat: 1
+    _operation: 0
+    _amount: 0
+    _stackCap: 1
+  - _effectId: long-boost
+    _stat: 1
+    _operation: 2
+    _amount: 0.3
+    _stackCap: 3
+  - _effectId: slow-mend
+    _stat: 2
+    _operation: 0
+    _amount: 0.5
+    _stackCap: 1
+  - _effectId: no-regen
+    _stat: 2
+    _operation: 0
+    _amount: 0
+    _stackCap: 1
+  - _effectId: field-kit
+    _stat: 2
+    _operation: 2
+    _amount: 0.5
+    _stackCap: 3
+  - _effectId: rough-start
+    _stat: 3
+    _operation: 0
+    _amount: 0.5
+    _stackCap: 1
+  - _effectId: thin-skin
+    _stat: 4
+    _operation: 0
+    _amount: 0.75
+    _stackCap: 1
+  - _effectId: speed-boost
+    _stat: 5
+    _operation: 1
+    _amount: 0.4
+    _stackCap: 2147483647
+  - _effectId: quick-start
+    _stat: 6
+    _operation: 2
+    _amount: 0.2
+    _stackCap: 3
+  - _effectId: air-control
+    _stat: 7
+    _operation: 2
+    _amount: 0.25
+    _stackCap: 3
+  - _effectId: fast-hands
+    _stat: 8
+    _operation: 0
+    _amount: 0.85
+    _stackCap: 3
+  - _effectId: longer-slide
+    _stat: 9
+    _operation: 0
+    _amount: 1.3
+    _stackCap: 1
+  - _effectId: longer-slide
+    _stat: 10
+    _operation: 1
+    _amount: 0.05
+    _stackCap: 1
+  - _effectId: higher-jump
+    _stat: 11
+    _operation: 0
+    _amount: 1.2
+    _stackCap: 1
+  - _effectId: stored-momentum
+    _stat: 12
+    _operation: 1
+    _amount: 1
+    _stackCap: 1
+  - _effectId: soft-landing
+    _stat: 13
+    _operation: 1
+    _amount: 1
+    _stackCap: 1
+  - _effectId: quiet-slide
+    _stat: 14
+    _operation: 1
+    _amount: 1
+    _stackCap: 1
+  - _effectId: low-profile
+    _stat: 15
+    _operation: 1
+    _amount: 1
+    _stackCap: 1
+  - _effectId: no-look-back
+    _stat: 16
+    _operation: 1
+    _amount: 1
+    _stackCap: 1

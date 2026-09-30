@@ -12,12 +12,15 @@
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Relay Hunter-local stall facts for evidence consumers without recovery commands.
 //   - Publish deliberation facts and route collision-limited stumble/facing commands.
+//   - Publish habit/mutation facts and route explicit accepted-catch and chase inputs.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
 //   Scene-owned entity; Session is sole tick owner. Subscriptions pair OnEnable/OnDisable.
 //   PLAN-014 stall payload stays Hunter-local pending coordinator-owned Core telemetry.
+//   Habit/mutation DTOs likewise await Core promotion; no audio or Session routing is owned here.
+//   BeginCatch must follow Session damage acceptance, never an unconfirmed contact.
 //   A Stalk reveal hold (HoldPosition) uses the motor's stopped input to discard inertia.
 // ============================================================================
 using System;
@@ -51,6 +54,8 @@ namespace Worsen.Domain.Hunter
         public event Action<HunterFeedbackEvent> OnFeedback;
         public event Action<HunterStallFact> OnStall;
         public event Action<EntityId, Vector3, long> OnDeliberation;
+        public event Action<HunterHabitFact> OnHabit;
+        public event Action<HunterMutationFact> OnMutation;
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
@@ -110,7 +115,8 @@ namespace Worsen.Domain.Hunter
                     _controller.SplitBolt, _controller.ThornRing);
             if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
                 _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
-            _driver.Move(result.Target, result.Speed, _profile.Acceleration, _profile.TurnRate, dt,
+            _driver.SetEmergence(_controller.PreferEmergence, _state.LastKnownPosition, _profile.EmergenceWaypointBudget);
+            _driver.Move(result.Target, result.Speed, _controller.EffectiveAcceleration, _controller.EffectiveTurnRate, dt,
                 !reactionValid || !_state.IsActive || result.HoldPosition ||
                     result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
                     (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
@@ -119,8 +125,10 @@ namespace Worsen.Domain.Hunter
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
             _driver.ObserveStall(dt, tick, Id, _state.CurrentAction, _state.LastRoom);
             if (!_driver.PathAvailable && !result.HoldPosition && result.Phase == HunterLungePhase.None) _controller.ReportPathFailure();
+            if (!_state.CatchActive) _driver.SetLook(_controller.LookTarget, _controller.LookAtMemory, false);
             _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
+            while (_controller.TryTakeHabit(out HunterHabitFact habit)) OnHabit?.Invoke(habit);
             if (_controller.TryTakeDeliberation(out Vector3 candidate)) OnDeliberation?.Invoke(Id, candidate, tick);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
@@ -149,6 +157,28 @@ namespace Worsen.Domain.Hunter
         public void SetRoomPhase(RoomPhaseChangedFact fact)
         { if (_controller == null) return; _controller.SetRoomPhase(fact); _driver.SetUnavailableRooms(_controller.UnavailableRooms); }
         public void SetTraits(ProgressionTraits traits) { _controller?.SetTraits(traits); }
+        public bool ApplyMutation(HunterMutation mutation)
+        {
+            if (_controller == null || !_controller.ApplyMutation(mutation, out HunterMutationFact fact)) return false;
+            OnMutation?.Invoke(fact); return true;
+        }
+        public void SetChaseActive(bool active) { _controller?.SetChaseActive(active); }
+        public void BeginCatch(Vector3 playerPosition)
+        {
+            if (_controller == null) return;
+            _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
+        }
+        public void TickCatch(float dt, Vector3 playerPosition)
+        {
+            if (_controller == null || !_state.CatchActive) return;
+            _driver.SetLook(playerPosition, true, true);
+            _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
+        }
+        public void EndCatch()
+        {
+            if (_controller == null) return;
+            _controller.SetCatchActive(false); _driver.SetLook(_controller.LookTarget, false, false);
+        }
         public void SetAfterimage(FlashlightSample sample, float lifetime) { _controller?.SetAfterimage(sample, lifetime); }
         public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise, 1f); }
         public void SetFloorView(IReadOnlyFloorState floor) { _controller?.SetFloorView(floor); }

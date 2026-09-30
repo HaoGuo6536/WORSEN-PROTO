@@ -10,13 +10,14 @@
 //   Manager (§1) · Presentation · Camera (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward runtime comfort and base-lens preferences to the owned Driver.
 //   - Initialize the serialized Driver and mirrored config fallback.
 //   - Expose unshaken aim for routed flashlight sensing; forward world event shakes.
 //   - Forward hunter/hand catches and republish hold-start/hold-end facts for external routing.
 //   - Forward commands and pair Driver enable/disable and teardown.
 //
 // DEPENDENCIES:
-//   - Core player movement and traversal facts only.
+//   - Core player movement, traversal and runtime preference facts only.
 //
 // USAGE NOTES:
 //   - Scene-owned Service (§8), explicitly initialized by scene assembly; no singleton.
@@ -67,6 +68,7 @@ namespace Worsen.Presentation.Camera
         }
 
         public void SetMovement(PlayerMovementSample sample) { if (_initialized) _driver.SetMovement(sample); }
+        public void ApplySettings(PlayerSettingsRecord settings) { if (_initialized) _driver.ApplySettings(settings); }
         public void SetLookBack(bool held) { if (_initialized) _driver.SetLookBack(held); }
         public void PlayDetectionBeat() { if (_initialized) _driver.PlayDetectionBeat(); }
         public void PlayShake(float strength, float seconds) { if (_initialized) _driver.PlayShake(strength, seconds); }

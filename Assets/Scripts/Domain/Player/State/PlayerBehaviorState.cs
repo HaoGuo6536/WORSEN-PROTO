@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Accumulate external velocity deltas until one movement tick consumes them.
 //   - Store the pending effects view, tick snapshot, floor health baseline and one-use vault momentum.
 //   - Retain regeneration delay and neutral-by-default health effect hooks per life.
 //   - Store traversal progress/steering, regrab cooldown and one-tick stumble publication data.
@@ -45,6 +46,7 @@ namespace Worsen.Domain.Player
         public EntityId Id { get; set; }
         public Vector3 Position { get; set; }
         public Vector3 Velocity { get; set; }
+        public Vector3 PendingExternalVelocity { get; set; }
         public Vector3 Forward { get; set; } = Vector3.forward;
         public float HeadingDegrees { get; set; }
         public float MovementSpeedMultiplier { get; set; } = 1f;

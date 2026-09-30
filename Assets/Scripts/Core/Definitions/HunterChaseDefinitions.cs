@@ -13,6 +13,7 @@
 //   - Carry tick-stamped identity and immutable values between owning systems.
 //   - Keep event payloads independent of Domain and Presentation implementations.
 //   - Carry hit severity and source without altering legacy damage or chase reasons.
+//   - Separate chase-gated feedback proximity from live music proximity and belief.
 //
 // DEPENDENCIES:
 //   - Core definitions and pure UnityEngine value types only.
@@ -21,6 +22,8 @@
 //   Distances are metres and durations are seconds; ticks identify committed steps.
 //   Constructors carry supplied values and perform no engine or gameplay operations.
 //   Legacy hunter hits default to Heavy/Lunge, including unmigrated ranged callers.
+//   Proximity is an aggregate: Hunter identifies the strongest proximity source,
+//   while HasBelief covers any live source. Omitted additions retain legacy values.
 //
 // ============================================================================
 
@@ -104,7 +107,8 @@ namespace Worsen.Core
     }
     public readonly struct ProximitySample
     {
-        public ProximitySample(EntityId player, EntityId hunter, long tick, int chaseId, float distance, float closeness, bool inChase)
+        public ProximitySample(EntityId player, EntityId hunter, long tick, int chaseId, float distance, float closeness, bool inChase,
+            float? actualCloseness = null, bool? hasBelief = null)
         {
             Player = player;
             Hunter = hunter;
@@ -113,6 +117,8 @@ namespace Worsen.Core
             Distance = distance;
             Closeness = closeness;
             InChase = inChase;
+            ActualCloseness = actualCloseness ?? closeness;
+            HasBelief = hasBelief ?? inChase;
         }
         public EntityId Player { get; }
         public EntityId Hunter { get; }
@@ -121,5 +127,7 @@ namespace Worsen.Core
         public float Distance { get; }
         public float Closeness { get; }
         public bool InChase { get; }
+        public float ActualCloseness { get; }
+        public bool HasBelief { get; }
     }
 }

@@ -9,12 +9,14 @@
 // KEY RESPONSIBILITIES:
 //   - Forward supplied values and pair every subscription with teardown.
 //   - Reset chase presentation when a new generated floor capture begins.
+//   - Route authoritative golden totals and translate empty slots to held-item count.
 //   - Forward the current unshaken camera aim after camera LateUpdate for the 3D compass.
 // DEPENDENCIES:
 //   - Core event payloads, Session Run, HUD and Camera Presentation Managers.
 // USAGE NOTES:
 //   Setup wires references before activation. Handlers contain routing only.
 //   Scene-owned; disabled before its scene publishers and views are destroyed.
+//   Execution order 100 samples the camera aim after its default-order LateUpdate.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
@@ -36,6 +38,7 @@ namespace Worsen.Orchestrator
         private void OnEnable()
         {
             if (_run == null) return;
+            OnDisable();
             _run = RunSessionManager.Instance ?? _run;
             if (_hud == null) return;
             _hud.Initialize();
@@ -59,13 +62,15 @@ namespace Worsen.Orchestrator
         private void OnDisplay(FloorDisplaySnapshot display)
         {
             _hud.SetCount(display.Collected, display.Required);
+            _hud.SetGoldenCount(display.Golden);
             _hud.SetExitState(display.Exit);
             _hud.SetDirection(display.CueDirection, display.HasCue);
         }
         private void OnMovement(PlayerMovementSample sample) => _hud.SetHeading(sample.HeadingDegrees);
-        private void OnSlots(int count) => _hud.SetItemSlots(count);
+        private void OnSlots(int count) => _hud.SetHeldItemCount(2 - count);
         private void OnChase(ChaseFact fact) => _hud.SetChaseMode(true);
         private void OnChaseEnd(ChaseFact fact) => _hud.SetChaseMode(false);
-        private void OnCaptureStarted(RunCaptureMetadata metadata) => _hud.ResetRunView();
+        private void OnCaptureStarted(RunCaptureMetadata metadata)
+        { _hud.ResetRunView(); _hud.SetGoldenCount(0); _hud.SetHeldItemCount(0); }
     }
 }

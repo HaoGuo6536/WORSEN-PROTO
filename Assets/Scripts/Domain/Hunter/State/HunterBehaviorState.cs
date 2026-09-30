@@ -12,6 +12,7 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Retain per-archetype pursuit policy and bounded commitment/deliberation timers.
+//   - Retain run overrides across Controller.Reset, but clear transient habit/catch state.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -46,6 +47,12 @@ namespace Worsen.Domain.Hunter
         public HunterGoal CurrentGoal { get; internal set; }
         public bool IsDeliberating => DeliberationRemaining > 0f;
         public int LastPickupRoom { get; internal set; }
+        public bool CatchActive { get; internal set; }
+        internal bool ChaseActive, LossHabitObserved;
+        internal float ThresholdPauseRemaining;
+        internal readonly Queue<HunterHabitFact> HabitFacts = new Queue<HunterHabitFact>();
+        internal readonly Dictionary<HunterTunable, float> Mutations = new Dictionary<HunterTunable, float>();
+        internal readonly Dictionary<int, Vector3> CakePositions = new Dictionary<int, Vector3>();
         internal float CommitmentRemaining, DeliberationRemaining, RetreatRemaining;
         internal Vector3 DeliberationTarget;
         internal bool DeliberationFactPending, PendingNoiseDecision;

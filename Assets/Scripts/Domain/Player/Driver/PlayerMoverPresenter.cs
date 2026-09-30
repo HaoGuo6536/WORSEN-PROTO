@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Admit downward snap across separating rounded edges without accepting a rising jump.
 //   - Distinguish overlap sentinels from real sweep contacts and retain slope-tangent motion.
 //   - Decide support, wall-slide redirection and untagged ledge admission from supplied geometry.
 //   - Remove only the hunter layer during grace and decide the once-per-session missing-layer warning.
@@ -70,6 +71,11 @@ namespace Worsen.Domain.Player
 
         public bool CanGround(Vector3 velocity, Vector3 normal, float slopeLimit)
             => IsWalkable(normal, slopeLimit) && Vector3.Dot(velocity, normal.normalized) <= 0.001f;
+
+        public bool CanSnapToGround(Vector3 velocity, Vector3 normal, float slopeLimit)
+            // A descending edge normal points along travel: separation is not a jump.
+            // Positive vertical motion still requires slope-tangent/contact admission.
+            => IsWalkable(normal, slopeLimit) && (velocity.y <= 0f || CanGround(velocity, normal, slopeLimit));
 
         public Vector3 RedirectSlide(Vector3 velocity, Vector3 normal, float retention)
         {

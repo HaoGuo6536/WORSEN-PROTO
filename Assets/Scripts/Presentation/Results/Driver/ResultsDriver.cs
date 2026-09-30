@@ -14,6 +14,7 @@
 //   - Apply catch completion as a hard cut and warn once on unscaled fallback expiry.
 //   - Resolve the existing PanelSettings and own the procedural ResultsSurfaceDriver.
 //   - Bind, render, unbind and rebind the current document; report UI interactions as facts.
+//   - Bind detailed outcomes/history and publish a validated optional seed on restart.
 //
 // DEPENDENCIES:
 //   - Worsen.Core RunSummary; UnityEngine.UIElements. No gameplay system references.
@@ -48,8 +49,11 @@ namespace Worsen.Presentation.Results
         private VisualElement _overlay;
         private Label _title, _runTime, _cakes, _goldenCakes, _chases, _escapes, _chaseTime, _endReason;
         private Button _restart;
+        private TextField _seedInput;
+        private Label _cause, _killer, _grabs, _exitTime, _depth, _seed, _best, _seedError;
 
         public event Action RestartClicked;
+        public event Action<bool, int> RestartWithSeedClicked;
 
         public void Initialize(ResultsDriverConfig config)
         {
@@ -77,6 +81,12 @@ namespace Worsen.Presentation.Results
             if (_state == null) return;
             _presenter.Show(_state, summary, _config != null ? _config.CatchTimeoutSeconds : ResultsDriverConfig.DefaultCatchTimeoutSeconds);
             Apply();
+        }
+
+        public void SetBestDepth(int depth)
+        {
+            if (_state == null) return;
+            _presenter.SetBestDepth(_state, depth); Apply();
         }
 
         public void PrepareCatch(EntityId player) { if (_state != null) _presenter.PrepareCatch(_state, player); }
@@ -144,6 +154,10 @@ namespace Worsen.Presentation.Results
             _chaseTime = root.Q<Label>("chase-time");
             _endReason = root.Q<Label>("end-reason");
             _restart = root.Q<Button>("restart-button");
+            _cause = root.Q<Label>("death-cause"); _killer = root.Q<Label>("killer");
+            _grabs = root.Q<Label>("grabs-escaped"); _exitTime = root.Q<Label>("exit-to-escape");
+            _depth = root.Q<Label>("depth-reached"); _seed = root.Q<Label>("run-seed"); _best = root.Q<Label>("best-depth");
+            _seedError = root.Q<Label>("seed-error"); _seedInput = root.Q<TextField>("next-run-seed");
             if (_overlay == null || panel == null || _title == null || _runTime == null ||
                 _cakes == null || _goldenCakes == null || _chases == null || _escapes == null ||
                 _chaseTime == null || _endReason == null || _restart == null)
@@ -155,6 +169,7 @@ namespace Worsen.Presentation.Results
             root.pickingMode = PickingMode.Ignore;
             root.style.display = DisplayStyle.Flex;
             _restart.clicked += OnRestartClicked;
+            _seedInput.RegisterValueChangedCallback(OnSeedChanged);
             _overlay.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             _overlay.RegisterCallback<GeometryChangedEvent>(OnOverlayGeometryChanged);
             Apply();
@@ -175,7 +190,11 @@ namespace Worsen.Presentation.Results
             _escapes.text = _state.Escapes;
             _chaseTime.text = _state.ChaseTime;
             _endReason.text = _state.EndReason;
-            _restart.SetEnabled(_state.Visible && !_state.RestartIssued);
+            _cause.text = _state.Cause; _killer.text = _state.Killer; _grabs.text = _state.GrabsEscaped;
+            _exitTime.text = _state.ExitToEscape; _depth.text = _state.Depth; _seed.text = _state.Seed; _best.text = _state.BestDepth;
+            _seedError.text = _state.SeedError; _seedInput.SetValueWithoutNotify(_state.NextSeedText);
+            _seedInput.SetEnabled(!_state.RestartIssued);
+            _restart.SetEnabled(_state.Visible && !_state.RestartIssued && _state.SeedValid);
             _surface.SetRestartLabel(_state.RestartIssued ? "RESTARTING…" : "RUN AGAIN");
             if (opening && !_state.RestartIssued) _restart.Focus();
         }
@@ -188,9 +207,16 @@ namespace Worsen.Presentation.Results
 
         private void OnKeyDown(KeyDownEvent evt)
         {
+            if (_seedInput != null && (ReferenceEquals(evt.target, _seedInput) || _seedInput.Contains(evt.target as VisualElement))) return;
             if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.KeypadEnter && evt.keyCode != KeyCode.Space) return;
             OnRestartClicked();
             evt.StopImmediatePropagation();
+        }
+
+        private void OnSeedChanged(ChangeEvent<string> evt)
+        {
+            if (_state == null) return;
+            _presenter.SetNextSeed(_state, evt.newValue); Apply();
         }
 
         private void OnRestartClicked()
@@ -199,12 +225,14 @@ namespace Worsen.Presentation.Results
                 !ReferenceEquals(_boundRoot, _document.rootVisualElement) || _overlay == null ||
                 _state == null || !_presenter.TryRestart(_state)) return;
             Apply();
+            RestartWithSeedClicked?.Invoke(_state.UseFixedSeed, _state.NextSeed);
             RestartClicked?.Invoke();
         }
 
         private void HideAndUnbind()
         {
             if (_restart != null) _restart.clicked -= OnRestartClicked;
+            if (_seedInput != null) _seedInput.UnregisterValueChangedCallback(OnSeedChanged);
             if (_overlay != null)
             {
                 _overlay.UnregisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
@@ -215,6 +243,8 @@ namespace Worsen.Presentation.Results
             _boundRoot = null;
             _overlay = null;
             _restart = null;
+            _seedInput = null;
+            _cause = _killer = _grabs = _exitTime = _depth = _seed = _best = _seedError = null;
             _title = _runTime = _cakes = _goldenCakes = _chases = _escapes = _chaseTime = _endReason = null;
         }
     }

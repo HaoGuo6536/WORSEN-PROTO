@@ -11,13 +11,13 @@
 //   Sub-driver (§7e), owned by HUDDriver · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Build a responsive named UI Toolkit tree and draw chrome, gauge and icons.
+//   - Build quiet cake and golden counts without panel chrome, title or controls hints.
 //   - Pair all vector callbacks when binding, unbinding or replacing a document.
-//   - Paint a faceted white compass needle in three dimensions without a caption or render target.
+//   - Paint one flat white arrow without a ring, shaded facets or caption.
 //   - Apply chrome visibility and restoration without suppressing the independent compass.
 //
 // DEPENDENCIES:
-//   Own HUDDriverConfig, HUDDriverState, HUDGeometryPresenter and HUDCompassPresenter only.
+//   Own HUDDriverConfig, HUDDriverState and HUDGeometryPresenter only.
 //
 // USAGE NOTES:
 //   Scene-owned through HUDDriver, sharing its HUDDriverConfig (§7d).
@@ -36,9 +36,8 @@ namespace Worsen.Presentation.HUD
         private HUDDriverConfig _config;
         private HUDDriverState _state;
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
-        private readonly HUDCompassPresenter _compass = new HUDCompassPresenter();
-        private VisualElement _root, _panel, _gauge, _extra, _directionGroup, _arrow, _slots;
-        private Label _count, _exit, _overflow;
+        private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
+        private Label _count, _golden, _overflow;
 
         public void Bind(VisualElement root, HUDDriverConfig config)
         {
@@ -60,22 +59,11 @@ namespace Worsen.Presentation.HUD
             _panel.style.top = config.ScreenMargin;
             _panel.style.width = config.PanelWidth;
             _panel.style.maxWidth = Length.Percent(42);
-            _panel.style.paddingLeft = _panel.style.paddingRight = config.ScreenMargin;
-            _panel.style.paddingTop = _panel.style.paddingBottom = config.FontSize;
-            _panel.generateVisualContent += PaintPanel;
-            var title = Text("objective-title", "RECOVER & ESCAPE", _panel);
-            title.style.fontSize = config.SmallFontSize;
-            title.style.color = config.MutedColor;
-            title.style.letterSpacing = 2;
             _count = Text("cake-count", "Cakes: —", _panel);
-            _count.style.fontSize = config.FontSize * 1.35f;
-            _count.style.marginTop = config.FontSize * 0.4f;
-            _gauge = Element("cake-gauge", _panel);
-            _gauge.style.height = config.StrokeWidth * 3;
-            _gauge.style.marginTop = _gauge.style.marginBottom = config.FontSize * 0.6f;
-            _gauge.generateVisualContent += PaintGauge;
-            _exit = Text("exit-state", "Exit: —", _panel);
-            _exit.style.fontSize = config.SmallFontSize;
+            _count.style.fontSize = config.FontSize;
+            _golden = Text("golden-count", "Golden: —", _panel);
+            _golden.style.fontSize = config.FontSize;
+            _golden.style.color = config.MutedColor;
 
 
             _extra = Element("hud-extra", root);
@@ -102,14 +90,7 @@ namespace Worsen.Presentation.HUD
             _overflow = Text("slot-overflow", "", inventory);
             _overflow.style.color = config.MutedColor;
             _overflow.style.fontSize = config.SmallFontSize;
-            var controls = Text("controls-hint", "SHIFT  RUN     SPACE  JUMP / CANCEL SLIDE     C  SLIDE     Q  HOLD FREE LOOK     F  FLASHLIGHT", _extra);
-            controls.style.position = Position.Absolute;
-            controls.style.left = config.ScreenMargin;
-            controls.style.bottom = config.ScreenMargin;
-            controls.style.maxWidth = Length.Percent(72);
-            controls.style.whiteSpace = WhiteSpace.Normal;
-            controls.style.color = config.MutedColor;
-            controls.style.fontSize = config.SmallFontSize;
+
         }
 
         public void Apply(HUDDriverState state)
@@ -117,8 +98,7 @@ namespace Worsen.Presentation.HUD
             if (_root == null || state == null) return;
             _state = state;
             _count.text = state.CountText;
-            _exit.text = state.ExitText;
-            _exit.style.color = state.ExitOpen ? _config.TextColor : _config.MutedColor;
+            _golden.text = state.GoldenText;
             _panel.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _panel.style.opacity = state.ExtraOpacity;
             _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
@@ -126,21 +106,20 @@ namespace Worsen.Presentation.HUD
             _directionGroup.style.display = state.DirectionVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _overflow.text = state.SlotOverflowText;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
-            _panel.MarkDirtyRepaint();
-            _gauge.MarkDirtyRepaint();
+            _slots.style.display = state.DisplayedSlots > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            _arrow.style.rotate = new Rotate(new Angle(state.ArrowDegrees, AngleUnit.Degree));
             _slots.MarkDirtyRepaint();
             _arrow.MarkDirtyRepaint();
         }
 
         public void Unbind()
         {
-            if (_panel != null) _panel.generateVisualContent -= PaintPanel;
-            if (_gauge != null) _gauge.generateVisualContent -= PaintGauge;
+
             if (_arrow != null) _arrow.generateVisualContent -= PaintArrow;
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
-            _root = _panel = _gauge = _extra = _directionGroup = _arrow = _slots = null;
-            _count = _exit = _overflow = null;
+            _root = _panel = _extra = _directionGroup = _arrow = _slots = null;
+            _count = _golden = _overflow = null;
             _state = null;
             _config = null;
         }
@@ -148,43 +127,13 @@ namespace Worsen.Presentation.HUD
         private void OnDisable() => Unbind();
         private void OnDestroy() => Unbind();
 
-        private void PaintPanel(MeshGenerationContext context)
-        {
-            var painter = context.painter2D;
-            painter.fillColor = _config.PanelColor;
-            painter.strokeColor = _config.MutedColor;
-            painter.lineWidth = _config.StrokeWidth;
-            Path(painter, _geometry.Panel(new Rect(0, 0, _panel.layout.width, _panel.layout.height), _config.CornerCut));
-            painter.Fill();
-            painter.Stroke();
-        }
-
-        private void PaintGauge(MeshGenerationContext context)
-        {
-            var painter = context.painter2D;
-            painter.fillColor = _config.MutedColor;
-            Path(painter, _geometry.Panel(_gauge.contentRect, 0));
-            painter.Fill();
-            painter.fillColor = _config.TextColor;
-            Path(painter, _geometry.Panel(_geometry.Gauge(_gauge.contentRect, _state?.CountFraction ?? 0f), 0));
-            painter.Fill();
-        }
-
         private void PaintArrow(MeshGenerationContext context)
         {
             if (_state == null || !_state.DirectionVisible) return;
             var painter = context.painter2D;
-            painter.fillColor = new Color(0f, 0f, 0f, .2f);
-            painter.strokeColor = new Color(1f, 1f, 1f, .3f);
-            painter.lineWidth = 1f;
-            Path(painter, _compass.BaseRing(_arrow.contentRect));
-            painter.Fill(); painter.Stroke();
-            foreach (HUDCompassFace face in _compass.Needle(_arrow.contentRect, _state.ViewDirection))
-            {
-                painter.fillColor = face.Color;
-                painter.BeginPath(); painter.MoveTo(face.A); painter.LineTo(face.B); painter.LineTo(face.C);
-                painter.ClosePath(); painter.Fill();
-            }
+            painter.fillColor = Color.white;
+            Path(painter, _geometry.Arrow(_arrow.contentRect));
+            painter.Fill();
         }
 
         private void PaintSlots(MeshGenerationContext context)

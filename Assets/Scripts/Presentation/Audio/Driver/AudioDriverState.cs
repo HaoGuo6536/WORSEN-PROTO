@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Preserve runtime volume multipliers and listener-pause ownership across run resets.
 //   - Retain current cue priority, timing and overlapping fade gains.
 //   - Retain pushed proximity, movement and fractional injury values for layer mixing.
 //
@@ -18,7 +19,7 @@
 //
 // USAGE NOTES:
 //   - Owned by AudioDriver; never retained by another system.
-//   - No engine operations or events; ResetRun clears the complete state.
+//   - No engine operations or events; ResetRun preserves runtime preferences.
 //
 // ============================================================================
 
@@ -30,6 +31,8 @@ namespace Worsen.Presentation.Audio
     public sealed class AudioDriverState
     {
         public int ActiveCueKey = -1;
+        public float RuntimeMaster = 1f, RuntimeMusic = 1f, RuntimeEffects = 1f;
+        public bool Paused, OwnsListenerPause, PreviousListenerPause;
         public int ActivePriority = -1;
         public float CueRemaining;
         public float CueGain;

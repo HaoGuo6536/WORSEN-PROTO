@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Retain generated cake visuals, trap contacts and the owned tick clip for teardown.
 //   - Retain the owned native Lumen fallback-exit effect for lifecycle routing.
 //   - Retain last good directions and fallback/held flags keyed by target anchor id.
 //   - Keep rules, passive state and engine operations in their owning roles.
@@ -30,6 +31,9 @@ namespace Worsen.Domain.Floor
         public GameObject Root;
         public readonly Dictionary<int, LevelAnchor> Anchors = new Dictionary<int, LevelAnchor>();
         public readonly List<CakePickup> Pickups = new List<CakePickup>();
+        public readonly Dictionary<int, FloorCakeTrap> Traps = new Dictionary<int, FloorCakeTrap>();
+        public readonly List<FloorCakeVisual> CakeVisuals = new List<FloorCakeVisual>();
+        public AudioClip TrapTickClip;
         public readonly Dictionary<int, RoomCollapseVolume> Rooms = new Dictionary<int, RoomCollapseVolume>();
         public readonly List<Material> Materials = new List<Material>();
         public FloorExitVolume Exit;

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Exercise boundaries, duplicate sources, removal, catch idempotence and reset.
 //   - Read per-profile loss rules and honor explicitly suppressed pursuit.
+//   - Separate legacy proximity from live closeness and phase/fresh-belief admission.
 // DEPENDENCIES:
 //   - Chase/Hunter pure rules, Player fixtures, Level read-only contract, Core facts and NUnit.
 // USAGE NOTES:
@@ -51,8 +52,8 @@ namespace Worsen.Tests.Chase
             public bool PlayerVisible { get; set; } = true;
             public Vector3 LastKnownPosition => Vector3.zero;
             public long LastKnownTick => 0;
-            public float BeliefConfidence => 1f;
-            public long Tick => 0;
+            public float BeliefConfidence { get; set; } = 1f;
+            public long Tick { get; set; }
             public bool IsActive { get; set; } = true;
         }
         private sealed class WithdrawingHunterFixture : HunterFixture, IReadOnlyHunterPursuitState
@@ -267,6 +268,73 @@ namespace Worsen.Tests.Chase
             Assert.That(_state.ChaseId, Is.Zero); Assert.That(_state.Closeness, Is.Zero);
             Assert.That(_state.Phase, Is.EqualTo(ChasePhase.None));
             Assert.That(Step().Started, Is.False);
+        }
+        [TestCase(false)] [TestCase(true)]
+        public void LegacyProximityConstructorPreservesItsMeaning(bool inChase)
+        {
+            var sample = new ProximitySample(_player.Id, _hunter.Id, 1, 2, 4f, .5f, inChase);
+            Assert.That(sample.ActualCloseness, Is.EqualTo(sample.Closeness));
+            Assert.That(sample.HasBelief, Is.EqualTo(inChase));
+        }
+        [Test] public void LiveClosenessSurvivesLossWhileLegacyClosenessAndBeliefFollowPhases()
+        {
+            _hunter.Position = Vector3.back * 4f;
+            ProximitySample before = Step().Proximity;
+            Assert.That(before.Closeness, Is.Zero);
+            Assert.That(before.ActualCloseness, Is.EqualTo(1f));
+            Assert.That(before.HasBelief, Is.False);
+            Confirm();
+            ProximitySample confirmed = Step().Proximity;
+            Assert.That(confirmed.Closeness, Is.EqualTo(confirmed.ActualCloseness));
+            Assert.That(confirmed.HasBelief, Is.True);
+            Lose(); _hunter.Position = Vector3.back * 4f;
+            ProximitySample lost = Step().Proximity;
+            Assert.That(lost.InChase, Is.True);
+            Assert.That(lost.HasBelief, Is.True);
+            Assert.That(lost.Closeness, Is.EqualTo(1f));
+            ChaseTickResult ended = default;
+            for (int i = 0; i < 89; i++) ended = Step();
+            Assert.That(ended.Ended, Is.True);
+            Assert.That(ended.Proximity.InChase, Is.False);
+            Assert.That(ended.Proximity.HasBelief, Is.False);
+            Assert.That(ended.Proximity.Closeness, Is.Zero);
+            Assert.That(ended.Proximity.ActualCloseness, Is.EqualTo(1f));
+        }
+        [TestCase(0f, false)] [TestCase(.5f, true)]
+        [TestCase(float.NaN, false)] [TestCase(float.PositiveInfinity, false)]
+        public void FreshFiniteHunterBeliefCanAdmitBeforeConfirmation(float confidence, bool expected)
+        {
+            _hunter.PlayerVisible = false; _hunter.BeliefConfidence = confidence; _hunter.Tick = 1;
+            ProximitySample sample = Step().Proximity;
+            Assert.That(sample.InChase, Is.False);
+            Assert.That(sample.HasBelief, Is.EqualTo(expected));
+            Assert.That(Step().Proximity.HasBelief, Is.False, "An uncommitted stale view cannot admit music.");
+        }
+        [Test] public void RemovedPursuerCannotBorrowAnUnawareHuntersPresence()
+        {
+            Confirm();
+            var other = new HunterFixture { Id = new EntityId(-2), PlayerVisible = false };
+            ProximitySample sample = Step(other).Proximity;
+            Assert.That(sample.InChase, Is.True, "Existing chase-loss grace is unchanged.");
+            Assert.That(sample.Hunter, Is.EqualTo(other.Id));
+            Assert.That(sample.HasBelief, Is.False, "Missing pursuit must not be assigned to an unrelated live source.");
+        }
+        [Test] public void AggregateBeliefIncludesDistantSourceButNotRemovedOrDeadSources()
+        {
+            _hunter.Position = Vector3.back * 4f; _hunter.PlayerVisible = false;
+            var other = new HunterFixture { Id = new EntityId(-2), Position = Vector3.forward * 30f,
+                PlayerVisible = false, Tick = 1 };
+            ProximitySample sample = Step(_hunter, other).Proximity;
+            Assert.That(sample.Hunter, Is.EqualTo(_hunter.Id));
+            Assert.That(sample.HasBelief, Is.True);
+            Assert.That(Step().Proximity.HasBelief, Is.False);
+            _hunter.PlayerVisible = true; Confirm();
+            sample = _controller.Tick(Array.Empty<IReadOnlyHunterState>(), Dt, ++_tick).Proximity;
+            Assert.That(sample.Hunter.IsValid, Is.False);
+            Assert.That(sample.ActualCloseness, Is.Zero);
+            Assert.That(sample.HasBelief, Is.False);
+            _player.Health = 0f; _hunter.Tick = _tick + 1;
+            Assert.That(Step().Proximity.HasBelief, Is.False);
         }
     }
 }

@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Replace optional spawns with seeded traps; apply unwired cake hooks without foreign effects.
+//   - Start collapse independently of Greedy Door unlocking; keep guidance chase-independent.
 //   - Leave unused sockets empty; score optional cakes without advancing required progress.
 //   - Return a shared hearing noise for every accepted ordinary or golden pickup.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
@@ -50,7 +52,7 @@ namespace Worsen.Domain.Floor
         }
 
         public void Initialize(LevelGraph graph, IReadOnlyList<IReadOnlyPlayerState> players, int requiredCakeCount = -1,
-            bool fasterCollapse = false, bool shuffledCollapse = false)
+            bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default)
         {
             if (graph == null || players == null) throw new ArgumentNullException();
             RequirePositive(_config.CollapseInterval, nameof(_config.CollapseInterval));
@@ -69,6 +71,7 @@ namespace Worsen.Domain.Floor
                 if (!Finite(Weight(type)) || Weight(type) < 0f) throw new ArgumentException("Anchor weights must be finite and nonnegative.");
             Reset();
             _state.Graph = graph;
+            _state.CakeHooks = cakeHooks;
             _state.FasterCollapse = fasterCollapse;
             _state.Players = players.ToArray();
             var distances = LevelGraphUtility.DistancesTo(graph, graph.ExitRoomId, TraversalAccess.Player);
@@ -105,6 +108,7 @@ namespace Worsen.Domain.Floor
             }
             else _state.SpawnedAnchors.AddRange(candidates);
             while (_state.SelectedAnchors.Count < required) _state.SelectedAnchors.Add(DrawAnchor(candidates));
+            PlaceTraps(round);
             _state.MutableActiveAnchors.AddRange(_state.SelectedAnchors);
             foreach (var anchor in _state.SpawnedAnchors) _state.RemainingRewards.Add(anchor.Id, PickupKind.Cake);
             foreach (var room in graph.Rooms)
@@ -167,24 +171,30 @@ namespace Worsen.Domain.Floor
                 if (!_state.CollectedCakes.Add(anchorId)) return false;
                 _state.RemainingRewards.Remove(anchorId);
                 bool required = _state.SelectedAnchors.Any(value => value.Id == anchorId);
-                if (required) _state.CakeCount++;
+                if (!_state.CollapseStarted && (_state.CakeHooks.BlindFaith || required))
+                    _state.CakeCount = Math.Min(_state.RequiredCakeCount, _state.CakeCount + (_state.CakeHooks.BlindFaith ? 2 : 1));
                 _state.MutableActiveAnchors.RemoveAll(value => value.Id == anchorId);
-                if (_state.ExitState == ExitState.Locked && _state.CakeCount == _state.RequiredCakeCount)
+                if (!_state.CollapseStarted && _state.CakeCount == _state.RequiredCakeCount)
                 {
                     CancelExitHolds();
-                    _state.ExitState = ExitState.Open;
+                    _state.CollapseStarted = true;
+                    _state.MutableActiveAnchors.Clear();
                     _state.CollapseElapsed = 0d;
                     _state.CueElapsed = _config.DirectionCueInterval;
-                    foreach (var selected in _state.SelectedAnchors) _state.RemainingRewards.Add(selected.Id, PickupKind.GoldenCake);
+                    // Blind Faith may finish early: never overlap gold with an uncollected cake.
+                    var goldSource = _state.CakeHooks.BlindFaith ? _state.SpawnedAnchors : _state.SelectedAnchors;
+                    foreach (var selected in goldSource.Where(value => _state.CollectedCakes.Contains(value.Id)))
+                    { _state.GoldenAnchors.Add(selected); _state.RemainingRewards.Add(selected.Id, PickupKind.GoldenCake); }
                 }
             }
             else if (kind == PickupKind.GoldenCake)
             {
-                if (_state.ExitState != ExitState.Open || !_state.CollectedGoldenCakes.Add(anchorId)) return false;
+                if (!_state.CollapseStarted || !_state.CollectedGoldenCakes.Add(anchorId)) return false;
                 _state.GoldenCakeCount++;
                 _state.RemainingRewards.Remove(anchorId);
             }
             else return false;
+            UpdateExitLock();
             fact = new PickupCollectedFact(playerId, anchorId, kind, _state.CollectedCakes.Count, _state.GoldenCakeCount, tick);
             noise = new NoiseEvent(playerId, anchor.Position, _config.PickupNoiseLoudness, tick, NoiseSourceKind.CakePickup);
             return true;
@@ -196,8 +206,9 @@ namespace Worsen.Domain.Floor
             var facts = new List<RoomPhaseChangedFact>();
             if (!_state.IsReady || _state.Ended) return facts;
             _state.Tick = tick;
+            _state.Elapsed += dt;
             _state.CueElapsed += dt;
-            if (_state.ExitState != ExitState.Open) return facts;
+            if (!_state.CollapseStarted) return facts;
             _state.CollapseElapsed += dt * (_state.FasterCollapse ? _config.FasterCollapseMultiplier : 1f);
             while (_state.NextTransition < _state.Schedule.Count && _state.Schedule[_state.NextTransition].At <= _state.CollapseElapsed)
             {
@@ -212,6 +223,7 @@ namespace Worsen.Domain.Floor
                         }
                 facts.Add(new RoomPhaseChangedFact(transition.RoomId, transition.Phase, tick));
             }
+            UpdateExitLock();
             return facts;
         }
 
@@ -235,14 +247,15 @@ namespace Worsen.Domain.Floor
             var direction = Vector3.zero;
             float nearest = float.PositiveInfinity;
             int nearestId = int.MaxValue;
-            if (_state.IsReady && !_state.Ended && paths != null)
+            if (_state.IsReady && !_state.Ended && !_state.CakeHooks.BlindFaith && paths != null)
             foreach (var path in paths)
             {
-                bool wanted = _state.ExitState == ExitState.Open ? path.AnchorId == 0 : _state.MutableActiveAnchors.Any(anchor => anchor.Id == path.AnchorId);
+                bool wanted = _state.CollapseStarted ? path.AnchorId == 0 : _state.MutableActiveAnchors.Any(anchor => anchor.Id == path.AnchorId);
                 if (!wanted || !Finite(path.Length) || path.Length < 0f || !Finite(path.Direction.x) || !Finite(path.Direction.y) || !Finite(path.Direction.z)) continue;
                 if (path.Length > nearest || path.Length == nearest && path.AnchorId >= nearestId) continue;
                 nearest = path.Length; nearestId = path.AnchorId; available = true; direction = path.Direction;
             }
+            _state.CueAnchorId = available ? nearestId : -1;
             _state.Display = new FloorDisplaySnapshot(_state.CakeCount, _state.RequiredCakeCount,
                 _state.GoldenCakeCount, _state.ExitState, available, direction, NormalizedProgress(openingProgress));
             return _state.Display;
@@ -335,6 +348,9 @@ namespace Worsen.Domain.Floor
 
         public void Reset()
         {
+            _state.MutableTraps.Clear(); _state.SprungTraps.Clear(); _state.GoldenAnchors.Clear();
+            _state.CakeHooks = default; _state.CollapseStarted = false; _state.CueAnchorId = -1;
+            _state.TrapTickElapsed = 0d; _state.Elapsed = 0d;
             CancelExitHolds();
             _state.IsReady = false; _state.Ended = false; _state.Tick = 0;
             _state.CakeCount = 0; _state.GoldenCakeCount = 0; _state.RequiredCakeCount = 0;
@@ -347,6 +363,77 @@ namespace Worsen.Domain.Floor
         }
 
         private bool LivingPlayer(EntityId id) => id.IsValid && _state.Players.Any(player => player != null && player.Id == id && player.IsAlive);
+        private void PlaceTraps(int round)
+        {
+            if (round < _config.TrapStartRound) return;
+            var optional = _state.SpawnedAnchors.Where(a => !_state.SelectedAnchors.Any(r => r.Id == a.Id)).OrderBy(a => a.Id).ToList();
+            int count = Math.Min(_config.MaximumTraps, Math.Min(_state.Graph.Rooms.Count / _config.RoomsPerTrap,
+                Mathf.FloorToInt(optional.Count * _config.OptionalTrapShare)));
+            int extra = _state.CakeHooks.MoreTraps ? _config.ExtraBlinderTraps : 0;
+            for (int index = 0; index < count + extra && optional.Count > 0; index++)
+            {
+                int choice = _random.Next(optional.Count);
+                var anchor = optional[choice]; optional.RemoveAt(choice);
+                var kind = index < count ? (FloorTrapKind)_random.Next(3) : FloorTrapKind.Blind;
+                _state.MutableTraps.Add(new FloorTrapSpawn(anchor, kind));
+            }
+            if (_state.CakeHooks.SweetTooth && _state.MutableTraps.Count > 0) _state.MutableTraps.RemoveAt(0);
+            _state.SpawnedAnchors.RemoveAll(a => _state.MutableTraps.Any(t => t.Anchor.Id == a.Id));
+        }
+
+        public bool SpringTrap(EntityId playerId, int trapId, long tick, out FloorTrapSprungFact fact, out NoiseEvent noise)
+        {
+            fact = default; noise = default;
+            if (!_state.IsReady || _state.Ended || !LivingPlayer(playerId)) return false;
+            var trap = _state.MutableTraps.FirstOrDefault(value => value.Anchor.Id == trapId);
+            if (trap.Anchor.Id == 0 || _state.MutableRoomPhases[trap.Anchor.RoomId] == RoomPhase.Closed || !_state.SprungTraps.Add(trapId)) return false;
+            fact = new FloorTrapSprungFact(trapId, trap.Kind, trap.Anchor.RoomId, trap.Anchor.Position, tick, playerId);
+            if (trap.Kind == FloorTrapKind.Announce)
+                noise = new NoiseEvent(playerId, trap.Anchor.Position, _config.TrapAnnounceLoudness, tick, NoiseSourceKind.Trap);
+            return true;
+        }
+
+        public IReadOnlyList<FloorTrapSpawn> TickTraps(float dt)
+        {
+            if (!Finite(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
+            if (!_state.IsReady || _state.Ended || _state.CakeHooks.SilentTraps) return Array.Empty<FloorTrapSpawn>();
+            _state.TrapTickElapsed += dt;
+            if (_state.TrapTickElapsed < _config.TrapTickInterval) return Array.Empty<FloorTrapSpawn>();
+            _state.TrapTickElapsed %= _config.TrapTickInterval;
+            return _state.MutableTraps.Where(t => t.Kind == FloorTrapKind.Blind && !_state.SprungTraps.Contains(t.Anchor.Id) &&
+                _state.MutableRoomPhases[t.Anchor.RoomId] != RoomPhase.Closed).ToArray();
+        }
+
+        public bool TryWhiteGuidance(bool fallback, out GuidanceTarget target)
+        {
+            target = default;
+            if (!_state.IsReady || _state.Ended || _state.CakeHooks.BlindFaith || _state.CueAnchorId < 0) return false;
+            int id = _state.CueAnchorId;
+            if (id != 0 && !_state.MutableActiveAnchors.Any(a => a.Id == id)) return false;
+            var position = id == 0 ? _state.Graph.ExitPosition : _state.MutableActiveAnchors.First(a => a.Id == id).Position;
+            target = new GuidanceTarget(GuidanceKind.WhiteArrow, _state.Display.CueDirection, position, id, isFallback: fallback);
+            return true;
+        }
+
+        public bool TryGoldenTarget(Vector3 from, out LevelAnchor anchor)
+        {
+            anchor = default;
+            if (!_state.IsReady || _state.Ended || !_state.CollapseStarted || !_state.CakeHooks.GoldenSense || _state.CakeHooks.BlindFaith) return false;
+            anchor = _state.GoldenAnchors.Where(a => _state.RemainingRewards.TryGetValue(a.Id, out var kind) && kind == PickupKind.GoldenCake)
+                .OrderBy(a => (a.Position - from).sqrMagnitude).ThenBy(a => a.Id).FirstOrDefault();
+            return anchor.Id != 0;
+        }
+
+        private void UpdateExitLock()
+        {
+            if (!_state.CollapseStarted || _state.ExitState == ExitState.Open) return;
+            int remaining = _state.RemainingRewards.Count(pair => pair.Value == PickupKind.GoldenCake);
+            int collected = _state.GoldenCakeCount;
+            // Lost gold reduces the available pool. Zero collected waits for the full collapse.
+            bool quota = collected > 0 && collected >= Mathf.CeilToInt((remaining + collected) * _config.GreedyDoorShare);
+            if (!_state.CakeHooks.GreedyDoor || _state.GoldenAnchors.Count == 0 || quota || _state.NextTransition == _state.Schedule.Count)
+            { _state.ExitState = ExitState.Open; CancelExitHolds(); }
+        }
         private static float NormalizedProgress(float value) => Finite(value) ? Mathf.Clamp01(value) : 0f;
         private LevelAnchor DrawAnchor(List<LevelAnchor> candidates)
         {

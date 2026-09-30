@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Keep snap support across rounded drop edges independently of sweep-contact separation.
 //   - Resolve the Player-owned effect config through its mirrored Resources path.
 //   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
 //   - Maintain walkable uphill support while allowing real jumps to leave the surface.
@@ -152,7 +153,7 @@ namespace Worsen.Domain.Player
             }
             if (FindGround(position,
                 _state.Grounded ? _config.GroundSnapDistance : _config.GroundProbeDistance, displacement, out RaycastHit ground)
-                && _presenter.CanGround(velocity, ground.normal, _config.SlopeLimitDegrees))
+                && _presenter.CanSnapToGround(velocity, ground.normal, _config.SlopeLimitDegrees))
             {
                 if (_state.Grounded || grounded)
                     position = _presenter.GroundSnap(position, ground.distance, _config.SkinWidth, _config.GroundSnapDistance);

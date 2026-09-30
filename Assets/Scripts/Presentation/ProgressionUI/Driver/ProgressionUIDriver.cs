@@ -17,6 +17,7 @@
 //   - Forward navigation feedback and explain unavailable offers without dispatching purchase requests.
 //   - Hard-cut on catch completion; warn on unscaled fallback and clear pending state on disable.
 //   - Own panel/card sub-drivers and scheduled keyboard focus.
+//   - Forward explicit Hidden Count changes without inspecting curse rules.
 //
 // DEPENDENCIES:
 //   Core ProgressionSnapshot/Phase; own Presenter, DriverState and drawing stack.
@@ -87,6 +88,13 @@ namespace Worsen.Presentation.ProgressionUI
             if (_state == null) return;
             bool focus = !_state.HasSnapshot || _state.Phase != snapshot.Phase || _state.Pending;
             if (_presenter.Present(_state, snapshot)) Apply(focus);
+        }
+
+        public void SetHiddenCount(bool hidden)
+        {
+            if (_state == null) return;
+            _presenter.SetHiddenCount(_state, hidden);
+            Apply(false);
         }
 
         public void PrepareCatch(EntityId player)

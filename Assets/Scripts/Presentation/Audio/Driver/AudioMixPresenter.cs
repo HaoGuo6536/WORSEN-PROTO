@@ -11,13 +11,14 @@
 //   Presenter (§7b) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
+//   - Sanitize runtime gains independently of every designer gain and cue envelope.
 //   - Count landing and slide-exit contact as the current step, so cadence waits for the next footfall.
 //   - Admit higher-priority cues and retain an outgoing fade on interruption.
 //   - Preserve fractional injury samples and map them with proximity to bounded gains.
 //   - Advance footsteps and all fades using caller-supplied elapsed time.
 //
 // DEPENDENCIES:
-//   - Core MovementState only; AudioDriverState and AudioMixSettings are owned data.
+//   - Core movement/preferences; AudioDriverState and AudioMixSettings are owned data.
 //
 // USAGE NOTES:
 //   - Stateless; AudioDriver owns every state instance and performs playback.
@@ -33,6 +34,16 @@ namespace Worsen.Presentation.Audio
 {
     public sealed class AudioMixPresenter
     {
+        public void ApplySettings(AudioDriverState state, PlayerSettingsRecord settings)
+        {
+            state.RuntimeMaster = Unit(settings.MasterVolume);
+            state.RuntimeMusic = Unit(settings.MusicVolume);
+            state.RuntimeEffects = Unit(settings.EffectsVolume);
+        }
+
+        public float EffectsGain(AudioDriverState state, float designerMaster)
+            => Unit(designerMaster) * state.RuntimeMaster * state.RuntimeEffects;
+
         public bool TryCue(AudioDriverState state, int cueKey, int priority, float seconds, float gain, float fadeSeconds)
         {
             seconds = Nonnegative(seconds);

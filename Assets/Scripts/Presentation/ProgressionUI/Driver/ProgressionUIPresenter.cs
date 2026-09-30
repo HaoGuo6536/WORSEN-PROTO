@@ -15,6 +15,7 @@
 //   - Display catalogue axes, priced rerolls, inventory and deferred replacement choices.
 //   - Trust Session-admitted selection cards, including stackable curses after rerolls.
 //   - Group retained choices without truncation; distinguish UI intent from committed purchase audio.
+//   - Redact retained hunters and their count when the explicit Hidden Count hook is enabled.
 //   - Gate terminal and shelter presentation on catch completion with a bounded, flagged timeout.
 //   - Reject hidden, stale or repeated UI clicks using the displayed snapshot.
 //   - Format health only for selection, shelter and terminal screens, never a live floor or generation.
@@ -55,6 +56,7 @@ namespace Worsen.Presentation.ProgressionUI
             }
             bool changed = !state.HasSnapshot || snapshot.Revision != state.Revision;
             state.HasSnapshot = true;
+            state.LatestSnapshot = snapshot;
             state.Hidden = false;
             if (changed) state.Pending = false;
             state.Revision = snapshot.Revision;
@@ -70,13 +72,22 @@ namespace Worsen.Presentation.ProgressionUI
                 || snapshot.Phase == ProgressionPhase.GenerationFailed;
             state.HealthText = state.HealthVisible ? "HEALTH  " + Health(snapshot.Health) + " / " + Health(snapshot.MaxHealth) : "";
             state.HealthFraction = state.HealthVisible ? Fraction(snapshot.Health, snapshot.MaxHealth) : 0f;
-            state.BurdenText = Number(snapshot.ThreatCount) + " THREATS  /  " + Number(snapshot.CurseCount) + " CURSES";
+            state.BurdenText = (state.HideActiveHunters ? "HUNTERS HIDDEN" : Number(snapshot.ThreatCount) + " THREATS")
+                + "  /  " + Number(snapshot.CurseCount) + " CURSES";
             state.Message = snapshot.Message ?? "";
             state.Title = Title(snapshot.Phase);
             state.Subtitle = Subtitle(snapshot.Phase);
-            state.RetainedText = Retained(snapshot) + Inventory(snapshot);
+            state.RetainedText = Retained(snapshot, state.HideActiveHunters) + Inventory(snapshot);
             state.Cards = Cards(snapshot);
             return true;
+        }
+
+        public void SetHiddenCount(ProgressionUIDriverState state, bool hidden)
+        {
+            state.HideActiveHunters = hidden;
+            bool wasHidden = state.Hidden;
+            if (state.HasSnapshot) Present(state, state.LatestSnapshot);
+            state.Hidden = wasHidden;
         }
 
         public void Hide(ProgressionUIDriverState state)
@@ -240,12 +251,13 @@ namespace Worsen.Presentation.ProgressionUI
             return text.ToString();
         }
 
-        private static string Retained(ProgressionSnapshot snapshot)
+        private static string Retained(ProgressionSnapshot snapshot, bool hideHunters)
         {
             if (snapshot.Retained == null || snapshot.Retained.Count == 0) return "No retained choices yet.";
             var text = new StringBuilder();
             foreach (ProgressionChoiceKind kind in new[] { ProgressionChoiceKind.Threat, ProgressionChoiceKind.Curse, ProgressionChoiceKind.Upgrade })
             {
+                if (hideHunters && kind == ProgressionChoiceKind.Threat) continue;
                 bool heading = false;
                 foreach (var selection in snapshot.Retained)
                 {
@@ -260,7 +272,7 @@ namespace Worsen.Presentation.ProgressionUI
                     if (selection.Count > 1) text.Append(" x").Append(Number(selection.Count));
                 }
             }
-            return text.ToString();
+            return hideHunters ? "Active hunters are hidden.\n" + text : text.ToString();
         }
 
         private static string Title(ProgressionPhase phase)

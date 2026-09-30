@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Consume bounded external velocity once after locomotion, regardless of hit grace.
 //   - Snapshot active effects each tick; combine Player config rules through PlayerEffectUtility.
 //   - Release vault momentum once, suppress slide noise and expose sliding grab protection.
 //   - Reset floor health to its effective maximum and regenerate living players after accepted hits.
@@ -33,6 +34,9 @@
 //   Health hooks are neutral after Reset; configure them before BeginFloorHealth, after spawning.
 //   Effects do not retime published grace or admitted traversal intervals. Heavy Legs cancels a live boost.
 //   Floor reset reconciles next-tick effects once, preserving intervening damage and never reviving deaths.
+//   External motion interrupts scripted traversal and uses normal swept movement.
+//   Its next ticks use ordinary friction, gravity and locomotion caps; replay callers
+//   must supply external commands at matching ticks, as they already do for hits.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -76,6 +80,7 @@ namespace Worsen.Domain.Player
             _state.LookBackEnabled = true;
             _state.Position = position;
             _state.Velocity = Vector3.zero;
+            _state.PendingExternalVelocity = Vector3.zero;
             _state.HeadingDegrees = headingDegrees;
             _state.Forward = Quaternion.Euler(0f, headingDegrees, 0f) * Vector3.forward;
             _state.MovementSpeedMultiplier = 1f;
@@ -137,6 +142,7 @@ namespace Worsen.Domain.Player
             _state.TraversalSampleActive = false;
             if (!_state.IsAlive)
             {
+                _state.PendingExternalVelocity = Vector3.zero;
                 _state.Velocity = Vector3.zero;
                 _state.HeadLookDelta = Vector2.zero;
                 _state.LookBack = false;
@@ -144,6 +150,15 @@ namespace Worsen.Domain.Player
             }
             RegenerateHealth(deltaTime);
             ApplyLook(frame);
+            bool externalMotion = _state.PendingExternalVelocity.sqrMagnitude > 0f;
+            if (externalMotion && _state.MovementState == MovementState.Vault)
+            {
+                _state.TraversalSampleActive = true;
+                _state.MovementState = MovementState.Air;
+                _state.VaultRemaining = _state.CoyoteRemaining = 0f;
+                _state.VaultCompletionPending = false;
+                _state.LedgeRegrabRemaining = _profile.LedgeRegrabDelay;
+            }
             if ((frame.Pressed & InputButtons.Jump) != 0)
             {
                 _state.VaultAttemptResolvedForPress = false;
@@ -184,12 +199,12 @@ namespace Worsen.Domain.Player
             // VaultCandidate. All decision inputs still fit the recorded MovementProbe.
             bool ledge = !probe.VaultCandidate && probe.VaultClearance > 0f
                 && _state.MovementState == MovementState.Air && _state.LedgeRegrabRemaining <= 0f;
-            if (ledge && CanVault(probe, true))
+            if (!externalMotion && ledge && CanVault(probe, true))
             {
                 BeginVault(probe, true);
                 return ContinueVault(frame, probe, deltaTime, facts, false);
             }
-            if (jump && probe.VaultCandidate && !_state.VaultAttemptResolvedForPress)
+            if (!externalMotion && jump && probe.VaultCandidate && !_state.VaultAttemptResolvedForPress)
             {
                 if (CanVault(probe))
                 {
@@ -244,6 +259,18 @@ namespace Worsen.Domain.Player
                 _state.Velocity += Vector3.down * _profile.Gravity * deltaTime;
             else _state.Velocity = Horizontal(_state.Velocity);
             _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
+            if (externalMotion)
+            {
+                _state.Velocity = Vector3.ClampMagnitude(_state.Velocity + _state.PendingExternalVelocity,
+                    _profile.MaximumExternalMotionSpeed);
+                _state.PendingExternalVelocity = Vector3.zero;
+                if (_state.Velocity.y > 0f)
+                {
+                    _state.MovementState = MovementState.Air;
+                    _state.Grounded = false;
+                    _state.CoyoteRemaining = 0f;
+                }
+            }
             _state.Crouched = _state.MovementState == MovementState.Slide || probe.StandingBlocked
                 || (_state.Grounded && (frame.Held & InputButtons.Crouch) != 0);
             if (_state.Grounded && Horizontal(_state.Velocity).magnitude >= 0.5f
@@ -255,6 +282,29 @@ namespace Worsen.Domain.Player
                 _state.FootstepRemaining = _profile.FootstepInterval;
             }
             return new PlayerTickResult(_state.Velocity * deltaTime, _state.Crouched, facts.ToArray());
+        }
+
+        public void ApplyExternalVelocity(Vector3 velocity, ExternalMotionKind kind)
+        {
+            if (kind != ExternalMotionKind.Impulse && kind != ExternalMotionKind.CollapseHandThrow)
+                throw new ArgumentOutOfRangeException(nameof(kind));
+            QueueExternalVelocity(velocity);
+        }
+
+        public void ApplyExternalAcceleration(Vector3 acceleration, float deltaSeconds)
+        {
+            if (!Finite(acceleration) || !Finite(deltaSeconds) || deltaSeconds < 0f)
+                throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
+            QueueExternalVelocity(acceleration * deltaSeconds);
+        }
+
+        private void QueueExternalVelocity(Vector3 velocity)
+        {
+            Vector3 pending = _state.PendingExternalVelocity + velocity;
+            if (!Finite(velocity) || !Finite(pending.sqrMagnitude)
+                || !Finite(_profile.MaximumExternalMotionSpeed) || _profile.MaximumExternalMotionSpeed < 0f)
+                throw new ArgumentOutOfRangeException(nameof(velocity));
+            if (_state.IsAlive) _state.PendingExternalVelocity = pending;
         }
 
         public void CommitPose(PlayerMoveResult result)
@@ -349,6 +399,7 @@ namespace Worsen.Domain.Player
 
         public GraceWindowFact? EndRecovery()
         {
+            _state.PendingExternalVelocity = Vector3.zero;
             GraceWindowFact? ended = _state.GraceActive
                 ? new GraceWindowFact(_state.Id, _state.GraceWindow.StartTick,
                     Math.Max(_state.GraceWindow.StartTick, Math.Min(_state.Tick, _state.GraceWindow.EndTick)), _state.GraceWindow.Severity)

@@ -5,6 +5,7 @@
 // PURPOSE:
 //   Calculates bounded flashlight, fog-distance and enemy warning outputs from pushed facts.
 //   It never discovers enemies or touches Unity objects, so invalid inputs and phase edges can be tested.
+//   Injected gameplay tick durations advance a whole-run clock independently of floor resets.
 //
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Horror.
@@ -12,6 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Validate authoritative light samples and preserve exact gameplay range.
 //   - Compose default-off fog hooks and gate earned intrusions with an injected random source.
+//   - Advance finite, non-negative run-clock deltas and zero the clock only on ResetRun.
 //   - Compute warning color, contracting ring, directional pose and one growl per windup.
 //
 // DEPENDENCIES:
@@ -20,6 +22,7 @@
 // USAGE NOTES:
 //   All transient values live in caller-owned DriverState objects.
 //   ResetRound clears attack state and restores the lamp switch while preserving run modifiers.
+//   ResetRound also preserves the run clock and startle history; no engine time is sampled.
 //
 // ============================================================================
 
@@ -30,6 +33,13 @@ namespace Worsen.Presentation.Horror
 {
     public sealed class HorrorPresenter
     {
+        public bool AdvanceRunClock(HorrorDriverState state, float deltaSeconds)
+        {
+            if (!Finite(deltaSeconds) || deltaSeconds < 0f) return false;
+            state.RunElapsedSeconds += deltaSeconds;
+            return true;
+        }
+
         public bool TryStartle(HorrorDriverState state, HorrorDriverConfig config, double runSeconds,
             bool earned, System.Random random)
         {
@@ -47,6 +57,7 @@ namespace Worsen.Presentation.Horror
         public void ResetRun(HorrorDriverState state)
         {
             ResetRound(state);
+            state.RunElapsedSeconds = 0d;
             state.StartlesUsed = 0;
             state.LastStartleSeconds = state.LastIntrusionSeconds = double.NegativeInfinity;
             state.HookFogDistanceMultiplier = state.HookFogStartMultiplier = 1f;

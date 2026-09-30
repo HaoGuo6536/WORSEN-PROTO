@@ -9,13 +9,14 @@
 //   Presenter (§7b) · Presentation · Audio.
 // KEY RESPONSIBILITIES:
 //   - Keep the normal impact floor beneath stress and gradually change playback speed.
-//   - Gate escalation on the supplied chase-as-belief proxy, not mere proximity.
+//   - Gate escalation on supplied aggregate belief, not mere proximity.
 //   - Draw once per aggregate loss and cancel run audio without a resolving outro.
 // DEPENDENCIES:
 //   - Own Audio value types, DriverState and shared read-only DriverConfig.
 // USAGE NOTES:
 //   Delta time, DSP clock, intro duration and cosmetic randomness are supplied by the Driver.
-//   Chasing represents Confirmed or Lost; no independent hunter belief fact is available.
+//   AudioThreatSample.Chasing is the legacy field name for music belief admission.
+//   Live snapshots include Confirmed/Lost or fresh hunter belief and uncensored proximity.
 //   Ordinary loss waits the sampled delay even if danger remains close. A lie
 //   bypasses that wait for a nearby-loss episode; reacquisition cancels release.
 //   No engine calls or clip properties are read here. Reset replaces the state.
