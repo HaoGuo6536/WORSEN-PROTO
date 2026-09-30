@@ -102,6 +102,7 @@ namespace Worsen.Editor.Scenes
                 BuildPresentation(root, run);
                 BuildWorldServices(root, cake);
                 RestoreFog(root);
+                RestoreEnvironmentVisuals(root);
                 var ui = Add<ProgressionUIManager>("Progression UI");
                 var uiDriver = ui.GetComponent<ProgressionUIDriver>() ?? ui.gameObject.AddComponent<ProgressionUIDriver>();
                 var uiConfig = Ensure<ProgressionUIDriverConfig>(ConfigRoot + "Presentation/ProgressionUI/ProgressionUIDriverConfig.asset");
@@ -152,6 +153,17 @@ namespace Worsen.Editor.Scenes
                 .SelectMany(value => value.GetComponentsInChildren<FogOrchestrator>(true)).SingleOrDefault();
             if (route == null) route = fog.gameObject.AddComponent<FogOrchestrator>();
             WireMissing(root, "_fogRoute", route);
+        }
+
+        public static void RestoreEnvironmentVisuals(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            // Reuse the exit-door visuals already assigned to the scene FloorDriver.
+            var floor = Referenced<FloorManager>(root, "_floor");
+            var driver = floor != null ? floor.GetComponent<FloorDriver>() : null;
+            var visuals = driver != null ? Referenced<FloorDriverConfig>(driver, "_config") : null;
+            if (visuals != null) WireMissing(root, "_floorVisuals", visuals);
         }
 
         public static void RestoreMenuAndSettings(HorrorRunSceneRoot root)
@@ -245,6 +257,7 @@ namespace Worsen.Editor.Scenes
             HorrorWorldAssetSetup.Configure(driverConfig, Require<ProceduralDriverConfig>(ConfigRoot + "Domain/Procedural/ProceduralDriverConfig.asset"));
             AssetDatabase.SaveAssetIfDirty(driverConfig);
             Wire(floor.GetComponent<FloorDriver>(), "_config", driverConfig);
+            Wire(root, "_floorVisuals", driverConfig);
             Wire(root, "_floor", floor); Wire(root, "_floorConfig", floorConfig);
         }
 

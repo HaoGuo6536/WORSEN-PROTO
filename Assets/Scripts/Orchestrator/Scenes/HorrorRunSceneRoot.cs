@@ -97,6 +97,7 @@ namespace Worsen.Orchestrator
         [SerializeField] private EnvironmentManager _environment;
         [SerializeField] private EnvironmentDriverConfig _environmentConfig;
         [SerializeField] private EnvironmentOrchestrator _environmentRoute;
+        [SerializeField] private FloorDriverConfig _floorVisuals = null;
         [SerializeField] private ChaseManager _chase;
         [SerializeField] private ChaseConfig _chaseConfig;
         [SerializeField] private FloorManager _floor;
@@ -145,7 +146,8 @@ namespace Worsen.Orchestrator
             _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera);
             _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment);
             _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
-            _environmentRoute.Configure(_run, _expedition, _effects, _environment);
+            // Exit rays need the level and the exit door visuals the FloorDriver uses.
+            _environmentRoute.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals);
             _inputRoute.ConfigureProgression(_progression);
             _telemetry.GetComponent<TelemetryOrchestrator>().ConfigureProgression(_progression);
             _assembled = true;
