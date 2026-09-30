@@ -9,6 +9,7 @@
 //   Driver (§7a) · Domain · Hunter Ticking facet.
 // KEY RESPONSIBILITIES:
 //   - Sample reachable rear pockets and keys, instantiate one trigger and relay raw contacts.
+//   - Reuse complete pooled clearance queries until destruction.
 // DEPENDENCIES:
 //   - Unity navigation/physics, own DriverConfig/DriverState and key sub-driver.
 // USAGE NOTES:
@@ -17,6 +18,7 @@
 //   The default navigation agent and Walkable area match the shared Hunter motor.
 // ============================================================================
 using System;
+using System.Buffers;
 using UnityEngine;
 using UnityEngine.AI;
 namespace Worsen.Domain.Hunter.Archetypes.Ticking
@@ -33,6 +35,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             ClearKey();
             if (config == null || config.KeyPrefab == null) throw new InvalidOperationException("Build and wire Ticking key assets before spawning.");
             _config = config;
+            _state.ObstacleMask = _config.ObstacleMask;
+            if (_state.QueryHits == null) _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
+            if (_state.QueryOverlaps == null) _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.Path = new NavMeshPath();
         }
         public bool TrySampleFollow(Vector3 hunter, Vector3 candidate, out Vector3 position)
@@ -57,11 +62,18 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             Vector3 origin = start.position + Vector3.up * _config.ClearanceHeight;
             Vector3 destination = end.position + Vector3.up * _config.ClearanceHeight;
             Vector3 delta = destination - origin;
-            foreach (RaycastHit hit in Physics.SphereCastAll(origin, _config.ClearanceRadius, delta.normalized,
-                delta.magnitude, _config.ObstacleMask, QueryTriggerInteraction.Ignore))
+            int count = SphereQuery(origin, delta.normalized, delta.magnitude);
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i];
                 if (!hit.collider.transform.IsChildOf(transform) && (isPlayer == null || !isPlayer(hit.collider))) return false;
-            foreach (Collider hit in Physics.OverlapSphere(destination, _config.ClearanceRadius, _config.ObstacleMask, QueryTriggerInteraction.Ignore))
+            }
+            count = SphereOverlap(destination);
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = _state.QueryOverlaps[i];
                 if (!hit.transform.IsChildOf(transform) && (isPlayer == null || !isPlayer(hit))) return false;
+            }
             position = end.position; return true;
         }
         public void ShowKey(Vector3 position, int serial)
@@ -88,6 +100,35 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             if (Application.isPlaying) Destroy(_state.Key); else DestroyImmediate(_state.Key);
             _state.Key = null;
         }
-        private void OnDestroy() { ClearKey(); }
+        private int SphereQuery(Vector3 origin, Vector3 direction, float distance)
+        {
+            int count;
+            while ((count = Physics.SphereCastNonAlloc(origin, _config.ClearanceRadius, direction, _state.QueryHits,
+                distance, _state.ObstacleMask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            return count;
+        }
+        private int SphereOverlap(Vector3 origin)
+        {
+            int count;
+            while ((count = Physics.OverlapSphereNonAlloc(origin, _config.ClearanceRadius, _state.QueryOverlaps,
+                _state.ObstacleMask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
+        }
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            T[] larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true); buffer = larger;
+            Debug.LogWarning($"Ticking physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
+        }
+        private void OnDestroy()
+        {
+            ClearKey();
+            if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+            if (_state.QueryOverlaps != null) ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+            _state.QueryHits = null; _state.QueryOverlaps = null;
+        }
     }
 }

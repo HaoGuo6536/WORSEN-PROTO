@@ -9,7 +9,7 @@
 //   DriverState (section 7c) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Retain pooled physics buffers and configured masks separately from foreign systems.
 //   - Cache a bounded, physically verified corner-arc prediction until the next path refresh.
 //   - Retain independent observation-only stall history for this life.
 //   - Cache bounded emergence observations and the owned humanoid backend binding.
@@ -29,8 +29,9 @@ namespace Worsen.Domain.Hunter
         public readonly HunterSteeringDriverState Steering = new HunterSteeringDriverState();
         public readonly HunterStallDriverState Stall = new HunterStallDriverState();
         public readonly HunterSteeringDriverState CornerPreview = new HunterSteeringDriverState();
-        public readonly RaycastHit[] CornerCastHits = new RaycastHit[32];
-        public readonly Collider[] CornerOverlaps = new Collider[16];
+        public RaycastHit[] QueryHits;
+        public Collider[] QueryOverlaps;
+        public int CollisionMask, SightMask;
         public bool ClearCornerArc;
         public readonly List<Collider> Contacts = new List<Collider>();
         public readonly List<Bounds> UnavailableRooms = new List<Bounds>();

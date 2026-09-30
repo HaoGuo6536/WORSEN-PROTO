@@ -10,11 +10,13 @@
 // KEY RESPONSIBILITIES:
 //   - Probe reachability, capsule clearance and camera-to-body occlusion.
 //   - Hide/restore only the original placeholder renderers and colliders.
+//   - Reuse complete pooled capsule queries, released symmetrically on teardown.
 // DEPENDENCIES:
 //   - Unity physics/navigation, parent placement port and HunterMotorDriverConfig.
 // USAGE NOTES:
 //   Scene-owned; owner calls Initialize/Teardown. No Update or global side effects.
 // ============================================================================
+using System.Buffers;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
@@ -27,6 +29,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Stare
         {
             Teardown();
             _state = new StareDriverState { Renderers = GetComponentsInChildren<Renderer>(true), Colliders = GetComponentsInChildren<Collider>(true) };
+            _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.RenderEnabled = new bool[_state.Renderers.Length]; _state.ColliderEnabled = new bool[_state.Colliders.Length];
             for (int i = 0; i < _state.Renderers.Length; i++) _state.RenderEnabled[i] = _state.Renderers[i].enabled;
             for (int i = 0; i < _state.Colliders.Length; i++) _state.ColliderEnabled[i] = _state.Colliders[i].enabled;
@@ -48,11 +51,33 @@ namespace Worsen.Domain.Hunter.Archetypes.Stare
             point = end.position;
             Vector3 low = point + Vector3.up * (config.Radius + config.SkinWidth);
             Vector3 high = point + Vector3.up * (config.Height - config.Radius);
-            foreach (Collider hit in Physics.OverlapCapsule(low, high, Mathf.Max(.001f, config.Radius - config.SkinWidth), config.CollisionMask, QueryTriggerInteraction.Ignore))
+            int count = CapsuleOverlap(low, high, Mathf.Max(.001f, config.Radius - config.SkinWidth), config.CollisionMask);
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = _state.QueryOverlaps[i];
                 if (!hit.transform.IsChildOf(transform)) return false;
+            }
             return true;
         }
-        public void Teardown() { SetPresent(true); _state = null; }
+        private int CapsuleOverlap(Vector3 low, Vector3 high, float radius, int mask)
+        {
+            int count;
+            while ((count = Physics.OverlapCapsuleNonAlloc(low, high, radius, _state.QueryOverlaps, mask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+            {
+                int previous = _state.QueryOverlaps.Length;
+                Collider[] larger = ArrayPool<Collider>.Shared.Rent(checked(previous * 2));
+                ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true); _state.QueryOverlaps = larger;
+                Debug.LogWarning($"Stare physics query buffer saturated; grew from {previous} to {larger.Length} and retrying.", this);
+            }
+            return count;
+        }
+        public void Teardown()
+        {
+            if (_state == null) return;
+            SetPresent(true);
+            ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true); _state.QueryOverlaps = null;
+            _state = null;
+        }
         private void OnDestroy() { Teardown(); }
     }
 }

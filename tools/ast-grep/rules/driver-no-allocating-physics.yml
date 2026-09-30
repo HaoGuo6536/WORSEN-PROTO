@@ -11,14 +11,3 @@ rule:
 constraints:
   METHOD:
     regex: '^(RaycastAll|SphereCastAll|CapsuleCastAll|BoxCastAll|OverlapSphere|OverlapBox|OverlapCapsule)$'
-# Debt (PLAN-027 perf-alloc-2, review by 2026-12-31): these drivers still allocate and are
-# converted after the Hunter plug-in refactor; remove each entry as it is fixed.
-ignores:
-  - "Assets/Scripts/Domain/Hunter/Driver/HunterDriver.cs"
-  - "Assets/Scripts/Domain/Hunter/Driver/HunterAttackDriver.cs"
-  - "Assets/Scripts/Domain/Hunter/Driver/WeaverWebDriver.cs"
-  - "Assets/Scripts/Domain/Hunter/Archetypes/Ticking/Driver/TickingDriver.cs"
-  - "Assets/Scripts/Domain/Hunter/Archetypes/Stare/Driver/StareDriver.cs"
-  - "Assets/Scripts/Session/Expedition/Driver/ExpeditionSpawnDriver.cs"
-  - "Assets/Scripts/Session/HorrorEffects/Driver/HorrorEffectsDriver.cs"
-  - "Assets/Scripts/Presentation/Horror/Driver/HorrorAtmosphereDriver.cs"

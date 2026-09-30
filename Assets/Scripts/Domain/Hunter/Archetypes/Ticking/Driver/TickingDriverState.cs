@@ -8,6 +8,7 @@
 //   DriverState (§7c) · Domain · Hunter Ticking.
 // KEY RESPONSIBILITIES:
 //   - Retain transient engine references without operating on them.
+//   - Hold Driver-rented physics buffers and the configured obstacle mask.
 // DEPENDENCIES:
 //   - UnityEngine references as passive data only.
 // USAGE NOTES:
@@ -19,6 +20,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
     public sealed class TickingDriverState
     {
         public GameObject Key;
+        public RaycastHit[] QueryHits;
+        public Collider[] QueryOverlaps;
+        public int ObstacleMask;
         public int Serial;
         public UnityEngine.AI.NavMeshPath Path;
     }
