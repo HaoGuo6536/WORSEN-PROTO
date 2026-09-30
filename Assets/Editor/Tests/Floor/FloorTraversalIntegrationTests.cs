@@ -11,6 +11,7 @@
 //   - Follow complete NavMesh corners through synthetic Run input after real spawn.
 //   - Compare fresh cues against independent path-length/direction queries.
 //   - Retain actual timings, provenance, route samples and failures in a JSON log.
+//   - Separate the density-selected required route from incidental optional pickups.
 // DEPENDENCIES:
 //   - Core, Player/Floor/Level/Hunter, Run, Input, SceneRoot, Unity navigation.
 //   - NUnit, Unity Test Framework, read-only Editor asset lookup and log-file IO.
@@ -154,7 +155,7 @@ namespace Worsen.Tests.Floor
                     "Assets/Editor/Tests/Floor/FloorTraversalIntegrationTests.cs", "ProjectSettings/TimeManager.asset"
                 }) AddStamp(report, source);
                 Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
-                Assert.That(report.required, Is.EqualTo(10));
+                Assert.That(report.required, Is.EqualTo(report.selectedAnchors.Length).And.GreaterThanOrEqualTo(1));
                 Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
                 One<HunterManager>().gameObject.SetActive(false);
                 Assert.That(HunterRegistry.Items.Count, Is.Zero);
@@ -167,8 +168,9 @@ namespace Worsen.Tests.Floor
                 Assert.That(report.failure, Is.Empty, trial.Describe());
                 Assert.That(trial.Ended, Is.True);
                 Assert.That(report.endReason, Is.EqualTo(RunEndReason.Escaped.ToString()));
-                Assert.That(report.pickups.Count(row => row.kind == PickupKind.Cake.ToString()), Is.EqualTo(report.required));
-                Assert.That(report.pickups.Where(row => row.kind == PickupKind.Cake.ToString()).Select(row => row.anchor).Distinct().Count(), Is.EqualTo(report.required));
+                var ordinary = report.pickups.Where(row => row.kind == PickupKind.Cake.ToString()).ToArray();
+                Assert.That(ordinary.Count(row => report.selectedAnchors.Contains(row.anchor)), Is.EqualTo(report.required));
+                Assert.That(ordinary.Select(row => row.anchor).Distinct().Count(), Is.EqualTo(ordinary.Length));
                 Assert.That(report.exitOpenTick, Is.GreaterThan(report.controlStartTick));
                 Assert.That(report.firstSweepCueChecks, Is.GreaterThanOrEqualTo(5));
                 Assert.That(report.discriminatingCueChecks, Is.GreaterThan(0), "At least one compared target must offer a different route direction.");

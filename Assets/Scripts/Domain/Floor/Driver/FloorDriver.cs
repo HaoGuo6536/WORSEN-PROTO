@@ -13,6 +13,8 @@
 //   - Own native Lumen fake-light warnings and exit cues without Unity Light objects.
 //   - Support staged collapse and an opt-in hinged exit that requires a real crossing.
 //   - Relay locked-door overlaps/departures and present bails without spawning Golden Cakes.
+//   - Report physical opening progress; the legacy marker changes immediately.
+//   - Sample dedicated fog triggers and reach for rewards; Controller owns completed-room losses.
 //   - Supply complete path corners and expose target-local fallback/held flags.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
@@ -46,8 +48,10 @@ namespace Worsen.Domain.Floor
         public event Action<EntityId> ExitDeparted;
         public int OwnedPickupCount => _state.Pickups.Count;
         public int OwnedRoomCount => _state.Rooms.Count;
+        public float OpeningProgress(bool open) => _state.ExitDoor != null ? _state.ExitDoor.OpeningProgress : open ? 1f : 0f;
 
-        public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors, Func<Collider, EntityId> resolveIdentity = null)
+        public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors, Func<Collider, EntityId> resolveIdentity = null,
+            float boundaryReach = 0f)
         {
             Teardown();
             if (_config == null) _config = Resources.Load<FloorDriverConfig>("ScriptableObjects/Domain/Floor/FloorDriverConfig");
@@ -58,7 +62,12 @@ namespace Worsen.Domain.Floor
             _state.GoldenMaterial = MakeMaterial(_config.GoldenColor);
             _state.BlockerMaterial = MakeMaterial(_config.ClosedColor);
             _state.ExitMaterial = MakeMaterial(_config.ExitLockedColor);
-            foreach (var room in graph.Rooms) BuildRoom(room);
+            foreach (var room in graph.Rooms)
+            {
+                int cakes = 0;
+                foreach (var anchor in anchors) if (anchor.RoomId == room.Id) cakes++;
+                BuildRoom(room, resolveIdentity, boundaryReach, cakes);
+            }
             foreach (var anchor in anchors) { _state.Anchors.Add(anchor.Id, anchor); BuildPickup(anchor, PickupKind.Cake); }
             BuildExit(graph.ExitPosition, resolveIdentity);
             _state.Ready = true;
@@ -82,7 +91,16 @@ namespace Worsen.Domain.Floor
             if (isActiveAndEnabled) OnEnable();
         }
 
-        public void RefreshExitContacts() { if (_state.ExitDoor != null) _state.ExitDoor.RefreshContacts(); }
+        public void RefreshExitContacts()
+        {
+            if (_state.ExitDoor != null) _state.ExitDoor.RefreshContacts();
+            if (_state.Exit != null) _state.Exit.RefreshContacts();
+        }
+        public void RefreshHandContacts()
+        {
+            Physics.SyncTransforms();
+            foreach (var room in _state.Rooms.Values) room.RefreshContacts();
+        }
         public void PresentBail() { if (_state.ExitDoor != null) _state.ExitDoor.PresentBail(); }
 
         public void ApplyRoomPhase(int roomId, RoomPhase phase)
@@ -93,16 +111,17 @@ namespace Worsen.Domain.Floor
         public void TickWarnings(float elapsed)
         {
             if (_state.ExitDoor != null) _state.ExitDoor.Tick(elapsed);
-            float intensity = _presenter.WarningIntensity(elapsed, _config.WarningPulsePeriod, _config.WarningIntensity);
-            foreach (var room in _state.Rooms.Values) room.SetWarningIntensity(intensity);
+
         }
 
         public void ApplyDestruction(RoomDestructionSample sample, float elapsed)
         {
-            if (_state.Rooms.TryGetValue(sample.RoomId, out var room)) room.ApplyDestruction(sample, elapsed);
+            if (!_state.Rooms.TryGetValue(sample.RoomId, out var room)) return;
+            var cakes = new List<Vector3>();
             foreach (var pickup in _state.Pickups)
                 if (pickup != null && pickup.gameObject.activeSelf && _state.Anchors.TryGetValue(pickup.AnchorId, out var anchor) &&
-                    anchor.RoomId == sample.RoomId && room != null && room.PickupOvertaken(anchor.Position)) pickup.gameObject.SetActive(false);
+                    anchor.RoomId == sample.RoomId) cakes.Add(pickup.transform.position);
+            room.ApplyDestruction(sample, elapsed, cakes);
         }
         public void ApplyHandFact(CollapseHandFact fact)
         { if (_state.Rooms.TryGetValue(fact.RoomId, out var room)) room.ApplyHandFact(fact); }
@@ -113,15 +132,18 @@ namespace Worsen.Domain.Floor
             return _state.Anchors.TryGetValue(anchorId, out var anchor) &&
                 _state.Rooms.TryGetValue(anchor.RoomId, out var room) && !room.PickupOvertaken(anchor.Position);
         }
-        public FloorHandProbe QueryHand(Vector3 playerPosition, int preferredRoom = 0, int preferredHand = -1)
+        public FloorHandProbe QueryHand(Vector3 playerPosition, int preferredRoom = 0, int preferredHand = -1,
+            EntityId playerId = default, bool closedOnly = false)
         {
             if (preferredHand >= 0)
-                return _state.Rooms.TryGetValue(preferredRoom, out var preferred) ? preferred.Probe(playerPosition, preferredHand) : default;
+                return _state.Rooms.TryGetValue(preferredRoom, out var preferred) ? preferred.Probe(playerPosition, preferredHand, playerId) : default;
             FloorHandProbe closest = default;
             foreach (var room in _state.Rooms.Values)
             {
-                var probe = room.Probe(playerPosition);
-                if (probe.Available && (!closest.Available || probe.Distance < closest.Distance)) closest = probe;
+                if (closedOnly && room.Phase != RoomPhase.Closed) continue;
+                var probe = room.Probe(playerPosition, -1, playerId);
+                if (probe.Available && (!closest.Available || probe.Distance < closest.Distance ||
+                    probe.Distance == closest.Distance && probe.RoomId < closest.RoomId)) closest = probe;
             }
             return closest;
         }
@@ -165,7 +187,7 @@ namespace Worsen.Domain.Floor
             if (!_state.Ready || _state.Subscribed) return;
             foreach (var pickup in _state.Pickups) pickup.Contact += HandlePickup;
 
-            if (_state.Exit != null) _state.Exit.Contact += HandleExit;
+            if (_state.Exit != null) { _state.Exit.Contact += HandleExit; _state.Exit.Departed += HandleDeparture; }
             if (_state.ExitDoor != null)
             { _state.ExitDoor.Contact += HandleExit; _state.ExitDoor.Departed += HandleDeparture; }
             _state.Subscribed = true;
@@ -175,7 +197,7 @@ namespace Worsen.Domain.Floor
             if (!_state.Subscribed) return;
             foreach (var pickup in _state.Pickups) if (pickup != null) pickup.Contact -= HandlePickup;
 
-            if (_state.Exit != null) _state.Exit.Contact -= HandleExit;
+            if (_state.Exit != null) { _state.Exit.Contact -= HandleExit; _state.Exit.Departed -= HandleDeparture; }
             if (_state.ExitDoor != null)
             { _state.ExitDoor.Contact -= HandleExit; _state.ExitDoor.Departed -= HandleDeparture; }
             _state.Subscribed = false;
@@ -256,6 +278,7 @@ namespace Worsen.Domain.Floor
             root.transform.position = position + Vector3.up * (_config.ExitSize.y * 0.5f);
             var box = root.AddComponent<BoxCollider>(); box.isTrigger = true; box.size = _config.ExitSize;
             _state.Exit = root.AddComponent<FloorExitVolume>();
+            _state.Exit.Configure(resolveIdentity);
             _state.ExitGlow = root.AddComponent<FloorLumenGlow>();
             _state.ExitGlow.Configure(_config.LumenExitGlowPrefab, _config.ExitSize.magnitude,
                 _config.ExitLockedColor, 0.3f, true);
@@ -264,7 +287,7 @@ namespace Worsen.Domain.Floor
             marker.transform.localScale = new Vector3(_config.ExitSize.x, _config.BlockerThickness, _config.BlockerThickness);
             marker.GetComponent<Renderer>().sharedMaterial = _state.ExitMaterial; Release(marker.GetComponent<Collider>());
         }
-        private void BuildRoom(LevelRoom room)
+        private void BuildRoom(LevelRoom room, Func<Collider, EntityId> resolveIdentity, float boundaryReach, int cakes)
         {
             var root = new GameObject("Collapse Room " + room.Id); root.transform.SetParent(_state.Root.transform, false);
             root.transform.position = room.Center;
@@ -272,7 +295,7 @@ namespace Worsen.Domain.Floor
             var warning = root.AddComponent<FloorLumenGlow>();
             warning.Configure(_config.LumenRoomWarningPrefab, Mathf.Min(room.Size.x, room.Size.z) * 0.48f,
                 _config.WarningColor, _config.WarningIntensity, false);
-            roomVolume.Configure(room, _config, _state.BlockerMaterial, warning); _state.Rooms.Add(room.Id, roomVolume);
+            roomVolume.Configure(room, _config, _state.BlockerMaterial, warning, resolveIdentity, boundaryReach, cakes); _state.Rooms.Add(room.Id, roomVolume);
         }
         private Material MakeMaterial(Color color)
         {

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
 //   - Retain elapsed locked-exit contact until cancellation or a terminal outcome.
+//   - Retain optional rewards, queued cake losses, collapse hooks and read-only room hand phases.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -27,9 +28,15 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Floor
 {
-    public sealed class FloorBehaviorState : IReadOnlyFloorState
+    public sealed class FloorBehaviorState : IReadOnlyFloorCollapseState
     {
         internal readonly List<LevelAnchor> SelectedAnchors = new List<LevelAnchor>();
+        internal readonly List<LevelAnchor> SpawnedAnchors = new List<LevelAnchor>();
+        internal readonly Dictionary<int, PickupKind> RemainingRewards = new Dictionary<int, PickupKind>();
+        internal readonly List<FloorCakeLoss> CakeLosses = new List<FloorCakeLoss>();
+        internal readonly Dictionary<int, FloorHandPhase> MutableRoomHandPhases = new Dictionary<int, FloorHandPhase>();
+        internal readonly FloorHandBehaviorState Hands = new FloorHandBehaviorState();
+        internal bool FasterCollapse;
         internal readonly List<LevelAnchor> MutableActiveAnchors = new List<LevelAnchor>();
         internal readonly Dictionary<int, RoomPhase> MutableRoomPhases = new Dictionary<int, RoomPhase>();
         internal readonly HashSet<int> OptionalCrackedRooms = new HashSet<int>();
@@ -52,11 +59,13 @@ namespace Worsen.Domain.Floor
         public int GoldenCakeCount { get; internal set; }
         public ExitState ExitState { get; internal set; }
         public IReadOnlyDictionary<int, RoomPhase> RoomPhases { get; }
+        public IReadOnlyDictionary<int, FloorHandPhase> RoomHandPhases { get; }
         public IReadOnlyList<LevelAnchor> ActiveCakeAnchors { get; }
 
         public FloorBehaviorState()
         {
             RoomPhases = new ReadOnlyDictionary<int, RoomPhase>(MutableRoomPhases);
+            RoomHandPhases = new ReadOnlyDictionary<int, FloorHandPhase>(MutableRoomHandPhases);
             ActiveCakeAnchors = MutableActiveAnchors.AsReadOnly();
         }
     }
