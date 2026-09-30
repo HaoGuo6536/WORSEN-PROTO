@@ -441,6 +441,16 @@
         0.3
       ],
       "kind": "prop"
+    },
+    {
+      "id": "floor_sump_2x2",
+      "file": "Basement_floor_sump_2x2.fbx",
+      "size": [
+        2.0,
+        1.32,
+        2.0
+      ],
+      "kind": "floor"
     }
   ]
 }

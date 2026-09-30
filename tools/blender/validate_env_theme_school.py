@@ -7,11 +7,11 @@
 # ARCHITECTURAL ROLE: Offline acceptance tool; outside Unity runtime layers.
 # KEY RESPONSIBILITIES:
 #   - Verify v1 kit gates with the new School's authored dimensions and surfaces.
-#   - Check topology, socket-attached leaves, ceiling height and wall enclosure.
+#   - Check end caps, floor/wall support, attached leaves and ceiling/enclosure.
 #   - Verify saved assemblies, preview provenance and dark-scene light sources.
 #   - Regenerate twice and compare manifests and imported geometry when requested.
 # DEPENDENCIES: Blender 5.2, bundled FBX parser/NumPy, Python standard library;
-#   shared imported-mesh door checks in validate_env_theme_castle.
+#   shared imported-mesh support/socket/door checks in validate_env_theme_castle.
 # USAGE NOTES: -- --determinism performs two real generator runs before validation.
 #   Does not import either generator. Reports/logs are written only under Logs;
 #   regeneration writes only the owned School art via env_theme_school.py.
@@ -318,6 +318,8 @@ def check_door_attachments(t,lookup):
         x,z=door['cell']; side=door['side']
         dx,dz=DIRECTIONS[side]
         cx,cz=2*x+1+dx,2*z+1+dz
+        cx+=(door.get('span',1)-1)*abs(dz)
+        cz+=(door.get('span',1)-1)*abs(dx)
         yaw={'N':0,'E':90,'S':180,'W':270}[side]
         for sign in (-1,1):
             matches=[]
@@ -391,7 +393,7 @@ def validate_room(t,lookup):
         x,z=cell; dx,dz=DIRECTIONS[side]
         require((x+dx,z+dz) not in cells,ident+': socket is not a boundary edge')
         fixed=2*(z+(side=='N')) if side in 'NS' else 2*(x+(side=='E'))
-        center=2*(x if side in 'NS' else z)+1
+        center=2*(x if side in 'NS' else z)+door.get('span',1)
         axis='X' if side in 'NS' else 'Z'
         matching=[(i,row,s) for i,(row,s) in enumerate(walls) if lookup[row['id']]['kind']=='door' and
                   s[0]==axis and abs(s[1]-fixed)<EPS and s[4]==side and abs((s[2]+s[3])/2-center)<EPS]

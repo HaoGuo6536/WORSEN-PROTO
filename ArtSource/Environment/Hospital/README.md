@@ -17,14 +17,14 @@ The architecture is a 1.8 m glazed mint tile dado, off-white upper band, vinyl c
 | Template id (prefix `hospital_`) | Kind | Class | Cells | Intent |
 | --- | --- | --- | --- | --- |
 | ward_bed_bays | room | medium | 16 | Two curtained bed bays, clear central aisle |
-| nurse_station | junction | medium | 14 | L-shaped station and three connections |
+| nurse_station | room | medium | 14 | L-shaped station and three connections |
 | operating_theatre | room | medium | 12 | Gurney, overhead operating lamp and scrub sink |
 | recovery_annex | room | medium | 14 | L-shaped recovery wing |
 | waiting_room | room | small | 9 | Facing institutional bench seats |
 | isolation_room | room | closet | 4 | Narrow single-bed suite |
 | sluice_utility | room | small | 6 | Scrub sink and cabinet |
 | xray_room | room | small | 9 | Mobile screen and examination gurney |
-| long_ward_corridor | hallway | medium | 14 | Two-cell-wide straight corridor, handrails, side-entry end regions |
+| long_ward_corridor | hallway | medium | 14 | Two-cell-wide straight corridor, handrails, centred S/N end caps |
 | corridor_bend | hallway | medium | 16 | Two-cell-wide L corridor |
 | day_room | room | large | 24 | Bench seating and service counter |
 | nightingale_landmark | room | hall | 42 | Long open ward with four bed bays |
@@ -35,7 +35,7 @@ The architecture is a 1.8 m glazed mint tile dado, off-white upper band, vinyl c
 
 The owner contract places each 3.2 m opening at the centre of one 2 m cell edge. A four-metre frame centred there crosses three cell edges, and its ends fall on odd metre coordinates. To avoid overlap, the catalogue uses the full `wall_door_4m` once, removes all boundary wall spans beneath it, and uses `wall_1m` returns where needed. Floors, ceilings and footprints remain on the 2 m grid. Half-module boundary returns are explicit placements, never scaled meshes.
 
-A cell-centred opening cannot fit on a two-cell-wide (4 m) corridor end cap: either cell centre is only 1 m from one corner, less than the required 1.6 m half-opening. Hallways therefore have side-entry sockets in their two end regions, not cap-centred sockets. The narrow four-cell isolation suite also uses a long-side socket. Do not recenter these sockets silently; the physical portal and `closedWith` coordinates are explicit and validated. Owner/coordinator approval of this interpretation is still needed. A future contract could instead allow an offset or a two-cell-spanning socket.
+The run-3 owner clarification uses `span: 2` for both corridors: a 4m frame is centred on each short end cap, referenced by the lower tangent-axis cell (X for N/S, Z for E/W). The straight corridor has S/N sockets and the bend S/E sockets. The nurse station remains an L-shaped furnished room rather than a narrow-arm junction. The isolation suite is a room, not a hallway, and retains its long-side room socket.
 
 `closedWith` is an array of ordinary placement records. Each socket's alternative contains one `wall_closed_4m`, replacing that socket's `wall_door_4m` AND `door_double_porthole_4m` instances. Do not add the closing wall over an existing door frame or leave the open leaves embedded in it. Match the placements by position and yaw. The leaves are a single static mesh posed open at 95 degrees; they are not a rig or an interactive door implementation. Their pivot stays on the wall plane rather than at the centre of their posed depth bounds.
 
@@ -62,7 +62,7 @@ Evidence directory: `Logs/AgentValidation/Art/EnvHospital/`.
 
 The door-fix validator independently unposes each swing leaf, rasterizes its panel at 2.5mm, checks each face's hardware and porthole, and rejects wall materials. Gap and missing-hardware controls exercise rejection. `doors/` contains front/back close-ups with geometry/image hash receipts: double leaves are shown in an explicitly labelled closed inspection pose only; the exported 95-degree pose is unchanged. The shared studio/check helpers live in the owned Castle scripts, but use this theme's geometry exclusively.
 
-The full art-fixes task is not accepted: centred hallway ends need the shared socket convention resolved, and support of every non-ceiling placement needs ceiling/tabletop/subfloor semantics. Full transformed prop-envelope containment and conservative envelope-versus-wall-triangle/interior checks now run in all themes, including outside/hole/embedded negative controls. Signage now clears the actual painted wall face by 1mm: inset is .25m plus measured half-depth plus .001m in `assemble_template` and the isolation-room `catalogue` entry. Existing/new checks passing is not proof of the remaining support requirement.
+Run 3 adds independent end-cap discovery and measured floor/back-face support validation. Signage and ceiling-height luminaires are seated against solid wall faces with an 8mm authored gap; curtain bays gain floor posts while retaining their 3.6m tops. No ceiling-hung prop exemption is used. Full prop containment, wall clearance and run-2 fixture-height checks remain. Offline validation does not establish Unity wiring or visual approval.
 
 - `kit-sheet.png`: every piece, 2100 × 1650.
 - `hospital_<template>-three-quarter.png`: each template, 1100 × 850, cutaway ceiling and clinical light sources.
@@ -91,11 +91,12 @@ These are offline art parameters, not new runtime Config fields. Fixed owner pal
 | Kit review studio | 7000 W, 25 m area; orthographic scale 46 m | `kit_sheet` |
 | Door leaf pose | 95° open | `door_leaves` |
 | Handrail / signage base | .95 m / 2.05 m | `assemble_template` |
-| Curtain bay placement | .52 m above its bottom-centred pivot | `catalogue.bed_bay` |
+| Curtain bay placement | floor Y=0, 25mm-radius posts, top 3.6m | `curtain`, `catalogue.bed_bay` |
 | Cake socket count | at least 2; ceiling(cells/5), distributed over furniture-free cell centres | `assemble_template` |
 | Prop exclusion margin for cake candidates | .35 m around rotated furniture bounds | `assemble_template` |
 | Room selection weights / rounds | ordinary 1.0 from round 1; gimmick .6 from round 3 | `assemble_template` |
 | Furniture and layout dimensions | authored metre coordinates, measured sizes recorded per piece | `furniture`, `catalogue`, kit and room manifests |
+| Run-3 light anchors | .12m inward from panel centre and .04m below panel bottom | `catalogue` |
 
 ## Requests to coordinator / other owners
 
@@ -109,6 +110,6 @@ These are offline art parameters, not new runtime Config fields. Fixed owner pal
 
 3. `Assets/Editor/Procedural/ProceduralContentSetup.cs`, `ProceduralContentSetup`: coordinator-owned integration needs a deterministic kit/room importer (currently `WireSelected` only connects theme/challenge configs). Consume the two manifests, preserve FBX axis settings, create URP material mappings for every listed `hospital_*` slot, assign the four sRGB textures, and wire cyan-white emission only to `hospital_light`. Do not import the sources as runtime assets. Unity must create all new `.meta` files.
 
-4. PLAN-026 procedural owner: consume `closedWith` as replacement placements, approve the side-entry/half-module return convention, connect the light sockets to real fluorescent lighting/flicker, retain primitive fallback when a kit/piece is missing, and bind freeze/traversal tags to gameplay. Those behaviours cannot be established by these offline art files. Existing `ProceduralThemeUtilityTests` and `EnvironmentThemeConsumerTests` were read and left unchanged; neither tests these new manifests or their live material mapping. Add integration tests in the coordinator-owned test scope and run navigation/player/hunter clearance checks on every template.
+4. PLAN-026 procedural owner: consume `closedWith` as replacement placements and the approved `span: 2` end-cap centre; connect light sockets to fluorescent lighting/flicker, preserve missing-kit fallback, and bind gimmicks. Existing `ProceduralThemeUtilityTests` and `EnvironmentThemeConsumerTests` do not establish these manifest/import behaviours; add integration and navigation coverage in coordinator-owned scope.
 
 5. Owner: judge the kit sheet, the complete room catalogue and `in-darkness.png`. No cross-theme visual comparison or human artistic approval is claimed by the validator.

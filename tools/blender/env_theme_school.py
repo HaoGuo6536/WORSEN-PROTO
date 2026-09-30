@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Build original metre-scale School architecture and furniture.
 #   - Export applied Y-up/-Z-forward meshes and the mandatory kit catalogue.
-#   - Author enclosed rooms with gameplay sockets and socket-attached door leaves.
+#   - Author supported rooms, end-cap corridor sockets and attached door leaves.
 #   - Save editable sources and render kit, cutaway and darkness reviews.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils, Python standard library only.
 #   Shared door-review studio from env_theme_castle; no Castle geometry reused.
@@ -539,6 +539,7 @@ def wall_pos(side,fixed,center,piece):
 
 def make_room(name,cells,doors,kind='room',shape='rect',gimmick='none'):
     n=len(cells)
+    span=2 if kind in ('hallway','junction') else 1
     size = 'closet' if n<=4 else 'small' if n<=9 else 'medium' if n<=20 else 'large' if n<=40 else 'hall'
     t={'id':'school_'+name,'kind':kind,'sizeClass':size,'shape':shape,
        'footprint':[list(c) for c in sorted(cells,key=lambda c:(c[1],c[0]))],
@@ -547,15 +548,17 @@ def make_room(name,cells,doors,kind='room',shape='rect',gimmick='none'):
     for cell,side in doors:
         x,z=cell
         fixed=2*(z+(side=='N')) if side in 'NS' else 2*(x+(side=='E'))
-        center=2*(x if side in 'NS' else z)+1
+        center=2*(x if side in 'NS' else z)+span
         t['doors'].append({'cell':list(cell),'side':side,'closedWith':[
             wall_pos(side,fixed,center-1,'wall_2m'),wall_pos(side,fixed,center+1,'wall_2m')]})
+        if span==2:
+            t['doors'][-1]['span']=2
     for side,fixed,low,high in boundary(cells):
         portals=[]
         for cell,s in doors:
             x,z=cell
             f=2*(z+(s=='N')) if s in 'NS' else 2*(x+(s=='E'))
-            center=2*(x if s in 'NS' else z)+1
+            center=2*(x if s in 'NS' else z)+span
             if s==side and f==fixed and low<=center<=high:
                 if not low<=center-2<center+2<=high:
                     raise ValueError(f'{name}: door frame exceeds boundary run')
@@ -603,8 +606,7 @@ def furnish(t):
     if name in {'classroom','locked_classroom','science_lab'}:
         on_wall('chalk_rail_board_2m',1.3,0)
         put('prop_teacher_desk',1.4,d-1.3)
-        if name!='science_lab':
-            put('prop_globe',1.8,d-1.3,.82)
+        # Tabletop-only globes remain in the kit, not unsupported placements.
         desks = ((2,6),(5,6),(6,2)) if name=='science_lab' else tuple((x,z) for x in (2,4,6) for z in (2,4))
         for x,z in desks:
             if (int(x/2),int(z/2)) in cells:
@@ -637,7 +639,7 @@ def furnish(t):
         put('drinking_fountain',w-.3,d-1,0,90)
     elif name=='principal_office':
         put('prop_teacher_desk',2,d-1.7)
-        put('prop_globe',2.5,d-1.7,.82)
+
         put('prop_chair',2,d-2.6)
         put('prop_bookcase',1.1,d-.38)
         on_wall('bulletin_board',1.3,90)
@@ -669,6 +671,9 @@ def furnish(t):
     for door in t['doors']:
         x,z=door['cell']; side=door['side']
         cx,cz=2*x+1,2*z+1
+        if door.get('span',1)==2:
+            cx+=side in 'NS'
+            cz+=side in 'EW'
         yaw={'N':0,'E':90,'S':180,'W':270}[side]
         if side in 'NS':
             cz=2*(z+(side=='N'))
@@ -692,6 +697,15 @@ def furnish(t):
         put(fixture,x,z,bottom)
         if not dead:
             t['anchors']['light'].append([x,round(bottom,5),z])
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
+    from env_theme_castle import seat_wall_props
+    seat_wall_props(t['pieces'],'School',KINDS,{'prop_fluorescent','prop_fluorescent_dead'})
+    t['anchors']['light'] = []
+    for p in t['pieces']:
+        if p['id']=='prop_fluorescent':
+            a=math.radians(p['rotY'])
+            t['anchors']['light'].append([round(p['pos'][0]-.46*math.sin(a),5),
+                p['pos'][1],round(p['pos'][2]-.46*math.cos(a),5)])
     return t
 
 
@@ -741,8 +755,8 @@ def templates(pieces):
         ('principal_office',rect(3,3),[((1,0),'S'),((2,1),'E')],{}),
         ('janitor_closet',rect(4,1),[((1,0),'S')],{}),
         ('washroom',rect(3,3),[((1,0),'S'),((2,1),'E')],{}),
-        ('locker_hallway',rect(2,8),[((0,1),'W'),((1,6),'E')],{'kind':'hallway'}),
-        ('stairwell_bend',rect(6,2)|rect(2,6),[((4,0),'S'),((0,4),'W')],{'kind':'junction','shape':'L'}),
+        ('locker_hallway',rect(2,8),[((0,0),'S'),((0,7),'N')],{'kind':'hallway'}),
+        ('stairwell_bend',rect(6,2)|rect(2,6),[((5,0),'E'),((0,5),'N')],{'kind':'junction','shape':'L'}),
         ('bleacher_traversal',rect(6,5),[((1,0),'S'),((5,1),'E')],{'gimmick':'traversal'}),
         ('locked_classroom',rect(4,4),[((1,0),'S'),((3,1),'E')],{'gimmick':'freeze'}),
     ]

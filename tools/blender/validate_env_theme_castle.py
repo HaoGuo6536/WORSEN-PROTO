@@ -10,7 +10,7 @@
 #   - Verify room schema, topology, sockets, anchors and geometric enclosure.
 #   - Compare source geometry/placements and reject broken preview evidence.
 #   - Record immutable determinism baselines and exercise negative controls.
-#   - Supply shared door, footprint, wall-clearance and ceiling/socket checks.
+#   - Supply measured support, end-cap, door and spatial regression checks.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils/io_scene_fbx, bundled NumPy, stdlib.
 # USAGE NOTES:
 #   Run in Blender with -- [--skip-previews] [--record-baseline NAME |
@@ -140,7 +140,7 @@ def check_piece(row):
     require(close(size, row['size']), f'{name}: measured dimensions {size} != {row["size"]}')
     require(close(obj.location, (0,0,0)) and close(obj.scale, (1,1,1)), name+': transform')
     require(abs(lo[1]) < 1e-5 and abs(lo[0]+hi[0]) < 1e-5, name+': bottom-centre pivot')
-    if row['kind'] != 'arc':
+    if row['kind'] != 'arc' and name not in ('wall_round_tangent_r4','floor_apse_r4','ceiling_apse_r4'):
         require(abs(lo[2]+hi[2]) < 1e-5, name+': depth-centre pivot')
     fixed = {'wall_2m': (2,7,.8), 'wall_door_4m': (4,7,.8), 'wall_window_2m': (2,7,.8),
              'wall_arrow_slit_2m': (2,7,.8), 'floor_2x2': (2,.16,2), 'ceiling_2x2': (2,.18,2),
@@ -245,6 +245,105 @@ def connected(cells):
     return seen == cells
 
 
+def socket_center(socket):
+    x,z = socket['cell']
+    dx,dz = SIDES[socket['side']]
+    span = socket.get('span',1)
+    require(type(span) is int and span in (1,2), 'socket span must be 1 or 2')
+    return (2*x+1+dx+(span-1)*abs(dz), 2*z+1+dz+(span-1)*abs(dx))
+
+
+def check_hallway_endcaps(t):
+    """An arm ends in a complete 1/2-cell transverse run with inward depth.
+
+    Discover caps independently of the declared sockets. A long side cannot
+    qualify merely because its socket is close to a bounding-box extremity.
+    The second transverse row must be identical; every discovered arm gets
+    exactly one socket, including all three arms of a T junction.
+    """
+    if t['kind'] not in ('hallway','junction'):
+        return
+    cells = {tuple(c) for c in t['footprint']}
+    caps = set()
+    for cell,side,_,_ in boundary_edges(cells):
+        dx,dz = SIDES[side]
+        tx,tz = abs(dz),abs(dx)
+        if (cell[0]-tx,cell[1]-tz) in cells:
+            continue
+        run = []
+        c = cell
+        while c in cells:
+            run.append(c)
+            c = c[0]+tx,c[1]+tz
+        if len(run) not in (1,2):
+            continue
+        if any((x+dx,z+dz) in cells or (x-dx,z-dz) not in cells for x,z in run):
+            continue
+        behind = [(x-dx,z-dz) for x,z in run]
+        if (behind[0][0]-tx,behind[0][1]-tz) in cells or (behind[-1][0]+tx,behind[-1][1]+tz) in cells:
+            continue
+        caps.add((cell,side,len(run)))
+    require(all(type(s.get('span',1)) is int and s.get('span',1) in (1,2)
+                for s in t['doors']), t['id']+': invalid end-cap span')
+    actual = [(tuple(s['cell']),s['side'],s.get('span',1)) for s in t['doors']]
+    require(len(actual)==len(set(actual)) and set(actual)==caps and len(caps)>=2,
+            t['id']+': hallway sockets must centre every end cap, never a long side')
+
+
+def check_piece_support(t, rows, points, wall_meshes):
+    """Check imported bottoms/back vertices, never placement origins alone.
+
+    Floor fabric defines the zero datum (its top, not its buried underside).
+    Even ceiling-height fixtures need floor-cell overlap or actual
+    contact between back vertices and a horizontal wall-face normal.
+    """
+
+    floors, walls = [], []
+    for p in t['pieces']:
+        pid = p['id']
+        if rows[pid]['kind']=='floor':
+            lo,hi = bounds([transform(v,p) for v in points[pid]])
+            if abs(hi[1])<=.05:
+                floors.append((lo,hi))
+        if pid in wall_meshes:
+            verts,faces = wall_meshes[pid]
+            walls.append((p,tree_for([transform(v,p) for v in verts],faces)))
+    cells = {tuple(c) for c in t['footprint']}
+    for p in t['pieces']:
+        pid = p['id']; kind = rows[pid]['kind']
+        world = [transform(v,p) for v in points[pid]]
+        lo,hi = bounds(world)
+        if kind=='ceiling':
+            continue  # The separate datum regression checks every ceiling.
+
+        if kind=='floor' and pid!='stair_stone_2m':
+            require(abs(hi[1])<=.05,
+                    t['id']+': floor datum '+pid)
+            continue
+        ground = abs(lo[1])<=.05 and any(
+            max(lo[0],a[0])<=min(hi[0],b[0])+1e-5 and
+            max(lo[2],a[2])<=min(hi[2],b[2])+1e-5 and
+            any(2*x<=b[0] and a[0]<=2*x+2 and 2*z<=b[2] and a[2]<=2*z+2 for x,z in cells)
+            for a,b in floors)
+        if ground:
+            continue
+        back = max(v[2] for v in points[pid])
+        a = math.radians(p['rotY'])
+        outward = Vector((math.sin(a),0,math.cos(a)))
+        contacts = []
+        for v in points[pid]:
+            if back-v[2]>.005:
+                continue
+            vertex = Vector(transform(v,p))
+            for wall,tree in walls:
+                if wall is p:
+                    continue
+                hit,normal,_,distance = tree.find_nearest(vertex)
+                if hit is not None and distance<=.05+1e-5 and abs(normal.y)<.1 and normal.dot(outward)<-.8:
+                    contacts.append(vertex)
+        require(len(contacts)>=2, f'{t["id"]}: unsupported piece {pid} at {p["pos"]}: bottom={lo[1]:.4f}; no wall-back contact')
+
+
 def validate_room(t, meshes):
     name = t['id']
     require(re.fullmatch(r'castle_[a-z_]+', name), name+': id')
@@ -269,6 +368,7 @@ def validate_room(t, meshes):
         require(any(p['id'].startswith('wall_arc_r') for p in t['pieces']), name+': missing round walls')
     edges = boundary_edges(cells)
     sockets = t['doors']
+    check_hallway_endcaps(t)
     require(len(sockets) >= (1 if size == 'closet' else 2), name+': socket count')
     require(len({(tuple(s['cell']),s['side']) for s in sockets}) == len(sockets), name+': duplicate socket')
     for s in sockets:
@@ -299,10 +399,13 @@ def validate_room(t, meshes):
         start = len(vertices)
         vertices.extend(pts)
         faces.extend(tuple(start+i for i in f) for f in meshes[p['id']]['faces'])
-    for i,(lo,hi,pid) in enumerate(solids):
-        for lo2,hi2,pid2 in solids[i+1:]:
-            require(not all(min(hi[k],hi2[k])-max(lo[k],lo2[k]) > 1e-5 for k in range(3)),
-                    f'{name}: overlapping walls {pid}/{pid2} at {lo}/{lo2}')
+    if t['shape']=='round':
+        check_curved_wall_solids(t,meshes)
+    else:
+        for i,(lo,hi,pid) in enumerate(solids):
+            for lo2,hi2,pid2 in solids[i+1:]:
+                require(not all(min(hi[k],hi2[k])-max(lo[k],lo2[k]) > 1e-5 for k in range(3)),
+                        f'{name}: overlapping walls {pid}/{pid2} at {lo}/{lo2}')
     tree = tree_for(vertices,faces)
     for values in anchors.values():
         for x,y,z in values:
@@ -312,7 +415,9 @@ def validate_room(t, meshes):
     # Sample imported triangles, not a self-declared edge coverage list. All
     # boundary edges are checked every 5cm at four heights below window sills.
     # Open sockets are full 3.2m apertures, including their neighbour half-edges.
-    for cell,side,center,tangent in edges:
+    if t['shape']=='round':
+        check_curved_enclosure(t,tree)
+    for cell,side,center,tangent in ([] if t['shape']=='round' else edges):
         dx,dz = SIDES[side]
         for i in range(40):
             u = -.975+i*.05
@@ -321,8 +426,7 @@ def validate_room(t, meshes):
             for socket in sockets:
                 if socket['side'] != side:
                     continue
-                sx,sz = socket['cell']
-                sc = (2*sx+1+dx,2*sz+1+dz)
+                sc = socket_center(socket)
                 if abs((x-sc[0])*dx+(z-sc[1])*dz) < .001 and abs((x-sc[0])*tangent[0]+(z-sc[1])*tangent[1]) < 1.6-.001:
                     is_door = True
             for height in (.1,.5,1.0,2.79,4.75,6.95):
@@ -342,8 +446,7 @@ def validate_room(t, meshes):
             polys.extend(tuple(start+i for i in f) for f in meshes[p['id']]['faces'])
         closed = tree_for(verts,polys)
         dx,dz = SIDES[socket['side']]
-        x,z = socket['cell']
-        center = (x*2+1+dx,z*2+1+dz)
+        center = socket_center(socket)
         for u in (-1.59,0,1.59):
             px,pz = center[0]+u*abs(dz),center[1]+u*abs(dx)
             require(closed.ray_cast(Vector((px-dx*.08,1,pz-dz*.08)),Vector((dx,0,dz)),1)[0] is not None, name+': closedWith gap')
@@ -361,6 +464,97 @@ def validate_room(t, meshes):
         for x,y,z in anchors[key]:
             require(floors.ray_cast(Vector((x,y+.4,z)),Vector((0,-1,0)),.8)[0] is not None, name+': unsupported '+key)
     return {'id': name, 'cells': count, 'pieces': len(t['pieces']), 'doors': len(sockets)}
+
+
+def check_curved_wall_solids(t, meshes):
+    """Slice imported triangles into solid contours, not arc bounding boxes.
+
+    Tessellating each closed contour preserves concave transition piers and
+    separate jambs. Open relief contours use a conservative hull.
+    """
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
+    from validate_env_theme_basement import convex_hull, intersection_area
+    from mathutils.geometry import tessellate_polygon
+    for height in (.1,.5,1.0,2.79,4.75,6.95):
+        sections=[]
+        for p in t['pieces']:
+            mesh=meshes[p['id']]
+            if mesh['row']['kind'] not in ('wall','door','window','arc'):
+                continue
+            pts=[transform(v,p) for v in mesh['points']]
+            adjacency={}
+            for face in mesh['faces']:
+                tri=[pts[i] for i in face]; cuts=[]
+                for a,b in zip(tri,tri[1:]+tri[:1]):
+                    if min(a[1],b[1])<height<max(a[1],b[1]):
+                        u=(height-a[1])/(b[1]-a[1])
+                        cuts.append((round(a[0]+u*(b[0]-a[0]),5),round(a[2]+u*(b[2]-a[2]),5)))
+                if len(cuts)==2 and cuts[0]!=cuts[1]:
+                    a,b=cuts
+                    adjacency.setdefault(a,set()).add(b); adjacency.setdefault(b,set()).add(a)
+            unseen=set(adjacency)
+            while unseen:
+                pending=[next(iter(unseen))]; seen=set()
+                while pending:
+                    a=pending.pop()
+                    if a in seen: continue
+                    seen.add(a); pending.extend(adjacency[a]-seen)
+                unseen-=seen
+                contour=convex_hull(seen)
+                if all(len(adjacency[v])==2 for v in seen):
+                    start=min(seen); contour=[start]; previous=None; current=start
+                    while True:
+                        nxt=next(v for v in sorted(adjacency[current]) if v!=previous)
+                        if nxt==start: break
+                        contour.append(nxt); previous,current=current,nxt
+                if len(contour)<3: continue
+                triangles=tessellate_polygon([[Vector((x,z,0)) for x,z in contour]])
+                for tri in triangles:
+                    hull=convex_hull([contour[i] for i in tri])
+                    for other,owner in sections:
+                        if owner is not p:
+                            require(intersection_area(hull,other)<2e-5,
+                                    f'{t["id"]}: curved wall solid overlap {p["id"]}/{owner["id"]} at {height}')
+                    sections.append((hull,p))
+
+
+def check_curved_enclosure(t, tree):
+    """Independent r4 design contour; every 5cm below/above the apertures.
+
+    Raster occupancy is independently reconstructed from cell centres. It is
+    deliberately not used as a staircase wall contour: arcs enclose the disk.
+    """
+    apse=t['id']=='castle_chapel_apse'
+    require(apse or t['id']=='castle_tower_room','unknown curved template design')
+    cz=8 if apse else 4
+    expected={(x,z) for x in range(4) for z in range(6 if apse else 4)
+              if (apse and z<4) or (2*x+1-4)**2+(2*z+1-cz)**2<=16}
+    require({tuple(c) for c in t['footprint']}==expected,t['id']+': incorrect disk raster')
+    if apse:
+        contour=[(.4,0),(7.6,0),(7.6,8)]+[(4+3.6*math.sin(math.radians(a)),8+3.6*math.cos(math.radians(a)))
+                  for a in [90-i*7.5 for i in range(1,25)]]
+    else:
+        contour=[(2,8),(6,8)]+[(4+3.6*math.sin(math.radians(a)),4+3.6*math.cos(math.radians(a)))
+                  for a in [30+i*7.5 for i in range(17)]]+[(6,0),(2,0)]+[
+                  (4+3.6*math.sin(math.radians(a)),4+3.6*math.cos(math.radians(a)))
+                  for a in [210+i*7.5 for i in range(17)]]
+    signed=sum(a[0]*b[1]-b[0]*a[1] for a,b in zip(contour,contour[1:]+contour[:1]))
+    for a,b in zip(contour,contour[1:]+contour[:1]):
+        length=math.dist(a,b)
+        dx,dz=(b[1]-a[1])/length,-(b[0]-a[0])/length
+        if signed<0: dx,dz=-dx,-dz
+        for i in range(math.ceil(length/.05)):
+            u=(i+.5)/math.ceil(length/.05)
+            x,z=a[0]+u*(b[0]-a[0]),a[1]+u*(b[1]-a[1])
+            portal=False
+            for socket in t['doors']:
+                sx,sz=socket_center(socket); nx,nz=SIDES[socket['side']]
+                if dx*nx+dz*nz>.99 and abs((x-sx)*nx+(z-sz)*nz)<.41 and abs((x-sx)*abs(nz)+(z-sz)*abs(nx))<1.599:
+                    portal=True
+            for height in (.1,.5,1.0,2.79,4.75,6.95):
+                hit=tree.ray_cast(Vector((x-.08*dx,height,z-.08*dz)),Vector((dx,0,dz)),1.0)[0]
+                require((hit is None)==(portal and height<2.8),
+                        f'{t["id"]}: curved enclosure/door gap at {(x,height,z)}')
 
 
 def check_sources(rows, rooms):
@@ -442,6 +636,13 @@ def negative_controls(rooms, meshes):
     a = [(1,0,-.4),(1,7,-.4),(1,0,.4),(1,7,.4)]
     require(not same_points(a,[(x,y,z+.002) for x,y,z in a]), 'seam negative control')
     controls.append('2mm seam drift')
+    for ident in ('castle_tower_room','castle_chapel_apse'):
+        base = next(t for t in rooms if t['id']==ident)
+        reject(ident+' missing arc', lambda t: t['pieces'].pop(next(
+            i for i,p in enumerate(t['pieces']) if p['id']=='wall_arc_r4')))
+        reject(ident+' overlapping arc', lambda t: t['pieces'].append(copy.deepcopy(next(
+            p for p in t['pieces'] if p['id']=='wall_arc_r4'))))
+        reject(ident+' incorrect raster', lambda t: t['footprint'].append([0,5]))
     return controls
 
 
@@ -624,7 +825,7 @@ def check_ceiling_and_leaf_placement(t, rows, points):
             x,z = door['cell']; side = door['side']
             dx,dz = SIDES[side]
             yaw = {'N':0,'E':90,'S':180,'W':270}[side]
-            cx,cz = 2*x+1+dx, 2*z+1+dz
+            cx,cz = socket_center(door)
             if theme == 'castle':
                 cx,cz = cx+.4*dx,cz+.4*dz
             offsets = (-.8,.8) if pid in ('prop_classroom_door_leaf','prop_bulkhead_leaf') else (0,)
@@ -722,9 +923,58 @@ def check_prop_wall_bounds(t, rows, points, wall_meshes):
 def placement_regressions(templates, rows, points):
     wall_meshes = load_wall_triangles(templates[0]['id'].split('_')[0],rows)
     for t in templates:
+        check_hallway_endcaps(t)
         check_ceiling_and_leaf_placement(t,rows,points)
         check_prop_footprints(t,rows,points)
         check_prop_wall_bounds(t,rows,points,wall_meshes)
+        check_piece_support(t,rows,points,wall_meshes)
+    # Call the precise new gates, so an unrelated schema failure cannot make
+    # these negative controls look successful.
+    corridor = next(t for t in templates if t['kind']=='hallway')
+    for label,mutate in (
+            ('long-side socket',lambda d:d['doors'][0].update(side='W' if d['doors'][0]['side'] in 'NS' else 'S')),
+            ('off-centre span',lambda d:d['doors'][0].pop('span')),
+            ('missing arm',lambda d:d['doors'].pop())):
+        damaged = copy.deepcopy(corridor); mutate(damaged)
+        try:
+            check_hallway_endcaps(damaged)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('end-cap control accepted: '+label)
+    supported = next((t,i) for t in templates for i,p in enumerate(t['pieces'])
+                     if rows[p['id']]['kind']=='prop' and abs(p['pos'][1])<.01
+                     and not 'leaf' in p['id'] and not p['id'].startswith('door_'))
+    damaged = copy.deepcopy(supported[0])
+    damaged['pieces'][supported[1]]['pos'][1] += .15
+    try:
+        check_piece_support(damaged,rows,points,wall_meshes)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('floating-piece control accepted')
+    mounted = next((t,i) for t in templates for i,p in enumerate(t['pieces'])
+                   if rows[p['id']]['kind']=='prop' and p['pos'][1]>.1)
+    damaged = copy.deepcopy(mounted[0])
+    p = damaged['pieces'][mounted[1]]
+    yaw = math.radians(p['rotY'])
+    p['pos'][0] -= .15*math.sin(yaw)
+    p['pos'][2] -= .15*math.cos(yaw)
+    try:
+        check_piece_support(damaged,rows,points,wall_meshes)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('detached-wall-mount control accepted')
+    damaged = copy.deepcopy(supported[0])
+    damaged['pieces'] = [p for p in damaged['pieces'] if rows[p['id']]['kind']!='floor']
+    try:
+        check_piece_support(damaged,rows,points,wall_meshes)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('missing-floor-support control accepted')
+    print('PASS end-cap/support gates: every arm centred; measured floor/back/ceiling support; long-side, span, missing-arm, floating-piece, detached-wall-mount and missing-floor controls rejected')
     base = templates[0]
     damaged = copy.deepcopy(base)
     next(p for p in damaged['pieces'] if rows[p['id']]['kind'] == 'ceiling')['pos'][1] -= .10
@@ -799,6 +1049,8 @@ def main():
         meshes[row['id']] = check_piece(row)
     check_seams(meshes)
     require(len(rooms) >= 10 and len({t['id'] for t in rooms}) == len(rooms), 'room catalogue inventory')
+    require({'castle_tower_room','castle_chapel_apse'} <=
+            {t['id'] for t in rooms if t['shape']=='round'}, 'required round-room catalogue')
     details = [validate_room(t,meshes) for t in rooms]
     ordinary = [t for t in rooms if t['kind'] == 'room' and t['gimmick'] == 'none']
     for size,n in (('closet',1),('small',2),('medium',2),('large',1),('hall',1)):

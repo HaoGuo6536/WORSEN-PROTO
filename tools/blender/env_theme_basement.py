@@ -8,6 +8,7 @@
 #   - Build poured concrete, structural steel, services and industrial machinery.
 #   - Export applied Y-up/-Z-forward meshes and deterministic kit/room manifests.
 #   - Assemble editable sources and render catalogue and darkness review images.
+#   - Seat services on measured supports and centre hallway end-cap sockets.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils and Python standard library only.
 #   Shared door-review studio from env_theme_castle; no Castle geometry reused.
 # USAGE NOTES: --background --factory-startup --python-exit-code 1 --python FILE
@@ -52,7 +53,7 @@ KINDS = {
     "cage_lamp_dead": "prop", "prop_pump": "prop", "prop_electrical_cabinet": "prop",
     "prop_gauge_panel": "prop", "puddle_decal_quad": "prop", "prop_storage_cage": "prop",
     "prop_fuel_bunker": "prop", "prop_steam_vent": "prop", "pit_liner_2x2": "prop",
-    "pit_retaining_2m": "prop", "prop_bulkhead_leaf": "prop"}
+    "pit_retaining_2m": "prop", "prop_bulkhead_leaf": "prop", "floor_sump_2x2": "floor"}
 
 
 def xyz(p):
@@ -306,6 +307,18 @@ def build(p):
     elif name == "trim_base_2m":
         p.box((0,.04,0),(2,.08,.10),"damp")
         p.box((0,.10,.01),(2,.04,.05),"steel")
+    elif name == 'floor_sump_2x2':
+        # A single structural floor assembly: grate, support walls, basin and
+        # water. The basin is not a free-floating prop below the floor datum.
+        grate(p)
+        for v in p.vertices:
+            v.z += 1.2
+        p.box((0,.06,0),(2,.12,2),'damp')
+        p.box((0,.13,0),(1.84,.01,1.84),'water')
+        for x in (-.96,.96):
+            p.box((x,.6,0),(.08,1.2,2),'damp')
+        for z in (-.96,.96):
+            p.box((0,.6,z),(1.84,1.2,.08),'damp')
     elif name in {"floor_grate_2x2","catwalk_2m"}:
         grate(p,2 if name == "floor_grate_2x2" else 1.2)
     elif name == "catwalk_rail_2m":
@@ -499,6 +512,8 @@ def shell(cells, doors):
         intervals = [(center-1,center+1)]
         for door in doors:
             dx,_,dz,_ = edge_pose(door["cell"],door["side"])
+            dx += (door.get('span',1)-1)*(door['side'] in 'NS')
+            dz += (door.get('span',1)-1)*(door['side'] in 'EW')
             dc,dl = (dx,dz) if horizontal else (dz,dx)
             if side != door["side"] or line != dl:
                 continue
@@ -518,6 +533,8 @@ def shell(cells, doors):
             pieces.append(placement(name,mid if horizontal else line,0,line if horizontal else mid,yaw))
     for door in doors:
         x,y,z,yaw = edge_pose(door["cell"],door["side"])
+        x += (door.get('span',1)-1)*(door['side'] in 'NS')
+        z += (door.get('span',1)-1)*(door['side'] in 'EW')
         pieces.append(placement("wall_door_4m",x,0,z,yaw))
         horizontal = door["side"] in {"N","S"}
         door["closedWith"] = [placement("wall_2m",x+(d if horizontal else 0),0,
@@ -556,10 +573,10 @@ def catalogue():
         ("electrical_room","room","rect",rectangle(3,2),[((1,0),"S"),((1,1),"N")],"none"),
         ("storage_cage","room","rect",rectangle(3,3),[((1,0),"S"),((1,2),"N")],"none"),
         ("fuel_bunker","room","rect",rectangle(4,1),[((1,0),"S")],"none"),
-        ("pipe_tunnel","hallway","rect",rectangle(2,6),[((0,1),"W"),((1,4),"E")],"none"),
-        ("service_bend","hallway","L",rectangle(2,5)|rectangle(5,2),[((0,3),"W"),((3,0),"S")],"none"),
-        ("duct_junction","junction","T",rectangle(5,2)|{(x,z) for x in (1,2) for z in (2,3,4)},
-         [((1,0),"S"),((3,0),"S"),((1,3),"W")],"none"),
+        ("pipe_tunnel","hallway","rect",rectangle(2,6),[((0,0),"S"),((0,5),"N")],"none"),
+        ("service_bend","hallway","L",rectangle(2,5)|rectangle(5,2),[((0,4),"N"),((4,0),"E")],"none"),
+        ("duct_junction","junction","T",rectangle(6,2)|{(x,z) for x in (2,3) for z in (2,3,4)},
+         [((0,0),"W"),((5,0),"E"),((2,4),"N")],"none"),
         ("catwalk_hall","room","rect",rectangle(6,5),[((1,0),"S"),((4,4),"N")],"none"),
         ("sump_room","room","irregular",rectangle(4,4)-{(0,3),(3,0)},[((1,0),"S"),((2,3),"N")],"none"),
         ("valve_gallery","room","L",rectangle(4,2)|rectangle(2,4),[((1,0),"S"),((0,2),"W")],"none"),
@@ -568,6 +585,9 @@ def catalogue():
     templates = []
     for name,kind,shape,cells,sockets,gimmick in definitions:
         doors = [{"cell":list(c),"side":s} for c,s in sockets]
+        if kind in ('hallway','junction'):
+            for door in doors:
+                door['span'] = 2
         pieces = shell(cells,doors)
         w,d = max(x for x,z in cells)+1,max(z for x,z in cells)+1
         count = len(cells)
@@ -575,19 +595,13 @@ def catalogue():
         pit = name in {"catwalk_hall","sump_room","flooding_pit_freeze"}
         for x,z in sorted(cells):
             grating = pit or kind != "room" or (name == "boiler_room" and x in (2,3))
-            pieces.append(placement("floor_grate_2x2" if grating else "floor_2x2",2*x+1,-.12 if grating else -.1001,2*z+1))
+            pieces.append(placement('floor_sump_2x2' if pit else "floor_grate_2x2" if grating else "floor_2x2",
+                                    2*x+1,-1.32 if pit else -.12 if grating else -.1001,2*z+1))
             pieces.append(placement("ceiling_2x2",2*x+1,HEIGHT-.34,2*z+1))
-            if pit:
-                pieces.append(placement("pit_liner_2x2",2*x+1,-1.2,2*z+1))
-            if z%2 == 1:
-                # Leave the 2mm damp-wall relief clear at exposed run ends.
-                shift = .07 if (x-1,z) not in cells else -.07 if (x+1,z) not in cells else 0
-                pieces.append(placement("duct_run_ceiling_2m",2*x+1+shift,2.28,2*z+1))
-        if pit:
-            for c,s in boundary(cells):
-                x,_,z,yaw = edge_pose(c,s)
-                a = math.radians(yaw)
-                pieces.append(placement("pit_retaining_2m",x-.075*math.sin(a),-1.2,z-.075*math.cos(a),yaw))
+
+            # Ceiling-only duct hangers remain kit assets, not unsupported
+            # floor-or-wall template placements. Wall pipe services follow.
+
         # Dense wall services, kept away from the full door-wall reserves.
         for entry in list(pieces):
             if entry["id"] == "wall_2m":
@@ -666,6 +680,19 @@ def catalogue():
             x,z = available[0]
             pieces.append(placement("cage_lamp",2*x+1,2.18,2*z+1))
             anchors["light"].append([2*x+1,2.12,2*z+1])
+        sys.path.insert(0,str(Path(__file__).resolve().parent))
+        from env_theme_castle import seat_wall_props
+        seat_wall_props(pieces,'Basement',KINDS,{'prop_gauge_panel','prop_valve_wheel',
+            'cage_lamp','cage_lamp_dead'},minimum_width=2)
+        for p in pieces:
+            if p['id'] in ('cage_lamp','cage_lamp_dead'):
+                p['pos'][1] = round(HEIGHT-bpy.data.objects['Basement_'+p['id']].dimensions.z,6)
+        anchors['light'] = []
+        for p in pieces:
+            if p['id']=='cage_lamp':
+                a=math.radians(p['rotY'])
+                anchors['light'].append([round(p['pos'][0]-.49*math.sin(a),5),
+                    round(p['pos'][1]-.06,5),round(p['pos'][2]-.49*math.cos(a),5)])
         templates.append({"id":"basement_"+name,"kind":kind,"sizeClass":size,"shape":shape,
                           "footprint":[list(c) for c in sorted(cells)],"height":HEIGHT,"doors":doors,
                           "anchors":anchors,"gimmick":gimmick,"minRound":3 if gimmick != "none" else 1,

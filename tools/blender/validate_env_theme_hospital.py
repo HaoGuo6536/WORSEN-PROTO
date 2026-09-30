@@ -7,11 +7,11 @@
 # ARCHITECTURAL ROLE: Offline art validator; no Unity runtime dependencies.
 # KEY RESPONSIBILITIES:
 #   - Verify kit inventory, axes, pivots, budgets, openings and repeat seams.
-#   - Verify topology, attached doors/ceiling fixtures and geometric enclosure.
+#   - Verify end caps, floor/wall support, fixture datums and geometric enclosure.
 #   - Verify editable source/placement agreement, textures and rendered evidence.
 #   - Exercise rejection controls and compare repeat-generation manifest hashes.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils/io_scene_fbx, bundled numpy, Python stdlib.
-#   Shared door checks in validate_env_theme_castle (no generator imported).
+#   Shared support/socket/door checks in validate_env_theme_castle (no generator imported).
 # USAGE NOTES:
 #   Blender --background --factory-startup --python-exit-code 1 --python this-file
 #   -- [--skip-previews] [--record-baseline NAME | --compare-baseline NAME].
@@ -289,7 +289,7 @@ def validate_template(t, rows, trees):
     portal_lines = []
     for d, key in zip(doors, door_keys):
         axis, line, a, b = edges[key]
-        center = (a+b)/2
+        center = (a+b)/2+d.get('span',1)-1
         portal_lines.append((axis, line, center-1.6, center+1.6))
         closure = d['closedWith']
         require(len(closure) == 1 and closure[0]['id'] == 'wall_closed_4m', name+': closing alternative')
@@ -475,7 +475,8 @@ def check_fixture_attachments(t, rows, points):
     require(len(leaves) == len(t['doors']), name+': door leaf/socket count')
     for door in t['doors']:
         x,z = door['cell']; dx,dz = STEP[door['side']]
-        position = (2*x+1+dx, 0, 2*z+1+dz)
+        position = (2*x+1+dx+(door.get('span',1)-1)*abs(dz), 0,
+                    2*z+1+dz+(door.get('span',1)-1)*abs(dx))
         require(sum(close(p['pos'], position, .05) and ROT_SIDE.get(p['rotY']) == door['side']
                     for p in leaves) == 1, name+': detached door leaves')
     for p in t['pieces']:
@@ -570,7 +571,7 @@ def main():
               'negativeControls': controls, 'previews': preview_details,
               'limits': ['No Unity import, navigation, runtime socket closure or artistic acceptance is established.',
                          'Wall nonoverlap refers to collinear spans; perpendicular module corner joins are intentional.',
-                         'Narrow hallway end regions use side-entry sockets to preserve cell-centred 3.2m openings.']}
+                         'Span-two corridor sockets require the matching runtime consumer contract.']}
     (OUT/'validation.txt').write_text('\n'.join(lines)+'\n', encoding='utf-8')
     (OUT/'validation.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
     print('\n'.join(lines))

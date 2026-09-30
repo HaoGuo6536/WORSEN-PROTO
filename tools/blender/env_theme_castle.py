@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Build original low-poly masonry, pointed openings, vaults and furnishings.
 #   - Export metre-scale pieces with stable IDs, materials and geometry digests.
-#   - Author grid-enclosed room catalogues and gameplay sockets.
+#   - Author grid/curved rooms, supported dressing and centred end-cap sockets.
 #   - Assemble exactly the manifest placements and render review evidence.
 #   - Render reusable front/back door inspection scenes for all theme generators.
 # DEPENDENCIES: Blender 5.2 bpy/bmesh/mathutils, bundled NumPy, Python stdlib.
@@ -54,7 +54,10 @@ EXTRA = {'arch_pointed_door': 'door', 'wall_arrow_slit_2m': 'window',
          'prop_torch_dead': 'prop', 'floor_broken_2x2': 'floor',
          'wall_end_1m': 'wall', 'wall_door_closed_4m': 'wall',
          'prop_cell_grille': 'prop', 'prop_cauldron': 'prop',
-         'wall_concave_1p2m': 'wall'}
+         'wall_concave_1p2m': 'wall', 'wall_round_tangent_r4': 'wall',
+         'floor_disk_r4': 'floor', 'ceiling_disk_r4': 'ceiling',
+         'floor_apse_r4': 'floor', 'ceiling_apse_r4': 'ceiling',
+         'floor_portal_4m': 'floor'}
 
 
 def linear(hex_color):
@@ -267,7 +270,29 @@ def arc(m, radius, degrees):
 
 def architecture(piece):
     m = MasonMesh(piece)
-    if piece in ('wall_2m', 'wall_end_1m', 'wall_door_closed_4m', 'wall_concave_1p2m'):
+    if piece == 'wall_round_tangent_r4':
+        # Paired transition piers join radial arc end planes at +/-30 degrees
+        # to the straight, four-metre tangent portal. No scaled arc or overlap.
+        for sign in (-1,1):
+            polygon = [(sign*2,.4), (sign*2.2,4.4*math.cos(math.pi/6)-4.4),
+                       (sign*1.8,3.6*math.cos(math.pi/6)-4.4), (sign*2,-.4)]
+            vertices = [(x,-z,y) for y in (0,HEIGHT) for x,z in polygon]
+            faces = [(3,2,1,0),(4,5,6,7)]+[(i,(i+1)%4,(i+1)%4+4,i+4) for i in range(4)]
+            if sign<0:
+                faces = [tuple(reversed(f)) for f in faces]
+            m.add(vertices,faces,'stone_dark')
+    elif piece == 'floor_portal_4m':
+        m.box((0,0,.08),(4,.8,.16),'stone_dark')
+    elif piece in ('floor_disk_r4','ceiling_disk_r4','floor_apse_r4','ceiling_apse_r4'):
+        apse = 'apse' in piece
+        thickness = .18 if piece.startswith('ceiling') else .16
+        angles = [math.pi*i/24 for i in range(25)] if apse else [math.tau*i/48 for i in range(48)]
+        polygon = [(4.4*math.cos(a),4.4*math.sin(a)) for a in angles]
+        n = len(polygon)
+        vertices = [(x,-z,y) for y in (0,thickness) for x,z in polygon]
+        m.add(vertices,[tuple(range(n)),tuple(reversed(range(n,2*n)))]+
+              [(i,i+n,(i+1)%n+n,(i+1)%n) for i in range(n)],'stone_dark')
+    elif piece in ('wall_2m', 'wall_end_1m', 'wall_door_closed_4m', 'wall_concave_1p2m'):
         width = {'wall_2m': 2, 'wall_end_1m': 1, 'wall_door_closed_4m': 4,
                  'wall_concave_1p2m': 1.2}[piece]
         masonry(m, -width/2, width/2, 0, HEIGHT, rows=7, columns=2 if width <= 2 else 3)
@@ -496,6 +521,17 @@ def room(name, cells, doors, kind='room', shape='rect', gimmick='none', low=Fals
     consumed = set()
     for cell, side in doors:
         x, z, angle = edge_position(cell, side)
+        span = 2 if kind in ('hallway', 'junction') else 1
+        tangent = (1, 0) if side in ('N', 'S') else (0, 1)
+        if span == 2:
+            x, z = x+tangent[0], z+tangent[1]
+            neighbour = (cell[0]+tangent[0], cell[1]+tangent[1])
+            assert neighbour in occupied
+            pieces.append(placement('wall_door_4m', x, z, angle=angle))
+            sockets.append({'cell': list(cell), 'side': side, 'span': 2,
+                            'closedWith': [placement('wall_door_closed_4m', x, z, angle=angle)]})
+            consumed.update(((cell, side), (neighbour, side)))
+            continue
         # A 4m portal centered on a 2m edge also consumes half of each neighbour.
         tangent = (1, 0) if side in ('N', 'S') else (0, 1)
         for sign in (-1, 1):
@@ -591,9 +627,66 @@ def rectangle(w, d):
     return [(x, z) for z in range(d) for x in range(w)]
 
 
+def round_room(apse=False):
+    """Cell-centre raster of an r4 disk, with straight tangent portal bays.
+
+    The raster is occupancy, not a stair-stepped replacement for the circular
+    wall. Curved floor/roof slabs cover the exact shell, including raster slivers.
+    The chapel joins a full semicircle to an eight-metre rectangular nave.
+    """
+    name = 'chapel_apse' if apse else 'tower_room'
+    cz = 8 if apse else 4
+    cells = (rectangle(4,4) if apse else [])+[(x,z) for x in range(4)
+             for z in range(4 if apse else 0,6 if apse else 4)
+             if (2*x+1-4)**2+(2*z+1-cz)**2<=16]
+    # Move nave side-wall centre planes inward to meet the radial ends exactly.
+    # Their south ends still meet (not overlap) the outward-offset south wall.
+    if apse:
+        t = room(name,rectangle(4,4),[((1,0),'S'),((0,1),'W')],low=True)
+        t['pieces'] = [p for p in t['pieces'] if not (
+            (p['id'].startswith('wall_') and p['rotY']==0) or
+            p['id'] in ('prop_torch_sconce','prop_torch_dead','prop_soot_streak'))]
+
+        for p in t['pieces']:
+            if p['id'].startswith('wall_') and p['rotY'] in (90,270):
+                p['pos'][0] += -.4 if p['rotY']==90 else .4
+        for s in t['doors']:
+            if s['side']=='W':
+                for p in s['closedWith']:
+                    p['pos'][0] += .4
+
+        angles = (-75,-45,-15,15,45,75)
+        t['pieces'] += [placement('floor_apse_r4',4,8,-.16),placement('ceiling_apse_r4',4,8,HEIGHT-.18)]
+        t['anchors'] = {'cake':[[3,0,3],[5,0,3],[3,0,5],[5,0,9]],
+                        'goldenCake':[[3,0,9]],'hunterSpawn':[[5,0,5]],'light':[[1,3.13,5],[7,3.13,5]]}
+        t['pieces'] += [placement('prop_altar',4,9),placement('prop_candelabra',3,7),
+                        placement('prop_candelabra',5,7)]
+        for z in (3,5):
+            t['pieces'] += [placement('prop_bench',2,z),placement('prop_bench',6,z)]
+    else:
+        t = {'id':'castle_'+name,'kind':'room','sizeClass':'medium','shape':'round',
+             'height':HEIGHT,'doors':[], 'gimmick':'none','minRound':1,'weight':1.0,'pieces':[],
+             'anchors':{'cake':[[3,0,3],[5,0,5]],'goldenCake':[[5,0,3]],
+                        'hunterSpawn':[[3,0,5]],'light':[[3,2.1,4],[5,2.1,4]]}}
+        for side,z,cell,yaw in (('S',-.4,[1,0],180),('N',8.4,[1,3],0)):
+            t['doors'].append({'cell':cell,'side':side,'span':2,
+                              'closedWith':[placement('wall_door_closed_4m',4,z,angle=yaw)]})
+            t['pieces'] += [placement('wall_door_4m',4,z,angle=yaw),
+                            placement('wall_round_tangent_r4',4,z,angle=yaw)]
+        t['pieces'] += [placement('floor_disk_r4',4,4,-.16),placement('ceiling_disk_r4',4,4,HEIGHT-.18)]
+        angles = (45,75,105,135,225,255,285,315)
+        t['pieces'] += [placement('prop_candelabra',3,4),placement('prop_candelabra',5,4)]
+    for angle in angles:
+        a = math.radians(angle)
+        t['pieces'].append(placement('wall_arc_r4',4+4*math.sin(a),cz+4*math.cos(a),angle=angle))
+    t['footprint'] = [list(c) for c in sorted(cells)]
+    t['shape'] = 'round'
+    t['sizeClass'] = 'large' if len(cells)>20 else 'medium'
+    return t
+
+
 def catalogue():
-    # All spawnable footprints have exact grid envelopes. Arcs are available in
-    # the kit; circular envelopes need a coordinator-approved raster convention.
+    # Corridors reserve the entire four-metre end cap, never a long-side entry.
     specs = [
         ('watch_closet', rectangle(3, 1), [((1, 0), 'S')], 'room', 'rect', 'none', True),
         ('guard_room', rectangle(3, 3), [((1, 0), 'S'), ((1, 2), 'N')], 'room', 'rect', 'none', True),
@@ -604,23 +697,16 @@ def catalogue():
         ('chapel', rectangle(3, 6), [((1, 0), 'S'), ((0, 2), 'W')], 'room', 'rect', 'none', False),
         ('keep_gallery', rectangle(5, 6), [((2, 0), 'S'), ((2, 5), 'N')], 'room', 'rect', 'none', False),
         ('great_hall', rectangle(6, 8), [((2, 0), 'S'), ((2, 7), 'N'), ((5, 3), 'E')], 'room', 'rect', 'none', False),
-        # Hallways are two cells wide. The short ends use custom 4m-wide door
-        # assembly below because a socket lies 1m off the 4m end's centre.
+
         ('gallery_straight', rectangle(6, 2), [((0, 0), 'W'), ((5, 0), 'E')], 'hallway', 'rect', 'none', False),
         ('gallery_bend', [(x, z) for x, z in rectangle(5, 5) if z < 2 or x >= 3],
          [((0, 0), 'W'), ((3, 4), 'N')], 'hallway', 'L', 'none', False),
-        ('stair_landing', rectangle(3, 4), [((1, 0), 'S'), ((1, 3), 'N'), ((0, 2), 'W')], 'junction', 'rect', 'none', False),
+        ('stair_landing', rectangle(6, 2)+[(x,z) for x in (2,3) for z in range(2,6)],
+         [((0, 0), 'W'), ((5, 0), 'E'), ((2, 5), 'N')], 'junction', 'T', 'none', False),
         ('portcullis_freeze', rectangle(3, 4), [((1, 0), 'S'), ((1, 3), 'N')], 'room', 'rect', 'freeze', False),
         ('collapsed_crossing', rectangle(5, 5), [((2, 0), 'S'), ((2, 4), 'N')], 'room', 'irregular', 'traversal', False)]
     result = []
     for name, cells, doors, kind, shape, gimmick, low in specs:
-        # Two-wide corridors get end vestibules one cell wider. Hallway width
-        # stays 2: use lateral sockets at their ends with 3 contiguous edges.
-        if kind == 'hallway':
-            if name == 'gallery_straight':
-                doors = [((1, 0), 'S'), ((4, 1), 'N')]
-            else:
-                doors = [((1, 0), 'S'), ((4, 3), 'E')]
         t = room(name, cells, doors, kind, shape, gimmick, low)
         p = t['pieces']
         if name in ('watch_closet', 'guard_room', 'armoury'):
@@ -657,7 +743,7 @@ def catalogue():
             p += [placement('arch_pointed_door', 6, 2, angle=90)]
         if name == 'portcullis_freeze':
             # Raised gate leaves the entry traversable until runtime owns it.
-            p += [placement('prop_portcullis', 3, 7.75, 2.85),
+            p += [placement('prop_portcullis', 3, 7.75, 0),
                   placement('prop_chain_hanging', 1, 7.2, 3.2), placement('prop_rubble', 5, 4)]
         if name == 'collapsed_crossing':
             # Real void surrounded by a walkable U-shaped perimeter; no floor
@@ -673,7 +759,64 @@ def catalogue():
             t['anchors']['goldenCake'] = [[7, 0, 5]]
             t['anchors']['cake'] = [[1, 0, 1], [9, 0, 1], [1, 0, 9], [9, 0, 9], [7, 0, 5]]
         result.append(t)
+    result += [round_room(),round_room(apse=True)]
+    for t in result:
+        for socket in t['doors']:
+            p = socket['closedWith'][0]
+            t['pieces'].append(dict(id='floor_portal_4m',pos=[p['pos'][0],-.16,p['pos'][2]],rotY=p['rotY']))
+        seat_wall_props(t['pieces'], 'Castle', dict(COMMON,**EXTRA),
+                        {'prop_banner','prop_chain_hanging','prop_torch_sconce','prop_torch_dead'})
     return {'theme': 'castle', 'module': 2.0, 'templates': result}
+
+
+def seat_wall_props(pieces, theme, kinds, ids, minimum_width=0):
+    """Seat explicitly wall-mounted assets on the nearest full solid wall.
+
+    Use measured back planes after bottom-centering, and avoid windows/portals.
+    This is authoring, not validator repair; validation reimports the FBXs.
+    """
+    used = []
+    for p in pieces:
+        if p['id'] not in ids:
+            continue
+        obj = bpy.data.objects[theme+'_'+p['id']]
+        back = max(-v.co.y for v in obj.data.vertices)
+        width = obj.dimensions.x
+        candidates = []
+        for wall in pieces:
+            if kinds[wall['id']]!='wall' or 'tangent' in wall['id']:
+                continue
+            master = bpy.data.objects[theme+'_'+wall['id']]
+            if master.dimensions.x < max(width,minimum_width)-.001:
+                continue
+            front = min(-v.co.y for v in master.data.vertices)
+            a = math.radians(wall['rotY'])
+            inset = front-back-.008
+            pos = [round(wall['pos'][0]+inset*math.sin(a),6),p['pos'][1],
+                   round(wall['pos'][2]+inset*math.cos(a),6)]
+            def world_bounds(source, position, yaw):
+                c,s=math.cos(yaw),math.sin(yaw)
+                vertices=[(position[0]+v.co.x*c-v.co.y*s,position[1]+v.co.z,
+                           position[2]-v.co.x*s-v.co.y*c) for v in source.data.vertices]
+                return ([min(v[i] for v in vertices) for i in range(3)],
+                        [max(v[i] for v in vertices) for i in range(3)])
+            low,high=world_bounds(obj,pos,a)
+            blocked=False
+            for other in pieces:
+                if kinds[other['id']] not in ('wall','window','door') or other is wall:
+                    continue
+                lo,hi=world_bounds(bpy.data.objects[theme+'_'+other['id']],other['pos'],math.radians(other['rotY']))
+                if all(min(high[i],hi[i])-max(low[i],lo[i])>1e-5 for i in range(3)):
+                    blocked=True
+                    break
+            if blocked:
+                continue
+            distance = math.hypot(pos[0]-p['pos'][0],pos[2]-p['pos'][2])
+            crowded = any(math.dist(pos,q)<max(.5,width) for q in used)
+            candidates.append((crowded,distance,pos,wall['rotY']))
+        assert candidates, (theme,p['id'],'no full solid support wall')
+        _,_,p['pos'],p['rotY'] = min(candidates)
+        used.append(p['pos'])
 
 
 def instantiate(objects, piece, collection, name, offset=(0, 0, 0)):
@@ -787,6 +930,9 @@ def previews_and_sources(objects, rooms, skip):
             cut = (p['id'] == 'ceiling_2x2' and p['pos'][2] < d-1.1) or (
                 p['id'] == 'vault_web_bay' and p['pos'][2] < d-2.1) or (
                 p['id'].startswith('wall_') and (p['pos'][2] < 0 or p['pos'][0] > w))
+            if t['shape']=='round':
+                cut = cut or p['id'].startswith('ceiling_') or (
+                    'wall_arc' in p['id'] and 90<p['rotY']<270)
             if cut:
                 obj.hide_render = True
                 hidden.append(obj)

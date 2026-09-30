@@ -422,15 +422,15 @@
       "kind": "prop",
       "size": [
         2.6795,
-        3.08,
+        3.6,
         2.055
       ],
-      "triangles": 556,
+      "triangles": 612,
       "materials": [
         "hospital_curtain",
         "hospital_stainless"
       ],
-      "geometrySha256": "426fb0999cc55bb0d34d80917e1c3a9e7f6020d6e8af92db625714a1addd25f9"
+      "geometrySha256": "312907678f29f7328d5cdf4d6ae3f0f0d95abdf5074f0f021f2182bc2b0f35e6"
     },
     {
       "id": "wall_tile_dado_2m",

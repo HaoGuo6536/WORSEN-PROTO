@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Model the tiled shell, clinical doors and ceiling-supported ward fixtures.
 #   - Bake four portable surface textures and export metre-scale isolated FBXs.
-#   - Author enclosed, socketed rooms from the exported kit alone.
+#   - Author supported rooms and centred span-two corridor end-cap sockets.
 #   - Assemble sources from manifest placements and render review evidence.
 # DEPENDENCIES: Blender 5.2 bpy/bmesh/mathutils, bundled numpy, Python stdlib.
 #   Shared door-review studio from env_theme_castle; no Castle geometry reused.
@@ -294,10 +294,11 @@ def curtain(m, bay):
         for x in (-length/2, length/2):
             m.tube((x, 0, 2.95), (x, 2, 2.95), .027, 'stainless')
     for x in (-length/2+.1, length/2-.1):
-        # Bay geometry is bottom-centred by finish(): its curtain hem is .535m
-        # before recentering and its placement is .52m. Hangers must reach 3.6m.
-        top = HEIGHT+.535-.52 if bay else 3.45
+        # Floor-supported bay posts preserve the run-2 ceiling-height top.
+        top = HEIGHT if bay else 3.45
         m.tube((x, 0, 2.95), (x, 0, top), .012, 'stainless')
+        if bay:
+            m.tube((x, 0, 0), (x, 0, 2.95), .025, 'stainless')
     for i in range(10):
         x = -length/2+.055+i*.070
         m.box((x, .045 if i % 2 else -.045, 1.66), (.073, .02, 2.25-(i%3)*.013), 'curtain')
@@ -519,10 +520,16 @@ def assemble_template(name, cells, kind, shape, doors, props, gimmick='none'):
     for cell, side in doors:
         entry = next(e for e in boundary if e[0] == cell and e[1] == side)
         _, _, (x, z), angle = entry
+        span = 2 if kind in ('hallway', 'junction') else 1
+        if span == 2:
+            x += side in 'NS'
+            z += side in 'EW'
         line, along = (z, x) if side in 'NS' else (x, z)
         portal_spans.setdefault((side, line), []).append((along-2, along+2))
         closed = placement('wall_closed_4m', x, 0, z, angle)
         sockets.append({'cell': list(cell), 'side': side, 'closedWith': [closed]})
+        if span == 2:
+            sockets[-1]['span'] = 2
         pieces.append(placement('wall_door_4m', x, 0, z, angle))
         pieces.append(placement('door_double_porthole_4m', x, 0, z, angle))
     for (side, line), spans in sorted(by_line.items()):
@@ -596,13 +603,13 @@ def catalogue():
     def p(piece, x, z, angle=0, y=0):
         return placement(piece, x, y, z, angle)
     def bed_bay(x, z, angle=0):
-        return [p('prop_bed', x, z, angle), p('curtain_track_bay', x, z, angle, y=.52), p('prop_iv_stand', x+.72, z+.65)]
+        return [p('prop_bed', x, z, angle), p('curtain_track_bay', x, z, angle), p('prop_iv_stand', x+.72, z+.65)]
     standard = [((1, 0), 'S'), ((1, 3), 'N')]
     specs = []
     specs.append(('ward_bed_bays', rect(4, 4), 'room', 'rect', standard,
                   bed_bay(1.8, 5.8)+bed_bay(6.2, 5.8)+[p('prop_cabinet', 7.1, 1.0, 90)], 'none'))
     lcells = rect(4, 3) | {(x, 3) for x in range(2)}
-    specs.append(('nurse_station', lcells, 'junction', 'L', [((1, 0), 'S'), ((3, 1), 'E'), ((0, 2), 'W')],
+    specs.append(('nurse_station', lcells, 'room', 'L', [((1, 0), 'S'), ((3, 1), 'E'), ((0, 2), 'W')],
                   [p('prop_nurse_counter', 3.0, 2.9), p('prop_cabinet', 1, 6.8, 180), p('prop_wheelchair', 1.1, 4.4, 90)], 'none'))
     specs.append(('operating_theatre', rect(4, 3), 'room', 'rect', [((1, 0), 'S'), ((2, 2), 'N')],
                   [p('prop_gurney', 4.5, 3.1), p('prop_operating_lamp', 4.6, 3.2,
@@ -620,10 +627,10 @@ def catalogue():
                   [p('prop_scrub_sink', .8, 2, 270), p('prop_cabinet', 5.25, 2, 90)], 'none'))
     specs.append(('xray_room', rect(3, 3), 'room', 'rect', [((1, 0), 'S'), ((1, 2), 'N')],
                   [p('prop_gurney', 4.4, 3.2), p('prop_xray_screen', 1.25, 3.6, 90), p('prop_cabinet', 5.2, 1, 90)], 'none'))
-    specs.append(('long_ward_corridor', rect(2, 7), 'hallway', 'rect', [((0, 1), 'W'), ((1, 5), 'E')],
+    specs.append(('long_ward_corridor', rect(2, 7), 'hallway', 'rect', [((0, 0), 'S'), ((0, 6), 'N')],
                   [p('prop_wheelchair', .75, 7.2, 180), p('prop_signage_frame', 2, 13.7, y=2.05)], 'none'))
     bend = rect(2, 5) | {(x, z) for x in range(2, 5) for z in range(3, 5)}
-    specs.append(('corridor_bend', bend, 'hallway', 'L', [((0, 1), 'W'), ((3, 4), 'N')],
+    specs.append(('corridor_bend', bend, 'hallway', 'L', [((0, 0), 'S'), ((4, 3), 'E')],
                   [p('prop_gurney', .8, 6.2), p('corner_guard', 3.75, 6.25, y=0)], 'none'))
     specs.append(('day_room', rect(6, 4), 'room', 'rect', [((1, 0), 'S'), ((4, 3), 'N')],
                   [p('prop_waiting_bench', x, z, a) for x, z, a in ((1, 4, 270), (11, 4, 90), (5, 6.8, 0), (8, 6.8, 0))]
@@ -636,7 +643,19 @@ def catalogue():
     specs.append(('gurney_maze', rect(5, 4), 'room', 'rect', [((1, 0), 'S'), ((3, 3), 'N')],
                   [p('prop_gurney', x, z, 90) for x, z in ((2, 2.5), (5, 4.0), (8, 5.6))]
                   +[p('prop_xray_screen', 8.7, 2.6, 90), p('prop_cabinet', 1, 6.8)], 'traversal'))
-    return [assemble_template(*spec) for spec in specs]
+    result = [assemble_template(*spec) for spec in specs]
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
+    from env_theme_castle import seat_wall_props
+    for t in result:
+        seat_wall_props(t['pieces'],'Hospital',KINDS,{'prop_signage_frame',
+            'light_fluorescent_panel','light_fluorescent_dead','prop_operating_lamp'})
+        t['anchors']['light'] = []
+        for p in t['pieces']:
+            if p['id']=='light_fluorescent_panel':
+                a=math.radians(p['rotY'])
+                t['anchors']['light'].append([round(p['pos'][0]-.12*math.sin(a),5),
+                    round(p['pos'][1]-.04,5),round(p['pos'][2]-.12*math.cos(a),5)])
+    return result
 
 
 def instance(source, collection, name, pos, angle=0):

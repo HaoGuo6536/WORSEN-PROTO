@@ -6,11 +6,11 @@
 # ARCHITECTURAL ROLE: Offline acceptance tool; outside Unity runtime layers.
 # KEY RESPONSIBILITIES:
 #   - Verify inventory, geometry, axes, transforms, pivots, seams and materials.
-#   - Verify connected footprints, door spans, anchors and complete wall coverage.
+#   - Verify end caps, floor/wall support, anchors and complete wall coverage.
 #   - Compare source assemblies and rendered evidence with the room manifest.
 #   - Record and compare deterministic manifest and semantic geometry hashes.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils, bundled FBX parser/NumPy, stdlib;
-#   shared imported-mesh door checks in validate_env_theme_castle.
+#   shared imported-mesh support/socket/door checks in validate_env_theme_castle.
 # USAGE NOTES: Same Blender flags as generator. -- --record-baseline records the
 #   first successful run; -- --compare-baseline verifies the second regeneration.
 #   --skip-previews is for intermediate diagnostics and is never final acceptance.
@@ -384,6 +384,7 @@ def check_envelope(template,lookup):
         require((nx,nz) not in cells,"door boundary edge")
         pos,yaw = {"S":([2*x+1,0,2*z],180),"N":([2*x+1,0,2*z+2],0),
                    "W":([2*x,0,2*z+1],270),"E":([2*x+2,0,2*z+1],90)}[side]
+        pos[0 if side in 'NS' else 2] += door.get('span',1)-1
         matching = [p for p in door_pieces if p["pos"]==pos and p["rotY"]==yaw]
         require(len(matching)==1,"door centred on nominated edge with inward-facing aperture")
         closed = door.get("closedWith",[])
@@ -436,7 +437,11 @@ def check_template(t,lookup):
             require((math.floor(x/2),math.floor(z/2)) in cells,"anchor outside footprint")
             require(min(distance_edge(x,z,e) for e in edges)>=.6-EPS,"anchor wall clearance")
             if family=="light":
-                require(any(p["id"]=="cage_lamp" and abs(p["pos"][0]-x)<EPS and abs(p["pos"][2]-z)<EPS for p in t["pieces"]),"light anchor has a live cage fixture")
+                require(any(p['id']=='cage_lamp' and
+                            abs(p['pos'][0]-.49*math.sin(math.radians(p['rotY']))-x)<EPS and
+                            abs(p['pos'][1]-.06-y)<EPS and
+                            abs(p['pos'][2]-.49*math.cos(math.radians(p['rotY']))-z)<EPS
+                            for p in t['pieces']), 'light anchor has a live wall-mounted cage fixture')
     floors = [p for p in t["pieces"] if lookup[p["id"]]["kind"]=="floor"]
     require({(int(p["pos"][0]//2),int(p["pos"][2]//2)) for p in floors}==cells,"floor module coverage")
     check_envelope(t,lookup)

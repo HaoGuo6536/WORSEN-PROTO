@@ -641,6 +641,96 @@
         "castle_stone_dark"
       ],
       "geometrySha256": "bf72e419977d1a3645d529242747bceeb95c74850baba4525e1593e65c06c93d"
+    },
+    {
+      "id": "wall_round_tangent_r4",
+      "file": "Castle_wall_round_tangent_r4.fbx",
+      "kind": "wall",
+      "size": [
+        4.4,
+        7.0,
+        1.682309
+      ],
+      "triangles": 24,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "d40da2e5d418afc711fa7872f64e3cbf8289143896213e1bddcdd8da63680536"
+    },
+    {
+      "id": "floor_disk_r4",
+      "file": "Castle_floor_disk_r4.fbx",
+      "kind": "floor",
+      "size": [
+        8.8,
+        0.16,
+        8.8
+      ],
+      "triangles": 188,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "d33221a8b9861577ff593702905b4341221af7860418147694f7923d3c27a159"
+    },
+    {
+      "id": "ceiling_disk_r4",
+      "file": "Castle_ceiling_disk_r4.fbx",
+      "kind": "ceiling",
+      "size": [
+        8.8,
+        0.18,
+        8.8
+      ],
+      "triangles": 188,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "5056a133b51fe82e7210d510ad51b14be5e75e4421b4db9a4dcf3a4b29439f3a"
+    },
+    {
+      "id": "floor_apse_r4",
+      "file": "Castle_floor_apse_r4.fbx",
+      "kind": "floor",
+      "size": [
+        8.8,
+        0.16,
+        4.4
+      ],
+      "triangles": 96,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "dadbfddfb9ce58cf6df322bfb4c22f722a947bbceee03b3234b69bf5b62500fc"
+    },
+    {
+      "id": "ceiling_apse_r4",
+      "file": "Castle_ceiling_apse_r4.fbx",
+      "kind": "ceiling",
+      "size": [
+        8.8,
+        0.18,
+        4.4
+      ],
+      "triangles": 96,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "1620e9998bd85ccfd8218bbedc21dedbd031ac640be28ff9ea80e3851d60127a"
+    },
+    {
+      "id": "floor_portal_4m",
+      "file": "Castle_floor_portal_4m.fbx",
+      "kind": "floor",
+      "size": [
+        4.0,
+        0.16,
+        0.8
+      ],
+      "triangles": 12,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "5a552c4ff29804fe7024119781eb2b55b439e015003c8d2e76da4ed9396f9134"
     }
   ]
 }
