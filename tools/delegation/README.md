@@ -22,13 +22,13 @@ Run records live outside the repository in `%USERPROFILE%/.claude/delegations/<s
 | Task class (`task_class`) | Model / effort |
 |---|---|
 | `contained` — pure logic or a narrow fix, spec at most ~4 KB, testable without Unity | `gpt-6.1-sol` high |
-| `wiring` — cross-system wiring, fixtures, Orchestrator or SceneRoot edits | `gpt-6-astra` high (A/B: medium) |
-| `fix` — known-cause test or regression fixes | `gpt-6-astra` high (A/B: medium) |
+| `wiring` — cross-system wiring, fixtures, Orchestrator or SceneRoot edits | `gpt-6-astra` high |
+| `fix` — known-cause test or regression fixes | `gpt-6-astra` high |
 | `design` — design-heavy, multi-system features; unknown-cause regressions | `gpt-6-astra` xhigh; split the task if it nears context compression |
 | `diagnosis` — read-only investigation | `gpt-6-astra` high, `terminal,file` toolsets, `## Read-only` task |
 | `art` — Blender generators under `tools/blender/` | `gpt-6-astra` high |
 
-**Medium A/B (owner-approved 2026-09-30).** Alternate `wiring` and `fix` tasks between medium and high while the run ledger records tokens, calls, compressions and later Unity failures per run. Compare after about ten runs of each; keep the cheaper effort only if the first-run Unity failure rate is no worse.
+**Effort levels:** only `high` and `xhigh` are used. The medium A/B trial was stopped by the owner on 2026-09-30, and `medium` is no longer an option.
 
 ## Rules of thumb
 

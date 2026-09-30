@@ -16,7 +16,7 @@
 - Layers: `Core` references nothing in the project; `Domain` references Core (plus Lumen runtime); `Session` references Core and Domain; `Presentation` references Core only; `Orchestrator` may reference all. Never add assembly references or relax a rule to make code compile.
 - Every new or changed script keeps the §0 header. Keep KEY RESPONSIBILITIES truthful and focused (at most five bullets; more means the script needs splitting or a debt entry).
 - Match surrounding style: immutable `readonly struct` payloads in Core; Controllers and Presenters compute; BehaviorState/DriverState hold data; Config ScriptableObjects hold designer values as serialized fields with provisional defaults. List every provisional value in the report.
-- Tests: add or extend NUnit Edit Mode fixtures under `WORKTREE/Assets/Editor/Tests/<System>/`, preferring pure-logic tests. Each new pure-layer script (Controller, Presenter, Utility) ships a `<Name>Tests.cs`.
+- Tests: add or extend NUnit Edit Mode fixtures under `WORKTREE/Assets/Editor/Tests/<System>/`, preferring pure-logic tests. Each new pure-layer script (Controller, Presenter, Utility) ships a `<Name>Tests.cs`. Every test fixture class carries `[Worsen.Tests.Infrastructure.FixtureTimeGuard]` (a test enforces it). Tag tests that need the Unity window in focus with `[Category("RequiresFocus")]`. A fixture that enters Play Mode (`EnterPlayMode`, `[UnityTest]` scene loads) needs `Timeout(300000)` or more: each Play Mode entry costs about 100 s of domain reload here, and batch 13 lost 23 tests to a 30 s timeout.
 - Owner decisions override older spec text when the task quotes them.
 
 ## Required checks before you finish

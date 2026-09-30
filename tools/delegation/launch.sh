@@ -10,6 +10,9 @@
 #     minutes and records outcome=stalled. The worktree is left untouched for review.
 # Retry cap: refuses a fourth launch of one slug unless ALLOW_RETRY=1.
 set -uo pipefail
+# The whole script is one function, parsed before it runs: editing this file while a
+# launcher is running can no longer corrupt that launcher (bash reads scripts lazily).
+main() {
 source "$(dirname "$0")/lib.sh"
 SLUG="${1:?slug}"; N="${2:?n}"; MODEL="${3:?model}"; EFFORT="${4:?effort}"
 CLASS="${5:-unclassified}"; TOOLSETS="${6:-terminal,file}"
@@ -22,7 +25,7 @@ case "$CLASS" in diagnosis|docs) FLAG_IDLE_MIN="${FLAG_IDLE_OVERRIDE:-60}"; KILL
 grep -q '"started"' "$REC" && die "$SLUG-$N was already launched; prepare a new run number"
 LAUNCHES="$(grep -l '"started"' "$RUNS/$SLUG"-*/run.json 2>/dev/null | wc -l)"
 [ "$LAUNCHES" -lt 3 ] || [ "${ALLOW_RETRY:-0}" = 1 ] || die "$SLUG already launched $LAUNCHES times; split the task or set ALLOW_RETRY=1"
-case "$EFFORT" in low|medium|high|xhigh) ;; *) die "effort must be low|medium|high|xhigh";; esac
+case "$EFFORT" in high|xhigh) ;; *) die "effort must be high or xhigh (medium was removed by the owner on 2026-09-30)";; esac
 
 START_EPOCH="$(date +%s)"
 runrec "$REC" model="$MODEL" provider=openai-codex effort="$EFFORT" task_class="$CLASS" toolsets="$TOOLSETS" \
@@ -67,3 +70,5 @@ while kill -0 "$HP" 2>/dev/null; do
 done
 wait "$HP"; EXIT=$?
 [ "$OUTCOME" = stalled ] || { [ "$EXIT" = 0 ] && OUTCOME=exited-ok || OUTCOME=exited-error; }
+}
+main "$@"

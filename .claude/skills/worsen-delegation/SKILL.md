@@ -23,12 +23,12 @@ The coordinator plans, briefs, reviews and integrates; workers implement in isol
 | Class | Model / effort |
 |---|---|
 | contained — pure logic or a narrow fix, spec at most ~4 KB | `gpt-6.1-sol` high |
-| wiring, fix | `gpt-6-astra` high; A/B with medium, alternating |
+| wiring, fix | `gpt-6-astra` high |
 | design — multi-system, unknown-cause | `gpt-6-astra` xhigh; split the task before it nears context compression |
 | diagnosis (read-only) | `gpt-6-astra` high |
 | art (Blender generators) | `gpt-6-astra` high |
 
-Compare the A/B from `evidence/delegation-runs.jsonl`: tokens, calls, compressions, and first-run Unity failures per run.
+Only `high` and `xhigh` efforts are used; `medium` was removed by the owner on 2026-09-30. Run costs are recorded in `evidence/delegation-runs.jsonl`.
 
 ## Judgement rules
 
