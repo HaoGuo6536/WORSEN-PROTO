@@ -128,7 +128,9 @@ try {
     $arguments = @($harness, 'run', $assembly, $filterArgument, [string][int]($TimeoutSeconds * 1000), $dotnet, $summaryPath)
     @{ Executable = $dotnet; Arguments = $arguments } | ConvertTo-Json -Depth 5 |
         Set-Content -LiteralPath (Join-Path $runRoot 'command.json') -Encoding UTF8
-    Push-Location $runRoot
+    # Unity runs Edit Mode tests with the project root as the working directory, and some
+    # fixtures read project files by relative path; match that (all harness paths are absolute).
+    Push-Location $Worktree
     try { $output = @(& $dotnet @arguments 2>&1); $runExit = $LASTEXITCODE }
     finally { Pop-Location }
     $output | Set-Content -LiteralPath (Join-Path $runRoot 'results.log') -Encoding UTF8
