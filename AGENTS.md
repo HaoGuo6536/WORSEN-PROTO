@@ -66,8 +66,36 @@ Model Context Protocol (MCP) tools operate connected services or the running edi
 | Locate files, exact identifiers, or configuration | `rg --files`, `rg -n` | Scope searches to the relevant project paths. Exclude generated caches and vendor trees unless investigating them. Text matches supplement graph analysis. |
 | Find C# syntax patterns or enforce local structural rules | ast-grep | Use `ast-grep run` for structural search and `ast-grep scan` with [sgconfig.yml](sgconfig.yml) and [project rules](tools/ast-grep/rules). It does not establish cross-file callers or scene wiring. |
 | Trace execution and dependencies | GitNexus MCP | Start with `query`, then `context` on relevant symbols. Run upstream `impact` before editing existing functions, classes, methods, or affected indexed files. Include the repository name `WORSEN-PROTO`. |
-| Inspect or edit live Unity objects, assets, console, or tests | Synaptic Unity MCP (`unity-synaptic`) | Verify the connected project and inspect the target first. Discover the actual tools and parameters before execution. |
+| Inspect or edit live Unity objects, assets, console, or tests | Synaptic HTTP at `http://localhost:8086` (preferred); `unity-synaptic` MCP when verified connected | Verify the connected project and inspect the target first. Discover the actual tools and parameters before execution. Both transports require the same Unity lease for protected operations. |
 | Reproduce compilation, tests, or an existing build/setup method | Unity Editor CLI | Use the Editor version in [ProjectVersion.txt](ProjectSettings/ProjectVersion.txt), explicit project/output paths, and inspect logs plus test results. |
+| Create or edit 3D models | Blender 5.2 CLI, or a verified connected Blender MCP session | Save `.blend` sources under [ArtSource/](ArtSource/README.md) as described below. Export FBX to `Assets/Art/` only while holding the Unity lease. |
+
+### MOSS-Audio local audio understanding
+
+Use [MOSS-Audio](https://github.com/OpenMOSS/MOSS-Audio) for local descriptions and questions about speech, environmental sounds, sound effects, and music. The existing native Windows installation is shared outside the checkout at `%USERPROFILE%\selfhosted\moss-audio` (`C:\Users\Hao Guo\selfhosted\moss-audio` on this machine). Set `MOSS_AUDIO_HOME` to override that location. Source, dependencies, weights, and caches belong there; only generated analysis evidence belongs under `Logs/`.
+
+| Component | Location |
+| --- | --- |
+| Official source | `<MOSS_AUDIO_HOME>/source/` |
+| Python environment | `<MOSS_AUDIO_HOME>/venv/Scripts/python.exe` |
+| Model weights | `<MOSS_AUDIO_HOME>/weights/4B-Instruct/` |
+| Package and inference caches | `<MOSS_AUDIO_HOME>/cache/` |
+| Project scripts and repeat-run instructions | [tools/audio/README.md](tools/audio/README.md) |
+| Prior outputs and provenance | [Audio selection evidence](Logs/AgentValidation/Horror/audio-analysis/SELECTION.md) |
+
+Here `<MOSS_AUDIO_HOME>` means the configured override or the default shared installation above. The installed model is `OpenMOSS-Team/MOSS-Audio-4B-Instruct`, revision `6907a499dc0e87cc77c8ae0fe23fd0eb5476a02d`; source commit is `66326e6e0db34f036c86a76ba005efa4830c69dd`. It was initially installed on 2026-09-15 and relocated on 2026-09-29. Python 3.11.15, PyTorch `2.9.1+cu128`, and Transformers `4.57.1` are pinned in [the runtime lock](tools/audio/environment-lock.txt). Saved evidence records 12 completed clip analyses on 2026-09-15. Relocation verification checks imports, CUDA availability, processor/input preparation, and file hashes; it does not establish a fresh inference run. This is a native command-line installation; no MOSS Docker container or background inference service has been set up. Machine-local runtime files and ignored results are not supplied by a fresh clone or worktree; inspect the shared installation before downloading another copy.
+
+Read the runner README before inference. Coordinate a GPU window, check free VRAM, and keep heavy Unity validation and inference separate; never interrupt another operator to free memory. The runner requires at least 11 GiB free, caps its allocator at 10.5 GiB, and processes one short clip at a time. Its `--coordinator-admitted` flag records admission; it does not acquire the Unity lease. Any protected Unity operation still requires the lease above. Preserve previous evidence before rerunning the fixed-output scripts, or set `MOSS_AUDIO_RESULTS_DIR` to a separate result directory as documented in the README. WAV decoding uses Soundfile and torchaudio resampling to avoid the Windows TorchCodec/FFmpeg dependency. Keep audio local, record prompt/input/model identity with results, and distinguish model descriptions from human listening or verified in-game mix quality. Historical evidence intentionally retains its original paths.
+
+### Blender 3D model sources
+
+Keep the editable Blender file for every project-made 3D model in [ArtSource/](ArtSource/README.md). This root-level folder sits outside `Assets/`, beside `PLANNING/`, `DOCUMENTATION/` and `tools/`. Its README owns the naming rules, the source inventory and the step-by-step workflow; read it before creating or changing a model.
+
+- Mirror the export folder: `ArtSource/<Area>/<Asset>/<AssetName>.blend` exports to `Assets/Art/<Area>/<Asset>/<AssetName>.fbx`. Name the file after the asset it exports, never with a project-wide or generic name. For example, the former root `WORSEN.blend` is now `ArtSource/Horror/Cake/WORSEN_CakePickup.blend`.
+- Never save a `.blend` into `Assets/`, the repository root, or only the ignored `Logs/` folder. Unity would import a `.blend` in `Assets/` through whichever Blender installation is associated with it, and runtime wiring uses the exported FBX. Blender's `.blend1` backups stay beside their source and are ignored by Git. Pre-change evidence backups belong under `Logs/`.
+- Pack images into the `.blend`, or keep texture sources beside it with relative paths. `.blend` and `.fbx` files are stored with Git Large File Storage (LFS).
+- Use Blender 5.2 (`C:/Program Files/Blender Foundation/Blender 5.2/blender.exe`), headless with `--background --factory-startup --python-exit-code 1`. Blender 4.5 is also installed but is not the project version. Prefer reproducible generator scripts under [tools/blender/](tools/blender/README.md). In a connected Blender MCP session, check `bpy.data.filepath` before saving.
+- Writing FBX files or textures into `Assets/` is a protected Unity write: hold the Unity lease, let Unity generate `.meta` files, and wire importers and materials through a deterministic §10 setup tool. Put previews and validation evidence under `Logs/AgentValidation/Art/<Asset>/`. Add each new source to the ArtSource inventory.
 
 ### GitNexus workflow
 
@@ -101,11 +129,34 @@ ast-grep scan --json
 
 Check syntax-tree node names with `ast-grep run --debug-query` when updating rules or parsers. Review structural rewrites before applying them; they do not replace GitNexus impact or coordinated symbol renaming. The [pre-commit hook](tools/hooks/pre-commit) currently skips lint when ast-grep is absent: report that as a skipped gate, not a clean result. A committed hook file also does not prove `core.hooksPath` is configured; check with `git config --get core.hooksPath` when relying on it.
 
-### Synaptic Unity MCP workflow
+### Synaptic Unity MCP and HTTP workflow
 
-This project uses Synaptic's `unity-synaptic` server. Discover its exposed tools rather than assuming a generic `unityMCP` HTTP endpoint. A server listing tools proves server connectivity only; a successful read from the intended Unity project proves the editor connection. Check the project identity (the Assets path if necessary) and scene before mutations, especially with multiple editors open.
+**Use Synaptic's HTTP bridge at [http://localhost:8086](http://localhost:8086) as the preferred Unity connection for this project.** The endpoint was verified against WORSEN-PROTO on 2026-09-14 while the `unity-synaptic` MCP live-editor probes failed. Recheck each session; that observation is not a permanent connectivity guarantee. This is Synaptic's HTTP API, not a generic `unityMCP` endpoint or an MCP transport URL. Use the installed `synaptic-ai-pro-unity` skill for HTTP operations.
 
-Use `inspect` for scene, hierarchy, object, component, or project information. Use `list_categories`, `search_tools`, `list_tools`, or a scoped `get_tools_reference` to discover operations, then call `execute` with a verified tool name and parameters. Dedicated `create`/`modify` tools are available for supported object work. A read-only probe is `inspect({target: "scene", depth: 1})`; it must return scene data before being reported as successful.
+Start with `GET /health`, then discover schemas through `GET /categories`, `GET /tools/category/<category>` or `GET /tools`. Execute a discovered tool with `POST /execute` and a JSON body containing `tool` and `params`; `POST /batch` accepts an array of those objects. A health response with `unityConnected: true` is preliminary evidence: verify the live Assets path and scene before mutations, especially with multiple editors open. From the repository root, these read-only PowerShell probes should return the current checkout's Assets path and scene data:
+
+```powershell
+$synapticBase = 'http://localhost:8086'
+Invoke-RestMethod -Uri "$synapticBase/health" -TimeoutSec 10
+
+$identityBody = @{
+    tool = 'unity_run_csharp'
+    params = @{ code = 'return UnityEngine.Application.dataPath;' }
+} | ConvertTo-Json -Depth 5
+Invoke-RestMethod -Uri "$synapticBase/execute" -Method Post `
+    -ContentType 'application/json' -Body $identityBody -TimeoutSec 30
+
+$sceneBody = @{
+    tool = 'unity_dynamic_inspect'
+    params = @{ target = 'scene'; depth = 1 }
+} | ConvertTo-Json -Depth 5
+Invoke-RestMethod -Uri "$synapticBase/execute" -Method Post `
+    -ContentType 'application/json' -Body $sceneBody -TimeoutSec 30
+```
+
+HTTP responses can contain JSON encoded inside `result`; inspect both the outer response and decoded result. Do not accept a success flag without the expected evidence. For C# probes, require `resultSet: true` and the expected value. Report conflicting success flags and independently re-read affected state before deciding whether an operation succeeded. If HTTP is unavailable, check the bridge or try MCP only after a successful live-editor read; do not repeatedly use disconnected MCP tools merely because discovery responds.
+
+When using MCP, use `inspect` for scene, hierarchy, object, component, or project information. Use `list_categories`, `search_tools`, `list_tools`, or a scoped `get_tools_reference` to discover operations, then call `execute` with a verified tool name and parameters. The HTTP equivalents include `unity_dynamic_inspect`, `unity_dynamic_create`, `unity_dynamic_modify`, and `unity_run_csharp`; consult the HTTP schema because parameter shapes can differ from the MCP wrappers. A read-only MCP probe is `inspect({target: "scene", depth: 1})`; it must return scene data before being reported as successful. The exclusive Unity lease and all editor-state, save, and completion checks above apply equally to HTTP, batches, MCP, and C# snippets.
 
 Use `run_csharp` only when no dedicated operation covers the task, and return explicit evidence from the snippet. Runtime snippets are not persistent project implementation. Durable behavior belongs in source or deterministic setup tools under the architecture rules. Preserve user edits, inspect dirty scene state, save only intended changes, and re-read objects/assets after mutations. Allow compilation and domain reload to settle before checking the console or running tests.
 
