@@ -11,6 +11,7 @@
 //   - Replace optional spawns with seeded traps; apply injected cake hooks without foreign effects.
 //   - Recheck live escape routes before shuffled transitions, including activated pockets.
 //   - Start collapse independently of Greedy Door unlocking; keep guidance chase-independent.
+//   - Build read-only guidance snapshots with the white objective before optional Golden Sense.
 //   - Leave unused sockets empty; score optional cakes without advancing required progress.
 //   - Return a shared hearing noise for every accepted ordinary or golden pickup.
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
@@ -471,6 +472,15 @@ namespace Worsen.Domain.Floor
             _state.TrapTickElapsed %= _config.TrapTickInterval;
             return _state.MutableTraps.Where(t => t.Kind == FloorTrapKind.Blind && !_state.SprungTraps.Contains(t.Anchor.Id) &&
                 _state.MutableRoomPhases[t.Anchor.RoomId] != RoomPhase.Closed).ToArray();
+        }
+
+        public IReadOnlyList<GuidanceTarget> GuidanceTargets(bool whiteFallback, GuidanceTarget? golden = null)
+        {
+            var targets = new List<GuidanceTarget>();
+            if (TryWhiteGuidance(whiteFallback, out var white)) targets.Add(white);
+            if (_state.IsReady && !_state.Ended && !_state.CakeHooks.BlindFaith && golden.HasValue)
+                targets.Add(golden.Value);
+            return targets.AsReadOnly();
         }
 
         public bool TryWhiteGuidance(bool fallback, out GuidanceTarget target)
