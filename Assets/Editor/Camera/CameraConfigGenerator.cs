@@ -16,6 +16,7 @@
 //   - Leave scene saving, imports and test lease admission to the caller.
 //
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Worsen.Presentation.Camera config type; UnityEditor asset APIs.
 //
 // USAGE NOTES:
@@ -48,13 +49,7 @@ namespace Worsen.Editor.Camera
                 throw new InvalidOperationException("Stop Play Mode before generating Camera assets.");
             var existing = AssetDatabase.LoadAssetAtPath<CameraDriverConfig>(ConfigPath);
             if (existing != null) { EnsureHandMaterial(existing); return existing; }
-            var folder = "Assets";
-            foreach (var part in new[] { "Resources", "ScriptableObjects", "Presentation", "Camera" })
-            {
-                var next = folder + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(folder, part);
-                folder = next;
-            }
+            Worsen.Editor.Common.SetupKit.EnsureParent(ConfigPath);
             var config = ScriptableObject.CreateInstance<CameraDriverConfig>();
             AssetDatabase.CreateAsset(config, ConfigPath);
             EnsureHandMaterial(config);

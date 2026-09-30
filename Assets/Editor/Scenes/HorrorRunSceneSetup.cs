@@ -14,6 +14,7 @@
 //   - Promote the title-capable scene while retaining explicit test-scene order and flags.
 //   - Preserve unrelated loaded scenes and deterministic asset identities.
 // DEPENDENCIES:
+//   - Common SetupKit and SceneFingerprint own shared authoring primitives.
 //   - Runtime layer APIs, existing presentation generators, UnityEditor and URP.
 // USAGE NOTES:
 //   Editor-only. Refuses Play Mode and a dirty target scene. Run only while owning
@@ -387,9 +388,8 @@ namespace Worsen.Editor.Scenes
         { var route = owner.AddComponent<T>(); Wire(route, "_run", run); Wire(route, field, target); }
         public static void Wire(UnityEngine.Object target, string field, UnityEngine.Object value)
         {
-            var serialized = new SerializedObject(target); var property = serialized.FindProperty(field);
-            if (property == null) throw new InvalidOperationException(target.GetType().Name + " is missing " + field);
-            property.objectReferenceValue = value; serialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(target);
+            Worsen.Editor.Common.SetupKit.Wire(target, field, value);
+            EditorUtility.SetDirty(target);
         }
         public static T Require<T>(string path) where T : UnityEngine.Object =>
             AssetDatabase.LoadAssetAtPath<T>(path) ?? throw new InvalidOperationException("Missing asset: " + path);
@@ -400,17 +400,8 @@ namespace Worsen.Editor.Scenes
             asset = ScriptableObject.CreateInstance<T>(); AssetDatabase.CreateAsset(asset, path); return asset;
         }
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            string parent = Path.GetDirectoryName(path).Replace('\\', '/'); EnsureFolder(parent);
-            AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
         private static string Fingerprint(string directory, string pattern)
-        {
-            var text = new StringBuilder();
-            foreach (string path in Directory.GetFiles(directory, pattern, SearchOption.AllDirectories).OrderBy(path => path, StringComparer.Ordinal))
-                text.Append(path.Replace('\\', '/')).Append(System.Environment.NewLine).Append(File.ReadAllText(path)).Append(System.Environment.NewLine);
-            using (var hash = SHA256.Create()) return "sha256:" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", "");
-        }
+            => Worsen.Editor.Common.SceneFingerprint.HashFiles(directory, pattern);
     }
 }

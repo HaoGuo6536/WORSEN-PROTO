@@ -12,6 +12,7 @@
 //   - Save TagArena, register it as the first build scene, and set a 60 Hz tick.
 //   - Reject editor play entry when the arena capture fingerprint is stale.
 // DEPENDENCIES:
+//   - Common SetupKit and SceneFingerprint own shared authoring primitives.
 //   - Player/Level builders, Camera/PostFX/Telemetry generators and Session routing.
 //   - UnityEditor asset and scene APIs; installed Unity AI Navigation package.
 // USAGE NOTES:
@@ -293,13 +294,7 @@ namespace Worsen.Editor.Scenes
         }
 
         private static string HashFiles(string directory, string pattern)
-        {
-            var text = new StringBuilder();
-            foreach (string path in Directory.GetFiles(directory, pattern, SearchOption.AllDirectories).OrderBy(p => p, StringComparer.Ordinal))
-                text.Append(path.Replace('\\', '/')).Append(Environment.NewLine).Append(File.ReadAllText(path)).Append(Environment.NewLine);
-            using (var hash = SHA256.Create())
-                return "sha256:" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", string.Empty);
-        }
+            => Worsen.Editor.Common.SceneFingerprint.HashFiles(directory, pattern);
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
         {
             var asset = AssetDatabase.LoadAssetAtPath<T>(path);
@@ -318,21 +313,10 @@ namespace Worsen.Editor.Scenes
         }
 
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            var split = path.LastIndexOf('/');
-            EnsureFolder(path.Substring(0, split));
-            AssetDatabase.CreateFolder(path.Substring(0, split), path.Substring(split + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
 
         private static void Wire(UnityEngine.Object target, string field, UnityEngine.Object value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(field);
-            if (property == null) throw new InvalidOperationException(target.GetType().Name + " has no serialized field " + field);
-            property.objectReferenceValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, field, value);
 
         private static void SetFixedTimestep()
         {
