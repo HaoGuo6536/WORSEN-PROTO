@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Track generated root, owned materials, fragment bases and navigation data.
 //   - Retain per-room fissure materials and one shared procedural crack texture.
+//   - Index owned world-object sub-drivers by immutable interactable identity.
 // DEPENDENCIES:
 //   - Passive UnityEngine and navigation references only.
 // USAGE NOTES:
@@ -36,5 +37,6 @@ namespace Worsen.Domain.Procedural
         public readonly Dictionary<int, Bounds> RoomBounds = new Dictionary<int, Bounds>();
         public readonly Dictionary<int, Material> CrackMaterials = new Dictionary<int, Material>();
         public Texture2D CrackTexture;
+        public readonly Dictionary<int, ProceduralWorldObject> Interactables = new Dictionary<int, ProceduralWorldObject>();
     }
 }

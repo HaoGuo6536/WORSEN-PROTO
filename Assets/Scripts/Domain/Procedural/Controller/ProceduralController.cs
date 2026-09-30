@@ -15,6 +15,7 @@
 //   - Keep player spawns outside cake pickup radii while preserving ordinary routes.
 //   - Publish enclosed room volumes with higher ceilings for broad gallery spaces.
 //   - Start each castle floor in its exit hub with a clear approach to the center door.
+//   - Enforce reusable first-contact validation and record deterministic distance relaxation.
 // DEPENDENCIES:
 //   - Core immutable level contracts and LevelGraphUtility; no Domain siblings.
 // USAGE NOTES:
@@ -96,9 +97,13 @@ namespace Worsen.Domain.Procedural
                 Modules = Array.AsReadOnly(modules),
                 PlayerSpawnPosition = PlayerApproach(spawnRoom, modules[spawnIndex]),
                 PlayerSpawnRotation = Quaternion.LookRotation(modules[spawnIndex].AlongX ? Vector3.forward : Vector3.right, Vector3.up),
-                HunterSpawnPositions = Array.AsReadOnly(ordered.Where(room => room.Id != spawnRoom.Id)
-                    .Select(room => Approach(room, modules[room.Id - 1], 1f)).ToArray())
+                HunterSpawnPositions = Array.Empty<Vector3>()
             };
+            layout.HunterSpawnPositions = ProceduralSpawnUtility.Select(layout, _config,
+                ordered.Select(room => Approach(room, modules[room.Id - 1], 1f)).ToArray(),
+                out int minimumRooms, out string spawnReport);
+            layout.MinimumHunterSpawnRooms = minimumRooms;
+            layout.SpawnValidationReport = spawnReport;
             layout.PresentationRooms = DescribeRooms(layout, spawnRoom.Id);
             layout.Manifest = Manifest(layout);
             _state.Layout = layout;
@@ -286,6 +291,11 @@ namespace Worsen.Domain.Procedural
             RequirePositive(_config.DoorWidth, "door width"); RequirePositive(_config.DoorHeight, "door height");
             RequirePositive(_config.CakeSpacing, "cake spacing"); RequirePositive(_config.CakeLineOffset, "cake line offset");
             RequirePositive(_config.SpawnSideOffset, "spawn side offset");
+            if (_config.MinimumHunterSpawnRooms < 1 || _config.MinimumHunterSpawnRooms > 256 ||
+                _config.GenerationRetries < 0 || _config.GenerationRetries > 8 ||
+                !Finite(_config.OrdinaryDoorFraction) || _config.OrdinaryDoorFraction < 0f || _config.OrdinaryDoorFraction > 1f ||
+                _config.KnockablePropsPerRoom < 0 || _config.KnockablePropsPerRoom > 4)
+                throw new ArgumentException("Invalid spawn, retry or interactable budget.");
             RequirePositive(_config.CandidatePerimeterInset, "candidate perimeter inset");
             if (_config.MinimumCandidatesPerRoom < 1 || _config.MaximumCandidatesPerRoom > 5 ||
                 _config.MaximumCandidatesPerRoom < _config.MinimumCandidatesPerRoom ||
@@ -360,7 +370,7 @@ namespace Worsen.Domain.Procedural
 
         private static string Manifest(ProceduralLayout layout)
         {
-            var text = new StringBuilder("castle-rooms-v3|");
+            var text = new StringBuilder("castle-rooms-v4|");
             text.Append(layout.Seed).Append('|').Append(layout.RoundIndex).Append('|').Append(layout.Graph.ExitRoomId);
             foreach (var room in layout.Graph.Rooms)
             { text.Append("|R:").Append(room.Id); Append(text, room.Center); Append(text, room.Size); }
@@ -370,6 +380,8 @@ namespace Worsen.Domain.Procedural
                 text.Append("|M:").Append(module.RoomId).Append(',').Append((int)module.Kind).Append(',').Append(module.AlongX ? 1 : 0);
             foreach (var anchor in layout.Graph.Anchors)
             { text.Append("|C:").Append(anchor.Id).Append(',').Append(anchor.RoomId).Append(',').Append((int)anchor.Type); Append(text, anchor.Position); }
+            text.Append("|SpawnPolicy:").Append(layout.SpawnValidationReport);
+            foreach (var spawn in layout.HunterSpawnPositions) { text.Append("|H:"); Append(text, spawn); }
             return text.ToString();
         }
 

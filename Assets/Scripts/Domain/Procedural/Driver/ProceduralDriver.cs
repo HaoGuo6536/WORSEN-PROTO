@@ -13,6 +13,7 @@
 //   - Verify native paths to every cake, room, hunter spawn and exit before admission.
 //   - Apply crack textures and bounded masonry splitting with matching colliders.
 //   - Tear down only the navigation instance, materials and geometry this Driver owns.
+//   - Build physical interactables and apply routed Level state to owned sub-drivers.
 // DEPENDENCIES:
 //   - UnityEngine.AI runtime navigation API; no package assembly or Domain sibling.
 // USAGE NOTES:
@@ -22,6 +23,7 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
@@ -43,6 +45,9 @@ namespace Worsen.Domain.Procedural
             Teardown();
             if (transform.lossyScale != Vector3.one) throw new InvalidOperationException("Procedural owner requires unit world scale.");
             var blocks = _presenter.Build(layout, config, driverConfig);
+            var objects = new ProceduralInteractablePresenter();
+            layout.Interactables = objects.Build(layout, config, driverConfig, blocks, new System.Random(layout.Seed));
+            layout.InteractableManifest = objects.Manifest(layout.Interactables);
             foreach (var room in layout.Graph.Rooms) _state.RoomBounds.Add(room.Id, room.Bounds);
             try
             {
@@ -59,6 +64,18 @@ namespace Worsen.Domain.Procedural
                     CreateBlock(block, block.Kind == ProceduralSurfaceKind.Floor ? floor :
                         block.Kind == ProceduralSurfaceKind.Ceiling ? ceiling : wall, driverConfig.GeometryLayer);
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(blocks);
+                foreach (var plan in layout.Interactables)
+                {
+                    if (plan.SurfaceId != 0 || plan.State.Kind == InteractableKind.Light) continue;
+                    var item = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    item.name = "Interactable " + plan.State.Id + " " + plan.State.Kind;
+                    item.layer = driverConfig.GeometryLayer;
+                    item.transform.SetParent(_state.Root.transform, false);
+                    item.transform.position = plan.State.Position; item.transform.localScale = plan.Size;
+                    item.GetComponent<Renderer>().sharedMaterial = wall;
+                    var worldObject = item.AddComponent<ProceduralWorldObject>(); worldObject.Configure(plan.State);
+                    _state.Interactables.Add(plan.State.Id, worldObject);
+                }
                 BuildNavigation(layout, blocks, driverConfig);
                 foreach (var room in layout.Graph.Rooms) CreateSafetySlab(room, driverConfig.GeometryLayer);
                 _state.Root.SetActive(true);
@@ -83,6 +100,7 @@ namespace Worsen.Domain.Procedural
             _state.TraversalMarkers = null;
             _state.Fragments.Clear(); _state.FragmentPlans.Clear(); _state.RoomBounds.Clear();
             _state.CrackMaterials.Clear();
+            _state.Interactables.Clear();
             if (_state.CrackTexture != null) Release(_state.CrackTexture);
             _state.CrackTexture = null;
         }
@@ -104,6 +122,13 @@ namespace Worsen.Domain.Procedural
                 var collider = item.GetComponent<Collider>(); collider.enabled = false; Release(collider);
             }
             if (block.SurfaceId != 0) item.AddComponent<ProceduralTraversalSurface>().Configure(block);
+            if (block.TraversalKind == TraversalSurfaceKind.Vault)
+            {
+                var state = new InteractableState(200000 + block.SurfaceId, InteractableKind.Partition,
+                    block.RoomId, block.Center, InteractableStateValue.Inactive);
+                var worldObject = item.AddComponent<ProceduralWorldObject>(); worldObject.Configure(state);
+                _state.Interactables.Add(state.Id, worldObject);
+            }
             if (!_state.Fragments.TryGetValue(block.RoomId, out var fragments))
             {
                 fragments = new List<GameObject>(); _state.Fragments.Add(block.RoomId, fragments);
@@ -129,6 +154,14 @@ namespace Worsen.Domain.Procedural
                 if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", tint);
                 if (material.HasProperty("_Color")) material.SetColor("_Color", tint);
             }
+        }
+
+        public void ApplyInteractableState(InteractableState state)
+        {
+            if (!_state.Ready || !_state.Interactables.TryGetValue(state.Id, out var item) || item == null) return;
+            item.Apply(state);
+            if (state.Kind == InteractableKind.Partition && state.Value == InteractableStateValue.Broken)
+                _state.TraversalMarkers = Array.AsReadOnly(_state.TraversalMarkers.Where(marker => marker.Id != state.Id - 200000).ToArray());
         }
 
         private void CreateSafetySlab(LevelRoom room, int layer)
@@ -193,6 +226,9 @@ namespace Worsen.Domain.Procedural
                 });
             }
             var bounds = _presenter.NavigationBounds(blocks, config.NavBoundsPadding);
+            foreach (var plan in layout.Interactables.Where(p => p.State.Kind == InteractableKind.KnockableProp))
+                sources.Add(new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box,
+                    transform = Matrix4x4.TRS(plan.State.Position, Quaternion.identity, Vector3.one), size = plan.Size, area = 1 });
             _state.NavigationData = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
             if (_state.NavigationData == null) throw new InvalidOperationException("Runtime navigation bake returned no data.");
             _state.NavigationData.name = "Procedural Navigation - Round " + layout.RoundIndex;

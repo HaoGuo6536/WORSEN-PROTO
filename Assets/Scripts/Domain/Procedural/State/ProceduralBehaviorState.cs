@@ -8,10 +8,11 @@
 //   BehaviorState (§3) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Retain generated data independently of engine objects and subscriptions.
+//   - Retain retry provenance after teardown so Session can report failed generation.
 // DEPENDENCIES:
 //   - Procedural definitions only; no other gameplay system.
 // USAGE NOTES:
-//   Scene-owned through its Manager; reset on every generation and teardown.
+//   Scene-owned through its Manager; layout resets on teardown, provenance on Begin.
 // ============================================================================
 namespace Worsen.Domain.Procedural
 {
@@ -19,5 +20,12 @@ namespace Worsen.Domain.Procedural
     {
         public ProceduralLayout Layout { get; internal set; }
         public bool IsReady { get; internal set; }
+        public int AttemptIndex { get; internal set; }
+        public int AttemptSeed { get; internal set; }
+        public int BaseSeed { get; internal set; }
+        public int RetryBudget { get; internal set; }
+        public bool GenerationSucceeded { get; internal set; }
+        public bool UsedFallback { get; internal set; }
+        public string GenerationManifest { get; internal set; } = string.Empty;
     }
 }

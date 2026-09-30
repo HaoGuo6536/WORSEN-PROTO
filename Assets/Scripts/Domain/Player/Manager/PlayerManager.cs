@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Publish normalized traversal progress and stumble starts using Core/primitive event payloads.
+//   - Pass profile ledge limits, slide contact retention and steering to the physical mover.
 //   - Publish Core grace start/end and absorption facts, and push pass-through before physics queries.
 //   - Route independent walking-noise, rebound-recovery and grab-speed effects.
 //   - Apply aggregate run health/movement modifiers through the Controller and publish health changes.
@@ -46,6 +48,10 @@ namespace Worsen.Domain.Player
         public event Action<EntityId, bool> OnLookBackChanged;
         public event Action<PlayerMovementSample> OnMovementSample;
         public event Action<PlayerTraversalFact> OnTraversal;
+        // id, tick, kind, normalized progress, still traversing; final/cancel ticks publish false.
+        public event Action<EntityId, long, TraversalKind, float, bool> OnTraversalProgress;
+        // id, tick, duration in seconds; emitted once per stumble, including airborne failures.
+        public event Action<EntityId, long, float> OnStumbled;
         public event Action<InputProbeRecord> InputProbeRecorded;
         public event Action<GraceWindowFact> OnGraceStarted;
         public event Action<GraceWindowFact> OnGraceEnded;
@@ -70,12 +76,14 @@ namespace Worsen.Domain.Player
             if (_controller == null) return;
             bool wasLookingBack = _state.LookBack;
             AdvanceRecovery(tick);
-            MovementProbe probe = _driver.Probe();
+            MovementProbe probe = _driver.Probe(_profile.LedgeReach, _profile.LedgeMinimumHeight,
+                _profile.LedgeMaximumHeight, _profile.LedgeChestHeight);
             PlayerTickResult result = _controller.Tick(frame, probe, dt, tick);
             PlayerMoveResult movement = result.Traversing
                 ? _driver.MoveTraversal(result.TraversalStart, result.TraversalTarget, result.TraversalProgress,
-                    result.TraversalHeight, _state.Velocity, _state.HeadingDegrees, dt, _controller.MaximumMovementSpeed)
-                : _driver.Move(result.Displacement, _state.Velocity, result.Crouched, _state.HeadingDegrees, dt);
+                    result.TraversalHeight, _state.Velocity, _state.HeadingDegrees, dt, _controller.MaximumMovementSpeed, result.TraversalOffset)
+                : _driver.Move(result.Displacement, _state.Velocity, result.Crouched, _state.HeadingDegrees, dt,
+                    _state.MovementState == MovementState.Slide, _profile.SlideWallSpeedRetention);
             _controller.CommitPose(movement);
             var resolution = new MovementResolution(movement.Position, movement.Velocity, movement.Grounded, movement.Ceiling, _driver.EyePosition);
             var record = new InputProbeRecord(InputProbeRecord.CurrentSchemaVersion, tick, frame, probe, dt, resolution);
@@ -83,6 +91,9 @@ namespace Worsen.Domain.Player
             _driver.ShowMovement(_state.MovementState);
             if (wasLookingBack != _state.LookBack) OnLookBackChanged?.Invoke(Id, _state.LookBack);
             OnMovementSample?.Invoke(LastMovementSample);
+            if (_state.TraversalSampleActive)
+                OnTraversalProgress?.Invoke(Id, tick, _state.VaultKind, _state.VaultProgress, _state.MovementState == MovementState.Vault);
+            if (_state.StumbleStartedSeconds > 0f) OnStumbled?.Invoke(Id, tick, _state.StumbleStartedSeconds);
             InputProbeRecorded?.Invoke(record);
             foreach (PlayerTraversalFact fact in LastTraversalFacts) OnTraversal?.Invoke(fact);
         }

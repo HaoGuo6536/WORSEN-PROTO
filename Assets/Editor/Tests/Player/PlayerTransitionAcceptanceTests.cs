@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Measures real landing and held-LookBack traversal transitions, including the
-//   complete interval between the first positive input lock and observed release.
+//   complete interval between the first positive locomotion lock and last-third release.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player physical integration.
 // KEY RESPONSIBILITIES:
@@ -445,25 +445,23 @@ namespace Worsen.Tests.Player
                 var locked = samples.Where(s => s.Movement.InputLockSeconds > 0f).ToArray();
                 float duration = kind == TrialKind.Mantle ? profile.MantleDuration : profile.VaultDuration;
                 Assert.That(firstJump, Is.True);
-                Assert.That(locked.Length, Is.EqualTo(kind == TrialKind.Mantle ? 21 : 15));
+                Assert.That(locked.Length, Is.EqualTo(kind == TrialKind.Mantle ? 14 : 10));
                 Assert.That(samples.Count(s => s.LockEdge == "start"), Is.EqualTo(1));
                 Assert.That(samples.Count(s => s.LockEdge == "end"), Is.EqualTo(1));
                 var released = samples.Single(s => s.LockEdge == "end");
                 Assert.That(released.Record.Tick, Is.EqualTo(locked.Last().Record.Tick + 1));
-                Assert.That(completed.Record.Tick, Is.EqualTo(locked.Last().Record.Tick));
-                Assert.That(locked.First().Movement.InputLockSeconds, Is.EqualTo(duration));
+                Assert.That(completed.Record.Tick, Is.GreaterThan(released.Record.Tick));
+                Assert.That(locked.First().Movement.InputLockSeconds, Is.EqualTo(duration * (2f / 3f)));
                 Assert.That(locked.Select(s => s.Record.Tick), Is.EqualTo(Enumerable.Range(0, locked.Length)
                     .Select(offset => locked.First().Record.Tick + offset)));
                 double measuredLock = locked.Sum(s => (double)s.Record.DeltaTime);
-                // Float32 1/60 sums to 0.350000018... for 21 ticks. This tolerance
-                // covers numeric representation only; a 22nd lock tick still fails.
-                Assert.That(measuredLock, Is.LessThanOrEqualTo(0.35 + 0.000001));
+                Assert.That(measuredLock, Is.EqualTo(duration * (2f / 3f)).Within(0.000001));
                 Assert.That(fact.Duration, Is.EqualTo(duration));
                 Assert.That(Vector3.Distance(completed.Record.Resolution.Position, target),
                     Is.LessThanOrEqualTo(profile.VaultCompletionTolerance + 0.001f));
                 Assert.That(entrySpeed, Is.GreaterThan(7.5f));
                 Assert.That(Speed(completed.StateVelocity), Is.EqualTo(entrySpeed).Within(0.01f));
-                Assert.That(samples.Any(s => s.Record.Tick > released.Record.Tick && s.Record.Tick <= released.Record.Tick + 8 &&
+                Assert.That(samples.Any(s => s.Record.Tick > completed.Record.Tick && s.Record.Tick <= completed.Record.Tick + 8 &&
                     s.Record.Resolution.Position.x > completed.Record.Resolution.Position.x + 0.1f), Is.True,
                     "Forward movement must resume after the observed lock release while LookBack remains held.");
                 Assert.That(samples.Sum(s => s.Facts.Count(f => f.Kind == TraversalKind.Vault || f.Kind == TraversalKind.Mantle)), Is.EqualTo(1));
