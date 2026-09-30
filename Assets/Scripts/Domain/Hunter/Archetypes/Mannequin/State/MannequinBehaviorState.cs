@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
-//   - Retain injected evidence, seeded-check timing and pending immutable facts.
+//   - Retain injected evidence, seeded-check timing, catch admission and light facts.
 // DEPENDENCIES:
 //   - Core observations and System collections only.
 // USAGE NOTES:
@@ -22,6 +22,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         internal HunterPlayerView View;
         internal IReadOnlyHunterWorldView World;
         internal bool Clear, Illuminated, Wick, Hold = true;
+        internal bool CatchPublished;
         internal float CheckRemaining, FailureRemaining, Speed = 1f;
         internal int Room, FailureRoom, LampStacks = -1;
         internal long LastTick = -1;

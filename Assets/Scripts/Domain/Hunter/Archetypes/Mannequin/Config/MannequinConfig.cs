@@ -2,7 +2,7 @@
 // MannequinConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Authors the silent darkness rule and its reversible owner decision.
+//   Authors observation and light failures for the settled darkness-only rule.
 //   Rare environmental subversion and curse scaling remain designer values,
 //   not hidden constants in the shared hunter planner.
 // ARCHITECTURAL ROLE:
@@ -12,7 +12,7 @@
 // DEPENDENCIES:
 //   - HunterArchetypeConfig and Unity asset authoring only.
 // USAGE NOTES:
-//   All numbers are provisional. Darkness is default; Wick always prevents motion.
+//   All numbers are provisional. Darkness-only is policy, not a tunable; Wick always freezes.
 // ============================================================================
 using UnityEngine;
 namespace Worsen.Domain.Hunter.Archetypes.Mannequin
@@ -20,7 +20,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
     [CreateAssetMenu(menuName = "Worsen/Hunter/Mannequin Rules")]
     public sealed class MannequinConfig : HunterArchetypeConfig
     {
-        [SerializeField] private bool _movesInDarkness = true;
+
         [SerializeField, Min(.1f)] private float _observationHeight = 1f;
         [SerializeField, Range(1f, 45f)] private float _directLookHalfAngle = 12f;
         [SerializeField, Min(1f)] private float _failureCheckSeconds = 15f;
@@ -28,7 +28,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         [SerializeField, Min(.1f)] private float _failureSeconds = 1.25f;
         [SerializeField, Min(1f)] private float _longerStridesMultiplier = 1.2f;
         [SerializeField, Range(.1f, 1f)] private float _fewerLampsMultiplier = .8f;
-        public bool MovesInDarkness => _movesInDarkness;
+        public bool MovesInDarkness => true;
         public float ObservationHeight => Mathf.Max(.1f, _observationHeight);
         public float DirectLookHalfAngle => Mathf.Clamp(_directLookHalfAngle, 1f, 45f);
         public float FailureCheckSeconds => Mathf.Max(1f, _failureCheckSeconds);
