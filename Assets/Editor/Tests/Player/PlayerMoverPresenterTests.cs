@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Verify grace mask exclusion, invalid-layer safety and the session warning latch.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Verify paired traversal landings across approach directions and malformed geometry.
@@ -28,6 +29,29 @@ namespace Worsen.Tests.Player
     public sealed class PlayerMoverPresenterTests
     {
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();
+        [TestCase(0)]
+        [TestCase(12)]
+        [TestCase(31)]
+        public void GraceMaskRemovesOnlyHunterLayerAndRestoresTheOriginal(int layer)
+        {
+            int original = ~0;
+            Assert.That(_presenter.MovementMask(original, layer, true), Is.EqualTo(original & ~(1 << layer)));
+            Assert.That(_presenter.MovementMask(original, layer, false), Is.EqualTo(original));
+            Assert.That(_presenter.MovementMask(0, layer, true), Is.Zero);
+        }
+
+        [Test]
+        public void MissingLayerWarnsOncePerSessionAndNeverExcludesAnything()
+        {
+            var session = new PlayerDriverState();
+            Assert.That(_presenter.ShouldWarnMissingHunterLayer(session, 12), Is.False);
+            Assert.That(_presenter.ShouldWarnMissingHunterLayer(session, -1), Is.True);
+            Assert.That(new PlayerMoverPresenter().ShouldWarnMissingHunterLayer(session, -1), Is.False);
+            Assert.That(_presenter.MovementMask(~0, -1, true), Is.EqualTo(~0));
+            Assert.That(_presenter.MovementMask(~0, 32, true), Is.EqualTo(~0));
+            Assert.That(_presenter.ShouldWarnMissingHunterLayer(new PlayerDriverState(), -1), Is.True);
+        }
+
         [Test]
         public void CapsuleRetainsFeetWhenHeightShrinks()
         {

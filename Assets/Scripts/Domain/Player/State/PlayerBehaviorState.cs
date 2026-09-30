@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain the tick-based grace interval, independent hit boost and snap-enable hook.
 //   - Store committed sprint status separately from input intent and commanded physical posture.
 //   - Store achieved slide turn and independent perk/grab effects, reset for each life.
 //   - Store per-life movement, health and aggregate run modifiers without changing shared assets.
@@ -43,6 +44,12 @@ namespace Worsen.Domain.Player
         public PlayerHealthState HealthState { get; set; }
         public bool IsAlive => Health > 0f;
         public bool LookBack { get; set; }
+        public bool LookBackEnabled { get; set; } = true;
+        public float RecoveryTickSeconds { get; set; }
+        public GraceWindowFact GraceWindow { get; set; }
+        public bool GraceActive { get; set; }
+        public long HitBoostEndTick { get; set; }
+        public float HitBoostMultiplier { get; set; } = 1f;
         public MovementState MovementState { get; set; }
         public long Tick { get; set; }
         public IReadOnlyList<NoiseEvent> RecentNoises { get; set; } = Array.Empty<NoiseEvent>();
