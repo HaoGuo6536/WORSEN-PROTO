@@ -10,6 +10,7 @@
 //   - Keep decoration above running lanes and away from door apertures.
 //   - Select the nearest effects under fixed budgets and preserve a readable flame minimum.
 //   - Compute local flame falloff and bounded chalk crosses with room ownership.
+//   - Apply default-off Wick and Darker Floors without bypassing destruction or light budgets.
 // DEPENDENCIES:
 //   - Its own definitions and Unity value math; no other systems.
 // USAGE NOTES:
@@ -23,6 +24,11 @@ namespace Worsen.Presentation.Environment
 {
     public static class EnvironmentPresenter
     {
+        public static float LampBrightness(float elapsed, int identity, float gutter, float destruction,
+            bool wick, bool darkerFloors, float darkerMultiplier)
+            => FlameBrightness(elapsed, identity, wick ? 0f : gutter, destruction)
+                * (darkerFloors ? Mathf.Clamp01(float.IsNaN(darkerMultiplier) ? 1f : darkerMultiplier) : 1f);
+
         public static float LocalFlameMultiplier(Vector3 flamePosition, Vector3 position, float radius, float multiplier)
         {
             if (!(radius > 0f) || float.IsInfinity(radius) || float.IsNaN(multiplier) || multiplier >= 1f) return 1f;

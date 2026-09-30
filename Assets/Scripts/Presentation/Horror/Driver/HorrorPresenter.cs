@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Validate authoritative light samples and preserve exact gameplay range.
-//   - Convert effect multipliers into real fog distances and flashlight reach.
+//   - Compose default-off fog hooks and gate earned intrusions with an injected random source.
 //   - Compute warning color, contracting ring, directional pose and one growl per windup.
 //
 // DEPENDENCIES:
@@ -30,6 +30,34 @@ namespace Worsen.Presentation.Horror
 {
     public sealed class HorrorPresenter
     {
+        public bool TryStartle(HorrorDriverState state, HorrorDriverConfig config, double runSeconds,
+            bool earned, System.Random random)
+        {
+            if (double.IsNaN(runSeconds) || double.IsInfinity(runSeconds) || runSeconds < 0d
+                || runSeconds <= state.LastIntrusionSeconds) return false;
+            state.LastIntrusionSeconds = runSeconds;
+            if (!earned || state.StartlesUsed >= Mathf.Max(0, config.StartlesPerRun)
+                || runSeconds - state.LastStartleSeconds < NonNegativeOr(config.StartleSpacingSeconds, 0f)
+                || random == null || random.NextDouble() >= Mathf.Clamp01(NonNegativeOr(config.EarnedStartleChance, 0f))) return false;
+            state.StartlesUsed++;
+            state.LastStartleSeconds = runSeconds;
+            return true;
+        }
+
+        public void ResetRun(HorrorDriverState state)
+        {
+            ResetRound(state);
+            state.StartlesUsed = 0;
+            state.LastStartleSeconds = state.LastIntrusionSeconds = double.NegativeInfinity;
+            state.HookFogDistanceMultiplier = state.HookFogStartMultiplier = 1f;
+        }
+
+        public void SetLightingHooks(HorrorDriverState state, HorrorDriverConfig config, bool darkerFloors, bool catEyes)
+        {
+            state.HookFogDistanceMultiplier = darkerFloors ? Mathf.Clamp(PositiveOr(config.DarkerFogDistanceMultiplier, 1f), 0.01f, 1f) : 1f;
+            state.HookFogStartMultiplier = catEyes ? Mathf.Max(1f, PositiveOr(config.CatEyesFogStartMultiplier, 1f)) : 1f;
+        }
+
         public void SetEffects(HorrorDriverState state, float fogMultiplier, float flashlightMultiplier)
         {
             state.FogMultiplier = PositiveOr(fogMultiplier, 1f);
@@ -39,8 +67,9 @@ namespace Worsen.Presentation.Horror
         public void CalculateAtmosphere(HorrorDriverState state, HorrorPresentationSettings settings, float cameraFarClip)
         {
             float farClip = PositiveOr(cameraFarClip, 100f);
-            float fogNear = NonNegativeOr(settings.FogNearMeters, 0f) / state.FogMultiplier;
-            float fogFar = PositiveOr(settings.FogFarMeters, farClip) / state.FogMultiplier;
+            float fogFar = PositiveOr(settings.FogFarMeters, farClip) / state.FogMultiplier * state.HookFogDistanceMultiplier;
+            float fogNear = Mathf.Min(fogFar, NonNegativeOr(settings.FogNearMeters, 0f) / state.FogMultiplier
+                * state.HookFogDistanceMultiplier * state.HookFogStartMultiplier);
             state.FogCurveStart = Mathf.Clamp(fogNear / farClip, 0f, 0.999f);
             state.FogCurveEnd = Mathf.Clamp(fogFar / farClip, state.FogCurveStart + 0.001f, 1f);
             state.FlashlightRange = Mathf.Clamp(

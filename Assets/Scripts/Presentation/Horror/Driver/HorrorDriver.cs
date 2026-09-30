@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Render external light authority independently of camera shake and bank.
 //   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
-//   - Forward camera and volume wiring, apply modifiers, and completely reset warning objects.
+//   - Forward fog hooks and gate intrusions; preserve the run budget across floor resets.
 //
 // DEPENDENCIES:
 //   - Core HunterAttackSample and EntityId; its own Horror presentation stack.
@@ -40,6 +40,7 @@ namespace Worsen.Presentation.Horror
         private HorrorDriverConfig _config;
         private HorrorDriverState _state;
         private HorrorPresenter _presenter;
+        private System.Random _startleRandom;
         private HorrorAtmosphereDriver _atmosphere;
         private HorrorAmbienceDriver _ambience;
         public bool IsReady => _state != null && _atmosphere != null && _atmosphere.IsReady
@@ -61,6 +62,7 @@ namespace Worsen.Presentation.Horror
             }
             _state = new HorrorDriverState();
             _presenter = new HorrorPresenter();
+            _startleRandom = new System.Random();
             var atmosphereObject = new GameObject("Owned horror atmosphere");
             atmosphereObject.transform.SetParent(transform, false);
             _atmosphere = atmosphereObject.AddComponent<HorrorAtmosphereDriver>();
@@ -143,6 +145,26 @@ namespace Worsen.Presentation.Horror
                 _state.Cues.Add(sample.Hunter, cue);
             }
             cue.Apply(visual);
+        }
+
+        public bool TryStartle(double runSeconds, bool earned)
+            => _state != null && _state.OwnerEnabled && isActiveAndEnabled
+                && _presenter.TryStartle(_state, _config, runSeconds, earned, _startleRandom);
+
+        public void ResetRun(int seed)
+        {
+            if (_state == null) return;
+            ResetRound();
+            _presenter.ResetRun(_state);
+            _startleRandom = new System.Random(seed);
+            ApplyAtmosphere();
+        }
+
+        public void SetLightingHooks(bool darkerFloors, bool catEyes)
+        {
+            if (_state == null) return;
+            _presenter.SetLightingHooks(_state, _config, darkerFloors, catEyes);
+            ApplyAtmosphere();
         }
 
         public void RemoveAttack(EntityId hunter)

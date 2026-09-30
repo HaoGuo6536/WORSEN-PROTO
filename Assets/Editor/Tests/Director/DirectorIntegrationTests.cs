@@ -11,8 +11,10 @@
 // KEY RESPONSIBILITIES:
 //   - Verify live intrusion identity, duration, two-Hertz evaluation and one-shot behavior.
 //   - Check real PostFX volume activation, camera inclusion and natural effect expiry.
+//   - Check admitted or subtle intrusion strength above the persistent grain baseline.
 // DEPENDENCIES:
 //   - Core facts; Director/Player/Hunter/Chase; Session.Run; PostFX; FloorLoopSceneRoot.
+//   - PostFXOrchestrator and optional Horror wiring determine whether the intrusion is admitted.
 //   - Unity Test Framework and reflection for read-only rendering-package inspection.
 // USAGE NOTES:
 //   Coordinator runs under the Unity lease. Uses unchanged FloorLoop spawns and
@@ -118,6 +120,7 @@ namespace Worsen.Tests.Director
             private bool sawEffect, sawExpiry;
             private long effectTick, expiryTick;
             private float activeSaturation, activeGrain;
+            private bool admitted;
             public bool Ready;
             public long Ticks;
             public string Failure = "";
@@ -173,7 +176,7 @@ namespace Worsen.Tests.Director
                     Assert.That(color.GetType().FullName, Is.EqualTo("UnityEngine.Rendering.Universal.ColorAdjustments"));
                     Assert.That(grain.GetType().FullName, Is.EqualTo("UnityEngine.Rendering.Universal.FilmGrain"));
                     Assert.That(Parameter(color, "saturation"), Is.Zero);
-                    Assert.That(Parameter(grain, "intensity"), Is.Zero);
+                    Assert.That(Parameter(grain, "intensity"), Is.EqualTo(effects.BaselineGrain).Within(0.0001f));
                     UnityEngine.Camera camera = UnityEngine.Camera.main;
                     Assert.That(camera, Is.Not.Null);
                     Component cameraData = camera.GetComponents<Component>().Single(component => component != null &&
@@ -192,7 +195,11 @@ namespace Worsen.Tests.Director
 
             private void NeutralInput() => run.ReceiveInput(default);
             private void OnEmitted(IntrusionSample sample) => emitted.Add(sample);
-            private void OnRelayed(IntrusionSample sample) => relayed.Add(sample);
+            private void OnRelayed(IntrusionSample sample)
+            {
+                relayed.Add(sample);
+                admitted = ((PostFXDriverState)Read(driver, "_state")).IntrusionRemaining > 0f;
+            }
             private void OnPressure(DirectorPressureSample sample) => pressure.Add(sample);
             private void OnHint(HintPayload hint) => hints++;
             private void OnTick(InputFrame input, float dt, long tick)
@@ -212,12 +219,14 @@ namespace Worsen.Tests.Director
             {
                 if (!Ready || emitted.Count == 0) return;
                 float saturation = Parameter(color, "saturation"), intensity = Parameter(grain, "intensity");
-                if (saturation == -effects.IntrusionDesaturation && intensity == effects.IntrusionGrain)
+                float strength = admitted ? 1f : Mathf.Clamp01(effects.SubtleIntrusionMultiplier);
+                if (Mathf.Abs(saturation + effects.IntrusionDesaturation * strength) < 0.0001f &&
+                    Mathf.Abs(intensity - Mathf.Clamp01(effects.BaselineGrain + effects.IntrusionGrain * strength)) < 0.0001f)
                 {
                     if (!sawEffect) effectTick = run.Tick;
                     sawEffect = true; activeSaturation = saturation; activeGrain = intensity;
                 }
-                if (sawEffect && !sawExpiry && saturation == 0f && intensity == 0f)
+                if (sawEffect && !sawExpiry && saturation == 0f && Mathf.Abs(intensity - effects.BaselineGrain) < 0.0001f)
                 { sawExpiry = true; expiryTick = run.Tick; }
             }
 
@@ -233,10 +242,10 @@ namespace Worsen.Tests.Director
                 Assert.That(eventSeconds, Is.InRange(config.SlowThresholdSeconds - 0.00001,
                     config.SlowThresholdSeconds + config.EvaluationIntervalSeconds + Time.fixedDeltaTime));
                 Assert.That(sawEffect, Is.True, "Real volume parameters never received the intrusion.");
-                Assert.That(sawExpiry, Is.True, "Real volume parameters did not naturally return to neutral.");
+                Assert.That(sawExpiry, Is.True, "Real volume parameters did not naturally return to the degradation baseline.");
                 Assert.That(expiryTick, Is.GreaterThan(effectTick));
                 Assert.That(Parameter(color, "saturation"), Is.Zero);
-                Assert.That(Parameter(grain, "intensity"), Is.Zero);
+                Assert.That(Parameter(grain, "intensity"), Is.EqualTo(effects.BaselineGrain).Within(0.0001f));
                 Assert.That(hints, Is.Zero, "This short smoke does not reach the default delayed-hint threshold.");
                 int evaluationTicks = Mathf.RoundToInt(config.EvaluationIntervalSeconds / Time.fixedDeltaTime);
                 Assert.That(pressure.Count, Is.EqualTo((int)(Ticks / evaluationTicks)));

@@ -11,6 +11,7 @@
 //   - Observe confirmed sight and two native lunge contacts through Session routing.
 //   - Require the death sting at hold start, not death, and observe the close-up before restart.
 //   - Verify scene-local comfort settings without modifying shared designer assets.
+//   - Preserve pursuit/injury checks and require fresh-run restoration to the degradation baseline.
 //   - Isolate music routing with disposable test stems; production Pursuit/Danger may be empty.
 //   - Inspect actual pooled cue identity, configured clips, gain/pitch and playback; retain legacy coverage.
 // DEPENDENCIES:
@@ -400,12 +401,12 @@ namespace Worsen.Tests.Camera
                     }
                     if (proximity > 0f && Deaths == 0)
                     {
-                        Assert.That(Effect("_chromatic", "intensity"), Is.EqualTo(proximity * postConfig.PeripheralChromatic).Within(0.0001f));
+                        Assert.That(Effect("_chromatic", "intensity"), Is.EqualTo(Mathf.Clamp01(postConfig.BaselineChromatic + proximity * postConfig.PeripheralChromatic)).Within(0.0001f));
                         Assert.That(Effect("_distortion", "intensity"), Is.EqualTo(-proximity * postConfig.PeripheralDistortion).Within(0.0001f));
                         if (ThreatLayerPlaying() && ((AudioSource)Read(audio, "_breath")).isPlaying && ((AudioSource)Read(audio, "_breath")).volume > 0f)
                             proximityFrames++;
                     }
-                    Assert.That(Effect("_vignette", "intensity"), Is.EqualTo((1f - health / 100f) * postConfig.InjuryVignette).Within(0.0001f));
+                    Assert.That(Effect("_vignette", "intensity"), Is.EqualTo(Mathf.Clamp01(postConfig.FrameVignette + (1f - health / 100f) * postConfig.InjuryVignette)).Within(0.0001f));
                     if (health == 50f) injuryFrames++;
                     if (Deaths == 1)
                     {
@@ -472,8 +473,10 @@ namespace Worsen.Tests.Camera
                 Assert.That(SceneCount, Is.EqualTo(2)); Assert.That(player.ReadOnlyState.Health, Is.EqualTo(100f));
                 Assert.That(HorizontalFov(), Is.EqualTo(95f).Within(0.02f));
                 Assert.That(Vector3.Angle(output.transform.forward, Vector3.right), Is.LessThan(0.1f));
-                foreach (string field in new[] { "_chromatic", "_distortion", "_vignette", "_grain" })
-                    Assert.That(Effect(field, "intensity"), Is.Zero);
+                Assert.That(Effect("_chromatic", "intensity"), Is.EqualTo(postConfig.BaselineChromatic).Within(0.0001f));
+                Assert.That(Effect("_distortion", "intensity"), Is.Zero);
+                Assert.That(Effect("_vignette", "intensity"), Is.EqualTo(postConfig.FrameVignette).Within(0.0001f));
+                Assert.That(Effect("_grain", "intensity"), Is.EqualTo(postConfig.BaselineGrain).Within(0.0001f));
                 Assert.That(Effect("_color", "saturation"), Is.Zero);
                 Assert.That(ThreatAndGameplayLoopsSilent(), Is.True, "Restart must clear threat music and gameplay loop playback.");
                 if (audioConfig.Soundscape != null)
