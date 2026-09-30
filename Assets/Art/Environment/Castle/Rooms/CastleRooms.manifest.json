@@ -1,0 +1,10216 @@
+{
+  "theme": "castle",
+  "module": 2.0,
+  "templates": [
+    {
+      "id": "castle_watch_closet",
+      "kind": "room",
+      "sizeClass": "closet",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1.0,
+            3.13,
+            1.35
+          ],
+          [
+            3.0,
+            3.13,
+            1.35
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            2.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            2.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            2.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            1.0,
+            2.1,
+            1.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            1.0,
+            3.14,
+            1.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            3.0,
+            2.1,
+            1.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            3.0,
+            3.14,
+            1.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            5.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_weapon_rack",
+          "pos": [
+            1,
+            0,
+            1
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_barrel",
+          "pos": [
+            5,
+            0,
+            1
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_guard_room",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            2
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                6.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.35,
+            3.13,
+            1.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            6.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            6.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            6.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_weapon_rack",
+          "pos": [
+            1,
+            0,
+            1
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_barrel",
+          "pos": [
+            5,
+            0,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_iron_strapped",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_trestle_table",
+          "pos": [
+            3,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            3,
+            0,
+            4.2
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_armoury",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            1
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                4.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.35,
+            3.13,
+            1.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_weapon_rack",
+          "pos": [
+            1,
+            0,
+            1
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_barrel",
+          "pos": [
+            5,
+            0,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_iron_strapped",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        }
+      ]
+    },
+    {
+      "id": "castle_cell_block",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            2
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                6.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.35,
+            3.13,
+            1.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            6.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            6.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            6.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_cell_grille",
+          "pos": [
+            1,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chain_hanging",
+          "pos": [
+            1,
+            2,
+            4.7
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_buttery",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                8.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            7
+          ]
+        ],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.35,
+            3.13,
+            7.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            1
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_concave_1p2m",
+          "pos": [
+            6.4,
+            0,
+            5.4
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            7.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            1,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            3,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            5,
+            6.62,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "beam_timber_2m",
+          "pos": [
+            7,
+            6.62,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.749,
+            2.1,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_trestle_table",
+          "pos": [
+            3,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cauldron",
+          "pos": [
+            6.8,
+            0,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_barrel",
+          "pos": [
+            1,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_barrel",
+          "pos": [
+            1,
+            0,
+            6.2
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_chapel",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            0,
+            2
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                -0.4,
+                0,
+                5.0
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            7
+          ]
+        ],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            3.0,
+            3.13,
+            11.35
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            5,
+            0,
+            9
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            -0.4,
+            0,
+            2.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            -0.4,
+            0,
+            7.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            3.0,
+            2.1,
+            11.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            3.0,
+            3.14,
+            11.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            5.749,
+            2.1,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_altar",
+          "pos": [
+            3,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "stair_stone_2m",
+          "pos": [
+            3,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_candelabra",
+          "pos": [
+            1,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_candelabra",
+          "pos": [
+            5,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            1.7,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            4.3,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            1.7,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            4.3,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            1.7,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            4.3,
+            0,
+            7
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_keep_gallery",
+      "kind": "room",
+      "sizeClass": "large",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            2,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                5.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            2,
+            5
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                5.0,
+                0,
+                12.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            5,
+            0,
+            7
+          ]
+        ],
+        "light": [
+          [
+            1.0,
+            3.13,
+            0.65
+          ],
+          [
+            0.65,
+            3.13,
+            3.0
+          ],
+          [
+            1.0,
+            3.13,
+            11.35
+          ],
+          [
+            9.35,
+            3.13,
+            1.0
+          ],
+          [
+            9.35,
+            3.13,
+            3.0
+          ],
+          [
+            9.35,
+            3.13,
+            7.0
+          ],
+          [
+            9.0,
+            3.13,
+            11.35
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            9
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            2.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            7.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            2.5,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            7.5,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5.0,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            12.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            1.0,
+            2.1,
+            0.251
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            1.0,
+            3.14,
+            0.012
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            0.251,
+            2.1,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            1.0,
+            2.1,
+            11.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            1.0,
+            3.14,
+            11.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.749,
+            2.1,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.988,
+            3.14,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.749,
+            2.1,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.988,
+            3.14,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.0,
+            2.1,
+            11.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.0,
+            3.14,
+            11.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            2,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            2,
+            3.4,
+            3.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            8,
+            3.4,
+            3.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            2,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            2,
+            3.4,
+            7.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            8,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            8,
+            3.4,
+            7.4
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_great_hall",
+      "kind": "room",
+      "sizeClass": "hall",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          5,
+          7
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            2,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                5.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            2,
+            7
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                5.0,
+                0,
+                16.4
+              ],
+              "rotY": 0
+            }
+          ]
+        },
+        {
+          "cell": [
+            5,
+            3
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                12.4,
+                0,
+                7.0
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            13
+          ],
+          [
+            3,
+            0,
+            9
+          ],
+          [
+            5,
+            0,
+            5
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            13
+          ],
+          [
+            9,
+            0,
+            9
+          ],
+          [
+            11,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "light": [
+          [
+            1.0,
+            3.13,
+            0.65
+          ],
+          [
+            0.65,
+            3.13,
+            3.0
+          ],
+          [
+            0.65,
+            3.13,
+            11.0
+          ],
+          [
+            1.0,
+            3.13,
+            15.35
+          ],
+          [
+            9.0,
+            3.13,
+            0.65
+          ],
+          [
+            11.35,
+            3.13,
+            1.0
+          ],
+          [
+            11.35,
+            3.13,
+            3.0
+          ],
+          [
+            11.35,
+            3.13,
+            13.0
+          ],
+          [
+            11.35,
+            3.13,
+            15.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            11,
+            0,
+            13
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            2.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            7.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            2.5,
+            0,
+            16.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            7.5,
+            0,
+            16.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5.0,
+            0,
+            16.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            12.4,
+            0,
+            4.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            12.4,
+            0,
+            9.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            12.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            13.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            16.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            15.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            16.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            11.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            11.0,
+            0,
+            16.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            15.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            15
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            10,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            10,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            10,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            10,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            10,
+            4.812235,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            10,
+            4.91,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            10,
+            4.812235,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            10,
+            4.91,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            1.0,
+            2.1,
+            0.251
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            1.0,
+            3.14,
+            0.012
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            0.251,
+            2.1,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            1.0,
+            2.1,
+            15.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            1.0,
+            3.14,
+            15.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.0,
+            2.1,
+            0.251
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.0,
+            3.14,
+            0.012
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            11.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            11.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            11.749,
+            2.1,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            11.988,
+            3.14,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            11.749,
+            2.1,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            11.988,
+            3.14,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            11.749,
+            2.1,
+            15.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            11.988,
+            3.14,
+            15.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            2,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            2,
+            3.4,
+            3.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            10,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            10,
+            3.4,
+            3.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            2,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            2,
+            3.4,
+            7.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            10,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            10,
+            3.4,
+            7.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            2,
+            0,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            2,
+            3.4,
+            11.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            10,
+            0,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_banner",
+          "pos": [
+            10,
+            3.4,
+            11.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_trestle_table",
+          "pos": [
+            6,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            4,
+            0,
+            4
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_trestle_table",
+          "pos": [
+            6,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            4,
+            0,
+            7
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_trestle_table",
+          "pos": [
+            6,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bench",
+          "pos": [
+            4,
+            0,
+            10
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_altar",
+          "pos": [
+            6,
+            0,
+            14
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_gallery_straight",
+      "kind": "hallway",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          1
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                9.0,
+                0,
+                4.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            7.0,
+            3.13,
+            0.65
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            11,
+            0,
+            1
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            6.5,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            11.5,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            9.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            11.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            10,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            10,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            7.0,
+            2.1,
+            0.251
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            7.0,
+            3.14,
+            0.012
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "arch_pointed_door",
+          "pos": [
+            6,
+            0,
+            2
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "castle_gallery_bend",
+      "kind": "hallway",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            3
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                10.4,
+                0,
+                7.0
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            3
+          ],
+          [
+            7,
+            0,
+            9
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.0,
+            3.13,
+            3.35
+          ],
+          [
+            9.35,
+            3.13,
+            3.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            10.4,
+            0,
+            4.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            10.4,
+            0,
+            9.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            4.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concave_1p2m",
+          "pos": [
+            5.6,
+            0,
+            5.4
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.6,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            7.0,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.6,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.0,
+            2.1,
+            3.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.0,
+            3.14,
+            3.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            7.0,
+            2.1,
+            9.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            7.0,
+            3.14,
+            9.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.749,
+            2.1,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.988,
+            3.14,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "arch_pointed_door",
+          "pos": [
+            6,
+            0,
+            2
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "castle_stair_landing",
+      "kind": "junction",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                8.4
+              ],
+              "rotY": 0
+            }
+          ]
+        },
+        {
+          "cell": [
+            0,
+            2
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                -0.4,
+                0,
+                5.0
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.35,
+            3.13,
+            3.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            5,
+            0,
+            5
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            -0.4,
+            0,
+            2.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            -0.4,
+            0,
+            7.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.749,
+            2.1,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            5.749,
+            2.1,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "stair_stone_2m",
+          "pos": [
+            4.5,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "pillar",
+          "pos": [
+            4.5,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chain_hanging",
+          "pos": [
+            4.5,
+            4.6,
+            5
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_portcullis_freeze",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                3.0,
+                0,
+                8.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            0.65,
+            3.13,
+            1.0
+          ],
+          [
+            5.35,
+            3.13,
+            1.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            5,
+            0,
+            5
+          ]
+        ]
+      },
+      "gimmick": "freeze",
+      "minRound": 3,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            0.5,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            5.5,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3.0,
+            0,
+            8.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            5.749,
+            2.1,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            5.988,
+            3.14,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_portcullis",
+          "pos": [
+            3,
+            2.85,
+            7.75
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_chain_hanging",
+          "pos": [
+            1,
+            3.2,
+            7.2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_rubble",
+          "pos": [
+            5,
+            0,
+            4
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "castle_collapsed_crossing",
+      "kind": "room",
+      "sizeClass": "large",
+      "shape": "irregular",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 7.0,
+      "doors": [
+        {
+          "cell": [
+            2,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                5.0,
+                0,
+                -0.4
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            2,
+            4
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_door_closed_4m",
+              "pos": [
+                5.0,
+                0,
+                10.4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            9
+          ],
+          [
+            9,
+            0,
+            9
+          ],
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            1.0,
+            3.13,
+            0.65
+          ],
+          [
+            0.65,
+            3.13,
+            3.0
+          ],
+          [
+            0.65,
+            3.13,
+            9.0
+          ],
+          [
+            9.0,
+            3.13,
+            0.65
+          ],
+          [
+            9.35,
+            3.13,
+            5.0
+          ],
+          [
+            9.0,
+            3.13,
+            9.35
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "traversal",
+      "minRound": 3,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            2.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            7.5,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            2.5,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_end_1m",
+          "pos": [
+            7.5,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5.0,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_arrow_slit_2m",
+          "pos": [
+            1.0,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            -0.4,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            -0.4
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10.4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.4,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_broken_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_broken_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_broken_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            6.82,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            2,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            2,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_rib_bay",
+          "pos": [
+            6,
+            4.812235,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "vault_web_bay",
+          "pos": [
+            6,
+            4.91,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            1.0,
+            2.1,
+            0.251
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            1.0,
+            3.14,
+            0.012
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_dead",
+          "pos": [
+            0.251,
+            2.1,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            0.251,
+            2.1,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            0.012,
+            3.14,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.0,
+            2.1,
+            0.251
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.0,
+            3.14,
+            0.012
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.749,
+            2.1,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.988,
+            3.14,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_torch_sconce",
+          "pos": [
+            9.0,
+            2.1,
+            9.749
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_soot_streak",
+          "pos": [
+            9.0,
+            3.14,
+            9.988
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_rubble",
+          "pos": [
+            7.2,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_rubble",
+          "pos": [
+            7.2,
+            0,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_rubble",
+          "pos": [
+            7.2,
+            0,
+            7
+          ],
+          "rotY": 0
+        }
+      ]
+    }
+  ]
+}
