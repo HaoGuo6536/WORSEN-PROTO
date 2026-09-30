@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Audio target.
 // KEY RESPONSIBILITIES:
+//   - Route Level acoustics, physical exit progress, grace and paired active effects.
+//   - Forward committed purchase/reservation/reroll reasons without wallet inference.
 //   - Route Session pause to audio playback and its unscaled presentation clocks.
 //   - Route scene camera hold start to per-run catch sting admission, not PlayerDied.
 //   - Pair run, progression, effects, expedition and UI subscriptions symmetrically.
@@ -15,6 +17,7 @@
 //   - Replace aggregate threat facts, never accumulate nearest-hunter snapshots.
 //   - Reset floor playback at capture/end; retain contact only within an expedition.
 // DEPENDENCIES:
+//   - Domain Level supplies Core graph and closed-door snapshots; Floor supplies trap positions.
 //   - Core payloads; Session Run, Progression, HorrorEffects and Expedition.
 //   - Presentation Audio target, Camera catch, ProgressionUI feedback and Environment anchor publishers.
 // USAGE NOTES:
@@ -40,6 +43,8 @@ using Worsen.Presentation.Audio;
 using Worsen.Presentation.Camera;
 using Worsen.Presentation.ProgressionUI;
 using Worsen.Presentation.Environment;
+using Worsen.Domain.Level;
+using Worsen.Domain.Floor;
 
 namespace Worsen.Orchestrator
 {
@@ -53,6 +58,7 @@ namespace Worsen.Orchestrator
         private ProgressionUIManager _ui;
         private EnvironmentManager _environment;
         private CameraManager _camera;
+        private LevelManager _level;
 
         public void ConfigureCatch(CameraManager camera)
         {
@@ -62,20 +68,24 @@ namespace Worsen.Orchestrator
         public void ClearCatch() => ConfigureCatch(null);
 
         public void ConfigureExpansion(ProgressionSessionManager progression, HorrorEffectsManager effects,
-            ExpeditionSessionManager expedition, ProgressionUIManager ui, EnvironmentManager environment = null)
+            ExpeditionSessionManager expedition, ProgressionUIManager ui, EnvironmentManager environment = null, LevelManager level = null)
         {
             OnDisable();
             _progression = progression; _effects = effects; _expedition = expedition; _ui = ui; _environment = environment;
+            _level = level;
             if (isActiveAndEnabled) OnEnable();
         }
         public void ClearExpansion()
         {
             OnDisable();
             _progression = null; _effects = null; _expedition = null; _ui = null; _environment = null;
+            _level = null;
+            if (_audio != null) { _audio.SetWorld(null, null); _audio.SetActiveEffects(null); }
             if (isActiveAndEnabled) OnEnable();
         }
         private void OnEnable()
         {
+            OnDisable();
             if (_run == null) return;
             _run = RunSessionManager.Instance ?? _run;
             if (_audio == null || _audio.Initialize() != _audio) return;
@@ -95,9 +105,15 @@ namespace Worsen.Orchestrator
             _run.SpeedNormalizedPublished += OnSpeed;
             _run.PhaseChanged += OnPhase;
             _run.RoomPhaseChanged += OnRoom;
+            _run.FloorDisplayChanged += OnFloorDisplay;
+            _run.OnGraceStarted += OnGrace;
+            _run.TrapSprung += OnTrap;
+            if (_level != null) { _level.ReadinessChanged += OnLevelReady; _level.InteractableChanged += OnInteractable; }
             if (_camera != null) _camera.CatchHoldStarted += OnCatchStarted;
             if (_progression != null)
-            { _progression.SnapshotChanged += OnSnapshot; _progression.TransactionCommitted += OnTransaction; }
+            { _progression.SnapshotChanged += OnSnapshot; _progression.TransactionCommitted += OnTransaction; _progression.EffectsSnapshotChanged += OnEffectsSnapshot; }
+            RefreshViews();
+            if (_progression != null) OnSnapshot(_progression.Snapshot);
             if (_expedition != null) _expedition.RoomsReady += OnRooms;
             if (_ui != null) _ui.Feedback += OnUiFeedback;
             if (_effects == null) return;
@@ -125,10 +141,14 @@ namespace Worsen.Orchestrator
                 _run.SpeedNormalizedPublished -= OnSpeed;
                 _run.PhaseChanged -= OnPhase;
                 _run.RoomPhaseChanged -= OnRoom;
+                _run.FloorDisplayChanged -= OnFloorDisplay;
+                _run.OnGraceStarted -= OnGrace;
+                _run.TrapSprung -= OnTrap;
             }
+            if (_level != null) { _level.ReadinessChanged -= OnLevelReady; _level.InteractableChanged -= OnInteractable; }
             if (_camera != null) _camera.CatchHoldStarted -= OnCatchStarted;
             if (_progression != null)
-            { _progression.SnapshotChanged -= OnSnapshot; _progression.TransactionCommitted -= OnTransaction; }
+            { _progression.SnapshotChanged -= OnSnapshot; _progression.TransactionCommitted -= OnTransaction; _progression.EffectsSnapshotChanged -= OnEffectsSnapshot; }
             if (_expedition != null) _expedition.RoomsReady -= OnRooms;
             if (_ui != null) _ui.Feedback -= OnUiFeedback;
             if (_effects == null) return;
@@ -150,6 +170,8 @@ namespace Worsen.Orchestrator
             if (_progression != null) _audio.ObserveProgression(_progression.Snapshot);
             if (_expedition != null && _progression != null)
                 _audio.ObserveHealth(_expedition.ActivePlayerId, _progression.Snapshot.Health, _progression.Snapshot.MaxHealth);
+            RefreshViews();
+            _audio.SetInRun(true);
         }
         private void OnChase(ChaseFact fact)
         {
@@ -182,11 +204,12 @@ namespace Worsen.Orchestrator
         private void OnHand(CollapseHandFact fact) { if (_expedition != null) _audio.ObserveHand(fact); }
         private void OnDestruction(RoomDestructionSample sample) { if (_expedition != null) _audio.ObserveRoom(sample); }
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _audio.SetRooms(rooms);
-        private void OnSnapshot(ProgressionSnapshot snapshot) => _audio.ObserveProgression(snapshot);
+        private void OnSnapshot(ProgressionSnapshot snapshot) { _audio.ObserveProgression(snapshot); RefreshViews(); }
         private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
         {
             if (operation == nameof(ProgressionSessionManager.StartRun) || current.Phase == ProgressionPhase.Ended)
                 _audio.ResetRun();
+            _audio.ObserveTransaction(previous, current, operation);
         }
         private void OnFlashlight(FlashlightSample sample) => _audio.ObserveFlashlight(sample);
         private void OnUiFeedback(CueId cue) => _audio.PlayCue(cue);
@@ -198,10 +221,27 @@ namespace Worsen.Orchestrator
         private void OnPause(bool paused) => _audio.SetPaused(paused);
         private void OnPhase(RunPhase phase)
         {
-            if (phase == RunPhase.ExitOpen) _audio.PlayCue(CueId.ExitOpen);
+            // ExitOpen is a logical unlock, not the physical door's opening animation.
             if (phase == RunPhase.Ended) _audio.ResetRun(_progression != null && _progression.Snapshot.Phase != ProgressionPhase.Ended);
         }
         private void OnRoom(RoomPhaseChangedFact fact)
         { if (_expedition == null && fact.Phase == RoomPhase.Telegraph) _audio.PlayCue(CueId.RoomTelegraph); }
+        private void RefreshViews()
+        {
+            _audio.SetWorld(_level != null && _level.ReadOnlyState.IsReady ? _level.ReadOnlyState.Graph : null, _level != null ? _level.ClosedDoors : null);
+            _audio.SetActiveEffects(_progression != null ? _progression.EffectsSnapshot.ActiveEffects : null);
+        }
+        private void OnLevelReady(bool ready) => RefreshViews();
+        private void OnInteractable(InteractableState before, InteractableState after) => RefreshViews();
+        private void OnEffectsSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects effects) => _audio.SetActiveEffects(effects);
+        private void OnGrace(GraceWindowFact fact) => _audio.ObserveGrace(fact);
+        private void OnTrap(FloorTrapSprungFact fact)
+        { if (fact.Kind == FloorTrapKind.Announce) _audio.PlayCueAt(CueId.SpikeErupt, fact.Position, 1f, fact.TrapId); }
+        private void OnFloorDisplay(FloorDisplaySnapshot snapshot)
+        {
+            if (_level != null && _level.ReadOnlyState.IsReady) _audio.ObserveExit(snapshot, _level.ReadOnlyState.Graph.ExitPosition);
+        }
+        public void OnDeafening(float seconds) => _audio.SetDeafening(seconds);
+        public void OnMuffledDark(float seconds) => _audio.SetMuffledDark(seconds);
     }
 }

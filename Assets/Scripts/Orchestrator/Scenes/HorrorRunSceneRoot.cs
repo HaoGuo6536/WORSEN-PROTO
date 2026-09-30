@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   SceneRoot (§6b) · Orchestrator · HorrorRun scene assembly.
 // KEY RESPONSIBILITIES:
+//   - Supply Level's acoustic view to the Audio route during scene assembly.
 //   - Bind active effects, micro-event world/HUD inputs, lighting hooks and outcome telemetry.
 //   - Initialize collapse fog and bind PostFX to Horror's whole-run startle clock before play.
 //   - Compose runtime preference consumers and terminal Results with explicit seed selection.
@@ -145,7 +146,7 @@ namespace Worsen.Orchestrator
             _progressionRoute.Configure(_progression, _progressionUI, _run, _camera,
                 _useFixedSeed ? null : (Func<int>)CreateRunSeed, terminalResults: true);
             _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera, _expedition, _level, _hud);
-            _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment);
+            _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment, _level);
             _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
             // Exit rays need the level and the exit door visuals the FloorDriver uses.
             _environmentRoute.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals, _horror);
