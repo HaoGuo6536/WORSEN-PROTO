@@ -52,6 +52,8 @@ Reduce the in-run screen to one white arrow, a quiet cake count and the consumab
 
 Settings changes must not write to shared designer assets at runtime. They apply as runtime overrides from the persistence store (SPEC-001 configuration separated from state).
 
+Amended 2026-09-30: C4 uses quiet normal and golden collected/total counters fixed at generation; collapse never shrinks totals, and Passage/puzzle reservations are accounted for exactly once. C6's shelter redaction is superseded: Hidden Count hides in-floor cake counters, while the shelter roster remains readable and all retained hunters stay active (`8d59c61`, `58ac976`). C5 collector content is declined. C7 means a title-capable HorrorRun first in the deterministic build list, not a separately required title scene. Shrine Interact is owned by PLAN-025.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `HUDVisualDriver`, `HUDPresenter`, `HUDCompassPresenter`, `ProgressionUIPresenter`, `ResultsDriver`, `RunSummary` and `CameraDriverConfig` consumers.
@@ -62,6 +64,8 @@ Settings changes must not write to shared designer assets at runtime. They apply
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs do not establish rendering, physics, input focus, audio or owner feel; verify Hidden Count in-floor and a readable shelter roster.
 
 - HUD presenter tests: no chase text; chrome hidden in a chase while the arrow stays; no health in the run; slots hidden with zero consumables.
 - Settings tests: overrides persist, reload and apply without modifying config assets (compare asset hashes before and after).
@@ -81,6 +85,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 ## 7. Deferred follow-ups
 
 Full shelter redesign; accessibility options beyond the listed settings; key rebinding.
+
+Amended 2026-09-30: the blanket key-rebinding deferral above has one conditional exception: if run-scoped option A in SPEC-006 is approved, provide its dedicated rebindable action and exact preview, never overload shrine Interact. SPEC-006 remains DRAFT/not approved. No speculative persistent-hell/P1 shelter interface is authorised; persistent hell is dropped.
 
 ## 8. Definition of done
 

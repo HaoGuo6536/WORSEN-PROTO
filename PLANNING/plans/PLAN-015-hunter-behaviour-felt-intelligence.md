@@ -58,6 +58,8 @@ Give the kept hunter machinery (goal-oriented action planning (GOAP), fact model
 
 **Requests.** Floor view for patrol targets and cake-pickup habits (coordinator and PLAN-019). Interactables (PLAN-026). The catch look-at timing (PLAN-022). The detection vocal slot (PLAN-021).
 
+Amended 2026-09-30: C15 requires Final IK on shipped rigs, or an explicitly owner-approved equivalent; current humanoid Animator inverse kinematics (IK) and generic-rig no-op are not acceptance. Adding the vendor assembly definition is approved, not yet implemented by this planning task; [PLAN-027](PLAN-027-audit-remediation-structural-refactors.md) tracks the backend work. C11–C13 do not authorise audio-derived hearing: only player movement, Firecracker and player-triggered cake traps enter ordinary hearing; Pacification/world/false-positive sounds never do. Nearby cake habits can consume committed world facts without forwarding pickup sound to hearing.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `HunterController`, `GoapPlannerUtility`, `HunterAction`, `DirectorController` and the hint payload. `HunterController` is central, so expect HIGH risk and warn before editing.
@@ -68,6 +70,8 @@ Give the kept hunter machinery (goal-oriented action planning (GOAP), fact model
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Old logs/headless tests cannot establish shipped-rig IK, rendering, physics, input focus, audio or owner feel.
 
 - `HunterControllerTests`: walk speed in investigate and search; Stalk does not advance while seen and switches to chase on sight; Retreat on request; stagger duration after a miss; the search order repeats identically; sound reaction turns before moving; habit hooks fire on thresholds, belief drop and nearby pickup; mutation override with tell.
 - `GoapPlannerUtilityTests`: several live goals; a utility change mid-route produces a visible re-plan; unreachable goals are rejected.

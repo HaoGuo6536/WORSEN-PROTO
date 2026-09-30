@@ -6,7 +6,7 @@ status: LIVE
 created: 2026-09-30
 updated: 2026-09-30
 owner: Progression worker, delegated Session/Progression and Session/HorrorEffects (assignee UNKNOWN — owner input needed)
-specs: [SPEC-004, SPEC-001]
+specs: [SPEC-004, SPEC-001, SPEC-005]
 direction_ids: n/a
 supersedes: none
 superseded_by: none
@@ -29,6 +29,8 @@ Turn "Make it Worse" into a ladder the player climbs by choice:
 - Progression events roughly every eight floors, including hidden mutations with tells.
 
 This plan also replaces the flags-based effect model with a catalogue that other plans extend.
+
+Amended 2026-09-30: early bail and persistent consequences above are superseded. No early bail; persistent hell is dropped. [SPEC-006](../specs/SPEC-006-worsen-verb-persistent-hell.md) remains DRAFT/not approved; A is only a recommended run-scoped worsen option, not authorised implementation. Interact belongs to shrines. [SPEC-005](../specs/SPEC-005-hunter-briefs.md) is LIVE authority for admission and hunter curses.
 
 ## 2. Starting point
 
@@ -70,6 +72,12 @@ This plan also replaces the flags-based effect model with a catalogue that other
 
 Prerequisite chains are data: No Regen requires Slow Mend; Heavy Legs requires Short Burst.
 
+Amended 2026-09-30: C1/C12 are not complete merely because the catalogue exists. Track remaining `ProgressionConfig` legacy flags/data, `ProgressionSessionController.Effects` and `HunterController` trait consumers explicitly; isolate compatibility fixtures without leaving legacy run admission. C2's “decline stays mandatory” is superseded: selection is mandatory, declining a hunter is deferred. C3 requires validated generation capacity for every retained duplicate and Nothing extra; fail/retry rather than admit a short roster. First-admission gates: Echo/Weaver/Ticking 1, Ram/Mannequin 4, Mimic/Blinder 5, Skip/Herald/Stare 6, no lifetime condition. Type curses apply to all matching instances.
+
+Amended 2026-09-30: C5 and the historical owner table above are superseded where they name Thin Skin (retired), Nothing's mutation owner (now Progression/Shop economy and roster), or Hidden Count (now in-floor cake counters, not shelter redaction). No Regen starts at floor/round 12 and requires Slow Mend. Nothing uses flat 0.85 prices, not a compounded discount, and gains one stack/extra enemy per shop; Faster Collapse adds configured 15% golden cake count (`58ac976`, `8d59c61`). C11 retains the explicit Rough Start exception.
+
+Amended 2026-09-30: C6 is superseded by removing bail's physical/input/completion path and Bail Bond. C8 is conditional on pending SPEC-006 approval; if A is approved, use a dedicated rebindable action/preview and once-only settlement, not shrine Interact. C9 is rejected history, not required implementation: persistent hell/P1/P2 are dropped. No shrine/event fear-axis exclusion; remove exclusion implementation and obsolete expectations, while cadence values remain provisional.
+
 ## 4. Sequence
 
 1. Run GitNexus upstream impact on `ProgressionTraits` (every consumer), `ProgressionSessionController`, `ProgressionConfig` and `HorrorEffectsController`. Expect CRITICAL; warn before editing.
@@ -77,9 +85,13 @@ Prerequisite chains are data: No Regen requires Slow Mend; Heavy Legs requires S
 3. **Wave 2:** 1 and 11, retiring placeholders jointly with PLAN-016.
 4. **Wave 3:** 2, 3, 4, 5, 7 and 12, then 10, 8 and 9 once their designs are approved.
 
+Amended 2026-09-30: Wave 1's bail implementation and Wave 3's persistent-hell step are superseded by removal and the recorded drop respectively. C8 remains outside executable scope until the owner approves a run-scoped option.
+
 ## 5. Verification
 
 Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.md#5-verification).
+
+Amended 2026-09-30: the bail-cost and live-bail checks below and §8 E4 are superseded. Verify bail/Bail Bond are unreachable, progression events and full-baseline/Rough Start health work live, no shrine/event axis exclusion remains, and all retained hunters are admitted or generation explicitly fails. SPEC-006 approval remains pending; persistent hell is excluded from exits. §5/§8 evidence names exact integrated hash, setup version, fresh result counts, build seed and owner date. Headless tests/old logs cannot establish rendering, physics, input focus, audio or owner feel.
 
 - `ProgressionSessionController` tests:
   - cadence over twelve rounds; duplicates and no cap;
@@ -101,6 +113,8 @@ Apply the common gates in [PLAN-011 §5](PLAN-011-horror-direction-coordination.
 | Shrine and event cadence on the same floor | SPEC-004 §5 | Double worsening | Decided 2026-09-30 (owner): no restriction; both may land on one floor and share an axis |
 | "Lower Gravity" named in §2.16 only | Spec gap | Missing entry | PLAN-011 §6 item 4 |
 
+Amended 2026-09-30: the persistent-hell review question is superseded by the owner's drop decision. The worsen verb alone remains under review in SPEC-006; no conflict in execution authority remains after the later owner clarification. No early bail, no shrine/event fear-axis exclusion, and the curse changes above are settled, not renewed approval requests.
+
 ## 7. Deferred follow-ups
 
 Wagered Haul and the wallet wager; decline a hunter; bring-in stakes (co-op).
@@ -117,3 +131,4 @@ Wagered Haul and the wallet wager; decline a hunter; bring-in stakes (co-op).
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-30 | Early bail | Early bail hold and wallet penalty, wired through door, run session and run summary | Commits e95b37a, 8be19cc |
+| 2026-09-30 | Amended 2026-09-30: superseded bail implementation | Previous row retained as execution history, not current scope. Owner removed early bail and Bail Bond; `58ac976` covers Progression removal, with physical/input/completion and fixture integration tracked separately. SPEC-006 remains DRAFT; persistent hell dropped | Owner decisions; `58ac976`; PLAN-011 coordination |
