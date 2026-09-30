@@ -9,15 +9,18 @@
 //   Editor tool (§10) · Session · HorrorEffects pure controller tests (§11).
 // KEY RESPONSIBILITIES:
 //   Cover light ownership, bounded delayed effects, perks and cleanup.
+//   Verify configurable window density and one toggle per press with presentation agreement.
 // DEPENDENCIES:
-//   HorrorEffects pure types, Core records, NUnit and test-only config creation.
+//   HorrorEffects pure types, Horror presenter/state, Core records, NUnit and test-only config creation.
 // USAGE NOTES:
 //   Tests drive explicit time and ticks. Config assets are transient and destroyed.
 // ============================================================================
 using System.Linq;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Worsen.Core;
+using Worsen.Presentation.Horror;
 using Worsen.Session.HorrorEffects;
 using EntityId = Worsen.Core.EntityId;
 
@@ -50,6 +53,50 @@ namespace Worsen.Tests.HorrorEffects
             FlashlightSample light = controller.DrainFacts().Last(f => f.Kind == HorrorEffectKind.Flashlight).Light;
             Assert.That(light.Enabled, Is.False);
             Assert.That(light.Origin, Is.EqualTo(Vector3.right));
+        }
+
+        [Test]
+        public void SealedSillsUsesChangedConfigAndUnsealedWindowsRemainNeutral()
+        {
+            controller.UpdateEffects(Effects(ProgressionTraits.SealedSills));
+            var serialized = new SerializedObject(config);
+            foreach (float multiplier in new[] { 0.2f, 0.8f, 0f, 1f })
+            {
+                serialized.FindProperty("sealedWindowMultiplier").floatValue = multiplier;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Assert.That(controller.OptionalWindowMultiplier, Is.EqualTo(multiplier));
+            }
+            controller.UpdateEffects(Effects());
+            Assert.That(controller.OptionalWindowMultiplier, Is.EqualTo(1f));
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void EachUseItemPressTogglesOnceAndPresentationReadsTheSameState(int presses)
+        {
+            var presenter = new HorrorPresenter();
+            var presentation = new HorrorDriverState();
+            controller.ObserveAim(Aim(0, Vector3.zero));
+            Assert.That(presenter.SetFlashlight(presentation, controller.DrainFacts().Single().Light), Is.True);
+            Assert.That(presentation.FlashlightEnabled, Is.EqualTo(controller.FlashlightEnabled));
+            for (int press = 1; press <= presses; press++)
+            {
+                long tick = press * 2 - 1;
+                controller.Tick(Toggle(), 0.02f, tick);
+                HorrorEffectFact light = controller.DrainFacts().Single(f => f.Kind == HorrorEffectKind.Flashlight);
+                Assert.That(presenter.SetFlashlight(presentation, light.Light), Is.True);
+                Assert.That(controller.FlashlightEnabled, Is.EqualTo(press % 2 == 0));
+                Assert.That(presentation.FlashlightEnabled, Is.EqualTo(controller.FlashlightEnabled));
+                Assert.That(controller.TryGetHunterEffects(new EntityId(100 + press), out FlashlightSample hunterLight,
+                    out _, out _), Is.True);
+                Assert.That(hunterLight.Enabled, Is.EqualTo(presentation.FlashlightEnabled));
+                controller.Tick(Toggle(), 0.02f, tick);
+                controller.Tick(new InputFrame(Vector2.zero, Vector2.zero, InputButtons.UseItem,
+                    InputButtons.None, InputButtons.None), 0.02f, tick + 1);
+                Assert.That(controller.DrainFacts(), Is.Empty, "Duplicate ticks and held buttons must not toggle again.");
+                Assert.That(controller.FlashlightEnabled, Is.EqualTo(presentation.FlashlightEnabled));
+            }
         }
 
         [Test]
