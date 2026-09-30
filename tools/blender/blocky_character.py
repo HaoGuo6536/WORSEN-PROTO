@@ -5,6 +5,7 @@
 # KEY RESPONSIBILITIES: Metre-scale geometry, deform-only FBX, editable IK source.
 # DEPENDENCIES: Blender 5.2 bpy and mathutils only.
 # USAGE NOTES: Run from the worktree root; overwrites only the named art outputs.
+#   FBXs go to Assets/Art; the authoring .blend goes to ArtSource (outside Assets).
 # Exact command (Git Bash):
 # "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python-exit-code 1 --python tools/blender/blocky_character.py
 # ============================================================================
@@ -16,6 +17,7 @@ from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 ART = ROOT / "Assets/Art/Player/BlockyCharacter"
+SOURCE = ROOT / "ArtSource/Player/BlockyCharacter"
 PREVIEWS = ROOT / "Logs/AgentValidation/Art/BlockyCharacter"
 FPS = 30
 COLORS = {"Skin": (0.58, 0.32, 0.19, 1), "Shirt": (0.045, 0.075, 0.085, 1),
@@ -292,6 +294,7 @@ def render(name, position, target, orthographic=True):
 
 def main():
     ART.mkdir(parents=True, exist_ok=True)
+    SOURCE.mkdir(parents=True, exist_ok=True)
     PREVIEWS.mkdir(parents=True, exist_ok=True)
     reset()
     character, body_meshes = full_character()
@@ -323,7 +326,7 @@ def main():
     bpy.ops.object.select_all(action="DESELECT")
     character.select_set(True)
     bpy.context.view_layer.objects.active = character
-    bpy.ops.wm.save_as_mainfile(filepath=str(ART / "BlockyCharacter.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE / "BlockyCharacter.blend"))
     print("Generated original BlockyCharacter and BlockyArmsFP; no external assets used.")
 
 

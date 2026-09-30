@@ -2,9 +2,10 @@
 
 This generator uses only Blender primitives and authored numbers. No asset is
 fetched, copied or referenced. Blender 5.2.1 LTS runs headless; Unity is not used.
-All paths resolve from this script's worktree, never from the main project's
-`WORSEN.blend`. Do not run against the open main checkout during another worker's
-Unity lease. Do not copy the worktree's junctioned Library.
+All paths resolve from this script's worktree, never from another checkout's
+`ArtSource/` files. Do not run against the open main checkout during another worker's
+Unity lease. Do not copy the worktree's junctioned Library. Placement and naming of
+authoring `.blend` files follow [ArtSource/README.md](../../ArtSource/README.md).
 
 ## Regenerate and validate
 
@@ -25,9 +26,13 @@ The JSON includes content hashes of imported geometry, weights, hierarchy,
 materials and sampled animations for repeat-generation comparison. FBX creation
 timestamps and Blender session metadata need not be byte-identical.
 
-Outputs in `Assets/Art/Player/BlockyCharacter/`:
+Authoring source in `ArtSource/Player/BlockyCharacter/` (outside `Assets/`, so
+Unity never imports it):
 
 - `BlockyCharacter.blend`: both models, all four actions, full-character IK controls.
+
+Runtime outputs in `Assets/Art/Player/BlockyCharacter/`:
+
 - `BlockyCharacter.fbx`: Body (180 triangles), Arms (72), one 21-bone rig.
 - `BlockyArmsFP.fbx`: LeftArm (36 triangles), RightArm (36), one 9-bone rig.
 
@@ -92,10 +97,9 @@ Idle/Walk/Hold/Sway, with Hold non-looping and the others looping.
 
 Embedded flat colours are remapped to shared URP/Lit materials in the art's
 `Materials/` folder. Missing materials are created; existing material identities
-and tuning are retained on repeat setup. No textures are needed. Unity may also
-try to import the authoring .blend through its installed Blender association;
-that duplicate import is not used by the Player and may require coordinator
-attention if the association points to Blender 4.5.
+and tuning are retained on repeat setup. No textures are needed. The authoring
+.blend lives in `ArtSource/`, so Unity does not import it through its installed
+Blender association (which may point to Blender 4.5); only the FBXs are imported.
 
 The Player builder creates separate Left Hand/Right Hand roots at the imported
 wrist pivots. It reparents each shoulder chain and its skinned mesh intact, strips

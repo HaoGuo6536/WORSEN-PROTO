@@ -19,6 +19,7 @@ from mathutils import Matrix
 
 ROOT = Path(__file__).resolve().parents[2]
 ART = ROOT / "Assets/Art/Player/BlockyCharacter"
+SOURCE = ROOT / "ArtSource/Player/BlockyCharacter"
 REPORT = ROOT / "Logs/AgentValidation/Art/BlockyCharacter"
 ROWS, DETAILS = [], {}
 
@@ -133,7 +134,7 @@ def validate(name, full):
 
 
 def source_and_previews():
-    bpy.ops.wm.open_mainfile(filepath=str(ART / "BlockyCharacter.blend"))
+    bpy.ops.wm.open_mainfile(filepath=str(SOURCE / "BlockyCharacter.blend"))
     armature = bpy.data.objects["BlockyCharacter"]
     controls = [b for b in armature.data.bones if not b.use_deform]
     constraints = [c for bone in armature.pose.bones for c in bone.constraints if c.type == "IK"]

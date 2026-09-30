@@ -63,7 +63,9 @@ namespace Worsen.Editor.Player
             if (importer == null) throw new InvalidOperationException("No ModelImporter for " + path);
             importer.globalScale = 1f;
             importer.useFileScale = true;
-            importer.bakeAxisConversion = true;
+            // The Blender export already bakes Unity axes (-Z forward, Y up, apply transform);
+            // baking the conversion again rotated the first-person arms 180 degrees.
+            importer.bakeAxisConversion = false;
             importer.importCameras = false;
             importer.importLights = false;
             importer.addCollider = false;
