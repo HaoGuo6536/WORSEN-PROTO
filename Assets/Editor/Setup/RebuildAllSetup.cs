@@ -10,7 +10,8 @@
 // KEY RESPONSIBILITIES:
 //   - Admit only an idle editor with saved assets and scenes.
 //   - Compose the existing production setup tools in dependency order.
-//   - Return a fail-fast report, treating logged Unity errors as step failures.
+//   - Return a fail-fast report (or throw it for the gate), treating logged Unity
+//     errors as step failures.
 //   - Refresh all scene stamps only after all shared configuration has settled.
 // DEPENDENCIES:
 //   - Common sequencing, scene builders and existing per-system editor tools.
@@ -39,6 +40,15 @@ namespace Worsen.Editor.Setup
             SetupReport report = RebuildAll();
             if (report.Succeeded) Debug.Log(report.ToString());
             else Debug.LogError(report.ToString());
+        }
+
+        // Gate entry point: tools/integration/unity-setup.ps1 records any return value as
+        // success, so a failed report must surface as an exception.
+        public static string RebuildAllOrThrow()
+        {
+            SetupReport report = RebuildAll();
+            if (!report.Succeeded) throw new InvalidOperationException(report.ToString());
+            return report.ToString();
         }
 
         public static SetupReport RebuildAll()
