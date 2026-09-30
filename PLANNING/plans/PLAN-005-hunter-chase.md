@@ -4,7 +4,7 @@ type: plan
 title: Hunter behavior and chase rules
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: Hunter and Chase worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
@@ -92,3 +92,7 @@ BreakLoop v2, advanced stalking, multiple hunters, behavior trees and new attack
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned; awaits C1, then real Player/Level integration | [Coordinator](PLAN-002-parallel-coordination.md) |
+| 2026-09-14 | Published implementation and bounded verification | Hunter/Chase rules, motor and Session facts are published. After repath, terminal-arrival and entry-bank corrections, all seven native route cases pass. Forty-one managed steering cases also pass. Real contact/capture, physical loss/grace/reacquisition and historical-hint investigation have bounded evidence. | [Hunter correction and native audit](../../Logs/AgentValidation/GoalCompletion/current-evidence/audit-hunter-correction-011-pending.json) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: collect at least 30 genuine chases with required duration, loss and all-catch denominators. The current complete 131-tick pair has two arranged catches and circumstantial fixture attribution. Default moving cut/corridor skill, broader typed routes and human tag feedback remain. Current graph012 and the final 548-case suite pass; those gates remain separate from measured balance and human feedback. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Pursuit cohort and fixed-route observations | Independent audit verifies 23 natural attempts and 30 completed chases. Three fixed 240-tick route pairs gain 1.146843910 m on the cut route and lose 2.374021530 m in the corridor. Both negative between-cut intervals and historical 016 RED remain. Median 6.316666996 s and official loss 20% miss targets; Lunge share is 24/24. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |

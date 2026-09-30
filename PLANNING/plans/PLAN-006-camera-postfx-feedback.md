@@ -4,7 +4,7 @@ type: plan
 title: Camera and post-processing communicate pursuit without obscuring movement
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: Camera/PostFX worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
@@ -113,3 +113,8 @@ Persisted user settings, alternate camera modes beyond the optional parent exper
 | Date | Step | Result | Evidence |
 |------|------|--------|----------|
 | 2026-09-14 | Decomposition | LIVE child scope inherits the prior PLAN-001 execution approval; planning only, no implementation or completion claim. | Parent M4/M6/M7, SPEC-001/002, M0 source links above. |
+| 2026-09-14 | I1 preparation | PLAN-006 owner prepared first-person Camera/PostFX stacks, pure feedback tests and config/rig generators outside imported paths. Coordinator prepared scene-owned routers and URP camera wiring. Live Cinemachine/volume behavior, comfort and pursuit-perception acceptance remain pending. | [Staged handoff](../../Logs/AgentStaging/PLAN-006/HANDOFF.md), [coordinator verification](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md) |
+| 2026-09-14 | Published implementation and bounded verification | Camera/PostFX stacks and routing are published. Actual moving LookBack steering/slide-jump camera endpoints pass. Five root-inspected 1920×1080 captures retain input/movement/producer ticks, camera/volume values and restoration; intrusion saturation/grain clears. The general-frame cap is 2000 of 2224 frames. | [Detailed visual evidence](../../Logs/AgentValidation/GoalCompletion/visual/dynamic/a9-20260915T035651354Z-d1993d0e/INSPECTION.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: easing duration, remaining detection/proximity/injury/death/settings synchronization, joint perception, natural look-back/vault and 15-minute comfort evidence remain. Stationary metadata is bounded; file completion is not exact pixel time. Optional third-person snap remains deferred. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Current critical feedback and limb pixels | Both targeted 021 cases pass. Arranged living 25 health produces actual BreathLoop volume 0.44 and vignette 0.3375; death and fresh life clear breathing. Corrected Slide feet and preserved Vault hands appear in the original PNGs. Earlier startup failures and missing-foot images remain. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |

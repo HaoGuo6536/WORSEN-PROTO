@@ -1,0 +1,64 @@
+I feel like chase music can actually make a game less scary. Is this true?
+
+
+Thought for 27s
+Thought for 27s
+Largely yes, and the reason is that fear runs on uncertainty while chase music runs on information. The moment a track kicks in, the game has told you exactly what state you're in: you're seen, you're being hunted, and (implicitly) when the music stops, you're safe. Dread is the not-knowing, so a binary on/off cue drains it and replaces it with something closer to excitement. Players learn the cue fast and start gaming it, waiting in a locker for the track to fade instead of feeling hunted. It also shifts the emotional register from horror to action: high arousal, but coded as thrilling rather than threatening.
+
+It's not universally true, though. Chase music does raise panic in the moment, which degrades decision-making and makes players fumble, and that's worth a lot in an action-horror loop where the fear you want is "I'm about to make a mistake." The games that keep chases scary tend to break the binary rather than drop the music:
+
+Layered, adaptive stems with no clean off state, so you never get the all-clear (Alien: Isolation)
+Diegetic cues instead of a score: heavy footsteps, a heartbeat that scales with proximity but not direction (Mr. X, Dead by Daylight's terror radius)
+Music that lies occasionally, fading out while the threat is still near, so the cue stops being trustworthy
+Silence as the scariest state, with music reserved for confirmed contact only
+So the honest framing is a trade-off: a hard chase track buys legibility and adrenaline at the cost of dread. If your goal is thrill with horror flavor, that's a fine trade. If the goal is sustained fear, keep the player unsure whether the chase is actually over.
+
+I feel like what makes horror scary is the bits of lore or imagery that makes the environment or mood feel unnatural or superstitious. Like the kind that makes people focus and feel as though they are in the player character's position? Like with O.D. we have plenty of imagery and actions being performed that aren't typical. In horror games there's typically a story or some sort of biological birth or creation horror. Deadspace and Alien Isolation both have Aliens as a core part of the unknown horror. Amnesia: the Bunker has a clearly outlined story and setting that the player slowly discovers with it's supernatural notes. How can this be incorporated into Worsen when Worsen is inherently not a story or lore heavy game??
+
+
+Recalled memory
+Recalled memory
+What those games share isn't lore, it's rules the player doesn't understand yet. Amnesia's notes and Dead Space's marker cult are just the delivery mechanism a slow game can afford. The actual fear comes from the world behaving in ways that imply an intelligence or a logic you can't see all of. A fast game can deliver that too, just not through reading. And speed is an advantage here: exploration horror lets the player walk over and verify the weird thing, which defuses it. In a tag chase they never get to check.
+
+So the goal for WORSEN is lore that's inferred from behavior and imagery, and a few specific places it can live:
+
+Hunter behavior as scripture. Give hunters a handful of unnatural, consistent habits: pausing at thresholds, turning to face the player's last position when they lose them, reacting to Cakes. Players will build the superstitions themselves ("don't run past it while it's doing that"). This is how Lethal Company and DBD built their mythologies; the wiki is the lore document.
+The level as an authored thing. It's procedurally assembled anyway, so lean in: the space should feel like it was built for this by someone. Rooms that repeat once too often, a corridor that's too long, domestic objects at wrong scale. "You chose this" already frames the player as the author of their own hell; the Director can be the other author, and the geometry is its handwriting.
+The Cakes are the creation horror. Someone baked them. Birthday imagery with something off (candles lit, no one there, the same name on every cake) is a whole mythology that reads in half a second and never needs a note.
+Unverifiable micro-events. A door you left open is closed. A hunter silhouette standing somewhere it can't path to. A Cake counted that's now missing. Never explain, never let them go back and look.
+Rare events. In a run-based game, something that happens once every 50 runs becomes folklore by default. One or two of these, clearly unexplained, do more than a hundred lore entries.
+Meta layer holds the actual text. DBD's deep lore is delivered entirely outside matches: perk descriptions, cosmetics, tomes. Your hub, modifier names ("add a candle"), and unlock descriptions can carry whatever story you want while the run stays pure tag.
+The one thing to protect: the mood needs to survive run 200. Behavioral rules and rare events age better than imagery, because imagery becomes wallpaper while a hunter that occasionally breaks its own pattern stays unsettling.
+
+What kind of design or style would be enough? I'd like a good target but I'm not sure because realism can't be achieved because we're only an indie studio.
+
+
+Thought for 25s
+Thought for 25s
+Aim for lo-fi with modern lighting: PS1/PS2-style low-poly and low-res textures rendered through a contemporary lighting and post-processing stack. Lethal Company, Mouthwashing, Buckshot Roulette, and Crow Country all sit here, and it's the current sweet spot for solo horror for a reason: every limitation reads as intent, the abstraction makes wrongness believable (everything is already slightly off, so a corridor that's too long or a cake at the wrong scale doesn't break the illusion), and players' brains fill in the detail with something worse than you could model.
+
+The rule that matters more than fidelity is consistency. Asset-flip games look bad not because assets are cheap but because they don't match. Pick a texture resolution cap (64–256px), one lighting model, a limited palette, and force every asset through it. A downsampled render target (something like 640×360, point-filtered up) with fog, dither, and a touch of grain homogenizes store assets and your own work into one look almost for free. In Unity this is a URP post stack plus one vertex-snap shader, a weekend of setup.
+
+Where to actually spend budget, since readability at tag speed matters more than detail:
+
+The hunter. One hero asset. Silhouette readable against fog at a glance, since players are look-back-buttoning at full sprint. Animation is where the fear lives: low frame-rate, stop-motion-style movement is cheaper than smooth and considerably more unsettling.
+Hands and the first-person layer. It's on screen 100% of the time.
+The Cakes. The one saturated, bright, almost cheerful thing in a desaturated world. Contrast does more than fidelity.
+Sound. Half your polish budget. Lo-fi visuals with high-end audio (proximity, occlusion, hunter vocalizations) reads as premium; the reverse reads as cheap.
+Darkness is the other cheap fidelity: a flashlight cone means only what's lit needs to hold up, and Alien: Isolation gets much of its look from how little of it you can actually see. The style should still be brighter than pure survival horror, though, since chases need enough light to read routes and doorways at speed. Save the deep dark for the collapse phase.
+
+This is hard, I wouldn't say lethal company, mouthwashing, buckshot roulette, or crow country are all known for being scary? It seems like every notoriously scary game is in a realistic style rather than in a low poly low res style?
+
+
+Thought for 34s
+Thought for 34s
+You're right, and I over-corrected toward hiding limitations. Look at the list of games that made people quit playing: Outlast, P.T., Alien: Isolation, RE7, Amnesia, Visage, Silent Hill 2, Phasmophobia. All aiming at realism for their era. The reason is presence: fear is a body response, and the body responds to places that could be real. Retro lo-fi carries a nostalgia signal that says "this is a game," and that's inherently comforting. Lethal Company gets startles, not dread.
+
+The distinction that fixes this: those games aimed at plausibility, not photorealism, and most of them were made by small teams that hid their seams with degradation rather than abstraction. Outlast was ~10 people; its night vision is a budget trick, monochrome and noisy so cheap assets hold up. Slender was one person with a dark forest and a flashlight. Silent Hill's fog was a draw-distance limitation. Fears to Fathom and Devour are solo or tiny Unity projects on asset-store kits that read as convincingly real. Realism-aiming on an indie budget is a known recipe:
+
+Modular PBR kits, one environment type, baked lighting plus a couple of real-time lights. Consistency again, but at real-material quality.
+Darkness and limited view. Flashlight cone, volumetric fog, and only what's lit has to hold up. This is where most of Alien: Isolation's look comes from.
+A degradation layer with a diegetic reason. Grain, chromatic aberration, a bodycam or feed framing. Outlast's camcorder made the noise the point. Yours could justify the look-back button too.
+Dodge the animation tax. Mocap is what you can't afford, and a realistic humanoid with stiff animation is the bad uncanny valley. Hunters that are non-human, masked, cloth-covered, or whose movement is supposed to be wrong sidestep it. DBD's killers are stylized shapes rendered realistically for exactly this reason.
+So the target is Phasmophobia or Devour tier: real materials, dark, degraded, with one hunter that reads as a physical thing in the room. That's reachable solo in Unity, and it keeps the "this could be real" signal that lo-fi throws away.
+

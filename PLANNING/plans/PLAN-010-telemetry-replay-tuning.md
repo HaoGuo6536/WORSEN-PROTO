@@ -4,7 +4,7 @@ type: plan
 title: Telemetry replay and tuning
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: Instrumentation worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
@@ -62,7 +62,7 @@ All Unity operations and saves into a checkout open in Unity use the [exclusive 
 
 TelemetryPresenterTests covers window boundaries, catch-within-1-second definition, missing data, event ordering/duplicates, rates/percentiles and completed/incomplete session flush. Extend Input tests for live/playback isolation, end/failure/focus/scene reset, short taps and single-consumption edges. Test output path permission failure explicitly; never claim a run was recorded if file creation/flush failed.
 
-Reports must support M1 free-movement horizontal p90 speed ≥9 m/s, verb-transition input locks ≤0.35 s and identical replay; M3 ≥30 chases with median 12–25 s, loss ≥40%, lunge-catch ≥60%; M4 ≥70% near/mid/far recognition, look-back ≥1/chase and chase vault-failure increase ≤10 percentage points; M5 first sweep 2–4 min; M6 pressure-gap bound. Human comfort/perception answers are recorded as such, not generated from telemetry. Keep raw data beside derived reports.
+Reports must support M1 free-movement horizontal p90 speed ≥9 m/s, verb-transition input locks ≤0.35 s and identical replay; M3 ≥30 chases with median 12–25 s, loss ≥40%, lunge-catch ≥60%; M4 ≥70% near/mid/far recognition, look-back ≥1/chase and chase vault-failure increase ≤10 percentage points; M5 actual first-sweep duration reporting, retaining the former 2–4-minute target as NON-BLOCKING deferred calibration under the [2026-09-15 user clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md); M6 pressure-gap bound. Human comfort/perception answers are recorded as such, not generated from telemetry. Keep raw data beside derived reports.
 
 ## 6. Risks and open questions
 
@@ -91,3 +91,8 @@ No network replay/prediction, cloud analytics, dashboards, persistent user setti
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned early to support measured gates; awaits C1 | [Coordinator](PLAN-002-parallel-coordination.md) |
+| 2026-09-14 | I1 preparation | PLAN-010 owner prepared recording/playback, CSV aggregation/output, tuning and generators outside imported paths. Twenty-one pure Input/Telemetry cases passed in standalone managed execution. Three engine-dependent tests and all physical input, live producer integration and measured gameplay acceptance remain pending. Build provenance is explicitly scoped; runtime tuning during capture is not validated. | [Staged handoff](../../Logs/AgentStaging/PLAN-010/HANDOFF.md), [coordinator verification](../../Logs/AgentValidation/PLAN-002/27ec7913-08f9-4c5b-8184-2dfbbb1f94a7/verification.md) |
+| 2026-09-14 | Published implementation and bounded verification | Recording/playback, catch accounting, tuning and comma-separated values (CSV) output are published. Final audit verifies 22 CSV/23 input files, 16070 raw rows, 7578 input records, all 13 emitted kinds and five complete exact-session pairs. All 22 denominator and inclusive chase-membership checks agree; current source/config/scene provenance matches. | [Final capture and provenance audit](../../Logs/AgentValidation/GoalCompletion/telemetry-audit/20260915T0550228251317Z-85a6c6facab346bb8ca17fc74842622e/README.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: 17 CSV/17 input files remain incomplete, including seven input end mismatches. Look-back/failure examples have four input ticks; catch window is unknown. Complete Player input is unpaired; Hunter fixture attribution is circumstantial. Complete acceptance cohorts, broader replay/locks, seed/tuning/device/participant evidence remain; retained speed/floor thresholds are unmet. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Capture, UTC and current targeted replay evidence | Independent audit verifies all 23 complete cohort pairs, six incomplete route pairs and their exact metadata/raw data. The UTC correction passes 33 checks after real reload. The current targeted movement/traversal recording and replay case passes 1/1. Independent current audits and full regression pass; intended tuning edit/persistence/Undo restores exact original asset bytes. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |

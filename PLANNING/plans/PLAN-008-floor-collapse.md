@@ -4,7 +4,7 @@ type: plan
 title: Floor collection and collapse
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: Floor worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
@@ -60,7 +60,7 @@ All Unity operations and saves into a checkout open in Unity use the [exclusive 
 
 FloorControllerTests: duplicate contacts, anchor selection weights/seed reproducibility, disconnected rooms, distance tie ordering, exact telegraph/closure timing, safe transition ordering, Golden Cake separation and cue selection. Verify real triggers, lights, blockers and hunters refusing closed rooms; a changed NavMesh cost alone is not proof of impassability.
 
-Measure first sweep 2–4 minutes with no stop to interact. Test both exit success and solo death; results and restart must reflect gameplay facts and reset the new run. Verify no Golden Cake arrow and no fallback dummy anchors.
+Verify the functional first sweep with no stop to interact. Test both exit success and solo death; results and restart must reflect gameplay facts and reset the new run. Verify no Golden Cake arrow and no fallback dummy anchors. Under the [user clarification of 2026-09-15](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md), the former 2–4-minute duration target is NON-BLOCKING and deferred to later procedural floor sizing/growth. Retain historical timing misses; do not redesign or tune this greybox solely for that target.
 
 ## 6. Risks and open questions
 
@@ -73,13 +73,13 @@ Measure first sweep 2–4 minutes with no stop to interact. Test both exit succe
 
 ## 7. Deferred follow-ups
 
-No economy/shop, procedural placement outside hand-authored anchors, save/load, or full multiplayer collapse policy.
+No economy/shop, procedural placement outside hand-authored anchors, save/load, or full multiplayer collapse policy. Procedural level generation, increasing floor size and associated first-sweep duration calibration remain deferred; this clarification adds no implementation scope.
 
 ## 8. Definition of done
 
 - [ ] Seeded collection opens exit, starts visible/audible collapse and offers optional Golden Cakes.
 - [ ] Real paths, blockers, lethal contacts and exit/death routes work with correct ownership.
-- [ ] Pure tests and full 2–4-minute first-sweep acceptance pass.
+- [ ] Pure tests and functional first-sweep/terminal-flow verification pass; the former 2–4-minute duration target is NON-BLOCKING and deferred under the 2026-09-15 user clarification.
 - [ ] I3 results/restart reflect real counters and preserve persistent-service uniqueness.
 
 ## 9. Execution log
@@ -87,3 +87,8 @@ No economy/shop, procedural placement outside hand-authored anchors, save/load, 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned; awaits C1 and live Player/Level integration | [Coordinator](PLAN-002-parallel-coordination.md) |
+| 2026-09-14 | Published implementation and bounded verification | Floor collection, golden pickups, exit, collapse and restart are published. Fresh ordinary synthetic movement completes a directly bound 2672-record pair with 64 cake, 25 exit and 50 discriminating cue checks; 14 file stamps and 101 poses match. Warning lights, blockers/carving, Hunter refusal and lethal closure paths pass. | [Final Floor capture and cue audit](../../Logs/AgentValidation/GoalCompletion/telemetry-audit/20260915T0550228251317Z-85a6c6facab346bb8ca17fc74842622e/README.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: fresh first sweep 32.283335017 seconds and historical 32.316668352 seconds both miss 120–240 seconds. Preserve explicit ExitOpened sidecar timing and declared unopposed cohorts. Normal opposed/participant pacing, no-stop experience and actual warning audio remain open. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Opposed floor capture verification | Independent audit verifies 23 complete original input/CSV pairs, nine deaths and 14 escapes. The declared stopping rule reaches 30 completed chases. Sixteen observed first sweeps have median 34.650001807 s and none meet 120–240 s; seven missing/censored sweeps remain. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | User clarification: floor pacing is non-blocking | The former 120–240 s first-sweep duration target is deferred to later procedural floor sizing/growth outside the boilerplate. Preserve all historical misses and functional floor/terminal requirements. Hunter, movement, Director and unrelated participant/device criteria remain unchanged; status stays LIVE. | [User clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) |

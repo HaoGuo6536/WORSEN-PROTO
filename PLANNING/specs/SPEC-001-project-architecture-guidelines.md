@@ -4,7 +4,7 @@ type: spec
 title: Project architecture and modular design guidelines
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: UNKNOWN — owner input needed
 supersedes: none
 superseded_by: none
@@ -35,14 +35,14 @@ Do not write monolithic scripts. Every system is built from the script types in 
 Section numbers (§0–§13) are stable and are referenced from script headers, ast-grep rule messages, and test names — do not renumber them.
 
 ### Adoption values for this project (WORSEN)
-The rules are project-independent; these are the values WORSEN filled in. They are already applied throughout this document and encoded in the enforcement layers (§13) — change them here *and* in `ArchitectureConformanceTests.cs` and `tools/ast-grep/rules/menu-under-project-root.yml` together, or the gates will disagree with the prose.
+The rules are project-independent; these are the values WORSEN filled in. The namespace prefix and editor menu root are encoded in the enforcement layers (§13): change those values here and in the corresponding `ArchitectureConformanceTests.cs` constants and `tools/ast-grep/rules/menu-under-project-root.yml` together. The concrete roster and reference implementations below describe source; update them with implementation changes. They are not constants in those checks.
 
 | Value | This project |
 |---|---|
 | Editor menu root (§10) | `Worsen/` |
 | Asmdef / namespace prefix (§12) | `Worsen` — `Worsen.Core`, `Worsen.Domain`, `Worsen.Session`, `Worsen.Presentation`, `Worsen.Orchestrator`, `Worsen.Editor`, `Worsen.Tests` |
-| Concrete Orchestrator list (§6) | `InputOrchestrator`, `DebugOverlayOrchestrator` — see the current roster below |
-| Reference implementations (§7b, §10) | `InputFramePresenter` and `DebugOverlayPresenter` with their tests; `TagArenaSceneSetup` for deterministic scene and config wiring |
+| Concrete Orchestrator list (§6) | `InputOrchestrator`, `DebugOverlayOrchestrator`, `CameraOrchestrator`, `PostFXOrchestrator`, `TelemetryOrchestrator` — see the current roster below |
+| Reference implementations (§7b, §10) | `InputFramePresenter`, `DebugOverlayPresenter` and `PlayerMoverPresenter` with their tests; `TagArenaSceneSetup` for deterministic scene and config wiring |
 | Appendix A | Empty |
 
 ---
@@ -268,12 +268,24 @@ Current roster:
 
 | Orchestrator | Presentation target | Routing and lifecycle |
 |---|---|---|
-| [InputOrchestrator](../../Assets/Scripts/Orchestrator/InputOrchestrator.cs) | `InputManager` | Persistent on the Input service root. Routes `BeforeTick` to input publication and `FramePublished` to the Run Session; forwards scene readiness and load-start facts to input gating and run readiness. M0 buffers input in Session; the Domain player consumer is M1 work. |
-| [DebugOverlayOrchestrator](../../Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs) | `DebugOverlayManager` | Persistent on the overlay service root. Routes completed ticks and run phase changes as primitive display values. Player speed and movement remain explicitly unavailable until M1 supplies telemetry. |
+| [InputOrchestrator](../../Assets/Scripts/Orchestrator/InputOrchestrator.cs) | `InputManager` | Persistent on the Input service root. Routes `BeforeTick` to input publication and `FramePublished` to the Run Session; forwards scene readiness/load-start facts to gating, and capture/probe relays to recording. |
+| [DebugOverlayOrchestrator](../../Assets/Scripts/Orchestrator/DebugOverlayOrchestrator.cs) | `DebugOverlayManager` | Persistent on the overlay service root. Routes completed ticks, run phase and committed Player horizontal speed/movement state as primitive display values. |
+| [CameraOrchestrator](../../Assets/Scripts/Orchestrator/CameraOrchestrator.cs) | `CameraManager` | Scene-owned with the camera rig. Forwards committed movement/traversal and capture-reset facts from Session; subscriptions pair with enable/disable. |
+| [PostFXOrchestrator](../../Assets/Scripts/Orchestrator/PostFXOrchestrator.cs) | `PostFXManager` | Scene-owned with the volume. Forwards look-back and capture-reset facts from Session; subscriptions pair with enable/disable. |
+| [TelemetryOrchestrator](../../Assets/Scripts/Orchestrator/TelemetryOrchestrator.cs) | `TelemetryManager` | Persistent with the telemetry service. Forwards capture start/end and committed movement/traversal Session relays without retaining scene entities. |
+| [AudioOrchestrator](../../Assets/Scripts/Orchestrator/AudioOrchestrator.cs) | `AudioManager` | Persistent with audio. Routes committed chase, health, movement, room and run facts into cue playback. |
+| [HUDOrchestrator](../../Assets/Scripts/Orchestrator/HUDOrchestrator.cs) | `HUDManager` | Scene-owned. Routes floor, movement and chase facts; resets transient chase presentation at each capture start. |
+| [ResultsOrchestrator](../../Assets/Scripts/Orchestrator/ResultsOrchestrator.cs) | `ResultsManager` | Scene-owned. Routes completed run summaries and restart requests in the authored fixtures. |
+| [HorrorOrchestrator](../../Assets/Scripts/Orchestrator/HorrorOrchestrator.cs) | `HorrorManager` | Scene-owned. Routes attack samples, flashlight input and progression atmosphere modifiers. |
+| [ProgressionUIOrchestrator](../../Assets/Scripts/Orchestrator/ProgressionUIOrchestrator.cs) | `ProgressionUIManager` | Scene-owned. Routes progression snapshots and revision-tagged choices, purchases, continue and restart requests. |
+
+| [EnvironmentOrchestrator](../../Assets/Scripts/Orchestrator/EnvironmentOrchestrator.cs) | `EnvironmentManager` | Scene-owned. Routes assembled room bounds, movement, collapse, local flame dimming and threshold chalk marks. |
 
 ### 6b. SceneRoot (`[Scene]SceneRoot.cs`)
 A **SceneRoot** is a scene-owned `MonoBehaviour` whose only job is to assemble a scene: instantiate prefabs, place objects, wire serialized references between the scene's Managers, Drivers, and Orchestrators, and hand the scene to the current Session (§8b) once assembled.
 *   **Rules**: No game logic, no per-frame work, no state beyond what it needs during assembly. It may `Instantiate` and position objects because assembly *is* its concern. One per scene, in `Assets/Scripts/Orchestrator/Scenes/`. When assembly is complete it publishes `SceneReady` (a Core event payload) — Session Managers wait for that, never for `Start` ordering.
+
+For generated floors in `HorrorRun`, the scene root binds services once. `ExpeditionSessionManager` replaces geometry and actors for each progression request and publishes `AssemblyReady`; `HorrorRunSceneRoot` relays that fact as `SceneReady`. The canonical `InputOrchestrator` forwards readiness to Run exactly once per generated floor. Progression enables player input only after it confirms that generation, and keeps choices and shops gated. The readiness event remains the hand-off; starting the generation coroutine is not readiness.
 
 ## 7. The Presentation Stack (`Driver/`)
 The presentation stack is everything that touches the engine: UI Toolkit `VisualElement` binding and manipulation, Input System callbacks, physics bodies and callbacks, `Animator`/`PlayableGraph` work, runtime meshes, materials, particles, camera rigs, audio sources, and third-party engine-facing SDKs (atmosphere, tweening, etc.).
@@ -331,7 +343,7 @@ A trivial Driver — one engine concern, a handful of primitive commands — may
     *   Holds no state of its own. Multi-step sequences keep their current phase and bookkeeping in a DriverState (§7c) that the Presenter reads and updates, exactly as a Controller uses a BehaviorState. A "state machine" Presenter is therefore a set of pure transition functions over a DriverState.
     *   Time and randomness are parameters, as for Controllers (§2).
     *   **Every nontrivial Presenter ships with a test file** (§11). This is the main payoff of the split.
-*   **Reference implementations**: [InputFramePresenter](../../Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs) demonstrates pure input accumulation over a supplied `InputDriverState`; [its tests](../../Assets/Editor/Tests/Input/InputFramePresenterTests.cs) cover short taps, one-time edge consumption, look motion, and input gates. [DebugOverlayPresenter](../../Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs) demonstrates display formatting over a supplied `DebugOverlayDriverState`; [its tests](../../Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs) cover locale-independent numbers, invalid samples, and unavailable player telemetry. Both keep all state in their caller-owned DriverState and make no engine calls.
+*   **Reference implementations**: [InputFramePresenter](../../Assets/Scripts/Presentation/Input/Driver/InputFramePresenter.cs) demonstrates pure input accumulation over a supplied `InputDriverState`; [its tests](../../Assets/Editor/Tests/Input/InputFramePresenterTests.cs) cover short taps, one-time edge consumption, look motion, and input gates. [DebugOverlayPresenter](../../Assets/Scripts/Presentation/DebugOverlay/Driver/DebugOverlayPresenter.cs) demonstrates display formatting over a supplied `DebugOverlayDriverState`; [its tests](../../Assets/Editor/Tests/DebugOverlay/DebugOverlayPresenterTests.cs) cover locale-independent numbers, invalid samples, and unavailable player telemetry. [PlayerMoverPresenter](../../Assets/Scripts/Domain/Player/Driver/PlayerMoverPresenter.cs) demonstrates pure capsule, collision projection, ground-step, interpolation and traversal-arc calculations; [its tests](../../Assets/Editor/Tests/Player/PlayerMoverPresenterTests.cs) cover those calculations. These Presenters make no engine calls; physical scene behavior is verified separately.
 
 ### 7c. DriverState (`[X]DriverState.cs`) — optional
 *   **Role**: Transient presentation data for multi-step sequences: current phase, spawned-object lists, active tween registry.
@@ -374,10 +386,10 @@ An Animator Controller asset is a state machine — logic — stored in a non-ve
 
 Every `MonoBehaviour` system belongs to exactly one of two lifecycle tiers, and its header's USAGE NOTES must state which:
 
-*   **Persistent (`DontDestroyOnLoad`)**: Created once (boot scene or first access) and survives every scene load. Session Managers are always persistent; Services may be. Examples: `InputManager`, `MusicManager`, `EncounterSessionManager`, `SceneFlowManager`, the Orchestrators.
+*   **Persistent (`DontDestroyOnLoad`)**: Created once (boot scene or first access) and survives every scene load. Session Managers are always persistent; Services may be. Examples: `InputManager`, `MusicManager`, `EncounterSessionManager`, `SceneFlowManager`, and the Input/DebugOverlay/Telemetry Orchestrators. Camera/PostFX Orchestrators are scene-owned.
 *   **Scene-owned**: Lives inside a scene and dies with it. Entities are always scene-owned. Examples: per-scene camera rigs, atmosphere volumes, arena setup objects, SceneRoots.
 
-**M0 Run lifecycle:** [RunSessionManager](../../Assets/Scripts/Session/Run/Manager/RunSessionManager.cs) is persistent on its own root GameObject. [TagArenaSceneRoot](../../Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs) explicitly initializes the canonical services, supplies its serialized run seed, and publishes `SceneReady` once the scene is assembled. `InputOrchestrator` forwards readiness to the Run Session, which clears pending input, resets counters, and recreates the random source from the retained seed for the new run. Its `FixedUpdate` owns the 60 Hz tick: `BeforeTick` requests synchronous input publication, the Controller advances with explicit delta time, then `TickAdvanced` publishes the consumed frame and tick. Scene-load start suspends ticking until the next readiness hand-off. The Session retains no scene-object references; M0 has no Domain simulation registered yet.
+**I1 Run lifecycle:** [RunSessionManager](../../Assets/Scripts/Session/Run/Manager/RunSessionManager.cs) is persistent on its own root GameObject. [TagArenaSceneRoot](../../Assets/Scripts/Orchestrator/Scenes/TagArenaSceneRoot.cs) explicitly initializes canonical services, configures capture provenance and calls `PrepareScene` with its retained seed before configuring the Player Factory. Preparation resets counters/input and creates the shared random source; readiness preserves that same source after factories have consumed it. The root initializes Level and view systems, spawns Player and publishes `SceneReady`; `InputOrchestrator` forwards readiness. Session's `FixedUpdate` owns the 60 Hz tick: `BeforeTick` requests synchronous input publication, the Controller advances with explicit delta time, registered Players consume the input, committed movement/probe/traversal values are relayed, then `TickAdvanced` publishes completion. Scene-load start closes the interrupted capture and suspends ticking until the next readiness hand-off. Session discovers Players through their Registry each tick without caching scene entities. Hunter → Chase → Floor → Director dispatch remains future I2/I3 work.
 
 ### Rules
 *   **Persistent systems must never cache scene-owned objects across loads.** A stale cached reference is exactly how the player-death health-reset bug happened. Re-acquire on scene load — or better, invert the dependency with the Registry pattern.
@@ -389,6 +401,8 @@ Every `MonoBehaviour` system belongs to exactly one of two lifecycle tiers, and 
 
 ### 8b. Sessions & Flows
 A **flow** is any multi-step sequence that spans systems or scenes: overworld encounter → transition → battle scene → combat start → victory → return. Flows are owned by **Session Managers** (§1b) in the Session layer, never by Orchestrators (stateless) and never by a Domain Manager (single-system scope).
+
+The procedural expedition declares the acyclic Session dependency order `Expedition → Progression` and `Expedition → Run`. Progression owns choices, currency, retained modifiers and generation identities; Run owns gameplay ticks. Neither depends on Expedition. Expedition binds scene services only for the current root lifetime and clears those references on teardown. Domain Procedural produces Core `LevelGraph` data; Domain Level consumes it without a dependency on Procedural.
 
 *   **Shape**: a Session Manager is a full system — `[X]SessionManager` + `[X]SessionController` + `[X]SessionBehaviorState` (+ Config). The State holds the current `Phase` (an enum in the system's Definitions) and whatever must survive a scene load. The Controller holds the phase transitions as pure functions (`Phase Next(Phase current, FlowEvent evt)`) and is tested (§11). The Manager sequences: it runs the coroutine/`Awaitable`, calls Domain Managers directly (downward), publishes phase-change events upward for Orchestrators, and waits on the events that come back.
 *   **Scene loading is a Session concern.** Exactly one script — `SceneFlowManager` — calls `SceneManager.Load*`/`Unload*`. Everyone else asks it (`RequestLoad(SceneKey)`) and waits for its `SceneLoaded` event and the SceneRoot's `SceneReady`.

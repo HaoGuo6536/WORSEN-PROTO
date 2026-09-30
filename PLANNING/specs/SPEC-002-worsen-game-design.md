@@ -58,3 +58,4 @@ These entries preserve source uncertainty; migration does not choose a design ou
 | Date | Change | By |
 |------|--------|----|
 | 2026-09-14 | Migrated the original binary unchanged and registered this summary stub. Source disagreements remain open. | $docs-plans init |
+| 2026-09-30 | [SPEC-004](SPEC-004-horror-direction-content-proposals.md) (DRAFT) records a direction shift that overrides this summary's non-serious-at-rest tone, the absurd-cake framing, the exact counter and cue, and the chase-track assumption where they conflict. This stub is otherwise unchanged. | $docs-plans new spec |

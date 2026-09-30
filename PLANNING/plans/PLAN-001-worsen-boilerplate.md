@@ -4,7 +4,7 @@ type: plan
 title: WORSEN core boilerplate implementation
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: UNKNOWN — owner input needed
 specs: [SPEC-001, SPEC-002]
 supersedes: none
@@ -37,7 +37,7 @@ M0 is implemented with [70 passing tests and live scene evidence](../../Logs/Age
 |---|---|---|---|
 | [PLAN-002](PLAN-002-parallel-coordination.md) | Shared contracts, Session, routing, scene setup, testing admission and final integration | First: C0 baseline/ownership, C1 contracts | Own I1/I2/I3/V checkpoints |
 | [PLAN-003](PLAN-003-player-movement-health.md) | Player movement and health; M1 + M7 rules | C1 | 004 real surfaces, 006 camera, 010 measurements |
-| [PLAN-004](PLAN-004-level-tag-arena.md) | Level graph, markers, geometry and navigation; M2 | C1, parallel with Player | Coordinator shared utility/setup; 003 traversal |
+| [PLAN-004](../archive/plans/PLAN-004-level-tag-arena.md) | Level graph, markers, geometry and navigation; M2 | C1, parallel with Player | Coordinator shared utility/setup; 003 traversal |
 | [PLAN-005](PLAN-005-hunter-chase.md) | Hunter and Chase; M3 + M4 proximity facts | C1 fixtures | 003 Player + 004 Level; 010 telemetry for acceptance |
 | [PLAN-006](PLAN-006-camera-postfx-feedback.md) | Camera/PostFX; M4 visuals + M6 intrusion/M7 effects | C1 fixtures, parallel with gameplay | 003/005/009 real facts via coordinator |
 | [PLAN-007](PLAN-007-audio-hud-results.md) | Audio/HUD/Results; M4 + M5/M7 presentation | C1 fixtures, parallel with gameplay | 003/005/008 and Session summaries |
@@ -350,7 +350,7 @@ System: `Domain/Floor/` (Service, scene-owned) plus `Session/Run/` for the run f
 
 Tests: `Assets/Editor/Tests/Floor/FloorControllerTests.cs`, `Assets/Editor/Tests/Run/RunSessionControllerTests.cs`. Add `FloorLoopSceneRoot` and `FloorLoopSceneSetup`.
 
-Acceptance: a full floor plays in 2–4 minutes for the first sweep without the player ever stopping for an interaction.
+Acceptance (user clarification, 2026-09-15): a full floor verifies collection, exit opening, collapse, optional second-sweep rewards, death/exit summaries and fresh restart without stopping for an interaction. The former 2–4-minute first-sweep duration target is **NON-BLOCKING** for boilerplate completion; calibration is deferred with procedural generation and increasing floor sizes outside this boilerplate. Preserve historical timing misses. See the [dated user clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md); other movement, Hunter, Director and participant/device criteria are unchanged.
 
 ### M6 — Director v1 (≈ 1.5 weeks)
 System: `Domain/Director/` (Service, scene-owned). Ticked by `RunSessionManager` every fixed tick; `DirectorController` accumulates `dt` and evaluates at 2 Hz.
@@ -383,6 +383,7 @@ Tests: `Assets/Editor/Tests/Telemetry/TelemetryPresenterTests.cs`.
 
 - **Networking.** Decide between Netcode for GameObjects, Fish-Net, and Photon Fusion only after the solo loop is proven; the Controller/BehaviorState split, Core-typed DTOs, and the single tick owner in `RunSessionManager` keep all three viable. Do not add `NetworkBehaviour` to anything before then.
 - **Procedural generation.** `LevelGraph` (Core) and `LevelMarker`s are built so a generator can produce them later; the prototype hand-authors one cluster.
+- [ ] **Separate follow-up: procedural maps and level progression.** Implement working seeded runtime generation, connected playable maps and configurable growth across rounds, with enemy, curse and shop content allowed as placeholders. See [SPEC-003](../specs/SPEC-003-procedural-maps-level-progression.md) (DRAFT; a separate implementation plan is pending). This todo is outside the boilerplate's completion criteria.
 - **Items, relics, classes, shop.** `PlayerBehaviorState` has an inventory struct with empty slots so the HUD can render it; nothing consumes it.
 - **Behavior trees.** Add only when a GOAP action needs internal sequencing (likely `BreakLoop` or a boss rule).
 - **Multiple hunters.** `HunterRegistry`, `ChaseController`, and `DirectorController` are written for N hunters, but v1 ships with one instance.
@@ -424,3 +425,16 @@ The single most important checkpoint is the end of M3. If a chase does not feel 
 - `Assets/Tests/Tests.asmdef` is a stray test assembly outside the canonical `Assets/Editor/Tests/` location (§11 "one folder, no exceptions"). Delete it and its `.meta`.
 - Cinemachine is not in `Packages/manifest.json`; M0 adds it.
 - On 2026-09-14, $docs-plans init moved this plan into root-level `PLANNING/plans/` and the unchanged [game design source](../specs/sources/WORSEN_GDD_Rev3.docx) into `PLANNING/specs/sources/`. These documents are now outside the Unity import pipeline; see the [migration record](../index.md#initialization-record).
+
+## Appendix B — Execution log
+
+These entries update execution status; original scope, milestone criteria and historical statements remain unchanged.
+
+| Date | Step | Result | Evidence |
+|---|---|---|---|
+| 2026-09-14 | Published implementation and engineering verification | Approved runtime systems and both scenes are published. Source012 has 238 exact audited inputs, seven assemblies with 0 compile errors/60 visible warnings, and 0 findings across 11 lint rules. The final Unity suite passes 548/548, including all 13 architecture cases; current graph conformance and complete change coverage pass. Editor idle/restoration and root lease release are verified. | [Final engineering and closeout](../../Logs/AgentValidation/GoalCompletion/current-evidence/final-012-closeout.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: broader movement/lock combinations, measured chase/floor/Director criteria and real-device/participant perception, look-back and comfort evidence remain. Retained synthetic speed and floor trials miss their thresholds; do not discard their denominators or infer a sprint tuning defect. Engineering success does not close the remaining milestone criteria. | [Requirement and remaining evidence](../../Logs/AgentValidation/GoalCompletion/requirements.md) |
+| 2026-09-15 | Acceptance observations through Source 021 | Free transitions, the connected route, Director cadence and component feedback gain bounded native evidence. The independently audited 23-attempt cohort reaches 30 completed chases but misses chase duration, loss and first-sweep targets. Both targeted 021 native cases pass; corrected limb pixels are observed. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | User clarification: floor pacing is non-blocking | The former 120–240 s first-sweep duration target is deferred to later procedural floor sizing/growth outside the boilerplate. Preserve all historical misses and functional floor/terminal requirements. Hunter, movement, Director and unrelated participant/device criteria remain unchanged; status stays LIVE. | [User clarification](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-006/user-clarification.md) |
+| 2026-09-15 | PLAN-004 completed and archived | The finite hand-built Level/TagArena child scope is complete; its original traversal, cue and current engineering evidence is retained. PLAN-001 remains LIVE for broader chase/participant/device acceptance. | [025 checkpoint](../../Logs/AgentValidation/GoalCompletion/current-evidence/checkpoint-025.md) |

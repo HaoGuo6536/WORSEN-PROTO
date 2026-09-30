@@ -4,7 +4,7 @@ type: plan
 title: Director pressure and relief
 status: LIVE
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 owner: Director worker
 specs: [SPEC-001, SPEC-002]
 supersedes: none
@@ -85,3 +85,7 @@ No boss cadence, player personalization, adaptive difficulty, extra systemic ene
 | Date | Step | Result | Evidence |
 |---|---|---|---|
 | 2026-09-14 | Decomposition | Work assigned; awaits C1 and later I3 integration | [Coordinator](PLAN-002-parallel-coordination.md) |
+| 2026-09-14 | Published implementation and bounded verification | Director pressure, history, relief and cadence are published under Session ownership. Default intrusion reaches real visuals and expires. An arranged default-threshold historical hint produces a three-second-old uncertain belief, next-tick investigation and more than one metre of actual Hunter motor travel. | [Requirement and live evidence matrix](../../Logs/AgentValidation/GoalCompletion/requirements.md) |
+| 2026-09-14 | Remaining acceptance; no archive | LIVE: relief transitions, exit cadence, repeated seeded timing and the full-floor proximity-gap bound with measured travel still need complete evidence. Hint input capture was incomplete; participant reports of no wandering remain required. | [Remaining acceptance](../../Logs/AgentValidation/GoalCompletion/current-evidence/remaining-acceptance.md) |
+| 2026-09-15 | Complete-cohort pressure observations | All 1,721 pressure boundaries and 11 hints reconstruct without differences. Nine interior gaps have maximum 18.383334292 s; 30 boundary-censored gaps have maximum 25.933334686 s. Nine hints have later near poses and two remain censored. All nine complete interior gaps are below the 23-second base threshold before nonnegative travel. Participant no-wandering reports remain open. | [Checkpoint evidence](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
+| 2026-09-15 | Current engineering verified; acceptance remains open | Full regression reports 563 passed / 0 failed / 2 Explicit skips / 565 total, including all 13 architecture cases. Independent native/config/graph/capture audits pass. The later rendered pointer check and both idle/observer/lease closeouts are complete. LIVE: preserve historical failures and unmet numeric/participant/device criteria. No archive is justified. | [Final checkpoint](../../Logs/AgentValidation/GoalCompletion/planning-update/proposal-005/evidence-matrix.md) |
