@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Core · Progression shared contracts.
 // KEY RESPONSIBILITIES:
+//   - Publish progression event identity, resolved kind, affected ids and a tell, never mutation rules.
 //   - Describe immutable display snapshots and committed generation requests.
 //   - Describe unique run traits, consumable stock, and actionable rejection reasons.
 //   - Carry the effective loadout without exposing mutable run state.
@@ -40,6 +41,23 @@ namespace Worsen.Core
     }
 
     public enum ProgressionChoiceKind { Threat, Curse, Upgrade }
+
+    public readonly struct ProgressionEventFact
+    {
+        public ProgressionEventFact(int sequence, int round, ProgressionEventKind kind,
+            ProgressionEventKind resolvedKind, FearAxis axis, string effectId = null,
+            string archetypeKey = null, string tellId = null)
+        { Sequence = sequence; Round = round; Kind = kind; ResolvedKind = resolvedKind;
+          Axis = axis; EffectId = effectId; ArchetypeKey = archetypeKey; TellId = tellId; }
+        public int Sequence { get; }
+        public int Round { get; }
+        public ProgressionEventKind Kind { get; }
+        public ProgressionEventKind ResolvedKind { get; }
+        public FearAxis Axis { get; }
+        public string EffectId { get; }
+        public string ArchetypeKey { get; }
+        public string TellId { get; }
+    }
 
     public readonly struct ProgressionChoice
     {
