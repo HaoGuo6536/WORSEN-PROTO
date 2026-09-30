@@ -13,6 +13,7 @@
 //   - Retain hit recovery and independent end-exclusive revival protection intervals.
 //   - Expose read-only grab and revival protection without foreign state writes.
 //   - Store pending external motion and committed replay/publication facts.
+//   Chase/contact perk bookkeeping is isolated in PlayerPerkBehaviorState.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -30,6 +31,7 @@ namespace Worsen.Domain.Player
 {
     public sealed class PlayerBehaviorState : IReadOnlyPlayerShieldState, IReadOnlyPlayerEffectState, IReadOnlyPlayerRevivalState
     {
+        internal PlayerPerkBehaviorState Perks { get; } = new PlayerPerkBehaviorState();
         public IReadOnlyActiveEffects ActiveEffects { get; set; }
         public ActiveEffects AppliedEffects { get; set; }
         public float BaseMaximumHealth { get; set; }
