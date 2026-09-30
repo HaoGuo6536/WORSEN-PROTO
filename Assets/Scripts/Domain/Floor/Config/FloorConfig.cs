@@ -2,13 +2,13 @@
 // FloorConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Stores collection weights and collapse timing as designer-owned tuning.
+//   Stores collection weights, early-bail hold time and collapse timing as designer-owned tuning.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Implement the Floor responsibility named by this file.
+//   - Tune deliberate locked-exit holds independently of cake-driven collapse.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -25,6 +25,7 @@ namespace Worsen.Domain.Floor
     public sealed class FloorConfig : ScriptableObject
     {
         [SerializeField, Min(1)] private int _requiredCakeCount = 10;
+        [SerializeField, Min(0.01f)] private float _earlyBailHoldDuration = 1f;
         [SerializeField, Min(0f)] private float _flowWeight = 5f;
         [SerializeField, Min(0f)] private float _precisionWeight = 3f;
         [SerializeField, Min(0f)] private float _detourWeight = 2f;
@@ -52,6 +53,7 @@ namespace Worsen.Domain.Floor
         public float HandReach => _handReach > 0f ? _handReach : 1.7f;
         public float HandEscapeDistance => Mathf.Max(HandReach + 0.2f, _handEscapeDistance > 0f ? _handEscapeDistance : 2.1f);
         public int RequiredCakeCount => _requiredCakeCount;
+        public float EarlyBailHoldDuration => _earlyBailHoldDuration;
         public float FlowWeight => _flowWeight;
         public float PrecisionWeight => _precisionWeight;
         public float DetourWeight => _detourWeight;

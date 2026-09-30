@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own persistent state and explicitly seeded new-run/replay initialization.
 //   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
+//   - Forward the bail flag through the normal guarded floor-completion transaction.
 //   - Publish Core snapshots and newly committed generation requests once.
 // DEPENDENCIES:
 //   - Progression Config, Controller and BehaviorState; Core progression types.
@@ -19,6 +20,7 @@
 //   and never resets an existing expedition. Bind listeners before StartRun.
 //   Scene integration owns generation, teardown and readiness acknowledgment.
 //   GenerationRequested reports that a request was committed, not an engine call.
+//   Integration must supply bailed=true for an early escape; legacy calls remain penalty-free.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -85,6 +87,7 @@ namespace Worsen.Session.Progression
         public bool ConfirmFloorReady(int generationId) => Change(() => controller.ConfirmFloorReady(generationId));
         public bool FailGeneration(int generationId, string reason) => Change(() => controller.FailGeneration(generationId, reason));
         public bool CompleteFloor(int generationId) => Change(() => controller.CompleteFloor(generationId));
+        public bool CompleteFloor(int generationId, bool bailed) => Change(() => controller.CompleteFloor(generationId, bailed));
         public bool RecordGoldenCollected(int generationId, int anchorId) => Change(() => controller.RecordGoldenCollected(generationId, anchorId));
         public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId));
         public bool RecordHealth(int generationId, float health) => Change(() => controller.RecordHealth(generationId, health));

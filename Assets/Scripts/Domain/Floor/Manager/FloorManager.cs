@@ -9,6 +9,7 @@
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
+//   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -17,6 +18,9 @@
 //   Generated maps may supply a required-count override; configuration assets remain unchanged.
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
+//   Door integration must report locked contact and LeaveExit when its last player
+//   collider leaves. OnEscapeResolved carries (exit fact, bailed); consumers must
+//   use it instead of OnExitReached to preserve the penalty through run resolution.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -40,6 +44,7 @@ namespace Worsen.Domain.Floor
         public event Action<PickupCollectedFact> OnPickupCollected;
         public event Action<RoomPhaseChangedFact> OnRoomPhaseChanged;
         public event Action<ExitReachedFact> OnExitReached;
+        public event Action<ExitReachedFact, bool> OnEscapeResolved;
         public event Action<FloorLethalContactFact> OnLethalContact;
         public event Action<FloorDisplaySnapshot> OnDisplayChanged;
         public event Action<long> OnExitOpened;
@@ -72,6 +77,14 @@ namespace Worsen.Domain.Floor
         {
             if (_controller == null) return;
             var owner = _controller;
+            if (owner.TickExitHold(dt, tick, out var bail))
+            {
+                var display = owner.Snapshot();
+                OnEscapeResolved?.Invoke(bail, true);
+                if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
+                return;
+            }
+            if (_state.Ended) return;
             PublishRoomTransitions(_controller.Tick(dt, tick));
             if (!ReferenceEquals(owner, _controller)) return;
             TickDestruction(dt);
@@ -131,8 +144,15 @@ namespace Worsen.Domain.Floor
         {
             var owner = _controller;
             if (owner != null && owner.ContactExit(playerId, _state.Tick, out var fact))
-            { var display = owner.Snapshot(); OnExitReached?.Invoke(fact); if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display); }
+            {
+                var display = owner.Snapshot();
+                OnEscapeResolved?.Invoke(fact, false);
+                if (!ReferenceEquals(owner, _controller)) return;
+                OnExitReached?.Invoke(fact);
+                if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
+            }
         }
+        public void LeaveExit(EntityId playerId) => _controller?.LeaveExit(playerId);
         public void Teardown()
         {
             OnDisable();
@@ -150,6 +170,7 @@ namespace Worsen.Domain.Floor
         }
         private void OnDisable()
         {
+            _controller?.CancelExitHolds();
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup;
 

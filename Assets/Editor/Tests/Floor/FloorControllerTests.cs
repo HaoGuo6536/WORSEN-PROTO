@@ -11,6 +11,7 @@
 //   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Verify deterministic placement, counters, cues and ordered room transitions.
 //   - Reject invalid contacts and verify a fresh initialization clears prior life.
+//   - Verify timed bail, cancellation and death without granting cakes or collapse.
 // DEPENDENCIES:
 //   - Core level/floor values and Domain Floor pure classes.
 //   - Domain Player read-only interface implemented by an immutable fixture.
@@ -472,6 +473,89 @@ namespace Worsen.Tests.Floor
             Assert.That(fixture.Controller.ContactExit(new EntityId(2), 6, out _), Is.True);
         }
 
+        [TestCase(1f)]
+        [TestCase(2f)]
+        public void LockedHoldBailsAtExactConfiguredBoundaryWithoutCakesOrCollapse(float duration)
+        {
+            var config = Config(2); Set(config, "_earlyBailHoldDuration", duration);
+            var fixture = Start(SingleRoom(2), config);
+            var id = new EntityId(1);
+            fixture.Controller.Collect(id, 101, PickupKind.Cake, 1, out _);
+            Assert.That(fixture.Controller.ContactExit(id, 1, out _), Is.False);
+            Assert.That(fixture.Controller.TickExitHold(duration - 0.25f, 2, out _), Is.False);
+            Assert.That(fixture.Controller.ContactExit(id, 2, out _), Is.False, "Repeated contact must not reset the hold.");
+            Assert.That(fixture.Controller.TickExitHold(0.25f, 3, out var fact), Is.True);
+            Assert.That(fact.PlayerId, Is.EqualTo(id));
+            Assert.That(fact.Tick, Is.EqualTo(3));
+            Assert.That(fixture.State.CakeCount, Is.EqualTo(1));
+            Assert.That(fixture.State.RequiredCakeCount, Is.EqualTo(2));
+            Assert.That(fixture.State.GoldenCakeCount, Is.Zero);
+            Assert.That(fixture.State.ActiveCakeAnchors.Select(anchor => anchor.Id), Is.EqualTo(new[] { 102 }));
+            Assert.That(fixture.State.ExitState, Is.EqualTo(ExitState.Locked));
+            Assert.That(fixture.Controller.Tick(100f, 4), Is.Empty);
+            Assert.That(fixture.State.RoomPhases[1], Is.EqualTo(RoomPhase.Open));
+            Assert.That(fixture.Controller.Collect(id, 102, PickupKind.Cake, 4, out _), Is.False);
+            Assert.That(fixture.Controller.Collect(id, 101, PickupKind.GoldenCake, 4, out _), Is.False);
+            Assert.That(fixture.Controller.ContactExit(id, 4, out _), Is.False);
+            Assert.That(fixture.Controller.TickExitHold(duration, 4, out _), Is.False);
+        }
+
+        [Test]
+        public void LeavingAndReinitializingCancelAccumulatedHold()
+        {
+            var fixture = Start(SingleRoom(1), Config(1)); var id = new EntityId(1);
+            fixture.Controller.ContactExit(id, 1, out _);
+            Assert.That(fixture.Controller.TickExitHold(0.75f, 2, out _), Is.False);
+            fixture.Controller.LeaveExit(id);
+            Assert.That(fixture.Controller.TickExitHold(10f, 3, out _), Is.False);
+            fixture.Controller.ContactExit(id, 3, out _);
+            Assert.That(fixture.Controller.TickExitHold(0.75f, 4, out _), Is.False);
+            fixture.Controller.Initialize(SingleRoom(1), Players());
+            Assert.That(fixture.Controller.TickExitHold(10f, 5, out _), Is.False);
+            fixture.Controller.ContactExit(id, 5, out _);
+            Assert.That(fixture.Controller.TickExitHold(1f, 6, out _), Is.True);
+        }
+
+        [Test]
+        public void DeadForeignAndUnreadyPlayersCannotBailAndDeathCancelsPendingHold()
+        {
+            var player = new PlayerFixture(1);
+            var fixture = Start(SingleRoom(1), Config(1), players: new[] { player });
+            fixture.Controller.ContactExit(EntityId.None, 1, out _);
+            fixture.Controller.ContactExit(new EntityId(99), 1, out _);
+            Assert.That(fixture.Controller.TickExitHold(1f, 2, out _), Is.False);
+            fixture.Controller.ContactExit(player.Id, 2, out _);
+            fixture.Controller.TickExitHold(0.75f, 3, out _);
+            player.IsAlive = false;
+            Assert.That(fixture.Controller.ContactExit(player.Id, 3, out _), Is.False);
+            Assert.That(fixture.Controller.TickExitHold(1f, 4, out _), Is.False);
+            player.IsAlive = true;
+            Assert.That(fixture.Controller.TickExitHold(1f, 5, out _), Is.False);
+            fixture.Controller.Reset();
+            fixture.Controller.ContactExit(player.Id, 5, out _);
+            Assert.That(fixture.Controller.TickExitHold(1f, 6, out _), Is.False);
+        }
+
+        [Test]
+        public void LastCakeCancelsBailAndPreservesImmediateNormalEscape()
+        {
+            var fixture = Start(SingleRoom(1), Config(1)); var id = new EntityId(1);
+            fixture.Controller.ContactExit(id, 1, out _);
+            fixture.Controller.TickExitHold(0.75f, 2, out _);
+            CollectAll(fixture);
+            Assert.That(fixture.Controller.TickExitHold(1f, 3, out _), Is.False);
+            Assert.That(fixture.Controller.ContactExit(id, 3, out _), Is.True);
+            Assert.That(fixture.Controller.TickExitHold(1f, 4, out _), Is.False);
+        }
+
+        [TestCase(0f)] [TestCase(-1f)] [TestCase(float.NaN)] [TestCase(float.PositiveInfinity)]
+        public void InvalidHoldDurationCannotArm(float duration)
+        {
+            var config = Config(1); Set(config, "_earlyBailHoldDuration", duration);
+            var fixture = Start(SingleRoom(1), config);
+            Assert.Throws<ArgumentException>(() => fixture.Controller.ContactExit(new EntityId(1), 1, out _));
+        }
+
         private static Fixture Start(LevelGraph graph, FloorConfig config, int seed = 1337, IReadOnlyList<IReadOnlyPlayerState> players = null)
         {
             var state = new FloorBehaviorState();
@@ -490,6 +574,7 @@ namespace Worsen.Tests.Floor
         {
             var config = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));
             Set(config, "_requiredCakeCount", required);
+            Set(config, "_earlyBailHoldDuration", 1f);
             Set(config, "_flowWeight", 5f);
             Set(config, "_precisionWeight", 3f);
             Set(config, "_detourWeight", 2f);
