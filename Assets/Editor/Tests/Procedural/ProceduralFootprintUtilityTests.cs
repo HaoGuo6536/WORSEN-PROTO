@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Check footprints, apertures, support, pocket isolation and full determinism.
 //   - Reject pocket objectives and retain their failure in the bounded retry journal.
+//   - Verify Core/presentation cell publication, pocket flags, ceiling heights and storeys.
 // DEPENDENCIES:
 //   - Core, Domain.Procedural, NUnit and temporary Unity configuration instances.
 // USAGE NOTES:
@@ -222,6 +223,58 @@ namespace Worsen.Tests.Procedural
         [TestCase("_gapProbability", -1f)] [TestCase("_pocketProbability", float.NaN)]
         public void InvalidFootprintAndGapSettingsAreRejected(string field, float value)
         { Set(field, value); Assert.Throws<ArgumentException>(() => Generate(7)); }
+
+        [TestCase(false)] [TestCase(true)]
+        public void PublishedCellsPreserveFootprintsPocketsCeilingsAndRoomIdentity(bool castle)
+        {
+            Set("_castleModules", castle); Set("_oneCellWeight", 0f); Set("_twoCellWeight", 0f);
+            Set("_threeCellWeight", 1f); Set("_lShapeWeight", 1f); Set("_storeyProbability", 1f);
+            Set("_gapProbability", 1f); Set("_pocketProbability", 1f); Set("_origin", new Vector2(31f, -17f));
+            bool high = false, ordinaryOptional = false;
+            for (int seed = 0; seed < 12; seed++)
+            {
+                var layout = Generate(seed);
+                foreach (var module in layout.Modules)
+                {
+                    var room = layout.Graph.Rooms.Single(r => r.Id == module.RoomId);
+                    float height = !castle ? _config.RoomHeight :
+                        module.Kind == ProceduralModuleKind.BrokenCloister || module.Kind == ProceduralModuleKind.BrokenGallery ?
+                        _config.HighCeilingHeight : _config.CastleHeight;
+                    high |= castle && height == _config.HighCeilingHeight && module.Cells.Count == 3;
+                    var expected = module.Cells.Select(c => new Bounds(new Vector3(_config.Origin.x + c.x * _config.RoomSize,
+                        height * .5f, _config.Origin.y + c.y * _config.RoomSize), new Vector3(_config.RoomSize, height, _config.RoomSize))).ToArray();
+                    Assert.That(room.Cells, Is.EqualTo(expected));
+                    Assert.That(room.Pocket, Is.EqualTo(module.PocketId != 0));
+                    if (module.Cells.Count == 1) Assert.That(room.Cells.Single(), Is.EqualTo(room.Bounds));
+                    var sample = layout.PresentationRooms.Single(r => r.RoomId == room.Id);
+                    Assert.That(sample.Cells, Is.EqualTo(room.Cells));
+                    if (room.Pocket) Assert.That(sample.OptionalRoom, Is.True);
+                    ordinaryOptional |= sample.OptionalRoom && !room.Pocket;
+                    foreach (var volume in ProceduralFootprintUtility.Volumes(layout, room))
+                        Assert.That(volume.Pocket, Is.EqualTo(room.Pocket));
+                    if (Bent(module))
+                    {
+                        var notch = new Vector3(room.Bounds.min.x + _config.RoomSize * .5f, 0f,
+                            room.Bounds.min.z + _config.RoomSize * .5f);
+                        foreach (int x in new[] { 0, 1 })
+                        foreach (int z in new[] { 0, 1 })
+                        {
+                            var point = notch + new Vector3(x * _config.RoomSize, 0f, z * _config.RoomSize);
+                            Assert.That(room.ContainsXZ(point), Is.EqualTo(expected.Any(c => c.Contains(point))));
+                        }
+                    }
+                }
+                foreach (var storey in layout.Storeys)
+                {
+                    var room = layout.Graph.Rooms.Single(r => r.Id == storey.RoomId);
+                    Assert.That(room.Cells.Count, Is.EqualTo(layout.Modules.Single(m => m.RoomId == storey.RoomId).Cells.Count));
+                    Assert.That(room.ContainsXZ(storey.Origin + Vector3.up * storey.Height), Is.True);
+                    Assert.That(layout.Graph.Rooms.Any(r => r.Id == storey.UpperRegionId), Is.False);
+                }
+                if (castle) Assert.That(layout.Storeys, Is.Not.Empty);
+            }
+            if (castle) { Assert.That(high, Is.True); Assert.That(ordinaryOptional, Is.True); }
+        }
 
         private (float Area, float Route) MeasureGroundRoutes(ProceduralLayout layout)
         {

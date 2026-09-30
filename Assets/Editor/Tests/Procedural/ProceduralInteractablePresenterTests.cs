@@ -11,6 +11,7 @@
 //   - Protect exit portals and required routes; check density and stable identities.
 //   - Match partitions to existing collision and lights to Environment placement.
 //   - Scope the legacy rectangular Environment socket contract to one-cell rooms.
+//   - Compare exact multi-cell torch sockets and stable ids, excluding seams and notches.
 // DEPENDENCIES:
 //   - Core, Domain.Procedural/Level, Presentation.Environment and NUnit.
 // USAGE NOTES:
@@ -87,6 +88,60 @@ namespace Worsen.Tests.Procedural
                         Assert.That(plans.Where(p => p.State.RoomId == room.Id && p.State.Kind == InteractableKind.Light).Select(p => p.State.Position), Is.EquivalentTo(torches));
                     }
                 }
+            }
+            finally { UnityEngine.Object.DestroyImmediate(config); UnityEngine.Object.DestroyImmediate(driver); }
+        }
+
+        [TestCase(2, false)] [TestCase(3, false)] [TestCase(3, true)]
+        public void MultiCellLightsMatchEnvironmentExactlyAndRetainSingleCellIdentities(int cells, bool bent)
+        {
+            var config = ScriptableObject.CreateInstance<ProceduralConfig>();
+            var driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            try
+            {
+                var settings = new SerializedObject(config);
+                settings.FindProperty("_oneCellWeight").floatValue = 0f;
+                settings.FindProperty("_twoCellWeight").floatValue = cells == 2 ? 1f : 0f;
+                settings.FindProperty("_threeCellWeight").floatValue = cells == 3 ? 1f : 0f;
+                settings.FindProperty("_lShapeWeight").floatValue = bent ? 1f : 0f;
+                settings.FindProperty("_gapProbability").floatValue = 1f;
+                settings.FindProperty("_pocketProbability").floatValue = 1f;
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                var presenter = new ProceduralInteractablePresenter();
+                int extensionLights = 0;
+                for (int seed = 0; seed < 12; seed++)
+                {
+                    var layout = new ProceduralController(new ProceduralBehaviorState(), config,
+                        new System.Random(ProceduralController.LayoutSeed(seed, 3))).Generate(seed, 3);
+                    var blocks = new ProceduralGeometryPresenter().Build(layout, config, driver);
+                    var plans = presenter.Build(layout, config, driver, blocks, new System.Random(seed));
+                    Assert.That(plans.Select(p => p.State.Id).Distinct().Count(), Is.EqualTo(plans.Count));
+                    Assert.That(plans, Is.EqualTo(presenter.Build(layout, config, driver, blocks, new System.Random(seed))));
+                    foreach (var room in layout.Graph.Rooms)
+                    {
+                        var portals = layout.Doors.Where(d => d.FromRoomId == room.Id || d.ToRoomId == room.Id).Select(d => d.Center).ToArray();
+                        var lights = plans.Where(p => p.State.RoomId == room.Id && p.State.Kind == InteractableKind.Light).ToArray();
+                        var torches = EnvironmentPresenter.BuildSlots(room.Id, room.Bounds, portals, room.Cells).Where(s => s.Torch).ToArray();
+                        Assert.That(lights.Select(p => p.State.Position), Is.EquivalentTo(torches.Select(s => s.Position)));
+                        Assert.That(lights.Select(p => p.State.Position).Distinct().Count(), Is.EqualTo(lights.Length));
+                        foreach (var light in lights) Assert.That(room.ContainsXZ(light.State.Position), Is.True);
+                        extensionLights += lights.Count(p => p.State.Id >= 4000000);
+                        if (room.Cells.Count != 1) continue;
+                        foreach (var light in lights)
+                        {
+                            int index = light.State.Id - 400000 - room.Id * 10;
+                            Assert.That(index, Is.InRange(0, 7));
+                            var position = room.Center; position.y = room.Bounds.min.y + 2.75f;
+                            float offset = index % 2 == 0 ? -.28f : .28f;
+                            if (index / 2 == 0 || index / 2 == 2)
+                            { position.x += room.Size.x * offset; position.z = index / 2 == 0 ? room.Bounds.min.z + .3f : room.Bounds.max.z - .3f; }
+                            else
+                            { position.z += room.Size.z * offset; position.x = index / 2 == 1 ? room.Bounds.max.x - .3f : room.Bounds.min.x + .3f; }
+                            Assert.That(light.State.Position, Is.EqualTo(position));
+                        }
+                    }
+                }
+                Assert.That(extensionLights, Is.GreaterThan(0));
             }
             finally { UnityEngine.Object.DestroyImmediate(config); UnityEngine.Object.DestroyImmediate(driver); }
         }

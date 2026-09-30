@@ -14,6 +14,7 @@
 //   - Weight post-hub footprints and gate reserved gaps and optional pocket chains.
 //   - Gate upper storeys in extension cells and mirror the base Player ledge envelope.
 //   - Opt into swappable themes and optional movement/threshold challenge content.
+//   - Reserve shrine approach space and separation without choosing shrine kinds/counts.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
@@ -98,6 +99,14 @@ namespace Worsen.Domain.Procedural
         public int GenerationRetries => _generationRetries;
         public float OrdinaryDoorFraction => _ordinaryDoorFraction;
         public int KnockablePropsPerRoom => _knockablePropsPerRoom;
+        [SerializeField, Min(0.01f)] private float _shrineSiteInset = 1.5f;
+        [SerializeField, Min(0.01f)] private float _shrineSiteClearance = 2f;
+        [SerializeField, Range(0f, 0.5f)] private float _shrineSiteLateralFraction = 0.2f;
+        [SerializeField] private Vector3 _shrineSiteEnvelope = new Vector3(0.6f, 1.8f, 0.6f);
+        public float ShrineSiteInset => _shrineSiteInset;
+        public float ShrineSiteClearance => _shrineSiteClearance;
+        public float ShrineSiteLateralFraction => _shrineSiteLateralFraction;
+        public Vector3 ShrineSiteEnvelope => _shrineSiteEnvelope;
         [SerializeField] private Vector2 _origin = Vector2.zero;
         [SerializeField] private bool _castleModules = true;
         [SerializeField] private float _castleHeight = 7f;
