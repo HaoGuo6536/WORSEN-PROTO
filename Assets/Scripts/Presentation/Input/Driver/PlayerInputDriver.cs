@@ -12,6 +12,7 @@
 //   Owned only by InputManager; calculation and buffering use InputFramePresenter.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply runtime look preferences and pause without interrupting the recording lifetime.
 //   - Create and dispose the gameplay map without editing the Unity template asset.
 //   - Capture device facts and ask the Presenter to buffer or publish one frame.
 //   - Own InputRecorder; select one source and clear stale live input on every switch.
@@ -119,6 +120,21 @@ namespace Worsen.Presentation.Input
             if (!enabled) _recorder.Interrupt();
             _presenter.SetOwnerEnabled(_state, enabled);
             RefreshActions();
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (!_initialized) return;
+            _presenter.SetPaused(_state, paused);
+            RefreshActions();
+        }
+
+        public void ApplySettings(PlayerSettingsRecord settings)
+        {
+            if (!_initialized) return;
+            _state.MouseSensitivity = settings.MouseSensitivity;
+            _state.InvertY = settings.InvertY;
+            _presenter.Reset(_state);
         }
 
         public void FlushFrame()
@@ -245,7 +261,7 @@ namespace Worsen.Presentation.Input
         {
             if (_initialized && Source == InputSource.Live)
                 _presenter.AccumulateGamepadLook(_state, Time.unscaledDeltaTime,
-                    _config.GamepadDegreesPerSecond, _config.InvertLookY);
+                    _config.GamepadDegreesPerSecond, _state.InvertY ?? _config.InvertLookY);
         }
 
         private void RefreshActions()
@@ -288,7 +304,7 @@ namespace Worsen.Presentation.Input
             {
                 if (control is DeltaControl delta)
                     _presenter.AccumulateMouseLook(_state, delta.ReadValue(),
-                        _config.MouseDegreesPerPixel, _config.InvertLookY);
+                        _state.MouseSensitivity ?? _config.MouseDegreesPerPixel, _state.InvertY ?? _config.InvertLookY);
             }
         }
 

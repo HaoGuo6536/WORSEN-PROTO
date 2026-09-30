@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Audio target.
 // KEY RESPONSIBILITIES:
+//   - Route Session pause to audio playback and its unscaled presentation clocks.
 //   - Route scene camera hold start to per-run catch sting admission, not PlayerDied.
 //   - Pair run, progression, effects, expedition and UI subscriptions symmetrically.
 //   - Preserve legacy cue fallback and feed rich threat layers in every scene.
@@ -76,6 +77,8 @@ namespace Worsen.Orchestrator
             _run = RunSessionManager.Instance ?? _run;
             if (_audio == null || _audio.Initialize() != _audio) return;
             _run.CaptureStarted += OnCapture;
+            _run.PauseChanged += OnPause;
+            _audio.SetPaused(_run.IsPaused);
             _run.ChaseStarted += OnChase;
             _run.ChaseEnded += OnChaseEnd;
             _run.ProximityPublished += OnProximity;
@@ -104,6 +107,7 @@ namespace Worsen.Orchestrator
             if (_run != null)
             {
                 _run.CaptureStarted -= OnCapture;
+                _run.PauseChanged -= OnPause;
                 _run.ChaseStarted -= OnChase;
                 _run.ChaseEnded -= OnChaseEnd;
                 _run.ProximityPublished -= OnProximity;
@@ -182,6 +186,7 @@ namespace Worsen.Orchestrator
         private void OnAfterimage(FlashlightSample sample, float lifetime) => _audio.ObserveAfterimage(sample, lifetime);
         private void OnSpeed(float speed) => _audio.SetSpeedNormalized(speed);
         private void OnCatchStarted(EntityId player) => _audio.PlayCatchSting(player);
+        private void OnPause(bool paused) => _audio.SetPaused(paused);
         private void OnPhase(RunPhase phase) { if (phase == RunPhase.ExitOpen) _audio.PlayCue(CueId.ExitOpen); }
         private void OnRoom(RoomPhaseChangedFact fact)
         { if (_expedition == null && fact.Phase == RoomPhase.Telegraph) _audio.PlayCue(CueId.RoomTelegraph); }

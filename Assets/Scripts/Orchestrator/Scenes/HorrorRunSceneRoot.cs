@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   SceneRoot (§6b) · Orchestrator · HorrorRun scene assembly.
 // KEY RESPONSIBILITIES:
+//   - Compose runtime preference consumers and terminal Results with explicit seed selection.
 //   - Bind scene camera catches into persistent audio and release the binding on teardown.
 //   - Initialize canonical persistent services and scene presentation.
 //   - Bind the generated-floor flow and publish its first player choice.
@@ -21,7 +22,7 @@
 //   Scene-owned, explicitly initialized in Start. No per-frame work. Generated
 //   readiness is relayed from Expedition to SceneReady exactly once per floor.
 //   OnDestroy releases Expedition's scene references before their next use.
-//   HorrorRun uses ProgressionUI for terminal presentation; it has no Results service.
+//   ProgressionUI owns choices/shops; Results owns terminal outcomes and fixed-seed restarts.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -49,6 +50,7 @@ using Worsen.Session.Progression;
 using Worsen.Session.HorrorEffects;
 using Worsen.Presentation.Environment;
 using Worsen.Presentation.Menu;
+using Worsen.Presentation.Results;
 using Worsen.Session.Settings;
 namespace Worsen.Orchestrator
 {
@@ -57,6 +59,8 @@ namespace Worsen.Orchestrator
         [SerializeField] private RunSessionManager _run;
         [SerializeField] private MenuManager _menu;
         [SerializeField] private SettingsManager _settings;
+        [SerializeField] private ResultsManager _results;
+        [SerializeField] private SettingsOrchestrator _settingsRoute;
         [SerializeField] private SceneFlowManager _sceneFlow;
         [SerializeField] private InputManager _input;
         [SerializeField] private InputOrchestrator _inputRoute;
@@ -130,7 +134,7 @@ namespace Worsen.Orchestrator
                 _level, _playerFactory, _playerProfile, _hunterFactory, _hunterProfile, _chase, _chaseConfig,
                 _floor, _floorConfig, _director, _directorConfig, SceneKey.HorrorRun, _hunterRoster, _effects);
             _progressionRoute.Configure(_progression, _progressionUI, _run, _camera,
-                _useFixedSeed ? null : (Func<int>)CreateRunSeed);
+                _useFixedSeed ? null : (Func<int>)CreateRunSeed, terminalResults: true);
             _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera);
             _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment);
             _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
@@ -149,13 +153,24 @@ namespace Worsen.Orchestrator
             _menu = _menu != null ? _menu : GetComponentInChildren<MenuManager>(true);
             if (_menu == null) throw new InvalidOperationException("HorrorRun requires a configured Menu service.");
             _menu.Initialize();
-            _menu.GetComponent<MenuOrchestrator>().Configure(_menu, _settings, StartFromTitle, _progression, _input);
+            _menu.GetComponent<MenuOrchestrator>().Configure(_menu, _settings, StartFromTitle, _progression, _input, _run);
+            _settingsRoute.Configure(_settings, _input, _camera, _postFX, _audio);
+            _results.Initialize();
+            _results.GetComponent<ResultsOrchestrator>().ConfigureHorrorRun(_run, _results, _camera,
+                _progression, _settings, RestartFromResults);
             _settings.PublishCurrent();
             _input.SetInputEnabled(false);
             _progressionUI.Hide();
             _menu.ShowTitle();
         }
         private void StartFromTitle() => _progression.StartRun(_seed);
+        private void RestartFromResults(bool fixedSeed, int seed)
+        {
+            if (!_progression.Snapshot.CanRestart) return;
+            _useFixedSeed = fixedSeed;
+            _seed = fixedSeed ? seed : CreateRunSeed();
+            _progression.RestartRun(_progression.Snapshot.Revision, _seed);
+        }
         private static int CreateRunSeed() => Guid.NewGuid().GetHashCode() & int.MaxValue;
         private void OnDestroy()
         {

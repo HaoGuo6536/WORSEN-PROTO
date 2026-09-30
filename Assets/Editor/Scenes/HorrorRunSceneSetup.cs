@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
+//   - Restore Results and the Settings-source router idempotently, preserving assigned references.
 //   - Wire five animated hunters, spatial sound, Lumen 2, curse rules and physical exit/collapse.
 //   - Preserve deterministic asset identity when rebuilding the complete expedition.
 //   - Preserve unrelated loaded scenes and existing configuration asset identities.
@@ -51,6 +52,7 @@ using Worsen.Session.HorrorEffects;
 using Worsen.Presentation.Environment;
 using Worsen.Presentation.Audio;
 using Worsen.Presentation.Menu;
+using Worsen.Presentation.Results;
 using Worsen.Session.Settings;
 using Worsen.Editor.Horror;
 using DistantLands.Lumen;
@@ -175,6 +177,12 @@ namespace Worsen.Editor.Scenes
             WireMissing(settings, "_driver", files);
             if (Referenced<SettingsConfig>(settings, "_config") == null)
                 Wire(settings, "_config", Ensure<SettingsConfig>(ConfigRoot + "Session/Settings/SettingsConfig.asset"));
+            if (Referenced<SettingsOrchestrator>(root, "_settingsRoute") == null)
+                Wire(root, "_settingsRoute", root.GetComponent<SettingsOrchestrator>() ?? root.gameObject.AddComponent<SettingsOrchestrator>());
+            var results = Referenced<ResultsManager>(root, "_results");
+            if (results == null)
+            { results = Worsen.Editor.Results.ResultsSetup.Create(root.transform); Wire(root, "_results", results); }
+            if (results.GetComponent<ResultsOrchestrator>() == null) results.gameObject.AddComponent<ResultsOrchestrator>();
         }
         private static T Referenced<T>(UnityEngine.Object owner, string field) where T : UnityEngine.Object
             => new SerializedObject(owner).FindProperty(field).objectReferenceValue as T;

@@ -10,6 +10,7 @@
 //   Driver (Â§7a) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Apply runtime lens/comfort preferences and immediately suppress disabled impulses.
 //   - Bind the serialized output camera and rebuild missing owned rig components.
 //   - Apply pose and lens in LateUpdate, then manually advance the owned brain.
 //   - Expose unshaken aim and route explicit event shake without moving gameplay authority.
@@ -102,6 +103,13 @@ namespace Worsen.Presentation.Camera
             _brain.enabled = isActiveAndEnabled;
         }
 
+        public void ApplySettings(PlayerSettingsRecord settings)
+        {
+            if (_state == null) return;
+            _presenter.ApplySettings(_state, settings);
+            if (!_state.PunchEnabled && _listener != null) _listener.Gain = 0f;
+        }
+
         public void SetMovement(PlayerMovementSample sample)
         {
             if (_state != null) _presenter.SetMovement(_state, _config, sample);
@@ -114,7 +122,7 @@ namespace Worsen.Presentation.Camera
 
         public void PlayDetectionBeat()
         {
-            if (_state == null || _state.DeathSnapped || !isActiveAndEnabled) return;
+            if (_state == null || _state.DeathSnapped || !_state.PunchEnabled || !isActiveAndEnabled) return;
             _presenter.PlayDetectionBeat(_state);
             _impulse.GenerateImpulseWithVelocity(_presenter.DetectionImpulseVelocity(_config));
         }
@@ -213,7 +221,7 @@ namespace Worsen.Presentation.Camera
             _presenter.Tick(_state, _config, _state.DeathSnapped ? Time.unscaledDeltaTime : Time.deltaTime, _outputCamera.aspect);
             _rig.transform.SetPositionAndRotation(_state.Position, _state.Rotation);
             _rig.Lens.FieldOfView = _state.VerticalFieldOfView;
-            _listener.Gain = _state.DeathSnapped ? 0f : _config.PunchIntensity * _config.ShakeIntensity;
+            _listener.Gain = _state.DeathSnapped || !_state.PunchEnabled ? 0f : _config.PunchIntensity * _config.ShakeIntensity;
             _brain.ManualUpdate();
             if (!holdStarted && _state.CatchHoldStarted) CatchHoldStarted?.Invoke(_state.PlayerId);
             if (_state != null && !holdEnded && _state.CatchHoldEnded) CatchHoldEnded?.Invoke(_state.PlayerId);

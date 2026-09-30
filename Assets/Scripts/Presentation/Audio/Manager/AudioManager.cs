@@ -13,6 +13,7 @@
 //   Owns AudioDriver and forwards Core facts into its presentation stack.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward runtime category preferences and authoritative pause to the owned Driver.
 //   - Forward catch identity to the Driver's per-run sting admission, guarded by owner readiness.
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
 //   - Forward cue, movement, fractional injury and proximity commands without gameplay rules.
@@ -68,6 +69,8 @@ namespace Worsen.Presentation.Audio
         }
 
         public void PlayCue(CueId cue) { if (_initialized && isActiveAndEnabled) _driver.PlayCue(cue); }
+        public void ApplySettings(PlayerSettingsRecord settings) { if (_initialized) _driver.ApplySettings(settings); }
+        public void SetPaused(bool paused) { if (_initialized) _driver.SetPaused(paused); }
         public void PlayCatchSting(EntityId player) { if (_initialized && isActiveAndEnabled) _driver.PlayCatchSting(player); }
         public void SetProximity(float closeness) { if (_initialized) _driver.SetProximity(closeness); }
         public void SetMovementState(MovementState movement) { if (_initialized) _driver.SetMovementState(movement); }

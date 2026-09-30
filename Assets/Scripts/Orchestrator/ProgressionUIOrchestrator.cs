@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · ProgressionUI target.
 // KEY RESPONSIBILITIES:
+//   - Suppress the legacy terminal shelter when HorrorRun delegates outcomes to Results.
 //   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
 //   - Route display snapshots and UI decisions through paired subscriptions.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
@@ -39,11 +40,13 @@ namespace Worsen.Orchestrator
         private RunSessionManager _run;
         private CameraManager _camera;
         private Func<int> _nextRunSeed;
+        private bool _terminalResults;
         public void Configure(ProgressionSessionManager progression, ProgressionUIManager ui,
-            RunSessionManager run = null, CameraManager camera = null, Func<int> nextRunSeed = null)
+            RunSessionManager run = null, CameraManager camera = null, Func<int> nextRunSeed = null, bool terminalResults = false)
         {
             OnDisable(); _progression = progression; _ui = ui; _run = run;
             _nextRunSeed = nextRunSeed;
+            _terminalResults = terminalResults;
             _camera = camera;
             if (isActiveAndEnabled) OnEnable();
         }
@@ -79,7 +82,11 @@ namespace Worsen.Orchestrator
             _ui.ResetCatch();
         }
         private void OnSnapshot(ProgressionSnapshot value)
-        { _ui.SetHiddenCount(false); _ui.SetSnapshot(value); }
+        {
+            _ui.SetHiddenCount(false);
+            if (_terminalResults && value.Phase == ProgressionPhase.Ended) _ui.Hide();
+            else _ui.SetSnapshot(value);
+        }
         private void OnTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
         { if (operation == nameof(ProgressionSessionManager.StartRun)) _ui.SetHiddenCount(false); }
         private void OnDeath(EntityId player, Vector3 position) => _ui.PrepareCatch(player);

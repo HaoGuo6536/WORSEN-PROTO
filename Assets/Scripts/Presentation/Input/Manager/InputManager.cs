@@ -12,6 +12,7 @@
 //   Owns PlayerInputDriver; publishes Core input facts for an Orchestrator.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward runtime look overrides and recording-preserving pause gates to the Driver.
 //   - Initialize one persistent service and discard duplicate service roots.
 //   - Pair Driver subscriptions with this component's enabled lifetime.
 //   - Command one frame publication per caller-controlled fixed tick.
@@ -102,6 +103,8 @@ namespace Worsen.Presentation.Input
 
         public bool StartPlayback(RunCaptureMetadata metadata, IReadOnlyList<InputProbeRecord> records) =>
             _initialized && _driver.StartPlayback(metadata, records);
+        public void SetPaused(bool paused) { if (_initialized) _driver.SetPaused(paused); }
+        public void ApplySettings(PlayerSettingsRecord settings) { if (_initialized) _driver.ApplySettings(settings); }
         public bool LoadPlayback(string absolutePath) => _initialized && _driver.LoadPlayback(absolutePath);
         public bool SetSource(InputSource source) => _initialized && _driver.SetSource(source);
         public void BeginRecording(RunCaptureMetadata metadata)

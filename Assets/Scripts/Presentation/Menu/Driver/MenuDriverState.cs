@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Menu.
 // KEY RESPONSIBILITIES:
+//   - Retain the previous engine time scale while an acknowledged pause owns it.
 //   - Store title, pause and settings state without clocks or engine calls.
 // DEPENDENCIES:
 //   Core PlayerSettingsRecord only.
@@ -19,6 +20,8 @@ namespace Worsen.Presentation.Menu
     public sealed class MenuDriverState
     {
         public bool TitleVisible, CanPause, Paused, Pending, SettingsReady;
+        public bool OwnsTimeScale;
+        public float PreviousTimeScale;
         public PlayerSettingsRecord Settings, Draft;
         public string Message = "";
     }

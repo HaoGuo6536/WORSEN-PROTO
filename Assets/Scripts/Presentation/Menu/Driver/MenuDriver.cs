@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Menu.
 // KEY RESPONSIBILITIES:
+//   - Freeze scaled engine work only after Session acknowledges pause; restore on teardown.
 //   - Own the UI Toolkit tree, callbacks and rebind-safe presentation state.
 //   - Expose all player preferences and an explicit save/apply interaction.
 //   - Execute an explicitly routed quit, including clean editor Play Mode exit.
@@ -15,6 +16,7 @@
 // USAGE NOTES:
 //   Scene-owned through MenuManager with its own DriverConfig. QuitApplication owns
 //   application exit only when commanded; clicks alone never quit or pause gameplay.
+//   Owns Time.timeScale during acknowledged pause only, restoring the prior value.
 //   Requires a wired UIDocument PanelSettings; missing wiring is logged, not fabricated.
 // ============================================================================
 using System;
@@ -46,7 +48,7 @@ namespace Worsen.Presentation.Menu
             { Debug.LogWarning("Menu requires MenuDriverConfig and UIDocument PanelSettings.", this); return; }
             Bind();
         }
-        public void ShowTitle() { _presenter.ShowTitle(_state); Apply(); }
+        public void ShowTitle() { SetEnginePaused(false); _presenter.ShowTitle(_state); Apply(); }
         public void QuitApplication()
         {
 #if UNITY_EDITOR
@@ -55,7 +57,15 @@ namespace Worsen.Presentation.Menu
             Application.Quit();
 #endif
         }
-        public void SetRunState(bool canPause, bool paused) { _presenter.SetRunState(_state, canPause, paused); Apply(); }
+        public void SetRunState(bool canPause, bool paused)
+        { _presenter.SetRunState(_state, canPause, paused); SetEnginePaused(_state.Paused); Apply(); }
+        private void SetEnginePaused(bool paused)
+        {
+            if (paused && !_state.OwnsTimeScale)
+            { _state.PreviousTimeScale = Time.timeScale; _state.OwnsTimeScale = true; Time.timeScale = 0f; }
+            else if (!paused && _state.OwnsTimeScale)
+            { Time.timeScale = _state.PreviousTimeScale; _state.OwnsTimeScale = false; }
+        }
         public void SetSettings(PlayerSettingsRecord value) { _presenter.SetSettings(_state, value); Apply(); }
         public void SetSaveResult(bool saved, string message) { _presenter.SetSaveResult(_state, saved, message); Apply(); }
         public void TogglePause()
@@ -83,8 +93,8 @@ namespace Worsen.Presentation.Menu
             if (_presenter.EditSettings(_state, value)) Apply();
         }
         private void OnEnable() { if (_config != null) Bind(); }
-        private void OnDisable() => Unbind();
-        private void OnDestroy() => Unbind();
+        private void OnDisable() { SetEnginePaused(false); Unbind(); }
+        private void OnDestroy() => Teardown();
         private void LateUpdate()
         {
             if (_document == null || _config == null) return;
@@ -161,7 +171,7 @@ namespace Worsen.Presentation.Menu
             _effects.SetValueWithoutNotify(d.EffectsVolume); _message.text = _state.Message;
             if (opening) { if (_state.TitleVisible) _start.Focus(); else if (_state.Paused) _resume.Focus(); }
         }
-        public void Teardown() => Unbind();
+        public void Teardown() { SetEnginePaused(false); Unbind(); }
         private void Unbind()
         {
             if (_start != null) _start.clicked -= OnStart;
