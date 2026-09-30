@@ -16,7 +16,7 @@ constraints:
 ignores:
   - "Assets/Scripts/Domain/Hunter/Driver/HunterDriver.cs"
   - "Assets/Scripts/Domain/Hunter/Driver/HunterAttackDriver.cs"
-  - "Assets/Scripts/Domain/Hunter/Archetypes/Weaver/Driver/WeaverWebDriver.cs"
+  - "Assets/Scripts/Domain/Hunter/Driver/WeaverWebDriver.cs"
   - "Assets/Scripts/Domain/Hunter/Archetypes/Ticking/Driver/TickingDriver.cs"
   - "Assets/Scripts/Domain/Hunter/Archetypes/Stare/Driver/StareDriver.cs"
   - "Assets/Scripts/Session/Expedition/Driver/ExpeditionSpawnDriver.cs"
