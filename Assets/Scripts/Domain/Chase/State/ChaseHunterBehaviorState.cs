@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Stores the continuous sight and loss time for one hunter. The Chase Controller updates these values using only explicit simulation steps.
+//   The last observed archetype loss duration also applies if that source disappears.
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Chase.
 // KEY RESPONSIBILITIES:
@@ -20,5 +21,6 @@ namespace Worsen.Domain.Chase
         internal double NoSightSeconds;
         internal bool Participating;
         internal long SeenTick;
+        internal float LossSeconds;
     }
 }

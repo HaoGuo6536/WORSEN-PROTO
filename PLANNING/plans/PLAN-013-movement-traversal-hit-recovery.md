@@ -98,3 +98,4 @@ Camera presentation of these rules (PLAN-022); per-surface footsteps (removed by
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Grace, boost, look-back, traversal | Hit grace with hunter pass-through, severity boost and look-back steering; Session forwarding of severity and grace; HunterBody and HunterRouteGate layers; slope-freeze fix (initial capsule overlaps depenetrate) and changes 6–12 with provisional values. Unity batch 5: castle stair ascent passes; five grace/run-ordering tests fail and are queued; camera routing of traversal progress and stumble is outstanding; health, hands, crouch and noise kinds in progress | Commits f67504d, b61ad76, 135484f, 582e4e0, c669ff4 |

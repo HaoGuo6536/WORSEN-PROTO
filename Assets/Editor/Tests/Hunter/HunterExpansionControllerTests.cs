@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Name the intended archetype for each species-specific curse fixture.
+//   - Wait for sound deliberation and retain the miss-stagger floor on cursed recovery.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -176,6 +177,8 @@ namespace Worsen.Tests.Hunter
         {
             Tick(0, false, false);
             Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 0), 0.35f), Is.True);
+            Assert.That(_state.LastKnownPosition, Is.EqualTo(Vector3.zero), "Turn before committing the sound clue.");
+            for (int tick = 1; tick <= 30; tick++) Tick(tick, false, false);
             Assert.That(_state.LastKnownPosition, Is.EqualTo(Vector3.forward * 5f));
             Assert.That(_state.PlayerVisible, Is.False);
             Assert.That(_controller.HearNoise(new NoiseEvent(_player.Id, Vector3.forward * 5f, 1f, 100), 1f), Is.False);
@@ -227,6 +230,8 @@ namespace Worsen.Tests.Hunter
             for (int i = 1; i <= 30; i++) Tick(i, true, false);
             _player.Position = Vector3.forward * 10f;
             for (int i = 31; i <= 56; i++) Tick(i, true, false);
+            Assert.That(_state.LungePhase, Is.EqualTo(HunterLungePhase.Recovery), "Second Wind cannot remove the miss-stagger floor.");
+            for (int i = 57; i <= 58; i++) Tick(i, true, false);
             Assert.That(_state.LungePhase, Is.EqualTo(HunterLungePhase.None));
         }
         [Test] public void ConsumedRoomCannotBecomeANewAttackTarget()

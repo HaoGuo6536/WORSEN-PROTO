@@ -12,6 +12,7 @@
 //   - Traverse physically clear stair risers and verify rounded-edge tread support.
 //   - Preserve open-turn inertia after bounded capsule/floor prediction at path refresh.
 //   - Sample resolved path progress and report stalls without touching motor decisions.
+//   - Probe occluded retreat rooms and apply swept, non-damaging stumble commands.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -82,6 +83,27 @@ namespace Worsen.Domain.Hunter
         }
         public void SetTargetFilter(Func<Collider, bool> filter) { if (_attacks != null) _attacks.SetTargetFilter(filter); }
         public float NoiseTransmission(Vector3 source) => ClearSegment(Position + Vector3.up * _config.EyeHeight, source + Vector3.up * 0.5f) ? 1f : 0.35f;
+        public System.Collections.Generic.IReadOnlyList<int> ProbeOccludedRooms(LevelGraph graph, Vector3 observer)
+        {
+            var rooms = new System.Collections.Generic.List<int>();
+            if (graph == null) return rooms;
+            foreach (LevelRoom room in graph.Rooms)
+            {
+                Vector3 point = new Vector3(room.Center.x, room.Bounds.min.y, room.Center.z);
+                if (!ClearSegment(observer + Vector3.up * _config.EyeHeight, point + Vector3.up * _config.EyeHeight)) rooms.Add(room.Id);
+            }
+            return rooms;
+        }
+        public void ApplyDecisionMotion(Vector3 stumble, Vector3 facing)
+        {
+            if (_state == null || (stumble.sqrMagnitude == 0f && facing.sqrMagnitude == 0f)) return;
+            Vector3 position = Position + Sweep(Position, stumble, false);
+            _state.Steering.Position = position;
+            _state.Steering.Velocity = Vector3.zero;
+            if (facing.sqrMagnitude > 0f) _state.Steering.Forward = facing;
+            transform.SetPositionAndRotation(position, Quaternion.LookRotation(_state.Steering.Forward, Vector3.up));
+            _body.position = position; Physics.SyncTransforms();
+        }
         public void BeginAttackWarning(HunterAttackStyle style, int serial, Vector3 target, float range, float radius, bool split, bool ring)
         { if (_attacks != null) _attacks.BeginWarning(style, serial, target, range, radius, split, ring); }
         public void FireAttack(float speed, float radius) { if (_attacks != null) _attacks.Fire(speed, radius); }

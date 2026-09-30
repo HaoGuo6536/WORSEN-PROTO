@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Hold imported visual assets, palettes, fake-light strengths and strict effect budgets.
 //   - Reference project-owned fake torch and moon profiles; no runtime real lights.
+//   - Tune restrained lantern halos, ground pools, exit fans, thin fog and optional hunter rim.
 // DEPENDENCIES:
 //   - Unity asset references only. Lumen's component API is wrapped by EnvironmentDriver.
 // USAGE NOTES:
@@ -22,6 +23,36 @@ namespace Worsen.Presentation.Environment
     [CreateAssetMenu(fileName = "EnvironmentDriverConfig", menuName = "Worsen/Environment/Driver Config")]
     public sealed class EnvironmentDriverConfig : ScriptableObject
     {
+        [SerializeField, Range(0f, 1f)] private float _lanternHaloStrength = 0.18f;
+        [SerializeField, Min(0f)] private float _groundPoolStrength = 0.35f;
+        [SerializeField, Min(0.01f)] private float _groundPoolRadius = 4f;
+        [SerializeField, Range(0.1f, 5f)] private float _groundPoolSoftness = 3f;
+        [SerializeField, Range(1f, 179f)] private float _groundPoolCone = 130f;
+        [SerializeField, Range(1, 9)] private int _exitRayCount = 5;
+        [SerializeField, Range(0f, 80f)] private float _exitRaySpread = 30f;
+        [SerializeField] private Vector2 _exitRaySize = new Vector2(0.45f, 4f);
+        [SerializeField, Min(0f)] private float _exitRayClosedIntensity = 0.04f;
+        [SerializeField, Min(0f)] private float _exitRayOpenIntensity = 0.65f;
+        [SerializeField, Range(0f, 1f)] private float _thinFogLimit = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float _fogBoundaryStrength = 0.08f;
+        [SerializeField] private bool _hunterRimEnabled = false;
+        [SerializeField, Range(0f, 1f)] private float _hunterRimStrength = 0.08f;
+        [SerializeField, Range(0f, 1f)] private float _darkerLightMultiplier = 0.65f;
+        public float LanternHaloStrength => _lanternHaloStrength;
+        public float GroundPoolStrength => _groundPoolStrength;
+        public float GroundPoolRadius => _groundPoolRadius;
+        public float GroundPoolSoftness => _groundPoolSoftness;
+        public float GroundPoolCone => _groundPoolCone;
+        public int ExitRayCount => _exitRayCount;
+        public float ExitRaySpread => _exitRaySpread;
+        public Vector2 ExitRaySize => _exitRaySize;
+        public float ExitRayClosedIntensity => _exitRayClosedIntensity;
+        public float ExitRayOpenIntensity => _exitRayOpenIntensity;
+        public float ThinFogLimit => _thinFogLimit;
+        public float FogBoundaryStrength => _fogBoundaryStrength;
+        public bool HunterRimEnabled => _hunterRimEnabled;
+        public float HunterRimStrength => _hunterRimStrength;
+        public float DarkerLightMultiplier => _darkerLightMultiplier;
         [SerializeField] private GameObject _wallTorchPrefab;
         [SerializeField] private GameObject _firePrefab;
         [SerializeField] private GameObject[] _wallDecorationPrefabs;

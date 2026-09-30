@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Expose optional re-acquire blur and bounded effect strength.
-//   - Tune the delayed consumption fade without changing global renderer state.
+//   - Tune constant degradation, subtle intrusions and duration-driven blindness.
 //   - Keep runtime envelopes out of shared assets.
 //
 // DEPENDENCIES:
@@ -29,6 +29,16 @@ namespace Worsen.Presentation.PostFX
     [CreateAssetMenu(fileName = "PostFXDriverConfig", menuName = "Worsen/PostFX/Driver Config")]
     public sealed class PostFXDriverConfig : ScriptableObject
     {
+        [SerializeField, Range(0f, 1f)] private float _baselineGrain = 0.08f;
+        [SerializeField, Range(0f, 1f)] private float _baselineChromatic = 0.025f;
+        [SerializeField, Range(0f, 1f)] private float _frameVignette = 0.12f;
+        [SerializeField, Range(0f, 1f)] private float _subtleIntrusionMultiplier = 0.12f;
+        [SerializeField, Range(0f, 1f)] private float _blindnessDarkness = 1f;
+        public float BaselineGrain => _baselineGrain;
+        public float BaselineChromatic => _baselineChromatic;
+        public float FrameVignette => _frameVignette;
+        public float SubtleIntrusionMultiplier => _subtleIntrusionMultiplier;
+        public float BlindnessDarkness => _blindnessDarkness;
         [SerializeField, Range(0f, 1f)] private float _peripheralChromatic = 0.25f;
         [SerializeField, Range(0f, 0.3f)] private float _peripheralDistortion = 0.12f;
         [SerializeField, Range(0f, 1f)] private float _injuryVignette = 0.45f;

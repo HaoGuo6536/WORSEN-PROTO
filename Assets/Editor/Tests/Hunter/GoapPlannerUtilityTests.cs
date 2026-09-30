@@ -11,6 +11,7 @@
 //   - Verify action requirements/effects, optimal cost and deterministic ties.
 //   - Verify explicit bounded/unreachable results and malformed-input rejection.
 //   - Verify Stalk fact requirements, preserved action ordinals and loop-free plans.
+//   - Verify utility ordering shares one expansion budget across candidate goals.
 // DEPENDENCIES:
 //   - Hunter pure planner and definitions; NUnit test framework.
 // USAGE NOTES:
@@ -26,6 +27,17 @@ namespace Worsen.Tests.Hunter
     public sealed class GoapPlannerUtilityTests
     {
         private const ulong Visible = 1, Near = 2, Caught = 4, Hint = 8;
+
+        [Test] public void UtilitySelectsHighestReachableGoalAndBoundsTotalSearch()
+        {
+            var actions = new[] { new GoapActionDefinition(1, 0, 0, Near, 0, 1f) };
+            var goals = new[] { new GoapGoalDefinition(10, Near, 2f), new GoapGoalDefinition(20, Caught, 3f) };
+            var result = GoapPlannerUtility.Select(0, goals, actions, out int goal, 8);
+            Assert.That(goal, Is.EqualTo(10)); Assert.That(result.ActionIds, Is.EqualTo(new[] { 1 }));
+            var bounded = GoapPlannerUtility.Select(0, goals, actions, out _, 1);
+            Assert.That(bounded.Status, Is.EqualTo(GoapPlanStatus.SearchLimitReached));
+            Assert.That(bounded.ExpandedStates, Is.LessThanOrEqualTo(1));
+        }
 
         [Test]
         public void StalkIsAppendedWithoutChangingRecordedActionOrdinals()

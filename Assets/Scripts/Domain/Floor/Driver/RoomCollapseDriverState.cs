@@ -2,7 +2,7 @@
 // RoomCollapseDriverState.cs
 // ============================================================================
 // PURPOSE:
-//   Retains a fixed room-local visual pool and explicit stage playback state.
+//   Retains a fixed room-local visual pool, boundary trigger contacts and stage playback state.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -18,8 +18,10 @@
 //   No persistent singleton, global settings, or independent update loop.
 // ============================================================================
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Floor
 {
@@ -32,6 +34,10 @@ namespace Worsen.Domain.Floor
         public float Elapsed;
         public bool OptionalCracks;
         public FloorLumenGlow Warning;
+        public BoxCollider Boundary;
+        public float BoundaryReach;
+        public Func<Collider, EntityId> ResolveIdentity;
+        public readonly Dictionary<Collider, EntityId> Contacts = new Dictionary<Collider, EntityId>();
         public readonly List<Transform> Hands = new List<Transform>();
         public readonly List<Vector3> HandPositions = new List<Vector3>();
         public readonly List<ParticleSystem> Mist = new List<ParticleSystem>();

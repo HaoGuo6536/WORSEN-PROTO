@@ -12,9 +12,11 @@
 // KEY RESPONSIBILITIES:
 //   - Prove fog and flashlight modifiers affect their real distance outputs.
 //   - Prove enemy warning timing, geometry and phase-triggered sound decisions.
+//   - Prove seeded startle count, spacing, run reset and default-off fog hooks.
+//   - Prove injected run-clock accumulation, invalid-delta rejection and reset boundaries.
 //
 // DEPENDENCIES:
-//   - HorrorPresenter and its states/settings; Core attack samples; NUnit.
+//   - HorrorPresenter, PostFX composition, Core attack samples, NUnit and editor config serialization.
 //
 // USAGE NOTES:
 //   Pure Edit Mode tests. Native Unity lighting and audible playback are separate checks.
@@ -22,6 +24,7 @@
 // ============================================================================
 
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Presentation.Horror;
@@ -34,6 +37,8 @@ namespace Worsen.Tests.Horror
         private HorrorPresenter _presenter;
         private HorrorDriverState _state;
         private HorrorPresentationSettings _settings;
+        private HorrorDriverConfig _config;
+        [TearDown] public void TearDown() => Object.DestroyImmediate(_config);
         [Test]
         public void AuthoritativeFlashlightMatchesSensingAndRejectsStaleOrInvalidAim()
         {
@@ -53,6 +58,7 @@ namespace Worsen.Tests.Horror
         [SetUp]
         public void SetUp()
         {
+            _config = ScriptableObject.CreateInstance<HorrorDriverConfig>();
             _presenter = new HorrorPresenter();
             _state = new HorrorDriverState();
             _settings = new HorrorPresentationSettings
@@ -239,6 +245,125 @@ namespace Worsen.Tests.Horror
             Assert.That(arrow[2], Is.EqualTo(new Vector3(0.25f, 0f, 0.75f)));
             Assert.That(arrow[1], Is.EqualTo(Vector3.forward));
             Assert.That(arrow[4], Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
+        public void RunClockAccumulatesInjectedDeltasAndOnlyRunResetZeroesIt()
+        {
+            Assert.That(_state.RunElapsedSeconds, Is.Zero);
+            Assert.That(_presenter.AdvanceRunClock(_state, 0.25f), Is.True);
+            Assert.That(_presenter.AdvanceRunClock(_state, 0.5f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(0.75d));
+            _presenter.ResetRound(_state);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(0.75d));
+            Assert.That(_presenter.AdvanceRunClock(_state, 1.25f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(2d));
+            _presenter.ResetRun(_state);
+            Assert.That(_state.RunElapsedSeconds, Is.Zero);
+            Assert.That(_presenter.AdvanceRunClock(_state, 0.125f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(0.125d));
+        }
+
+        [TestCase(float.NaN)]
+        [TestCase(float.PositiveInfinity)]
+        [TestCase(float.NegativeInfinity)]
+        [TestCase(-1f)]
+        public void InvalidRunClockDeltasAreRejectedWithoutChangingElapsedTime(float deltaSeconds)
+        {
+            _presenter.AdvanceRunClock(_state, 2f);
+            Assert.That(_presenter.AdvanceRunClock(_state, deltaSeconds), Is.False);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(2d));
+        }
+
+        [Test]
+        public void ZeroDeltaIsAcceptedAndLargeFiniteDeltasUseDoubleAccumulation()
+        {
+            Assert.That(_presenter.AdvanceRunClock(_state, 0f), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.Zero);
+            Assert.That(_presenter.AdvanceRunClock(_state, float.MaxValue), Is.True);
+            Assert.That(_presenter.AdvanceRunClock(_state, float.MaxValue), Is.True);
+            Assert.That(_state.RunElapsedSeconds, Is.EqualTo(2d * float.MaxValue));
+        }
+
+        [Test]
+        public void StartleBudgetCountsSpacesAndSurvivesFloorButNotRunReset()
+        {
+            var random = new System.Random(22);
+            Assert.That(_presenter.TryStartle(_state, _config, 0d, true, random), Is.True);
+            Assert.That(_presenter.TryStartle(_state, _config, 119.99d, true, random), Is.False);
+            Assert.That(_state.StartlesUsed, Is.EqualTo(1));
+            _presenter.ResetRound(_state);
+            Assert.That(_presenter.TryStartle(_state, _config, 120d, true, random), Is.True);
+            Assert.That(_presenter.TryStartle(_state, _config, 240d, true, random), Is.False);
+            Assert.That(_state.StartlesUsed, Is.EqualTo(2));
+            _presenter.ResetRun(_state);
+            Assert.That(_presenter.TryStartle(_state, _config, 0d, true, new System.Random(22)), Is.True);
+        }
+
+        [Test]
+        public void UnearnedInvalidDuplicateOrRewoundRequestsDoNotSpendBudget()
+        {
+            var random = new System.Random(22);
+            foreach (double time in new[] { double.NaN, double.PositiveInfinity, -1d })
+                Assert.That(_presenter.TryStartle(_state, _config, time, true, random), Is.False);
+            Assert.That(_presenter.TryStartle(_state, _config, 1d, false, random), Is.False);
+            Assert.That(_state.StartlesUsed, Is.Zero);
+            Assert.That(_presenter.TryStartle(_state, _config, 1d, true, random), Is.False);
+            Assert.That(_presenter.TryStartle(_state, _config, 0d, true, random), Is.False);
+        }
+
+        [Test]
+        public void ExhaustedIntrusionProducesSubtlePostFXInsteadOfAnotherStartle()
+        {
+            var config = ScriptableObject.CreateInstance<Worsen.Presentation.PostFX.PostFXDriverConfig>();
+            try
+            {
+                var state = new Worsen.Presentation.PostFX.PostFXDriverState();
+                var post = new Worsen.Presentation.PostFX.PostFXPresenter();
+                var random = new System.Random(22);
+                for (int i = 0; i < 3; i++)
+                {
+                    bool startle = _presenter.TryStartle(_state, _config, i * 120d, true, random);
+                    post.PlayIntrusion(state, 2f, startle);
+                    post.Tick(state, config, 0f);
+                    float strength = i < 2 ? 1f : config.SubtleIntrusionMultiplier;
+                    Assert.That(state.Grain, Is.EqualTo(config.BaselineGrain + config.IntrusionGrain * strength));
+                    post.Tick(state, config, 2f);
+                }
+            }
+            finally { Object.DestroyImmediate(config); }
+        }
+
+        [Test]
+        public void ChanceUsesOnlyTheInjectedSeedAndNeverExceedsCount()
+        {
+            var serialized = new SerializedObject(_config);
+            serialized.FindProperty("_earnedStartleChance").floatValue = 0.5f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            var random = new System.Random(22);
+            var oracle = new System.Random(22);
+            int count = 0;
+            for (int i = 0; i < 64; i++)
+            {
+                bool expected = count < 2 && oracle.NextDouble() < 0.5d;
+                Assert.That(_presenter.TryStartle(_state, _config, i * 120d, true, random), Is.EqualTo(expected));
+                if (expected) count++;
+            }
+            Assert.That(_state.StartlesUsed, Is.EqualTo(2));
+        }
+
+        [TestCase(false, false)] [TestCase(true, false)] [TestCase(false, true)] [TestCase(true, true)]
+        public void FogHooksComposeAndCanBeTurnedOff(bool darker, bool eyes)
+        {
+            _presenter.SetLightingHooks(_state, _config, darker, eyes);
+            _presenter.CalculateAtmosphere(_state, _settings, 100f);
+            float distance = darker ? _config.DarkerFogDistanceMultiplier : 1f;
+            Assert.That(_state.FogCurveStart, Is.EqualTo(.08f * distance * (eyes ? _config.CatEyesFogStartMultiplier : 1f)).Within(.00001f));
+            Assert.That(_state.FogCurveEnd, Is.EqualTo(.24f * distance).Within(.00001f));
+            _presenter.SetLightingHooks(_state, _config, false, false);
+            _presenter.CalculateAtmosphere(_state, _settings, 100f);
+            Assert.That(_state.FogCurveStart, Is.EqualTo(.08f).Within(.00001f));
+            Assert.That(_state.FogCurveEnd, Is.EqualTo(.24f).Within(.00001f));
         }
 
         private HorrorAttackVisual Present(HorrorAttackDriverState state, int phase, float progress)

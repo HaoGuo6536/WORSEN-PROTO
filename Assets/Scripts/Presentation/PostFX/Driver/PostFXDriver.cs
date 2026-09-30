@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Apply blur preferences immediately to runtime state and the owned volume.
 //   - Own and apply distortion, vignette, desaturation, grain and optional blur.
-//   - Apply terminal tint/exposure only to the owned runtime volume, using unscaled time.
+//   - Apply constant degradation and timed blindness only to the owned runtime volume.
 //   - Destroy the runtime profile and its components on teardown.
 //   - Retain all rendering package types behind this boundary.
 //
@@ -133,10 +133,17 @@ namespace Worsen.Presentation.PostFX
             if (_state != null) _presenter.PlayConsumed(_state, seconds);
         }
 
+        public void PlayIntrusion(float seconds, bool startle)
+        { if (_state != null) _presenter.PlayIntrusion(_state, seconds, startle); }
+
+        public void SetBlindness(float seconds)
+        { if (_state != null) _presenter.SetBlindness(_state, seconds); }
+
         public void ResetEffects()
         {
             if (_state == null) return;
             _presenter.Reset(_state);
+            _presenter.Tick(_state, _config, 0f);
             Apply();
         }
 
@@ -176,7 +183,7 @@ namespace Worsen.Presentation.PostFX
             _color.saturation.Override(_state.Saturation);
             _color.colorFilter.Override(_state.SceneTint);
             _color.postExposure.Override(_state.Exposure);
-            _color.colorFilter.overrideState = _state.Consumed;
+            _color.colorFilter.overrideState = _state.Consumed || _state.Blackout > 0f;
             _color.postExposure.overrideState = _state.Consumed;
             _grain.intensity.Override(_state.Grain);
             _blur.active = _state.Blur > 0f;

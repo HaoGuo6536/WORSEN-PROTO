@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve the runtime blur override independently of effect resets.
 //   - Retain proximity, injury and explicit effect countdowns.
-//   - Retain terminal blackout independently until an explicit reset.
+//   - Retain independent loud/subtle intrusion and default-off blindness countdowns.
 //   - Carry primitive volume values without holding a live volume.
 //
 // DEPENDENCIES:
@@ -37,6 +37,8 @@ namespace Worsen.Presentation.PostFX
         public bool LookBack;
         public float Injury;
         public float IntrusionRemaining;
+        public float SubtleIntrusionRemaining;
+        public float BlindnessRemaining;
         public float BlurRemaining;
         public float Chromatic;
         public float Distortion;

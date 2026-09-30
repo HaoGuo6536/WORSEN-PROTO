@@ -5,13 +5,14 @@
 // PURPOSE:
 //   Stores current flashlight choices and all atmosphere restoration snapshots.
 //   Keeping this data outside the Driver makes effect math and round resets directly testable.
+//   The whole-run gameplay clock and startle history survive generated floor replacement.
 //
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
 //   - Retain externally authoritative flashlight facts without owning gameplay light rules.
-//   - Retain current multiplier outputs, created objects and per-enemy cue state.
+//   - Retain run startle count/clock separately from floor resets and optional fog hooks.
 //   - Retain the exact camera, daylight, and render values to restore on release.
 //   - Retain owned Lumen effect handles and private profile clones for paired cleanup.
 //
@@ -36,6 +37,12 @@ namespace Worsen.Presentation.Horror
     public sealed class HorrorDriverState
     {
         public bool OwnerEnabled;
+        public double RunElapsedSeconds;
+        public int StartlesUsed;
+        public double LastStartleSeconds = double.NegativeInfinity;
+        public double LastIntrusionSeconds = double.NegativeInfinity;
+        public float HookFogDistanceMultiplier = 1f;
+        public float HookFogStartMultiplier = 1f;
         public bool HasAuthoritativeFlashlight;
         public FlashlightSample AuthoritativeFlashlight;
         public bool FlashlightEnabled = true;

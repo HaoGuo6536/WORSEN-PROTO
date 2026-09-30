@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Lock floor health, delayed regeneration, neutral hooks, posture-only crouch and typed noise.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Verify live look, last-third steering, jump cancellation, boost boundaries and bounded traversal locks.
@@ -1039,6 +1040,7 @@ namespace Worsen.Tests.Player
         [Test]
         public void RunModifiersClampHealthAndApplySpeedWithoutMutatingProfile()
         {
+            _controller.SetHealthRecoveryEffects(0f); // Isolate injury speed from passive healing.
             _controller.ApplyRunModifiers(200f, 80f, 1.25f);
             Assert.That(_state.Health, Is.EqualTo(80f));
             Assert.That(_state.MaxHealth, Is.EqualTo(80f));
@@ -1101,6 +1103,163 @@ namespace Worsen.Tests.Player
             Assert.That(_state.RecentNoises[0].Tick, Is.EqualTo(25));
             Assert.That(_state.RecentNoises[15].Tick, Is.EqualTo(40));
             Assert.That(_state.RecentNoises[0].Source, Is.EqualTo(_state.Id));
+        }
+
+        [Test]
+        public void RegenerationWaitsAfterHitAndHealsOnlyTheRemainderOfABoundaryTick()
+        {
+            Assert.That(_profile.HealthRegenerationPerSecond, Is.EqualTo(1.5f));
+            Assert.That(_profile.HealthRegenerationDelay, Is.EqualTo(4f));
+            _controller.ApplyHit(50f);
+            _controller.Tick(Frame(), Ground, 3.75f, 225);
+            Assert.That(_state.Health, Is.EqualTo(50f));
+            _controller.Tick(Frame(), Ground, 0.5f, 255);
+            Assert.That(_state.Health, Is.EqualTo(50.375f));
+            Assert.That(_state.HealthState, Is.EqualTo(PlayerHealthState.Healthy));
+            _controller.Tick(Frame(), Ground, 1f, 315);
+            Assert.That(_state.Health, Is.EqualTo(51.875f));
+        }
+
+        [Test]
+        public void AcceptedHitsRestartDelayButAbsorbedAndInvalidHitsDoNot()
+        {
+            _controller.ApplyHit(10f);
+            _controller.Tick(Frame(), Ground, 0.5f, 30);
+            Assert.That(_controller.ApplyHit(10f).AbsorbedByGrace, Is.True);
+            _controller.ApplyHit(float.NaN);
+            Assert.That(_state.RegenerationDelayRemaining, Is.EqualTo(3.5d));
+            _controller.Tick(Frame(), Ground, 1f, 90);
+            Assert.That(_controller.ApplyHit(10f).Changed, Is.True);
+            _controller.Tick(Frame(), Ground, 4f, 330);
+            Assert.That(_state.Health, Is.EqualTo(80f));
+            _controller.Tick(Frame(), Ground, 0.5f, 360);
+            Assert.That(_state.Health, Is.EqualTo(80.75f));
+        }
+
+        [Test]
+        public void RegenerationUsesProfileRateCapsAtEffectiveMaximumAndNeverRevives()
+        {
+            SetProfileFloat("_healthRegenerationPerSecond", 3f);
+            SetProfileFloat("_healthRegenerationDelay", 2f);
+            _controller.BeginFloorHealth(80f, 1f);
+            _controller.ApplyHit(10f);
+            _controller.Tick(Frame(), Ground, 3f, 180);
+            Assert.That(_state.Health, Is.EqualTo(73f));
+            _controller.Tick(Frame(), Ground, 10f, 780);
+            Assert.That(_state.Health, Is.EqualTo(80f));
+            _controller.ApplyHit(80f);
+            _controller.Tick(Frame(), Ground, 100f, 6780);
+            Assert.That(_state.Health, Is.Zero);
+            Assert.That(_state.HealthState, Is.EqualTo(PlayerHealthState.Dead));
+        }
+
+        [TestCase(0f, 50f)]
+        [TestCase(0.5f, 51.5f)]
+        [TestCase(1f, 53f)]
+        public void HealthHooksScaleRegenerationWithoutChangingTheProfile(float multiplier, float expected)
+        {
+            _controller.SetHealthRecoveryEffects(multiplier);
+            _controller.ApplyHit(50f);
+            _controller.Tick(Frame(), Ground, 6f, 360);
+            Assert.That(_state.Health, Is.EqualTo(expected));
+            Assert.That(_profile.HealthRegenerationPerSecond, Is.EqualTo(1.5f));
+        }
+
+        [Test]
+        public void FloorHealthUsesEffectiveMaximumAndHooksDefaultNeutralAfterLifeReset()
+        {
+            _controller.ApplyHit(60f);
+            _controller.BeginFloorHealth(80f, 1.2f);
+            Assert.That(_state.Health, Is.EqualTo(80f));
+            Assert.That(_state.RegenerationDelayRemaining, Is.Zero);
+            Assert.That(_state.MovementSpeedMultiplier, Is.EqualTo(1.2f));
+            _controller.SetHealthRecoveryEffects(0f, 0.5f);
+            Assert.That(_state.Health, Is.EqualTo(80f), "Setting hooks is not itself a floor start.");
+            _controller.BeginFloorHealth(60f, 1f);
+            Assert.That(_state.Health, Is.EqualTo(30f));
+            Assert.That(_state.MaxHealth, Is.EqualTo(60f));
+            _controller.Reset(new EntityId(2), Vector3.zero, 0f);
+            Assert.That(_state.RegenerationMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.FloorStartHealthFraction, Is.EqualTo(1f));
+            Assert.That(_state.RegenerationDelayRemaining, Is.Zero);
+            _controller.BeginFloorHealth(120f, 1f);
+            Assert.That(_state.Health, Is.EqualTo(120f));
+            Assert.That(_profile.MaximumHealth, Is.EqualTo(100f));
+        }
+
+        [TestCase(float.NaN, 1f)] [TestCase(-1f, 1f)] [TestCase(float.PositiveInfinity, 1f)]
+        [TestCase(1f, 0f)] [TestCase(1f, 1.1f)] [TestCase(1f, float.NaN)]
+        public void InvalidHealthHooksDoNotPartiallyChangeState(float regeneration, float fraction)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.SetHealthRecoveryEffects(regeneration, fraction));
+            Assert.That(_state.RegenerationMultiplier, Is.EqualTo(1f));
+            Assert.That(_state.FloorStartHealthFraction, Is.EqualTo(1f));
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void CrouchChangesNeitherWalkingNorSprintingSpeedNoiseOrCadence(bool sprint)
+        {
+            var uprightState = new PlayerBehaviorState();
+            var upright = new PlayerController(uprightState, _profile, new System.Random(77));
+            upright.Reset(new EntityId(1), Vector3.zero, 0f);
+            InputButtons held = sprint ? InputButtons.Sprint : InputButtons.None;
+            for (int tick = 1; tick <= 120; tick++)
+            {
+                upright.Tick(Frame(Vector2.up, held: held), Ground, Dt, tick);
+                _controller.Tick(Frame(Vector2.up, held: held | InputButtons.Crouch), Ground, Dt, tick);
+                Assert.That(_state.Crouched, Is.True);
+                Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
+                Assert.That(_state.Velocity, Is.EqualTo(uprightState.Velocity));
+                Assert.That(_state.RecentNoises, Is.EqualTo(uprightState.RecentNoises));
+            }
+            Assert.That(Speed, Is.EqualTo(sprint ? _profile.SprintSpeed : _profile.WalkSpeed));
+            Assert.That(_state.RecentNoises.Count, Is.GreaterThan(1));
+        }
+
+        [TestCase("walk", NoiseSourceKind.Footstep)] [TestCase("sprint", NoiseSourceKind.Footstep)]
+        [TestCase("landing", NoiseSourceKind.Landing)] [TestCase("slide", NoiseSourceKind.Slide)]
+        [TestCase("vault", NoiseSourceKind.Vault)] [TestCase("mantle", NoiseSourceKind.Vault)]
+        [TestCase("ledge", NoiseSourceKind.Vault)] [TestCase("rebound", NoiseSourceKind.Rebound)]
+        public void EveryNoiseEmissionCarriesItsSourceKind(string action, NoiseSourceKind expected)
+        {
+            MovementProbe probe = Ground;
+            InputFrame frame = Frame(Vector2.up);
+            float loudness = _profile.TraversalLoudness;
+            _state.Velocity = Vector3.forward * 8f;
+            if (action == "walk" || action == "sprint")
+            {
+                frame = Frame(Vector2.up, held: action == "sprint" ? InputButtons.Sprint : InputButtons.None);
+                loudness = action == "sprint" ? _profile.SprintLoudness : _profile.WalkingLoudness;
+            }
+            else if (action == "slide") { frame = Frame(pressed: InputButtons.Crouch); loudness = _profile.SlideLoudness; }
+            else if (action == "landing")
+            {
+                frame = Frame(); // Do not emit a separate walking step on the landing tick.
+                _state.MovementState = MovementState.Air;
+                _state.Velocity = Vector3.down;
+            }
+            else if (action == "rebound")
+            {
+                _state.MovementState = MovementState.Air;
+                probe = new MovementProbe(false, Vector3.up, true, 0.5f, Vector3.back, 0f, 1);
+                frame = Frame(pressed: InputButtons.Jump);
+            }
+            else
+            {
+                _state.MovementState = MovementState.Air;
+                float height = action == "mantle" ? 1.5f : 1f;
+                probe = new MovementProbe(false, Vector3.up, vaultCandidate: action != "ledge",
+                    vaultHeight: height, vaultClearance: 1.8f, vaultTarget: new Vector3(0f, height, 1f));
+                frame = Frame(pressed: action == "ledge" ? InputButtons.None : InputButtons.Jump);
+            }
+            _controller.Tick(frame, probe, Dt, 7);
+            Assert.That(_state.RecentNoises.Count, Is.EqualTo(1));
+            NoiseEvent noise = _state.RecentNoises[0];
+            Assert.That(noise.SourceKind, Is.EqualTo(expected));
+            Assert.That(noise.Loudness, Is.EqualTo(loudness));
+            Assert.That(noise.Source, Is.EqualTo(_state.Id));
+            Assert.That(noise.Tick, Is.EqualTo(7));
+            Assert.That(noise.Position, Is.EqualTo(_state.Position));
         }
 
         [Test]

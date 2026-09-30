@@ -90,3 +90,4 @@ Partition-ignoring navigation (PLAN-016) and ceiling traversal for the Weaver (P
 
 | Date | Step | Result | Evidence |
 |---|---|---|---|
+| 2026-09-30 | Detector and tooling | Stall detector, corner sweep tool and stall telemetry landed. Sweep host adapter and the Unity sweep remain | Commits 37096f0, 1c02f4d |

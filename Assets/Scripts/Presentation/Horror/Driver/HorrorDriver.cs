@@ -5,6 +5,7 @@
 // PURPOSE:
 //   Sequences a private atmosphere rig, quiet ambience and enemy warning objects from pushed commands.
 //   Pure calculations produce the lighting and attack outputs; sub-drivers own the engine mutations.
+//   A caller-driven gameplay clock keeps intrusion timing continuous across generated floors.
 //
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Horror.
@@ -12,7 +13,8 @@
 // KEY RESPONSIBILITIES:
 //   - Render external light authority independently of camera shake and bank.
 //   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
-//   - Forward camera and volume wiring, apply modifiers, and completely reset warning objects.
+//   - Forward fog hooks and gate intrusions; preserve the run clock and budget across floor resets.
+//   - Delegate validated tick deltas to the Presenter without sampling engine time.
 //
 // DEPENDENCIES:
 //   - Core HunterAttackSample and EntityId; its own Horror presentation stack.
@@ -21,6 +23,7 @@
 //   Scene-owned by HorrorManager. Configure camera, fog volume and daylights before Initialize.
 //   The atmosphere sub-driver exclusively owns global render settings while enabled.
 //   No gameplay polling, global singleton reads or vendor API leaks outside this Driver stack.
+//   RunElapsedSeconds is NaN until initialized; disabled owners cannot advance the clock.
 //
 // ============================================================================
 
@@ -40,6 +43,7 @@ namespace Worsen.Presentation.Horror
         private HorrorDriverConfig _config;
         private HorrorDriverState _state;
         private HorrorPresenter _presenter;
+        private System.Random _startleRandom;
         private HorrorAtmosphereDriver _atmosphere;
         private HorrorAmbienceDriver _ambience;
         public bool IsReady => _state != null && _atmosphere != null && _atmosphere.IsReady
@@ -48,6 +52,7 @@ namespace Worsen.Presentation.Horror
         public float FogCurveStart => _state != null ? _state.FogCurveStart : 0f;
         public float FogCurveEnd => _state != null ? _state.FogCurveEnd : 0f;
         public float FlashlightRange => _state != null ? _state.FlashlightRange : 0f;
+        public double RunElapsedSeconds => _state != null ? _state.RunElapsedSeconds : double.NaN;
 
         public void Initialize(HorrorDriverConfig config)
         {
@@ -61,6 +66,7 @@ namespace Worsen.Presentation.Horror
             }
             _state = new HorrorDriverState();
             _presenter = new HorrorPresenter();
+            _startleRandom = new System.Random();
             var atmosphereObject = new GameObject("Owned horror atmosphere");
             atmosphereObject.transform.SetParent(transform, false);
             _atmosphere = atmosphereObject.AddComponent<HorrorAtmosphereDriver>();
@@ -143,6 +149,30 @@ namespace Worsen.Presentation.Horror
                 _state.Cues.Add(sample.Hunter, cue);
             }
             cue.Apply(visual);
+        }
+
+        public bool AdvanceRunClock(float deltaSeconds)
+            => _state != null && _state.OwnerEnabled && isActiveAndEnabled
+                && _presenter.AdvanceRunClock(_state, deltaSeconds);
+
+        public bool TryStartle(double runSeconds, bool earned)
+            => _state != null && _state.OwnerEnabled && isActiveAndEnabled
+                && _presenter.TryStartle(_state, _config, runSeconds, earned, _startleRandom);
+
+        public void ResetRun(int seed)
+        {
+            if (_state == null) return;
+            ResetRound();
+            _presenter.ResetRun(_state);
+            _startleRandom = new System.Random(seed);
+            ApplyAtmosphere();
+        }
+
+        public void SetLightingHooks(bool darkerFloors, bool catEyes)
+        {
+            if (_state == null) return;
+            _presenter.SetLightingHooks(_state, _config, darkerFloors, catEyes);
+            ApplyAtmosphere();
         }
 
         public void RemoveAttack(EntityId hunter)

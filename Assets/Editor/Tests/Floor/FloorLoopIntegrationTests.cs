@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify physical trigger delivery through the ordinary Manager/router paths.
 //   - Verify golden currency reaches Results and restart creates fresh scene state.
+//   - Accept a density-selected required subset instead of a fixed ten-cake minimum.
 //   - Preserve persistent service identities and event subscription counts.
 // DEPENDENCIES:
 //   - Core, Domain Floor/Player/Hunter/Level, Session Run/SceneFlow and Presentation.
@@ -96,13 +97,15 @@ namespace Worsen.Tests.Floor
             Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
             Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.Zero);
             var anchors = floor.ReadOnlyState.ActiveCakeAnchors.OrderBy(anchor => anchor.Id).ToArray();
-            Assert.That(anchors.Length, Is.EqualTo(floor.ReadOnlyState.RequiredCakeCount).And.GreaterThanOrEqualTo(10));
+            Assert.That(anchors.Length, Is.EqualTo(floor.ReadOnlyState.RequiredCakeCount).And.GreaterThanOrEqualTo(1));
             int[] persistentIds = PersistentIds();
             int oldFloorId = floor.GetInstanceID(), oldPlayerId = player.GetInstanceID(), oldResultsId = results.GetInstanceID();
             int seed = run.Seed;
             var firstRandom = run.RandomSource;
             string firstCapturePath = telemetry.LastOutputPath;
             var summaries = new List<RunSummary>();
+            var ordinaryPickups = new HashSet<int>();
+            Action<PickupCollectedFact> pickupCollected = fact => { if (fact.Kind == PickupKind.Cake) ordinaryPickups.Add(fact.AnchorId); };
             var terminalOrder = new List<string>();
             var phases = new List<RunPhase>();
             int captureEnds = 0, restarts = 0, sceneReady = 0;
@@ -115,6 +118,7 @@ namespace Worsen.Tests.Floor
             Action<RunCaptureMetadata> captureStarted = _ => restarts++;
             Action<SceneKey> ready = scene => { if (scene == SceneKey.FloorLoop) { sceneReady++; restartTick = run.Tick; } };
             run.BeforeTick += neutralInput;
+            floor.OnPickupCollected += pickupCollected;
             run.RunEnded += ended;
             run.CaptureEnded += captureEnded;
             run.PhaseChanged += phaseChanged;
@@ -176,12 +180,12 @@ namespace Worsen.Tests.Floor
                 Assert.That(summaries[0].EndReason, Is.EqualTo(RunEndReason.Escaped));
                 Assert.That(summaries[0].Scene, Is.EqualTo(SceneKey.FloorLoop));
                 Assert.That(summaries[0].Seed, Is.EqualTo(seed));
-                Assert.That(summaries[0].CakesCollected, Is.EqualTo(anchors.Length));
+                Assert.That(summaries[0].CakesCollected, Is.EqualTo(ordinaryPickups.Count).And.GreaterThanOrEqualTo(anchors.Length));
                 Assert.That(summaries[0].GoldenCakesCollected, Is.EqualTo(goldenTotal));
 
                 var resultsRoot = results.GetComponent<UIDocument>().rootVisualElement;
                 Assert.That(resultsRoot.Q<VisualElement>("results").style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                Assert.That(resultsRoot.Q<Label>("cake-total").text, Is.EqualTo(anchors.Length.ToString(CultureInfo.InvariantCulture)));
+                Assert.That(resultsRoot.Q<Label>("cake-total").text, Is.EqualTo(ordinaryPickups.Count.ToString(CultureInfo.InvariantCulture)));
                 Assert.That(resultsRoot.Q<Label>("golden-cake-total").text, Is.EqualTo(goldenTotal.ToString(CultureInfo.InvariantCulture)));
                 Assert.That(resultsRoot.Q<Label>("end-reason").text, Is.EqualTo("Escaped through the exit"));
                 long terminalTick = run.Tick;
@@ -225,6 +229,7 @@ namespace Worsen.Tests.Floor
             }
             finally
             {
+                if (floor != null) floor.OnPickupCollected -= pickupCollected;
                 if (run != null)
                 {
                     run.BeforeTick -= neutralInput;
