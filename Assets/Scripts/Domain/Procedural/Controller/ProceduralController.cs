@@ -19,6 +19,7 @@
 //   - Reserve gaps before growth; separate optional pocket anchors from required candidates.
 //   - Keep the initial hub/loop single-cell; weight subsequent rooms without size fallback.
 //   - Add extension-cell storeys, retain their directed manifest and reject stranded objectives.
+//   - Select independent theme content and stage validated threshold-freeze candidates.
 // DEPENDENCIES:
 //   - Core immutable level contracts and LevelGraphUtility; no Domain siblings.
 // USAGE NOTES:
@@ -51,7 +52,7 @@ namespace Worsen.Domain.Procedural
 
         public static int LayoutSeed(int runSeed, int roundIndex) => unchecked((runSeed * 397) ^ (roundIndex * 7919));
 
-        public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f)
+        public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null)
         {
             Reset();
             ValidateConfig(roundIndex);
@@ -101,6 +102,7 @@ namespace Worsen.Domain.Procedural
             {
                 Seed = runSeed,
                 RoundIndex = roundIndex,
+                Theme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed)),
                 Graph = graph,
                 Cells = Array.AsReadOnly(footprints.SelectMany(c => c).ToArray()),
                 CellSize = _config.RoomSize,
@@ -122,6 +124,7 @@ namespace Worsen.Domain.Procedural
                 out int minimumRooms, out string spawnReport);
             layout.MinimumHunterSpawnRooms = minimumRooms;
             layout.SpawnValidationReport = spawnReport;
+            ProceduralFreezeUtility.Apply(layout, _config);
             ProceduralFootprintUtility.Validate(layout);
             ProceduralStoreyUtility.Validate(layout, _config);
             layout.PresentationRooms = DescribeRooms(layout, spawnRoom.Id);
@@ -483,6 +486,8 @@ namespace Worsen.Domain.Procedural
             text.Append("|Exit:"); Append(text, layout.Graph.ExitPosition);
             foreach (var spawn in layout.HunterSpawnPositions) { text.Append("|H:"); Append(text, spawn); }
             text.Append(ProceduralStoreyUtility.Manifest(layout, _config));
+            text.Append(ProceduralThemeUtility.Manifest(layout.Theme));
+            text.Append(ProceduralFreezeUtility.Manifest(layout));
             return text.ToString();
         }
 

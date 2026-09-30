@@ -13,6 +13,7 @@
 //   - Tune first-contact path separation, bounded retries and world-object density.
 //   - Weight post-hub footprints and gate reserved gaps and optional pocket chains.
 //   - Gate upper storeys in extension cells and mirror the base Player ledge envelope.
+//   - Opt into swappable themes and optional movement/threshold challenge content.
 // DEPENDENCIES:
 //   - UnityEngine serialization only; no other gameplay system.
 // USAGE NOTES:
@@ -29,6 +30,10 @@ namespace Worsen.Domain.Procedural
     [CreateAssetMenu(menuName = "Worsen/Procedural/Config")]
     public sealed class ProceduralConfig : ScriptableObject
     {
+        [SerializeField] private ProceduralThemeConfig _themes = null;
+        [SerializeField] private ProceduralChallengeConfig _challenges = null;
+        public ProceduralThemeConfig Themes => _themes;
+        public ProceduralChallengeConfig Challenges => _challenges;
         [SerializeField] private int _initialRoomCount = 7;
         [SerializeField] private int _roomsPerRound = 2;
         [SerializeField] private int _maximumRoomCount = 15;
