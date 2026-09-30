@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Filter hunter bodies from all capsule/ground queries and this capsule's contacts during grace.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Resolve walkable step support within the capsule footprint without adding horizontal travel.
@@ -19,6 +20,8 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Scene-owned. Owns capsule/kinematic body and visual interpolation; no global side effects. Configuration has a mirrored Resources fallback.
+//   Unity 6 per-collider exclusions avoid a global IgnoreLayerCollision change and restore on end/disable/teardown.
+//   Both current actor bodies are kinematic; their transforms are moved explicitly, not by contact impulses.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -37,16 +40,21 @@ namespace Worsen.Domain.Player
         [SerializeField] private PlayerLimbStandIn _limbs;
         private readonly PlayerDriverState _state = new PlayerDriverState();
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();
+        private static readonly PlayerDriverState SessionWarnings = new PlayerDriverState();
+        public float FixedDeltaTime => Time.fixedDeltaTime;
+        private int MovementMask => _presenter.MovementMask(_config.CollisionMask, _state.HunterBodyLayer, _state.GraceActive);
         public Vector3 Position => _state.Position;
         public float Heading => _state.Heading;
         public Vector3 EyePosition => _presenter.EyePosition(_state, _config.EyeHeight, _config.Height);
 
         public void Initialize()
         {
+            SetGraceActive(false);
             if (_config == null) _config = Resources.Load<PlayerMoverDriverConfig>("ScriptableObjects/Domain/Player/PlayerMoverDriverConfig");
             if (_config == null) throw new InvalidOperationException("Build Player assets before spawning a Player.");
             if (_capsule == null) _capsule = GetComponent<CapsuleCollider>();
             if (_body == null) _body = GetComponent<Rigidbody>();
+            _state.HunterBodyLayer = LayerMask.NameToLayer(_config.HunterBodyLayer);
             _body.isKinematic = true;
             _body.useGravity = false;
             _body.interpolation = RigidbodyInterpolation.None;
@@ -152,11 +160,33 @@ namespace Worsen.Domain.Player
 
         public void Teardown()
         {
+            SetGraceActive(false);
             _state.Ready = false;
             _state.Velocity = Vector3.zero;
             if (_capsule != null) _capsule.enabled = false;
             if (_limbs != null) _limbs.Apply(MovementState.Ground, 0f, Vector3.zero, Vector3.zero);
         }
+
+        public void SetGraceActive(bool active)
+        {
+            if (active && !_state.Ready) return;
+            if (active && _presenter.ShouldWarnMissingHunterLayer(SessionWarnings, _state.HunterBodyLayer))
+                Debug.LogWarning($"Player hunter-body layer '{_config.HunterBodyLayer}' is missing; hit grace still blocks damage, but hunter pass-through is disabled for this session.", this);
+            active &= _state.HunterBodyLayer >= 0;
+            if (_state.GraceActive == active) return;
+            if (active)
+            {
+                _state.OriginalExcludeLayers = _capsule.excludeLayers;
+                _capsule.excludeLayers = _state.OriginalExcludeLayers | (1 << _state.HunterBodyLayer);
+            }
+            else if (_capsule != null) _capsule.excludeLayers = _state.OriginalExcludeLayers;
+            _state.GraceActive = active;
+        }
+
+        private void OnDisable() { SetGraceActive(false); }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSessionWarnings() { SessionWarnings.MissingHunterLayerWarned = false; }
 
         private void LateUpdate()
         {
@@ -178,7 +208,7 @@ namespace Worsen.Domain.Player
         {
             _presenter.Capsule(feet, height, _config.Radius, out Vector3 bottom, out Vector3 top);
             RaycastHit[] hits = Physics.CapsuleCastAll(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                direction, Mathf.Max(0f, distance), _config.CollisionMask, QueryTriggerInteraction.Ignore);
+                direction, Mathf.Max(0f, distance), MovementMask, QueryTriggerInteraction.Ignore);
             closest = default;
             float nearest = float.PositiveInfinity;
             foreach (RaycastHit hit in hits)
@@ -194,7 +224,7 @@ namespace Worsen.Domain.Player
         {
             _presenter.Capsule(feet, height, _config.Radius, out Vector3 bottom, out Vector3 top);
             Collider[] overlaps = Physics.OverlapCapsule(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                _config.CollisionMask, QueryTriggerInteraction.Ignore);
+                MovementMask, QueryTriggerInteraction.Ignore);
             foreach (Collider overlap in overlaps)
                 if (!overlap.transform.IsChildOf(transform)) return true;
             return false;
@@ -238,7 +268,7 @@ namespace Worsen.Domain.Player
                 Vector3 offset = sample < 0 ? forward : Quaternion.Euler(0f, sample * 45f, 0f) * Vector3.forward;
                 Vector3 origin = feet + Vector3.up * _config.SkinWidth + offset * radius;
                 RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, distance,
-                    _config.CollisionMask, QueryTriggerInteraction.Ignore);
+                    MovementMask, QueryTriggerInteraction.Ignore);
                 RaycastHit first = default;
                 float firstDistance = float.PositiveInfinity;
                 foreach (RaycastHit hit in hits)

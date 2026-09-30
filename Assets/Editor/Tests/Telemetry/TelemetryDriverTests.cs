@@ -7,6 +7,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
 //   - Exercise a real invalid output directory and successful temporary file lifecycle.
+//   - Verify observation facts survive the gaps before and after a floor capture.
 // DEPENDENCIES:
 //   - NUnit, Unity test logging, TelemetryDriver and Editor serialization.
 // USAGE NOTES:
@@ -80,6 +81,51 @@ namespace Worsen.Tests.Telemetry
             Assert.That(text, Does.Contain("\"Complete\",\"False\""));
             Assert.That(_driver.EndSession(1, true), Is.False);
         }
+        [Test]
+        public void ObservationJournalRetainsPreCaptureChoicesAndPostCaptureRoundEndOnce()
+        {
+            var observations = new TelemetryObservationPresenter();
+            var before = Snapshot(ProgressionPhase.Exploring, 1, 12);
+            var next = Snapshot(ProgressionPhase.ChooseThreat, 2, 6);
+            var choice = TelemetryCsvPresenter.Observation(0, TelemetrySampleKind.ProgressionChoice,
+                ("choice_id", "rusher"), ("choice_kind", "Threat"));
+            _driver.RecordObservation(choice, _folder);
+            string path = _driver.LastObservationOutputPath;
+            _driver.RecordGeneration(new ProgressionGenerationRequest(1, 2147483647, 1, false, default), 0);
+            _driver.BeginSession(Metadata(), _folder);
+            Assert.That(_driver.EndSession(10, true), Is.True);
+            _driver.RecordProgression(before, next, "EarlyBail", "", 10);
+            var stall = observations.Stall(new EntityId(8), "rusher", 9, Vector3.zero, 2,
+                3.25, 0.2f, 0.35f, 0.4f, "Chase", new Vector3[0], null, 2147483647);
+            _driver.RecordObservation(stall);
+            Assert.That(_driver.LastObservationOutputPath, Is.EqualTo(path));
+            Assert.That(_driver.LastObservationError, Is.Empty);
+            _driver.Suspend();
+            string text = File.ReadAllText(path);
+            foreach (TelemetrySampleKind kind in new[] { TelemetrySampleKind.ProgressionChoice, TelemetrySampleKind.RoundStarted,
+                TelemetrySampleKind.FloorSeed, TelemetrySampleKind.RoundEnded, TelemetrySampleKind.WalletChanged, TelemetrySampleKind.HunterStall })
+                Assert.That(Regex.Matches(text, "\"" + kind + "\"").Count, Is.EqualTo(1), kind.ToString());
+            Assert.That(text, Does.Contain("\"-6\",\"6\",\"EarlyBail\""));
+            Assert.That(text, Does.Contain("\"2147483647\""));
+            Assert.That(File.ReadAllText(_driver.LastOutputPath), Does.Not.Contain("HunterStall"),
+                "Observation facts must not alter the legacy measurement stream.");
+        }
+        [Test]
+        public void ObservationOutputFailureIsVisibleAndDoesNotInventSuccessOrRetryRows()
+        {
+            _driver.Initialize(path => throw new UnauthorizedAccessException("fixture permission denied"));
+            LogAssert.Expect(LogType.Error, new Regex("^Telemetry observation write failed:.*permission denied"));
+            _driver.RecordObservation(TelemetryCsvPresenter.Observation(0, TelemetrySampleKind.FloorSeed,
+                ("generation_seed", 123)), _folder);
+            Assert.That(_driver.LastObservationError, Does.Contain("permission denied"));
+            Assert.That(_driver.LastObservationOutputPath, Is.Empty);
+            _driver.RecordObservation(TelemetryCsvPresenter.Observation(1, TelemetrySampleKind.FloorSeed,
+                ("generation_seed", 124)), _folder);
+            Assert.That(_driver.LastObservationOutputPath, Is.Empty);
+        }
+        private static ProgressionSnapshot Snapshot(ProgressionPhase phase, int round, int wallet) =>
+            new ProgressionSnapshot(1, 1, round, 777, wallet, 1, 1, phase, 100, 100,
+                null, null, null, default, "", false, false);
         private static RunCaptureMetadata Metadata() => new RunCaptureMetadata("fixture", 1, 0.1f, "s", "c", "order", 0);
     }
 }

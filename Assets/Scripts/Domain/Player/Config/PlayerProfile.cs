@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Content SO (§4b) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Tune grace duration and independent light/heavy hit recovery speed and duration.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 // DEPENDENCIES:
@@ -63,6 +64,11 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _lookBackSteerAuthority = 0.35f;
         [SerializeField] private float _maximumHealth = 100f;
         [SerializeField] private float _lungeDamage = 50f;
+        [SerializeField, Min(0f)] private float _hitGraceSeconds = 1.2f;
+        [SerializeField, Min(0f)] private float _lightHitSpeedBoost = 0.12f;
+        [SerializeField, Min(0f)] private float _lightHitBoostSeconds = 0.6f;
+        [SerializeField, Min(0f)] private float _heavyHitSpeedBoost = 0.25f;
+        [SerializeField, Min(0f)] private float _heavyHitBoostSeconds = 1.2f;
         [SerializeField] private float _injuredThreshold = 50f;
         [SerializeField] private float _criticalThreshold = 25f;
         [SerializeField] private float _injuredSpeedMultiplier = 0.95f;
@@ -110,6 +116,11 @@ namespace Worsen.Domain.Player
         public float LookBackSteerAuthority => _lookBackSteerAuthority;
         public float MaximumHealth => _maximumHealth;
         public float LungeDamage => _lungeDamage;
+        public float HitGraceSeconds => _hitGraceSeconds;
+        public float LightHitSpeedBoost => _lightHitSpeedBoost;
+        public float LightHitBoostSeconds => _lightHitBoostSeconds;
+        public float HeavyHitSpeedBoost => _heavyHitSpeedBoost;
+        public float HeavyHitBoostSeconds => _heavyHitBoostSeconds;
         public float InjuredThreshold => _injuredThreshold;
         public float CriticalThreshold => _criticalThreshold;
         public float InjuredSpeedMultiplier => _injuredSpeedMultiplier;

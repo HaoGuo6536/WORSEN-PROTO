@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
 //   - Prevent a pending escape from bypassing already queued lethal contact.
+//   - Supply the unified escape route's explicit non-bail flag.
 //   - Close completed capture before announcing Results and input shutdown.
 // DEPENDENCIES:
 //   - Run Session, Player Factory, reproducible Player assets and Unity Test Framework.
@@ -67,7 +68,7 @@ namespace Worsen.Tests.Run
                 Assert.That(order, Is.Empty, "A surviving accepted hit must keep capture and gameplay running.");
                 long beforeTerminal = run.Tick;
                 Invoke(run, "HandleExitOpened", beforeTerminal);
-                Invoke(run, "HandleExitReached", new ExitReachedFact(id, beforeTerminal));
+                Invoke(run, "HandleExitReached", new ExitReachedFact(id, beforeTerminal), false);
                 Invoke(run, "QueueHit", new HunterHit(new EntityId(-1), id, 50, beforeTerminal, Vector3.right));
                 Invoke(run, "FixedUpdate");
                 Assert.That(run.Phase, Is.EqualTo(RunPhase.Ended));

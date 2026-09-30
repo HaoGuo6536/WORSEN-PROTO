@@ -12,11 +12,13 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward hit severity/source, advance recovery without rewinding, and relay Player grace facts.
 //   - Relay committed pickup, hand, destruction and hunter sound facts without audio decisions.
 //   - Publish committed hunter attack telegraphs and prepare independently seeded generated floors.
 //   - Maintain one persistent canonical run and one shared seeded random source.
 //   - Request synchronous input publication immediately before each fixed tick.
 //   - Hand explicit delta time to the Controller and publish completed tick data.
+//   - Consume only Floor's unified escape fact, retaining the early-bail flag.
 //
 // DEPENDENCIES:
 //   - Run Controller, state, and definitions in this system; shared Core types.
@@ -34,6 +36,7 @@
 //   that same source. Scene publisher bindings are detached on disable/load/teardown.
 //   Accepted hits are recorded even before chase confirmation. Terminal outcomes
 //   are committed after facts, then capture closes before input/results notification.
+//   Recovery uses the processing Run tick, not a queued hit's historical timestamp.
 //
 // ============================================================================
 
@@ -70,6 +73,8 @@ namespace Worsen.Session.Run
         public event Action<HunterAttackSample> HunterAttackPublished;
         public event Action<HunterFeedbackEvent> HunterFeedbackPublished;
         public event Action<HunterHit> HitAccepted;
+        public event Action<GraceWindowFact> OnGraceStarted;
+        public event Action<GraceWindowFact> OnGraceEnded;
         public event Action<PickupCollectedFact, Vector3> PickupCollected;
         public event Action<RoomDestructionSample> RoomDestructionPublished;
         public event Action<CollapseHandFact> CollapseHandPublished;
@@ -194,7 +199,10 @@ namespace Worsen.Session.Run
         {
             UnsubscribeGameplay();
             foreach (PlayerManager player in players)
-            { player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath; }
+            {
+                player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
+                player.OnGraceStarted += HandleGraceStarted; player.OnGraceEnded += HandleGraceEnded;
+            }
             foreach (HunterManager hunter in hunters)
             { hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback; }
             if (chase != null)
@@ -209,7 +217,7 @@ namespace Worsen.Session.Run
                 floor.OnPickupCollected += HandlePickup;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
-                floor.OnExitReached += HandleExitReached;
+                floor.OnEscapeResolved += HandleExitReached;
                 floor.OnLethalContact += HandleLethal;
                 floor.OnDisplayChanged += HandleFloorDisplay;
                 floor.OnRoomDestruction += HandleRoomDestruction;
@@ -225,7 +233,11 @@ namespace Worsen.Session.Run
         private void UnsubscribeGameplay()
         {
             foreach (PlayerManager player in players)
-                if (player != null) { player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath; }
+                if (player != null)
+                {
+                    player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath;
+                    player.OnGraceStarted -= HandleGraceStarted; player.OnGraceEnded -= HandleGraceEnded;
+                }
             foreach (HunterManager hunter in hunters) if (hunter != null)
             { hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HandleHunterFeedback; }
             if (chase != null)
@@ -240,7 +252,7 @@ namespace Worsen.Session.Run
                 floor.OnPickupCollected -= HandlePickup;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
-                floor.OnExitReached -= HandleExitReached;
+                floor.OnEscapeResolved -= HandleExitReached;
                 floor.OnLethalContact -= HandleLethal;
                 floor.OnDisplayChanged -= HandleFloorDisplay;
                 floor.OnRoomDestruction -= HandleRoomDestruction;
@@ -312,9 +324,10 @@ namespace Worsen.Session.Run
         {
             PlayerManager target = players.Find(player => player != null && player.Id == hit.Target);
             if (target == null || !target.ReadOnlyState.IsAlive) return;
+            target.AdvanceRecovery(Math.Max(Tick, target.ReadOnlyState.Tick));
             float previousHealth = target.ReadOnlyState.Health;
             int chaseId = state.ActiveChaseId;
-            target.ApplyHit(hit.Damage, hit.HunterPosition);
+            if (!target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source)) return;
             if (target.ReadOnlyState.Health >= previousHealth) return;
             HitAccepted?.Invoke(hit);
             Emit(TelemetrySampleKind.AcceptedHit, hit.Target, hit.Tick, hit.Damage,
@@ -322,6 +335,8 @@ namespace Worsen.Session.Run
             if (chase != null) chase.RecordCatch(hit);
         }
         private void HandleHealth(EntityId player, float health, float maximum) => HealthChanged?.Invoke(player, health, maximum);
+        private void HandleGraceStarted(GraceWindowFact fact) => OnGraceStarted?.Invoke(fact);
+        private void HandleGraceEnded(GraceWindowFact fact) => OnGraceEnded?.Invoke(fact);
         private void HandleDeath(EntityId player, Vector3 killer) => controller.RequestEnd(RunEndReason.Died, player, killer);
         private void HandleChaseStarted(ChaseFact fact)
         {
@@ -355,12 +370,16 @@ namespace Worsen.Session.Run
             { controller.Apply(RunEvent.CollapseStarted); PhaseChanged?.Invoke(state.Phase); }
             RoomPhaseChanged?.Invoke(fact);
         }
-        private void HandleExitReached(ExitReachedFact fact) => controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero);
+        private void HandleExitReached(ExitReachedFact fact, bool bailed) =>
+            controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero, bailed);
         private void HandleLethal(FloorLethalContactFact fact)
         {
             PlayerManager target = players.Find(player => player != null && player.Id == fact.PlayerId);
             if (target != null && target.ReadOnlyState.IsAlive)
+            {
+                target.AdvanceRecovery(Math.Max(Tick, target.ReadOnlyState.Tick));
                 target.ApplyHit(target.ReadOnlyState.Health, target.ReadOnlyState.Position);
+            }
         }
         private void HandleFloorDisplay(FloorDisplaySnapshot snapshot) => FloorDisplayChanged?.Invoke(snapshot);
         private void HandleIntrusion(IntrusionSample sample) => IntrusionPublished?.Invoke(sample);
@@ -402,6 +421,7 @@ namespace Worsen.Session.Run
             PlayerMovementPublished = null;
             HunterAttackPublished = null;
             HunterFeedbackPublished = null; HitAccepted = null; PickupCollected = null;
+            OnGraceStarted = null; OnGraceEnded = null;
             RoomDestructionPublished = null; CollapseHandPublished = null;
             PlayerTraversalPublished = null;
             PlayerProbeRecorded = null;

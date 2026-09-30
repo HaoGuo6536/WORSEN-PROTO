@@ -12,6 +12,7 @@
 //   - Initialize canonical persistent services and scene presentation.
 //   - Bind the generated-floor flow and publish its first player choice.
 //   - Choose fresh expedition seeds at the composition boundary unless fixed replay is selected.
+//   - Bind progression telemetry before the first run starts so round, wallet and choice rows are captured.
 // DEPENDENCIES:
 //   - Session Expedition/Progression/Run/SceneFlow, Domain factory/service APIs,
 //     and Presentation manager APIs. No game rules are implemented here.
@@ -129,6 +130,7 @@ namespace Worsen.Orchestrator
             _audio.GetComponent<AudioOrchestrator>().ConfigureCatch(_camera);
             _environmentRoute.Configure(_run, _expedition, _effects, _environment);
             _inputRoute.ConfigureProgression(_progression);
+            _telemetry.GetComponent<TelemetryOrchestrator>().ConfigureProgression(_progression);
             _assembled = true;
             OnEnable();
             _progression.StartRun(runSeed);

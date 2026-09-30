@@ -13,6 +13,7 @@
 //   - Carry tick-stamped identity and immutable values between owning systems.
 //   - Keep event payloads independent of Domain and Presentation implementations.
 //   - Carry optional death, grab, exit timing and depth details for later producers.
+//   - Distinguish a penalized bail from a normal escape without changing EndReason.
 //
 // DEPENDENCIES:
 //   - Core definitions and pure UnityEngine value types only.
@@ -37,7 +38,7 @@ namespace Worsen.Core
             int chasesEscaped, double totalChaseSeconds, RunEndReason endReason, int seed = 0,
             SceneKey scene = SceneKey.None, DeathCause deathCause = DeathCause.None,
             string killerArchetypeId = "", int grabsEscaped = 0, double secondsFromExitOpenToEscape = -1,
-            int depthReached = 0)
+            int depthReached = 0, bool bailed = false)
         {
             ElapsedSeconds = elapsedSeconds;
             CakesCollected = cakesCollected;
@@ -53,6 +54,7 @@ namespace Worsen.Core
             GrabsEscaped = grabsEscaped;
             SecondsFromExitOpenToEscape = secondsFromExitOpenToEscape;
             DepthReached = depthReached;
+            Bailed = bailed;
         }
         public double ElapsedSeconds { get; }
         public int CakesCollected { get; }
@@ -68,5 +70,6 @@ namespace Worsen.Core
         public int GrabsEscaped { get; }
         public double SecondsFromExitOpenToEscape { get; }
         public int DepthReached { get; }
+        public bool Bailed { get; }
     }
 }

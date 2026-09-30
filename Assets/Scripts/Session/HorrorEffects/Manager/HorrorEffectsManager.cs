@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   Own the controller lifecycle and publish light, noise and spatial-effect facts.
 //   Sequence Domain Player/Floor hand outcomes and Progression ward consumption.
+//   Route light/hand damage at the Floor fact tick without rewinding Player recovery.
 //   Apply perk revisions once per registered player and light/noise facts to hunters.
 // DEPENDENCIES:
 //   Core contracts; Domain Player/Hunter registries and managers; Domain Floor manager.
@@ -135,7 +136,8 @@ namespace Worsen.Session.HorrorEffects
             }
             player.SetGrabSpeedMultiplier(result.SpeedMultiplier);
             if (result.Damage <= 0f) return;
-            player.ApplyHit(result.Damage, fact.Position);
+            player.AdvanceRecovery(Math.Max(fact.Tick, player.ReadOnlyState.Tick));
+            player.ApplyHit(result.Damage, fact.Position, HitSeverity.Light, HitSource.Hand);
             if (player.ReadOnlyState != null && !player.ReadOnlyState.IsAlive)
                 eventFloor?.ConfirmCollapseDeath(fact.PlayerId, fact.RoomId);
         }
