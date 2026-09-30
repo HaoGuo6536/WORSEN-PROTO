@@ -159,7 +159,7 @@ namespace Worsen.Tests.Floor
                 One<HunterManager>().gameObject.SetActive(false);
                 Assert.That(HunterRegistry.Items.Count, Is.Zero);
                 trial = new Trial(run, floor, player, One<InputManager>(), One<LevelManager>().ReadOnlyState.Graph,
-                    profile, floorConfig, driverConfig.PathSampleRadius, report);
+                    profile, floorConfig, driverConfig.PathSampleRadius, driverConfig.DirectionCornerSkipDistance, report);
                 trial.Bind();
                 while (!trial.Ended && report.failure.Length == 0 && run.ElapsedSeconds - report.startRunSeconds < 300d &&
                     Time.realtimeSinceStartupAsDouble - wallStart < 360d) yield return null;
@@ -203,7 +203,7 @@ namespace Worsen.Tests.Floor
             private readonly LevelGraph _graph;
             private readonly PlayerProfile _profile;
             private readonly FloorConfig _config;
-            private readonly float _sampleRadius;
+            private readonly float _sampleRadius, _skipDistance;
             private readonly RouteReport _report;
             private Route _route;
             private int _target = -1, _corner;
@@ -218,10 +218,11 @@ namespace Worsen.Tests.Floor
             public bool Ended { get; private set; }
 
             public Trial(RunSessionManager run, FloorManager floor, PlayerManager player, InputManager input,
-                LevelGraph graph, PlayerProfile profile, FloorConfig config, float sampleRadius, RouteReport report)
+                LevelGraph graph, PlayerProfile profile, FloorConfig config, float sampleRadius, float skipDistance, RouteReport report)
             {
                 _run = run; _floor = floor; _player = player; _input = input; _graph = graph; _profile = profile;
-                _config = config; _sampleRadius = sampleRadius; _report = report; _previousPosition = player.ReadOnlyState.Position;
+                _config = config; _sampleRadius = sampleRadius; _skipDistance = skipDistance; _report = report;
+                _previousPosition = player.ReadOnlyState.Position;
                 _lastImprovement = run.ElapsedSeconds;
             }
             public void Bind()
@@ -325,13 +326,13 @@ namespace Worsen.Tests.Floor
             {
                 if (exit)
                 {
-                    var route = Query(0, position, _graph.ExitPosition, _sampleRadius);
+                    var route = Query(0, position, _graph.ExitPosition, _sampleRadius, _skipDistance);
                     if (route != null) yield return route;
                     yield break;
                 }
                 foreach (var anchor in _floor.ReadOnlyState.ActiveCakeAnchors)
                 {
-                    var route = Query(anchor.Id, position, anchor.Position, _sampleRadius);
+                    var route = Query(anchor.Id, position, anchor.Position, _sampleRadius, _skipDistance);
                     if (route != null) yield return route;
                 }
             }
@@ -345,7 +346,9 @@ namespace Worsen.Tests.Floor
                     bool exit = snapshot.Exit == ExitState.Open;
                     var candidates = Candidates(_player.ReadOnlyState.Position, exit).OrderBy(route => route.length).ThenBy(route => route.id).ToArray();
                     var best = candidates.FirstOrDefault();
-                    if (snapshot.HasCue != (best != null)) { Fail("Fresh cue availability disagrees with complete navigation paths."); return; }
+                    // A complete path must produce a cue. Without one, SPEC-004 permits a flagged
+                    // straight-line or held cue, so the oracle only checks complete-path cues.
+                    if (best != null && !snapshot.HasCue) { Fail("Fresh cue is missing although a complete navigation path exists."); return; }
                     if (_previousCueTick >= 0 && snapshot.Exit == _previousCueExit)
                     {
                         double gap = (_run.Tick - _previousCueTick) * (double)Time.fixedDeltaTime;
@@ -367,7 +370,10 @@ namespace Worsen.Tests.Floor
         }
 
         private sealed class Route { public int id; public float length; public Vector3 direction; public Vector3[] corners; }
-        private static Route Query(int id, Vector3 from, Vector3 to, float radius)
+        // Independent oracle for SPEC-004 §2.18: direction is horizontal, measured from the
+        // NavMesh-sampled origin, and skips corners within the configured distance (the
+        // final corner is used when every corner is that close).
+        private static Route Query(int id, Vector3 from, Vector3 to, float radius, float skipDistance = 0f)
         {
             if (!NavMesh.SamplePosition(from, out var start, radius, NavMesh.AllAreas) ||
                 !NavMesh.SamplePosition(to, out var end, radius, NavMesh.AllAreas)) return null;
@@ -377,12 +383,17 @@ namespace Worsen.Tests.Floor
             if (corners.Length < 2) return null;
             float length = 0f;
             for (int index = 1; index < corners.Length; index++) length += Vector3.Distance(corners[index - 1], corners[index]);
-            Vector3 direction = Vector3.zero;
+            Vector3 origin = start.position, direction = Vector3.zero;
             foreach (var point in corners)
             {
-                Vector3 delta = point - from; delta.y = 0f;
-                if (delta.sqrMagnitude <= 0.0001f) continue;
+                Vector3 delta = point - origin; delta.y = 0f;
+                if (delta.sqrMagnitude <= 0.0001f || delta.magnitude <= skipDistance) continue;
                 direction = delta.normalized; break;
+            }
+            if (direction == Vector3.zero)
+            {
+                Vector3 last = corners[corners.Length - 1] - origin; last.y = 0f;
+                if (last.sqrMagnitude > 0.0001f) direction = last.normalized;
             }
             return new Route { id = id, length = length, direction = direction, corners = corners };
         }
