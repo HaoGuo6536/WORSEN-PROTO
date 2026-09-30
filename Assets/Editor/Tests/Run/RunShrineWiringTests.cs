@@ -12,6 +12,7 @@
 //   - Run/Progression, Domain Player/Shrine/Director, Core, NUnit and reflection.
 // USAGE NOTES:
 //   Isolated Edit Mode actors; no scene loads, procedural bake or persistent initialization.
+//   Reset Player registrations and clear the owned canonical reference explicitly on teardown.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -40,6 +41,7 @@ namespace Worsen.Tests.Run
         [SetUp]
         public void SetUp()
         {
+            ResetRegistry();
             Assert.That(PlayerRegistry.Items, Is.Empty);
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
             player = Component<PlayerManager>();
@@ -77,9 +79,13 @@ namespace Worsen.Tests.Run
         {
             if (run != null) run.DetachGameplay();
             if (player != null) player.Teardown();
+            if (ReferenceEquals(ProgressionSessionManager.Instance, progression))
+                typeof(ProgressionSessionManager).GetProperty("Instance").SetValue(null, null);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear();
+            ResetRegistry();
         }
+        private static void ResetRegistry() => typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         private void Bind(ShrineKind kind)
         {
             Set(config, "_availability", new[] { new ShrineAvailability(kind, 1, FearAxis.None) });

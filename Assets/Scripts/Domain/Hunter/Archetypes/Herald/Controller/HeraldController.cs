@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
+//   - Hand out a read-only state view without exposing mutable runtime collections.
 //   - Alternate fixed chase files with injected random pitch and spacing.
 //   - Keep attack pitch fixed and publish deafen/Deaf Landing intent on radius hits.
 // DEPENDENCIES:
@@ -42,6 +43,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Herald
         public HeraldController(HeraldBehaviorState state, HeraldConfig config, System.Random random)
         { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config));
             _random = random ?? throw new ArgumentNullException(nameof(random)); }
+        public IReadOnlyHeraldState ReadOnlyState => _state;
         public bool AllowSharedAttack => false;
         public bool Hold => _state.Warning;
         public long LastTick => _state.LastTick;
