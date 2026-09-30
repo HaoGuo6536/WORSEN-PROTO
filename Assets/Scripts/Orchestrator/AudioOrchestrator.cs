@@ -273,9 +273,9 @@ namespace Worsen.Orchestrator
         private void OnDestruction(RoomDestructionSample sample) { if (_expedition != null) _audio.ObserveRoom(sample); }
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _audio.SetRooms(rooms);
         private void OnSnapshot(ProgressionSnapshot snapshot) { _audio.ObserveProgression(snapshot); RefreshViews(); }
-        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
+        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation, string choiceId)
         {
-            if (operation == nameof(ProgressionSessionManager.StartRun) || current.Phase == ProgressionPhase.Ended)
+            if (operation == ProgressionOperation.StartRun || current.Phase == ProgressionPhase.Ended)
                 _audio.ResetRun();
             _audio.ObserveTransaction(previous, current, operation);
         }

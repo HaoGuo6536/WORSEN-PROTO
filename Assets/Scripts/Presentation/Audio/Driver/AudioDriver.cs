@@ -204,7 +204,7 @@ namespace Worsen.Presentation.Audio
             SetInRun(sample.Phase == ProgressionPhase.Exploring);
             _feedback.Progression(_feedbackState, sample); ApplyFeedback();
         }
-        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation)
+        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation)
         { if (_feedback != null) { _feedback.Transaction(_feedbackState, previous, current, operation); ApplyFeedback(); } }
         public void ObserveExit(FloorDisplaySnapshot sample, Vector3 position)
         { if (_feedback != null) { _feedback.Exit(_feedbackState, sample, position, _soundscape.Config.ExitOpeningThreshold); ApplyFeedback(); } }

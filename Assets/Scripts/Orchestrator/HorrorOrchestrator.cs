@@ -185,9 +185,9 @@ namespace Worsen.Orchestrator
         }
         private void OnTickAdvanced(InputFrame frame, float deltaSeconds, long tick)
         { _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled); _horror.AdvanceRunClock(deltaSeconds); }
-        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
+        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation, string choiceId)
         {
-            if (operation != nameof(ProgressionSessionManager.StartRun)) return;
+            if (operation != ProgressionOperation.StartRun) return;
             _horror.ResetRun(current.Seed);
             _effects?.ResetRun();
             OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects);

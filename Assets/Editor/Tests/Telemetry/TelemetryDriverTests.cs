@@ -8,6 +8,7 @@
 // KEY RESPONSIBILITIES:
 //   - Exercise a real invalid output directory and successful temporary file lifecycle.
 //   - Verify observation facts survive the gaps before and after a floor capture.
+//   - Require typed run starts to close the journal and clear the previous floor seed.
 // DEPENDENCIES:
 //   - NUnit, Unity test logging, TelemetryDriver and Editor serialization.
 // USAGE NOTES:
@@ -87,7 +88,7 @@ namespace Worsen.Tests.Telemetry
         {
             var observations = new TelemetryObservationPresenter();
             var before = Snapshot(ProgressionPhase.Exploring, 1, 12);
-            var next = Snapshot(ProgressionPhase.ChooseThreat, 2, 6);
+            var next = Snapshot(ProgressionPhase.ChooseThreat, 2, 12);
             var choice = TelemetryCsvPresenter.Observation(0, TelemetrySampleKind.ProgressionChoice,
                 ("choice_id", "rusher"), ("choice_kind", "Threat"));
             _driver.RecordObservation(choice, _folder);
@@ -95,7 +96,7 @@ namespace Worsen.Tests.Telemetry
             _driver.RecordGeneration(new ProgressionGenerationRequest(1, 2147483647, 1, false, default), 0);
             _driver.BeginSession(Metadata(), _folder);
             Assert.That(_driver.EndSession(10, true), Is.True);
-            _driver.RecordProgression(before, next, "EarlyBail", "", 10);
+            _driver.RecordProgression(before, next, ProgressionOperation.CompleteFloor, "", 10);
             var stall = observations.Stall(new EntityId(8), "rusher", 9, Vector3.zero, 2,
                 3.25, 0.2f, 0.35f, 0.4f, "Chase", new Vector3[0], null, 2147483647);
             _driver.RecordObservation(stall);
@@ -104,13 +105,40 @@ namespace Worsen.Tests.Telemetry
             _driver.Suspend();
             string text = File.ReadAllText(path);
             foreach (TelemetrySampleKind kind in new[] { TelemetrySampleKind.ProgressionChoice, TelemetrySampleKind.RoundStarted,
-                TelemetrySampleKind.FloorSeed, TelemetrySampleKind.RoundEnded, TelemetrySampleKind.WalletChanged, TelemetrySampleKind.HunterStall })
+                TelemetrySampleKind.FloorSeed, TelemetrySampleKind.RoundEnded, TelemetrySampleKind.HunterStall })
                 Assert.That(Regex.Matches(text, "\"" + kind + "\"").Count, Is.EqualTo(1), kind.ToString());
-            Assert.That(text, Does.Contain("\"-6\",\"6\",\"EarlyBail\""));
+            Assert.That(text, Does.Contain("\"Escaped\""));
+            Assert.That(text, Does.Not.Contain("\"WalletChanged\""), "Normal escape has no retired bail penalty.");
             Assert.That(text, Does.Contain("\"2147483647\""));
             Assert.That(File.ReadAllText(_driver.LastOutputPath), Does.Not.Contain("HunterStall"),
                 "Observation facts must not alter the legacy measurement stream.");
         }
+        [Test]
+        public void TypedStartRunClosesJournalAndClearsPreviousFloorSeed()
+        {
+            _driver.RecordObservation(TelemetryCsvPresenter.Observation(0, TelemetrySampleKind.FloorSeed,
+                ("generation_seed", 123)), _folder);
+            _driver.RecordGeneration(new ProgressionGenerationRequest(1, 123, 1, false, default), 0);
+            string previousPath = _driver.LastObservationOutputPath;
+            _driver.RecordProgression(Snapshot(ProgressionPhase.Exploring, 1, 0),
+                Snapshot(ProgressionPhase.ChooseThreat, 1, 0), ProgressionOperation.StartRun, "", 0);
+            Assert.That(_driver.LastObservationOutputPath, Is.Empty);
+            Assert.That(_driver.LastObservationError, Is.Empty);
+            // FileShare.None proves the previous journal was closed, not just forgotten.
+            using (var previous = new FileStream(previousPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                Assert.That(previous.Length, Is.GreaterThan(0));
+            _driver.RecordObservation(TelemetryCsvPresenter.Observation(0, TelemetrySampleKind.ProgressionChoice,
+                ("choice_id", "rusher"), ("choice_kind", "Threat")), _folder);
+            string currentPath = _driver.LastObservationOutputPath;
+            Assert.That(currentPath, Is.Not.EqualTo(previousPath));
+            _driver.RecordProgression(Snapshot(ProgressionPhase.Shop, 1, 2), Snapshot(ProgressionPhase.Shop, 1, 1),
+                ProgressionOperation.RerollShop, "", 1);
+            _driver.Suspend();
+            string text = File.ReadAllText(currentPath);
+            Assert.That(text, Does.Contain("\"RerollShop\""));
+            Assert.That(text, Does.Not.Contain("\"123\""), "A new run cannot reuse the previous generation seed.");
+        }
+
         [Test]
         public void ObservationOutputFailureIsVisibleAndDoesNotInventSuccessOrRetryRows()
         {

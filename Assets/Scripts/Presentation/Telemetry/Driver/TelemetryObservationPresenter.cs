@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Add fallback evidence and a stable UTF-8 manifest SHA-256 to generation-failure round rows only.
-//   - Emit one wallet row per balance change and one choice row per accepted choice.
+//   - Emit wallet and choice rows from typed operations, preserving legacy output labels.
 //   - Describe round boundaries and generation seeds with named CSV payload fields.
 //   - Format Hunter evidence supplied as primitives, never Hunter-local types.
 //
@@ -41,7 +41,7 @@ namespace Worsen.Presentation.Telemetry
     public sealed class TelemetryObservationPresenter
     {
         public IEnumerable<TelemetrySample> Transaction(ProgressionSnapshot before, ProgressionSnapshot after,
-            string operation, string choiceId, long tick, int? floorSeed, bool? usedFallback = null, string layoutManifest = null)
+            ProgressionOperation operation, string choiceId, long tick, int? floorSeed, bool? usedFallback = null, string layoutManifest = null)
         {
             bool ended = before.Phase == ProgressionPhase.Exploring &&
                 (after.Round != before.Round || after.Phase == ProgressionPhase.Ended);
@@ -58,12 +58,41 @@ namespace Worsen.Presentation.Telemetry
             if (before.Wallet != after.Wallet)
                 yield return TelemetryCsvPresenter.Observation(tick, TelemetrySampleKind.WalletChanged,
                     ("round_index", before.Round), ("generation_id", before.GenerationId), ("generation_seed", floorSeed),
-                    ("wallet_delta", (long)after.Wallet - before.Wallet), ("wallet_balance", after.Wallet), ("wallet_reason", operation));
-            string kind = operation == "ChooseThreat" ? "Threat" : operation == "ChooseCurse" ? "Curse" :
-                operation == "Purchase" ? "Purchase" : null;
+                    ("wallet_delta", (long)after.Wallet - before.Wallet), ("wallet_balance", after.Wallet), ("wallet_reason", OperationLabel(operation)));
+            string kind = operation == ProgressionOperation.ChooseThreat ? "Threat" : operation == ProgressionOperation.ChooseCurse ? "Curse" :
+                operation == ProgressionOperation.Purchase ? "Purchase" : null;
             if (kind != null)
                 yield return TelemetryCsvPresenter.Observation(tick, TelemetrySampleKind.ProgressionChoice,
                     ("round_index", after.Round), ("choice_id", choiceId), ("choice_kind", kind));
+        }
+
+        private static string OperationLabel(ProgressionOperation operation)
+        {
+            switch (operation)
+            {
+                case ProgressionOperation.StartRun: return "StartRun";
+                case ProgressionOperation.ChooseThreat: return "ChooseThreat";
+                case ProgressionOperation.ChooseCurse: return "ChooseCurse";
+                case ProgressionOperation.TakeBargain: return "TakeBargain";
+                case ProgressionOperation.Purchase: return "Purchase";
+                case ProgressionOperation.ReservePurchase: return "ReservePurchase";
+                case ProgressionOperation.RerollShop: return "RerollShop";
+                case ProgressionOperation.RerollSelection: return "RerollSelection";
+                case ProgressionOperation.CancelReplacement: return "CancelReplacement";
+                case ProgressionOperation.ContinueShop: return "ContinueShop";
+                case ProgressionOperation.ConfirmFloorReady: return "ConfirmFloorReady";
+                case ProgressionOperation.FailGeneration: return "FailGeneration";
+                case ProgressionOperation.CompleteFloor: return "CompleteFloor";
+                case ProgressionOperation.RecordGoldenCollected: return "RecordGoldenCollected";
+                case ProgressionOperation.TryConsumeWaxWard: return "TryConsumeWaxWard";
+                case ProgressionOperation.CycleConsumable: return "CycleConsumable";
+                case ProgressionOperation.TryConsumeSelected: return "TryConsumeSelected";
+                case ProgressionOperation.TryConsumeExtraLife: return "TryConsumeExtraLife";
+                case ProgressionOperation.RecordHealth: return "RecordHealth";
+                case ProgressionOperation.EndRun: return "EndRun";
+                case ProgressionOperation.ActivateShrine: return "ActivateShrine";
+                default: throw new System.ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported progression operation.");
+            }
         }
 
         public static string ManifestHash(string manifest)

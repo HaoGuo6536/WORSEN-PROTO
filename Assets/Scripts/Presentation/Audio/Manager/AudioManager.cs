@@ -104,7 +104,7 @@ namespace Worsen.Presentation.Audio
         public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObserveRoom(sample, position); }
         public void ObserveHealth(EntityId id, float health, float maximum) { if (_initialized && isActiveAndEnabled) _driver.ObserveHealth(id, health, maximum); }
         public void ObserveProgression(ProgressionSnapshot sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgression(sample); }
-        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation) { if (_initialized) _driver.ObserveTransaction(previous, current, operation); }
+        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation) { if (_initialized) _driver.ObserveTransaction(previous, current, operation); }
         public void ObserveExit(FloorDisplaySnapshot sample, Vector3 position) { if (_initialized) _driver.ObserveExit(sample, position); }
         public void SetWorld(LevelGraph graph, System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { if (_initialized) _driver.SetWorld(graph, doors); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_initialized) _driver.SetActiveEffects(effects); }

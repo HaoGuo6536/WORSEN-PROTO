@@ -57,7 +57,7 @@ namespace Worsen.Presentation.Telemetry
         public void RecordObservation(TelemetrySample sample) { if (_initialized) _driver.RecordObservation(sample); }
         public void RecordMicroEvent(int kind, int target, Vector3 position, float seconds, bool applied, long tick, int seed)
         { if (_initialized) _driver.RecordMicroEvent(kind, target, position, seconds, applied, tick, seed); }
-        public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choiceId, long tick,
+        public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choiceId, long tick,
             bool? usedFallback = null, string layoutManifest = null)
         { if (_initialized) _driver.RecordProgression(before, after, operation, choiceId, tick, usedFallback, layoutManifest); }
         public void RecordGeneration(ProgressionGenerationRequest request, long tick)
