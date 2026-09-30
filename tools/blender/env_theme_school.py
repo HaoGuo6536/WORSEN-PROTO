@@ -406,15 +406,19 @@ def furniture(p):
     elif n=='prop_classroom_door_leaf':
         # Narrow vertical safety window, kick plate, handle. Separate leaf lets
         # the runtime owner hinge/lock it. The authored pose is closed in its socket.
-        for x,w in ((-.49,.42),(.38,.64)):
+        # One continuous leaf: left stile -0.70..-0.28, window column -0.28..-0.02,
+        # right stile -0.02..0.70 (it previously started at +0.06, leaving a full-height seam).
+        for x,w in ((-.49,.42),(.34,.72)):
             p.box((x,1.34,0),(w,2.68,.06),'mustard')
         p.box((-.15,.57,0),(.26,1.14,.06),'mustard')
         p.box((-.15,2.51,0),(.26,.34,.06),'mustard')
         p.face(-.28,-.02,1.14,2.34,-.005,'glass')
         for y in (1.25,1.45,1.65,1.85,2.05,2.25):
             p.face(-.28,-.02,y,y+.004,-.006,'mortar_lower')
-        p.face(-.7,.7,.08,.31,-.031,'steel')
-        p.box((.52,1.12,-.05),(.05,.20,.04),'steel')
+        # Kick plate wraps both faces; a handle on each side of the leaf.
+        p.box((0,.195,0),(1.40,.23,.066),'steel')
+        for z in (-.05,.05):
+            p.box((.52,1.12,z),(.05,.20,.04),'steel')
         # Two 1.56m leaves fit a 3.2m socket with 2cm jamb/meeting clearances.
         p.vertices = [(x*(1.56/1.4),y,z) for x,y,z in p.vertices]
     elif n=='prop_bookcase':
