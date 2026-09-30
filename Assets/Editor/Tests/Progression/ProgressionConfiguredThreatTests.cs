@@ -9,6 +9,7 @@
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
 //   - Check the shipped roster, all curse families and the first reachable shop.
+//   - Require a pure combat floor between the opening selection and first shop.
 //   - Fail when setup leaves the obsolete placeholder catalog serialized.
 // DEPENDENCIES:
 //   - UnityEditor asset loading, NUnit, Core contracts and Session Progression.
@@ -52,8 +53,12 @@ namespace Worsen.Tests.Progression
             controller.StartRun(731);
             for (int combat = 0; combat < 2; combat++)
             {
-                Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
-                Assert.That(controller.ChooseCurse(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
+                if (combat == 0)
+                {
+                    Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
+                    Assert.That(controller.ChooseCurse(controller.Snapshot().Choices[0].Id, controller.Snapshot().Revision), Is.True);
+                }
+                else Assert.That(controller.Snapshot().Phase, Is.EqualTo(ProgressionPhase.Generating));
                 int generation = controller.GenerationRequest().GenerationId;
                 Assert.That(controller.ConfirmFloorReady(generation), Is.True);
                 Assert.That(controller.CompleteFloor(generation), Is.True);

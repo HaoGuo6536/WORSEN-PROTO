@@ -2,7 +2,7 @@
 // ProgressionConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Defines the expedition's unique curse and upgrade catalog, consumable stock and caps.
+//   Defines legacy effects, shop stock and independent selection/shop cadences.
 //   Designers can tune prices, the early-bail wallet fraction and effect traits
 //   without changing wallet, selection or round-transition code.
 // ARCHITECTURAL ROLE:
@@ -12,6 +12,7 @@
 //   - Set the fraction lost on a bail; the currency debit is rounded down.
 //   - Supply safe defaults for a shop after every two completed combat floors.
 //   - Describe five hunter identities and hunter-dependent plus general curse traits.
+//   - Optionally extend curses and effect admission with the additive catalogue.
 // DEPENDENCIES:
 //   - Unity ScriptableObject serialization and System collection interfaces.
 // USAGE NOTES:
@@ -80,6 +81,8 @@ namespace Worsen.Session.Progression
     [CreateAssetMenu(menuName = "Worsen/Progression/Progression Config")]
     public sealed class ProgressionConfig : ScriptableObject
     {
+        [SerializeField] private EffectCatalogueConfig _effectCatalogue = null;
+        [SerializeField, Min(1)] private int _selectionInterval = 2;
         [SerializeField, Min(2)] private int _shopInterval = 2;
         [SerializeField, Min(1)] private int _maximumActiveThreats = 5;
         [SerializeField, Min(1)] private int _goldenCakeValue = 1;
@@ -134,7 +137,11 @@ namespace Worsen.Session.Progression
             new ProgressionEntryConfig("field-dressing", "FIELD DRESSING", "Restore 35 health immediately. One dressing per visit; no purchase at full health.", price: 2, healing: 35f, repeatable: true),
             new ProgressionEntryConfig("wax-ward", "WAX WARD", "Automatically break the next shadow-hand grab. Carry one charge; one ward per visit.", price: 2, repeatable: true, grantsWaxWard: true)
         };
+        public EffectCatalogueConfig EffectCatalogue => _effectCatalogue;
+        // Combat floors 1, 1+interval, ... select; shop visits never advance this clock.
+        public int SelectionInterval => _selectionInterval;
         public int ShopInterval => _shopInterval;
+        // Retained for serialized compatibility only; selection no longer applies a body cap.
         public int MaximumActiveThreats => _maximumActiveThreats;
         public int GoldenCakeValue => _goldenCakeValue;
         public float EarlyBailWalletFraction => _earlyBailWalletFraction;

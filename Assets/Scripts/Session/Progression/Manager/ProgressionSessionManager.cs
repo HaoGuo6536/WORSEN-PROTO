@@ -12,6 +12,7 @@
 //   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
 //   - Forward the bail flag through the normal guarded floor-completion transaction.
 //   - Publish Core snapshots and newly committed generation requests once.
+//   - Pair every revision with a frozen active-effects view without changing Core DTOs.
 //   - Publish read-only before/after transactions for observational consumers.
 // DEPENDENCIES:
 //   - Progression Config, Controller and BehaviorState; Core progression types.
@@ -39,9 +40,11 @@ namespace Worsen.Session.Progression
         private ProgressionConfig config;
         public static ProgressionSessionManager Instance { get; private set; }
         public event Action<ProgressionSnapshot> SnapshotChanged;
+        public event Action<ProgressionSnapshot, IReadOnlyActiveEffects> EffectsSnapshotChanged;
         public event Action<ProgressionGenerationRequest> GenerationRequested;
         public event Action<ProgressionSnapshot, ProgressionSnapshot, string, string> TransactionCommitted;
         public ProgressionSnapshot Snapshot => controller == null ? default : controller.Snapshot();
+        public ProgressionEffectsSnapshot EffectsSnapshot => controller == null ? default : controller.EffectsSnapshot();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
@@ -115,9 +118,13 @@ namespace Worsen.Session.Progression
 
         private void Publish(int previousGeneration)
         {
-            ProgressionSnapshot snapshot = controller.Snapshot();
+            ProgressionEffectsSnapshot paired = controller.EffectsSnapshot();
+            ProgressionSnapshot snapshot = paired.Progression;
             ProgressionGenerationRequest request = controller.GenerationRequest();
             SnapshotChanged?.Invoke(snapshot);
+            // A legacy listener can synchronously commit a replacement revision.
+            if (state.Revision != snapshot.Revision) return;
+            EffectsSnapshotChanged?.Invoke(snapshot, paired.ActiveEffects);
             if (request.GenerationId != previousGeneration && state.GenerationId == request.GenerationId &&
                 state.Phase == ProgressionPhase.Generating)
                 GenerationRequested?.Invoke(request);
@@ -133,6 +140,7 @@ namespace Worsen.Session.Progression
         {
             if (Instance == this) Instance = null;
             SnapshotChanged = null;
+            EffectsSnapshotChanged = null;
             GenerationRequested = null;
             TransactionCommitted = null;
             controller = null;
