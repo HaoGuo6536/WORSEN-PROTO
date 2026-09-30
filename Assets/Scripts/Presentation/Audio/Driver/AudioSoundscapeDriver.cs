@@ -16,6 +16,7 @@
 //   - Schedule Run 1 into Run 2 without frame-boundary gaps; cancel pending playback on end/reset.
 //   - Refresh spatial loop position/gain without restarting its clip or changing pitch.
 //   - Apply the pure soundscape Presenter and clear playback on disable or reset.
+//   - Supply the seeded cosmetic random source to music loss-episode decisions.
 //   - Stop gameplay loops immediately on death while preserving ambience and one-shots.
 //   - Release each stopped emitter's clip and loop state as well as its voice lease.
 //
@@ -204,7 +205,7 @@ namespace Worsen.Presentation.Audio
             if (_state == null || !_state.OwnerEnabled) return;
             _presenter.Tick(_state, Time.unscaledDeltaTime, _config.AttackSeconds, _config.ReleaseSeconds, _config.ChaseHoldSeconds);
             _musicPresenter.Tick(_music, _state.Threats.Values, _state.Alive, Time.unscaledDeltaTime,
-                AudioSettings.dspTime, _config.RunIntro != null ? (double)_config.RunIntro.samples / _config.RunIntro.frequency : 0, _config);
+                AudioSettings.dspTime, _config.RunIntro != null ? (double)_config.RunIntro.samples / _config.RunIntro.frequency : 0, _config, _state.CosmeticRandom);
             float music = _master * _config.MusicGain * (1f - _state.Duck);
             _layers[0].volume = _music.TensionGain * music; _layers[1].volume = _music.StressGain * music; _layers[2].volume = _music.DangerGain * music;
             _layers[0].pitch = _layers[1].pitch = _music.ImpactPitch;
