@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Session · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Ignore obsolete summary bail metadata at the normal completion boundary.
+//   - Complete only through the normal escape boundary with no bail metadata.
 //   - Reject wrong-scene and repeated summaries without duplicate completion.
 // DEPENDENCIES:
 //   - Core contracts, Session Expedition/Progression, NUnit and Unity Test Framework.
@@ -33,12 +33,11 @@ namespace Worsen.Tests.Expedition
     public sealed class ExpeditionBailTests
     {
         [UnityTest]
-        public IEnumerator SummaryCompletesNormallyExactlyOnceRegardlessOfLegacyBailFlag()
+        public IEnumerator SummaryCompletesNormallyExactlyOnce()
         {
             yield return new EnterPlayMode();
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
             Assert.That(ExpeditionSessionManager.Instance, Is.Null);
-            foreach (bool bailed in new[] { false, true })
             {
                 var progressionRoot = new GameObject("Bail progression");
                 var expeditionRoot = new GameObject("Bail expedition");
@@ -69,10 +68,10 @@ namespace Worsen.Tests.Expedition
                     var handler = typeof(ExpeditionSessionManager).GetMethod("HandleRunEnded", BindingFlags.NonPublic | BindingFlags.Instance);
                     int revision = progression.Snapshot.Revision;
                     handler.Invoke(expedition, new object[] { new RunSummary(1, 0, 0, 0, 0, 0,
-                        RunEndReason.Escaped, scene: SceneKey.FloorLoop, bailed: bailed) });
+                        RunEndReason.Escaped, scene: SceneKey.FloorLoop) });
                     Assert.That(progression.Snapshot.Revision, Is.EqualTo(revision));
                     var summary = new RunSummary(1, 0, 0, 0, 0, 0, RunEndReason.Escaped,
-                        scene: SceneKey.HorrorRun, bailed: bailed);
+                        scene: SceneKey.HorrorRun);
                     handler.Invoke(expedition, new object[] { summary });
                     Assert.That(progression.Snapshot.Wallet, Is.EqualTo(wallet));
                     Assert.That(progression.Snapshot.Revision, Is.EqualTo(revision + 1));
