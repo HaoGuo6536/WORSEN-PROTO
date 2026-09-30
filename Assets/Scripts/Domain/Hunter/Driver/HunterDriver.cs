@@ -13,6 +13,7 @@
 //   - Preserve open-turn inertia after bounded capsule/floor prediction at path refresh.
 //   - Sample resolved path progress and report stalls without touching motor decisions.
 //   - Probe occluded retreat rooms and apply swept, non-damaging stumble commands.
+//   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -81,7 +82,18 @@ namespace Worsen.Domain.Hunter
             _state.PathCooldown = 0f; _state.PathAvailable = false;
             _presenter.SetPath(_state.Steering, Array.Empty<Vector3>());
         }
-        public void SetTargetFilter(Func<Collider, bool> filter) { if (_attacks != null) _attacks.SetTargetFilter(filter); }
+        public void SetTargetFilter(Func<Collider, bool> filter)
+        { if (_state != null) _state.TargetFilter = filter; if (_attacks != null) _attacks.SetTargetFilter(filter); }
+        public void SetEmergence(bool enabled, Vector3 observer, int budget)
+        {
+            if (_state == null) return;
+            if (_state.EmergenceEnabled != enabled) _state.PathCooldown = 0f;
+            _state.EmergenceEnabled = enabled; _state.EmergenceObserver = observer;
+            _state.EmergenceBudget = Mathf.Clamp(budget, 2, 32);
+            if (!enabled) _state.EmergenceCorner = -1;
+        }
+        public void SetLook(Vector3 target, bool looking, bool catchActive)
+        { if (_animation != null) _animation.SetLook(target, looking, catchActive); }
         public float NoiseTransmission(Vector3 source) => ClearSegment(Position + Vector3.up * _config.EyeHeight, source + Vector3.up * 0.5f) ? 1f : 0.35f;
         public System.Collections.Generic.IReadOnlyList<int> ProbeOccludedRooms(LevelGraph graph, Vector3 observer)
         {
@@ -110,6 +122,7 @@ namespace Worsen.Domain.Hunter
         public void TickAttacks(float dt, long tick) { if (_attacks != null) _attacks.Tick(dt, tick); }
         public void Initialize()
         {
+            Teardown();
             if (_config == null) _config = Resources.Load<HunterMotorDriverConfig>("ScriptableObjects/Domain/Hunter/HunterMotorDriverConfig");
             if (_config == null) throw new InvalidOperationException("Generate and wire HunterMotorDriverConfig before initialization.");
             if (_capsule == null) _capsule = GetComponent<CapsuleCollider>();
@@ -119,6 +132,15 @@ namespace Worsen.Domain.Hunter
             _presenter.Reset(_state.Steering, Position, Forward);
             if (_animation == null) _animation = GetComponentInChildren<HunterAnimationDriver>();
             if (_animation != null) _animation.Initialize();
+            if (_animation != null && _animation.IsReady && _animation.State.HasHumanoidRig)
+            {
+                Animator animator = _animation.Animator;
+                _state.IKDriver = animator.GetComponent<HunterAnimatorIKDriver>();
+                if (_state.IKDriver != null && !_state.IKDriver.enabled) _state.IKDriver = null;
+                _state.OwnIKDriver = _state.IKDriver == null;
+                if (_state.OwnIKDriver) _state.IKDriver = animator.gameObject.AddComponent<HunterAnimatorIKDriver>();
+                _state.IKDriver.Bind(animator, transform, _animation.Config, _animation.State);
+            }
             if (_attacks == null) _attacks = GetComponent<HunterAttackDriver>();
             if (_attacks != null) _attacks.Initialize();
         }
@@ -228,6 +250,9 @@ namespace Worsen.Domain.Hunter
             while (corner == 0 && corner < source.Corners.Length && Vector3.Distance(source.Position, source.Corners[corner]) <= _config.CornerTolerance)
                 corner++;
             if (corner <= 0 || corner >= source.Corners.Length - 1) return false;
+            // Precise steering reaches this hidden corner before emerging; no new waypoint,
+            // shortcut or tolerance bypass is introduced into PLAN-014's corner/gap logic.
+            if (corner == _state.EmergenceCorner) return false;
             Vector3 incoming = source.Corners[corner] - source.Corners[corner - 1]; incoming.y = 0f;
             Vector3 outgoing = source.Corners[corner + 1] - source.Corners[corner]; outgoing.y = 0f;
             if (incoming.sqrMagnitude < 0.0001f || outgoing.sqrMagnitude < 0.0001f ||
@@ -322,6 +347,16 @@ namespace Worsen.Domain.Hunter
                 _state.PathAvailable = false;
             if (_state.PathAvailable && _state.RepathActive) return;
             _presenter.SetPath(_state.Steering, _state.PathAvailable ? _state.Path.corners : Array.Empty<Vector3>());
+            _state.EmergenceCorner = -1;
+            if (_state.PathAvailable && _state.EmergenceEnabled)
+            {
+                Vector3[] corners = _state.Steering.Corners;
+                var occluded = new bool[Math.Min(corners.Length, _state.EmergenceBudget)];
+                for (int i = 0; i < occluded.Length; i++)
+                    occluded[i] = !ClearSegment(_state.EmergenceObserver + Vector3.up * _config.EyeHeight,
+                        corners[i] + Vector3.up * _config.EyeHeight, _state.TargetFilter);
+                _state.EmergenceCorner = _routePresenter.EmergenceCorner(corners, occluded, true, _state.EmergenceBudget);
+            }
         }
         private bool RevalidateGap(Vector3 target)
         {
@@ -421,6 +456,15 @@ namespace Worsen.Domain.Hunter
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
         public void Teardown()
         {
+            if (_state != null && _state.IKDriver != null)
+            {
+                _state.IKDriver.Unbind();
+                if (_state.OwnIKDriver)
+                {
+                    _state.IKDriver.enabled = false;
+                    if (Application.isPlaying) Destroy(_state.IKDriver); else DestroyImmediate(_state.IKDriver);
+                }
+            }
             if (_animation != null) _animation.Teardown();
             if (_attacks != null) _attacks.Teardown();
             _state = null;

@@ -12,6 +12,7 @@
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Cache a bounded, physically verified corner-arc prediction until the next path refresh.
 //   - Retain independent observation-only stall history for this life.
+//   - Cache bounded emergence observations and the owned humanoid backend binding.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -42,5 +43,10 @@ namespace Worsen.Domain.Hunter
         public float PathCooldown;
         public float VerticalSpeed;
         public bool PathAvailable;
+        public bool EmergenceEnabled, OwnIKDriver;
+        public int EmergenceBudget, EmergenceCorner = -1;
+        public Vector3 EmergenceObserver;
+        public System.Func<Collider, bool> TargetFilter;
+        public HunterAnimatorIKDriver IKDriver;
     }
 }

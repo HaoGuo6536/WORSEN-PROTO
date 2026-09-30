@@ -15,6 +15,7 @@
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Configure walk speed, chase-relative stalk speed and the player's reveal cone.
 //   - Supply deliberation, utility, prediction, missed-lunge and shared hearing tuning.
+//   - Author habit entries, a tell-only mutation pool and bounded emergence preferences.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
@@ -32,6 +33,18 @@ namespace Worsen.Domain.Hunter
     {
         [SerializeField] private string _archetypeKey = "Hunter";
         [SerializeField] private GameObject _prefab;
+        [Header("Habits and hidden mutations")]
+        [SerializeField] private HunterHabitData[] _habits = {
+            new HunterHabitData(HunterHabitKind.ThresholdPause),
+            new HunterHabitData(HunterHabitKind.TurnToFace),
+            new HunterHabitData(HunterHabitKind.CakeReaction) };
+        [SerializeField] private HunterMutationData[] _mutationPool = System.Array.Empty<HunterMutationData>();
+        [SerializeField] private bool _emergenceBias = true;
+        [SerializeField, Range(2, 32)] private int _emergenceWaypointBudget = 16;
+        public System.Collections.Generic.IReadOnlyList<HunterHabitData> Habits => _habits;
+        public System.Collections.Generic.IReadOnlyList<HunterMutationData> MutationPool => _mutationPool;
+        public bool EmergenceBias => _emergenceBias;
+        public int EmergenceWaypointBudget => Mathf.Clamp(_emergenceWaypointBudget, 2, 32);
         [SerializeField] private float _acceleration = 20f;
         [SerializeField] private float _turnRate = 240f;
         [SerializeField] private float _chaseSpeedMultiplier = 1.12f;
