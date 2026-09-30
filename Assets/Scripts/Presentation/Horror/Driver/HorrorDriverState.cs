@@ -11,6 +11,7 @@
 //   DriverState (§7c) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Store per-floor room phases and the raw/smoothed collapse fraction separately from run hooks.
 //   - Retain injected effect identity view, torch count multiplier and Wick presentation flag.
 //   - Retain externally authoritative flashlight facts without owning gameplay light rules.
 //   - Retain run startle count/clock separately from floor resets and optional fog hooks.
@@ -18,7 +19,7 @@
 //   - Retain owned Lumen effect handles and private profile clones for paired cleanup.
 //
 // DEPENDENCIES:
-//   - Core EntityId; Unity rendering and Lumen references stored without operating on them.
+//   - Core EntityId/RoomPhase; Unity rendering and Lumen references stored without operating on them.
 //
 // USAGE NOTES:
 //   Owned by HorrorDriver; scene-owned and never shared with another system.
@@ -46,6 +47,9 @@ namespace Worsen.Presentation.Horror
         public float HookFogStartMultiplier = 1f;
         public IReadOnlyActiveEffects ActiveEffects;
         public float TorchCountMultiplier = 1f;
+        public readonly Dictionary<int, RoomPhase> CollapseRooms = new Dictionary<int, RoomPhase>();
+        public bool HasCollapseFloor;
+        public float CollapseFraction, SmoothedCollapseFraction;
         public bool Wick;
         public bool HasAuthoritativeFlashlight;
         public FlashlightSample AuthoritativeFlashlight;

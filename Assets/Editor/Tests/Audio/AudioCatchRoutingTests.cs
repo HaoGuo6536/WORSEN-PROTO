@@ -148,9 +148,27 @@ namespace Worsen.Tests.Audio
             else _audio.ResetRun();
             Assert.That(Feedback, Is.Not.SameAs(before));
             Assert.That(Feedback.CatchStingIssued, Is.False);
+            Assert.That(Feedback.HandDeathPlayer.IsValid, Is.False);
             Publish(_camera, "CatchHoldStarted", player);
             Assert.That(Feedback.CatchStingIssued, Is.True);
             Assert.That(Array.Exists(Soundscape.Voices, entry => entry.Remaining > 0f && entry.Cue == (int)CueId.Death), Is.True);
+        }
+
+        [Test]
+        public void ConfirmedHandDeathOverridesEarlierHunterHitOnlyAtCatchStart()
+        {
+            var player = new EntityId(7);
+            _soundscape.ObserveHit(new HunterHit(new EntityId(4), player, 10, 1, Vector3.one));
+            _driver.ObserveHand(new CollapseHandFact(player, 1, CollapseHandEventKind.Consumed, Vector3.zero, 1f, 0f, 2));
+            Assert.That(Feedback.HandDeathPlayer, Is.EqualTo(player));
+            Assert.That(Feedback.CatchStingIssued, Is.False);
+            Assert.That(Array.Exists(Soundscape.Voices, v => v.Remaining > 0 && v.Cue == (int)CueId.Death), Is.False);
+            Publish(_camera, "CatchHoldStarted", player);
+            Publish(_camera, "CatchHoldStarted", player);
+            Assert.That(Array.FindAll(Soundscape.Voices, v => v.Remaining > 0 && v.Cue == (int)CueId.Death).Length, Is.EqualTo(1));
+            Assert.That(Feedback.CatchStingIssued, Is.True);
+            _audio.ResetRun();
+            Assert.That(Feedback.HandDeathPlayer.IsValid, Is.False);
         }
 
         [Test]

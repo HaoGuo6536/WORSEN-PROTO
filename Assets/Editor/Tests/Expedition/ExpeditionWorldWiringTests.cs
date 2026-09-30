@@ -148,6 +148,19 @@ namespace Worsen.Tests.Expedition
         }
 
         [Test]
+        public void SpawnCapacityFailureKeepsActionableReasonAfterCleanup()
+        {
+            const string reason = "hunter-spawn-capacity-shortfall: required=7, admitted=3, shortfall=4, nothingExtras=2";
+            LogAssert.Expect(LogType.Error, new Regex(Regex.Escape(reason)));
+            Call(_expedition, "FailAssembly", 1, new InvalidOperationException(reason));
+            Assert.That(_expedition.AssemblyPhase, Is.EqualTo(ExpeditionAssemblyPhase.Failed));
+            Assert.That(_expedition.LastError, Does.Contain(reason));
+            string source = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"));
+            Assert.That(source, Does.Contain("hunter-spawn-capacity-shortfall: required="));
+            Assert.That(source, Does.Contain("_progression.FailGeneration(generationId, _state.Failure)"));
+        }
+
+        [Test]
         public void EnvironmentalNoiseUsesDirectorOnceAndNoDirectHunterDuplicate()
         {
             var hunter = Hunter(-703);

@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Defines legacy effects and independent selection/shop cadences.
-//   Designers can bind the shop, tune the early-bail wallet fraction and effect traits
+//   Designers can bind the shop, tune curse economy bonuses and effect traits
 //   without changing wallet, selection or round-transition code.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
@@ -11,10 +11,8 @@
 //   - Tune progression events and bind immutable Hunter profiles for mutation-pool reads.
 //   - Delegate offers and economy tuning to EffectCatalogueConfig and ShopConfig.
 //   - Optionally bind provisional shrine rules; unbound assets use documented defaults.
-//   - Set the fraction lost on a bail; the currency debit is rounded down.
-//   - Supply safe defaults for a shop after every two completed combat floors.
-//   - Describe five hunter identities and hunter-dependent plus general curse traits.
-//   - Optionally extend curses and effect admission with the additive catalogue.
+//   - Tune curse economy multipliers and independent selection/shop clocks.
+//   - Describe legacy hunter/curse traits alongside catalogue admission.
 // DEPENDENCIES:
 //   - Domain Hunter profiles supply archetype mutation data, never runtime entity state.
 //   - Unity serialization, Core traits, catalogue and the delegated ShopConfig.
@@ -86,6 +84,7 @@ namespace Worsen.Session.Progression
     [CreateAssetMenu(menuName = "Worsen/Progression/Progression Config")]
     public sealed class ProgressionConfig : ScriptableObject
     {
+        public const float DefaultNothingShopPriceMultiplier = 0.85f;
         [SerializeField] private EffectCatalogueConfig _effectCatalogue = null;
         [SerializeField] private ShopConfig _shopConfig = null;
         [SerializeField] private ShrineProgressionConfig _shrineConfig = null;
@@ -111,7 +110,9 @@ namespace Worsen.Session.Progression
         [SerializeField, Min(2)] private int _shopInterval = 2;
         [SerializeField, Min(1)] private int _maximumActiveThreats = 5;
         [SerializeField, Min(1)] private int _goldenCakeValue = 1;
-        [SerializeField, Range(0f, 1f)] private float _earlyBailWalletFraction = 0.75f;
+        [Header("Curse economy (provisional)")]
+        [SerializeField, Min(1f)] private float _fasterCollapseGoldenCakeMultiplier = 1.15f;
+        [SerializeField, Range(0f, 1f)] private float _nothingShopPriceMultiplier = DefaultNothingShopPriceMultiplier;
         [SerializeField, Min(1f)] private float _initialMaximumHealth = 100f;
         [SerializeField, Min(1f)] private float _minimumMaximumHealth = 30f;
         [SerializeField, Min(1f)] private float _maximumMaximumHealth = 200f;
@@ -164,7 +165,8 @@ namespace Worsen.Session.Progression
         // Retained for serialized compatibility only; selection no longer applies a body cap.
         public int MaximumActiveThreats => _maximumActiveThreats;
         public int GoldenCakeValue => _goldenCakeValue;
-        public float EarlyBailWalletFraction => _earlyBailWalletFraction;
+        public float FasterCollapseGoldenCakeMultiplier => _fasterCollapseGoldenCakeMultiplier;
+        public float NothingShopPriceMultiplier => _nothingShopPriceMultiplier;
         public float InitialMaximumHealth => _initialMaximumHealth;
         public float MinimumMaximumHealth => _minimumMaximumHealth;
         public float MaximumMaximumHealth => _maximumMaximumHealth;

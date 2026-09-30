@@ -3,12 +3,12 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises the completed-run boundary against real Expedition and Progression
-//   managers. Wallet and revision changes prove that bail delivery remains gated
+//   managers. Wallet and revision changes prove that normal completion remains gated
 //   by the current scene and resolves an admitted generation only once.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Session · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Distinguish penalized bails from ordinary escapes at the wallet boundary.
+//   - Ignore obsolete summary bail metadata at the normal completion boundary.
 //   - Reject wrong-scene and repeated summaries without duplicate completion.
 // DEPENDENCIES:
 //   - Core contracts, Session Expedition/Progression, NUnit and Unity Test Framework.
@@ -32,7 +32,7 @@ namespace Worsen.Tests.Expedition
     public sealed class ExpeditionBailTests
     {
         [UnityTest]
-        public IEnumerator SummaryDeliversBailPenaltyOrNormalEscapeExactlyOnce()
+        public IEnumerator SummaryCompletesNormallyExactlyOnceRegardlessOfLegacyBailFlag()
         {
             yield return new EnterPlayMode();
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
@@ -73,8 +73,7 @@ namespace Worsen.Tests.Expedition
                     var summary = new RunSummary(1, 0, 0, 0, 0, 0, RunEndReason.Escaped,
                         scene: SceneKey.HorrorRun, bailed: bailed);
                     handler.Invoke(expedition, new object[] { summary });
-                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(bailed
-                        ? wallet - Mathf.FloorToInt(wallet * config.EarlyBailWalletFraction) : wallet));
+                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(wallet));
                     Assert.That(progression.Snapshot.Revision, Is.EqualTo(revision + 1));
                     Assert.That(expedition.AssemblyPhase, Is.EqualTo(ExpeditionAssemblyPhase.Resolved));
                     handler.Invoke(expedition, new object[] { summary });

@@ -13,7 +13,7 @@
 //   - Supply the Blind trap duration independently of effect catalogue lifetimes.
 //   - Configure grace easing and exact catalogue ids that enable blindness.
 //   - Expose optional re-acquire blur and bounded effect strength.
-//   - Tune constant degradation, subtle intrusions and duration-driven blindness.
+//   - Tune the text-free camcorder frame, constant degradation and timed intrusion/blindness.
 //   - Keep runtime envelopes out of shared assets.
 //
 // DEPENDENCIES:
@@ -31,6 +31,36 @@ namespace Worsen.Presentation.PostFX
     [CreateAssetMenu(fileName = "PostFXDriverConfig", menuName = "Worsen/PostFX/Driver Config")]
     public sealed class PostFXDriverConfig : ScriptableObject
     {
+        [Header("Old camcorder (provisional)")]
+        [SerializeField] private bool _camcorderEnabled = true;
+        [SerializeField, Range(0f, 1f)] private float _camcorderCorners = 0.22f;
+        [SerializeField, Range(0.01f, 1f)] private float _camcorderCornerRadius = 0.25f;
+        [SerializeField, Range(0.01f, 1f)] private float _camcorderCornerSoftness = 0.2f;
+        [SerializeField, Range(0f, 4f)] private float _camcorderEdgeBlurPixels = 1.25f;
+        [SerializeField, Range(0f, 0.99f)] private float _camcorderEdgeStart = 0.65f;
+        [SerializeField, Range(0f, 4f)] private float _tapeJitterPixels = 1.25f;
+        [SerializeField, Range(0f, 4f)] private float _tapeChromaPixels = 0.75f;
+        [SerializeField, Min(0f)] private float _tapeFrequency = 9f;
+        [SerializeField, Min(1f)] private float _tapeLines = 180f;
+        [SerializeField, Min(0.001f)] private float _tapeRiseSeconds = 0.08f;
+        [SerializeField, Min(0.001f)] private float _tapeRelaxSeconds = 0.65f;
+        [SerializeField, Min(0.001f)] private float _tapeHitSeconds = 0.4f;
+        [SerializeField, Range(0f, 1f)] private float _tapeCriticalInjury = 0.75f;
+        public bool CamcorderEnabled => _camcorderEnabled;
+        public float CamcorderCorners => _camcorderCorners;
+        public float CamcorderCornerRadius => _camcorderCornerRadius;
+        public float CamcorderCornerSoftness => _camcorderCornerSoftness;
+        public float CamcorderEdgeBlurPixels => _camcorderEdgeBlurPixels;
+        public float CamcorderEdgeStart => _camcorderEdgeStart;
+        public float TapeJitterPixels => _tapeJitterPixels;
+        public float TapeChromaPixels => _tapeChromaPixels;
+        public float TapeFrequency => _tapeFrequency;
+        public float TapeLines => _tapeLines;
+        public float TapeRiseSeconds => _tapeRiseSeconds;
+        public float TapeRelaxSeconds => _tapeRelaxSeconds;
+        public float TapeHitSeconds => _tapeHitSeconds;
+        public float TapeCriticalInjury => _tapeCriticalInjury;
+
         [SerializeField] private string[] _blindnessEffectIds = { "blinded" };
         [SerializeField, Min(0f)] private float _blindTrapSeconds = 2.5f;
         public float BlindTrapSeconds => _blindTrapSeconds;

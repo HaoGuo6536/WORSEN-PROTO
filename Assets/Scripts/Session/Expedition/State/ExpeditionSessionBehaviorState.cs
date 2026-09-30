@@ -8,13 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Retain accepted run mutations and floor-scoped per-archetype duplicate counters.
-//   - Retain pre-initialization puzzle/freeze facts and deduplicate committed puzzle ticks.
-//   - Retain shield transfer, lamp restoration and physical Golden Cake collection accounting.
-//   - Retain the pending request and assembly phase across the teardown yield.
-//   - Track immutable room presentation and genuine portal crossings for floor-scoped marks.
-//   - Track factory identities for complete, idempotent cleanup.
-//   - Retain generation fallback evidence and capacity shortfalls after failed assembly.
+//   - Retain run mutations and floor-local duplicate indices and requested hunter count.
+//   - Retain pending assembly, factory identities and failure/capacity evidence.
+//   - Retain puzzle/freeze facts and deduplicate committed challenge ticks.
+//   - Retain shield, lamp, pickup and room-crossing state.
 // DEPENDENCIES:
 //   - Core progression, scene and entity definitions; System collections.
 // USAGE NOTES:
@@ -51,6 +48,7 @@ namespace Worsen.Session.Expedition
         public bool UsedFallback { get; internal set; }
         public string LayoutManifest { get; internal set; } = string.Empty;
         public int HunterSpawnShortfall { get; internal set; }
+        internal int RequestedHunterCount;
         internal List<EntityId> Hunters { get; } = new List<EntityId>();
         internal readonly Dictionary<string, int> NextDuplicate = new Dictionary<string, int>(System.StringComparer.Ordinal);
         internal readonly Dictionary<string, Dictionary<HunterTunable, HunterMutation>> Mutations =

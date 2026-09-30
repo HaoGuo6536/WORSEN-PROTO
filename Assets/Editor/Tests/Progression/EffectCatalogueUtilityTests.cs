@@ -62,5 +62,13 @@ namespace Worsen.Tests.Progression
             Assert.That(EffectCatalogueUtility.CopyStatesChange(entry), Is.True);
             Assert.That(entry.OnlyRaisesHunterNumbers, Is.True);
         }
+
+        [TestCase("Hides the cake counter during a floor.")]
+        [TestCase("Once per run, a catch revives you where you fell, with a brief collision grace and temporary damage immunity.")]
+        public void OwnerApprovedHideAndReviveCopyStatesAChange(string copy)
+        {
+            Assert.That(EffectCatalogueUtility.CopyStatesChange(new EffectCatalogueEntry(
+                "test", EffectKind.Curse, FearAxis.Information, "Test", copy)), Is.True);
+        }
     }
 }

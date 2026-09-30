@@ -11,6 +11,7 @@
 //   - Retain the selected physical slot and remaining uses independently of receipts.
 //   - Store drawn identities, sold pedestals, reroll counters and inventory receipts.
 //   - Retain the next-shop discount and fractional Golden Cake yield across floors.
+//   - Remember the run's Extra Life purchase after its active effect is consumed.
 // DEPENDENCIES:
 //   - Core immutable inventory values and System collections only.
 // USAGE NOTES:
@@ -27,6 +28,7 @@ namespace Worsen.Session.Progression.Shop
         public string PendingOfferId { get; internal set; }
         internal int Round, RerollsUsed, FreeRerollsUsed, PaidRerolls;
         internal bool BargainNextVisit, BargainThisVisit;
+        internal bool ExtraLifePurchased;
         internal decimal GoldenRemainder;
         internal int SelectedSlot;
         internal Dictionary<int, int> RemainingUses { get; } = new Dictionary<int, int>();

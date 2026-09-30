@@ -66,14 +66,15 @@ namespace Worsen.Tests.Hunter
             Advance(.6f); Assert.That(_mimic.Holding, Is.False); Assert.That(Facts()[0].Kind, Is.EqualTo(MimicFactKind.BiteEnded));
             Advance(10); Assert.That(_mimic.Touch(_player.Id, out _), Is.False);
         }
-        [Test] public void FaithlessCurseDoesNothingWithoutOwnerOptIn()
+        [Test] public void FaithlessCurseEnablesWindowsWithoutOwnerOptIn()
         {
             _effects = new ActiveEffects(new[] { new ActiveEffect(MimicController.FaithlessArrow, EffectKind.Curse, 99) });
-            Assert.That(_config.AllowFaithlessArrow, Is.False); Advance(100);
-            Assert.That(_mimic.FaithlessEnabled, Is.False); Assert.That(Facts().Exists(f => f.Kind == MimicFactKind.FaithlessWindow), Is.False);
-            EchoControllerTests.Tune(_config, "_allowFaithlessArrow", true); Advance(20);
-            var facts = Facts(); Assert.That(facts.Count, Is.EqualTo(1)); Assert.That(facts[0].Kind, Is.EqualTo(MimicFactKind.FaithlessWindow));
-            Assert.That(facts[0].Seconds, Is.EqualTo(2f)); Assert.That(facts[0].WhiteArrowEligible, Is.False);
+            Advance(100);
+            Assert.That(_mimic.FaithlessEnabled, Is.True);
+            var facts = Facts();
+            Assert.That(facts.Exists(f => f.Kind == MimicFactKind.FaithlessWindow), Is.True);
+            var fact = facts.Find(f => f.Kind == MimicFactKind.FaithlessWindow);
+            Assert.That(fact.Seconds, Is.EqualTo(2f)); Assert.That(fact.WhiteArrowEligible, Is.False);
             _effects = default(ActiveEffects); Advance(100); Assert.That(Facts(), Is.Empty);
         }
         [Test] public void GoldenAndPopulationHooksAreCappedAndGoldenStillExcluded()
