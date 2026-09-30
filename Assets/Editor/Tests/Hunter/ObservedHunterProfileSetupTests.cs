@@ -20,6 +20,7 @@ using Worsen.Domain.Hunter;
 using Worsen.Editor.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ObservedHunterProfileSetupTests
     {
         [TestCase(false, "mannequin", 4)]

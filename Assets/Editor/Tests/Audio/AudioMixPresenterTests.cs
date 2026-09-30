@@ -29,6 +29,7 @@ using Worsen.Presentation.Audio;
 
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioMixPresenterTests
     {
         private AudioMixPresenter _presenter;

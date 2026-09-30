@@ -24,6 +24,7 @@ using Worsen.Domain.Player;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerEffectUtilityTests
     {
         private PlayerProfile _profile;

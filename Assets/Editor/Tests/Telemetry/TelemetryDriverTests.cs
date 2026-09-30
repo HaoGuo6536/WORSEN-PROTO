@@ -26,6 +26,7 @@ using Worsen.Presentation.Telemetry;
 
 namespace Worsen.Tests.Telemetry
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class TelemetryDriverTests
     {
         private GameObject _object;

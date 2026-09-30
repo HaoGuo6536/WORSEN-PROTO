@@ -29,6 +29,7 @@ using Worsen.Domain.Floor;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EchoControllerTests
     {
         private sealed class HunterView : IReadOnlyHunterState

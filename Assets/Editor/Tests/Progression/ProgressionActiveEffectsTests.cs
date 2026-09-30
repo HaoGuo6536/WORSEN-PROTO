@@ -27,6 +27,7 @@ using Worsen.Session.Progression;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionActiveEffectsTests
     {
         private ProgressionConfig config;

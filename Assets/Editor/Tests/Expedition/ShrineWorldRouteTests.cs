@@ -37,6 +37,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ShrineWorldRouteTests
     {
         private readonly List<Object> owned = new List<Object>();

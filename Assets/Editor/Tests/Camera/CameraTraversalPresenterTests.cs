@@ -23,6 +23,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Camera
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CameraTraversalPresenterTests
     {
         private CameraDriverConfig _config;

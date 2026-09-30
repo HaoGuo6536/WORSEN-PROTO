@@ -21,6 +21,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.HorrorEffects
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ConsumableControllerTests
     {
         private HorrorEffectsConfig config;

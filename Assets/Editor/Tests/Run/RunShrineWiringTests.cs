@@ -29,6 +29,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunShrineWiringTests
     {
         private readonly List<Object> owned = new List<Object>();

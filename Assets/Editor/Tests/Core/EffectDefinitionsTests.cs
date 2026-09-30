@@ -20,6 +20,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.Core
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EffectDefinitionsTests
     {
         private static ActiveEffect Entry(string id, int stacks = 1, EffectKind kind = EffectKind.Upgrade) =>

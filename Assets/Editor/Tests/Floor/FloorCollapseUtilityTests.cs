@@ -25,6 +25,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorCollapseUtilityTests
     {
         private static Vector3 Position(int room) => Vector3.right * (room * 10f);

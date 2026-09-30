@@ -37,6 +37,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Telemetry
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class TelemetryObservationPresenterTests
     {
         private readonly TelemetryObservationPresenter presenter = new TelemetryObservationPresenter();

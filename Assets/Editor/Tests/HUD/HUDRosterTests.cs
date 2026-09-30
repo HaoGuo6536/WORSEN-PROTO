@@ -27,6 +27,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDRosterTests
     {
         private static TickingGuidanceFact Threat(int id, bool active, long tick) => new TickingGuidanceFact(

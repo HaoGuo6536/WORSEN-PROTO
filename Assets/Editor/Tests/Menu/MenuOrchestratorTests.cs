@@ -30,6 +30,7 @@ using Worsen.Tests.Settings;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Menu
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class MenuOrchestratorTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

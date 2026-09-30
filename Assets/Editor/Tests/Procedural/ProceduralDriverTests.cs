@@ -31,6 +31,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralDriverTests
     {
         private ProceduralConfig _config;

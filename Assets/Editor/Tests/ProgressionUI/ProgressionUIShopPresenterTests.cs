@@ -22,6 +22,7 @@ using Worsen.Presentation.ProgressionUI;
 
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionUIShopPresenterTests
     {
         private static ProgressionSnapshot Snapshot(bool replacement = false) => new ProgressionSnapshot(

@@ -34,6 +34,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunSessionControllerTests
     {
         [Test]

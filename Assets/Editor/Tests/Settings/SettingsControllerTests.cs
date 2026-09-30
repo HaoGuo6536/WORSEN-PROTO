@@ -18,6 +18,7 @@ using Worsen.Core;
 using Worsen.Session.Settings;
 namespace Worsen.Tests.Settings
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class SettingsControllerTests
     {
         private static PlayerSettingsRecord Defaults => new PlayerSettingsRecord(1, .1f, false, 95, true, true, true, 1, 1, 1);

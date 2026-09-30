@@ -29,6 +29,7 @@ using Worsen.Session.Progression;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDOrchestratorTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

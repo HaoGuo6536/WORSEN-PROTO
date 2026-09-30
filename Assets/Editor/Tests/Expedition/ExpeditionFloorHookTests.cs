@@ -23,6 +23,7 @@ using Worsen.Session.Progression;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionFloorHookTests
     {
         [TestCase("sweet-tooth")] [TestCase("blind-faith")] [TestCase("golden-sense")]

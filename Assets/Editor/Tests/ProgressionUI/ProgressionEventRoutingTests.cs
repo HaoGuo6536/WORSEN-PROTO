@@ -27,6 +27,7 @@ using Worsen.Orchestrator;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionEventRoutingTests
     {
         [Test] public void HiddenCountDoesNotRedactShelterAndRoutingTeardownIsPaired()

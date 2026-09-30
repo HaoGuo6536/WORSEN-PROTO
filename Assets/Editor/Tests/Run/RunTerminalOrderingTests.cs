@@ -32,6 +32,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(30000)]
     public sealed class RunTerminalOrderingTests
     {
         [UnityTest]

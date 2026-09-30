@@ -19,6 +19,7 @@ using Worsen.Presentation.Telemetry;
 
 namespace Worsen.Tests.Telemetry
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class GenerationFailureObservationTests
     {
         [TestCase(true, "True")] [TestCase(false, "False")]

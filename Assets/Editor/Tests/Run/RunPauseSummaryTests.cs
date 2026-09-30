@@ -27,6 +27,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunPauseSummaryTests
     {
         private readonly List<Object> _owned = new List<Object>();
