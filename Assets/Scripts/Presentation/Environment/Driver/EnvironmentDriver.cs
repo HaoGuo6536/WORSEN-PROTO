@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
+//   - Protect exit-room flames from collapse destruction, guttering and darkness once the exit is bound.
 //   - Swap torch art for cold hospital panels before construction, without moving or renumbering sockets.
 //   - Apply a density budget to eligible torches only; moon/exit lights keep the shared cap.
 //   - Apply safe wall slots, remove decorative collision and own every spawned object.
@@ -223,6 +224,11 @@ namespace Worsen.Presentation.Environment
             exit.EffectRoot.transform.SetParent(room.transform, true);
             exit.EffectRoot.transform.SetPositionAndRotation(position, rotation);
             exit.RoomId = roomId;
+            _state.ConsumedRooms.Remove(roomId);
+            room.SetActive(_state.OwnerEnabled);
+            for (int i = 0; i < _state.Flames.Count; i++)
+                if (_state.Flames[i].RoomId == roomId)
+                { _state.Flames[i].Lit = true; _state.Flames[i].Destruction = 0f; _state.Available[i] = true; }
             _state.Positions[_state.ExitLightIndex] = position;
             _state.UntilRefresh = 0f;
         }
@@ -280,6 +286,7 @@ namespace Worsen.Presentation.Environment
         public void SetRoomConsumed(int id) { SetRoomDestruction(id, 1f); }
         public void SetRoomDestruction(int id, float severity)
         {
+            if (_state.ExitLightIndex >= 0 && _state.Flames[_state.ExitLightIndex].RoomId == id) return;
             if (severity >= 1f)
             {
                 _state.ConsumedRooms.Add(id);
@@ -308,16 +315,18 @@ namespace Worsen.Presentation.Environment
             for (int i = 0; i < _state.Flames.Count; i++)
             {
                 EnvironmentFlameDriverState flame = _state.Flames[i];
+                bool protectedExit = EnvironmentPresenter.IsExitRoomLight(_state, flame);
                 int rank = System.Array.IndexOf(visible, i);
                 bool effectActive = rank >= 0 && rank < _config.MaximumLumenEffects;
                 float gutter = EnvironmentPresenter.CombinedFlameGutter(_state.Gutter, _state.Positions[i],
                     _state.FlameDimPosition, _state.FlameDimRadius, _state.FlameDimMultiplier);
+                if (protectedExit) gutter = 0f;
                 float intensity = flame.Exit ? _lumen.ExitRayIntensity(flame.OpeningProgress,
                     _config.ExitRayClosedIntensity, _config.ExitRayOpenIntensity) * (1f - flame.Destruction) :
                     flame.Moon ? 1f - flame.Destruction :
                     EnvironmentThemePresenter.LampBrightness(flame.Fluorescent, _state.Elapsed, flame.Identity, gutter,
                         flame.Destruction, _state.Wick, _config.FluorescentFlickerDepth, _config.FluorescentFlickerRate);
-                if (_state.DarkerFloors) intensity *= Mathf.Clamp01(_config.DarkerLightMultiplier);
+                if (_state.DarkerFloors && !protectedExit) intensity *= Mathf.Clamp01(_config.DarkerLightMultiplier);
                 if (flame.Panel != null) flame.Panel.SetBrightness(effectActive ? intensity : 0f);
                 if (flame.EffectRoot.activeSelf != effectActive) flame.EffectRoot.SetActive(effectActive);
                 if (effectActive && flame.Lumen != null)

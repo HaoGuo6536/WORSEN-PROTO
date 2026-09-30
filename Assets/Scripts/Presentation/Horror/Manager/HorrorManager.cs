@@ -11,6 +11,7 @@
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward generated room identities and collapse phases without referencing Floor or Session.
 //   - Forward Weaver warnings and web lifetimes to the owned visual stack.
 //   - Forward injected candidates/effects and publish micro-event outcomes for telemetry.
 //   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
@@ -71,6 +72,9 @@ namespace Worsen.Presentation.Horror
         public void SetEffects(float fogMultiplier, float flashlightMultiplier)
         { if (_driver != null) _driver.SetEffects(fogMultiplier, flashlightMultiplier); }
         public void ResetRound() { if (_driver != null) _driver.ResetRound(); }
+        public void SetCollapseRooms(IReadOnlyList<GeneratedRoomSample> rooms, int? exitRoom)
+        { if (_driver != null) _driver.SetCollapseRooms(rooms, exitRoom); }
+        public void ObserveCollapse(RoomDestructionSample sample) { if (_driver != null) _driver.ObserveCollapse(sample); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_driver != null) _driver.SetActiveEffects(effects); }
         public void SetMicroEventWorld(IReadOnlyInteractableSet world, IReadOnlyList<Vector3> unreachableAnchors)
         { if (_driver != null) _driver.SetMicroEventWorld(world, unreachableAnchors); }

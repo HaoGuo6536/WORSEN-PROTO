@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Clear floor collapse data on round reset without losing retained lighting hooks.
 //   - Resolve exact configured active-effect ids to fog, torch count and Wick outputs.
 //   - Validate authoritative light samples and preserve exact gameplay range.
 //   - Compose default-off fog hooks and gate earned intrusions with an injected random source.
@@ -130,6 +131,7 @@ namespace Worsen.Presentation.Horror
 
         public void ResetRound(HorrorDriverState state)
         {
+            HorrorCollapsePresenter.Reset(state);
             state.HasAuthoritativeFlashlight = false;
             state.AuthoritativeFlashlight = default;
             state.FlashlightEnabled = true;
