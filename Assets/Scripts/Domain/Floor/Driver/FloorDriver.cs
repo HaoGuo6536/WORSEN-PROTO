@@ -12,6 +12,7 @@
 //   - Tint owned golden material copies while retaining authored cake textures and alpha.
 //   - Own native Lumen fake-light warnings and exit cues without Unity Light objects.
 //   - Support staged collapse and an opt-in hinged exit that requires a real crossing.
+//   - Relay locked-door overlaps/departures and present bails without spawning Golden Cakes.
 //   - Supply complete path corners and expose target-local fallback/held flags.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
@@ -21,6 +22,7 @@
 //   Scene-owned; no global engine settings. Only FloorManager commands this Driver.
 //   Its sub-drivers own trigger callbacks; failed paths use flagged guidance, not fallback anchors.
 //   PathLength remains a complete-path-only query and does not mutate guidance history.
+//   Manager-injected identity resolution lets the physical door report destroyed-collider departures.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using System;
@@ -28,6 +30,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Floor
 {
@@ -40,10 +43,11 @@ namespace Worsen.Domain.Floor
         public event Action<Collider, int, PickupKind> PickupContact;
 
         public event Action<Collider> ExitContact;
+        public event Action<EntityId> ExitDeparted;
         public int OwnedPickupCount => _state.Pickups.Count;
         public int OwnedRoomCount => _state.Rooms.Count;
 
-        public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors)
+        public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors, Func<Collider, EntityId> resolveIdentity = null)
         {
             Teardown();
             if (_config == null) _config = Resources.Load<FloorDriverConfig>("ScriptableObjects/Domain/Floor/FloorDriverConfig");
@@ -56,7 +60,7 @@ namespace Worsen.Domain.Floor
             _state.ExitMaterial = MakeMaterial(_config.ExitLockedColor);
             foreach (var room in graph.Rooms) BuildRoom(room);
             foreach (var anchor in anchors) { _state.Anchors.Add(anchor.Id, anchor); BuildPickup(anchor, PickupKind.Cake); }
-            BuildExit(graph.ExitPosition);
+            BuildExit(graph.ExitPosition, resolveIdentity);
             _state.Ready = true;
             _state.Root.SetActive(true);
             if (isActiveAndEnabled) OnEnable();
@@ -77,6 +81,9 @@ namespace Worsen.Domain.Floor
             foreach (var anchor in anchors) BuildPickup(anchor, PickupKind.GoldenCake);
             if (isActiveAndEnabled) OnEnable();
         }
+
+        public void RefreshExitContacts() { if (_state.ExitDoor != null) _state.ExitDoor.RefreshContacts(); }
+        public void PresentBail() { if (_state.ExitDoor != null) _state.ExitDoor.PresentBail(); }
 
         public void ApplyRoomPhase(int roomId, RoomPhase phase)
         {
@@ -159,7 +166,8 @@ namespace Worsen.Domain.Floor
             foreach (var pickup in _state.Pickups) pickup.Contact += HandlePickup;
 
             if (_state.Exit != null) _state.Exit.Contact += HandleExit;
-            if (_state.ExitDoor != null) _state.ExitDoor.Contact += HandleExit;
+            if (_state.ExitDoor != null)
+            { _state.ExitDoor.Contact += HandleExit; _state.ExitDoor.Departed += HandleDeparture; }
             _state.Subscribed = true;
         }
         private void OnDisable()
@@ -168,13 +176,15 @@ namespace Worsen.Domain.Floor
             foreach (var pickup in _state.Pickups) if (pickup != null) pickup.Contact -= HandlePickup;
 
             if (_state.Exit != null) _state.Exit.Contact -= HandleExit;
-            if (_state.ExitDoor != null) _state.ExitDoor.Contact -= HandleExit;
+            if (_state.ExitDoor != null)
+            { _state.ExitDoor.Contact -= HandleExit; _state.ExitDoor.Departed -= HandleDeparture; }
             _state.Subscribed = false;
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => PickupContact?.Invoke(other, anchor, kind);
 
         private void HandleExit(Collider other) => ExitContact?.Invoke(other);
+        private void HandleDeparture(EntityId id) => ExitDeparted?.Invoke(id);
 
         private void BuildPickup(LevelAnchor anchor, PickupKind kind)
         {
@@ -229,7 +239,7 @@ namespace Worsen.Domain.Floor
             }
             var pickup = item.AddComponent<CakePickup>(); pickup.Configure(anchor.Id, kind); _state.Pickups.Add(pickup);
         }
-        private void BuildExit(Vector3 position)
+        private void BuildExit(Vector3 position, Func<Collider, EntityId> resolveIdentity)
         {
             if (_config.UsePhysicalExitDoor)
             {
@@ -239,7 +249,7 @@ namespace Worsen.Domain.Floor
                 _state.ExitDoor = doorRoot.AddComponent<FloorExitDoor>();
                 var wood = _config.ExitDoorMaterial != null ? _config.ExitDoorMaterial : MakeMaterial(new Color(0.105f, 0.045f, 0.025f));
                 var stone = MakeMaterial(new Color(0.18f, 0.19f, 0.22f));
-                _state.ExitDoor.Configure(_config, wood, stone, _state.ExitMaterial);
+                _state.ExitDoor.Configure(_config, wood, stone, _state.ExitMaterial, resolveIdentity);
                 return;
             }
             var root = new GameObject("Walk-in Exit"); root.transform.SetParent(_state.Root.transform, false);
