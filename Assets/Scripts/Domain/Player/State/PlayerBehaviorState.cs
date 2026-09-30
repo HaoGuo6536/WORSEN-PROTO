@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain the admitted traversal surface until its resolved outcome is published.
 //   - Retain floor spawn pose and independent web/consumable speed factors.
 //   - Keep the web timer and factor independent of grab and trap owners.
 //   - Retain an independent trap speed factor, composed with grabs by the Controller.
@@ -113,6 +114,7 @@ namespace Worsen.Domain.Player
         public float VaultDuration { get; set; }
         public float VaultHeight { get; set; }
         public TraversalKind VaultKind { get; set; }
+        public int VaultSurfaceId { get; set; }
         public bool PreserveVelocityOnCommit { get; set; }
         public bool VaultCompletionPending { get; set; }
         public PlayerTraversalFact? CompletedTraversal { get; set; }

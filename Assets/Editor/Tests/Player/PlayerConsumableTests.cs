@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10), Tests (§11) · Editor · Player.
 // KEY RESPONSIBILITIES:
+//   - Use the sole timed web contact API and ensure cleansing cancels its lifetime.
 //   - Cover healing clamps, speed composition, cleansing and half-health floor respawn.
 // DEPENDENCIES:
 //   - Player pure controller/state/profile, Core values and NUnit.
@@ -47,10 +48,15 @@ namespace Worsen.Tests.Player
         public void BurstMultipliesSpeedWhileSaltsClearWebAndTrapButNotGrab()
         {
             float baseline = player.MaximumMovementSpeed;
-            player.SetTrapSpeedMultiplier(.5f); player.SetWebSpeedMultiplier(.5f); player.SetGrabSpeedMultiplier(.5f);
+            player.SetTrapSpeedMultiplier(.5f); player.ApplyWebSlow(new WebHitFact(new EntityId(-1), state.Id, 0, 1, .5f, 3f, 1f)); player.SetGrabSpeedMultiplier(.5f);
             player.SetConsumableSpeedMultiplier(1.5f);
             Assert.That(player.MaximumMovementSpeed, Is.EqualTo(baseline * .5f * .5f * .5f * 1.5f).Within(.001f));
             player.ClearSlows(); Assert.That(player.MaximumMovementSpeed, Is.EqualTo(baseline * .5f * 1.5f).Within(.001f));
+            Assert.That(state.WebSlowRemaining, Is.Zero); Assert.That(state.WebSpeedMultiplier, Is.EqualTo(1f));
+            player.ApplyWebSlow(new WebHitFact(new EntityId(-1), state.Id, 1, 2, .8f, .1f, 1f));
+            Assert.That(state.WebSpeedMultiplier, Is.EqualTo(.8f));
+            player.Tick(default, default, .2f, 2);
+            Assert.That(state.WebSlowRemaining, Is.Zero); Assert.That(state.WebSpeedMultiplier, Is.EqualTo(1f));
             player.SetConsumableSpeedMultiplier(1f); Assert.That(player.MaximumMovementSpeed, Is.EqualTo(baseline * .5f).Within(.001f));
         }
         [Test]

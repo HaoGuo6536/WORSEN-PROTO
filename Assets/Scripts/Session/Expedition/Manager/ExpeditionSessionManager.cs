@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
+//   - Open the identified Passage before pocket collapse and route its optional Golden Cakes.
 //   - Bind every roster hunter's world/effects views and silently restore accepted run mutations.
 //   - Route Core Echo door-passage facts to Level through paired Run subscriptions.
 //   - Subscribe before generation to theme, optional-reward and threshold-freeze facts.
@@ -44,8 +45,7 @@
 //   Purgatory fraction means physical Golden Cakes collected / created, not exit credit.
 //   Wick restores the first activation's lamp states; overlaps extend without replacing that snapshot.
 //   Missing late-spawn/mutation/Passage admission publishes unresolved intent, never an unsafe fallback.
-//   Vault completion needs an explicit surface identity through CompletePuzzleVault;
-//   the current Core PlayerTraversalFact has none, so the legacy relay cannot infer it.
+//   Vault outcomes retain the probe's surface identity; unidentified facts never solve puzzles.
 // ============================================================================
 using System;
 using System.Collections;
@@ -182,6 +182,7 @@ namespace Worsen.Session.Expedition
                 _procedural.ThresholdFreezePublished += HandleFreeze;
                 _procedural.OptionalPuzzleRewardPublished += HandlePuzzleReward;
                 _procedural.PuzzleSolved += HandlePuzzleSolved;
+                _procedural.PassageOpened += HandlePassageOpened;
             }
             _subscribed = true;
         }
@@ -196,6 +197,7 @@ namespace Worsen.Session.Expedition
                 _procedural.ThresholdFreezePublished -= HandleFreeze;
                 _procedural.OptionalPuzzleRewardPublished -= HandlePuzzleReward;
                 _procedural.PuzzleSolved -= HandlePuzzleSolved;
+                _procedural.PassageOpened -= HandlePassageOpened;
             }
             if (_progression != null)
             {
@@ -328,7 +330,7 @@ namespace Worsen.Session.Expedition
             _controller.Ready();
             if (_effects != null)
             {
-                _effects.ConfigureHazards(_progression, request.IsShop ? null : _floor, request.IsShop ? null : _director);
+                _effects.ConfigureHazards(_progression, request.IsShop ? null : _floor, request.IsShop ? null : _director, levelService: _level);
                 _effects.SetOptionalRooms(_controller.OptionalRooms());
                 _effects.BindActors();
             }
@@ -401,7 +403,11 @@ namespace Worsen.Session.Expedition
             _effects?.ObserveMovement(sample);
             if (_controller.ObserveCrossing(sample, out int door, out Vector3 position)) _effects?.RecordDoorCrossed(door, position);
         }
-        private void HandleTraversal(PlayerTraversalFact fact) => _effects?.ObserveTraversal(fact);
+        private void HandleTraversal(PlayerTraversalFact fact)
+        {
+            _effects?.ObserveTraversal(fact);
+            CompletePuzzleVault(fact, fact.SurfaceId);
+        }
         private void HandleTick(InputFrame frame, float dt, long tick)
         {
             if (_controller.TryTickPuzzles(dt, tick, out var movement)) _procedural?.TickPuzzles(movement, dt);
@@ -426,6 +432,12 @@ namespace Worsen.Session.Expedition
             ThresholdFreezePublished?.Invoke(room, behind, anchor, doorway, hunter);
         }
         private void HandlePuzzleReward(int puzzle, int anchor, Vector3 position) => _controller.RecordPuzzleReward(puzzle, anchor, position);
+        private void HandlePassageOpened(int siteIndex, int pocket, IReadOnlyList<Vector3> tiles)
+        {
+            if (!_controller.AcceptsGameplay(_state.Player)) return;
+            foreach (var anchor in _procedural.LinedPocketAnchors)
+                if (_floor.RegisterPassageReward(anchor)) _controller.ObservePuzzleGoldCreated(anchor.Id);
+        }
         private void HandlePuzzleSolved(int puzzle, int room, int anchor)
         {
             if (_controller.AcceptsGameplay(_state.Player) && _floor.SolvePuzzle(puzzle, room, anchor))
@@ -466,12 +478,17 @@ namespace Worsen.Session.Expedition
             }
             if (fact.ResolvedKind == ShrineKind.Passage)
             {
-                int pocket = 0;
-                foreach (var site in _procedural.ShrineSites)
+                bool opened = false;
+                for (int siteIndex = 0; siteIndex < _procedural.ShrineSites.Count; siteIndex++)
+                {
+                    var site = _procedural.ShrineSites[siteIndex];
                     if (site.GapEdge && site.RoomId == fact.Activation.RoomId && site.Position == fact.Activation.Position)
-                        pocket = ExpeditionSessionController.PassagePocket(_level.ReadOnlyState.Graph,
-                            new ShrineSite(site.Position, site.RoomId, true), site.Facing);
-                if (pocket == 0 || !_floor.ActivatePocket(pocket)) Unresolved(fact, "passage-pocket-unavailable");
+                    {
+                        opened = _procedural.ActivatePassage(siteIndex) && _floor.ActivatePocket(site.DestinationPocketRoomId);
+                        break;
+                    }
+                }
+                if (!opened) Unresolved(fact, "passage-pocket-unavailable");
             }
             for (int i = 0; i < fact.ExtraHunters; i++) SpawnShrineHunter(fact, i);
         }
@@ -490,7 +507,8 @@ namespace Worsen.Session.Expedition
             foreach (var position in _procedural.HunterSpawnPositions)
             {
                 if (!_procedural.ValidateHunterSpawn(position, out _) || !LateSpawnRoomAvailable(position, player.ReadOnlyState.Position) ||
-                    !_spawnDriver.Validate(position, player.ReadOnlyState.Position, _spawnConfig)) continue;
+                    !_spawnDriver.Validate(position, player.ReadOnlyState.Position, _spawnConfig,
+                        profile.MotorOverride != null ? profile.MotorOverride.NavigationAreaMask : 1)) continue;
                 EntityId id = _hunterFactory.Spawn(_controller.HunterSpawn(key, position));
                 _controller.RecordHunter(id);
                 if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Purgatory hunter failed to register.");

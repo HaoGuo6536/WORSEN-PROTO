@@ -17,6 +17,8 @@
 //   - Construct per-life archetype rules and acknowledge recording motion before facts.
 //   - Route Weaver sweep evidence, web contacts and ceiling commands without Player writes.
 //   - Bind the optional Ticking facet for world keys and Core-typed guidance/sound/noise facts.
+//   - Register Ram/Skip/Mimic rules and relay their motion, contact and Core facts.
+//   - Route Blinder swept throws and Herald screams as Core facts for external owners.
 // DEPENDENCIES:
 //   - Hunter contracts, Core values and injected Player, Level and optional Floor views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -35,6 +37,8 @@ using Worsen.Domain.Player;
 using Worsen.Domain.Level;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Hunter.Archetypes.Weaver;
+using Worsen.Domain.Hunter.Archetypes.Blinder;
+using Worsen.Domain.Hunter.Archetypes.Herald;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter
 {
@@ -46,6 +50,12 @@ namespace Worsen.Domain.Hunter
         private HunterController _controller;
         private WeaverController _weaver;
         private WeaverConfig _weaverConfig;
+        private Archetypes.Ram.RamController _ram;
+        private Archetypes.Skip.SkipController _skip;
+        private Archetypes.Mimic.MimicController _mimic;
+        private BlinderController _blinder;
+        private BlinderConfig _blinderConfig;
+        private HeraldController _herald;
         private HunterProfile _profile;
         private Archetypes.Ticking.TickingManager _ticking;
         public Archetypes.Ticking.TickingManager Ticking => _ticking;
@@ -70,6 +80,18 @@ namespace Worsen.Domain.Hunter
         public event Action<HunterArchetypeFact> OnArchetypeFact;
         public event Action<WebHitFact> OnWebHit;
         public event Action<WeaverFact> OnWeaverFact;
+        public event Action<RamFact> OnRamFact;
+        public event Action<SkipFact> OnSkipFact;
+        public event Action<MimicFact> OnMimicFact;
+        public bool BeginSkipFloor(long generation) => _skip?.BeginFloor(generation) ?? false;
+        public bool RecordSkipUse(SkipTraversalUse use) => _skip?.RecordUse(use) ?? false;
+        public event Action<BlinderHitFact> OnBlinderHit;
+        public event Action<BlinderThrowFact> OnBlinderThrow;
+        public event Action<BlinderSoundFact> OnBlinderSound;
+        public event Action<BlinderTrapPolicyFact> OnBlinderTrapPolicy;
+        public event Action<HeraldScreamFact> OnHeraldScream;
+        public event Action<HeraldBreathFact> OnHeraldBreath;
+        public event Action<HeraldDeafenFact> OnHeraldDeafen;
         private void Awake() { if (_driver == null) _driver = GetComponent<HunterDriver>(); }
         private void OnEnable()
         {
@@ -82,6 +104,7 @@ namespace Worsen.Domain.Hunter
         }
         private void OnDisable()
         {
+            if (_mimic != null) { _mimic.Teardown(); PublishRosterFacts(); }
             if (_ticking != null) _ticking.Teardown();
             if (_driver != null)
             {
@@ -106,10 +129,31 @@ namespace Worsen.Domain.Hunter
                 archetype = new WeaverController(new WeaverBehaviorState(), weaver, profile, context.Random);
             else if (profile.ArchetypeRules is Archetypes.Ticking.TickingConfig ticking)
                 archetype = new Archetypes.Ticking.TickingController(ticking, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Ram.RamConfig ram)
+                archetype = new Archetypes.Ram.RamController(ram, profile);
+            else if (profile.ArchetypeRules is Archetypes.Skip.SkipConfig skip)
+                archetype = new Archetypes.Skip.SkipController(skip, profile, context.Random);
+            else if (profile.ArchetypeRules is Archetypes.Mimic.MimicConfig mimic)
+                archetype = new Archetypes.Mimic.MimicController(mimic, context.Random);
+            else if (profile.ArchetypeRules is BlinderConfig blinder)
+                archetype = new BlinderController(new BlinderBehaviorState(), blinder, profile);
+            else if (profile.ArchetypeRules is HeraldConfig herald)
+                archetype = new HeraldController(new HeraldBehaviorState(), herald, context.Random);
             else if (profile.ArchetypeRules != null) throw new ArgumentException("Unregistered Hunter rules config.");
+            if (_mimic != null) { _mimic.Teardown(); PublishRosterFacts(); }
+            _ram = archetype as Archetypes.Ram.RamController;
+            _skip = archetype as Archetypes.Skip.SkipController;
+            _mimic = archetype as Archetypes.Mimic.MimicController;
             _profile = profile; _player = player; _level = level; _driver.Initialize(profile.MotorOverride);
             _weaver = archetype as WeaverController; _weaverConfig = profile.ArchetypeRules as WeaverConfig;
             if (_weaver != null) _driver.ConfigureWeaver(_weaverConfig.DriverConfig);
+            _blinder = archetype as BlinderController; _blinderConfig = profile.ArchetypeRules as BlinderConfig;
+            _herald = archetype as HeraldController;
+            if (_blinder != null)
+            {
+                if (_blinderConfig.SweepConfig == null) throw new ArgumentException("Build Blinder profile and sweep config first.");
+                _driver.ConfigureWeaver(_blinderConfig.SweepConfig);
+            }
             _state = new HunterBehaviorState();
             _controller = new HunterController(_state, profile, context.Random, player, level, archetype);
             _controller.Reset(context.Id, _driver.Position, _driver.Forward);
@@ -126,7 +170,18 @@ namespace Worsen.Domain.Hunter
         }
         public void Tick(float dt, long tick)
         {
-            if (_controller == null || !_state.IsActive) return;
+            if (_controller == null || !_state.IsActive || !(dt > 0f) || float.IsInfinity(dt)) return;
+            if (_blinder != null)
+            {
+                if (!(dt > 0f) || float.IsInfinity(dt) || tick <= _blinder.LastTick) return;
+                foreach (var contact in _driver.TickWebs(dt))
+                {
+                    IEntityHandle handle = contact.Key.GetComponentInParent<IEntityHandle>();
+                    if (handle != null && _blinder.TryHit(handle.Id, contact.Value, tick, out BlinderHitFact hit)) OnBlinderHit?.Invoke(hit);
+                }
+                _blinder.Observe(_driver.ProbeWeaver(_blinder.Aim(_driver.WeaverShotHeight), _blinder.Radius, _blinderConfig.Range, tick));
+            }
+            if (_herald != null && (!(dt > 0f) || float.IsInfinity(dt) || tick <= _herald.LastTick)) return;
             if (_weaver != null)
             {
                 if (!(dt > 0f) || float.IsInfinity(dt) || tick <= _weaver.LastTick) return;
@@ -151,6 +206,13 @@ namespace Worsen.Domain.Hunter
                 light = new HunterLightObservation(observed.Observed, false, observed.Position, observed.Tick);
             }
             HunterTickResult result = _controller.Tick(sight, light, dt, tick);
+            if (_blinder != null)
+            {
+                if (result.Phase != HunterLungePhase.None || _state.CatchActive || _state.PursuitSuppressed) _blinder.SuspendAttack();
+                if (_blinder.Fire) _blinder.CommitLaunch(_driver.LaunchWeb(_blinder.Origin, _blinder.Target,
+                    _blinder.Radius, _blinderConfig.ProjectileSpeed, _blinderConfig.Range, _blinder.Serial + 1));
+            }
+            _herald?.ResolveAfterSensing();
             if (_weaver != null)
             {
                 if (result.Phase != HunterLungePhase.None || _state.CatchActive || _state.PursuitSuppressed) _weaver.SuspendAttack();
@@ -170,18 +232,29 @@ namespace Worsen.Domain.Hunter
             if (_state.AttackBecameActive && _profile.AttackStyle != HunterAttackStyle.Lunge)
                 _driver.FireAttack(_controller.ProjectileSpeed, _controller.ProjectileRadius);
             _driver.SetEmergence(_controller.PreferEmergence, _state.LastKnownPosition, _profile.EmergenceWaypointBudget);
-            if (_controller.ReplayPath != null && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
+            if (_ram != null && _ram.OwnsPursuit && !_state.CatchActive && _state.IsActive)
+            {
+                bool blocked = _driver.MoveCharge(_ram.Motion, _ram.Direction, dt, out Collider blocker);
+                IRamBreakableHandle partition = blocker != null ? blocker.GetComponentInParent<IRamBreakableHandle>() : null;
+                _ram.CommitMotion(_driver.Position, blocked, partition?.RamBreakableId ?? -1);
+            }
+            else if (_skip != null && _skip.TryTeleport(out Vector3 arrival))
+                _skip.CommitTeleport(_driver.TryTeleport(arrival), arrival);
+            else if (_controller.ReplayPath != null && result.Phase == HunterLungePhase.None && !_state.CatchActive && _state.IsActive)
             {
                 int reached = _driver.MoveRecording(_controller.ReplayPath, dt, out bool unreachable);
                 _controller.CommitReplay(reached, unreachable);
             }
             else _driver.Move(result.Target, result.Speed, _controller.EffectiveAcceleration, _controller.EffectiveTurnRate, dt,
                 !reactionValid || !_state.IsActive || result.HoldPosition || (_weaver?.Hold ?? false) ||
+                    (_blinder?.Hold ?? false) || (_herald?.Hold ?? false) ||
                     result.Phase == HunterLungePhase.Windup || result.Phase == HunterLungePhase.Recovery ||
                     (_profile.AttackStyle != HunterAttackStyle.Lunge && result.Phase != HunterLungePhase.None),
                 result.ActiveContact && _profile.AttackStyle == HunterAttackStyle.Lunge, result.LungeDirection, _controller.LungeSpeed, _controller.EffectiveAttackDistance);
-            _driver.ApplyDecisionMotion(result.StumbleDisplacement, result.DeliberationFacing);
+            if (!(_ram?.OwnsPursuit ?? false)) _driver.ApplyDecisionMotion(result.StumbleDisplacement, result.DeliberationFacing);
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+            if (_mimic != null && _mimic.Posed && !_state.CatchActive) _driver.ProbeMimicTouch(_mimic.TouchRadius);
+            PublishRosterFacts();
             if (_weaver != null)
             {
                 _driver.SetWeaverCeiling(_weaver.CeilingHeight, _weaver.Ceiling && result.Phase == HunterLungePhase.None && !_state.CatchActive);
@@ -195,6 +268,13 @@ namespace Worsen.Domain.Hunter
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
             while (_controller.TryTakeHabit(out HunterHabitFact habit)) OnHabit?.Invoke(habit);
             while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact fact)) OnArchetypeFact?.Invoke(fact);
+            PublishBlinderFacts();
+            if (_herald != null)
+            {
+                while (_herald.TakeScream(out HeraldScreamFact scream)) OnHeraldScream?.Invoke(scream);
+                while (_herald.TakeBreath(out HeraldBreathFact breath)) OnHeraldBreath?.Invoke(breath);
+                while (_herald.TakeHit(out HeraldDeafenFact hit)) OnHeraldDeafen?.Invoke(hit);
+            }
             if (_controller.TryTakeDeliberation(out Vector3 candidate)) OnDeliberation?.Invoke(Id, candidate, tick);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
@@ -208,6 +288,10 @@ namespace Worsen.Domain.Hunter
             if (_controller == null) return;
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle == null) return;
+            if (_ram != null)
+            { if (_ram.TryHit(handle.Id, out HunterHit charge)) OnLungeHit?.Invoke(charge); return; }
+            if (_mimic != null)
+            { if (_mimic.Touch(handle.Id, out HunterHit bite)) OnLungeHit?.Invoke(bite); PublishRosterFacts(); return; }
             _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
             if (_controller.TryAcceptContact(handle.Id, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
@@ -218,6 +302,12 @@ namespace Worsen.Domain.Hunter
             if (handle != null && _controller.TryAcceptRangedContact(handle.Id, serial, out HunterHit hit)) OnLungeHit?.Invoke(hit);
         }
         private void HandleAttackFeedback(HunterFeedbackEvent feedback) { OnFeedback?.Invoke(feedback); }
+        private void PublishRosterFacts()
+        {
+            if (_ram != null) while (_ram.TakeFact(out RamFact fact)) OnRamFact?.Invoke(fact);
+            if (_skip != null) while (_skip.TakeFact(out SkipFact fact)) OnSkipFact?.Invoke(fact);
+            if (_mimic != null) while (_mimic.TakeFact(out MimicFact fact)) OnMimicFact?.Invoke(fact);
+        }
         private void HandleStall(HunterStallFact fact) { OnStall?.Invoke(fact); }
         private void HandleRangedMiss(int serial) { _controller?.ReportAttackMiss(serial); }
         public void SetRoomPhase(RoomPhaseChangedFact fact)
@@ -232,7 +322,9 @@ namespace Worsen.Domain.Hunter
         public void BeginCatch(Vector3 playerPosition)
         {
             if (_controller == null) return;
+            _ram?.Won(); _mimic?.Won(); PublishRosterFacts();
             _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
+            _blinder?.BeginCatch(); PublishBlinderFacts(); _herald?.SuspendAttack();
             if (_weaver != null) { _weaver.SuspendAttack(); _driver.SetWeaverCeiling(_weaver.CeilingHeight, false); }
         }
         public void TickCatch(float dt, Vector3 playerPosition)
@@ -253,20 +345,35 @@ namespace Worsen.Domain.Hunter
         public void SetFloorView(IReadOnlyFloorState floor) { _controller?.SetFloorView(floor); }
         public void SetClosedDoors(System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
         public void SetInteractables(IReadOnlyInteractableSet interactables) { _controller?.SetInteractables(interactables); }
-        public void SetActiveEffects(IReadOnlyActiveEffects effects) { _controller?.SetActiveEffects(effects); }
+        public void SetActiveEffects(IReadOnlyActiveEffects effects)
+        { _controller?.SetActiveEffects(effects); _blinder?.SetEffects(effects); }
         public bool RequestRetreat() => _controller != null &&
             _controller.RequestRetreat(_driver.ProbeOccludedRooms(_level.Graph, _player.Position));
         public void ReceiveRegionHint(HintPayload hint, int roomId) { _controller?.ReceiveRegionHint(hint, roomId); }
         public void SetFlashlight(FlashlightSample sample) { _controller?.SetFlashlight(sample); }
         public void ApplyRunSpeedMultiplier(float multiplier) { _controller?.ApplyRunSpeedMultiplier(multiplier); }
         public void ReceiveHint(HintPayload hint) { _controller?.ReceiveHint(hint); }
+        public void ReportBlinderTrapTick(Vector3 position, long tick)
+        { _blinder?.ReportTrapTick(position, tick); PublishBlinderFacts(); }
+        public bool TryGetBlinderTrapPolicy(out BlinderTrapPolicyFact fact)
+        { fact = _blinder != null ? _blinder.TrapPolicy : default; return _blinder != null; }
+        private void PublishBlinderFacts()
+        {
+            if (_blinder == null) return;
+            while (_blinder.TakeSound(out BlinderSoundFact sound)) OnBlinderSound?.Invoke(sound);
+            while (_blinder.TakeTrapPolicy(out BlinderTrapPolicyFact policy)) OnBlinderTrapPolicy?.Invoke(policy);
+            while (_blinder.TakeThrow(out BlinderThrowFact shot)) OnBlinderThrow?.Invoke(shot);
+        }
         public void Teardown()
         {
+            if (_mimic != null) { _mimic.Teardown(); PublishRosterFacts(); }
             if (_ticking != null) _ticking.Teardown();
             if (_driver != null) _driver.Teardown();
             HunterRegistry.Unregister(this);
             _controller = null; _state = null; _profile = null; _player = null; _level = null;
             _weaver = null; _weaverConfig = null;
+            _ram = null; _skip = null; _mimic = null;
+            _blinder = null; _blinderConfig = null; _herald = null;
         }
         private void OnDestroy() { Teardown(); }
     }

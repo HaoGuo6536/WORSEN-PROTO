@@ -9,7 +9,7 @@
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
 //   - Route Session-timed consumable healing/speed, cleansing and floor-spawn revival.
-//   - Forward Core web contacts to the independently timed movement slow input.
+//   - Forward Core web contacts to the sole timed slow path; cleanse cancels its timer.
 //   - Route the independent trap speed factor; its lifetime belongs to Session.
 //   - Queue external impulses and explicitly timed acceleration without publishing new facts.
 //   - Expose read-only shield HP, grants and explicit floor-replacement restoration.
@@ -146,7 +146,7 @@ namespace Worsen.Domain.Player
                 OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
         }
         public void SetConsumableSpeedMultiplier(float multiplier) => _controller?.SetConsumableSpeedMultiplier(multiplier);
-        public void SetWebSpeedMultiplier(float multiplier) => _controller?.SetWebSpeedMultiplier(multiplier);
+
         public void ClearSlows() => _controller?.ClearSlows();
         public bool RespawnAtFloorStart(float healthFraction)
         {

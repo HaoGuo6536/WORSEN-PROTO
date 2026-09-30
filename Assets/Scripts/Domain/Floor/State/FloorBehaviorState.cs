@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Retain Passage reward identities across collection/loss to prevent respawning them.
 //   - Keep puzzle rewards separate from required selection and Greedy Door accounting.
 //   - Retain seeded pending collapse priorities and the next safely admitted room deadline.
 //   - Retain trap identities, default-off cake hooks, typed guidance and separate collapse readiness.
@@ -41,6 +42,7 @@ namespace Worsen.Domain.Floor
         internal readonly List<LevelAnchor> GoldenAnchors = new List<LevelAnchor>();
         internal readonly Dictionary<int, LevelAnchor> PuzzleRewards = new Dictionary<int, LevelAnchor>();
         internal readonly HashSet<int> UnlockedPuzzleRewards = new HashSet<int>();
+        internal readonly HashSet<int> PassageRewards = new HashSet<int>();
         internal FloorCakeHooks CakeHooks;
         internal double TrapTickElapsed;
         internal double Elapsed;

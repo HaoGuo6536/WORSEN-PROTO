@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Level.
 // KEY RESPONSIBILITIES:
+//   - Reject jammed opens before any mutation; breaking clears the jam atomically.
 //   - Validate initial object kinds, values, identities and room/edge references.
 //   - Apply typed, idempotent commands and return committed before/after facts.
 // DEPENDENCIES:
@@ -62,14 +63,23 @@ namespace Worsen.Domain.Level
         {
             after = default;
             if (!_state.TryGet(id, out before) || before.Kind != kind || !ValidValue(kind, value) ||
-                before.Value == value || before.Value == InteractableStateValue.Broken) return false;
+                before.Value == value || before.Value == InteractableStateValue.Broken ||
+                (kind == InteractableKind.Door && value == InteractableStateValue.Open && _state.JammedDoors.Contains(id))) return false;
             after = new InteractableState(before.Id, before.Kind, before.RoomId, before.Position, value, before.EdgeId);
             _state.Items[id] = after;
+            if (value == InteractableStateValue.Broken) _state.JammedDoors.Remove(id);
             if (kind == InteractableKind.Door) _state.Portals[after.EdgeId] = value == InteractableStateValue.Inactive;
             return true;
         }
 
-        public void Clear() { _state.Items.Clear(); _state.Portals.Clear(); }
+        public void SetDoorJammed(int id, bool active)
+        {
+            if (!active) { _state.JammedDoors.Remove(id); return; }
+            if (_state.TryGet(id, out var door) && door.Kind == InteractableKind.Door && door.Value == InteractableStateValue.Inactive)
+                _state.JammedDoors.Add(id);
+        }
+        public void ClearDoorJams() => _state.JammedDoors.Clear();
+        public void Clear() { _state.Items.Clear(); _state.Portals.Clear(); ClearDoorJams(); }
 
         private static bool ValidValue(InteractableKind kind, InteractableStateValue value)
         {

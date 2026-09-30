@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Worsen.Session::Worsen.Session.Progression.ProgressionConfig
   _effectCatalogue: {fileID: 11400000, guid: 3e2e570a1a5a1a64ca4f02fa1c67adbb, type: 2}
   _shopConfig: {fileID: 11400000, guid: aacc7b8de0535444aa339aa779f85027, type: 2}
+  _shrineConfig: {fileID: 11400000, guid: 5dd73667c03f76c4097bed37e18de79a, type: 2}
   _selectionInterval: 2
   _shopInterval: 2
   _maximumActiveThreats: 5

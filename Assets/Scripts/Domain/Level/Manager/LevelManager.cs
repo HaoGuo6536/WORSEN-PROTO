@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Level (Service system).
 // KEY RESPONSIBILITIES:
+//   - Forward effect-owned jam admission so rejected opens never publish transient state.
 //   - Publish door-open provenance only after a real closed-to-open change; legacy opens are anonymous.
 //   - Reconcile enabled markers, sequence rebuilds and publish readiness facts.
 //   - Revalidate incomplete removal snapshots after lifecycle callbacks settle.
@@ -25,6 +26,9 @@
 //   flushes a lifecycle diagnostic only; it does not tick gameplay or read time.
 //   Session must route InteractableChanged to Procedural geometry and Environment light
 //   presentation. Neither producer nor presentation owns this mutable registry.
+//   No current runtime caller opens these doors for player interaction: LevelDriver
+//   only registers markers; Procedural applies state. Future interaction routing must
+//   call OpenDoor(id, openedByPlayer: true), not infer provenance from room crossings.
 // ============================================================================
 
 using System;
@@ -90,6 +94,8 @@ namespace Worsen.Domain.Level
             return true;
         }
         public bool CloseDoor(int id) => Change(id, InteractableKind.Door, InteractableStateValue.Inactive);
+        public void SetDoorJammed(int id, bool active) => _interactableController?.SetDoorJammed(id, active);
+        public void ClearDoorJams() => _interactableController?.ClearDoorJams();
         public bool SetLit(int id, bool lit) => Change(id, InteractableKind.Light,
             lit ? InteractableStateValue.Lit : InteractableStateValue.Inactive);
         public bool Knock(int id) => Change(id, InteractableKind.KnockableProp, InteractableStateValue.Marked);

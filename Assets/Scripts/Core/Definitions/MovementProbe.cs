@@ -12,6 +12,7 @@
 //   This value crosses the Driver, Manager, and Controller boundaries as data.
 //
 // KEY RESPONSIBILITIES:
+//   - Carry optional authored Vault SurfaceId; zero means untagged or unidentified.
 //   - Describe ground contact and the nearest relevant wall.
 //   - Describe a checked vault candidate and its available clearance.
 //   - Carry a stable wall identity without exposing a Collider or GameObject.
@@ -39,7 +40,7 @@ namespace Worsen.Core
             Vector3 wallNormal = default, float wallAngleDegrees = 0f,
             int wallId = 0, bool vaultCandidate = false,
             float vaultHeight = 0f, float vaultClearance = 0f,
-            Vector3 vaultTarget = default, bool standingBlocked = false)
+            Vector3 vaultTarget = default, bool standingBlocked = false, int surfaceId = 0)
         {
             Grounded = grounded;
             GroundNormal = groundNormal;
@@ -53,9 +54,11 @@ namespace Worsen.Core
             VaultClearance = vaultClearance;
             VaultTarget = vaultTarget;
             StandingBlocked = standingBlocked;
+            SurfaceId = surfaceId;
         }
 
         public bool StandingBlocked { get; }
+        public int SurfaceId { get; }
         public bool Grounded { get; }
         public Vector3 GroundNormal { get; }
         public bool WallDetected { get; }

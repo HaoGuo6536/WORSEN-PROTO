@@ -10,6 +10,7 @@
 //   Presenter (§7b) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
+//   - Clear only blindness on cleanse and only the consumed latch on revival.
 //   - Ease identity-matched grace desaturation and read exact configured effect ids.
 //   - Override blur admission at runtime and immediately clear disabled blur.
 //   - Bound invalid inputs and preserve arbitrary fractional health values.
@@ -45,6 +46,7 @@ namespace Worsen.Presentation.PostFX
         public void Reset(PostFXDriverState state)
         {
             state.ActiveEffects = null;
+            state.CleansedBlindness.Clear();
             state.Grace = default;
             state.GraceActive = false;
             state.GraceWeight = 0f;
@@ -85,8 +87,26 @@ namespace Worsen.Presentation.PostFX
             else state.SubtleIntrusionRemaining = Mathf.Max(state.SubtleIntrusionRemaining, Mathf.Max(0f, Finite(seconds)));
         }
 
-        public void SetBlindness(PostFXDriverState state, float seconds)
-            => state.BlindnessRemaining = Mathf.Max(0f, Finite(seconds));
+        public void SetBlindness(PostFXDriverState state, float seconds, PostFXDriverConfig config = null)
+        {
+            state.BlindnessRemaining = Mathf.Max(0f, Finite(seconds));
+            if (seconds != 0f || config == null || config.BlindnessEffectIds == null) return;
+            foreach (string id in config.BlindnessEffectIds)
+                if (!string.IsNullOrWhiteSpace(id) && state.ActiveEffects?.Has(new EffectId(id)) == true)
+                    state.CleansedBlindness.Add(new EffectId(id));
+        }
+
+        public void SetActiveEffects(PostFXDriverState state, IReadOnlyActiveEffects effects)
+        {
+            state.ActiveEffects = effects;
+            state.CleansedBlindness.RemoveWhere(id => effects == null || !effects.Has(id));
+        }
+
+        public void ClearConsumed(PostFXDriverState state)
+        {
+            state.Consumed = false;
+            state.ConsumptionElapsed = state.ConsumptionDuration = 0f;
+        }
 
         public void SetGrace(PostFXDriverState state, GraceWindowFact fact, bool active)
         {
@@ -103,9 +123,11 @@ namespace Worsen.Presentation.PostFX
 
         public bool HasBlindness(PostFXDriverState state, PostFXDriverConfig config)
         {
+            state.CleansedBlindness.RemoveWhere(id => state.ActiveEffects == null || !state.ActiveEffects.Has(id));
             if (state.ActiveEffects == null || config.BlindnessEffectIds == null) return false;
             foreach (string id in config.BlindnessEffectIds)
-                if (!string.IsNullOrWhiteSpace(id) && state.ActiveEffects.Has(new EffectId(id))) return true;
+                if (!string.IsNullOrWhiteSpace(id) && state.ActiveEffects.Has(new EffectId(id)) &&
+                    !state.CleansedBlindness.Contains(new EffectId(id))) return true;
             return false;
         }
 

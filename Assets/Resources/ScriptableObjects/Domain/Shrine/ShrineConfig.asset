@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4e2d97f7f8559542a05f37f015ea3a2, type: 3}
+  m_Name: ShrineConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Shrine.ShrineConfig
+  _minimumSpeed: 0.1
+  _contactRadius: 0.8
+  _interactRadius: 2
+  _verticalTolerance: 1.5
+  _countFloors: 03000000060000000a000000
+  _baseCap: 3
+  _moreShrinesBonus: 1
+  _availability:
+  - _kind: 0
+    _floor: 3
+    _axis: 2
+  - _kind: 1
+    _floor: 3
+    _axis: 3
+  - _kind: 2
+    _floor: 5
+    _axis: 1
+  - _kind: 3
+    _floor: 6
+    _axis: 1
+  - _kind: 4
+    _floor: 8
+    _axis: 5
+  - _kind: 5
+    _floor: 8
+    _axis: 3
+  - _kind: 6
+    _floor: 8
+    _axis: 2
+  - _kind: 7
+    _floor: 8
+    _axis: 3

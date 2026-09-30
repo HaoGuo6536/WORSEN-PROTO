@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd90b3b4b829c824faf2c003b60d2edf, type: 3}
+  m_Name: WeaverConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.Archetypes.Weaver.WeaverConfig
+  _driverConfig: {fileID: 11400000, guid: d12fd0876572be140b05d35523680d3b, type: 2}
+  _warningSeconds: 0.7
+  _shotCooldownSeconds: 3
+  _projectileRadius: 0.06
+  _projectileSpeed: 11
+  _shotRange: 15
+  _slowMultiplier: 0.55
+  _slowSeconds: 2.5
+  _stickierMultiplier: 1.5
+  _widerMultiplier: 1.25
+  _quickSpinMultiplier: 0.75
+  _curseStackCap: 3
+  _nestChancePerStack: 0.25
+  _maximumNests: 16
+  _nestRadius: 0.7
+  _nestLifetimeSeconds: 20
+  _skitterIntervalSeconds: 1.2

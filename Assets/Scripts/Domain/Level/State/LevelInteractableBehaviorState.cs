@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Level.
 // KEY RESPONSIBILITIES:
+//   - Retain floor-local jam admission flags; the effect owner supplies their expiry.
 //   - Store stable object identities and edge-keyed closed-door state.
 // DEPENDENCIES:
 //   - Core interactable values and System collections only.
@@ -27,6 +28,7 @@ namespace Worsen.Domain.Level
     {
         internal readonly SortedDictionary<int, InteractableState> Items = new SortedDictionary<int, InteractableState>();
         internal readonly Dictionary<int, bool> Portals = new Dictionary<int, bool>();
+        internal readonly HashSet<int> JammedDoors = new HashSet<int>();
         public IReadOnlyDictionary<int, bool> ClosedDoors { get; }
         public LevelInteractableBehaviorState() { ClosedDoors = new ReadOnlyDictionary<int, bool>(Portals); }
         public bool TryGet(int id, out InteractableState state) => Items.TryGetValue(id, out state);

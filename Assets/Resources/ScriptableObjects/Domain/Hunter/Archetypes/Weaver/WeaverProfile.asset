@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25ce58078307f234cb8b967f4f0dbd0a, type: 3}
+  m_Name: WeaverProfile
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.HunterProfile
+  _archetypeKey: weaver
+  _prefab: {fileID: 2221670666720346255, guid: bb832943e1825954e9cf9c745eceae85, type: 3}
+  _archetypeRules: {fileID: 11400000, guid: a4bc594ba56f0624191bd26bca97ca96, type: 2}
+  _motorOverride: {fileID: 11400000, guid: 793d749282057bc4da2b7d9d566a2a30, type: 2}
+  _habits:
+  - _kind: 0
+    _enabled: 1
+    _pauseSeconds: 0.4
+    _radius: 15
+  - _kind: 1
+    _enabled: 1
+    _pauseSeconds: 0.4
+    _radius: 15
+  - _kind: 2
+    _enabled: 1
+    _pauseSeconds: 0.4
+    _radius: 15
+  _mutationPool:
+  - _tunable: 2
+    _value: 1.15
+    _tellId: weaver-quickened-skitter
+  _emergenceBias: 1
+  _emergenceWaypointBudget: 16
+  _acceleration: 16
+  _turnRate: 200
+  _chaseSpeedMultiplier: 1.05
+  _patrolSpeed: 3
+  _investigateSpeed: 3
+  _stalkSpeedMultiplier: 0.6
+  _stalkMinimumConfidence: 0.25
+  _stalkRevealDistance: 12
+  _stalkViewHalfAngleDegrees: 55
+  _sightConeDegrees: 110
+  _sightRange: 30
+  _sensorIntervalTicks: 1
+  _hearingRange: 18
+  _hearingThreshold: 0.08
+  _noiseMaxAgeSeconds: 0.5
+  _memoryDecaySeconds: 8
+  _beliefFreshSeconds: 3
+  _lungeWindupSeconds: 0.25
+  _lungeActiveSeconds: 0.3
+  _lungeRecoverySeconds: 0.8
+  _lungeDistance: 1.2
+  _maximumMeleeElevation: 0.45
+  _lungeSpeed: 18
+  _lungeDamage: 50
+  _arrivalRadius: 1
+  _searchSeconds: 2
+  _cutOffPredictionSeconds: 1.5
+  _lightResponse: 0
+  _lightMemorySeconds: 3
+  _lightReactionSeconds: 0.8
+  _lightReactionCooldownSeconds: 3
+  _lightExposureSeconds: 0.12
+  _lightReactionDistance: 3
+  _screamOnDetection: 0
+  _attackScreamChance: 0.25
+  _screamCooldownSeconds: 12
+  _attackStyle: 0
+  _rangedAttackDistance: 15
+  _projectileSpeed: 11
+  _projectileRadius: 0.22
+  _spikeRadius: 1.5
+  _actionCommitmentSeconds: 0.6
+  _lossSeconds: 2.5
+  _lossDistance: 14
+  _missStaggerSeconds: 0.6
+  _missStumbleMeters: 0.8
+  _deliberationSeconds: 0.6
+  _predictionChance: 0.75
+  _parallelCorridorChance: 0.25
+  _searchExpansionMeters: 2
+  _searchLegTimeoutSeconds: 4
+  _searchTravelAllowance: 2
+  _searchMaximumLegSeconds: 60
+  _retreatTimeoutSeconds: 12
+  _cakeGoalUtility: 40
+  _exitGoalUtility: 65
+  _loopGoalUtility: 85
+  _hearingReferenceMeters: 2
+  _hearingRolloff: 1
+  _hearingPortalRetention: 0.7
+  _hearingClosedDoorRetention: 0.35
+  _investigateNoiseThreshold: 0.1
+  _exitNoiseThreshold: 0.4

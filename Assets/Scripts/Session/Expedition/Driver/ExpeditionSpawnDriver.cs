@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Session · Expedition.
 // KEY RESPONSIBILITIES:
+//   - Use the admitted archetype's navigation mask, defaulting to ordinary walkable areas.
 //   - Require a free body, complete live navigation and cover from the current player.
 // DEPENDENCIES:
 //   - Own DriverConfig, Core entity identity, Unity physics and navigation.
@@ -21,17 +22,17 @@ namespace Worsen.Session.Expedition
 {
     public sealed class ExpeditionSpawnDriver : MonoBehaviour
     {
-        public bool Validate(Vector3 candidate, Vector3 player, ExpeditionSpawnDriverConfig config)
+        public bool Validate(Vector3 candidate, Vector3 player, ExpeditionSpawnDriverConfig config, int navigationAreaMask = 1)
         {
             if (config == null || !float.IsFinite(config.Radius) || config.Radius <= 0f ||
                 !float.IsFinite(config.Height) || config.Height < config.Radius * 2f ||
                 !float.IsFinite(config.Skin) || config.Skin <= 0f ||
                 !float.IsFinite(config.NavigationTolerance) || config.NavigationTolerance <= 0f ||
                 !float.IsFinite(config.EyeHeight) || config.EyeHeight <= 0f) return false;
-            if (!NavMesh.SamplePosition(candidate, out var start, config.NavigationTolerance, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(player, out var end, config.NavigationTolerance, NavMesh.AllAreas)) return false;
+            if (!NavMesh.SamplePosition(candidate, out var start, config.NavigationTolerance, navigationAreaMask) ||
+                !NavMesh.SamplePosition(player, out var end, config.NavigationTolerance, navigationAreaMask)) return false;
             var path = new NavMeshPath();
-            if (!NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) ||
+            if (!NavMesh.CalculatePath(start.position, end.position, navigationAreaMask, path) ||
                 path.status != NavMeshPathStatus.PathComplete) return false;
             if (Physics.CheckCapsule(candidate + Vector3.up * (config.Radius + config.Skin),
                 candidate + Vector3.up * (config.Height - config.Radius + config.Skin), config.Radius,

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
+//   - Keep player guidance on Walkable areas, never Weaver-only partition links.
 //   - Register optional gold sockets and avoid duplicate spawns when collapse creates ordinary gold.
 //   - Push cosmetic hand look tags into owned room visuals without changing probes.
 //   - Build tiered candle-lit cakes independently of unchanged pickup triggers; retain authored art overrides.
@@ -193,12 +194,12 @@ namespace Worsen.Domain.Floor
         private Vector3[] QueryCorners(Vector3 from, Vector3 to, out Vector3 sampledStart)
         {
             sampledStart = from;
-            if (!NavMesh.SamplePosition(from, out var start, _config.PathSampleRadius, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(to, out var end, _config.PathSampleRadius, NavMesh.AllAreas))
+            if (!NavMesh.SamplePosition(from, out var start, _config.PathSampleRadius, 1) ||
+                !NavMesh.SamplePosition(to, out var end, _config.PathSampleRadius, 1))
                 return null;
             sampledStart = start.position;
             var path = new NavMeshPath();
-            if (!NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
+            if (!NavMesh.CalculatePath(start.position, end.position, 1, path) || path.status != NavMeshPathStatus.PathComplete)
                 return null;
             return path.corners;
         }

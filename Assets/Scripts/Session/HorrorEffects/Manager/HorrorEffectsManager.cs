@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Session · HorrorEffects (Service system).
 // KEY RESPONSIBILITIES:
+//   Route committed jam flags into Level before publishing use; clear gates on world release.
 //   Sequence Progression-owned item uses, Player effects and pure consumable lifetimes.
 //   Publish stun/slip/cleanse/jam facts; retain death recovery until catch completion.
 //   Throw only surviving accepted hand hits and own trap slows independently of grab speed.
@@ -229,12 +230,15 @@ namespace Worsen.Session.HorrorEffects
         private void BindWorld()
         { if (!worldBound && isActiveAndEnabled && level != null) { level.InteractableChanged += OnDoorChanged; worldBound = true; } }
         private void UnbindWorld()
-        { if (worldBound && level != null) level.InteractableChanged -= OnDoorChanged; worldBound = false; }
+        {
+            if (worldBound && level != null) level.InteractableChanged -= OnDoorChanged;
+            level?.ClearDoorJams(); worldBound = false;
+        }
         private void OnDoorChanged(InteractableState before, InteractableState after)
         {
             if (consumables == null || !consumables.IsJammed(after.Id)) return;
             if (after.Value == InteractableStateValue.Broken) consumables.EndJam(after.Id, true, CurrentTick);
-            else if (after.Value == InteractableStateValue.Open) level.CloseDoor(after.Id);
+
             PublishConsumables();
         }
         public bool IsDoorJammed(int id) => consumables != null && consumables.IsJammed(id);
@@ -306,6 +310,7 @@ namespace Worsen.Session.HorrorEffects
             }
             if (!progression.TryConsumeSelected(controller.GenerationId, progression.Snapshot.Revision, id)) return;
             consumables.CommitUse(id, aim, player.ReadOnlyState.Position, target, door, doorPosition, tick);
+            PublishConsumables();
             if (id == "smelling-salts")
             {
                 controller.ClearTrapSlow(player.Id); player.ClearSlows();
@@ -318,7 +323,8 @@ namespace Worsen.Session.HorrorEffects
             if (consumables == null) return;
             foreach (var fact in consumables.DrainStuns()) HunterStunned?.Invoke(fact);
             foreach (var fact in consumables.DrainSlips()) HunterSlipped?.Invoke(fact);
-            foreach (var fact in consumables.DrainDoors()) DoorJamChanged?.Invoke(fact);
+            foreach (var fact in consumables.DrainDoors())
+            { level?.SetDoorJammed(fact.DoorId, fact.Active); DoorJamChanged?.Invoke(fact); }
             foreach (var noise in consumables.DrainNoises())
             {
                 if (director != null) director.HearNoise(noise);

@@ -20,6 +20,8 @@
 //   - Budget walking travel separately from search; keep CutOff's room intercept distinct from chase lead.
 //   - Consult injected archetype rules without branching on specialised archetype names.
 //   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
+//   - Allow specialised attacks to opt out of shared lunges while retaining sensing.
+//   - Let independent weapons retain pursuit without starting a shared lunge.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
@@ -280,7 +282,8 @@ namespace Worsen.Domain.Hunter
                 Replan();
                 if (!_archetype.TryMovement(out Vector3 movementTarget, out _)) UpdateTarget(dt);
                 else _state.NavigationTarget = movementTarget;
-                if (_state.Action == HunterAction.Lunge && _state.PlayerVisible && !_state.IsDeliberating)
+                if (_state.Action == HunterAction.Lunge && _state.PlayerVisible && !_state.IsDeliberating &&
+                    (!(_archetype is IHunterAttackRules attacks) || attacks.UsesSharedAttacks))
                 {
                     _state.LungePhase = HunterLungePhase.Windup; _state.PhaseSeconds = 0f;
                     _state.AttackSerial++; _state.AttackTarget = _player.Position;
@@ -748,6 +751,7 @@ namespace Worsen.Domain.Hunter
         }
         private void Replan()
         {
+            bool sharedAttack = !(_archetype is Archetypes.Blinder.IHunterIndependentAttackRules weapon) || weapon.AllowSharedAttack;
             ulong facts = 0;
             if (_state.PlayerVisible) facts |= (ulong)HunterWorldFacts.PlayerVisible;
             if (_state.PlayerHeard) facts |= (ulong)HunterWorldFacts.PlayerHeard;
@@ -757,7 +761,7 @@ namespace Worsen.Domain.Hunter
                 facts |= (ulong)HunterWorldFacts.BeliefFresh;
             bool reachableElevation = _profile.AttackStyle != HunterAttackStyle.Lunge ||
                 Mathf.Abs(_state.Position.y - _player.Position.y) <= _profile.MaximumMeleeElevation;
-            if (_state.PlayerVisible && reachableElevation && !Unavailable(_state.Position) && !Unavailable(_player.Position) && Vector3.Distance(_state.Position, _player.Position) <= EffectiveAttackDistance)
+            if (sharedAttack && _state.PlayerVisible && reachableElevation && !Unavailable(_state.Position) && !Unavailable(_player.Position) && Vector3.Distance(_state.Position, _player.Position) <= EffectiveAttackDistance)
                 facts |= (ulong)HunterWorldFacts.InLungeRange;
             if (_state.LoopDetected || (_profile.LightResponse == HunterLightResponse.Flank && _state.PlayerVisible)) facts |= (ulong)HunterWorldFacts.LoopDetected;
             if (_state.HasHint) facts |= (ulong)HunterWorldFacts.HasHint;
@@ -794,12 +798,14 @@ namespace Worsen.Domain.Hunter
                     HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange | HunterWorldFacts.LoopBroken, 1f),
                 Action(HunterAction.Lunge, HunterWorldFacts.PlayerVisible | HunterWorldFacts.InLungeRange, 0, HunterWorldFacts.CaughtPlayer, 1f)
             };
+            if (!sharedAttack) actions.RemoveAll(action => action.Id == (int)HunterAction.Lunge);
             if (_state.ActionFailed)
             {
                 actions.RemoveAll(action => action.Id == (int)_state.Action);
                 _state.HasPatrolTarget = false;
             }
-            ulong goal = react ? (ulong)HunterWorldFacts.EscapedBeam : _state.PlayerVisible ? (ulong)HunterWorldFacts.CaughtPlayer :
+            ulong goal = react ? (ulong)HunterWorldFacts.EscapedBeam : _state.PlayerVisible ?
+                (ulong)(sharedAttack ? HunterWorldFacts.CaughtPlayer : HunterWorldFacts.InLungeRange) :
                 _state.SearchActive || _state.BeliefConfidence > 0f || _state.LightMemoryRemaining > 0f ? (ulong)HunterWorldFacts.LocatedPlayer : (ulong)HunterWorldFacts.Patrolled;
             var goals = new[] {
                 new GoapGoalDefinition((int)HunterGoal.LocatePrey, goal, react ? 200f : _state.PlayerVisible ? 100f :

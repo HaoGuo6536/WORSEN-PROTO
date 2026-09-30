@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Carry injected tick inputs, ordered replay motion and immutable facts.
 //   - Consume shared Core facts without coupling archetypes to Session consumers.
+//   - Let specialised attacks opt out of the shared lunge without replacing sensing.
 // DEPENDENCIES:
 //   - Core values; read-only Player, Level and Floor views in Hunter's existing order.
 // USAGE NOTES:
@@ -24,6 +25,10 @@ using Worsen.Domain.Level;
 using Worsen.Domain.Floor;
 namespace Worsen.Domain.Hunter
 {
+    public interface IHunterAttackRules
+    {
+        bool UsesSharedAttacks { get; }
+    }
     public interface IHunterArchetypeController
     {
         bool OwnsPursuit { get; }

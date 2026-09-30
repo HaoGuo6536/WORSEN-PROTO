@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
+//   - Register and spawn routed Passage gold once using existing golden pickup lifecycle.
 //   - Spawn solved puzzle gold once and forward freeze priorities and cosmetic hand looks.
 //   - Snapshot round/collapse hooks; publish the Controller's white-first guidance list.
 //   - Publish H1 guidance, trap contacts and shared trap noise without routing foreign effects.
@@ -106,6 +107,13 @@ namespace Worsen.Domain.Floor
             return true;
         }
         public void SetHandLook(string look) => _driver?.SetHandLook(look);
+        public bool RegisterPassageReward(LevelAnchor anchor)
+        {
+            if (_controller == null || !_controller.RegisterPassageReward(anchor)) return false;
+            _driver.SpawnGoldenCakes(new[] { anchor });
+            RefreshCue();
+            return true;
+        }
 
         public void Tick(float dt, long tick)
         {
