@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Format fixed-total cake counters and floor-scoped hiding independently of guidance.
-//   - Compute independent objective/threat bearings in the supplied camera frame.
+//   - Compute independent objective, threat, Golden Sense and Exit Sense bearings.
 //   - Retain shield facts and format only occupied inventory selections, never empty capacity.
 //   - Compute interruptible chase restoration using supplied time and explicit resets.
 //   - Keep phantom counts temporary and separate from authoritative pickup counts.
@@ -108,15 +108,24 @@ namespace Worsen.Presentation.HUD
                 out state.ViewDirection, out state.DirectionDegrees, out state.DirectionPitchDegrees, out state.ArrowDegrees);
             Direction(state.GoldenSenseDirection, state.GoldenSenseVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
                 out state.GoldenSenseViewDirection, out state.GoldenSenseDegrees, out state.GoldenSensePitchDegrees, out state.GoldenSenseArrowDegrees);
+            Direction(state.ExitSenseTarget?.WorldDirection ?? Vector3.zero, state.ExitSenseVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
+                out state.ExitSenseViewDirection, out state.ExitSenseDegrees, out state.ExitSensePitchDegrees, out state.ExitSenseArrowDegrees);
         }
 
         public void SetGuidance(HUDDriverState state, IReadOnlyList<GuidanceTarget> targets)
         {
             SetDirection(state, Vector3.zero, false);
             state.GoldenSenseDirection = Vector3.zero; state.GoldenSenseVisible = false;
+            state.ExitSenseTarget = null; state.ExitSenseVisible = false;
             if (targets != null) foreach (var target in targets)
             {
                 if (target.Kind == GuidanceKind.WhiteArrow) SetDirection(state, target.WorldDirection, true);
+                else if (target.Kind == GuidanceKind.ExitThroughWalls)
+                {
+                    state.ExitSenseTarget = target;
+                    state.ExitSenseVisible = IsFinite(target.WorldDirection.x) && IsFinite(target.WorldDirection.y) &&
+                        IsFinite(target.WorldDirection.z) && target.WorldDirection.sqrMagnitude > 0f;
+                }
                 else if (target.Kind == GuidanceKind.GoldenSense)
                 {
                     state.GoldenSenseDirection = target.WorldDirection;

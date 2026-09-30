@@ -9,16 +9,11 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
-//   - Route room phases and assembled identities to deep-dark presentation with a protected exit.
-//   - Route Weaver web facts with paired subscriptions; floor teardown clears their visuals.
-//   - Route pending revival into the existing catch camera and return its completion to Session.
-//   - Bind each assembled floor's world and player-open provenance; route phantom cakes to HUD.
-//   - Synchronize authoritative active effects on connect, generation and committed restart.
-//   - Route chase admission and apply micro-events through Level or Horror, reporting outcomes.
-//   - Forward committed attack samples and HorrorEffects' flashlight state; never consume UseItem.
-//   - Reset transient cues when a generated floor replaces the previous one.
-//   - Reset the run clock and budget once per committed StartRun, including same-seed restarts.
-//   - Forward completed Run tick durations with paired subscriptions.
+//   - Route collapse, Weaver, attack, flashlight and authoritative Afterglow facts.
+//   - Pair revival catches and return their completion to Session.
+//   - Bind world/HUD micro-events and report their presentation outcomes.
+//   - Synchronize effects and clear floor-local visuals at lifecycle boundaries.
+//   - Advance the whole-run clock and reset its budget only on committed StartRun.
 // DEPENDENCIES:
 //   - Domain Level commits reopenable door closure; Core views describe injected safe candidates.
 //   - Session Run/Progression/HorrorEffects/Expedition, Presentation Horror/Input/Camera/HUD and Core.
@@ -33,6 +28,8 @@
 //   TickAdvanced is emitted only for accepted gameplay ticks; suspended or ended runs emit none.
 //   No certified unreachable anchors exist yet; silhouettes fail closed. Door visibility uses
 //   the entire owning room conservatively until exact door bounds are published by Level.
+//   The temporary typed reflection adapter tolerates a base without Run's
+//   AfterglowWindowPublished(int roomId, float seconds). Safety is never inferred here.
 // ============================================================================
 using UnityEngine;
 using System.Collections.Generic;
@@ -81,6 +78,7 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            PairAfterglow(true);
             _run.WeaverFactPublished += OnWeaver;
             _run.PlayerDeathPending += OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
@@ -96,7 +94,7 @@ namespace Worsen.Orchestrator
             _progression.TransactionCommitted += OnTransaction;
             _progression.EffectsSnapshotChanged += OnEffectsSnapshot;
             if (_expedition != null) { _expedition.AssemblyReady += OnAssemblyReady; _expedition.FloorReleased += OnFloorReleased; _expedition.RoomsReady += OnCollapseRooms; }
-            if (_level != null) _level.DoorOpened += OnDoorOpened;
+            if (_level != null) { _level.DoorOpened += OnDoorOpened; _level.InteractableChanged += OnLightChanged; }
             _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled);
             OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects);
             if (_level != null && _level.ReadOnlyState.IsReady) ConfigureMicroEvents(_level, System.Array.Empty<Vector3>());
@@ -104,7 +102,8 @@ namespace Worsen.Orchestrator
         private void OnDisable()
         {
             if (_expedition != null) { _expedition.AssemblyReady -= OnAssemblyReady; _expedition.FloorReleased -= OnFloorReleased; _expedition.RoomsReady -= OnCollapseRooms; }
-            if (_level != null) _level.DoorOpened -= OnDoorOpened;
+            if (_level != null) { _level.DoorOpened -= OnDoorOpened; _level.InteractableChanged -= OnLightChanged; }
+            PairAfterglow(false);
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
             if (_run != null) _run.WeaverFactPublished -= OnWeaver;
@@ -136,6 +135,28 @@ namespace Worsen.Orchestrator
                 if (room.Id == door.RoomId) { OnPlayerOpenedDoor(door.Id, room.Bounds); return; }
         }
         private void OnLight(FlashlightSample sample) => _horror.SetFlashlight(sample);
+        private void PairAfterglow(bool subscribe)
+        {
+            if (_run == null) return;
+            var channel = _run.GetType().GetEvent("AfterglowWindowPublished");
+            if (channel == null) return;
+            if (channel.EventHandlerType != typeof(System.Action<int, float>))
+                throw new System.InvalidOperationException("AfterglowWindowPublished must be Action<int, float>.");
+            System.Action<int, float> receiver = OnAfterglowWindow;
+            if (subscribe) channel.AddEventHandler(_run, receiver); else channel.RemoveEventHandler(_run, receiver);
+        }
+        private void OnAfterglowWindow(int roomId, float seconds)
+        {
+            if (_level == null || _horror == null) return;
+            foreach (var light in _level.Interactables.InRoom(roomId))
+                if (light.Kind == InteractableKind.Light && light.Value == InteractableStateValue.Broken)
+                    _horror.SetAfterglow(light, seconds);
+        }
+        private void OnLightChanged(InteractableState before, InteractableState after)
+        {
+            if (before.Kind == InteractableKind.Light && (after.Kind != InteractableKind.Light || after.Value != InteractableStateValue.Broken))
+                _horror.SetAfterglow(before, 0f);
+        }
         private void OnDeathPending(EntityId player, Vector3 killer)
         {
             if (_camera == null || !_camera.IsReady || _effects == null || !_effects.TryBeginRevival(player)) return;

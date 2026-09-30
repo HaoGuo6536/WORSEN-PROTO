@@ -11,16 +11,16 @@
 //   - Forward Expedition theme and room-family facts before RoomsReady constructs dressing.
 //   - Pair Horror lighting hooks and resynchronize torch density/Wick after floor dressing resets.
 //   - Pair floor, movement and visual-effect subscriptions with scene lifetime.
-//   - Keep decorations and local lighting synchronized with room destruction.
+//   - Route authored boundaries/sockets and synchronize dressing with light/destruction facts.
 //   - Publish the exit frame after room dressing exists and forward continuous opening progress.
-//   - Bind Level light snapshots after dressing and reset them when Expedition releases a floor.
+
 // DEPENDENCIES:
 //   Session Expedition/Run/HorrorEffects; Presentation Environment/Horror; Core values.
-//   Domain Level supplies the current graph and light facts; FloorDriverConfig supplies the authored door yaw.
+//   Domain Level supplies graph/light facts; Procedural supplies boundaries/sockets; Floor supplies door yaw.
 // USAGE NOTES:
 //   Scene-owned, explicitly configured after canonical services initialize.
 //   Environment owns objects and lighting budgets.
-//   FloorDisplayChanged carries opening and bail poses; Environment owns ray intensity math.
+//   FloorDisplayChanged carries continuous opening progress; Environment owns ray intensity math.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -32,6 +32,7 @@ using Worsen.Presentation.Environment;
 using Worsen.Presentation.Horror;
 using Worsen.Domain.Level;
 using Worsen.Domain.Floor;
+using Worsen.Domain.Procedural;
 namespace Worsen.Orchestrator
 {
     public sealed class EnvironmentOrchestrator : MonoBehaviour
@@ -43,9 +44,11 @@ namespace Worsen.Orchestrator
         private LevelManager _level;
         private FloorDriverConfig _floorVisuals;
         private HorrorManager _horror;
+        private ProceduralManager _procedural;
         public void Configure(RunSessionManager run, ExpeditionSessionManager expedition, HorrorEffectsManager effects,
-            EnvironmentManager environment, LevelManager level = null, FloorDriverConfig floorVisuals = null, HorrorManager horror = null)
-        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; _horror=horror; if (isActiveAndEnabled) OnEnable(); }
+            EnvironmentManager environment, LevelManager level = null, FloorDriverConfig floorVisuals = null, HorrorManager horror = null,
+            ProceduralManager procedural = null)
+        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; _horror=horror; _procedural=procedural; if (isActiveAndEnabled) OnEnable(); }
         private void OnEnable()
         {
             OnDisable();
@@ -76,7 +79,8 @@ namespace Worsen.Orchestrator
         private void OnRoomTheme(int room, string theme, string family) => _environment.SetRoomTheme(room, theme, family);
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms)
         {
-            _environment.SetRooms(rooms);
+            _environment.SetRooms(rooms, _procedural != null ? _procedural.RoomBoundary : null,
+                _procedural != null ? _procedural.RoomLightSockets : null);
             SynchronizeLighting();
             if (_level != null && rooms != null)
                 foreach (var room in rooms) BindLights(room.RoomId);
