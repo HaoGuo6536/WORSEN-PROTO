@@ -169,7 +169,8 @@ namespace Worsen.Tests.Expedition
             Assert.That(limited.Count, Is.EqualTo(1));
             Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(1));
             _controller.RecordPlayer(new EntityId(1)); _controller.RecordHunter(new EntityId(-1));
-            Assert.DoesNotThrow(_controller.Ready);
+            Assert.Throws<InvalidOperationException>(_controller.Ready);
+            _controller.Fail("safe spawn shortfall");
             _controller.Queue(Request(2, threats: 2)); _controller.ReleaseActors(); _controller.Begin(2);
             var spawns = _controller.HunterSpawns("Hunter", new[] { Vector3.zero, Vector3.one, Vector3.up });
             Assert.That(spawns.Count, Is.EqualTo(2));
@@ -245,7 +246,7 @@ namespace Worsen.Tests.Expedition
             Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(1));
             Assert.That(_controller.HunterSpawns("fallback", null), Is.Empty);
             Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(3));
-            _controller.RecordPlayer(new EntityId(1)); Assert.DoesNotThrow(_controller.Ready);
+            _controller.RecordPlayer(new EntityId(1)); Assert.Throws<InvalidOperationException>(_controller.Ready);
         }
 
         [Test]

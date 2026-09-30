@@ -8,18 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
-//   - Register and spawn routed Passage gold once using existing golden pickup lifecycle.
-//   - Spawn solved puzzle gold once and forward freeze priorities and cosmetic hand looks.
-//   - Snapshot round/collapse hooks; publish the Controller's white-first guidance list.
-//   - Publish H1 guidance, trap contacts and shared trap noise without routing foreign effects.
-//   - Spawn gold at collapse start even when Greedy Door delays the physical exit.
-//   - Support staged cracks, tearing, mist advance and escapable hand contacts.
-//   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
-//   - Resolve door identities, cancel departed holds before timing, and present bails without rewards.
-//   - Publish cake loss, hand noise and rubber-band acceleration facts for upward routing.
-//   - Publish every accepted pickup's noise and continuous visual exit progress.
-//   - Keep rules, passive state and engine operations in their owning roles.
-//   - Forward explicit pocket activation and read Low Profile protection without mutable casts.
+//   - Own Floor logic/driver lifetimes and forward generation hooks and pocket activation.
+//   - Spawn ordinary, bonus and optional rewards through the shared pickup lifecycle.
+//   - Publish fixed-total counters, guidance, pickup/loss facts and exit progress.
+//   - Route staged collapse, traps, hands, hearing and boundary contacts upward.
+//   - Resolve exit contacts and terminal bail/escape facts with paired subscriptions.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -74,7 +67,8 @@ namespace Worsen.Domain.Floor
         private void Awake() { if (_driver == null) _driver = GetComponent<FloorDriver>(); }
         public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random,
             int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default, bool waxHeart = false,
-            IReadOnlyCollection<int> preferredAnchors = null, IReadOnlyCollection<int> earlyCollapseRooms = null, string handLook = null)
+            IReadOnlyCollection<int> preferredAnchors = null, IReadOnlyCollection<int> earlyCollapseRooms = null, string handLook = null,
+            int optionalGoldenCakeCount = 0)
         {
             if (level == null || !level.IsReady) throw new InvalidOperationException("Floor requires a ready authored Level.");
             Teardown();
@@ -86,7 +80,7 @@ namespace Worsen.Domain.Floor
             {
                 _controller = new FloorController(_state, _config, random);
                 _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks, waxHeart,
-                    preferredAnchors, earlyCollapseRooms);
+                    preferredAnchors, earlyCollapseRooms, optionalGoldenCakeCount);
                 _hands = new FloorHandController(_state.Hands, _config);
                 _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps);
                 SetHandLook(handLook);
@@ -326,7 +320,8 @@ namespace Worsen.Domain.Floor
             }
         }
 
-        private FloorDisplaySnapshot Snapshot() => _controller.Snapshot(_driver.OpeningProgress(_state.ExitState == ExitState.Open));
+        public FloorDisplaySnapshot Snapshot() => _controller == null ? default :
+            _controller.Snapshot(_driver == null ? 0f : _driver.OpeningProgress(_state.ExitState == ExitState.Open));
 
         private void RefreshCue()
         {

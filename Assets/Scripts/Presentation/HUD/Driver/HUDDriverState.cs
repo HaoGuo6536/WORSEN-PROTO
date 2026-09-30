@@ -10,12 +10,10 @@
 //   DriverState (§7c) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Retain entity-keyed threat bearings and supplied shield independently of objectives.
-//   - Retain a selected physical slot caption and its compact occupied-slot highlight.
-//   - Retain independent typed guidance channels and a display-only phantom count deadline.
-//   - Store quiet golden/count text, flat arrow rotation, occupied slots and fade progress.
-//   - Retain presenter-computed chrome visibility separately from guidance visibility.
-//   - Retain a supplied camera orientation and full three-dimensional compass direction.
+//   - Retain fixed-total counter text, Hidden Count and phantom presentation lifetime.
+//   - Retain independent objective/threat guidance and supplied camera orientation.
+//   - Retain shield and selected occupied inventory presentation.
+//   - Retain chrome visibility and fade progress independently of guidance.
 //
 // DEPENDENCIES:
 //   - No other project systems; values are presentation copies.
@@ -39,6 +37,7 @@ namespace Worsen.Presentation.HUD
         public string CountText = "Cakes: —";
         public int Collected = -1;
         public int Required = -1;
+        public bool HiddenCount;
         public float PhantomSeconds;
         public bool GoldenSenseVisible;
         public Vector3 GoldenSenseDirection;

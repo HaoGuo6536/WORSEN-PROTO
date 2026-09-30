@@ -61,15 +61,20 @@ namespace Worsen.Tests.HUD
         [Test]
         public void GoldenUsesFloorSnapshotAndCaptureResetsItBeforeFirstPickup()
         {
-            Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(3, 5, 7, ExitState.Locked, false, Vector3.zero));
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 7"));
+            Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(3, 5, 7, ExitState.Locked, false, Vector3.zero,
+                totalCakes: 20, totalGoldenCakes: 10, hiddenCount: true));
+            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 7 / 10"));
+            Assert.That(_state.CountText, Is.EqualTo("Cakes: 3 / 20"));
+            Assert.That(_state.HiddenCount, Is.True);
             Publish(_run, "EmptyItemSlotsChanged", 1);
-            Assert.That(_state.DisplayedSlots, Is.EqualTo(1));
+            Assert.That(_state.DisplayedSlots, Is.Zero, "Empty capacity is not a held item.");
             Publish(_run, "CaptureStarted", default(RunCaptureMetadata));
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 0"));
+            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 0 / 0"));
+            Assert.That(_state.HiddenCount, Is.False);
             Assert.That(_state.DisplayedSlots, Is.Zero);
-            Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(1, 5, 2, ExitState.Locked, false, Vector3.zero));
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 2"));
+            Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(1, 5, 2, ExitState.Locked, false, Vector3.zero,
+                totalCakes: 12, totalGoldenCakes: 6));
+            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 2 / 6"));
         }
         [Test]
         public void RepeatedEnableAndDisableLeaveNoDuplicateOrStaleSubscribers()

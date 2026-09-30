@@ -87,7 +87,8 @@ namespace Worsen.Tests.Expedition
             controller.Queue(new ProgressionGenerationRequest(1, 17, 8, false,
                 new ProgressionEffects(1, 1, 1, 1, 100, 100, 1, activeThreatIds: new[] { "Hunter" })));
             controller.Begin(1); controller.RecordPlayer(player.Id);
-            controller.HunterSpawns("Hunter", Array.Empty<Vector3>()); controller.Ready();
+            controller.HunterSpawns("Hunter", new[] { new Vector3(16, 0, 0) });
+            controller.RecordHunter(new EntityId(-700)); controller.Ready();
             expedition = Component<ExpeditionSessionManager>();
             Set(expedition, "_state", state); Set(expedition, "_controller", controller);
             Set(expedition, "_level", level); Set(expedition, "_procedural", procedural); Set(expedition, "_floor", floor);
@@ -149,7 +150,7 @@ namespace Worsen.Tests.Expedition
             if (!pool) LogAssert.Expect(LogType.Warning, "Shrine 1: purgatory-mutation-unavailable:Hunter");
             var fact = Fact(ShrineKind.Purgatory, extra: 1, mutation: true);
             Call(expedition, "HandleShrineResolved", fact); Call(expedition, "HandleShrineResolved", fact);
-            Assert.That(expedition.ActiveHunterCount, Is.EqualTo(1)); Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
+            Assert.That(expedition.ActiveHunterCount, Is.EqualTo(2)); Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
             foreach (var hunter in HunterRegistry.Items)
                 Assert.That(((IDictionary)Get(hunter.ReadOnlyState, "Mutations")).Count, Is.EqualTo(pool ? 1 : 0));
             Assert.That(unresolved.Count, Is.EqualTo(pool ? 0 : 1));

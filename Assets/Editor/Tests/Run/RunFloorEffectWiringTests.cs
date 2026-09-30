@@ -83,6 +83,25 @@ namespace Worsen.Tests.Run
             owned.Clear(); hunters.Clear();
             ResetRegistries();
         }
+        [Test]
+        public void CounterSnapshotReplaysFloorTotalsBeforeAndAfterPhysicalPickups()
+        {
+            var snapshots = new List<FloorDisplaySnapshot>(); run.FloorDisplayChanged += snapshots.Add;
+            run.PublishFloorSnapshot();
+            Assert.That(snapshots.Count, Is.EqualTo(1));
+            Assert.That(snapshots[0].Collected, Is.Zero);
+            Assert.That(snapshots[0].TotalCakes, Is.EqualTo(1));
+            Assert.That(snapshots[0].TotalGoldenCakes, Is.EqualTo(1));
+            var logic = (FloorController)Get(floor, "_controller");
+            Assert.That(logic.Collect(player.Id, 11, PickupKind.Cake, 1, out _), Is.True);
+            Assert.That(logic.Collect(player.Id, 11, PickupKind.GoldenCake, 2, out _), Is.True);
+            run.PublishFloorSnapshot();
+            Assert.That(snapshots[1].Collected, Is.EqualTo(1)); Assert.That(snapshots[1].Golden, Is.EqualTo(1));
+            Assert.That(snapshots[1].TotalCakes, Is.EqualTo(1)); Assert.That(snapshots[1].TotalGoldenCakes, Is.EqualTo(1));
+            run.DetachGameplay(); run.PublishFloorSnapshot();
+            Assert.That(snapshots[2].TotalCakes, Is.Zero);
+        }
+
         [TestCase(false)] [TestCase(true)]
         public void BoundaryUsesExactlyTheFloorTickDeltaEvenDuringGrace(bool grace)
         {

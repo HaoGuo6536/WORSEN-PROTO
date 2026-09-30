@@ -8,15 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Require the 0.75 duration default and live route protection rather than shell-only shuffling.
-//   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
-//   - Verify deterministic placement, counters, cues and ordered room transitions.
-//   - Verify bounded density, optional scoring, pickup hearing and display payloads.
-//   - Reject invalid contacts and verify a fresh initialization clears prior life.
-//   - Verify timed bail, cancellation and death without granting cakes or collapse.
-//   - Keep the exit permanently safe; cover warning pulses, optional losses and opt-in collapse hooks.
-//   - Keep pockets dormant until activation and reject room membership inside missing footprint cells.
-//   - Advance pocket collapse through each configured phase boundary, independently of the room interval.
+//   - Verify seeded placement, physical counters, objective credit, cues and pickup hearing.
+//   - Verify density, optional rewards and reset/rejected-contact behavior.
+//   - Verify route-safe collapse, hooks, warning pulses, losses and safe exits.
+//   - Verify pocket activation, footprint membership and independent phase timing.
+//   - Verify bail/death/cancellation and progression/movement fixture integration.
 // DEPENDENCIES:
 //   - Core level/floor values and Domain Floor pure classes.
 //   - Domain Player read-only interface implemented by an immutable fixture.
@@ -731,7 +727,7 @@ namespace Worsen.Tests.Floor
             if (!optionalFirst) CollectAll(fixture);
             Assert.That(fixture.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 2, out var fact), Is.True);
             Assert.That(fact.CakeCount, Is.EqualTo(optionalFirst ? 1 : 3));
-            Assert.That(fixture.Controller.Snapshot().Collected, Is.EqualTo(optionalFirst ? 0 : 2));
+            Assert.That(fixture.Controller.Snapshot().Collected, Is.EqualTo(optionalFirst ? 1 : 3));
             Assert.That(fixture.State.ExitState, Is.EqualTo(optionalFirst ? ExitState.Locked : ExitState.Open));
             if (optionalFirst) CollectAll(fixture);
             Assert.That(fixture.State.ExitState, Is.EqualTo(ExitState.Open));

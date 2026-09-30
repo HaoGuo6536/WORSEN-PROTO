@@ -12,23 +12,11 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
-//   - Relay shield changes and initial bound-player shield snapshots for late HUD binding.
-//   - Publish pending death before terminal commit; allow an admitted revival without resetting Floor.
-//   - Publish empty counts from the routed Progression inventory, never the legacy Player slots.
-//   - Pair Core hunter fact relays for initial/late spawns, web slowing and floor-wide Loud Keys.
-//   - Sample floor shrines after committed actor ticks and deliver delayed shrine hearing once.
-//   - Forward typed guidance/traps and route boundary acceleration using the Floor tick delta.
-//   - Share pickup/hand/trap hearing; environmental sources use Director only when bound.
-//   - Pair traversal, stumble and cake-loss relays; route pickup noise to bound active hunters.
-//   - Drop gameplay facts raised during pause rather than replaying them on resume.
-//   - Own authoritative pause, gate queued damage before ticks, and publish detailed end facts.
-//   - Forward hit severity/source, advance recovery without rewinding, and relay Player grace facts.
-//   - Relay committed pickup, hand, destruction and hunter sound facts without audio decisions.
-//   - Publish committed hunter attack telegraphs and prepare independently seeded generated floors.
-//   - Maintain one persistent canonical run and one shared seeded random source.
-//   - Request synchronous input publication immediately before each fixed tick.
-//   - Hand explicit delta time to the Controller and publish completed tick data.
-//   - Consume only Floor's unified escape fact, retaining the early-bail flag.
+//   - Own canonical run timing, randomness, input publication and authoritative pause.
+//   - Bind gameplay services and pair actor, movement, hearing and environmental relays.
+//   - Relay initial/change floor counters, shields, inventory and guidance for presentation.
+//   - Publish committed combat, pickup, shrine and collapse facts without presentation rules.
+//   - Resolve terminal/revival/escape outcomes while retaining bail and generation identity.
 //
 // DEPENDENCIES:
 //   - Domain Shrine and Session Progression resolve generation-bound shrine activation.
@@ -135,6 +123,7 @@ namespace Worsen.Session.Run
         public void PublishInventory(ConsumableInventorySnapshot inventory)
         { if (controller != null) EmptyItemSlotsChanged?.Invoke(controller.EmptySlots(inventory.Inventory)); }
         public event Action<FloorDisplaySnapshot> FloorDisplayChanged;
+        public void PublishFloorSnapshot() => FloorDisplayChanged?.Invoke(floor != null ? floor.Snapshot() : default);
         public event Action<RoomPhaseChangedFact> RoomPhaseChanged;
         public event Action<IntrusionSample> IntrusionPublished;
         public event Action<TelemetrySample> TelemetryPublished;

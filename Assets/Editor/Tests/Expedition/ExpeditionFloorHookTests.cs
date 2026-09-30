@@ -26,7 +26,7 @@ namespace Worsen.Tests.Expedition
     public sealed class ExpeditionFloorHookTests
     {
         [TestCase("sweet-tooth")] [TestCase("blind-faith")] [TestCase("golden-sense")]
-        [TestCase("greedy-door")] [TestCase("faster-collapse")] [TestCase("shuffled-collapse")] [TestCase("wax-heart")]
+        [TestCase("greedy-door")] [TestCase("faster-collapse")] [TestCase("shuffled-collapse")] [TestCase("wax-heart")] [TestCase("hidden-count")]
         public void EveryMappedIdExistsAndSetsOnlyItsOwnHook(string id)
         {
             var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
@@ -34,7 +34,9 @@ namespace Worsen.Tests.Expedition
             {
                 var entry = catalogue.Entries.Single(e => e.Id == id);
                 var view = new ActiveEffects(new[] { new ActiveEffect(new EffectId(id), entry.Kind, 1) });
-                var cakes = ExpeditionFloorEffectUtility.CakeHooks(view);
+                var cakes = ExpeditionFloorEffectUtility.CakeHooks(view, 1.15f);
+                Assert.That(cakes.HiddenCount, Is.EqualTo(id == "hidden-count"));
+                Assert.That(cakes.GoldenCakeMultiplier, Is.EqualTo(id == "faster-collapse" ? 1.15f : 1f));
                 Assert.That(cakes.SweetTooth, Is.EqualTo(id == "sweet-tooth"));
                 Assert.That(cakes.BlindFaith, Is.EqualTo(id == "blind-faith"));
                 Assert.That(cakes.GoldenSense, Is.EqualTo(id == "golden-sense"));
@@ -47,6 +49,17 @@ namespace Worsen.Tests.Expedition
             finally { Object.DestroyImmediate(catalogue); }
         }
         [Test]
+        public void NothingAddsOneSeededRosterDrawPerStack()
+        {
+            var effects = new ActiveEffects(new[] { new ActiveEffect(new EffectId("nothing"), EffectKind.Curse, 5) });
+            var a = ExpeditionFloorEffectUtility.ExtraHunters(effects, new[] { "B", "A", "A" }, 123, 7);
+            Assert.That(a.Count, Is.EqualTo(5));
+            Assert.That(a.All(x => x == "A" || x == "B"), Is.True);
+            Assert.That(a, Is.EqualTo(ExpeditionFloorEffectUtility.ExtraHunters(effects, new[] { "A", "B" }, 123, 7)));
+            Assert.That(ExpeditionFloorEffectUtility.ExtraHunters(null, null, 123, 7), Is.Empty);
+            Assert.Throws<System.InvalidOperationException>(() => ExpeditionFloorEffectUtility.ExtraHunters(effects, null, 123, 7));
+        }
+        [Test]
         public void EmptyViewsAreNeutralAndAssemblySuppliesRoundAndHooks()
         {
             Assert.That(ExpeditionFloorEffectUtility.FasterCollapse(null), Is.False);
@@ -56,7 +69,7 @@ namespace Worsen.Tests.Expedition
             Assert.That(c.SweetTooth || c.BlindFaith || c.GoldenSense || c.GreedyDoor || c.MoreTraps || c.SilentTraps, Is.False);
             string source = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"));
             Assert.That(source, Does.Contain("round: request.Round"));
-            Assert.That(source, Does.Contain("cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects)"));
+            Assert.That(source, Does.Contain("cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _config.FasterCollapseGoldenCakeMultiplier)"));
             Assert.That(source, Does.Contain("waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects)"));
         }
     }

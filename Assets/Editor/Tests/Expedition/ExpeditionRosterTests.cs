@@ -44,13 +44,28 @@ namespace Worsen.Tests.Expedition
             for (int i = 0; i < requests.Count; i++) controller.RecordHunter(new EntityId(-i - 1));
             controller.Ready(); Assert.That(controller.HunterSpawn("echo", Vector3.back).DuplicateIndex, Is.EqualTo(2));
         }
+        [Test] public void EveryRetainedHunterSpawnsOnEachFloorWithNothingExtrasAppended()
+        {
+            for (int generation = 1; generation <= 3; generation++)
+            {
+                Begin(generation, "echo", "weaver", "echo");
+                var requests = controller.HunterSpawns("fallback", Enumerable.Range(0, 5).Select(i => Vector3.right * i).ToArray(),
+                    extraHunters: new[] { "ticking", "echo" });
+                Assert.That(requests.Select(r => r.ArchetypeKey), Is.EqualTo(new[] { "echo", "weaver", "echo", "ticking", "echo" }));
+                Assert.That(requests.Select(r => r.DuplicateIndex), Is.EqualTo(new[] { 0, 0, 1, 0, 2 }));
+                controller.RecordPlayer(new EntityId(1));
+                for (int i = 0; i < requests.Count; i++) controller.RecordHunter(new EntityId(-i - 1));
+                controller.Ready(); controller.ReleaseActors();
+            }
+        }
         [Test] public void UnsafeAndDuplicatePlacementsNeverInflateCapacityOrPermitEarlyReadiness()
         {
             Begin(1, "echo", "weaver", "ticking");
             var requests = controller.HunterSpawns("fallback", new[] { Vector3.zero, Vector3.one, Vector3.one }, p => p != Vector3.zero);
             Assert.That(requests.Count, Is.EqualTo(1)); Assert.That(requests[0].Position, Is.EqualTo(Vector3.one));
             Assert.That(state.HunterSpawnShortfall, Is.EqualTo(2)); controller.RecordPlayer(new EntityId(1));
-            Assert.Throws<InvalidOperationException>(controller.Ready); controller.RecordHunter(new EntityId(-1)); controller.Ready();
+            Assert.Throws<InvalidOperationException>(controller.Ready); controller.RecordHunter(new EntityId(-1));
+            Assert.Throws<InvalidOperationException>(controller.Ready, "A retained-hunter subset cannot be admitted.");
         }
         [Test] public void AcceptedMutationReplacesItsTunablePersistsAcrossFloorsAndClearsOnNewRun()
         {

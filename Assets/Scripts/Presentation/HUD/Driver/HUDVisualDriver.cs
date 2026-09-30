@@ -11,12 +11,10 @@
 //   Sub-driver (§7e), owned by HUDDriver · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Render shield health and keyed Ticking glyphs that remain visible during chases.
-//   - Draw the selected item caption even during a chase; highlight its occupied slot.
-//   - Build quiet cake and golden counts without panel chrome, title or controls hints.
-//   - Pair all vector callbacks when binding, unbinding or replacing a document.
-//   - Paint separate white and golden arrows, each independent of chase chrome.
-//   - Apply chrome visibility and restoration without suppressing the independent compass.
+//   - Build quiet cake/golden counters and honor floor hiding independently of other HUD.
+//   - Render shield, selected inventory and independent threat/objective guidance.
+//   - Pair vector callbacks across document binding, replacement and teardown.
+//   - Apply chrome visibility and restoration without suppressing guidance.
 //
 // DEPENDENCIES:
 //   Own HUDDriverConfig, HUDDriverState and HUDGeometryPresenter only.
@@ -147,7 +145,7 @@ namespace Worsen.Presentation.HUD
                 arrow.style.display = pair.Value.Visible ? DisplayStyle.Flex : DisplayStyle.None;
                 arrow.style.rotate = new Rotate(new Angle(pair.Value.ArrowDegrees, AngleUnit.Degree));
             }
-            _panel.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _panel.style.display = state.ChromeVisible && !state.HiddenCount ? DisplayStyle.Flex : DisplayStyle.None;
             _panel.style.opacity = state.ExtraOpacity;
             _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _extra.style.opacity = state.ExtraOpacity;

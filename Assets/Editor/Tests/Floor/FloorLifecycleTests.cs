@@ -8,13 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Check collection and exit contacts traverse the generated Driver stack once.
-//   - Check teardown and reinitialization release prior objects and subscriptions.
-//   - Prevent terminal callbacks from publishing an old run's display after restart.
-//   - Verify bail flags do not publish normal opening or spawn Golden Cakes.
-//   - Verify unused sockets stay empty and pickup noise/golden/opening data reach subscribers.
-//   - Drive physical door overlaps through Run and cancel last-collider departures before timing.
-//   - Cover legacy-volume departure and use a separate non-exit room for hazard lifecycle tests.
+//   - Verify generated pickup/exit contacts and monotonic physical-count publications.
+//   - Verify teardown, reinitialization and terminal callback subscription safety.
+//   - Verify bail cannot grant normal opening or golden rewards.
+//   - Verify unused sockets, pickup hearing and continuous exit presentation.
+//   - Verify physical/legacy door departures and non-exit hazard lifecycle.
 // DEPENDENCIES:
 //   - Domain Floor components, read-only Level/Player interfaces and Core values.
 //   - Session Run receives the physical bail through its actual Floor subscription.
@@ -426,7 +424,7 @@ namespace Worsen.Tests.Floor
                 var required = fixture.Manager.ReadOnlyState.ActiveCakeAnchors.ToArray();
                 var optional = cakes.Single(c => required.All(a => a.Id != c.AnchorId));
                 InvokeTrigger(optional, "OnTriggerEnter", fixture.ContactCollider);
-                Assert.That(displays.Last().Collected, Is.Zero);
+                Assert.That(displays.Last().Collected, Is.EqualTo(1));
                 Assert.That(displays.Last().Exit, Is.EqualTo(ExitState.Locked));
                 foreach (var anchor in required) fixture.Manager.Collect(new EntityId(1), anchor.Id, PickupKind.Cake);
                 fixture.Manager.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake);
