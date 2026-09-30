@@ -6,14 +6,17 @@
 //   Profiles distinguish melee reach/elevation, traveling spells and warned ground eruptions.
 //   Runtime memories, curse effects and cooldowns live in per-instance state.
 //   Investigation and unseen stalking have separate approach and reveal tuning.
+//   The four-part brief maps inertia to acceleration/turn, commitment to action
+//   and lunge timing, speed ratio to chase multiplier, and loss to time/distance.
 // ARCHITECTURAL ROLE:
 //   Content SO (section 4b) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Configure walk speed, chase-relative stalk speed and the player's reveal cone.
+//   - Supply deliberation, utility, prediction, missed-lunge and shared hearing tuning.
 // DEPENDENCIES:
-//   - Hunter-local attack and light-response enums; UnityEngine asset authoring types.
+//   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
 // USAGE NOTES:
 //   Shared immutable asset; never modified by runtime code.
@@ -21,6 +24,7 @@
 //   not a live link to PatrolSpeed; StalkSpeedMultiplier is relative to chase speed.
 // ============================================================================
 using UnityEngine;
+using Worsen.Core;
 namespace Worsen.Domain.Hunter
 {
     [CreateAssetMenu(menuName = "Worsen/Hunter/Hunter Profile")]
@@ -69,6 +73,49 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private float _projectileSpeed = 11f;
         [SerializeField] private float _projectileRadius = 0.22f;
         [SerializeField] private float _spikeRadius = 1.5f;
+        [Header("Commitment and loss rule")]
+        [SerializeField, Min(0.1f)] private float _actionCommitmentSeconds = 0.5f;
+        [SerializeField, Min(0f)] private float _lossSeconds = 2.5f;
+        [SerializeField, Min(0f)] private float _lossDistance = 14f;
+        [SerializeField, Min(0.01f)] private float _missStaggerSeconds = 0.6f;
+        [SerializeField, Min(0f)] private float _missStumbleMeters = 0.8f;
+        [Header("Felt intelligence")]
+        [SerializeField, Min(0f)] private float _deliberationSeconds = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _predictionChance = 0.75f;
+        [SerializeField, Range(0f, 1f)] private float _parallelCorridorChance = 0.25f;
+        [SerializeField, Min(0f)] private float _searchExpansionMeters = 2f;
+        [SerializeField, Min(0.1f)] private float _searchLegTimeoutSeconds = 4f;
+        [SerializeField, Min(0.1f)] private float _retreatTimeoutSeconds = 12f;
+        [SerializeField, Min(0f)] private float _cakeGoalUtility = 40f;
+        [SerializeField, Min(0f)] private float _exitGoalUtility = 65f;
+        [SerializeField, Min(0f)] private float _loopGoalUtility = 85f;
+        [Header("Shared hearing")]
+        [SerializeField, Min(0.01f)] private float _hearingReferenceMeters = 2f;
+        [SerializeField, Min(0f)] private float _hearingRolloff = 1f;
+        [SerializeField, Range(0f, 1f)] private float _hearingPortalRetention = 0.7f;
+        [SerializeField, Range(0f, 1f)] private float _hearingClosedDoorRetention = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float _investigateNoiseThreshold = 0.1f;
+        [SerializeField, Range(0f, 1f)] private float _exitNoiseThreshold = 0.4f;
+        public float ActionCommitmentSeconds => Mathf.Max(0.1f, _actionCommitmentSeconds);
+        public float LossSeconds => Mathf.Max(0f, _lossSeconds);
+        public float LossDistance => Mathf.Max(0f, _lossDistance);
+        // Windup and active duration already define the uninterruptible lunge commitment.
+        public float LungeCommitmentSeconds => LungeWindupSeconds + LungeActiveSeconds;
+        public float MissStaggerSeconds => Mathf.Max(0.01f, _missStaggerSeconds);
+        public float MissStumbleMeters => Mathf.Max(0f, _missStumbleMeters);
+        public float DeliberationSeconds => Mathf.Max(0f, _deliberationSeconds);
+        public float PredictionChance => Mathf.Clamp01(_predictionChance);
+        public float ParallelCorridorChance => Mathf.Clamp01(_parallelCorridorChance);
+        public float SearchExpansionMeters => Mathf.Max(0f, _searchExpansionMeters);
+        public float SearchLegTimeoutSeconds => Mathf.Max(0.1f, _searchLegTimeoutSeconds);
+        public float RetreatTimeoutSeconds => Mathf.Max(0.1f, _retreatTimeoutSeconds);
+        public float CakeGoalUtility => Mathf.Max(0f, _cakeGoalUtility);
+        public float ExitGoalUtility => Mathf.Max(0f, _exitGoalUtility);
+        public float LoopGoalUtility => Mathf.Max(0f, _loopGoalUtility);
+        public float InvestigateNoiseThreshold => Mathf.Clamp01(_investigateNoiseThreshold);
+        public float ExitNoiseThreshold => Mathf.Clamp01(_exitNoiseThreshold);
+        public HearingModelSettings HearingModel => new HearingModelSettings(_hearingReferenceMeters,
+            _hearingRolloff, _hearingPortalRetention, _hearingClosedDoorRetention, _hearingThreshold);
         public HunterAttackStyle AttackStyle => _attackStyle;
         public float RangedAttackDistance => Mathf.Max(2f, _rangedAttackDistance);
         public float ProjectileSpeed => Mathf.Max(2f, _projectileSpeed);

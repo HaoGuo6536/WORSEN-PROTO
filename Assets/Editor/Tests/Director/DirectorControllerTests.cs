@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Exercise variable batches, history warmup/wraparound, and pressure thresholds.
 //   - Verify multiple-player assignment, lifecycle reset, and intrusion episodes.
+//   - Verify seeded retreat trials, room-region uncertainty and delivered noise identity.
 //   - Distinguish tick delivery deadlines from earlier evaluation boundaries at
 //     60 Hz and with fractional multi-evaluation batches, without early delivery.
 // DEPENDENCIES:
@@ -25,12 +26,21 @@ using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Domain.Director;
+using Worsen.Domain.Level;
 using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Director
 {
     public sealed class DirectorControllerTests
     {
+        private sealed class LevelFixture : IReadOnlyLevelState
+        {
+            public bool IsReady => true;
+            public LevelGraph Graph { get; } = new LevelGraph(new[] {
+                new LevelRoom(1, new Vector3(0, 2, 0), new Vector3(8, 4, 8)),
+                new LevelRoom(2, new Vector3(0, 2, 10), new Vector3(8, 4, 8)) },
+                new[] { new LevelEdge(1, 1, 2, true) }, Array.Empty<LevelAnchor>(), 2, Vector3.forward * 10f);
+        }
         private DirectorConfig _config;
         private DirectorBehaviorState _state;
         private DirectorController _controller;
@@ -77,6 +87,70 @@ namespace Worsen.Tests.Director
             Assert.That(_config.HintAgeSeconds, Is.EqualTo(3f));
             Assert.That(_config.HintRadiusMeters, Is.EqualTo(8f));
             Assert.That(_config.IntrusionDurationSeconds, Is.EqualTo(2f));
+        }
+
+        [TestCase(0f)] [TestCase(1f)]
+        public void RetreatRequiresStrictThresholdAndContinuousPursuitWithCooldown(float probability)
+        {
+            Tune("_retreatProbability", probability);
+            var hunters = new[] { new DirectorHunterSample(Hunter, Player, Vector3.zero, true, true) };
+            for (int i = 0; i < 90; i++) Assert.That(Step(chase: true, hunters: hunters).Retreats, Is.Empty);
+            Assert.That(Step(chase: true, hunters: hunters).Retreats.Count, Is.EqualTo(probability == 1f ? 1 : 0));
+            for (int i = 0; i < 119; i++) Assert.That(Step(chase: true, hunters: hunters).Retreats, Is.Empty);
+            Assert.That(Step(chase: true, hunters: hunters).Retreats.Count, Is.EqualTo(probability == 1f ? 1 : 0));
+            Step(chase: false, hunters: hunters);
+            for (int i = 0; i < 90; i++) Assert.That(Step(chase: true, hunters: hunters).Retreats, Is.Empty);
+        }
+        [Test] public void SeededProbabilityTrialsIncludeRejectionsAndDoNotRerollDuringCooldown()
+        {
+            Tune("_retreatPursuitSeconds", 0f); Tune("_retreatCooldownSeconds", 1f);
+            var hunters = new[] { new DirectorHunterSample(Hunter, Player, Vector3.zero, true, true) };
+            var expected = new System.Random(77);
+            int accepted = 0;
+            for (int i = 0; i < 20; i++)
+            {
+                bool request = expected.NextDouble() < 0.5;
+                var actual = Step(chase: true, hunters: hunters).Retreats;
+                Assert.That(actual.Count, Is.EqualTo(request ? 1 : 0));
+                accepted += actual.Count;
+                Assert.That(Step(chase: true, hunters: hunters).Retreats, Is.Empty);
+            }
+            Assert.That(accepted, Is.InRange(1, 19));
+        }
+        [Test] public void RegionUsesHistoricalRoomAndWidensWithClosedDoorOcclusion()
+        {
+            Tune("_heatThresholdSeconds", 0f); Tune("_reliefMinimumSeconds", 0f);
+            Tune("_hintAgeSeconds", 0.5f); Tune("_hintCadenceSeconds", 0.5f); Tune("_proximityRadiusMeters", 0f);
+            _controller.SetLevelView(new LevelFixture());
+            var hearing = new HearingModelSettings(2f, 1f, 0.7f, 0.35f, 0.08f);
+            var hunters = new[] { new DirectorHunterSample(Hunter, Player, Vector3.zero, true, false, hearing) };
+            Step(position: Vector3.forward * 10f, hunters: hunters);
+            var open = Step(position: Vector3.forward * 10f, hunters: hunters).Regions;
+            Assert.That(open.Count, Is.EqualTo(1));
+            Assert.That(open[0].RoomId, Is.EqualTo(2));
+            Assert.That(open[0].Hint.Position, Is.EqualTo(Vector3.forward * 10f));
+            Assert.That(open[0].Hint.Radius, Is.GreaterThan(_config.HintRadiusMeters));
+            _controller.SetClosedDoors(new Dictionary<int, bool> { [1] = true });
+            var closed = Step(position: Vector3.right, hunters: hunters).Regions;
+            Assert.That(closed.Count, Is.EqualTo(1));
+            Assert.That(closed[0].RoomId, Is.EqualTo(2), "No fallback to current player room.");
+            Assert.That(closed[0].Hint.Radius, Is.GreaterThan(open[0].Hint.Radius));
+            Assert.That(closed[0].Hint.Radius, Is.EqualTo(8f + 12f * (1f - 0.7f * 0.35f)).Within(0.0001f));
+        }
+        [Test] public void DirectorFeedsAudibleNoiseOnceWithoutLosingSourceKind()
+        {
+            _controller.SetLevelView(new LevelFixture());
+            var hunters = new[] { new DirectorHunterSample(Hunter, Player, Vector3.zero, true, false,
+                new HearingModelSettings(2f, 1f, 0.7f, 0.35f, 0.08f)) };
+            var noise = new NoiseEvent(Player, Vector3.forward * 2f, 1f, 0, NoiseSourceKind.KnockedProp);
+            _controller.HearNoise(noise);
+            var first = Step(hunters: hunters).Noises;
+            Assert.That(first.Count, Is.EqualTo(1));
+            Assert.That(first[0].Hunter, Is.EqualTo(Hunter));
+            Assert.That(first[0].Noise, Is.EqualTo(noise));
+            Assert.That(first[0].Noise.SourceKind, Is.EqualTo(noise.SourceKind));
+            _controller.HearNoise(noise);
+            Assert.That(Step(hunters: hunters).Noises, Is.Empty);
         }
 
         [Test]

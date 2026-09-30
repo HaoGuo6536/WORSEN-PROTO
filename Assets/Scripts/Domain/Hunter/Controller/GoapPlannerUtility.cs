@@ -16,7 +16,8 @@
 //   All mutable search data belongs to this invocation. Equal-cost routes follow
 //   input action order. The heuristic is the cheapest action cost until the goal
 //   is reached: admissible even when one action satisfies several goal facts.
-//   This utility selects no goals and performs no actions; HunterController owns that.
+//   Goal selection tests highest utility first; input order breaks ties. A shared
+//   expansion budget bounds the entire selection, not just each candidate search.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,34 @@ namespace Worsen.Domain.Hunter
 {
     public static class GoapPlannerUtility
     {
+        public static GoapPlanResult Select(ulong facts, IReadOnlyList<GoapGoalDefinition> goals,
+            IReadOnlyList<GoapActionDefinition> actions, out int selectedGoal, int maximumExpandedStates = 512)
+        {
+            if (goals == null) throw new ArgumentNullException(nameof(goals));
+            if (actions == null) throw new ArgumentNullException(nameof(actions));
+            if (maximumExpandedStates < 1) throw new ArgumentOutOfRangeException(nameof(maximumExpandedStates));
+            var ordered = new List<int>();
+            for (int i = 0; i < goals.Count; i++)
+            {
+                if (float.IsNaN(goals[i].Utility) || float.IsInfinity(goals[i].Utility))
+                    throw new ArgumentException("Goal utility must be finite.", nameof(goals));
+                if (goals[i].Utility > 0f) ordered.Add(i);
+            }
+            ordered.Sort((a, b) => goals[a].Utility == goals[b].Utility ? a.CompareTo(b) : goals[b].Utility.CompareTo(goals[a].Utility));
+            selectedGoal = -1;
+            int expanded = 0;
+            foreach (int i in ordered)
+            {
+                if (expanded >= maximumExpandedStates) return Result(GoapPlanStatus.SearchLimitReached, expanded);
+                GoapPlanResult plan = Plan(facts, goals[i].Facts, 0, actions, maximumExpandedStates - expanded);
+                expanded += plan.ExpandedStates;
+                if (plan.Status == GoapPlanStatus.SearchLimitReached) return Result(GoapPlanStatus.SearchLimitReached, expanded);
+                if (plan.Status != GoapPlanStatus.Found && plan.Status != GoapPlanStatus.AlreadySatisfied) continue;
+                selectedGoal = goals[i].Id;
+                return new GoapPlanResult(plan.Status, plan.ActionIds, plan.TotalCost, expanded);
+            }
+            return Result(GoapPlanStatus.Unreachable, expanded);
+        }
         public static GoapPlanResult Plan(ulong initialFacts, ulong goalSet, ulong goalClear,
             IReadOnlyList<GoapActionDefinition> actions, int maximumExpandedStates = 512)
         {
