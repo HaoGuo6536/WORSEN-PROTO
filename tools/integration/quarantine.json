@@ -1,0 +1,60 @@
+{
+  "entries": [
+    {
+      "match": "category:RequiresFocus",
+      "owner": "coordinator",
+      "reason": "Capture-gated Play Mode integration tests need Unity as the foreground window; run them in an owner-present focused pass.",
+      "added": "2026-09-30",
+      "expires": "2026-12-31"
+    },
+    {
+      "match": "Worsen.Tests.Camera.CriticalHealthFeedbackIntegrationTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    },
+    {
+      "match": "Worsen.Tests.Camera.FeedbackRoutingIntegrationTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    },
+    {
+      "match": "Worsen.Tests.Hunter.HunterChaseIntegrationTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    },
+    {
+      "match": "Worsen.Tests.Hunter.HunterCutOffIntegrationTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    },
+    {
+      "match": "Worsen.Tests.Hunter.HunterRouteComparisonTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    },
+    {
+      "match": "Worsen.Tests.Player.LookBackTraversalIntegrationTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    },
+    {
+      "match": "Worsen.Tests.Player.PlayerTraversalIntegrationTests.*",
+      "owner": "coordinator",
+      "reason": "Focus-dependent capture gate (batch 11: 'focus did not remain stable'); replace with category:RequiresFocus once tagged.",
+      "added": "2026-09-30",
+      "expires": "2026-10-31"
+    }
+  ]
+}

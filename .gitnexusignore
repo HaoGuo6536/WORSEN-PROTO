@@ -1,0 +1,11 @@
+# GitNexus indexes project code only; vendor packs and generated folders dominated the index
+# (14,478 of 16,994 files were vendor). See VENDOR.md.
+Assets/External/
+Assets/Plugins/
+Assets/Synaptic AI Pro/
+Assets/HDRPDefaultResources/
+Packages/
+Library/
+Logs/
+Temp/
+ArtSource/

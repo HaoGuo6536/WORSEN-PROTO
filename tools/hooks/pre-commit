@@ -1,23 +1,16 @@
 #!/bin/sh
-# Structural lint gate for PROJECT_ARCHITECTURE_GUIDELINES.md (§13b, §13e).
-# Wired via: git config core.hooksPath tools/hooks
-#
-# A finding is never silenced by deleting a rule or passing --no-verify as a
-# habit. Fix the code, or amend the document in the same commit (§13e).
-
+# Structural lint gate (SPEC-001 §13b). Fails closed: a missing ast-grep blocks the commit.
+# Installed by tools/hooks/install.sh (core.hooksPath). Fix findings or amend SPEC-001 and its
+# rule in the same commit (§13e); never delete a rule or use --no-verify to get past it.
 if ! command -v ast-grep >/dev/null 2>&1; then
-    echo "pre-commit: ast-grep not found. Install it with:  npm install -g @ast-grep/cli" >&2
-    echo "pre-commit: skipping the structural lint gate (§13b) for this commit." >&2
-    exit 0
-fi
-
-echo "pre-commit: ast-grep scan (§13b)..."
-if ! ast-grep scan; then
-    echo "" >&2
-    echo "pre-commit: architecture violations above (§13b). Fix the code, or amend" >&2
-    echo "pre-commit: PROJECT_ARCHITECTURE_GUIDELINES.md in this same commit (§13e)." >&2
+    echo "pre-commit: ast-grep not found; install it with: npm install -g @ast-grep/cli@0.44.1" >&2
+    echo "pre-commit: refusing to commit without the §13b lint gate." >&2
     exit 1
 fi
-
-echo "pre-commit: clean."
+out=$(ast-grep scan 2>&1); status=$?
+if [ $status -ne 0 ] || printf '%s\n' "$out" | grep -qE '^(error|warning)\['; then
+    printf '%s\n' "$out" >&2
+    echo "pre-commit: architecture findings above (§13b). Fix the code, or amend SPEC-001 and the rule in this commit (§13e)." >&2
+    exit 1
+fi
 exit 0

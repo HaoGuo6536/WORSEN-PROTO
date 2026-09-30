@@ -169,3 +169,13 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# Additional binary packages
+*.tgz                   lfs
+*.bundle                lfs
+*.flp                   lfs
+
+# Shell scripts and git hooks must keep LF endings (core.autocrlf would break them in bash)
+*.sh                    text eol=lf
+tools/hooks/*           text eol=lf
+*.jsonl                 text eol=lf

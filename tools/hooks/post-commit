@@ -1,0 +1,4 @@
+#!/bin/sh
+# Git LFS hook, kept here because core.hooksPath points at tools/hooks (see install.sh).
+command -v git-lfs >/dev/null 2>&1 || { echo "git-lfs not found on PATH; this repository stores .blend/.fbx/.png through Git LFS." >&2; exit 2; }
+git lfs post-commit "$@"
