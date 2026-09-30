@@ -85,6 +85,7 @@ namespace Worsen.Editor.Setup
             new SetupStep("FloorLoop", "Build the floor fixture after base assets; preserve legacy support.", FloorLoopSceneSetup.BuildFloorLoop),
             new SetupStep("HorrorRun", "Build expansion, roster, soundscape/mixer, world and fog; promote the title scene last.", HorrorRunSceneSetup.Build),
             new SetupStep("Hunter roster audio", "Apply reviewed roster bindings after HorrorRun soundscape setup.", Audio.HunterRosterAudioSetup.BuildMenu),
+            new SetupStep("Hunter roster visuals", "Bind a distinct body to each hunter profile after HorrorRun and profile setup.", () => { Hunter.HunterRosterVisualSetup.Build(); }),
             new SetupStep("Final provenance", "Stamp every scene after the last shared config mutation.", SceneProvenanceRefreshTools.RefreshAllCaptureProvenance)
         };
 
