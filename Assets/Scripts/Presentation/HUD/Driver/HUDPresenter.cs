@@ -11,15 +11,11 @@
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Maintain independent Ticking channels, accepting same-tick removal, and format shield health.
-//   - Map Progression inventory and selection to a caption and occupied-slot highlight.
-//   - Replace both typed guidance channels atomically; phantom cakes never change supplied counts.
-//   - Format cake/golden counts and show only occupied consumable slots, never empty capacity.
-//   - Compute a flat arrow bearing; vertical-only targets point up or down.
-//   - Hide all chrome during a confirmed chase without producing chase text or hiding guidance.
-//   - Restore chrome using the supplied duration; a new chase cancels it.
-//   - Clear transient chase suppression immediately at an explicit new-run boundary.
-//   - Express objective direction in the supplied camera frame, including height and rear targets.
+//   - Format fixed-total cake counters and floor-scoped hiding independently of guidance.
+//   - Compute independent objective/threat bearings in the supplied camera frame.
+//   - Format shield and occupied inventory/selection without drawing empty capacity.
+//   - Compute interruptible chase restoration using supplied time and explicit resets.
+//   - Keep phantom counts temporary and separate from authoritative pickup counts.
 //
 // DEPENDENCIES:
 //   - Worsen.Core ExitState/GuidanceTarget and UnityEngine vector/math value operations only.
@@ -64,8 +60,17 @@ namespace Worsen.Presentation.HUD
             state.DirectionCaption = "";
         }
 
-        public void SetGoldenCount(HUDDriverState state, int count)
-            => state.GoldenText = count < 0 ? "Golden: —" : "Golden: " + count.ToString(CultureInfo.InvariantCulture);
+        public void SetGoldenCount(HUDDriverState state, int count, int total = -1)
+            => state.GoldenText = count < 0 ? "Golden: —" : "Golden: " + count.ToString(CultureInfo.InvariantCulture) +
+                (total < 0 ? "" : " / " + total.ToString(CultureInfo.InvariantCulture));
+
+        public void SetFloorCounters(HUDDriverState state, FloorDisplaySnapshot display)
+        {
+            state.HiddenCount = display.HiddenCount;
+            if (state.HiddenCount) state.PhantomSeconds = 0f;
+            SetCount(state, display.Collected, display.TotalCakes);
+            SetGoldenCount(state, display.Golden, display.TotalGoldenCakes);
+        }
 
         public void SetDirection(HUDDriverState state, Vector3 direction, bool visible)
         {
@@ -234,7 +239,7 @@ namespace Worsen.Presentation.HUD
         public bool TryShowPhantomCake(HUDDriverState state, float seconds)
         {
             if (!IsFinite(seconds) || seconds <= 0f || !state.CountKnown || state.Collected == int.MaxValue ||
-                !state.ChromeVisible || state.ExtraOpacity <= 0f) return false;
+                state.HiddenCount || !state.ChromeVisible || state.ExtraOpacity <= 0f) return false;
             state.PhantomSeconds = seconds; FormatCount(state); return true;
         }
 
