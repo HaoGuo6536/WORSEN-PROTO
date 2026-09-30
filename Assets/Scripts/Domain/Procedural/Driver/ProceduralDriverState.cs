@@ -13,6 +13,7 @@
 //   - Index owned world-object sub-drivers by immutable interactable identity.
 //   - Retain only this floor's opt-in partition links for symmetric teardown.
 //   - Own optional puzzle modules and the explicitly bound player identity.
+//   - Retain navigation sources and temporary Passage sequences for runtime rebakes.
 // DEPENDENCIES:
 //   - Passive UnityEngine and navigation references only.
 // USAGE NOTES:
@@ -36,6 +37,13 @@ namespace Worsen.Domain.Procedural
         public NavMeshData NavigationData;
         public NavMeshDataInstance NavigationInstance;
         public readonly List<NavMeshLinkInstance> NavigationLinks = new List<NavMeshLinkInstance>();
+        public readonly List<NavMeshBuildSource> NavigationSources = new List<NavMeshBuildSource>();
+        public NavMeshBuildSettings NavigationSettings;
+        public Bounds NavigationBounds;
+        public ProceduralDriverConfig Config;
+        public Material PassageMaterial;
+        public readonly List<ProceduralPassageDriverState> Passages = new List<ProceduralPassageDriverState>();
+        public readonly List<LevelAnchor> LinedPocketAnchors = new List<LevelAnchor>();
         public int BlockCount;
         public bool Ready;
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers;

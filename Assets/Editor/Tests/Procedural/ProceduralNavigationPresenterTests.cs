@@ -2,7 +2,7 @@
 // ProceduralNavigationPresenterTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies source-area classification and future partition-link permissions.
+//   Verifies source-area classification and enabled partition-link permissions.
 //   These tests keep vertical shortcuts out of every hunter link catalogue and
 //   reject masks that would let ordinary hunters take partition-only routes.
 // ARCHITECTURAL ROLE:
@@ -12,7 +12,7 @@
 // DEPENDENCIES:
 //   - Core, Domain.Procedural, NUnit and temporary Unity configuration instances.
 // USAGE NOTES:
-//   Link installation remains opt-in until the coordinator changes Hunter's masks.
+//   Default link installation is enabled; ordinary admission remains mask 1.
 // ============================================================================
 using System;
 using System.Linq;
@@ -37,7 +37,7 @@ namespace Worsen.Tests.Procedural
         public void PlayerCollisionRemainsAnObstacleAndPartitionLinksNeverChangeStorey()
         {
             var presenter = new ProceduralNavigationPresenter();
-            Assert.That(_driver.EnablePartitionIgnoringLinks, Is.False);
+            Assert.That(_driver.EnablePartitionIgnoringLinks, Is.True);
             Assert.DoesNotThrow(() => presenter.Validate(_driver));
             foreach (ProceduralBlockRole role in Enum.GetValues(typeof(ProceduralBlockRole)))
             {

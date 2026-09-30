@@ -11,6 +11,7 @@
 //   - Produce deterministic, separated placement candidates without random draws.
 //   - Check footprint, standing envelope and floor support before native admission.
 //   - Record candidate positions, room ownership, gap flags and facing in the manifest.
+//   - Admit gap sockets only when their straight crossing reaches an identified pocket.
 // DEPENDENCIES:
 //   - Own layout/config/block definitions and Core graph values only.
 // USAGE NOTES:
@@ -72,6 +73,8 @@ namespace Worsen.Domain.Procedural
 
             void Add(int roomId, Vector3 position, bool gapEdge, Vector3 facing)
             {
+                int destination = gapEdge ? new ProceduralPassagePresenter().Destination(layout, roomId, position, facing) : 0;
+                if (gapEdge && destination == 0) return;
                 var room = layout.Graph.Rooms.Single(r => r.Id == roomId);
                 if (room.Pocket || reachable[roomId] < 0 || !room.ContainsXZ(position) || facing.sqrMagnitude == 0f) return;
                 if (forbidden.Any(p => DistanceXZ(p, position) < config.ShrineSiteClearance) ||
@@ -85,18 +88,19 @@ namespace Worsen.Domain.Procedural
                     if (!room.ContainsXZ(foot) || !blocks.Any(b => b.HasCollision && b.Kind == ProceduralSurfaceKind.Floor &&
                         new Bounds(Vector3.zero, b.Size).Contains(Quaternion.Inverse(b.Rotation) * (foot - b.Center)))) return;
                 }
-                result.Add(new ProceduralShrineSite(roomId, position, gapEdge, facing));
+                result.Add(new ProceduralShrineSite(roomId, position, gapEdge, facing, destination));
             }
         }
 
         public string Manifest(IReadOnlyList<ProceduralShrineSite> sites, ProceduralConfig config)
         {
-            var text = new StringBuilder("|shrine-sites-v1");
+            var text = new StringBuilder("|shrine-sites-v2");
             Values(config.ShrineSiteInset, config.ShrineSiteClearance, config.ShrineSiteLateralFraction, config.ShrineSiteEnvelope.x,
                 config.ShrineSiteEnvelope.y, config.ShrineSiteEnvelope.z);
             foreach (var site in sites)
             {
                 text.Append("|ShrineSite:").Append(site.RoomId).Append(',').Append(site.GapEdge ? 1 : 0);
+                text.Append(',').Append(site.DestinationPocketRoomId);
                 Values(site.Position.x, site.Position.y, site.Position.z, site.Facing.x, site.Facing.y, site.Facing.z);
             }
             return text.ToString();
