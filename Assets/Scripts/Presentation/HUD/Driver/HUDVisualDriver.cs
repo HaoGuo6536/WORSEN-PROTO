@@ -11,6 +11,7 @@
 //   Sub-driver (§7e), owned by HUDDriver · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Draw the selected item caption even during a chase; highlight its occupied slot.
 //   - Build quiet cake and golden counts without panel chrome, title or controls hints.
 //   - Pair all vector callbacks when binding, unbinding or replacing a document.
 //   - Paint separate white and golden arrows, each independent of chase chrome.
@@ -38,7 +39,7 @@ namespace Worsen.Presentation.HUD
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
         private VisualElement _goldenDirectionGroup, _goldenArrow;
-        private Label _count, _golden, _overflow;
+        private Label _count, _golden, _overflow, _selected;
 
         public void Bind(VisualElement root, HUDDriverConfig config)
         {
@@ -99,6 +100,11 @@ namespace Worsen.Presentation.HUD
             _overflow = Text("slot-overflow", "", inventory);
             _overflow.style.color = config.MutedColor;
             _overflow.style.fontSize = config.SmallFontSize;
+            _selected = Text("selected-consumable", "", root);
+            _selected.style.position = Position.Absolute;
+            _selected.style.left = config.ScreenMargin;
+            _selected.style.bottom = config.ScreenMargin;
+            _selected.style.fontSize = config.SmallFontSize;
 
         }
 
@@ -117,6 +123,7 @@ namespace Worsen.Presentation.HUD
             _goldenArrow.style.rotate = new Rotate(new Angle(state.GoldenSenseArrowDegrees, AngleUnit.Degree));
             _goldenArrow.MarkDirtyRepaint();
             _overflow.text = state.SlotOverflowText;
+            _selected.text = state.SelectedSlotText;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
             _slots.style.display = state.DisplayedSlots > 0 ? DisplayStyle.Flex : DisplayStyle.None;
             _arrow.style.rotate = new Rotate(new Angle(state.ArrowDegrees, AngleUnit.Degree));
@@ -133,7 +140,7 @@ namespace Worsen.Presentation.HUD
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _extra = _directionGroup = _arrow = _slots = null;
-            _count = _golden = _overflow = null;
+            _count = _golden = _overflow = _selected = null;
             _state = null;
             _config = null;
         }
@@ -167,6 +174,7 @@ namespace Worsen.Presentation.HUD
             painter.lineWidth = _config.StrokeWidth;
             for (int index = 0; index < _state.DisplayedSlots; index++)
             {
+                painter.strokeColor = index == _state.SelectedDisplaySlot ? _config.TextColor : _config.MutedColor;
                 Path(painter, _geometry.Panel(_geometry.Slot(index, _config.SlotSize, _config.SlotGap), _config.CornerCut));
                 painter.Fill();
                 painter.Stroke();

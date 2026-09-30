@@ -7,12 +7,14 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · HUD target.
 // KEY RESPONSIBILITIES:
+//   - Route Progression's variable-capacity inventory/selection to HUD and Run slot telemetry.
 //   - Route typed guidance snapshots; display counters must never overwrite either arrow.
 //   - Forward supplied values and pair every subscription with teardown.
 //   - Reset chase presentation when a new generated floor capture begins.
 //   - Route authoritative golden totals and translate empty slots to held-item count.
 //   - Forward the current unshaken camera aim after camera LateUpdate for the 3D compass.
 // DEPENDENCIES:
+//   - Session Progression supplies held items; the legacy Player inventory is not read.
 //   - Core event payloads, Session Run, HUD and Camera Presentation Managers.
 // USAGE NOTES:
 //   Setup wires references before activation. Handlers contain routing only.
@@ -23,6 +25,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Worsen.Core;
 using Worsen.Session.Run;
+using Worsen.Session.Progression;
 using Worsen.Presentation.HUD;
 using Worsen.Presentation.Camera;
 namespace Worsen.Orchestrator
@@ -33,6 +36,7 @@ namespace Worsen.Orchestrator
         [SerializeField] private RunSessionManager _run;
         [SerializeField] private HUDManager _hud;
         [SerializeField] private CameraManager _camera;
+        private ProgressionSessionManager _progression;
         private void LateUpdate()
         {
             if (_hud != null && _camera != null) _hud.SetViewRotation(_camera.AimRotation);
@@ -47,7 +51,7 @@ namespace Worsen.Orchestrator
             _run.FloorDisplayChanged += OnDisplay;
             _run.GuidanceChanged += OnGuidance;
             _run.PlayerMovementPublished += OnMovement;
-            _run.EmptyItemSlotsChanged += OnSlots;
+            BindProgression();
             _run.ChaseStarted += OnChase;
             _run.ChaseEnded += OnChaseEnd;
             _run.CaptureStarted += OnCaptureStarted;
@@ -59,7 +63,8 @@ namespace Worsen.Orchestrator
             _run.GuidanceChanged -= OnGuidance;
             if (_hud != null) { _hud.ResetRunView(); _hud.SetGuidance(null); }
             _run.PlayerMovementPublished -= OnMovement;
-            _run.EmptyItemSlotsChanged -= OnSlots;
+            if (_progression != null) _progression.ConsumablesChanged -= OnSlots;
+            _progression = null;
             _run.ChaseStarted -= OnChase;
             _run.ChaseEnded -= OnChaseEnd;
             _run.CaptureStarted -= OnCaptureStarted;
@@ -72,10 +77,16 @@ namespace Worsen.Orchestrator
         }
         private void OnMovement(PlayerMovementSample sample) => _hud.SetHeading(sample.HeadingDegrees);
         private void OnGuidance(IReadOnlyList<GuidanceTarget> targets) => _hud.SetGuidance(targets);
-        private void OnSlots(int count) => _hud.SetHeldItemCount(2 - count);
+        private void BindProgression()
+        {
+            if (_progression != null) return;
+            _progression = ProgressionSessionManager.Instance;
+            if (_progression != null) { _progression.ConsumablesChanged += OnSlots; OnSlots(_progression.Consumables); }
+        }
+        private void OnSlots(ConsumableInventorySnapshot snapshot) { _hud.SetConsumables(snapshot); _run.PublishInventory(snapshot); }
         private void OnChase(ChaseFact fact) => _hud.SetChaseMode(true);
         private void OnChaseEnd(ChaseFact fact) => _hud.SetChaseMode(false);
         private void OnCaptureStarted(RunCaptureMetadata metadata)
-        { _hud.ResetRunView(); _hud.SetGuidance(null); _hud.SetGoldenCount(0); _hud.SetHeldItemCount(0); }
+        { BindProgression(); _hud.ResetRunView(); _hud.SetGuidance(null); _hud.SetGoldenCount(0); OnSlots(_progression != null ? _progression.Consumables : default); }
     }
 }

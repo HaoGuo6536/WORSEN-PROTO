@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Retain once-per-run revival admission separately from floor health and armed wards.
 //   - Store round identity, wallet, baseline health and legacy loadout effects.
 //   - Retain committed hunter/curse offers and stage-specific selection reroll counts.
 //   - Retain catalogue stacks separately from lifetime purchase/selection counts.
@@ -37,6 +38,7 @@ namespace Worsen.Session.Progression
         public int LastShopAtCombatCount { get; internal set; }
         public ProgressionTraits Traits { get; internal set; }
         public int WaxWardCharges { get; internal set; }
+        internal bool ExtraLifeConsumed;
         public int Wallet { get; internal set; }
         public int ThreatCount { get; internal set; }
         public int CurseCount { get; internal set; }

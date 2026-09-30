@@ -9,6 +9,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
+//   - Route pending revival into the existing catch camera and return its completion to Session.
 //   - Route chase admission and apply micro-events through Level or Horror, reporting outcomes.
 //   - Forward committed attack samples and HorrorEffects' flashlight state; never consume UseItem.
 //   - Reset transient cues when a generated floor replaces the previous one.
@@ -31,6 +32,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Worsen.Domain.Level;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Horror;
 using Worsen.Presentation.Input;
 using Worsen.Presentation.Camera;
@@ -49,7 +51,7 @@ namespace Worsen.Orchestrator
         private CameraManager _camera;
         private LevelManager _level;
         public void ConfigureMicroEvents(LevelManager level, IReadOnlyList<Vector3> unreachableAnchors)
-        { _level = level; _horror.SetMicroEventWorld(level != null ? level.Interactables : null, unreachableAnchors); }
+        { _level = level; _effects?.ConfigureConsumableWorld(level); _horror.SetMicroEventWorld(level != null ? level.Interactables : null, unreachableAnchors); }
         public void OnPlayerOpenedDoor(int id, Bounds bounds) => _horror.ObservePlayerOpenedDoor(id, bounds);
         public void OnActiveEffectsChanged(IReadOnlyActiveEffects effects) => _horror.SetActiveEffects(effects);
         public void Configure(RunSessionManager run, ProgressionSessionManager progression, InputManager input, HorrorManager horror, HorrorEffectsManager effects = null, CameraManager camera = null)
@@ -58,6 +60,8 @@ namespace Worsen.Orchestrator
         {
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            _run.PlayerDeathPending += OnDeathPending;
+            if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
             _run.TickAdvanced += OnTickAdvanced;
             _run.ChaseStarted += OnChaseStarted;
             _run.ChaseEnded += OnChaseEnded;
@@ -71,6 +75,8 @@ namespace Worsen.Orchestrator
         private void OnDisable()
         {
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
+            if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
+            if (_camera != null) _camera.CatchHoldEnded -= OnRevivalCatchEnded;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
             if (_run != null) { _run.ChaseStarted -= OnChaseStarted; _run.ChaseEnded -= OnChaseEnded; }
             if (_run != null) _run.ProximityPublished -= OnMicroEventProximity;
@@ -82,6 +88,14 @@ namespace Worsen.Orchestrator
             { _progression.GenerationRequested -= OnGeneration; _progression.SnapshotChanged -= OnSnapshot; _progression.TransactionCommitted -= OnTransaction; }
         }
         private void OnLight(FlashlightSample sample) => _horror.SetFlashlight(sample);
+        private void OnDeathPending(EntityId player, Vector3 killer)
+        {
+            if (_camera == null || !_camera.IsReady || _effects == null || !_effects.TryBeginRevival(player)) return;
+            _run.CancelDeathForRevival(player);
+            _camera.PlayDeathSnap(killer);
+        }
+        private void OnRevivalCatchEnded(EntityId player)
+        { if (_effects != null && _effects.CompleteRevival(player)) _camera.ResetView(); }
         private void OnAfterimage(FlashlightSample sample, float seconds) => _horror.SetAfterimage(sample, seconds);
         private void OnMovement(PlayerMovementSample sample)
         {
@@ -101,7 +115,7 @@ namespace Worsen.Orchestrator
         private void OnTickAdvanced(InputFrame frame, float deltaSeconds, long tick) => _horror.AdvanceRunClock(deltaSeconds);
         private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
         {
-            if (operation == nameof(ProgressionSessionManager.StartRun)) _horror.ResetRun(current.Seed);
+            if (operation == nameof(ProgressionSessionManager.StartRun)) { _horror.ResetRun(current.Seed); _effects?.ResetRun(); }
         }
         private void OnGeneration(ProgressionGenerationRequest request)
         { _horror.ResetRound(); _horror.SetEffects(request.Effects.FogDensityMultiplier, request.Effects.FlashlightRangeMultiplier); }

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Retain floor spawn pose and independent web/consumable speed factors.
 //   - Retain an independent trap speed factor, composed with grabs by the Controller.
 //   - Accumulate external velocity deltas until one movement tick consumes them.
 //   - Store shield HP separately from regenerating and floor-reset health.
@@ -47,6 +48,10 @@ namespace Worsen.Domain.Player
         public bool IsUngrabbable => IsAlive && LowProfileEnabled && MovementState == MovementState.Slide;
         public EntityId Id { get; set; }
         public Vector3 Position { get; set; }
+        internal Vector3 FloorStartPosition;
+        internal float FloorStartHeading;
+        internal float WebSpeedMultiplier = 1f;
+        internal float ConsumableSpeedMultiplier = 1f;
         public Vector3 Velocity { get; set; }
         public Vector3 PendingExternalVelocity { get; set; }
         public Vector3 Forward { get; set; } = Vector3.forward;

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
+//   - Arm Wax Ward from its selected slot, not from the shop purchase.
 //   - Require full effective health per generation without losing maximum-health effects.
 //   - Verify independent selection/shop cadence and committed eligible choices.
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
@@ -241,6 +242,8 @@ namespace Worsen.Tests.Progression
             controller.ContinueShop(Revision);
             int generation = OpenCombatFloor();
             Assert.That(controller.TryConsumeWaxWard(generation - 1), Is.False);
+            Assert.That(controller.TryConsumeWaxWard(generation), Is.False, "Held is not armed.");
+            Assert.That(controller.TryConsumeSelected(generation, Revision, "wax-ward"), Is.True);
             Assert.That(controller.TryConsumeWaxWard(generation), Is.True);
             Assert.That(controller.TryConsumeWaxWard(generation), Is.False);
             Assert.That(controller.Snapshot().Effects.WaxWardCharges, Is.Zero);
@@ -248,7 +251,7 @@ namespace Worsen.Tests.Progression
             controller.CompleteFloor(OpenCombatFloor());
             controller.ConfirmFloorReady(state.GenerationId);
             Assert.That(controller.Purchase("wax-ward", Revision), Is.True);
-            Assert.That(state.WaxWardCharges, Is.EqualTo(1));
+            Assert.That(state.WaxWardCharges, Is.Zero, "Purchasing refills the slot, not the armed charge.");
         }
 
         [Test]

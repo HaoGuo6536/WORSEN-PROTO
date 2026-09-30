@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
+//   - Publish separate slot activation and automatic ward-consumption transactions.
 //   - Verify paired immutable effects events and state retention across repeated initialization.
 //   - Confirm catalogue purchases, explicit new seeds and deterministic replay restarts.
 //   - Require pure intervening floors and full floor-start health at the shop.
@@ -89,7 +90,7 @@ namespace Worsen.Tests.Progression
                 Assert.That(manager.Snapshot.Wallet, Is.Zero);
                 Assert.That(manager.Snapshot.Health, Is.EqualTo(100f));
                 Assert.That(manager.Snapshot.Inventory[0].Id, Is.EqualTo("wax-ward"));
-                Assert.That(manager.Snapshot.Effects.WaxWardCharges, Is.EqualTo(1));
+                Assert.That(manager.Snapshot.Effects.WaxWardCharges, Is.Zero);
                 Assert.That(manager.ContinueShop(manager.Snapshot.Revision), Is.True);
                 Assert.That(manager.Snapshot.Round, Is.EqualTo(4));
                 Assert.That(manager.RestartRun(manager.Snapshot.Revision), Is.False, "An active expedition cannot be restarted by a stale results button.");
@@ -98,6 +99,7 @@ namespace Worsen.Tests.Progression
                 int lastGeneration = requests[3].GenerationId;
                 manager.ConfirmFloorReady(lastGeneration);
                 Assert.That(manager.TryConsumeWaxWard(lastGeneration - 1), Is.False);
+                Assert.That(manager.TryConsumeSelected(lastGeneration, manager.Snapshot.Revision, "wax-ward"), Is.True);
                 int beforeWard = snapshots.Count;
                 Assert.That(manager.TryConsumeWaxWard(lastGeneration), Is.True);
                 Assert.That(snapshots.Count, Is.EqualTo(beforeWard + 1));

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
+//   Expose the authoritative beam for the consumable controller's face-stun calculation.
 //   Own trap slow deadlines on the injected clock, separately from grab speed and perk revisions.
 //   Compute beam state, delayed real-location noises, flame dimming and optional-room facts.
 // DEPENDENCIES:
@@ -35,6 +36,7 @@ namespace Worsen.Session.HorrorEffects
             this.config = config ?? throw new ArgumentNullException(nameof(config));
         }
         public bool FlashlightEnabled => state.Active && state.FlashlightEnabled;
+        public FlashlightSample CurrentLight => state.Active && state.HasAim ? Light(state.FlashlightEnabled) : default;
         public int GenerationId => state.GenerationId;
         public float FootstepLoudnessMultiplier => Has(ProgressionTraits.FeltSoles) ? config.FeltSolesMultiplier : 1f;
         public float ReboundCooldownMultiplier => Has(ProgressionTraits.ClimberWraps) ? config.ClimberRecoveryMultiplier : 1f;
@@ -231,6 +233,7 @@ namespace Worsen.Session.HorrorEffects
         }
 
         public void ClearTrapSlows() { state.TrapSlowExpires.Clear(); state.ResolvedSlowTraps.Clear(); }
+        public void ClearTrapSlow(EntityId player) => state.TrapSlowExpires.Remove(player);
 
         public bool TryGetActorEffects(EntityId playerId, out float footsteps, out float rebound, out float grabSpeed)
         {

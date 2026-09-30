@@ -11,6 +11,7 @@
 //   Manager (§1) · Presentation · HUD (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward the immutable selected-consumable snapshot without querying Progression.
 //   - Expose typed guidance and a fallible, display-only phantom cake command.
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward cake/golden counts, world direction, occupied slots and chase facts.
@@ -55,6 +56,7 @@ namespace Worsen.Presentation.HUD
         public bool TryShowPhantomCake(float seconds) => isActiveAndEnabled && _initialized && _driver != null && _driver.TryShowPhantomCake(seconds);
         public void SetGoldenCount(int count) { if (_driver != null) _driver.SetGoldenCount(count); }
         public void SetHeldItemCount(int count) { if (_driver != null) _driver.SetHeldItemCount(count); }
+        public void SetConsumables(ConsumableInventorySnapshot snapshot) { if (_driver != null) _driver.SetConsumables(snapshot); }
         public void SetExitState(ExitState exitState) { if (_driver != null) _driver.SetExitState(exitState); }
         public void SetDirection(Vector3 worldDirection, bool visible) { if (_driver != null) _driver.SetDirection(worldDirection, visible); }
         public void SetHeading(float headingDegrees) { if (_driver != null) _driver.SetHeading(headingDegrees); }

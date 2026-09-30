@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Input.
 // KEY RESPONSIBILITIES:
+//   - Admit additive consumable action bits without changing legacy recordings.
 //   - Copy validated playback data; preserve exact frame values; enforce capture ordering.
 // DEPENDENCIES:
 //   - Core InputProbeRecord and RunCaptureMetadata, own InputReplayDriverState.
@@ -131,7 +132,8 @@ namespace Worsen.Presentation.Input
             var p = record.Probe;
             var input = record.Input;
             const InputButtons known = InputButtons.Sprint | InputButtons.Jump | InputButtons.Crouch |
-                InputButtons.LookBack | InputButtons.Interact | InputButtons.UseItem;
+                InputButtons.LookBack | InputButtons.Interact | InputButtons.UseItem |
+                InputButtons.UseConsumable | InputButtons.CycleConsumable | InputButtons.CycleConsumablePrevious;
             return record.SchemaVersion == 1 && record.Tick > 0 && Finite(record.DeltaTime) && record.DeltaTime > 0 &&
                 Finite(input.Move) && Finite(input.LookDelta) &&
                 ((input.Held | input.Pressed | input.Released) & ~known) == InputButtons.None &&

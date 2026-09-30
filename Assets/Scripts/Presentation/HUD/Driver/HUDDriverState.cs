@@ -10,6 +10,7 @@
 //   DriverState (§7c) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Retain a selected physical slot caption and its compact occupied-slot highlight.
 //   - Retain independent typed guidance channels and a display-only phantom count deadline.
 //   - Store quiet golden/count text, flat arrow rotation, occupied slots and fade progress.
 //   - Retain presenter-computed chrome visibility separately from guidance visibility.
@@ -43,6 +44,8 @@ namespace Worsen.Presentation.HUD
         public string DirectionCaption = "";
         public string SlotOverflowText = "";
         public int DisplayedSlots;
+        public int SelectedDisplaySlot = -1;
+        public string SelectedSlotText = "";
         public float CountFraction;
         public bool CountKnown;
         public bool ExitOpen;

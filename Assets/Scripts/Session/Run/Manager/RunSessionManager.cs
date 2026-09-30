@@ -12,6 +12,8 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Publish pending death before terminal commit; allow an admitted revival without resetting Floor.
+//   - Publish empty counts from the routed Progression inventory, never the legacy Player slots.
 //   - Forward typed guidance/traps and route boundary acceleration using the Floor tick delta.
 //   - Share pickup/hand/trap hearing; environmental sources use Director only when bound.
 //   - Pair traversal, stumble and cake-loss relays; route pickup noise to bound active hunters.
@@ -101,6 +103,10 @@ namespace Worsen.Session.Run
         public event Action<ProximitySample> ProximityPublished;
         public event Action<EntityId, float, float> HealthChanged;
         public event Action<EntityId, Vector3> PlayerDied;
+        public event Action<EntityId, Vector3> PlayerDeathPending;
+        public bool CancelDeathForRevival(EntityId player) => controller != null && controller.CancelDeathForRevival(player);
+        public void PublishInventory(ConsumableInventorySnapshot inventory)
+        { if (controller != null) EmptyItemSlotsChanged?.Invoke(controller.EmptySlots(inventory.Inventory)); }
         public event Action<FloorDisplaySnapshot> FloorDisplayChanged;
         public event Action<RoomPhaseChangedFact> RoomPhaseChanged;
         public event Action<IntrusionSample> IntrusionPublished;
@@ -193,7 +199,6 @@ namespace Worsen.Session.Run
             foreach (PlayerManager player in players)
             {
                 HealthChanged?.Invoke(player.Id, player.ReadOnlyState.Health, player.ReadOnlyState.MaxHealth);
-                EmptyItemSlotsChanged?.Invoke(controller.EmptySlots(player.ReadOnlyState.Inventory));
             }
             PhaseChanged?.Invoke(state.Phase);
         }
@@ -479,6 +484,7 @@ namespace Worsen.Session.Run
         }
         private bool FinishIfRequested()
         {
+            if (state.PendingEndReason == RunEndReason.Died) PlayerDeathPending?.Invoke(state.DeadPlayer, state.KillerPosition);
             if (!controller.TryFinish(out RunSummary summary)) return false;
             foreach (PlayerManager player in players)
                 if (player != null) Emit(TelemetrySampleKind.FloorTime, player.Id, state.Tick, (float)state.ElapsedSeconds);
@@ -518,6 +524,7 @@ namespace Worsen.Session.Run
             CaptureEnded = null;
             ChaseStarted = null; ChaseEnded = null; ChasePhaseChanged = null;
             ProximityPublished = null; HealthChanged = null; PlayerDied = null;
+            PlayerDeathPending = null;
             FloorDisplayChanged = null; RoomPhaseChanged = null; IntrusionPublished = null;
             TelemetryPublished = null; EmptyItemSlotsChanged = null; SpeedNormalizedPublished = null; RunEnded = null;
             controller = null;

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Apply explicit revival teleports without interpolation from the death position.
 //   - Keep snap support across rounded drop edges independently of sweep-contact separation.
 //   - Resolve the Player-owned effect config through its mirrored Resources path.
 //   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
@@ -76,6 +77,19 @@ namespace Worsen.Domain.Player
             SetCapsule(false);
             _capsule.enabled = true;
             ShowMovement(MovementState.Ground);
+        }
+
+        public void Teleport(Vector3 position, float heading)
+        {
+            _state.Position = _state.PreviousPosition = position;
+            _state.Heading = _state.PreviousHeading = heading;
+            _state.Velocity = Vector3.zero;
+            _state.LastStepDuration = 0f;
+            _state.Grounded = false;
+            SetCapsule(false);
+            _body.position = position;
+            _body.rotation = Quaternion.Euler(0f, heading, 0f);
+            transform.SetPositionAndRotation(position, _body.rotation);
         }
 
         public MovementProbe Probe(float ledgeReach = 0f, float ledgeMinimumHeight = 0f,

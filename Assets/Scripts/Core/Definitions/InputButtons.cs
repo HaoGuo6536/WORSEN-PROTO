@@ -12,6 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Give each action a stable bit for recording and tick consumers.
+//   - Separate consumable use and directional selection from flashlight input.
 //
 // DEPENDENCIES:
 //   - System.FlagsAttribute only; Core references no project systems.
@@ -35,7 +36,10 @@ namespace Worsen.Core
         Crouch = 4,
         LookBack = 8,
         Interact = 16,
-        UseItem = 32
+        UseItem = 32,
+        UseConsumable = 64,
+        CycleConsumable = 128,
+        CycleConsumablePrevious = 256
     }
 }
 
