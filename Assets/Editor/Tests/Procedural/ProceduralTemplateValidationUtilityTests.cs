@@ -24,6 +24,7 @@ using Worsen.Editor.Procedural;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateValidationUtilityTests
     {
         [Test] public void StubManifestsRoundTripThroughStrictParser()

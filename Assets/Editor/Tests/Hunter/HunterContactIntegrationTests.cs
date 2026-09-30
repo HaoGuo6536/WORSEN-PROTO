@@ -27,6 +27,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterContactIntegrationTests
     {
         [Test] public void SkipBodyContactRelaysNormalHitOnceAndHonoursExcludedPlayerCollider()

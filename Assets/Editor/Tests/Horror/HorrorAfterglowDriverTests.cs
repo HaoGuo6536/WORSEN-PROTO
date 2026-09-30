@@ -21,6 +21,7 @@ using Worsen.Core;
 using Worsen.Presentation.Horror;
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorAfterglowDriverTests
     {
         [Test] public void ExpiryAndRemovalDestroyOnlyOwnedLightsWithoutMutatingTheProfile()
