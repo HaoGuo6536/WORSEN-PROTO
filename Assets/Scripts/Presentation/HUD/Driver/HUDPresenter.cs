@@ -4,15 +4,16 @@
 //
 // PURPOSE:
 //   Converts incoming display facts into HUD text and an interruptible restoration.
-//   Time is supplied explicitly, so the count-and-exit chase transition and return
-//   to direction and slots can be verified without a document or running scene.
+//   Time is supplied explicitly, so chase suppression and chrome restoration can
+//   be verified without a document or running scene. Guidance stays independent.
 //
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
 //   - Format supplied counts, clamp the display-only gauge and validate direction samples.
-//   - Restore extra HUD elements using the supplied duration; a new chase cancels it.
+//   - Hide all chrome during a confirmed chase without producing chase text or hiding guidance.
+//   - Restore chrome using the supplied duration; a new chase cancels it.
 //   - Clear transient chase suppression immediately at an explicit new-run boundary.
 //   - Express objective direction in the supplied camera frame, including height and rear targets.
 //
@@ -117,12 +118,14 @@ namespace Worsen.Presentation.HUD
         public void SetChaseMode(HUDDriverState state, bool chasing)
         {
             state.ChaseMode = chasing;
+            state.ChromeVisible = !chasing;
             if (chasing) state.ExtraOpacity = 0f;
         }
 
         public void ResetRunView(HUDDriverState state)
         {
             state.ChaseMode = false;
+            state.ChromeVisible = true;
             state.ExtraOpacity = 1f;
         }
 

@@ -9,6 +9,7 @@
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
 //   - Advance combat floors and shops using completed-combat cadence.
+//   - Debit the configured bail penalty once, inside generation-guarded completion.
 //   - Commit unique curse/upgrade traits, consumable stock and one-charge wards.
 //   - Produce immutable snapshots and deterministic per-round generation inputs.
 //   - Commit at most three eligible hunter/curse choices and skip exhausted menus.
@@ -19,6 +20,8 @@
 //   Construct with a fresh seeded random source when starting/restarting a run.
 //   Generation and UI identities remain monotonic in the reused state. Exactly
 //   one random draw occurs per round; purchases and health do not alter layouts.
+//   CompleteFloor defaults to a normal escape. The flagged overload is the only
+//   bail entry; ApplyBailPenalty is the extension point for a future curse cost.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -108,12 +111,22 @@ namespace Worsen.Session.Progression
             return true;
         }
 
-        public bool CompleteFloor(int generationId)
+        public bool CompleteFloor(int generationId) => CompleteFloor(generationId, false);
+
+        public bool CompleteFloor(int generationId, bool bailed)
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
+            if (bailed) ApplyBailPenalty();
             state.CompletedCombatFloors++;
             BeginNextRound();
             return true;
+        }
+
+        private void ApplyBailPenalty()
+        {
+            // Future permanent-curse costs belong here, inside the same completion guard.
+            int debit = (int)Math.Floor(state.Wallet * (double)config.EarlyBailWalletFraction);
+            state.Wallet -= debit;
         }
 
         public bool ContinueShop(int revision)
@@ -388,6 +401,7 @@ namespace Worsen.Session.Progression
         private static void ValidateConfig(ProgressionConfig value)
         {
             if (value.ShopInterval < 2 || value.MaximumActiveThreats < 1 || value.GoldenCakeValue < 1 ||
+                !Finite(value.EarlyBailWalletFraction) || value.EarlyBailWalletFraction < 0f || value.EarlyBailWalletFraction > 1f ||
                 !Finite(value.InitialMaximumHealth) || !Finite(value.MinimumMaximumHealth) || !Finite(value.MaximumMaximumHealth) ||
                 value.MinimumMaximumHealth <= 0f || value.InitialMaximumHealth < value.MinimumMaximumHealth ||
                 value.InitialMaximumHealth > value.MaximumMaximumHealth || !Finite(value.MinimumMultiplier) ||

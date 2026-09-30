@@ -4,14 +4,14 @@
 //
 // PURPOSE:
 //   Defines the soundscape banks, bus gains and adaptive music layers.
-//   Independent ambience loops accompany a DSP-scheduled run intro, loop and ending.
+//   Near-silent ambience accompanies belief-gated music with a persistent tension floor.
 //
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
 //   - Expose reusable clip banks and independent effects, ambience and music gains.
-//   - Tune smooth attack, chase hold and release.
+//   - Tune smooth attack, randomized loss release and occasional early danger fades.
 //   - Tune normal/stress impact speed and the louder confirmed-chase danger bed.
 //   - Tune exertion onset/recovery and its attenuation beneath critical-health breathing.
 //
@@ -36,7 +36,7 @@ namespace Worsen.Presentation.Audio
         [SerializeField, Range(8, 48)] private int _voiceCount = 24;
         [SerializeField, Range(0f, 1f)] private float _effectsGain = 0.8f;
         [SerializeField, Range(0f, 1f)] private float _musicGain = 0.52f;
-        [SerializeField, Range(0f, 1f)] private float _ambienceGain = 0.25f;
+        [SerializeField, Range(0f, 1f)] private float _ambienceGain = 0.01f;
         [SerializeField, Min(0.05f)] private float _attackSeconds = 0.65f;
         [SerializeField, Min(0.05f)] private float _releaseSeconds = 3.5f;
         [SerializeField, Min(0f)] private float _chaseHoldSeconds = 2.5f;
@@ -50,6 +50,11 @@ namespace Worsen.Presentation.Audio
         [SerializeField] private AudioClip _runLoop;
         [SerializeField] private AudioClip _runEnd;
         [SerializeField, Range(0f, 1f)] private float _deepImpactGain = .5f;
+        [SerializeField, Range(0f, 1f)] private float _tensionFloorFraction = .12f;
+        [SerializeField, Min(0f)] private float _dangerReleaseMinimumSeconds = 1.5f;
+        [SerializeField, Min(0f)] private float _dangerReleaseMaximumSeconds = 5f;
+        [SerializeField, Range(0f, 1f)] private float _earlyDangerFadeProbability = .15f;
+        [SerializeField, Range(0f, 1f)] private float _dangerProximityThreshold = .35f;
         [SerializeField, Range(0f, 1f)] private float _stressImpactGain = .6f;
         [SerializeField, Range(0f, 1f)] private float _dangerAmbienceGain = .25f;
         [SerializeField, Range(0f, 1f)] private float _chaseDangerGain = .65f;
@@ -87,6 +92,11 @@ namespace Worsen.Presentation.Audio
         public AudioClip RunLoop => _runLoop;
         public AudioClip RunEnd => _runEnd;
         public float DeepImpactGain => _deepImpactGain;
+        public float TensionFloorFraction => _tensionFloorFraction;
+        public float DangerReleaseMinimumSeconds => _dangerReleaseMinimumSeconds;
+        public float DangerReleaseMaximumSeconds => _dangerReleaseMaximumSeconds;
+        public float EarlyDangerFadeProbability => _earlyDangerFadeProbability;
+        public float DangerProximityThreshold => _dangerProximityThreshold;
         public float StressImpactGain => _stressImpactGain;
         public float DangerAmbienceGain => _dangerAmbienceGain;
         public float ChaseDangerGain => _chaseDangerGain;

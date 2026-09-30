@@ -25,7 +25,8 @@
 //   OnEnable/OnDisable pair the engine subscription. This facade owns no loading
 //   sequence, scene references, or runtime flow state; the Run Session owns waiting.
 //   SceneLoaded means the engine finished loading, not that scene assembly is ready.
-//   FloorLoop is intentionally unavailable until its later milestone builds it.
+//   TagArena, FloorLoop and HorrorRun map to canonical scene paths; each load
+//   requires its mapped scene to be enabled and available in the current build.
 //
 // ============================================================================
 

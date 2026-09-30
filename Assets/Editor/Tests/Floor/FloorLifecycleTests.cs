@@ -11,6 +11,7 @@
 //   - Check collection and exit contacts traverse the generated Driver stack once.
 //   - Check teardown and reinitialization release prior objects and subscriptions.
 //   - Prevent terminal callbacks from publishing an old run's display after restart.
+//   - Verify bail flags do not publish normal opening or spawn Golden Cakes.
 // DEPENDENCIES:
 //   - Domain Floor components, read-only Level/Player interfaces and Core values.
 //   - UnityEngine creates temporary test objects; NUnit and reflection inspect them.
@@ -251,6 +252,35 @@ namespace Worsen.Tests.Floor
                 Assert.That(fixture.Root.transform.childCount, Is.EqualTo(1));
             }
             finally { fixture?.Dispose(); }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void BailPublishesFlagOnceWithoutGoldenSpawnAndAllowsSynchronousTeardown(bool teardown)
+        {
+            using (var fixture = new LifecycleFixture())
+            {
+                fixture.Initialize();
+                int escaped = 0, normal = 0, opened = 0;
+                fixture.Manager.OnExitReached += _ => normal++;
+                fixture.Manager.OnExitOpened += _ => opened++;
+                fixture.Manager.OnEscapeResolved += (fact, bailed) =>
+                {
+                    escaped++;
+                    Assert.That(bailed, Is.True);
+                    Assert.That(fact.PlayerId, Is.EqualTo(new EntityId(1)));
+                    Assert.That(fact.Tick, Is.EqualTo(7));
+                    Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true)
+                        .Any(pickup => pickup.Kind == PickupKind.GoldenCake), Is.False);
+                    if (teardown) fixture.Manager.Teardown();
+                };
+                fixture.Manager.ContactExit(new EntityId(1));
+                Assert.DoesNotThrow(() => fixture.Manager.Tick(1f, 7));
+                Assert.DoesNotThrow(() => fixture.Manager.Tick(1f, 8));
+                Assert.That(escaped, Is.EqualTo(1));
+                Assert.That(normal, Is.Zero);
+                Assert.That(opened, Is.Zero);
+            }
         }
 
         private static void InvokeTrigger(Component component, string callback, Collider other)

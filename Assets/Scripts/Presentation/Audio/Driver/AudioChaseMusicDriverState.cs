@@ -3,12 +3,12 @@
 // ============================================================================
 // PURPOSE:
 //   Stores the current adaptive music mix and one chase sequence transport.
-//   Keeping transition edges and scheduling times here prevents additional hunters
-//   from restarting the intro or producing multiple chase endings.
+//   Keeping contact memory and loss-episode draws here prevents additional hunters
+//   or repeated ticks from restarting the intro or rerolling the release.
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Presentation · Audio.
 // KEY RESPONSIBILITIES:
-//   - Retain mix envelopes, confirmed pursuit and DSP scheduling commands.
+//   - Retain mix envelopes, belief contact, loss timing and DSP scheduling commands.
 // DEPENDENCIES:
 //   - Own Audio presentation stack only.
 // USAGE NOTES:
@@ -19,6 +19,11 @@ namespace Worsen.Presentation.Audio
     public sealed class AudioChaseMusicDriverState
     {
         public bool Chasing;
+        public bool HasContact;
+        public bool LossActive;
+        public bool EarlyDangerFade;
+        public float ReleaseDelaySeconds;
+        public float ReleaseRemaining;
         public bool StartRun;
         public bool EndRun;
         public bool StopRun;

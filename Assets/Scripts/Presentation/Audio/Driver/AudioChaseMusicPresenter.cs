@@ -3,18 +3,21 @@
 // ============================================================================
 // PURPOSE:
 //   Computes the Deep Impacts escalation and Claustrophobia danger mix from
-//   supplied threat facts. One aggregate pursuit edge schedules the run intro,
-//   loop and ending, independently of individual hunter joins or departures.
+//   supplied threat facts. After first belief contact a tension floor survives loss;
+//   injected randomness delays danger release or occasionally permits an early fade.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Audio.
 // KEY RESPONSIBILITIES:
-//   - Crossfade normal/stress impacts and gradually change their playback speed.
-//   - Increase Claustrophobia during confirmed pursuit and end the run layer once.
-//   - Cancel all queued run audio on death without playing a celebratory outro.
+//   - Keep the normal impact floor beneath stress and gradually change playback speed.
+//   - Gate escalation on the supplied chase-as-belief proxy, not mere proximity.
+//   - Draw once per aggregate loss and cancel run audio without a resolving outro.
 // DEPENDENCIES:
 //   - Own Audio value types, DriverState and shared read-only DriverConfig.
 // USAGE NOTES:
-//   Delta time, DSP clock and intro duration are supplied by the Driver.
+//   Delta time, DSP clock, intro duration and cosmetic randomness are supplied by the Driver.
+//   Chasing represents Confirmed or Lost; no independent hunter belief fact is available.
+//   Ordinary loss waits the sampled delay even if danger remains close. A lie
+//   bypasses that wait for a nearby-loss episode; reacquisition cancels release.
 //   No engine calls or clip properties are read here. Reset replaces the state.
 // ============================================================================
 using System;
@@ -26,7 +29,8 @@ namespace Worsen.Presentation.Audio
     public sealed class AudioChaseMusicPresenter
     {
         public void Tick(AudioChaseMusicDriverState state, IEnumerable<AudioThreatSample> threats,
-            bool alive, float dt, double dspTime, double introSeconds, AudioSoundscapeDriverConfig config)
+            bool alive, float dt, double dspTime, double introSeconds, AudioSoundscapeDriverConfig config,
+            System.Random random)
         {
             state.StartRun = state.EndRun = state.StopRun = false;
             if (float.IsNaN(dt) || float.IsInfinity(dt) || dt <= 0f || double.IsNaN(dspTime) || double.IsInfinity(dspTime)) return;
@@ -41,30 +45,46 @@ namespace Worsen.Presentation.Audio
             if (!alive)
             {
                 state.StopRun = true; state.Chasing = false;
+                state.HasContact = state.LossActive = state.EarlyDangerFade = false;
+                state.ReleaseDelaySeconds = state.ReleaseRemaining = 0f;
                 state.TensionGain = state.StressGain = state.DangerGain = 0f;
                 state.ImpactPitch = config.ImpactMinimumPitch;
                 return;
             }
             if (chase && !state.Chasing)
             {
+                state.HasContact = true;
+                state.LossActive = state.EarlyDangerFade = false;
+                state.ReleaseDelaySeconds = state.ReleaseRemaining = 0f;
                 state.StartRun = true;
                 state.IntroStart = dspTime + .05;
                 state.LoopStart = state.IntroStart + (double.IsNaN(introSeconds) || double.IsInfinity(introSeconds) ? 0 : Math.Max(0, introSeconds));
             }
             else if (!chase && state.Chasing)
             {
-                state.EndRun = true;
-                state.EndingStart = dspTime + .02;
+                state.StopRun = true;
+                state.LossActive = true;
+                float minimum = Mathf.Max(0f, config.DangerReleaseMinimumSeconds);
+                float maximum = Mathf.Max(minimum, config.DangerReleaseMaximumSeconds);
+                state.ReleaseDelaySeconds = Mathf.Lerp(minimum, maximum, (float)random.NextDouble());
+                state.ReleaseRemaining = state.ReleaseDelaySeconds;
+                state.EarlyDangerFade = random.NextDouble() < Mathf.Clamp01(config.EarlyDangerFadeProbability) &&
+                    proximity > config.DangerProximityThreshold;
             }
             state.Chasing = chase;
-            float stress = chase ? 1f : Mathf.InverseLerp(.55f, .95f, proximity);
-            float intensity = chase ? 1f : proximity;
-            state.TensionGain = Fade(state.TensionGain, proximity * (1f - stress) * config.DeepImpactGain, dt, config);
-            state.StressGain = Fade(state.StressGain, stress * config.StressImpactGain, dt, config);
-            state.DangerGain = Fade(state.DangerGain, chase ? config.ChaseDangerGain :
-                Mathf.InverseLerp(.35f, 1f, proximity) * config.DangerAmbienceGain, dt, config);
+            float floor = state.HasContact ? Mathf.Clamp01(config.TensionFloorFraction) * config.DeepImpactGain : 0f;
+            state.TensionGain = Mathf.Max(floor, Fade(state.TensionGain, floor, dt, config));
+            state.StressGain = Fade(state.StressGain, chase ? config.StressImpactGain : 0f, dt, config);
+            float dangerDt = dt;
+            if (!chase && state.LossActive && !state.EarlyDangerFade)
+            {
+                // Spend only the part of this tick beyond the hold on the fade.
+                dangerDt = Mathf.Max(0f, dt - state.ReleaseRemaining);
+                state.ReleaseRemaining = Mathf.Max(0f, state.ReleaseRemaining - dt);
+            }
+            state.DangerGain = Fade(state.DangerGain, chase ? config.ChaseDangerGain : 0f, dangerDt, config);
             state.ImpactPitch = Mathf.MoveTowards(state.ImpactPitch,
-                Mathf.Lerp(config.ImpactMinimumPitch, config.ImpactMaximumPitch, intensity),
+                chase ? config.ImpactMaximumPitch : config.ImpactMinimumPitch,
                 dt * (config.ImpactMaximumPitch - config.ImpactMinimumPitch) / Mathf.Max(.1f, config.ImpactRampSeconds));
         }
         private float Fade(float value, float target, float dt, AudioSoundscapeDriverConfig config) =>

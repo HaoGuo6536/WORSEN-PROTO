@@ -9,6 +9,7 @@
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Support staged cracks, tearing, mist advance and escapable hand contacts.
+//   - Resolve uninterrupted locked-exit holds without collecting cakes or opening collapse.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -18,6 +19,8 @@
 //   the default preserves the authored-floor configuration without editing assets.
 //   Reads injected Player views only. Shared graph utility supplies directed distances to the exit; unreachable rooms close first and cannot contain required cakes.
 //   No persistent singleton or competing simulation tick is created.
+//   ContactExit begins a locked hold; LeaveExit cancels it. TickExitHold receives
+//   elapsed contact time once per simulation step and returns only bailed escapes.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -123,6 +126,7 @@ namespace Worsen.Domain.Floor
                 _state.MutableActiveAnchors.RemoveAll(value => value.Id == anchorId);
                 if (_state.CakeCount == _state.RequiredCakeCount)
                 {
+                    CancelExitHolds();
                     _state.ExitState = ExitState.Open;
                     _state.CollapseElapsed = 0d;
                     _state.CueElapsed = _config.DirectionCueInterval;
@@ -188,11 +192,41 @@ namespace Worsen.Domain.Floor
         public bool ContactExit(EntityId id, long tick, out ExitReachedFact fact)
         {
             fact = default;
-            if (!_state.IsReady || _state.Ended || _state.ExitState != ExitState.Open || !LivingPlayer(id) ||
+            if (!_state.IsReady || _state.Ended || !LivingPlayer(id)) return false;
+            if (_state.ExitState == ExitState.Locked)
+            {
+                RequirePositive(_config.EarlyBailHoldDuration, nameof(_config.EarlyBailHoldDuration));
+                if (!_state.ExitHolds.ContainsKey(id)) _state.ExitHolds.Add(id, 0d);
+                return false;
+            }
+            if (_state.ExitState != ExitState.Open ||
                 _state.MutableRoomPhases[_state.Graph.ExitRoomId] == RoomPhase.Closed) return false;
             _state.Ended = true;
+            CancelExitHolds();
             fact = new ExitReachedFact(id, tick);
             return true;
+        }
+
+        public void LeaveExit(EntityId id) => _state.ExitHolds.Remove(id);
+        public void CancelExitHolds() => _state.ExitHolds.Clear();
+
+        public bool TickExitHold(float dt, long tick, out ExitReachedFact fact)
+        {
+            if (!Finite(dt) || dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
+            fact = default;
+            if (!_state.IsReady || _state.Ended || _state.ExitState != ExitState.Locked)
+            { CancelExitHolds(); return false; }
+            foreach (var id in _state.ExitHolds.Keys.OrderBy(value => value.Value).ToArray())
+            {
+                if (!LivingPlayer(id)) { LeaveExit(id); continue; }
+                _state.ExitHolds[id] += dt;
+                if (_state.ExitHolds[id] < _config.EarlyBailHoldDuration) continue;
+                _state.Ended = true;
+                CancelExitHolds();
+                fact = new ExitReachedFact(id, tick);
+                return true;
+            }
+            return false;
         }
 
         // Room occupancy itself is never a kill. Only the hand controller can confirm
@@ -204,6 +238,7 @@ namespace Worsen.Domain.Floor
                 (phase != RoomPhase.Tearing && phase != RoomPhase.Encroaching && phase != RoomPhase.Closed) ||
                 !_state.Players.Any(player => player != null && player.Id == id && !player.IsAlive)) return false;
             _state.Ended = true;
+            CancelExitHolds();
             fact = new FloorLethalContactFact(id, roomId, tick);
             return true;
         }
@@ -230,6 +265,7 @@ namespace Worsen.Domain.Floor
 
         public void Reset()
         {
+            CancelExitHolds();
             _state.IsReady = false; _state.Ended = false; _state.Tick = 0;
             _state.CakeCount = 0; _state.GoldenCakeCount = 0; _state.RequiredCakeCount = 0;
             _state.ExitState = ExitState.Locked; _state.CollapseElapsed = 0d; _state.CueElapsed = 0d; _state.NextTransition = 0;

@@ -2,13 +2,13 @@
 // HorrorOrchestrator.cs
 // ============================================================================
 // PURPOSE:
-//   Connects physical attack facts, flashlight input and retained curses to the
+//   Connects physical attack facts, authoritative flashlight state and retained curses to the
 //   horror presentation system. This keeps enemy decisions and progression rules
 //   out of the camera lights, fog, spatial sound and warning visuals.
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
-//   - Forward committed attack samples and flashlight commands.
+//   - Forward committed attack samples and HorrorEffects' flashlight state; never consume UseItem.
 //   - Reset transient cues when a generated floor replaces the previous one.
 // DEPENDENCIES:
 //   - Session Run/Progression/HorrorEffects, Presentation Horror/Input/Camera and Core.
@@ -16,6 +16,8 @@
 // USAGE NOTES:
 //   Scene-owned. Configure is called once canonical services are initialized.
 //   All subscriptions pair OnEnable/OnDisable; no gameplay state is retained.
+//   HorrorEffects consumes input through the Expedition tick. Without that service,
+//   this route does not provide an independent flashlight toggle fallback.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
@@ -41,15 +43,13 @@ namespace Worsen.Orchestrator
         {
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
-            if (_effects == null) _input.FramePublished += OnInput;
-            else { _effects.FlashlightChanged += OnLight; _effects.AfterimageChanged += OnAfterimage; _run.PlayerMovementPublished += OnMovement; }
+            if (_effects != null) { _effects.FlashlightChanged += OnLight; _effects.AfterimageChanged += OnAfterimage; _run.PlayerMovementPublished += OnMovement; }
             _progression.GenerationRequested += OnGeneration;
             _progression.SnapshotChanged += OnSnapshot;
         }
         private void OnDisable()
         {
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
-            if (_input != null) _input.FramePublished -= OnInput;
             if (_run != null) _run.PlayerMovementPublished -= OnMovement;
             if (_effects != null) { _effects.FlashlightChanged -= OnLight; _effects.AfterimageChanged -= OnAfterimage; }
             if (_progression != null)
@@ -63,7 +63,6 @@ namespace Worsen.Orchestrator
                 _camera.AimPosition, _camera.AimRotation * Vector3.forward, 18f, 52f));
         }
         private void OnAttack(HunterAttackSample sample) => _horror.SetAttack(sample);
-        private void OnInput(InputFrame frame) { if ((frame.Pressed & InputButtons.UseItem) != 0) _horror.ToggleFlashlight(); }
         private void OnGeneration(ProgressionGenerationRequest request)
         { _horror.ResetRound(); _horror.SetEffects(request.Effects.FogDensityMultiplier, request.Effects.FlashlightRangeMultiplier); }
         private void OnSnapshot(ProgressionSnapshot snapshot) => _horror.SetEffects(snapshot.Effects.FogDensityMultiplier, snapshot.Effects.FlashlightRangeMultiplier);

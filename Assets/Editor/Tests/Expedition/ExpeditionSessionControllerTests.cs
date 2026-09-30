@@ -11,6 +11,7 @@
 //   - Exercise duplicate/stale events, cleanup admission and failed generation.
 //   - Verify roster identity and portal crossing admission for real retained effects.
 //   - Check shop safety, exact threat budgets and invalid loadout rejection.
+//   - Keep effect tuning assertions in HorrorEffects, the configured source.
 // DEPENDENCIES:
 //   - Session Expedition pure Controller/State, Core definitions, NUnit.
 // USAGE NOTES:
@@ -49,7 +50,6 @@ namespace Worsen.Tests.Expedition
             var spawns = _controller.HunterSpawns("fallback", new[] { Vector3.zero, Vector3.one });
             Assert.That(spawns[0].ArchetypeKey, Is.EqualTo("hexer"));
             Assert.That(spawns[1].ArchetypeKey, Is.EqualTo("thorncaller"));
-            Assert.That(_controller.OptionalWindowMultiplier(), Is.EqualTo(0.4f));
         }
 
         [Test]

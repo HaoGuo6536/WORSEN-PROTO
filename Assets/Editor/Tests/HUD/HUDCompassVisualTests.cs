@@ -3,11 +3,12 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies the caption-free compass surface and its repeated document lifecycle.
+//   Chrome can disappear without hiding guidance or introducing chase-state labels.
 // ARCHITECTURAL ROLE:
 //   Editor tool (section 10) - test suite (section 11) - Presentation - HUD.
 // KEY RESPONSIBILITIES:
 //   - Ensure bind/unbind leaves no duplicate indicator or obsolete caption.
-//   - Preserve unavailable-target and chase visibility decisions at the view boundary.
+//   - Preserve unavailable-target visibility and hide only chrome during a chase.
 // DEPENDENCIES:
 //   NUnit, HUD presentation, Unity objects and UI Toolkit.
 // USAGE NOTES:
@@ -56,10 +57,25 @@ namespace Worsen.Tests.HUD
                 var driver = owner.AddComponent<HUDVisualDriver>(); driver.Bind(root, config);
                 var state = new HUDDriverState(); driver.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
-                state.DirectionVisible = true; state.ChaseMode = true; driver.Apply(state);
+                var presenter = new HUDPresenter();
+                presenter.SetDirection(state, Vector3.forward, true);
+                presenter.SetItemSlots(state, 2, 8);
+                presenter.SetChaseMode(state, true); driver.Apply(state);
                 Assert.That(root.Q("hud-extra").style.display.value, Is.EqualTo(DisplayStyle.None));
-                state.ChaseMode = false; driver.Apply(state);
+                Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("direction-group").parent, Is.SameAs(root));
+                Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("chase-warning"), Is.Null);
+                foreach (Label label in root.Query<Label>().ToList())
+                    Assert.That(label.text, Does.Not.Contain("HUNTED"));
+                Assert.That(root.Q("item-slots"), Is.Not.Null);
+                Assert.That(root.Q("controls-hint"), Is.Not.Null);
+                presenter.SetChaseMode(state, false);
+                presenter.Tick(state, config.RestoreSeconds, config.RestoreSeconds); driver.Apply(state);
                 Assert.That(root.Q("hud-extra").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("hud").style.opacity.value, Is.EqualTo(1f));
+                Assert.That(root.Q("hud-extra").style.opacity.value, Is.EqualTo(1f));
                 // Edit Mode does not exercise ordinary runtime MonoBehaviour callbacks.
                 driver.Unbind();
                 Object.DestroyImmediate(owner);

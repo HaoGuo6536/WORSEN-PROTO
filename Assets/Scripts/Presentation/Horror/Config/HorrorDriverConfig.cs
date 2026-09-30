@@ -3,7 +3,7 @@
 // ============================================================================
 //
 // PURPOSE:
-//   Defines the dark-room atmosphere, quiet ambience, camera flashlight, and enemy attack warnings.
+//   Defines the dark-room atmosphere, near-silent ambience, camera flashlight, and enemy attack warnings.
 //   All scene feedback tunables stay in one replaceable asset; runtime changes never edit it.
 //
 // ARCHITECTURAL ROLE:
@@ -44,7 +44,7 @@ namespace Worsen.Presentation.Horror
 
         [Header("Quiet room ambience")]
         [SerializeField] private AudioClip _ambienceLoop;
-        [SerializeField, Range(0f, 1f)] private float _ambienceGain = 0.15f;
+        [SerializeField, Range(0f, 1f)] private float _ambienceGain = 0.01f;
 
         [Header("Camera flashlight")]
         [SerializeField] private GameObject _lumenFlashlightPrefab;
