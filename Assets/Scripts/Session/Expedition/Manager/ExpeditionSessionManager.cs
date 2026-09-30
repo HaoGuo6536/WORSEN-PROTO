@@ -12,6 +12,7 @@
 //   - Defer new assembly until old factory objects finish deferred destruction.
 //   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
 //   - Apply run-scoped modifiers and route completed floor facts to progression.
+//   - Pass HorrorEffects' configured optional-window multiplier to procedural generation.
 //   - Announce assembled floors for the SceneRoot readiness hand-off.
 // DEPENDENCIES:
 //   - Session HorrorEffects owns retained gameplay effects; its actor and hazard binding is floor-scoped.
@@ -24,6 +25,8 @@
 //   reference exists here. Events pair OnEnable/OnDisable; generation is explicit
 //   BehaviorState during the coroutine yield, not hidden in coroutine locals.
 //   Shop floors contain a player and geometry, with no pickups, collapse or hunters.
+//   BeginFloor updates HorrorEffects before assembly reads its optional-window multiplier.
+//   Scenes without the effect service use neutral window density, not a second tuning source.
 // ============================================================================
 using System;
 using System.Collections;
@@ -199,7 +202,7 @@ namespace Worsen.Session.Expedition
         {
             var request = _state.Request;
             _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
-                request.IsShop, _controller.OptionalWindowMultiplier());
+                request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier);
             if (!_procedural.IsReady || _procedural.Graph == null)
                 throw new InvalidOperationException("Procedural generation returned without a ready graph.");
             _level.InitializeGenerated(_procedural.Graph);

@@ -12,6 +12,7 @@
 //   - Preserve selected hunter identities and validate real room crossings for retained perks.
 //   - Produce spawn requests and enforce the requested active hunter budget.
 //   - Commit readiness only after every required actor has been registered.
+//   - Leave retained-effect tuning to the authoritative effect service routed by the Manager.
 // DEPENDENCIES:
 //   - Own BehaviorState/Definitions and immutable Core progression/spawn values.
 // USAGE NOTES:
@@ -88,8 +89,6 @@ namespace Worsen.Session.Expedition
             }
             return requests;
         }
-
-        public float OptionalWindowMultiplier() => (_state.Request.Effects.Traits & ProgressionTraits.SealedSills) != 0 ? 0.4f : 1f;
 
         public void RecordRooms(IReadOnlyList<GeneratedRoomSample> rooms)
         {
