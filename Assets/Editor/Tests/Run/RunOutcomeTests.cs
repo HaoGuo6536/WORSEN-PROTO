@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
 //   - Verify confirmed chase durations, restart reset and exactly-once completion.
+//   - Cover flagged early escapes, death priority, summary compatibility and bail reset.
 // DEPENDENCIES:
 //   - Session Run Controller/state, Core facts and NUnit assertions.
 // USAGE NOTES:
@@ -33,6 +34,48 @@ namespace Worsen.Tests.Run
             state = new RunSessionBehaviorState(42);
             controller = new RunSessionController(state, new System.Random(42));
             controller.StartScene(SceneKey.FloorLoop);
+        }
+        [Test]
+        public void FlaggedFirstSweepEscapeCarriesBailOnceAndResetsForNextScene()
+        {
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            Assert.That(state.PendingBailed, Is.True);
+            Assert.That(controller.TryFinish(out var summary), Is.True);
+            Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
+            Assert.That(summary.Bailed, Is.True);
+            Assert.That(controller.TryFinish(out _), Is.False);
+            controller.StartScene(SceneKey.HorrorRun);
+            Assert.That(state.PendingBailed, Is.False);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
+            Assert.That(controller.TryFinish(out _), Is.False);
+            controller.Apply(RunEvent.ExitOpened);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
+            Assert.That(controller.TryFinish(out summary), Is.True);
+            Assert.That(summary.Bailed, Is.False);
+            Assert.That(new RunSummary(0, 0, 0, 0, 0, 0, RunEndReason.Escaped).Bailed, Is.False);
+        }
+        [TestCase(false)]
+        [TestCase(true)]
+        public void DeathWinsBailInEitherOrder(bool deathFirst)
+        {
+            if (deathFirst) controller.RequestEnd(RunEndReason.Died, player, Vector3.right);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            if (!deathFirst) controller.RequestEnd(RunEndReason.Died, player, Vector3.right);
+            Assert.That(controller.TryFinish(out var summary), Is.True);
+            Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Died));
+            Assert.That(summary.Bailed, Is.False);
+            Assert.That(state.KillerPosition, Is.EqualTo(Vector3.right));
+        }
+        [Test]
+        public void BailCannotEscapeBootAndPendingBailClearsOnSceneReset()
+        {
+            var boot = new RunSessionController(new RunSessionBehaviorState(1), new System.Random(1));
+            boot.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            Assert.That(boot.TryFinish(out _), Is.False);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            controller.StartScene(SceneKey.HorrorRun);
+            Assert.That(state.PendingBailed, Is.False);
+            Assert.That(controller.TryFinish(out _), Is.False);
         }
         private void Advance(float seconds) => controller.TryTick(seconds, out _);
         private ChaseFact Fact(int id, ChaseEndReason reason = ChaseEndReason.Unknown) =>

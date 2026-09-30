@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Name the hunter-body layer excluded from movement queries and contacts during grace.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 // DEPENDENCIES:
@@ -41,6 +42,7 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _traversalRisePortion = 0.25f;
         [SerializeField] private float _traversalTraverseEnd = 0.95f;
         [SerializeField] private LayerMask _collisionMask = ~0;
+        [SerializeField] private string _hunterBodyLayer = "HunterBody";
         [SerializeField] private bool _interpolateVisuals = true;
         [SerializeField] private Vector3 _handOffset = new Vector3(0.32f, -0.25f, 0.5f);
         [SerializeField] private Vector3 _footOffset = new Vector3(0.2f, -0.25f, 0.5f);
@@ -61,6 +63,7 @@ namespace Worsen.Domain.Player
         public float TraversalRisePortion => _traversalRisePortion;
         public float TraversalTraverseEnd => _traversalTraverseEnd;
         public LayerMask CollisionMask => _collisionMask;
+        public string HunterBodyLayer => _hunterBodyLayer;
         public bool InterpolateVisuals => _interpolateVisuals;
         public Vector3 HandOffset => _handOffset;
         public Vector3 FootOffset => _footOffset;

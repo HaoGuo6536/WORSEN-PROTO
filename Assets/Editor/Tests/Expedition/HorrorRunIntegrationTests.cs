@@ -279,7 +279,9 @@ namespace Worsen.Tests.Expedition
             Assert.That(One<LevelManager>().ReadOnlyState.IsReady, Is.True);
             Assert.That(One<LevelManager>().ReadOnlyState.Graph.Rooms.Count, Is.EqualTo(procedural.Graph.Rooms.Count));
             Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThanOrEqualTo(5));
-            Assert.That(procedural.Graph.Anchors.Count, Is.GreaterThanOrEqualTo(procedural.Graph.Rooms.Count * 10));
+            // SPEC-004 §2.5 / PLAN-026 change 2: a few typed candidates per room (default 3-5), not 10-cake lines.
+            Assert.That(procedural.Graph.Anchors.Count, Is.GreaterThan(0));
+            Assert.That(procedural.Graph.Anchors.Count, Is.LessThanOrEqualTo(procedural.Graph.Rooms.Count * 5));
             Assert.That(procedural.GetComponentsInChildren<Collider>().Length, Is.GreaterThan(procedural.Graph.Rooms.Count));
             Assert.That(expedition.GenerationId, Is.EqualTo(progression.Snapshot.GenerationId));
             Assert.That(expedition.AssemblyPhase, Is.EqualTo(ExpeditionAssemblyPhase.Ready));

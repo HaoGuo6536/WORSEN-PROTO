@@ -7,10 +7,13 @@
 //   Driver (§7a) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
 //   - Open unique files, write raw facts and provenance, flush completed or interrupted captures.
+//   - Keep one expedition observation journal across floor capture starts/ends.
 // DEPENDENCIES:
 //   - Core values, own Presenter/DriverState/Config, Unity paths and System.IO.
 // USAGE NOTES:
 //   - Persistent with TelemetryManager. Serialized config first, Resources fallback, temporary defaults with warning. No global engine settings; writer closes on owner teardown.
+//   - Observation journals contain new kinds only, flush each committed fact and close on suspend.
+//     They intentionally do not enter legacy movement/chase measurement denominators.
 // ============================================================================
 using System;
 using System.IO;
@@ -27,11 +30,16 @@ namespace Worsen.Presentation.Telemetry
         private readonly TelemetryDriverState _state = new TelemetryDriverState();
         private readonly TelemetryPresenter _presenter = new TelemetryPresenter();
         private readonly TelemetryCsvPresenter _csv = new TelemetryCsvPresenter();
+        private readonly TelemetryObservationPresenter _observations = new TelemetryObservationPresenter();
         private StreamWriter _writer;
+        private StreamWriter _observationWriter;
         private Func<string, Stream> _openOutput;
         private bool _ownsConfig;
         public string LastError => _state.LastError;
         public string LastOutputPath => _state.OutputPath;
+        public string LastObservationOutputPath => _state.ObservationOutputPath;
+        public string LastObservationError => _state.ObservationError;
+        public bool CaptureActive => _state.Active;
 
         public void Initialize(Func<string, Stream> openOutput = null)
         {
@@ -90,6 +98,61 @@ namespace Worsen.Presentation.Telemetry
             if (!_state.Active) return;
             foreach (var row in _presenter.ConvertMovement(_state, sample)) Record(row);
         }
+        public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after,
+            string operation, string choiceId, long tick)
+        {
+            if (operation == "StartRun")
+            {
+                CloseObservations();
+                _state.ObservationOutputPath = _state.ObservationError = "";
+                _state.ObservationFailed = false;
+                _state.ObservationFloorSeed = null;
+            }
+            foreach (var sample in _observations.Transaction(before, after, operation, choiceId, tick, _state.ObservationFloorSeed))
+                RecordObservation(sample);
+        }
+        public void RecordGeneration(ProgressionGenerationRequest request, long tick)
+        {
+            _state.ObservationFloorSeed = request.Seed;
+            foreach (var sample in _observations.Generation(request, tick)) RecordObservation(sample);
+        }
+        public void RecordObservation(TelemetrySample sample, string outputDirectory = null)
+        {
+            if (_state.ObservationFailed) return;
+            try
+            {
+                if (_observationWriter == null)
+                {
+                    string folder = outputDirectory ?? Path.Combine(Application.persistentDataPath, "Telemetry");
+                    Directory.CreateDirectory(folder);
+                    _state.ObservationOutputPath = Path.Combine(folder, "observations-" + Guid.NewGuid().ToString("N") + ".csv");
+                    _observationWriter = new StreamWriter(_openOutput(_state.ObservationOutputPath), new UTF8Encoding(false));
+                    _observationWriter.WriteLine(_csv.Header);
+                }
+                _observationWriter.WriteLine(_csv.Raw(sample));
+                _observationWriter.Flush();
+            }
+            catch (Exception exception) when (IsFileFailure(exception))
+            {
+                _state.ObservationFailed = true;
+                _state.ObservationError = "Telemetry observation write failed: " + exception.Message;
+                _state.ObservationOutputPath = "";
+                CloseObservations();
+                Debug.LogError(_state.ObservationError, this);
+            }
+        }
+        private void CloseObservations()
+        {
+            try { _observationWriter?.Dispose(); }
+            catch (Exception exception) when (IsFileFailure(exception))
+            {
+                _state.ObservationFailed = true;
+                _state.ObservationError = "Telemetry observation close failed: " + exception.Message;
+                _state.ObservationOutputPath = "";
+                Debug.LogError(_state.ObservationError, this);
+            }
+            finally { _observationWriter = null; }
+        }
         public void RecordTraversal(PlayerTraversalFact fact)
         {
             if (!_state.Active) return;
@@ -118,7 +181,7 @@ namespace Worsen.Presentation.Telemetry
             Suspend();
             if (_ownsConfig) { Destroy(_config); _config = null; _ownsConfig = false; }
         }
-        public void Suspend() { if (_state.Active) EndSession(_state.LastTick, false); }
+        public void Suspend() { if (_state.Active) EndSession(_state.LastTick, false); CloseObservations(); }
         private void OnDestroy() => Teardown();
         private static Stream OpenOutput(string path) => new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
         private static bool IsFileFailure(Exception e) => e is IOException || e is UnauthorizedAccessException || e is ArgumentException;

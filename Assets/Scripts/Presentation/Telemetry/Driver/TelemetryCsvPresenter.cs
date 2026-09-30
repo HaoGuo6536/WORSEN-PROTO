@@ -7,10 +7,12 @@
 //   Presenter (§7b) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
 //   - Format metadata, raw rows and denominator-bearing summaries.
+//   - Append named progression and Hunter navigation columns without moving legacy cells.
 // DEPENDENCIES:
 //   - Core payloads and local TelemetryReport; System formatting only.
 // USAGE NOTES:
 //   - Blank numeric cells mean unavailable. Vault attempts are resolved outcomes; unfinished traversal is censored. No file operations.
+//   - New observation payloads use versioned, URI-escaped Detail fields; legacy Detail is untouched.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -21,7 +23,18 @@ namespace Worsen.Presentation.Telemetry
 {
     public sealed class TelemetryCsvPresenter
     {
-        public string Header => "row_type,tick,player,chase_id,kind,value,detail,in_chase,outcome,event_id";
+        private const int LegacyColumns = 10;
+        private const string ObservationPrefix = "telemetry-observation-v1;";
+        private static readonly string[] ObservationColumns =
+        {
+            "round_index", "generation_id", "round_outcome", "wallet_delta", "wallet_balance", "wallet_reason",
+            "choice_id", "choice_kind", "generation_seed", "hunter_id", "archetype_key",
+            "position_x", "position_y", "position_z", "room_id", "remaining_distance",
+            "query_radius", "capsule_radius", "sweep_radius", "action", "corner_count", "path_corners",
+            "nearest_obstacle_x", "nearest_obstacle_y", "nearest_obstacle_z"
+        };
+        public string Header => "row_type,tick,player,chase_id,kind,value,detail,in_chase,outcome,event_id," +
+            string.Join(",", ObservationColumns);
         public IEnumerable<string> Metadata(RunCaptureMetadata m)
         {
             yield return Meta("schema_version", m.SchemaVersion);
@@ -36,8 +49,30 @@ namespace Worsen.Presentation.Telemetry
             yield return Meta("capture_order_rules", "Committed chase transitions precede same-tick movement/traversal conversion; a same-tick end matching the already-tagged chase preserves inclusive terminal labels. Other LateChaseTransitions mark already-emitted tags as incomplete; raw rows are never silently rewritten. Legacy end-only captures cannot observe pre-confirmation catches.");
             yield return Meta("measurement_rules", "Free speed excludes vertical/chase motion; chase membership inclusive start through end tick; loss denominator=Losses+Catches including pre-confirmation accepted hits; lunge denominator=all catches including unknown subtypes; accepted hits plus unmatched legacy catch ends, matched player/chase/tick ends counted once; confirmed chase counts/durations exclude standalone hits; missing streams unavailable; vault attempts=resolved outcomes, unfinished traversal censored; catch window inclusive release through release+1s; proximity gaps include censored capture edges, no unsampled-path guarantee.");
         }
-        public string Raw(TelemetrySample s) => Row("raw", s.Tick, s.Player.Value, s.ChaseId,
-            s.Kind, s.Value, s.Detail, s.InChase, s.Outcome, s.EventId);
+        public string Raw(TelemetrySample s)
+        {
+            var fields = new object[LegacyColumns + ObservationColumns.Length];
+            object[] legacy = { "raw", s.Tick, s.Player.Value, s.ChaseId, s.Kind, s.Value, s.Detail, s.InChase, s.Outcome, s.EventId };
+            Array.Copy(legacy, fields, legacy.Length);
+            if (s.Kind >= TelemetrySampleKind.RoundStarted && s.Kind <= TelemetrySampleKind.HunterStall &&
+                s.Detail != null && s.Detail.StartsWith(ObservationPrefix, StringComparison.Ordinal))
+                foreach (string field in s.Detail.Substring(ObservationPrefix.Length).Split(';'))
+                {
+                    int equals = field.IndexOf('=');
+                    if (equals < 0) continue;
+                    int index = Array.IndexOf(ObservationColumns, field.Substring(0, equals));
+                    if (index >= 0) fields[LegacyColumns + index] = Uri.UnescapeDataString(field.Substring(equals + 1));
+                }
+            return Row(fields);
+        }
+
+        public static TelemetrySample Observation(long tick, TelemetrySampleKind kind, params (string Name, object Value)[] fields)
+        {
+            var detail = new List<string>();
+            foreach (var field in fields)
+                detail.Add(field.Name + "=" + Uri.EscapeDataString(Format(field.Value)));
+            return new TelemetrySample(tick, EntityId.None, 0, kind, detail: ObservationPrefix + string.Join(";", detail));
+        }
         public IEnumerable<string> Summary(TelemetryReport r, long endTick)
         {
             yield return Meta("end_tick", endTick);
@@ -98,16 +133,16 @@ namespace Worsen.Presentation.Telemetry
         private static string Meta(string name, object value) => Row("metadata", null, null, null, name, value, null, null, null, null);
         private static string Row(params object[] fields)
         {
-            var cells = new string[fields.Length];
-            for (int i = 0; i < fields.Length; i++)
+            var cells = new string[LegacyColumns + ObservationColumns.Length];
+            for (int i = 0; i < cells.Length; i++)
             {
-                object value = fields[i];
-                string text = value == null ? "" : value is float f ? f.ToString("R", CultureInfo.InvariantCulture) :
-                    value is double d ? d.ToString("R", CultureInfo.InvariantCulture) :
-                    value is IFormattable number ? number.ToString(null, CultureInfo.InvariantCulture) : value.ToString();
+                string text = Format(i < fields.Length ? fields[i] : null);
                 cells[i] = "\"" + text.Replace("\"", "\"\"") + "\"";
             }
             return string.Join(",", cells);
         }
+        private static string Format(object value) => value == null ? "" : value is float f ? f.ToString("R", CultureInfo.InvariantCulture) :
+            value is double d ? d.ToString("R", CultureInfo.InvariantCulture) :
+            value is IFormattable number ? number.ToString(null, CultureInfo.InvariantCulture) : value.ToString();
     }
 }
