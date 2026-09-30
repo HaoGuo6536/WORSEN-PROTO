@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0a473f0ed710264a89db9f4ceafebee, type: 3}
+  m_Name: ShrineProgressionConfig
+  m_EditorClassIdentifier: Worsen.Session::Worsen.Session.Progression.ShrineProgressionConfig
+  _rules:
+    _protectionCost: 4
+    _costFloorInterval: 3
+    _shieldHitPoints: 40
+    _bargainOffers: 3
+    _bargainBase: 2
+    _bargainFloorInterval: 2
+    _pacificationDelay: 1.5
+    _pacificationLoudness: 20
+    _wickSeconds: 10
+    _mutationChance: 0.25
+    _echo:
+    - _kind: 0
+      _magnitude: 2
+      _costMultiplier: 1
+      _delayMultiplier: 1
+    - _kind: 1
+      _magnitude: 2
+      _costMultiplier: 1
+      _delayMultiplier: 1
+    - _kind: 2
+      _magnitude: 2
+      _costMultiplier: 1
+      _delayMultiplier: 0.5
+    - _kind: 3
+      _magnitude: 2
+      _costMultiplier: 1
+      _delayMultiplier: 1
+    - _kind: 4
+      _magnitude: 2
+      _costMultiplier: 1
+      _delayMultiplier: 1
+    - _kind: 5
+      _magnitude: 2
+      _costMultiplier: 2
+      _delayMultiplier: 1
+    - _kind: 7
+      _magnitude: 2
+      _costMultiplier: 1
+      _delayMultiplier: 1

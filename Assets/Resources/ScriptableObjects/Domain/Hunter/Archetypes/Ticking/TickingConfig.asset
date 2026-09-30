@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e80522d9104fe3459fb7bf7bb1ec694, type: 3}
+  m_Name: TickingConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.Archetypes.Ticking.TickingConfig
+  _springSeconds: 45
+  _keySeconds: 30
+  _followDistance: {x: 12, y: 18}
+  _keyDistance: {x: 6, y: 10}
+  _fullTickInterval: 0.35
+  _emptyTickInterval: 2
+  _followSpeedRatio: 1.2
+  _behindArcDegrees: 35
+  _placementRetrySeconds: 1
+  _placementAttempts: 12
+  _runsFasterMultiplier: 0.8
+  _fartherKeysMultiplier: 1.25
+  _spareKeyMultiplier: 0.65
+  _loudKeyLoudness: 1
+  _driverConfig: {fileID: 11400000, guid: 9b7c1e573f550554ea88fd847c1e66f3, type: 2}

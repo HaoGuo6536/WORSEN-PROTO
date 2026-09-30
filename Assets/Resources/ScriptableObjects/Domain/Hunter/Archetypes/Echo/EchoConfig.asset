@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab5f36c8d8826814cbba876c104460f7, type: 3}
+  m_Name: EchoConfig
+  m_EditorClassIdentifier: Worsen.Domain::Worsen.Domain.Hunter.Archetypes.Echo.EchoConfig
+  _delaySeconds: 4
+  _sampleCapacity: 4096
+  _contactRadius: 0.9
+  _contactElevation: 0.45
+  _pathTolerance: 0.001
+  _footstepGain: 1
+  _footstepPitch: 0.94
+  _trailSeconds: 2
+  _trailPointLimit: 256
+  _shorterDelayMultiplier: 0.75
+  _fasterPlaybackMultiplier: 1.25
+  _silentStepsMultiplier: 0.5
+  _curseStackCap: 3
