@@ -16,6 +16,8 @@ archived: none
 
 > Status: DRAFT since 2026-09-30. See [../index.md](../index.md).
 
+> **Owner review 2026-09-30:** not approved; this spec stays DRAFT while the owner reviews the worsen verb. **Persistent hell is dropped:** worsening stays scoped to a single run, so §2.2 is kept only as a record of the rejected options. Nothing in this spec is to be built.
+
 ## 1. Subject and scope
 
 Two short design choices for [SPEC-004 §2.4][s4] and [PLAN-023][p23]. **Not built until approved.** This DRAFT neither approves implementation nor introduces config fields, catalogue entries, save migrations or input bindings. All proposed numbers below are **provisional design values**, located only in this document, not existing runtime defaults. Working option labels are not lore names.
@@ -100,6 +102,7 @@ Coordinator hand-offs: [SPEC-004 §2.4][s4] and [PLAN-023 §§1–3, 5–8][p23]
 | Date | Change | By |
 |---|---|---|
 | 2026-09-30 | Drafted two options per idea, recommended A/P1, recorded owner constraints and deferred all implementation pending approval. | Hermes, for Hao Guo |
+| 2026-09-30 | Owner: not approved; persistent hell dropped (run-scoped worsening only); worsen verb under review | Hao Guo / coordinator |
 
 [s4]: SPEC-004-horror-direction-content-proposals.md#24-stakes-and-the-make-it-worse-ladder
 [s5]: SPEC-005-hunter-briefs.md
@@ -114,4 +117,3 @@ Coordinator hand-offs: [SPEC-004 §2.4][s4] and [PLAN-023 §§1–3, 5–8][p23]
 [expedition]: ../../Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs
 [persistence]: ../../Assets/Scripts/Core/Definitions/PersistenceDefinitions.cs
 [selection]: ../../Assets/Scripts/Session/Progression/Controller/ProgressionSessionController.cs
-| 2026-09-30 | Owner: not approved; persistent hell dropped (run-scoped worsening only); worsen verb under review | Hao Guo / coordinator |

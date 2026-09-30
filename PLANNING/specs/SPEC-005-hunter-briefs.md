@@ -313,6 +313,7 @@ Every brief's numbers were read from the following sources, not inferred from a 
 | Date | Change | By |
 |---|---|---|
 | 2026-09-30 | Drafted source-grounded briefs, legacy retirement evidence and explicit integration gaps for owner review; recorded settled owner decisions without implementing them. | Hermes, for Hao Guo |
+| 2026-09-30 | Approved by the owner (LIVE); owner decisions recorded under §5 | Hao Guo / coordinator |
 
 [s4]: SPEC-004-horror-direction-content-proposals.md
 [architecture]: SPEC-001-project-architecture-guidelines.md
@@ -375,4 +376,3 @@ Every brief's numbers were read from the following sources, not inferred from a 
 [lurker]: ../../Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/lurker.asset
 [hexer]: ../../Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/hexer.asset
 [thorncaller]: ../../Assets/Resources/ScriptableObjects/Domain/Hunter/Expansion/thorncaller.asset
-| 2026-09-30 | Approved by the owner (LIVE); owner decisions recorded under §5 | Hao Guo / coordinator |
