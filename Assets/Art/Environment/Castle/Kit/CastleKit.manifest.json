@@ -1,0 +1,266 @@
+{
+  "theme": "castle",
+  "wallHeight": 7.0,
+  "pieces": [
+    {
+      "id": "wall_2m",
+      "file": "Castle_wall_2m.fbx",
+      "size": [
+        2.0,
+        7.0,
+        0.5
+      ],
+      "kind": "wall",
+      "triangles": 152,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "8ec30a2aedadc4c35985fa82dc353f604faab714959396cf49595b5811c30271"
+    },
+    {
+      "id": "wall_door_4m",
+      "file": "Castle_wall_door_4m.fbx",
+      "size": [
+        4.0,
+        7.0,
+        0.5
+      ],
+      "kind": "door",
+      "triangles": 296,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "1ffe32d52635cc7f088d115b11e77127a1a37d7124521c3a02f5505b94d40d31"
+    },
+    {
+      "id": "wall_window_2m",
+      "file": "Castle_wall_window_2m.fbx",
+      "size": [
+        2.0,
+        7.0,
+        0.5
+      ],
+      "kind": "window",
+      "triangles": 238,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "f7d974120cd5277aeb9b85bbe0c6d69be2ac532577fcd8e445cb2520231d327d"
+    },
+    {
+      "id": "wall_arc_r4",
+      "file": "Castle_wall_arc_r4.fbx",
+      "size": [
+        2.199962,
+        7.0,
+        0.646968
+      ],
+      "kind": "arc",
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "7bf74449f481d6dea369b2f5419ba350bd15fb8da65ac190eeeb9d8c1b5e6057"
+    },
+    {
+      "id": "wall_arc_r6",
+      "file": "Castle_wall_arc_r6.fbx",
+      "size": [
+        2.170602,
+        7.0,
+        0.608708
+      ],
+      "kind": "arc",
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "175a8b0a1ea935f9ba1c1bd87396993e04c95a999e2cfa88dbc8dbb498e37b0e"
+    },
+    {
+      "id": "wall_arc_r8",
+      "file": "Castle_wall_arc_r8.fbx",
+      "size": [
+        2.153682,
+        7.0,
+        0.588533
+      ],
+      "kind": "arc",
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "17b1ebe46bc2da76c31172d49398d8499cdc370f74bc92ece748aca479673e02"
+    },
+    {
+      "id": "corner_in",
+      "file": "Castle_corner_in.fbx",
+      "size": [
+        0.5,
+        7.0,
+        0.5
+      ],
+      "kind": "corner",
+      "triangles": 112,
+      "materials": [
+        "castle_stone"
+      ],
+      "geometrySha256": "a49e78b1627881f163a58d25d5551361cfb18485be7b30b02dcfa3348dc96b1b"
+    },
+    {
+      "id": "corner_out",
+      "file": "Castle_corner_out.fbx",
+      "size": [
+        0.5,
+        7.0,
+        0.5
+      ],
+      "kind": "corner",
+      "triangles": 112,
+      "materials": [
+        "castle_stone"
+      ],
+      "geometrySha256": "e7efad56e80f798ae0e18f1b15f59ae1bd912563077efdffde7ed646d6efe9b5"
+    },
+    {
+      "id": "pillar",
+      "file": "Castle_pillar.fbx",
+      "size": [
+        0.8,
+        7.0,
+        0.8
+      ],
+      "kind": "pillar",
+      "triangles": 92,
+      "materials": [
+        "castle_stone"
+      ],
+      "geometrySha256": "a656e67f506691adeae95bbf80ebf86edcee4c45b9aef7c25944aba7580723bb"
+    },
+    {
+      "id": "floor_2x2",
+      "file": "Castle_floor_2x2.fbx",
+      "size": [
+        2.0,
+        0.16,
+        2.0
+      ],
+      "kind": "floor",
+      "triangles": 102,
+      "materials": [
+        "castle_mortar",
+        "castle_stone"
+      ],
+      "geometrySha256": "c4fe140ad9cb97a2ebf0e332ab8cbab7d6185b569c1bfb389bd66a32df74af45"
+    },
+    {
+      "id": "ceiling_2x2",
+      "file": "Castle_ceiling_2x2.fbx",
+      "size": [
+        2.0,
+        0.18,
+        2.0
+      ],
+      "kind": "ceiling",
+      "triangles": 102,
+      "materials": [
+        "castle_mortar",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "d8bffd92b819eddc1e753610cf8d58b22e1bc423f9a61a9485c8b21f319d706e"
+    },
+    {
+      "id": "trim_base_2m",
+      "file": "Castle_trim_base_2m.fbx",
+      "size": [
+        2.0,
+        0.18,
+        0.12
+      ],
+      "kind": "trim",
+      "triangles": 56,
+      "materials": [
+        "castle_stone"
+      ],
+      "geometrySha256": "708bd528c75e87568a39d7a7c340164a0fc9d9cbb0ce4bc9c17ce2018b49b14c"
+    },
+    {
+      "id": "prop_torch_sconce",
+      "file": "Castle_prop_torch_sconce.fbx",
+      "size": [
+        0.24,
+        1.045,
+        0.464127
+      ],
+      "kind": "prop",
+      "triangles": 202,
+      "materials": [
+        "castle_ember",
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "4e86ca8ccc723a714a7aacaa88448dd1ce3eb796275accb867bf6656abbaf3c1"
+    },
+    {
+      "id": "prop_banner",
+      "file": "Castle_prop_banner.fbx",
+      "size": [
+        1.1,
+        2.283287,
+        0.146665
+      ],
+      "kind": "prop",
+      "triangles": 272,
+      "materials": [
+        "castle_cloth",
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "efd81736f53f44a8c2546148b529d1e582a52fa5218fa6cbcb292c370af9e996"
+    },
+    {
+      "id": "prop_barrel",
+      "file": "Castle_prop_barrel.fbx",
+      "size": [
+        0.914,
+        1.13,
+        0.914
+      ],
+      "kind": "prop",
+      "triangles": 320,
+      "materials": [
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "323a2a4b1429e3225e390240e2d4aa2c34c0b5a3aac9375ad8381cc5b59b5ff9"
+    },
+    {
+      "id": "prop_rubble",
+      "file": "Castle_prop_rubble.fbx",
+      "size": [
+        1.56732,
+        0.292082,
+        0.946659
+      ],
+      "kind": "prop",
+      "triangles": 396,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "7469bea3184cad014968902110bc9a755d39d5270a99fb535370c84769831b1e"
+    }
+  ]
+}
