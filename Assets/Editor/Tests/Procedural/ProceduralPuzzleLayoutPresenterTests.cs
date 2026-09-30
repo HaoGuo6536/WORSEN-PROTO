@@ -36,7 +36,7 @@ namespace Worsen.Tests.Procedural
                 var presenter = new ProceduralPuzzleLayoutPresenter(); var kinds = new HashSet<ProceduralPuzzleKind>();
                 for (int seed = 0; seed < 32; seed++)
                 {
-                    foreach (int round in new[] { 3, 4, 8 })
+                    foreach (int round in new[] { 2, 3, 8 })
                     {
                         var layout = new ProceduralController(new ProceduralBehaviorState(), c,
                             new System.Random(ProceduralController.LayoutSeed(seed, round))).Generate(seed, round);
@@ -44,7 +44,7 @@ namespace Worsen.Tests.Procedural
                         var original = layout.Graph;
                         var plans = presenter.Build(layout, p, blocks, new System.Random(seed));
                         Assert.That(layout.Graph, Is.SameAs(original));
-                        if (round == 3) { Assert.That(plans, Is.Empty); continue; }
+                        if (round == 2) { Assert.That(plans, Is.Empty); continue; }
                         Assert.That(plans.Count, Is.EqualTo(1));
                         Assert.That(presenter.Manifest(plans), Is.EqualTo(presenter.Manifest(presenter.Build(layout, p, blocks, new System.Random(seed)))));
                         var plan = plans[0]; kinds.Add(plan.Kind);
