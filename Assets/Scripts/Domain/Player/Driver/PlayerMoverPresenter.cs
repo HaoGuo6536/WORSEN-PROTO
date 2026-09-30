@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Remove only the hunter layer during grace and decide the once-per-session missing-layer warning.
 //   - Implement only the Player responsibility named by this script.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Select the opposite authored traversal endpoint from feet and approach, rejecting invalid pairs.
@@ -25,6 +26,16 @@ namespace Worsen.Domain.Player
 {
     public sealed class PlayerMoverPresenter
     {
+        public int MovementMask(int collisionMask, int hunterLayer, bool graceActive)
+            => graceActive && hunterLayer >= 0 && hunterLayer < 32 ? collisionMask & ~(1 << hunterLayer) : collisionMask;
+
+        public bool ShouldWarnMissingHunterLayer(PlayerDriverState session, int hunterLayer)
+        {
+            if (hunterLayer >= 0 || session.MissingHunterLayerWarned) return false;
+            session.MissingHunterLayerWarned = true;
+            return true;
+        }
+
         public void Capsule(Vector3 feet, float height, float radius, out Vector3 bottom, out Vector3 top)
         {
             radius = Mathf.Max(0.001f, radius);

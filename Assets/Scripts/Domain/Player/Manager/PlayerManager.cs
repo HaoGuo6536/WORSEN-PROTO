@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
+//   - Publish Core grace start/end and absorption facts, and push pass-through before physics queries.
 //   - Route independent walking-noise, rebound-recovery and grab-speed effects.
 //   - Apply aggregate run health/movement modifiers through the Controller and publish health changes.
 //   - Keep game rules, passive state, and engine interactions in separate roles.
@@ -16,6 +17,8 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Scene-owned; Initialize creates a fresh life, Teardown clears it. No competing FixedUpdate loop; Run Session supplies each tick.
+//   Hits use the latest run tick; callers with a newer tick must advance recovery first.
+//   Disable/teardown cancels recovery; death publishes an empty grace interval rather than a lingering effect.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -44,24 +47,29 @@ namespace Worsen.Domain.Player
         public event Action<PlayerMovementSample> OnMovementSample;
         public event Action<PlayerTraversalFact> OnTraversal;
         public event Action<InputProbeRecord> InputProbeRecorded;
+        public event Action<GraceWindowFact> OnGraceStarted;
+        public event Action<GraceWindowFact> OnGraceEnded;
+        public event Action<EntityId, HitSeverity, HitSource> OnHitAbsorbedByGrace;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<PlayerDriver>(); }
         public void Initialize(PlayerProfile profile, EntityContext context)
         {
             if (profile == null) throw new ArgumentNullException(nameof(profile));
             if (!context.Id.IsValid || context.Random == null) throw new ArgumentException("Player requires an assigned id and shared random source.");
+            EndRecovery();
             if (_driver == null) _driver = GetComponent<PlayerDriver>();
             _driver.Initialize();
             _profile = profile;
             _state = new PlayerBehaviorState();
             _controller = new PlayerController(_state, profile, context.Random);
-            _controller.Reset(context.Id, _driver.Position, _driver.Heading);
+            _controller.Reset(context.Id, _driver.Position, _driver.Heading, _driver.FixedDeltaTime);
         }
 
         public void Tick(InputFrame frame, float dt, long tick)
         {
             if (_controller == null) return;
             bool wasLookingBack = _state.LookBack;
+            AdvanceRecovery(tick);
             MovementProbe probe = _driver.Probe();
             PlayerTickResult result = _controller.Tick(frame, probe, dt, tick);
             PlayerMoveResult movement = result.Traversing
@@ -79,17 +87,43 @@ namespace Worsen.Domain.Player
             foreach (PlayerTraversalFact fact in LastTraversalFacts) OnTraversal?.Invoke(fact);
         }
 
-        public void ApplyHit(float damage, Vector3 killerPosition)
+        public bool ApplyHit(float damage, Vector3 killerPosition, HitSeverity severity = HitSeverity.Heavy, HitSource source = HitSource.Lunge)
         {
-            if (_controller == null) return;
-            PlayerHitResult result = _controller.ApplyHit(damage);
+            if (_controller == null) return false;
+            PlayerHitResult result = _controller.ApplyHit(damage, severity);
+            _driver.SetGraceActive(_state.GraceActive);
+            if (result.GraceStarted.HasValue)
+            {
+                OnGraceStarted?.Invoke(result.GraceStarted.Value);
+                if (!_state.GraceActive) OnGraceEnded?.Invoke(result.GraceStarted.Value);
+            }
+            if (result.AbsorbedByGrace) OnHitAbsorbedByGrace?.Invoke(Id, severity, source);
             if (result.Changed) OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
             if (result.Died) OnDied?.Invoke(Id, killerPosition);
+            return result.Changed;
         }
+
+        public void AdvanceRecovery(long tick)
+        {
+            if (_controller == null) return;
+            GraceWindowFact? ended = _controller.AdvanceRecovery(tick);
+            _driver.SetGraceActive(_state.GraceActive);
+            if (ended.HasValue) OnGraceEnded?.Invoke(ended.Value);
+        }
+
+        private void EndRecovery()
+        {
+            GraceWindowFact? ended = _controller?.EndRecovery();
+            if (_driver != null) _driver.SetGraceActive(false);
+            if (ended.HasValue) OnGraceEnded?.Invoke(ended.Value);
+        }
+
+        public void SetLookBackEnabled(bool enabled) { _controller?.SetLookBackEnabled(enabled); }
         public void ApplyRunModifiers(float health, float maximumHealth, float movementMultiplier)
         {
             if (_controller == null) return;
             PlayerHitResult result = _controller.ApplyRunModifiers(health, maximumHealth, movementMultiplier);
+            if (result.Died) EndRecovery();
             if (result.Changed) OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
             if (result.Died) OnDied?.Invoke(Id, _state.Position);
         }
@@ -99,11 +133,13 @@ namespace Worsen.Domain.Player
         public void ApplyLungeHit(Vector3 killerPosition) { if (_profile != null) ApplyHit(_profile.LungeDamage, killerPosition); }
         public void Teardown()
         {
+            EndRecovery();
             if (_driver != null) _driver.Teardown();
             _controller = null;
             _state = null;
             _profile = null;
         }
+        private void OnDisable() { EndRecovery(); }
         private void OnDestroy() { Teardown(); }
     }
 }
