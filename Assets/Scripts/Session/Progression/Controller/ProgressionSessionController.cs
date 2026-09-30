@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Commit seeded events before generation, combine expiring hazards and expose retained mutations.
 //   - Consume revision-guarded selected item uses, arm one ward and spend one revival per run.
 //   - Apply the current shrine yield to later Golden Cake credit through the shared remainder path.
 //   - Retain current-floor health for reporting, but refill it after choices before each generation.
@@ -23,13 +24,15 @@
 // DEPENDENCIES:
 //   - Own Config and BehaviorState; Core progression value contracts.
 //   - Delegated Progression.Shop controller/state/config; no foreign system state.
-//   - Injected System.Random; no scene or foreign gameplay systems.
+//   - Injected System.Random; Hunter profile data and immutable mutation values only.
 // USAGE NOTES:
 //   Construct with a fresh seeded random source when starting/restarting a run.
 //   Generation and UI identities remain monotonic in the reused state. Exactly
 //   one random draw occurs per round; purchases and health do not alter layouts.
 //   Shrines use a separate seeded stream. A marked Bargain forces the next shelter;
 //   that visit resets the shop clock and walking away adds no bargain-specific cost.
+//   Events use another stream and never draw layout randomness. Mutation messages
+//   occupy one selection/shelter phase, not one snapshot read; later phases do not replay them.
 //   CompleteFloor defaults to a normal escape. The flagged overload is the only
 //   bail entry; ApplyBailPenalty is the extension point for a future curse cost.
 // ============================================================================
@@ -37,6 +40,7 @@ using System;
 using System.Collections.Generic;
 using Worsen.Core;
 using Worsen.Session.Progression.Shop;
+using Worsen.Domain.Hunter;
 
 namespace Worsen.Session.Progression
 {
@@ -52,8 +56,16 @@ namespace Worsen.Session.Progression
         private readonly ShopRules shopRules;
         private ShopController shop;
         private ShrineProgressionController shrines;
+        private ProgressionEventController events;
+        public IReadOnlyList<ProgressionEventFact> EventHistory => events.History;
+        public IReadOnlyDictionary<string, IReadOnlyList<HunterMutation>> RetainedMutations => events.RetainedMutations;
+        public FearAxis CurrentEventFearAxis => state.EventFearAxis;
+        public IReadOnlyCollection<FearAxis> ShrineExcludedAxes => Array.AsReadOnly(state.EventFearAxis == FearAxis.None
+            ? Array.Empty<FearAxis>() : new[] { state.EventFearAxis });
+        public bool MoreShrines => Active().Has(new EffectId("more-shrines"));
+        public bool TryTakeProgressionEvent(out ProgressionEventFact fact) => events.TryTakeFact(out fact);
         public IReadOnlyList<ShrineResolvedFact> ShrineHistory => shrines.History;
-        public ActiveEffects FloorEffects => shrines.FloorEffects;
+        public ActiveEffects FloorEffects => events.Combined(shrines.FloorEffects);
         public float ShrineYieldMultiplier => shrines.YieldMultiplier;
 
         public ProgressionSessionController(ProgressionSessionBehaviorState state, ProgressionConfig config, System.Random random,
@@ -72,6 +84,7 @@ namespace Worsen.Session.Progression
                 EffectCatalogueUtility.Validate(this.shopCatalogue, legacyHunters);
             }
             shopRules = (config.ShopConfig ?? shopConfig)?.Rules ?? new ShopRules();
+            events = new ProgressionEventController(state, config, this.shopCatalogue, new System.Random(0));
             shop = new ShopController(state.Shop, shopRules, this.shopCatalogue, new System.Random(0));
             shrines = new ShrineProgressionController(state.Shrines, config.ShrineConfig?.Rules ?? new ShrineProgressionRules(),
                 this.shopCatalogue, new System.Random(0));
@@ -96,6 +109,8 @@ namespace Worsen.Session.Progression
         public void StartRun(int seed)
         {
             state.Seed = seed;
+            events = new ProgressionEventController(state, config, shopCatalogue, new System.Random(seed));
+            events.ResetRun();
             state.Round = 0;
             state.CompletedCombatFloors = state.LastShopAtCombatCount = 0;
             state.Traits = ProgressionTraits.None;
@@ -151,6 +166,7 @@ namespace Worsen.Session.Progression
             state.Message = state.IsShop
                 ? "A moment of safety. Spend Golden Cakes, or continue without buying."
                 : "Collect the Cakes. Find the exit. Keep your light close.";
+            events.ShowPendingMessage();
             state.Revision++;
             return true;
         }
@@ -171,6 +187,7 @@ namespace Worsen.Session.Progression
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
             if (bailed) ApplyBailPenalty();
+            events.EndCombatFloor();
             shrines.EndFloor();
             state.Wallet += shop.Interest(state.Wallet, Active());
             state.CompletedCombatFloors++;
@@ -278,7 +295,7 @@ namespace Worsen.Session.Progression
         private int SelectionRerollsRemaining() => Math.Max(0, shop.SelectionRerolls(Active()) -
             (state.Phase == ProgressionPhase.ChooseThreat ? state.ThreatRerollsUsed : state.CurseRerollsUsed));
 
-        private ActiveEffects Active() => shrines.Combined(new ActiveEffects(state.ActiveEffectEntries.Values));
+        private ActiveEffects Active() => events.Combined(shrines.Combined(new ActiveEffects(state.ActiveEffectEntries.Values)));
 
         public bool ActivateShrine(int generationId, ShrineActivatedFact fact, float shieldCapacity,
             float collectedFraction, out ShrineResolvedFact resolution)
@@ -286,7 +303,7 @@ namespace Worsen.Session.Progression
             resolution = default;
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId)) return false;
             if (!shrines.Resolve(generationId, state.Round, fact, state.Wallet, shieldCapacity, collectedFraction,
-                new ActiveEffects(state.ActiveEffectEntries.Values), out resolution)) return false;
+                events.Combined(new ActiveEffects(state.ActiveEffectEntries.Values)), out resolution)) return false;
             state.Wallet -= resolution.Cost;
             state.Revision++;
             return true;
@@ -433,6 +450,7 @@ namespace Worsen.Session.Progression
             state.IsShop = shrines.BargainMarked || (state.CompletedCombatFloors > 0 &&
                 state.CompletedCombatFloors - state.LastShopAtCombatCount >= config.ShopInterval);
             if (state.IsShop) state.LastShopAtCombatCount = state.CompletedCombatFloors;
+            events.BeginRound(Active());
             state.ThreatRerollsUsed = state.CurseRerollsUsed = 0;
             if (state.IsShop)
             {
@@ -449,6 +467,7 @@ namespace Worsen.Session.Progression
                 BuildThreatChoices();
                 state.Phase = ProgressionPhase.ChooseThreat;
                 state.Message = "Choose what follows you onto floor " + state.Round + ".";
+                events.ShowPendingMessage();
                 state.Revision++;
             }
         }
@@ -532,6 +551,7 @@ namespace Worsen.Session.Progression
             }
             state.Phase = ProgressionPhase.ChooseCurse;
             state.Message = "Choose a curse to carry into the dark.";
+            events.ShowPendingMessage();
             state.Revision++;
         }
 
@@ -571,7 +591,7 @@ namespace Worsen.Session.Progression
             if (!string.IsNullOrEmpty(entry.RequiredThreatId) && !state.ActiveThreatIds.Contains(entry.RequiredThreatId)) return false;
             var data = EffectCatalogueUtility.Find(catalogue, entry.Id);
             return data == null ? kind != EffectKind.Curse || Count(entry.Id) == 0
-                : EffectCatalogueUtility.Eligible(data, state.Round, new ActiveEffects(state.ActiveEffectEntries.Values));
+                : EffectCatalogueUtility.Eligible(data, state.Round, Active());
         }
 
         private EffectKind LegacyKind(ProgressionEntryConfig entry) => Find(config.Threats, entry.Id) != null ? EffectKind.Threat

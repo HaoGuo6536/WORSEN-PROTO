@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Session · Progression.
 // KEY RESPONSIBILITIES:
+//   - Tune progression events and bind immutable Hunter profiles for mutation-pool reads.
 //   - Delegate offers and economy tuning to EffectCatalogueConfig and ShopConfig.
 //   - Optionally bind provisional shrine rules; unbound assets use documented defaults.
 //   - Set the fraction lost on a bail; the currency debit is rounded down.
@@ -15,6 +16,7 @@
 //   - Describe five hunter identities and hunter-dependent plus general curse traits.
 //   - Optionally extend curses and effect admission with the additive catalogue.
 // DEPENDENCIES:
+//   - Domain Hunter profiles supply archetype mutation data, never runtime entity state.
 //   - Unity serialization, Core traits, catalogue and the delegated ShopConfig.
 // USAGE NOTES:
 //   Mirrored asset: ScriptableObjects/Session/Progression/ProgressionConfig.
@@ -25,6 +27,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Session.Progression.Shop;
+using Worsen.Domain.Hunter;
 
 namespace Worsen.Session.Progression
 {
@@ -86,6 +89,24 @@ namespace Worsen.Session.Progression
         [SerializeField] private EffectCatalogueConfig _effectCatalogue = null;
         [SerializeField] private ShopConfig _shopConfig = null;
         [SerializeField] private ShrineProgressionConfig _shrineConfig = null;
+        [Header("Progression events (provisional)")]
+        [SerializeField, Min(8)] private int _firstEventRound = 8;
+        [SerializeField, Min(2)] private int _eventInterval = 8;
+        [SerializeField, Min(0)] private int _eventJitter = 1;
+        [SerializeField, Min(1)] private int _eventHazardFloors = 3;
+        [SerializeField, Min(0.01f)] private float _maximumMutationSpeedMultiplier = 4f;
+        [SerializeField] private ProgressionEventKind[] _eventPool = {
+            ProgressionEventKind.EnvironmentalHazard, ProgressionEventKind.HunterUpgrade,
+            ProgressionEventKind.ExtraHunter, ProgressionEventKind.Random, ProgressionEventKind.HiddenMutation };
+        [SerializeField] private HunterProfile[] _mutationProfiles = Array.Empty<HunterProfile>();
+        public int FirstEventRound => _firstEventRound;
+        public int EventInterval => _eventInterval;
+        public int EventJitter => _eventJitter;
+        public int EventHazardFloors => _eventHazardFloors;
+        public float MaximumMutationSpeedMultiplier => _maximumMutationSpeedMultiplier;
+        public IReadOnlyList<ProgressionEventKind> EventPool => Array.AsReadOnly(_eventPool ?? Array.Empty<ProgressionEventKind>());
+        public IReadOnlyList<HunterProfile> MutationProfiles => Array.AsReadOnly(_mutationProfiles ?? Array.Empty<HunterProfile>());
+        [Header("Selection and shops")]
         [SerializeField, Min(1)] private int _selectionInterval = 2;
         [SerializeField, Min(2)] private int _shopInterval = 2;
         [SerializeField, Min(1)] private int _maximumActiveThreats = 5;

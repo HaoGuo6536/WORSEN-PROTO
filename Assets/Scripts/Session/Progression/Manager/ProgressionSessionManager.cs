@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Progression (Session system).
 // KEY RESPONSIBILITIES:
+//   - Publish committed progression events once before generation and expose shrine/mutation inputs.
 //   - Publish selected slots with uses and transact consumable/Extra Life admission once.
 //   - Commit shrine costs and transient Player shield grants before publishing outcomes.
 //   - Publish belief-drop/world-effect intent and delayed shared-hearing noise facts.
@@ -20,6 +21,7 @@
 //   - Pair each progression/inventory revision with a frozen active-effects view.
 //   - Publish read-only before/after transactions for observational consumers.
 // DEPENDENCIES:
+//   - Domain Hunter immutable mutation values form the read-only Expedition restoration view.
 //   - Progression Config, Controller and BehaviorState; Core progression types.
 //   - Domain Player receives shield grants by a transient argument, never a retained scene reference.
 // USAGE NOTES:
@@ -32,11 +34,13 @@
 //   Integration must supply bailed=true for an early escape; legacy calls remain penalty-free.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Session.Progression.Shop;
 using Worsen.Domain.Player;
+using Worsen.Domain.Hunter;
 
 namespace Worsen.Session.Progression
 {
@@ -54,6 +58,12 @@ namespace Worsen.Session.Progression
         public ConsumableInventorySnapshot Consumables => controller == null ? default : controller.Consumables();
         public event Action<ProgressionSnapshot, IReadOnlyActiveEffects> EffectsSnapshotChanged;
         public event Action<ProgressionGenerationRequest> GenerationRequested;
+        public event Action<ProgressionEventFact> ProgressionEventCommitted;
+        public IReadOnlyList<ProgressionEventFact> EventHistory => controller?.EventHistory ?? Array.Empty<ProgressionEventFact>();
+        public IReadOnlyDictionary<string, IReadOnlyList<HunterMutation>> RetainedMutations => controller?.RetainedMutations;
+        public FearAxis CurrentEventFearAxis => controller?.CurrentEventFearAxis ?? FearAxis.None;
+        public IReadOnlyCollection<FearAxis> ShrineExcludedAxes => controller?.ShrineExcludedAxes ?? Array.Empty<FearAxis>();
+        public bool MoreShrines => controller?.MoreShrines ?? false;
         public event Action<ShrineResolvedFact> ShrineResolved;
         public event Action<NoiseEvent> ShrineNoiseEmitted;
         public IReadOnlyActiveEffects FloorEffects => controller == null ? default(ActiveEffects) : controller.FloorEffects;
@@ -179,6 +189,11 @@ namespace Worsen.Session.Progression
             ProgressionSnapshot snapshot = paired.Progression;
             ProgressionGenerationRequest request = controller.GenerationRequest();
             ConsumableInventorySnapshot slots = controller.Consumables();
+            while (controller.TryTakeProgressionEvent(out var fact))
+            {
+                ProgressionEventCommitted?.Invoke(fact);
+                if (state.Revision != snapshot.Revision) return;
+            }
             SnapshotChanged?.Invoke(snapshot);
             // A legacy listener can synchronously commit a replacement revision.
             if (state.Revision != snapshot.Revision) return;
@@ -203,6 +218,7 @@ namespace Worsen.Session.Progression
             ConsumablesChanged = null;
             EffectsSnapshotChanged = null;
             GenerationRequested = null;
+            ProgressionEventCommitted = null;
             ShrineResolved = null;
             ShrineNoiseEmitted = null;
             TransactionCommitted = null;

@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
+//   - Isolate selection/shop assertions from automatic events, tested in their own fixture.
 //   - Require explicit slot activation before the one-charge ward can break a grab.
 //   - Check all four effect kinds, reroll-restocked pedestals, held items and frozen revisions.
 //   - Check configurable cadence, mandatory choices and catalogue offer requirements.
@@ -38,6 +39,7 @@ namespace Worsen.Tests.Progression
         public void SetUp()
         {
             config = ScriptableObject.CreateInstance<ProgressionConfig>();
+            Set(config, "_eventPool", Array.Empty<ProgressionEventKind>());
             catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
             Set(config, "_effectCatalogue", catalogue);
             Set(config, "_threats", new[] { new ProgressionEntryConfig("echo", "Echo", "Adds an Echo.") });
