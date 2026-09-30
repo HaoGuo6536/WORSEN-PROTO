@@ -10,13 +10,11 @@
 //   DriverConfig (§7d) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
-//   - Tune faint Weaver web placeholders independently of ordinary attack warnings.
-//   - Tune rare micro-event admission and exact catalogue lighting-effect bindings.
-//   - Expose darkness, fog hooks, earned-startle budget and attack cue tuning.
-//   - Hold the imported growl, optional ambience loop and a build-included warning material.
-//   - Tune collapse-phase fog near distance, partial room weight and smoothed torch loss.
-//   - Reference project-owned Lumen fake-light prefabs; retain legacy black 8–24 meter fog.
-//   - Keep a soft, wall-limited close fill that dims when the flashlight is switched off.
+//   - Tune Weaver warnings, micro-events and the earned-startle budget.
+//   - Bind catalogue lighting effects and supply Afterglow visual strengths.
+//   - Hold authored audio, warning materials and Lumen fake-light prefabs.
+//   - Tune collapse darkness, fog distances and smoothed torch loss.
+//   - Tune the flashlight and its wall-limited close fill.
 //
 // DEPENDENCIES:
 //   - UnityEngine assets and the Horror system's own settings snapshot.
@@ -50,6 +48,13 @@ namespace Worsen.Presentation.Horror
         public float CollapseSmoothingSeconds => _collapseSmoothingSeconds;
         public float SweepTorchCountMultiplier => _sweepTorchCountMultiplier;
         public float CollapsedTorchCountMultiplier => _collapsedTorchCountMultiplier;
+        [Header("Afterglow presentation (provisional; safety time is gameplay-owned)")]
+        [SerializeField, Min(0f)] private float _afterglowStrength = 0.35f;
+        [SerializeField, Min(0.01f)] private float _afterglowRadius = 2f;
+        [SerializeField] private Color _afterglowColor = new Color(0.55f, 0.65f, 0.8f, 1f);
+        public float AfterglowStrength => _afterglowStrength;
+        public float AfterglowRadius => _afterglowRadius;
+        public Color AfterglowColor => _afterglowColor;
         [Header("Weaver placeholders (provisional)")]
         [SerializeField] private Material _webMaterial = null;
         [SerializeField, Min(.001f)] private float _webLineWidth = .015f;

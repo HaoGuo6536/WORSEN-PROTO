@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Remember cleansed blindness identities until they disappear from the active view.
 //   - Retain an injected active-effects view and identity-matched grace envelope.
-//   - Preserve runtime blur preferences and independent effect countdowns.
+//   - Preserve runtime blur preferences and independent effect/Glimpse countdowns.
 //   - Retain proximity/injury inputs and the camcorder's independent tape envelope.
 //   - Carry primitive volume values without holding a live volume.
 //
@@ -44,6 +44,8 @@ namespace Worsen.Presentation.PostFX
         public Color SceneTint = Color.white;
         public float Proximity;
         public bool LookBack;
+        public float GlimpseRemaining;
+        public float HunterRim;
         public float Injury;
         public float IntrusionRemaining;
         public float SubtleIntrusionRemaining;

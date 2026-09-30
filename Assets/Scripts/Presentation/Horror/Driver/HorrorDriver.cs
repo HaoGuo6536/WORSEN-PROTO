@@ -11,13 +11,11 @@
 //   Driver (§7a) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
-//   - Smooth per-floor collapse facts into distance fog and multiplicative torch-budget output.
-//   - Own finite-lived Weaver visuals; leave all hunter sound admission to Audio.
-//   - Own the micro-event sub-driver and republish decisions and lighting hook changes.
-//   - Render external light authority independently of camera shake and bank.
-//   - Own atmosphere and ambience sub-drivers, attack cues, shared material and transient state.
-//   - Forward fog hooks and gate intrusions; preserve the run clock and budget across floor resets.
-//   - Delegate validated tick deltas to the Presenter without sampling engine time.
+//   - Smooth collapse facts into fog and torch-budget outputs.
+//   - Own finite-lived Weaver and Afterglow visuals, never their gameplay rules.
+//   - Own micro-events and republish decisions and lighting changes.
+//   - Sequence atmosphere, ambience and attack-cue engine boundaries.
+//   - Advance presentation with injected time and preserve run-wide startle admission.
 //
 // DEPENDENCIES:
 //   - Core HunterAttackSample and EntityId; its own Horror presentation stack.
@@ -54,6 +52,7 @@ namespace Worsen.Presentation.Horror
         private HorrorAmbienceDriver _ambience;
         private HorrorMicroEventDriver _micro;
         private HorrorWebDriver _web;
+        private HorrorAfterglowDriver _afterglow;
         public event Action<int, int, Vector3, float> MicroEventSelected;
         public event Action<float, bool> LightingHooksChanged;
         public float TorchCountMultiplier => _state != null ? HorrorCollapsePresenter.TorchMultiplier(_state, _config) : 1f;
@@ -77,6 +76,10 @@ namespace Worsen.Presentation.Horror
                 return;
             }
             _state = new HorrorDriverState();
+            var afterglowObject = new GameObject("Owned Afterglow visuals");
+            afterglowObject.transform.SetParent(transform, false);
+            _afterglow = afterglowObject.AddComponent<HorrorAfterglowDriver>();
+            _afterglow.Initialize(_config);
             var webObject = new GameObject("Owned Weaver visuals");
             webObject.transform.SetParent(transform, false);
             _web = webObject.AddComponent<HorrorWebDriver>(); _web.Initialize(_config);
@@ -117,6 +120,7 @@ namespace Worsen.Presentation.Horror
             if (_state == null) return;
             _state.OwnerEnabled = value;
             if (_web != null) _web.enabled = value && isActiveAndEnabled;
+            if (_afterglow != null) _afterglow.enabled = value && isActiveAndEnabled;
             if (_micro != null) _micro.enabled = value && isActiveAndEnabled;
             if (value && isActiveAndEnabled) OnEnable();
             _atmosphere.SetOwnershipEnabled(value && isActiveAndEnabled);
@@ -134,6 +138,8 @@ namespace Worsen.Presentation.Horror
 
         public void SetAfterimage(FlashlightSample sample, float lifetime)
         { if (_atmosphere != null) _atmosphere.SetAfterimage(sample, lifetime); }
+        public void SetAfterglow(InteractableState light, float safetySeconds)
+        { if (_afterglow != null && _state != null && _state.OwnerEnabled && isActiveAndEnabled) _afterglow.Observe(light, safetySeconds); }
 
         public void ToggleFlashlight()
         {
@@ -193,6 +199,7 @@ namespace Worsen.Presentation.Horror
             if (_state.ActiveEffects != null) SetActiveEffects(_state.ActiveEffects);
             if (_micro != null) _micro.Tick(_config, _outputCamera, _state.RunElapsedSeconds, deltaSeconds);
             if (_web != null) _web.Tick(deltaSeconds);
+            if (_afterglow != null) _afterglow.Tick(deltaSeconds);
             if (HorrorCollapsePresenter.Tick(_state, _config, deltaSeconds))
             { ApplyAtmosphere(); LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick); }
             return true;
@@ -203,6 +210,7 @@ namespace Worsen.Presentation.Horror
             if (_state == null) return;
             float previous = TorchCountMultiplier; bool wick = _state.Wick;
             _presenter.SetActiveEffects(_state, _config, effects);
+            if (_afterglow != null) _afterglow.SetEffects(effects);
             ApplyAtmosphere();
             if (previous != TorchCountMultiplier || wick != _state.Wick)
                 LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
@@ -254,6 +262,7 @@ namespace Worsen.Presentation.Horror
         {
             if (_state == null) return;
             if (_web != null) _web.Reset();
+            if (_afterglow != null) _afterglow.Clear();
             ClearCues();
             _presenter.ResetRound(_state);
             if (_micro != null) _micro.ResetFloor();
@@ -264,6 +273,7 @@ namespace Worsen.Presentation.Horror
 
         public void Teardown()
         {
+            if (_afterglow != null) { _afterglow.Clear(); DestroyOwned(_afterglow.gameObject); _afterglow = null; }
             if (_web != null) { _web.Teardown(); DestroyOwned(_web.gameObject); _web = null; }
             if (_micro != null)
             { _micro.Selected -= OnMicroEventSelected; _micro.ResetFloor(); DestroyOwned(_micro.gameObject); _micro = null; }
@@ -303,6 +313,7 @@ namespace Worsen.Presentation.Horror
 
         private void OnEnable()
         {
+            if (_afterglow != null) _afterglow.enabled = _state != null && _state.OwnerEnabled;
             if (_web != null) _web.enabled = _state != null && _state.OwnerEnabled;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.Selected += OnMicroEventSelected; }
             if (_micro != null) _micro.enabled = _state != null && _state.OwnerEnabled;
@@ -315,6 +326,7 @@ namespace Worsen.Presentation.Horror
         }
         private void OnDisable()
         {
+            if (_afterglow != null) _afterglow.enabled = false;
             if (_web != null) _web.enabled = false;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.enabled = false; }
             if (_state == null) return;
