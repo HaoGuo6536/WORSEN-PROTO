@@ -6,7 +6,7 @@
 #   save editable sources and lit/cutaway review scenes without operating Unity.
 # ARCHITECTURAL ROLE: Offline art generator; outside Unity's runtime layers.
 # KEY RESPONSIBILITIES:
-#   - Model the tiled shell, acoustic ceiling, clinical doors and ward furniture.
+#   - Model the tiled shell, clinical doors and ceiling-supported ward fixtures.
 #   - Bake four portable surface textures and export metre-scale isolated FBXs.
 #   - Author enclosed, socketed rooms from the exported kit alone.
 #   - Assemble sources from manifest placements and render review evidence.
@@ -288,7 +288,10 @@ def curtain(m, bay):
         for x in (-length/2, length/2):
             m.tube((x, 0, 2.95), (x, 2, 2.95), .027, 'stainless')
     for x in (-length/2+.1, length/2-.1):
-        m.tube((x, 0, 2.95), (x, 0, 3.45), .012, 'stainless')
+        # Bay geometry is bottom-centred by finish(): its curtain hem is .535m
+        # before recentering and its placement is .52m. Hangers must reach 3.6m.
+        top = HEIGHT+.535-.52 if bay else 3.45
+        m.tube((x, 0, 2.95), (x, 0, top), .012, 'stainless')
     for i in range(10):
         x = -length/2+.055+i*.070
         m.box((x, .045 if i % 2 else -.045, 1.66), (.073, .02, 2.25-(i%3)*.013), 'curtain')
@@ -595,7 +598,8 @@ def catalogue():
     specs.append(('nurse_station', lcells, 'junction', 'L', [((1, 0), 'S'), ((3, 1), 'E'), ((0, 2), 'W')],
                   [p('prop_nurse_counter', 3.0, 2.9), p('prop_cabinet', 1, 6.8, 180), p('prop_wheelchair', 1.1, 4.4, 90)], 'none'))
     specs.append(('operating_theatre', rect(4, 3), 'room', 'rect', [((1, 0), 'S'), ((2, 2), 'N')],
-                  [p('prop_gurney', 4.5, 3.1), p('prop_operating_lamp', 4.6, 3.2, y=2.5),
+                  [p('prop_gurney', 4.5, 3.1), p('prop_operating_lamp', 4.6, 3.2,
+                    y=HEIGHT-bpy.data.objects['Hospital_prop_operating_lamp'].dimensions.z),
                    p('prop_scrub_sink', 6.9, .65, 180), p('prop_cabinet', 7.3, 4.2, 90), p('prop_iv_stand', 3.4, 3.2)], 'none'))
     specs.append(('recovery_annex', lcells, 'room', 'L', [((1, 0), 'S'), ((0, 2), 'W')],
                   bed_bay(6.1, 3.9)+[p('prop_waiting_bench', 2, 6.9), p('prop_iv_stand', 4.9, 4.5)], 'none'))
@@ -730,10 +734,14 @@ def room_sources(objects, templates, camera, skip):
             obj['pieceId'] = p['id']
             obj['placementIndex'] = i
             # Only the review visibility changes. The source retains EVERY placement.
-            ceiling_piece = KINDS[p['id']] == 'ceiling'
+            # A cutaway removes the roof AND its luminaires. Leaving isolated
+            # dark luminaire backs can look like slabs over the beds.
+            # Exact full-height placements remain in the manifest/source.
+            ceiling_piece = KINDS[p['id']] == 'ceiling' or p['id'] in (
+                'light_fluorescent_panel', 'light_fluorescent_dead', 'prop_operating_lamp')
             near_wall = KINDS[p['id']] in ('wall', 'door') and p['rotY'] in (180, 90)
             near_dressing = p['id'] in ('wall_handrail_2m', 'prop_signage_frame') and p['rotY'] in (180, 90)
-            cut = (ceiling_piece and p['pos'][2] < d-2) or near_wall or near_dressing
+            cut = ceiling_piece or near_wall or near_dressing
             if cut:
                 obj.hide_render = True
                 hidden.append(i)
@@ -784,7 +792,8 @@ def main():
     parser.add_argument('--skip-previews', action='store_true')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     assert bpy.app.version[:2] == (5, 2), 'Use Blender 5.2'
-    assert ROOT.name == 'theme-hospital', 'Do not publish to the open/shared checkout'
+    assert ROOT.name in ('theme-hospital', 'art-fixes') and (ROOT/'.git').is_file(), \
+        'Publish only to an authorized isolated worktree, never the shared checkout'
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.preferences.filepaths.save_version = 0
     scene = bpy.context.scene

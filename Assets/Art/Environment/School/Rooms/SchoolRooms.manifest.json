@@ -752,38 +752,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            8,
+            0,
+            2.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            8,
             0,
-            0.76
+            3.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            7.24,
-            0,
-            1.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            7.24,
-            0,
-            4.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -1430,38 +1430,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            7.24
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            4.68,
-            0,
-            7.24
-          ],
-          "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            7.24,
-            0,
-            1.32
+            8
           ],
           "rotY": 0
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            7.24,
+            3.8,
             0,
-            4.68
+            8
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            8,
+            0,
+            2.2
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            8,
+            0,
+            3.8
+          ],
+          "rotY": 90
         },
         {
           "id": "prop_fluorescent",
@@ -2661,38 +2661,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            12,
+            0,
+            6.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            12,
             0,
-            0.76
+            7.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            11.24,
-            0,
-            5.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            11.24,
-            0,
-            8.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -4318,38 +4318,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            14,
+            0,
+            6.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            14,
             0,
-            0.76
+            7.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            13.24,
-            0,
-            5.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            13.24,
-            0,
-            8.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -5368,38 +5368,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            10,
+            0,
+            4.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            10,
             0,
-            0.76
+            5.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            9.24,
-            0,
-            3.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            9.24,
-            0,
-            6.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -5916,38 +5916,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            6,
+            0,
+            2.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            6,
             0,
-            0.76
+            3.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            5.24,
-            0,
-            1.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            5.24,
-            0,
-            4.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -6241,20 +6241,20 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
           ],
-          "rotY": 90
+          "rotY": 180
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            3.8,
             0,
-            0.76
+            0
           ],
-          "rotY": 90
+          "rotY": 180
         },
         {
           "id": "prop_fluorescent",
@@ -6753,38 +6753,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            6,
+            0,
+            2.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            6,
             0,
-            0.76
+            3.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            5.24,
-            0,
-            1.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            5.24,
-            0,
-            4.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -7552,38 +7552,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            0.76,
             0,
-            1.32
+            0,
+            2.2
           ],
-          "rotY": 0
+          "rotY": 270
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            0.76,
             0,
-            4.68
+            0,
+            3.8
           ],
-          "rotY": 0
+          "rotY": 270
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            3.24,
+            4,
             0,
-            11.32
+            12.2
           ],
-          "rotY": 0
+          "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            3.24,
+            4,
             0,
-            14.68
+            13.8
           ],
-          "rotY": 0
+          "rotY": 90
         },
         {
           "id": "prop_fluorescent",
@@ -8444,38 +8444,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            7.32,
+            8.2,
             0,
-            0.76
+            0
           ],
-          "rotY": 90
+          "rotY": 180
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            10.68,
+            9.8,
             0,
-            0.76
+            0
           ],
-          "rotY": 90
+          "rotY": 180
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            0.76,
             0,
-            7.32
+            0,
+            8.2
           ],
-          "rotY": 0
+          "rotY": 270
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            0.76,
             0,
-            10.68
+            0,
+            9.8
           ],
-          "rotY": 0
+          "rotY": 270
         },
         {
           "id": "prop_fluorescent",
@@ -9604,38 +9604,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            12,
+            0,
+            2.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            12,
             0,
-            0.76
+            3.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            11.24,
-            0,
-            1.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            11.24,
-            0,
-            4.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",
@@ -10458,38 +10458,38 @@
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            1.32,
+            2.2,
             0,
-            0.76
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            3.8,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_classroom_door_leaf",
+          "pos": [
+            8,
+            0,
+            2.2
           ],
           "rotY": 90
         },
         {
           "id": "prop_classroom_door_leaf",
           "pos": [
-            4.68,
+            8,
             0,
-            0.76
+            3.8
           ],
           "rotY": 90
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            7.24,
-            0,
-            1.32
-          ],
-          "rotY": 0
-        },
-        {
-          "id": "prop_classroom_door_leaf",
-          "pos": [
-            7.24,
-            0,
-            4.68
-          ],
-          "rotY": 0
         },
         {
           "id": "prop_fluorescent",

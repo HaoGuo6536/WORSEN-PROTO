@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Build original metre-scale School architecture and furniture.
 #   - Export applied Y-up/-Z-forward meshes and the mandatory kit catalogue.
-#   - Author connected, enclosed room templates with gameplay sockets.
+#   - Author enclosed rooms with gameplay sockets and socket-attached door leaves.
 #   - Save editable sources and render kit, cutaway and darkness reviews.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils, Python standard library only.
 # USAGE NOTES: Headless --python-exit-code 1; -- --skip-previews for repeat runs.
@@ -405,7 +405,7 @@ def furniture(p):
         p.rod((0,.19,-.07),(0,.19,-.083),.035,'steel')
     elif n=='prop_classroom_door_leaf':
         # Narrow vertical safety window, kick plate, handle. Separate leaf lets
-        # the runtime owner hinge/lock it without baking a blocked socket.
+        # the runtime owner hinge/lock it. The authored pose is closed in its socket.
         for x,w in ((-.49,.42),(.38,.64)):
             p.box((x,1.34,0),(w,2.68,.06),'mustard')
         p.box((-.15,.57,0),(.26,1.14,.06),'mustard')
@@ -415,6 +415,8 @@ def furniture(p):
             p.face(-.28,-.02,y,y+.004,-.006,'mortar_lower')
         p.face(-.7,.7,.08,.31,-.031,'steel')
         p.box((.52,1.12,-.05),(.05,.20,.04),'steel')
+        # Two 1.56m leaves fit a 3.2m socket with 2cm jamb/meeting clearances.
+        p.vertices = [(x*(1.56/1.4),y,z) for x,y,z in p.vertices]
     elif n=='prop_bookcase':
         for x in (-.9,.9):
             p.box((x,1.15,0),(.07,2.3,.42),'wood')
@@ -636,19 +638,20 @@ def furnish(t):
             put('locker_bank_2m',x,3.68)
         put('drinking_fountain',.3,1.2,0,270)
     put('prop_fire_bell',.12,.7,2.7,270)
-    # Wide narrow-window leaves are authored open, along the inside wall normal.
-    # Their pair leaves a clear 3.2m aperture and can be hinged by runtime setup.
+    # Closed leaves share the socket plane, rather than standing perpendicular
+    # to it in the room. Runtime setup owns opening/closing this paired door.
     for door in t['doors']:
         x,z=door['cell']; side=door['side']
         cx,cz=2*x+1,2*z+1
+        yaw={'N':0,'E':90,'S':180,'W':270}[side]
         if side in 'NS':
             cz=2*(z+(side=='N'))
             for sign in (-1,1):
-                put('prop_classroom_door_leaf',cx+sign*1.68,cz+(-.76 if side=='N' else .76),0,90)
+                put('prop_classroom_door_leaf',cx+sign*.8,cz,0,yaw)
         else:
             cx=2*(x+(side=='E'))
             for sign in (-1,1):
-                put('prop_classroom_door_leaf',cx+(-.76 if side=='E' else .76),cz+sign*1.68,0,0)
+                put('prop_classroom_door_leaf',cx,cz+sign*.8,0,yaw)
     # Keep small rooms readable; the long hall has alternated dead twin-tubes.
     candidates=[]
     for x,z in sorted(cells,key=lambda c:(c[1],c[0])):

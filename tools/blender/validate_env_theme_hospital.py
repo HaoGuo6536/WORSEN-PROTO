@@ -7,7 +7,7 @@
 # ARCHITECTURAL ROLE: Offline art validator; no Unity runtime dependencies.
 # KEY RESPONSIBILITIES:
 #   - Verify kit inventory, axes, pivots, budgets, openings and repeat seams.
-#   - Verify room topology, sockets, anchors, nonoverlap and geometric enclosure.
+#   - Verify topology, attached doors/ceiling fixtures and geometric enclosure.
 #   - Verify editable source/placement agreement, textures and rendered evidence.
 #   - Exercise rejection controls and compare repeat-generation manifest hashes.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils/io_scene_fbx, bundled numpy, Python stdlib.
@@ -403,6 +403,9 @@ def sources(rows, rooms):
             require(close(obj.location, (p['pos'][0], -p['pos'][2], p['pos'][1])) and close(obj.scale, (1, 1, 1)), t['id']+': source position/scale')
             require(abs((math.degrees(obj.rotation_euler.z)-p['rotY']+180)%360-180) < .001, t['id']+': source Unity yaw')
             require(digest(obj, True) == rows[p['id']]['geometrySha256'], t['id']+': source geometry drift')
+            if rows[p['id']]['kind'] == 'ceiling' or p['id'] in (
+                    'light_fluorescent_panel', 'light_fluorescent_dead', 'prop_operating_lamp'):
+                require(obj.hide_render, t['id']+': cutaway leaves isolated ceiling slab/fixture')
         lamps = [o for o in col.objects if o.type == 'LIGHT' and 'fluorescent' in o.name]
         require(len(lamps) == len(t['anchors']['light']), t['id']+': lamp sockets not assembled')
     for im in [i for i in bpy.data.images if i.type == 'IMAGE']:
@@ -464,6 +467,44 @@ def rejection_controls(rooms, rows, trees):
     return rejected+['2cm dimension drift', '2mm seam drift']
 
 
+def check_fixture_attachments(t, rows, points):
+    """Use imported mesh heights, not just the origins of bottom-pivot pieces."""
+    name = t['id']
+    leaves = [p for p in t['pieces'] if p['id'] == 'door_double_porthole_4m']
+    require(len(leaves) == len(t['doors']), name+': door leaf/socket count')
+    for door in t['doors']:
+        x,z = door['cell']; dx,dz = STEP[door['side']]
+        position = (2*x+1+dx, 0, 2*z+1+dz)
+        require(sum(close(p['pos'], position, .05) and ROT_SIDE.get(p['rotY']) == door['side']
+                    for p in leaves) == 1, name+': detached door leaves')
+    for p in t['pieces']:
+        lo,hi = bounds(points[p['id']])
+        if rows[p['id']]['kind'] == 'ceiling':
+            require(abs(p['pos'][1]+lo[1]-t['height']) <= .05, name+': measured ceiling height')
+        if p['id'] in ('curtain_track_bay', 'light_fluorescent_panel',
+                       'light_fluorescent_dead', 'prop_operating_lamp'):
+            require(abs(p['pos'][1]+hi[1]-t['height']) <= .05,
+                    name+': detached ceiling fixture '+p['id'])
+
+
+def fixture_rejection_controls(templates, rows, points):
+    base = next(t for t in templates if t['id'] == 'hospital_ward_bed_bays')
+    labels = []
+    for piece,axis,delta in (('ceiling_drop_panel_2x2',1,-2.6),
+                             ('curtain_track_bay',1,-.165),
+                             ('light_fluorescent_panel',1,-.15),
+                             ('door_double_porthole_4m',0,.3)):
+        damaged = copy.deepcopy(base)
+        next(p for p in damaged['pieces'] if p['id'] == piece)['pos'][axis] += delta
+        try:
+            check_fixture_attachments(damaged, rows, points)
+        except AssertionError:
+            labels.append('detached '+piece)
+        else:
+            raise AssertionError('negative control accepted: '+piece)
+    return labels
+
+
 def main():
     parser = argparse.ArgumentParser(description='Independent Hospital kit and room validator')
     group = parser.add_mutually_exclusive_group()
@@ -487,6 +528,9 @@ def main():
     repeat_seams(points)
     room_details = room_catalogue(rooms, rows, trees)
     controls = rejection_controls(rooms, rows, trees)
+    for t in rooms['templates']:
+        check_fixture_attachments(t, rows, points)
+    controls += fixture_rejection_controls(rooms['templates'], rows, points)
     sources(rows, rooms)
     preview_details = [] if args.skip_previews else previews(rooms)
     snapshot = {'kitManifestSha256': sha(kit_path), 'roomManifestSha256': sha(room_path),
@@ -508,6 +552,7 @@ def main():
              f'PASS hospital: {len(room_details)} templates; catalogue sizes/shapes/hallways/gimmick rounds; 4-connected footprints; boundary doors and closures',
              'PASS hospital: anchors inside with >=0.6m wall clearance; area-scaled cakes; medium+ hunter sockets; all piece references resolve',
              'PASS hospital: no overlapping wall spans; complete floor/ceiling coverage; imported-FBX enclosure rays clear only at door sockets',
+             'PASS hospital: measured ceiling height, ceiling fixture support and door leaf/socket attachment in every template',
              'PASS hospital: kit source/export and every room-source placement agree; packed relative textures <=1024px and <=6 per theme',
              f'PASS hospital: {len(controls)} rejection controls (kit dimensions/seams/arcs and malformed room contracts)']
     if not args.skip_previews:

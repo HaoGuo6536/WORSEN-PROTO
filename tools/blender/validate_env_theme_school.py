@@ -7,7 +7,7 @@
 # ARCHITECTURAL ROLE: Offline acceptance tool; outside Unity runtime layers.
 # KEY RESPONSIBILITIES:
 #   - Verify v1 kit gates with the new School's authored dimensions and surfaces.
-#   - Check connectivity, sockets, anchors, enclosure and nonoverlapping walls.
+#   - Check topology, socket-attached leaves, ceiling height and wall enclosure.
 #   - Verify saved assemblies, preview provenance and dark-scene light sources.
 #   - Regenerate twice and compare both manifest hashes when requested.
 # DEPENDENCIES: Blender 5.2, bundled FBX parser, Python standard library only.
@@ -308,6 +308,32 @@ def distance_to_edge(x,z,edge):
     return math.hypot(perp-fixed,max(a-v,0,v-b))
 
 
+def check_door_attachments(t,lookup):
+    """Match each closed leaf to a jamb, using independently measured kit width."""
+    leaves=[p for p in t['pieces'] if p['id']=='prop_classroom_door_leaf']
+    require(len(leaves)==2*len(t['doors']),t['id']+': two leaves per socket')
+    assigned=set()
+    for door in t['doors']:
+        x,z=door['cell']; side=door['side']
+        dx,dz=DIRECTIONS[side]
+        cx,cz=2*x+1+dx,2*z+1+dz
+        yaw={'N':0,'E':90,'S':180,'W':270}[side]
+        for sign in (-1,1):
+            matches=[]
+            for index,p in enumerate(leaves):
+                px,py,pz=p['pos']
+                along=(px-cx) if side in 'NS' else (pz-cz)
+                across=(pz-cz) if side in 'NS' else (px-cx)
+                width=lookup[p['id']]['size'][0]
+                if (abs(py)<=.05 and p['rotY']==yaw and abs(across)<=.05 and
+                        along*sign>0 and abs(abs(along)+width/2-1.6)<=.05):
+                    matches.append(index)
+            require(len(matches)==1 and matches[0] not in assigned,
+                    t['id']+': detached or incorrectly rotated door leaf')
+            assigned.add(matches[0])
+    require(len(assigned)==len(leaves),t['id']+': orphan door leaf')
+
+
 def validate_room(t,lookup):
     ident=t['id']
     require(ident.startswith('school_'),'foreign template theme')
@@ -377,11 +403,14 @@ def validate_room(t,lookup):
         require(interval_coverage([(s[2],s[3]) for s in closed],center-2,center+2) and
                 abs(sum(s[3]-s[2] for s in closed)-4)<EPS,ident+': closedWith gap/overlap')
     require(len(matched_doors)==sum(lookup[row['id']]['kind']=='door' for row,s in walls),ident+': unregistered opening')
+    check_door_attachments(t,lookup)
     for axis,fixed,a,b,side in edges:
         spans=[(s[2],s[3]) for _,s in walls if s[0]==axis and abs(s[1]-fixed)<EPS and s[4]==side]
         require(interval_coverage(spans,a,b),ident+': unenclosed perimeter')
     for kind in ('floor','ceiling'):
         tiles=[r for r in rows if lookup[r['id']]['kind']==kind]
+        if kind=='ceiling':
+            require(all(abs(r['pos'][1]-t['height'])<=.05 for r in tiles),ident+': ceiling height')
         require(len(tiles)==n,ident+': tile count')
         occupied={(round((r['pos'][0]-1)/2,5),round((r['pos'][2]-1)/2,5)) for r in tiles}
         require(occupied==cells,ident+': tile coverage/grid')
@@ -440,6 +469,15 @@ def negative_controls(rooms,lookup,records):
     bad=copy.deepcopy(base); bad['pieces'].pop(0); cases.append(('enclosure gap',bad))
     bad=copy.deepcopy(base); bad['gimmick']='freeze'; bad['minRound']=2; cases.append(('early gimmick',bad))
     bad=copy.deepcopy(base); bad['doors'][0]['closedWith'][0]['pos'][0]+=.2; cases.append(('closure gap',bad))
+    bad=copy.deepcopy(base)
+    next(p for p in bad['pieces'] if p['id']=='prop_classroom_door_leaf')['pos'][2]+=.3
+    cases.append(('detached door leaf',bad))
+    bad=copy.deepcopy(base)
+    next(p for p in bad['pieces'] if p['id']=='prop_classroom_door_leaf')['rotY']+=90
+    cases.append(('door leaf standing into room',bad))
+    bad=copy.deepcopy(base)
+    next(p for p in bad['pieces'] if lookup[p['id']]['kind']=='ceiling')['pos'][1]=1.0
+    cases.append(('ceiling at furniture height',bad))
     for label,t in cases:
         try:
             validate_room(t,lookup)
@@ -533,7 +571,8 @@ def main():
     previews=validate_previews(rooms)
     lines=[f'PASS School kit: {len(pieces)} FBX pieces; all 16 mandatory ids, dimensions, pivots, axes, applied transforms, materials, budgets and source agreement',
            'PASS School seams: wall/window/door/end pieces, floor/ceiling/trim and r4/r6/r8 arcs',
-           'PASS School doors: clear 3.2m x 2.8m apertures; wired-glass transoms above opening',
+           'PASS School doors: clear 3.2m x 2.8m frame apertures; paired closed leaves attached to socket jambs in every template',
+           'PASS School ceilings: every tile at wall height within 0.05m',
            f'PASS School rooms: {len(room_details)} templates; 4-connected footprints, boundary doors, anchor clearance, piece ids, nonoverlapping walls and full enclosure',
            'PASS School catalogue: closet, two small, two medium including L, large, hall, straight/bent hallways and two round-3 gimmicks',
            f'PASS School negative controls: {negatives} malformed kit/room cases rejected',
