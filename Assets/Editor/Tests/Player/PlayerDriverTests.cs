@@ -83,6 +83,7 @@ namespace Worsen.Tests.Player
                 limb.transform.localScale = new Vector3(0.13f, 0.22f, 0.13f);
                 serializedLimbs.FindProperty(field).objectReferenceValue = limb;
             }
+            serializedLimbs.FindProperty("_showHands").boolValue = true; // hands are opt-in
             serializedLimbs.ApplyModifiedPropertiesWithoutUndo();
             var serializedDriver = new SerializedObject(driver);
             serializedDriver.FindProperty("_limbs").objectReferenceValue = limbs;
