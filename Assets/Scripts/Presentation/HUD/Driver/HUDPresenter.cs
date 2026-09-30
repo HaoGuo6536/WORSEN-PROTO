@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
+//   - Maintain independent Ticking channels, accepting same-tick removal, and format shield health.
 //   - Map Progression inventory and selection to a caption and occupied-slot highlight.
 //   - Replace both typed guidance channels atomically; phantom cakes never change supplied counts.
 //   - Format cake/golden counts and show only occupied consumable slots, never empty capacity.
@@ -34,6 +35,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
 using Worsen.Core;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.HUD
 {
@@ -94,6 +96,9 @@ namespace Worsen.Presentation.HUD
 
         private static void UpdateDirection(HUDDriverState state)
         {
+            foreach (var threat in state.Threats.Values)
+                Direction(threat.Direction, threat.Visible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
+                    out _, out _, out _, out threat.ArrowDegrees);
             Direction(state.WorldDirection, state.DirectionVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
                 out state.ViewDirection, out state.DirectionDegrees, out state.DirectionPitchDegrees, out state.ArrowDegrees);
             Direction(state.GoldenSenseDirection, state.GoldenSenseVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
@@ -115,6 +120,25 @@ namespace Worsen.Presentation.HUD
                 }
             }
             UpdateDirection(state);
+        }
+
+        public void SetThreat(HUDDriverState state, TickingGuidanceFact fact)
+        {
+            EntityId id = fact.Target.EntityId;
+            if (!id.IsValid || fact.Target.Kind != GuidanceKind.ThreatArrow) return;
+            if (!state.Threats.TryGetValue(id, out var threat))
+            { threat = new HUDThreatDriverState(); state.Threats.Add(id, threat); }
+            if (fact.Tick < threat.Tick || fact.Tick == threat.Tick && !threat.Visible && fact.Active) return;
+            threat.Tick = fact.Tick; threat.Direction = fact.Target.WorldDirection;
+            threat.Visible = fact.Active && IsFinite(threat.Direction.x) && IsFinite(threat.Direction.y) &&
+                IsFinite(threat.Direction.z) && threat.Direction.sqrMagnitude > 0f;
+            UpdateDirection(state);
+        }
+
+        public void SetShield(HUDDriverState state, float shield)
+        {
+            state.Shield = IsFinite(shield) ? Math.Max(0f, shield) : 0f;
+            state.ShieldText = "Shield: " + state.Shield.ToString("0.#", CultureInfo.InvariantCulture);
         }
 
         private static void Direction(Vector3 world, bool visible, float heading, bool hasRotation, Quaternion rotation,
@@ -186,6 +210,7 @@ namespace Worsen.Presentation.HUD
 
         public void ResetRunView(HUDDriverState state)
         {
+            state.Threats.Clear(); SetShield(state, 0f);
             ClearPhantomCake(state);
             state.ChaseMode = false;
             state.ChromeVisible = true;

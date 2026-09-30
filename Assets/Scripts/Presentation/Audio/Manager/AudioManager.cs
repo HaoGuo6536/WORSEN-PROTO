@@ -13,6 +13,7 @@
 //   Owns AudioDriver and forwards Core facts into its presentation stack.
 //
 // KEY RESPONSIBILITIES:
+//   - Forward roster facts, hidden tells, zone assignments and sensory cleansing to AudioDriver.
 //   - Forward level acoustics, active effects, grace, exit and committed shop facts.
 //   - Forward runtime category preferences and authoritative pause to the owned Driver.
 //   - Forward catch identity to the Driver's per-run sting admission, guarded by owner readiness.
@@ -82,6 +83,16 @@ namespace Worsen.Presentation.Audio
         public void ObserveMovement(PlayerMovementSample sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveMovement(sample); }
         public void ObserveTraversal(PlayerTraversalFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveTraversal(fact); }
         public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHunterFeedback(fact); }
+        public void ObserveArchetype(HunterArchetypeFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveArchetype(fact); }
+        public void ObserveWeaver(WeaverFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveWeaver(fact); }
+        public void ObserveTicking(TickingSoundFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveTicking(fact); }
+        public void ObserveHabit(HunterHabitFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHabit(fact); }
+        public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick) { if (_initialized && isActiveAndEnabled) _driver.ObserveDeliberation(hunter, position, tick); }
+        public void ObserveProgressionEvent(ProgressionEventFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgressionEvent(fact); }
+        public void ObserveHit(HunterHit fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHit(fact); }
+        public void SetTheme(string zone) { if (_initialized) _driver.SetTheme(zone); }
+        public void SetRoomTheme(int room, string theme, string family) { if (_initialized) _driver.SetRoomTheme(room, theme, family); }
+        public void ClearSenses() { if (_initialized) _driver.ClearSenses(); }
         public void ObservePickup(PickupCollectedFact fact, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObservePickup(fact, position); }
         public void ObserveHand(CollapseHandFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHand(fact); }
         public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObserveRoom(sample, position); }
@@ -110,7 +121,7 @@ namespace Worsen.Presentation.Audio
         public void SetFootstepGain(float gain) { if (_initialized) _driver.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_initialized) _driver.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_initialized) _driver.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun(bool preserveMusicContact = false) { if (_initialized) _driver.ResetRun(preserveMusicContact); }
+        public void ResetRun(bool preserveMusicContact = false, bool preserveZones = false) { if (_initialized) _driver.ResetRun(preserveMusicContact, preserveZones); }
 
         private void OnEnable() { if (_initialized) _driver.SetOwnerEnabled(true); }
         private void OnDisable() { if (_initialized && _driver != null) _driver.SetOwnerEnabled(false); }

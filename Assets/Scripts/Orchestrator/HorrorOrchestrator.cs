@@ -9,6 +9,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
+//   - Route Weaver web facts with paired subscriptions; floor teardown clears their visuals.
 //   - Route pending revival into the existing catch camera and return its completion to Session.
 //   - Bind each assembled floor's world and player-open provenance; route phantom cakes to HUD.
 //   - Synchronize authoritative active effects on connect, generation and committed restart.
@@ -79,6 +80,7 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            _run.WeaverFactPublished += OnWeaver;
             _run.PlayerDeathPending += OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
             _run.TickAdvanced += OnTickAdvanced;
@@ -103,6 +105,7 @@ namespace Worsen.Orchestrator
             if (_level != null) _level.DoorOpened -= OnDoorOpened;
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
+            if (_run != null) _run.WeaverFactPublished -= OnWeaver;
             if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded -= OnRevivalCatchEnded;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
@@ -142,6 +145,7 @@ namespace Worsen.Orchestrator
                 _camera.AimPosition, _camera.AimRotation * Vector3.forward, 18f, 52f));
         }
         private void OnAttack(HunterAttackSample sample) => _horror.SetAttack(sample);
+        private void OnWeaver(WeaverFact fact) => _horror.ObserveWeaver(fact);
         private void OnChaseStarted(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, true);
         private void OnChaseEnded(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, false);
         private void OnMicroEventProximity(ProximitySample sample) => _horror.ObserveMicroEventProximity(sample);

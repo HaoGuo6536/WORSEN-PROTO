@@ -11,6 +11,7 @@
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward Weaver warnings and web lifetimes to the owned visual stack.
 //   - Forward injected candidates/effects and publish micro-event outcomes for telemetry.
 //   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
 //   - Forward explicit run reset, injected clock deltas, startle admission and default-off fog hooks.
@@ -91,6 +92,8 @@ namespace Worsen.Presentation.Horror
         { if (_driver != null) _driver.SetLightingHooks(darkerFloors, catEyes); }
         public void SetAttack(HunterAttackSample sample)
         { if (_driver != null && isActiveAndEnabled) _driver.SetAttack(sample); }
+        public void ObserveWeaver(WeaverFact fact)
+        { if (_driver != null && isActiveAndEnabled) _driver.ObserveWeaver(fact); }
         public void RemoveAttack(EntityId hunter) { if (_driver != null) _driver.RemoveAttack(hunter); }
 
         private void OnEnable()

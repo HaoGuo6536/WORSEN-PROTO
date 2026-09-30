@@ -10,6 +10,7 @@
 //   DriverConfig (§7d) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
+//   - Tune faint Weaver web placeholders independently of ordinary attack warnings.
 //   - Tune rare micro-event admission and exact catalogue lighting-effect bindings.
 //   - Expose darkness, fog hooks, earned-startle budget and attack cue tuning.
 //   - Hold the imported growl, optional ambience loop and a build-included warning material.
@@ -35,6 +36,17 @@ namespace Worsen.Presentation.Horror
     [CreateAssetMenu(fileName = "HorrorDriverConfig", menuName = "Worsen/Horror/Driver Config")]
     public sealed class HorrorDriverConfig : ScriptableObject
     {
+        [Header("Weaver placeholders (provisional)")]
+        [SerializeField] private Material _webMaterial = null;
+        [SerializeField, Min(.001f)] private float _webLineWidth = .015f;
+        [SerializeField, Min(.1f)] private float _webDoorHeight = 2.2f;
+        [SerializeField] private Color _webWarningColor = new Color(.65f, .8f, .75f, .55f);
+        [SerializeField] private Color _webGlowColor = new Color(.3f, .5f, .4f, .12f);
+        public Material WebMaterial => _webMaterial;
+        public float WebLineWidth => _webLineWidth;
+        public float WebDoorHeight => _webDoorHeight;
+        public Color WebWarningColor => _webWarningColor;
+        public Color WebGlowColor => _webGlowColor;
         [Header("Micro-events (independent of loud startles)")]
         [SerializeField, Min(0)] private int _microEventsPerRun = 2;
         [SerializeField, Min(60f)] private float _microEventSpacingSeconds = 60f;
