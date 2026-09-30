@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Forward independent health, grace, blindness, revival and intrusion commands.
 //   - Apply blur preferences immediately to runtime state and the owned volume.
-//   - Compose the text-free camcorder volume with existing grain, distortion and color.
+//   - Compose camcorder and Glimpse volumes with existing grain, distortion and color.
 //   - Destroy the runtime profile and all its components on teardown.
 //   - Retain rendering package types behind this boundary.
 //
@@ -51,6 +51,7 @@ namespace Worsen.Presentation.PostFX
         private FilmGrain _grain;
         private DepthOfField _blur;
         private CamcorderFrameVolume _frame;
+        private GlimpseVolume _glimpse;
         private bool _runtimeVolume;
 
         public bool IsReady => _state != null && _volume != null && _profile != null;
@@ -87,6 +88,7 @@ namespace Worsen.Presentation.PostFX
             _grain = _profile.Add<FilmGrain>(false);
             _blur = _profile.Add<DepthOfField>(false);
             _frame = _profile.Add<CamcorderFrameVolume>(false);
+            _glimpse = _profile.Add<GlimpseVolume>(false);
             _blur.mode.Override(DepthOfFieldMode.Gaussian);
             _blur.gaussianStart.Override(0f);
             _blur.gaussianEnd.Override(1f);
@@ -111,6 +113,9 @@ namespace Worsen.Presentation.PostFX
         {
             if (_state != null) _presenter.SetLookBack(_state, _config, held);
         }
+
+        public void SetHunterRim(float strength)
+        { if (_state != null) _presenter.SetHunterRim(_state, strength); }
 
         public void SetInjury(float currentHealth, float maxHealth)
         {
@@ -189,6 +194,7 @@ namespace Worsen.Presentation.PostFX
             _chromatic = null; _distortion = null; _vignette = null;
             _color = null; _grain = null; _blur = null;
             _frame = null;
+            _glimpse = null;
             _state = null; _presenter = null; _config = null;
         }
 
@@ -207,6 +213,12 @@ namespace Worsen.Presentation.PostFX
 
         private void Apply()
         {
+            if (_glimpse != null)
+            {
+                _glimpse.Strength.Override(_presenter.OutlineStrength(_state));
+                _glimpse.Width.Override(_config.GlimpseWidth);
+                _glimpse.Tint.Override(_config.GlimpseColor);
+            }
             if (_frame != null)
             {
                 _frame.Enabled.Override(_config.CamcorderEnabled);
