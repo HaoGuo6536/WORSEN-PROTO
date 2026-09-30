@@ -30,14 +30,32 @@ namespace Worsen.Tests.Infrastructure
     {
         public ActionTargets Targets => ActionTargets.Suite;
 
+        // Outside the Unity runtime (the headless pure-test tier) engine calls throw, so the
+        // guard is a no-op there; inside Unity it always enforces the clock.
+        private static bool? engineAvailable;
+        internal static bool EngineAvailable
+        {
+            get
+            {
+                if (engineAvailable.HasValue) return engineAvailable.Value;
+                try { engineAvailable = ProbeEngine(); }
+                catch (Exception) { engineAvailable = false; }
+                return engineAvailable.Value;
+            }
+        }
+
+        // Separate, non-inlined method so a missing engine binding throws inside the caller's try.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool ProbeEngine() => Time.timeScale >= 0f;
+
         public void BeforeTest(ITest test)
         {
-            if (IsFixture(test)) AssertAndRestore(test.FullName, "before fixture");
+            if (EngineAvailable && IsFixture(test)) AssertAndRestore(test.FullName, "before fixture");
         }
 
         public void AfterTest(ITest test)
         {
-            if (IsFixture(test)) AssertAndRestore(test.FullName, "after fixture");
+            if (EngineAvailable && IsFixture(test)) AssertAndRestore(test.FullName, "after fixture");
         }
 
         private static bool IsFixture(ITest test) => test.IsSuite && test.TypeInfo != null && test.Method == null;

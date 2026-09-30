@@ -38,8 +38,22 @@ public sealed class FixtureTimeSetUp
         }
     }
 
+    // Engine calls live in separate non-inlined methods: the runtime rejects a method that
+    // merely contains an engine call when it compiles it outside Unity (headless tier).
     [OneTimeSetUp]
     public void BeforeAssembly()
+    {
+        if (FixtureTimeGuardAttribute.EngineAvailable) EstablishBaseline();
+    }
+
+    [OneTimeTearDown]
+    public void AfterAssembly()
+    {
+        if (FixtureTimeGuardAttribute.EngineAvailable) FinishAssembly();
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void EstablishBaseline()
     {
         float fixedStep = Time.fixedDeltaTime;
         Assert.That(!float.IsNaN(fixedStep) && !float.IsInfinity(fixedStep) && fixedStep > 0f,
@@ -48,8 +62,8 @@ public sealed class FixtureTimeSetUp
         FixtureTimeGuardAttribute.AssertAndRestore("Worsen.Tests (assembly)", "before assembly");
     }
 
-    [OneTimeTearDown]
-    public void AfterAssembly()
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void FinishAssembly()
     {
         try { FixtureTimeGuardAttribute.AssertAndRestore("Worsen.Tests (assembly)", "after assembly"); }
         finally { SessionState.EraseFloat(FixedStepKey); }
