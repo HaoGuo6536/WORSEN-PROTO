@@ -21,6 +21,7 @@
 - Any other failure is **blocking**. A blocking failure that the last promoted ledger entry did not have is **new**, and one new failure fails the gate.
 - The blocking count may not exceed the last promoted count (a ratchet: it can only fall).
 - Missing results, zero tests, a Unity compile failure or a setup failure fail the gate.
+- Setup drift is evidence, not a verdict. `setup-drift.json` lists the generated files (`.asset`, `.prefab`, `.unity`, `.mat`, `.mixer`, `.controller`, `.anim`, `.wav`, `.meta` under `Assets/Resources`, `Prefabs`, `Scenes` and `Settings`) that the setup steps changed, added or removed. A refactor that claims identical setup output should show none.
 
 Every run appends one line to [evidence/gate-ledger.jsonl](../../evidence/gate-ledger.jsonl): base, candidate, compile, lint, setup, test totals, failing names, blocking and quarantined counts, new failures, verdict, promotion and push.
 
@@ -30,3 +31,8 @@ Every run appends one line to [evidence/gate-ledger.jsonl](../../evidence/gate-l
 - The gate refuses to switch the open checkout if the active scene has unsaved changes, the editor is busy, or the checkout is not on `main`. It keeps the lease when the editor state is unknown.
 - Focus-dependent Play Mode tests carry `[Category("RequiresFocus")]` and are quarantined. Run them in an owner-present pass: `run-tests.ps1 -TestName <fixture>` with Unity in the foreground.
 - Fix a red candidate forward. Base the fix worker on `cand/<label>` and gate `cand/<label>` plus the fix branch together.
+- **Timed-out suite.** `-TestTimeoutMinutes` (default 240) bounds the wait for the results XML. Play-mode tests dominate the suite, at about 100 s of domain reload each. If the wait expires, the gate fails with `fail-no-results`. It **leaves the open checkout on the candidate and keeps the lease**, because switching branches under a still-running suite would import `main` mid-run.
+  Recovery:
+  1. Confirm in Unity that the test run has ended and the editor is idle.
+  2. Evaluate the late results XML with `Gate.ps1`, or re-run the gate.
+  3. Check out `main` and release the lease.

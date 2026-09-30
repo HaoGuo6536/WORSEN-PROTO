@@ -33,4 +33,20 @@ Check 'zero tests fail' (-not $v.pass)
 
 $v = Get-GateVerdict ([pscustomobject]@{ total = 5; failures = @() }) $q $null $today
 Check 'green with no baseline passes' ($v.pass)
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ("gate-drift-" + [guid]::NewGuid().ToString('N'))
+try {
+    New-Item -ItemType Directory -Force -Path (Join-Path $tmp 'Assets/Resources/X') | Out-Null
+    Set-Content -LiteralPath (Join-Path $tmp 'Assets/Resources/X/a.asset') -Value 'a'
+    Set-Content -LiteralPath (Join-Path $tmp 'Assets/Resources/X/b.asset') -Value 'b'
+    Set-Content -LiteralPath (Join-Path $tmp 'Assets/Resources/X/c.png') -Value 'ignored'
+    $s1 = Get-GeneratedSnapshot $tmp
+    Check 'snapshot covers generated extensions only' ($s1.Count -eq 2 -and $s1.ContainsKey('Assets/Resources/X/a.asset'))
+    Set-Content -LiteralPath (Join-Path $tmp 'Assets/Resources/X/a.asset') -Value 'a2'
+    Remove-Item -LiteralPath (Join-Path $tmp 'Assets/Resources/X/b.asset')
+    Set-Content -LiteralPath (Join-Path $tmp 'Assets/Resources/X/d.prefab') -Value 'd'
+    $d = Compare-GeneratedSnapshot $s1 (Get-GeneratedSnapshot $tmp)
+    Check 'drift reports changed, added and removed' (($d.changed -join ',') -eq 'Assets/Resources/X/a.asset' -and ($d.added -join ',') -eq 'Assets/Resources/X/d.prefab' -and ($d.removed -join ',') -eq 'Assets/Resources/X/b.asset')
+    $d = Compare-GeneratedSnapshot $s1 $s1
+    Check 'identical snapshots show no drift' ($d.changed.Count + $d.added.Count + $d.removed.Count -eq 0)
+} finally { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 if ($failures -gt 0) { exit 1 }
