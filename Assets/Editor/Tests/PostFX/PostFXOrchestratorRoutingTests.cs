@@ -87,6 +87,8 @@ namespace Worsen.Tests.PostFX
             _postDriver.ConfigureForSetup();
             _postConfig = ScriptableObject.CreateInstance<PostFXDriverConfig>();
             Set(_post, "_driver", _postDriver); Set(_post, "_config", _postConfig);
+            // The driver owns its runtime state; initialize it so admission decisions reach PostFX state.
+            _postDriver.Initialize(_postConfig);
             _post.gameObject.SetActive(true);
             _input = Component<InputManager>();
             _horrorRoute = Component<HorrorOrchestrator>();
@@ -108,6 +110,9 @@ namespace Worsen.Tests.PostFX
             _objects.Clear();
             Object.DestroyImmediate(_horrorConfig); Object.DestroyImmediate(_postConfig);
             Object.DestroyImmediate(_progressionConfig);
+            // Edit Mode destruction does not run OnDestroy, so clear the session singletons explicitly.
+            typeof(RunSessionManager).GetField("<Instance>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, null);
+            typeof(ProgressionSessionManager).GetField("<Instance>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, null);
         }
 
         [Test]
