@@ -9,12 +9,10 @@
 //   Orchestrator (§6) · Orchestrator · ProgressionUI target.
 // KEY RESPONSIBILITIES:
 //   - Suppress the legacy terminal shelter when HorrorRun delegates outcomes to Results.
-//   - Route shelter Bargain choices to Progression; Continue remains the free walk-away route.
 //   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
 //   - Route display snapshots and UI decisions through paired subscriptions.
-//   - Route rerolls and pending inventory replacements to their Progression owner.
+//   - Route Bargains, rerolls and replacements to Progression; Continue walks away for free.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
-//   - Derive Hidden Count from Progression's active-effects view, including fresh-run clearing.
 // DEPENDENCIES:
 //   - Session Progression/Run, Presentation ProgressionUI and Core payloads.
 //   - CameraManager supplies the authoritative catch-completed event.
@@ -57,7 +55,7 @@ namespace Worsen.Orchestrator
             if (_progression == null || _ui == null) return;
             OnDisable();
             _progression.SnapshotChanged += OnSnapshot;
-            _progression.TransactionCommitted += OnTransaction;
+
             if (_run != null) { _run.PlayerDied += OnDeath; _run.CaptureStarted += OnCapture; }
             if (_camera != null) _camera.CatchHoldEnded += OnCatchEnded;
             _ui.ChooseThreatRequested += OnThreat;
@@ -75,7 +73,7 @@ namespace Worsen.Orchestrator
             if (_progression != null)
             {
                 _progression.SnapshotChanged -= OnSnapshot;
-                _progression.TransactionCommitted -= OnTransaction;
+
             }
             if (_run != null) { _run.PlayerDied -= OnDeath; _run.CaptureStarted -= OnCapture; }
             if (_camera != null) _camera.CatchHoldEnded -= OnCatchEnded;
@@ -93,12 +91,11 @@ namespace Worsen.Orchestrator
         }
         private void OnSnapshot(ProgressionSnapshot value)
         {
-            _ui.SetHiddenCount(_progression.EffectsSnapshot.ActiveEffects.Has(new EffectId("hidden-count")));
+
             if (_terminalResults && value.Phase == ProgressionPhase.Ended) _ui.Hide();
             else _ui.SetSnapshot(value);
         }
-        private void OnTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
-        { if (operation == nameof(ProgressionSessionManager.StartRun)) _ui.SetHiddenCount(false); }
+
         private void OnDeath(EntityId player, Vector3 position) => _ui.PrepareCatch(player);
         private void OnCatchEnded(EntityId player) => _ui.EndCatch(player);
         private void OnCapture(RunCaptureMetadata metadata) => _ui.ResetCatch();

@@ -102,7 +102,7 @@ namespace Worsen.Session.Progression
             var upgrades = new List<EffectCatalogueEntry>();
             if (!(catalogue is null)) foreach (var entry in catalogue.Entries)
             {
-                // Nothing??? is a run-long mutation, not a reversible floor hazard.
+                // Nothing??? compounds at shops, so it is not a reversible floor hazard.
                 if (entry.Kind != EffectKind.Curse || entry.Id == "nothing" ||
                     !EffectCatalogueUtility.Eligible(entry, state.Round, active)) continue;
                 if (entry.RequiredHunterIds.Count == 0 && !state.EventHazards.ContainsKey(entry.Id)) hazards.Add(entry);

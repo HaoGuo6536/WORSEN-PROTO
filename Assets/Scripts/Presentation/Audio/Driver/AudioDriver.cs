@@ -13,15 +13,11 @@
 //   AudioManager alone commands this engine boundary.
 //
 // KEY RESPONSIBILITIES:
-//   - Apply runtime category gains without config writes and freeze audio clocks during pause.
-//   - Admit one catch sting per run through the normal cue path, never at lethal health.
-//   - Advance footstep cadence when a committed contact already supplied its sound.
-//   - Render pursuit breathing and grace/proximity heartbeat without an exertion layer.
-//   - Apply actual slide turning to continuous friction without restarting playback.
-//   - Own bodily sources and the pooled soundscape; release everything on teardown.
-//   - Resolve the mirrored config and report unavailable clips before playback.
-//   - Preserve fractional health facts and reset voices across run changes and owner disable.
-//   - Forward live aggregate belief/proximity and retain music contact across floor replacement only.
+//   - Route committed world/roster facts into budgeted soundscape playback.
+//   - Retain confirmed hand death and admit one correctly identified sting at catch start.
+//   - Apply settings, pause, health and floor/run resets without config writes.
+//   - Render movement, breathing and grace/proximity heartbeat from supplied observations.
+//   - Own and release bodily sources and the pooled soundscape.
 //
 // DEPENDENCIES:
 //   - Core CueId and MovementState; Unity Audio only, with no gameplay queries.
@@ -132,7 +128,8 @@ namespace Worsen.Presentation.Audio
         public bool PlayCatchSting(EntityId player)
         {
             if (_feedback == null || _state == null || !_ownerEnabled || !isActiveAndEnabled) return false;
-            return _feedback.TryCatchSting(_feedbackState, player) && PlayCue(CueId.Death);
+            return _feedback.TryCatchSting(_feedbackState, player) && _soundscape != null &&
+                _soundscape.PlayDeath(_feedbackState.HandDeathPlayer == player);
         }
 
         public void SetProximity(float closeness) { if (_state != null) _presenter.SetProximity(_state, closeness); }
@@ -157,9 +154,25 @@ namespace Worsen.Presentation.Audio
             if (sample.MovementState == MovementState.Slide && _soundscape != null) _soundscape.Play(CueId.SlideLoop, sample.Position, _feedback.SlideFrictionGain(sample.SlideTurnRateDegrees), -200000);
         }
         public void ObserveTraversal(PlayerTraversalFact fact) { if (_feedback == null) return; _feedback.Traversal(_feedbackState, fact); ApplyFeedback(); }
-        public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_feedback == null) return; _feedback.Hunter(_feedbackState, fact); ApplyFeedback(); }
+        public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_soundscape != null) _soundscape.ObserveHunter(fact); }
+        public void ObserveArchetype(HunterArchetypeFact fact) { if (_soundscape != null) _soundscape.ObserveArchetype(fact); }
+        public void ObserveWeaver(WeaverFact fact) { if (_soundscape != null) _soundscape.ObserveWeaver(fact); }
+        public void ObserveTicking(TickingSoundFact fact) { if (_soundscape != null) _soundscape.ObserveTicking(fact); }
+        public void ObserveHabit(HunterHabitFact fact) { if (_soundscape != null) _soundscape.ObserveHabit(fact); }
+        public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick) { if (_soundscape != null) _soundscape.ObserveDeliberation(hunter, position, tick); }
+        public void ObserveProgressionEvent(ProgressionEventFact fact) { if (_soundscape != null) _soundscape.ObserveProgressionEvent(fact); }
+        public void ObserveHit(HunterHit fact) { if (_soundscape != null) _soundscape.ObserveHit(fact); }
+        public void SetTheme(string zone) { if (_soundscape != null) _soundscape.SetTheme(zone); }
+        public void SetRoomTheme(int room, string theme, string family) { if (_soundscape != null) _soundscape.SetRoomTheme(room, theme, family); }
+        public void ClearSenses() { if (_soundscape != null) _soundscape.ClearSenses(); }
         public void ObservePickup(PickupCollectedFact fact, Vector3 position) { if (_feedback == null) return; _feedback.Pickup(_feedbackState, fact, position); ApplyFeedback(); }
-        public void ObserveHand(CollapseHandFact fact) { if (_feedback == null) return; _feedback.Hand(_feedbackState, fact); ApplyFeedback(); }
+        public void ObserveHand(CollapseHandFact fact)
+        {
+            if (_feedback == null) return;
+            if (fact.Kind == CollapseHandEventKind.Consumed && fact.PlayerId.IsValid)
+                _feedbackState.HandDeathPlayer = fact.PlayerId;
+            _feedback.Hand(_feedbackState, fact); ApplyFeedback();
+        }
         public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_feedback == null) return; if (_soundscape != null) _soundscape.ObserveDestruction(sample); _feedback.Room(_feedbackState, sample, position); ApplyFeedback(); }
         public void SetRooms(System.Collections.Generic.IReadOnlyList<GeneratedRoomSample> rooms)
         {
@@ -214,11 +227,11 @@ namespace Worsen.Presentation.Audio
         public void SetFootstepGain(float gain) { if (_soundscape != null) _soundscape.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_soundscape != null) _soundscape.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_soundscape != null) _soundscape.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun(bool preserveMusicContact = false)
+        public void ResetRun(bool preserveMusicContact = false, bool preserveZones = false)
         {
             SetPaused(false);
             StopSources();
-            if (_soundscape != null) _soundscape.ResetRun(preserveMusicContact);
+            if (_soundscape != null) _soundscape.ResetRun(preserveMusicContact, preserveZones);
             _feedbackState = new AudioFeedbackDriverState();
             if (_state == null) return;
             _presenter.Reset(_state);

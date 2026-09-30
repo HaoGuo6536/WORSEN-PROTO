@@ -8,20 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Capture authored Vault surface identity independently of rebound wall identity.
-//   - Apply explicit revival teleports without interpolation from the death position.
-//   - Keep snap support across rounded drop edges independently of sweep-contact separation.
-//   - Resolve the Player-owned effect config through its mirrored Resources path.
-//   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
-//   - Maintain walkable uphill support while allowing real jumps to leave the surface.
-//   - Query untagged chest/upper/top ledge geometry and sweep late traversal steering.
-//   - Filter hunter bodies from all capsule/ground queries and this capsule's contacts during grace.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
-//   - Resolve walkable step support within the capsule footprint without adding horizontal travel.
-//   - Bound each step raise by actual overhead clearance before checking forward travel and support.
-//   - Resolve optional authored traversal endpoint pairs through pure geometry before clearance casts.
-//   - Enable first-person hands at initialization and movement; hide limbs at teardown.
+//   - Probe world support, traversal endpoints, ledges and capsule clearance.
+//   - Resolve swept movement, steps, penetrations and visual interpolation.
+//   - Filter hunter bodies from all queries and capsule contacts during collision grace.
+//   - Restore an explicit pose and capsule posture without interpolation on revival.
+//   - Resolve configuration and own first-person limb lifecycle.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -80,14 +71,14 @@ namespace Worsen.Domain.Player
             ShowMovement(MovementState.Ground);
         }
 
-        public void Teleport(Vector3 position, float heading)
+        public void Teleport(Vector3 position, float heading, bool crouched = false)
         {
             _state.Position = _state.PreviousPosition = position;
             _state.Heading = _state.PreviousHeading = heading;
             _state.Velocity = Vector3.zero;
             _state.LastStepDuration = 0f;
             _state.Grounded = false;
-            SetCapsule(false);
+            SetCapsule(crouched);
             _body.position = position;
             _body.rotation = Quaternion.Euler(0f, heading, 0f);
             transform.SetPositionAndRotation(position, _body.rotation);

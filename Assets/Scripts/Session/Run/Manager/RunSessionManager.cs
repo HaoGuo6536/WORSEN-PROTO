@@ -12,22 +12,11 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
-//   - Publish pending death before terminal commit; allow an admitted revival without resetting Floor.
-//   - Publish empty counts from the routed Progression inventory, never the legacy Player slots.
-//   - Pair Core hunter fact relays for initial/late spawns, web slowing and floor-wide Loud Keys.
-//   - Sample floor shrines after committed actor ticks and deliver delayed shrine hearing once.
-//   - Forward typed guidance/traps and route boundary acceleration using the Floor tick delta.
-//   - Share pickup/hand/trap hearing; environmental sources use Director only when bound.
-//   - Pair traversal, stumble and cake-loss relays; route pickup noise to bound active hunters.
-//   - Drop gameplay facts raised during pause rather than replaying them on resume.
-//   - Own authoritative pause, gate queued damage before ticks, and publish detailed end facts.
-//   - Forward hit severity/source, advance recovery without rewinding, and relay Player grace facts.
-//   - Relay committed pickup, hand, destruction and hunter sound facts without audio decisions.
-//   - Publish committed hunter attack telegraphs and prepare independently seeded generated floors.
-//   - Maintain one persistent canonical run and one shared seeded random source.
-//   - Request synchronous input publication immediately before each fixed tick.
-//   - Hand explicit delta time to the Controller and publish completed tick data.
-//   - Consume only Floor's unified escape fact, retaining the early-bail flag.
+//   - Own the canonical seeded run, timing, randomness, synchronous input, pause and ordered fixed ticks.
+//   - Bind gameplay services; pair actor, movement, hearing, environmental, recovery and shrine/world relays.
+//   - Relay initial/changed floor counters, shields, inventory and guidance for presentation.
+//   - Reject protected hit candidates before damage; publish committed combat, pickup, shrine and collapse facts.
+//   - Resolve terminal, pending-death/revival and escape outcomes; close capture before terminal notification.
 //
 // DEPENDENCIES:
 //   - Domain Shrine and Session Progression resolve generation-bound shrine activation.
@@ -122,12 +111,19 @@ namespace Worsen.Session.Run
         public event Action<ChaseFact> ChasePhaseChanged;
         public event Action<ProximitySample> ProximityPublished;
         public event Action<EntityId, float, float> HealthChanged;
+        public event Action<EntityId, float> ShieldChanged;
+        public void PublishShieldSnapshot()
+        {
+            foreach (PlayerManager player in players)
+                if (player != null && player.ReadOnlyShieldState != null) ShieldChanged?.Invoke(player.Id, player.ReadOnlyShieldState.Shield);
+        }
         public event Action<EntityId, Vector3> PlayerDied;
         public event Action<EntityId, Vector3> PlayerDeathPending;
         public bool CancelDeathForRevival(EntityId player) => controller != null && controller.CancelDeathForRevival(player);
         public void PublishInventory(ConsumableInventorySnapshot inventory)
         { if (controller != null) EmptyItemSlotsChanged?.Invoke(controller.EmptySlots(inventory.Inventory)); }
         public event Action<FloorDisplaySnapshot> FloorDisplayChanged;
+        public void PublishFloorSnapshot() => FloorDisplayChanged?.Invoke(floor != null ? floor.Snapshot() : default);
         public event Action<RoomPhaseChangedFact> RoomPhaseChanged;
         public event Action<IntrusionSample> IntrusionPublished;
         public event Action<TelemetrySample> TelemetryPublished;
@@ -219,6 +215,7 @@ namespace Worsen.Session.Run
             foreach (PlayerManager player in players)
             {
                 HealthChanged?.Invoke(player.Id, player.ReadOnlyState.Health, player.ReadOnlyState.MaxHealth);
+                ShieldChanged?.Invoke(player.Id, player.ReadOnlyShieldState.Shield);
             }
             PhaseChanged?.Invoke(state.Phase);
         }
@@ -291,6 +288,7 @@ namespace Worsen.Session.Run
             foreach (PlayerManager player in players)
             {
                 player.OnHealthChanged += HandleHealth; player.OnDied += HandleDeath;
+                player.OnShieldChanged += HandleShield;
                 player.OnGraceStarted += HandleGraceStarted; player.OnGraceEnded += HandleGraceEnded;
                 player.OnTraversalProgress += HandleTraversalProgress; player.OnStumbled += HandleStumbled;
             }
@@ -315,7 +313,7 @@ namespace Worsen.Session.Run
                 floor.OnCakeLost += HandleCakeLost;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
-                floor.OnEscapeResolved += HandleExitReached;
+                floor.OnExitReached += HandleExitReached;
                 floor.OnLethalContact += HandleLethal;
                 floor.OnDisplayChanged += HandleFloorDisplay;
                 floor.OnRoomDestruction += HandleRoomDestruction;
@@ -336,6 +334,7 @@ namespace Worsen.Session.Run
                 if (player != null)
                 {
                     player.OnHealthChanged -= HandleHealth; player.OnDied -= HandleDeath;
+                    player.OnShieldChanged -= HandleShield;
                     player.OnGraceStarted -= HandleGraceStarted; player.OnGraceEnded -= HandleGraceEnded;
                     player.OnTraversalProgress -= HandleTraversalProgress; player.OnStumbled -= HandleStumbled;
                 }
@@ -360,7 +359,7 @@ namespace Worsen.Session.Run
                 floor.OnCakeLost -= HandleCakeLost;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
-                floor.OnEscapeResolved -= HandleExitReached;
+                floor.OnExitReached -= HandleExitReached;
                 floor.OnLethalContact -= HandleLethal;
                 floor.OnDisplayChanged -= HandleFloorDisplay;
                 floor.OnRoomDestruction -= HandleRoomDestruction;
@@ -518,6 +517,7 @@ namespace Worsen.Session.Run
             PlayerManager target = players.Find(player => player != null && player.Id == hit.Target);
             if (target == null || !target.ReadOnlyState.IsAlive) return;
             target.AdvanceRecovery(Math.Max(Tick, target.ReadOnlyState.Tick));
+            if (target.RevivalDamageImmune || target.RevivalCollisionGraceActive) return;
             float previousHealth = target.ReadOnlyState.Health;
             int chaseId = state.ActiveChaseId;
             if (!target.ApplyHit(hit.Damage, hit.HunterPosition, hit.Severity, hit.Source)) return;
@@ -537,6 +537,8 @@ namespace Worsen.Session.Run
         }
         private void HandleHealth(EntityId player, float health, float maximum)
         { if (!IsPaused) HealthChanged?.Invoke(player, health, maximum); }
+        private void HandleShield(EntityId player, float shield)
+        { if (!IsPaused) ShieldChanged?.Invoke(player, shield); }
         private void HandleGraceStarted(GraceWindowFact fact) { if (!IsPaused) OnGraceStarted?.Invoke(fact); }
         private void HandleGraceEnded(GraceWindowFact fact) { if (!IsPaused) OnGraceEnded?.Invoke(fact); }
         private void HandleDeath(EntityId player, Vector3 killer)
@@ -578,8 +580,8 @@ namespace Worsen.Session.Run
             { controller.Apply(RunEvent.CollapseStarted); PhaseChanged?.Invoke(state.Phase); }
             RoomPhaseChanged?.Invoke(fact);
         }
-        private void HandleExitReached(ExitReachedFact fact, bool bailed)
-        { if (!IsPaused) controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero, bailed); }
+        private void HandleExitReached(ExitReachedFact fact)
+        { if (!IsPaused) controller.RequestEnd(RunEndReason.Escaped, fact.PlayerId, Vector3.zero); }
         private void HandleLethal(FloorLethalContactFact fact)
         {
             if (IsPaused) return;
@@ -647,6 +649,7 @@ namespace Worsen.Session.Run
             CaptureEnded = null;
             ChaseStarted = null; ChaseEnded = null; ChasePhaseChanged = null;
             ProximityPublished = null; HealthChanged = null; PlayerDied = null;
+            ShieldChanged = null;
             PlayerDeathPending = null;
             FloorDisplayChanged = null; RoomPhaseChanged = null; IntrusionPublished = null;
             TelemetryPublished = null; EmptyItemSlotsChanged = null; SpeedNormalizedPublished = null; RunEnded = null;

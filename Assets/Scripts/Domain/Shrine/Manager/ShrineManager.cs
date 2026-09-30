@@ -29,12 +29,12 @@ namespace Worsen.Domain.Shrine
         public event Action<ShrineActivatedFact> Activated;
         public IReadOnlyList<ShrinePlacement> Assemble(IReadOnlyList<ShrineSite> sites, int floor,
             ShrineConfig config, ShrineDriverConfig driverConfig, System.Random random,
-            bool moreShrines = false, IReadOnlyCollection<FearAxis> excludedAxes = null)
+            bool moreShrines = false)
         {
             if (driverConfig == null) throw new ArgumentNullException(nameof(driverConfig));
             controller = new ShrineController(new ShrineBehaviorState(), config, random);
             if (driver == null) driver = gameObject.AddComponent<ShrineDriver>();
-            var placements = controller.Assemble(sites, floor, moreShrines, excludedAxes);
+            var placements = controller.Assemble(sites, floor, moreShrines);
             driver.Build(placements, driverConfig);
             return placements;
         }

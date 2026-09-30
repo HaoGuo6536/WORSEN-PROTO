@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
+//   - Hand out a read-only state view without exposing mutable runtime collections.
 //   - Require a fresh sweep before warning, throughout warning and at launch.
 //   - Admit each live projectile contact once and publish neutral curse hooks.
 //   - Describe presence, discovery, chase, hiss, floor ticks and the accepted catch.
@@ -39,6 +40,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Blinder
         public BlinderController(BlinderBehaviorState state, BlinderConfig config, HunterProfile profile)
         { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile)); }
+        public IReadOnlyBlinderState ReadOnlyState => _state;
         public BlinderAction Action => _state.Action;
         public bool Warning => _state.Warning;
         public bool Fire => _state.Fire;

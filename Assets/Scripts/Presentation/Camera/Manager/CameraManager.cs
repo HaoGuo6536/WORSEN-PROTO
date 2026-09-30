@@ -10,12 +10,11 @@
 //   Manager (§1) · Presentation · Camera (Service system).
 //
 // KEY RESPONSIBILITIES:
-//   - Forward progress, explicit landing severity and stumble duration without inferring gameplay.
-//   - Forward runtime comfort and base-lens preferences to the owned Driver.
+//   - Forward traversal, comfort, lens and shake inputs without inferring gameplay.
 //   - Initialize the serialized Driver and mirrored config fallback.
-//   - Expose unshaken aim for routed flashlight sensing; forward world event shakes.
-//   - Forward hunter/hand catches and republish hold-start/hold-end facts for external routing.
-//   - Forward commands and pair Driver enable/disable and teardown.
+//   - Expose unshaken aim for routed flashlight sensing.
+//   - Forward hunter/hand catches and republish the shared sting/completion facts.
+//   - Pair Driver subscriptions on initialize, disable and explicit teardown.
 //
 // DEPENDENCIES:
 //   - Core player movement, traversal and runtime preference facts only.
@@ -85,6 +84,7 @@ namespace Worsen.Presentation.Camera
 
         public void Teardown()
         {
+            OnDisable();
             if (_driver != null) _driver.Teardown();
             _initialized = false;
         }

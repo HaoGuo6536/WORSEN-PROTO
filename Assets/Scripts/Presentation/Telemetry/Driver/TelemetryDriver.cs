@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
+//   - Forward optional fallback/manifest evidence through the existing failed-generation observation row.
 //   - Flush labelled micro-event rows through the same journal and failure handling as other observations.
 //   - Open unique files, write raw facts and provenance, flush completed or interrupted captures.
 //   - Keep one expedition observation journal across floor capture starts/ends.
@@ -100,7 +101,7 @@ namespace Worsen.Presentation.Telemetry
             foreach (var row in _presenter.ConvertMovement(_state, sample)) Record(row);
         }
         public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after,
-            string operation, string choiceId, long tick)
+            string operation, string choiceId, long tick, bool? usedFallback = null, string layoutManifest = null)
         {
             if (operation == "StartRun")
             {
@@ -109,7 +110,8 @@ namespace Worsen.Presentation.Telemetry
                 _state.ObservationFailed = false;
                 _state.ObservationFloorSeed = null;
             }
-            foreach (var sample in _observations.Transaction(before, after, operation, choiceId, tick, _state.ObservationFloorSeed))
+            foreach (var sample in _observations.Transaction(before, after, operation, choiceId, tick, _state.ObservationFloorSeed,
+                usedFallback, layoutManifest))
                 RecordObservation(sample);
         }
         public void RecordGeneration(ProgressionGenerationRequest request, long tick)
