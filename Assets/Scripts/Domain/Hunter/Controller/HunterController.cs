@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (section 2) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
+//   - Forget pursuit decisions on Pacification without cancelling a committed attack.
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Admit only this archetype's curse bits while retaining general run traits.
 //   - Walk to uncertain clues and stalk fresh beliefs, holding when the player looks toward the hunter.
@@ -98,6 +99,31 @@ namespace Worsen.Domain.Hunter
             _state.LoopDetected = false; _state.RecentRooms.Clear(); _state.DeltaTime = 0f;
         }
         public bool ShouldProbe(long tick) => !_state.CatchActive && (!_state.SensorInitialized || tick % Math.Max(1, _profile.SensorIntervalTicks) == 0);
+        public void ClearBelief()
+        {
+            _state.PlayerVisible = false; _state.PlayerHeard = false; _state.HasHint = false;
+            _state.LastKnownPosition = _state.Position; _state.LastKnownTick = 0;
+            _state.BeliefConfidence = 0f; _state.BeliefInitialConfidence = 0f;
+            _state.BeliefReferenceTick = _state.Tick; _state.BeliefAgeAtReference = 0f;
+            _state.SearchRoute.Clear(); _state.SearchActive = false; _state.SearchIndex = 0;
+            _state.SearchSeconds = 0f; _state.SearchLegBudget = 0f;
+            _state.PredictionRoute.Clear(); _state.PredictionIndex = 0; _state.Predict = false;
+            _state.ObservedPlayerRoom = 0; _state.PreviousPlayerRoom = 0; _state.ObservedPlayerVelocity = Vector3.zero;
+            _state.PendingNoiseDecision = false; _state.PendingNoise = default; _state.PendingNoiseLoudness = 0f;
+            _state.DeliberationRemaining = 0f; _state.DeliberationFactPending = false; _state.DeliberationTarget = _state.Position;
+            _state.CommitmentRemaining = 0f; _state.ThresholdPauseRemaining = 0f; _state.HabitFacts.Clear();
+            _state.ChaseActive = false; _state.LossHabitObserved = false; _state.LastPickupRoom = 0;
+            _state.RecentRooms.Clear(); _state.LoopDetected = false;
+            _state.LightMemoryRemaining = 0f; _state.LightReactionRemaining = 0f; _state.LightExposure = 0f;
+            _state.LightObserved = false; _state.DirectlyIlluminated = false; _state.LastLightPosition = _state.Position;
+            _state.Afterimage = default; _state.AfterimageRemaining = 0f;
+            _state.PursuitSuppressed = false; _state.RetreatRemaining = 0f;
+            _state.NavigationTarget = _state.Position; _state.HasPatrolTarget = false;
+            _state.PlannedFacts = ulong.MaxValue; _state.ActionFailed = false; _state.CurrentGoal = HunterGoal.LocatePrey;
+            if (_state.LungePhase == HunterLungePhase.None) _state.Action = HunterAction.Patrol;
+            // Keep heard-noise deduplication: old Player.RecentNoises must not recreate the erased belief.
+            // Attack phase, direction, serial, contact admission and recovery remain untouched.
+        }
         public HunterTickResult Tick(SightProbe probe, float dt, long tick)
             => Tick(probe, default, dt, tick);
         public HunterTickResult Tick(SightProbe probe, HunterLightObservation light, float dt, long tick)
