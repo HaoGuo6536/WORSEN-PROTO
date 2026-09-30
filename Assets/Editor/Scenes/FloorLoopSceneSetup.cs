@@ -11,6 +11,7 @@
 //   - Create missing mirrored config and UI panel assets, then wire services.
 //   - Save FloorLoop, register it as the first build scene, and set a 60 Hz tick.
 //   - Reject editor play entry when the arena capture fingerprint is stale.
+//   - Restore HunterBody on reused FloorLoop hunter prefabs through the Hunter builder.
 // DEPENDENCIES:
 //   - Player/Level builders, Camera/PostFX/Telemetry generators and Session routing.
 //   - UnityEditor asset and scene APIs; installed Unity AI Navigation package.
@@ -325,6 +326,7 @@ namespace Worsen.Editor.Scenes
             try
             {
                 Wire(prefab.GetComponent<HunterDriver>(), "_config", config);
+                HunterPrefabGenerator.AssignBodyLayer(prefab);
                 Wire(profile, "_prefab", PrefabUtility.SaveAsPrefabAsset(prefab, prefabPath));
             }
             finally { PrefabUtility.UnloadPrefabContents(prefab); }
