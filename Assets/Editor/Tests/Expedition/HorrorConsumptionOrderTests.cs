@@ -138,6 +138,8 @@ namespace Worsen.Tests.Expedition
                 var playerProfile = Config<PlayerProfile>();
                 var moverConfig = Config<PlayerMoverDriverConfig>();
                 Set(floorConfig, "_requiredCakeCount", 2);
+                // This fixed two-socket scenario needs both sockets as required cakes (legacy count mode).
+                Set(floorConfig, "_useRoomCakeDensity", false);
                 Run = Component<RunSessionManager>("Consumption Run").Initialize(901);
                 Progression = Component<ProgressionSessionManager>("Consumption Progression").Initialize(progressionConfig, 901);
                 expedition = Component<ExpeditionSessionManager>("Consumption Expedition").Initialize();

@@ -312,7 +312,10 @@ namespace Worsen.Tests.Expedition
                 Assert.That(HunterRegistry.Items.Count, Is.GreaterThan(0));
                 AssertActiveRoster(progression.Snapshot.Effects);
                 Assert.That(floor.ReadOnlyState.IsReady, Is.True);
-                Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.EqualTo(procedural.Graph.Anchors.Count));
+                // Room density places a subset of the typed candidates; a required subset gates the exit.
+                int placed = floor.GetComponentsInChildren<CakePickup>().Length;
+                Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.GreaterThanOrEqualTo(1).And.LessThanOrEqualTo(placed));
+                Assert.That(placed, Is.LessThanOrEqualTo(procedural.Graph.Anchors.Count));
                 Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
                 Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
             }
