@@ -7,7 +7,7 @@
 //   Editor tool (§10) · test suite (§11) · HorrorEffects.
 // KEY RESPONSIBILITIES:
 //   - Exercise real timed web cleansing and Level-backed Doorstop admission/expiry.
-//   - Reject duplicate ticks; pause moving heals; clear slows; admit one revival.
+//   - Reject duplicate ticks; pause moving heals; clear slows; admit one in-place revival.
 // DEPENDENCIES:
 //   Core, Player, Level, HorrorEffects, Progression, NUnit and transient Unity objects.
 // USAGE NOTES:
@@ -23,6 +23,7 @@ using Worsen.Domain.Player;
 using Worsen.Domain.Level;
 using Worsen.Session.HorrorEffects;
 using Worsen.Session.Progression;
+using Worsen.Session.Run;
 using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 
@@ -131,20 +132,58 @@ namespace Worsen.Tests.HorrorEffects
         }
 
         [Test]
-        public void RevivalIsSpentOnceAndReturnsToFloorStartWithoutChangingGeneration()
+        public void RevivalIsSpentOnceAndStaysAtCatchWithoutChangingGeneration()
         {
             Setup("extra-life", EffectKind.Upgrade);
-            Vector3 start = motion.Position;
-            motion.Health = 0f; motion.Position = Vector3.right * 20f;
+            Vector3 caught = Vector3.right * 20f;
+            motion.Health = 0f; motion.Position = caught;
+            int revivals = 0;
+            effects.PlayerRevived += id => { Assert.That(id, Is.EqualTo(player.Id)); revivals++; };
+            var tuning = (HorrorEffectsConfig)typeof(HorrorEffectsManager).GetField("config", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(effects);
             Assert.That(effects.TryBeginRevival(player.Id), Is.True);
             Assert.That(motion.IsAlive, Is.False, "The catch must finish before revival.");
             effects.Tick(default, 1f, 10);
             Assert.That(progression.Snapshot().GenerationId, Is.EqualTo(generation));
             Assert.That(progression.Snapshot().Phase, Is.EqualTo(ProgressionPhase.Exploring));
             Assert.That(effects.CompleteRevival(player.Id), Is.True);
-            Assert.That(motion.Position, Is.EqualTo(start)); Assert.That(motion.Health, Is.EqualTo(motion.MaxHealth * .5f));
+            Assert.That(motion.Position, Is.EqualTo(caught));
+            Assert.That(player.transform.position, Is.EqualTo(caught));
+            Assert.That(motion.Health, Is.EqualTo(motion.MaxHealth * tuning.RevivalHealthFraction));
+            Assert.That(player.RevivalCollisionGraceActive, Is.True); Assert.That(player.RevivalDamageImmune, Is.True);
+            Assert.That(effects.CompleteRevival(player.Id), Is.False); Assert.That(revivals, Is.EqualTo(1));
             motion.Health = 0f;
             Assert.That(effects.TryBeginRevival(player.Id), Is.False);
+        }
+
+        [Test]
+        public void SecondLethalCatchEndsRunAfterOneConsumedExtraLife()
+        {
+            Setup("extra-life", EffectKind.Upgrade);
+            var run = Component<RunSessionManager>();
+            var runState = new RunSessionBehaviorState(7);
+            var clock = new RunSessionController(runState, new System.Random(7));
+            clock.StartScene(SceneKey.HorrorRun);
+            Set(run, "state", runState); Set(run, "controller", clock);
+            run.gameObject.SetActive(true); run.BindGameplay(null, null, null);
+            int endings = 0, revivals = 0;
+            run.RunEnded += summary => { Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Died)); endings++; };
+            effects.PlayerRevived += _ => revivals++;
+            run.PlayerDeathPending += (id, position) =>
+            {
+                if (effects.TryBeginRevival(id)) Assert.That(run.CancelDeathForRevival(id), Is.True);
+            };
+            try
+            {
+                player.ApplyHit(1000f, Vector3.back);
+                typeof(RunSessionManager).GetMethod("FinishIfRequested", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(run, null);
+                Assert.That(endings, Is.Zero); Assert.That(effects.CompleteRevival(player.Id), Is.True);
+                player.AdvanceRecovery(long.MaxValue / 2);
+                player.ApplyHit(1000f, Vector3.back);
+                typeof(RunSessionManager).GetMethod("FinishIfRequested", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(run, null);
+                Assert.That(endings, Is.EqualTo(1)); Assert.That(revivals, Is.EqualTo(1));
+                Assert.That(effects.CompleteRevival(player.Id), Is.False);
+            }
+            finally { run.DetachGameplay(); }
         }
 
         private static InputFrame UseFrame => new InputFrame(Vector2.up, Vector2.zero, InputButtons.UseConsumable, InputButtons.UseConsumable, InputButtons.None);

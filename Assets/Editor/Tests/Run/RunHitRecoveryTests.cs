@@ -12,6 +12,7 @@
 //   - Verify grace relays bind once and detach on disable, rebind and destruction.
 //   - Verify light/hand routing through the Floor event subscription outside Player ticks.
 //   - Distinguish contact candidates from damage admission and retain grace in terminal ordering.
+//   - Reject revival-protected queued hits without catch telemetry until immunity expires.
 // DEPENDENCIES:
 //   Core facts, Domain Player/Floor, Session Run/HorrorEffects, NUnit and UnityEngine.
 // USAGE NOTES:
@@ -276,6 +277,25 @@ namespace Worsen.Tests.Run
             Assert.That(accepted.Count, Is.EqualTo(expired ? 2 : 1));
             Assert.That(run.Tick, Is.EqualTo(terminalTick));
             Assert.That(order, Is.EqualTo(new[] { "capture", "results" }));
+        }
+
+        [TestCase(HitSource.Lunge)] [TestCase(HitSource.Trap)] [TestCase(HitSource.Projectile)]
+        public void RevivalDropsQueuedHitsThroughImmunityAndAcceptsAtExactDeadline(HitSource source)
+        {
+            player.ApplyHit(1000f, Vector3.zero);
+            Assert.That(run.CancelDeathForRevival(player.Id), Is.True);
+            starts.Clear(); ends.Clear();
+            Assert.That(player.ReviveInPlace(.5f), Is.True);
+            var immunity = starts[0];
+            Route(Hit(9999, source: source));
+            AdvanceRun(immunity.EndTick - 1); Route(Hit(0, source: source));
+            Assert.That(accepted, Is.Empty); Assert.That(telemetry, Is.Empty);
+            Assert.That(player.ReadOnlyState.Health, Is.EqualTo(50f));
+            Assert.That(player.RevivalCollisionGraceActive, Is.False);
+            AdvanceRun(immunity.EndTick); Route(Hit(0, source: source));
+            Assert.That(accepted.Count, Is.EqualTo(1)); Assert.That(telemetry.Count, Is.EqualTo(1));
+            Assert.That(player.ReadOnlyState.Health, Is.EqualTo(40f));
+            Assert.That(ends, Is.EqualTo(new[] { immunity }));
         }
 
         private HunterHit Hit(long tick, HitSeverity severity = HitSeverity.Heavy, HitSource source = HitSource.Lunge)

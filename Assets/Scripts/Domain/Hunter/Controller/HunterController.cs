@@ -8,22 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Controller (section 2) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Accept explicit floor-wide Core noise delivery without acoustic range rejection.
-//   - Include accepted rule values in Core mutation facts for silent spawn restoration.
-//   - Forget pursuit decisions on Pacification without cancelling a committed attack.
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Admit only this archetype's curse bits while retaining general run traits.
-//   - Walk to uncertain clues and stalk fresh beliefs, holding when the player looks toward the hunter.
-//   - Weigh competing goals, remember pickups/search order, deliberate and withdraw on request.
-//   - Emit gated habit facts and validate run-long single-rule overrides without editing assets.
-//   - Commit bounded chase predictions, retry failed guesses against sight, and prioritize real loops.
-//   - Budget walking travel separately from search; keep CutOff's room intercept distinct from chase lead.
-//   - Consult injected archetype rules without branching on specialised archetype names.
-//   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
-//   - Allow specialised attacks to opt out of shared lunges while retaining sensing.
-//   - Let independent weapons retain pursuit without starting a shared lunge.
-//   - Freeze/flinch/slip without clearing belief; gate jammed route segments and Wick sight.
-//   - Apply optional camera-rule motion, silence and dynamic loss policy before attacks.
+//   - Maintain observable sight, hearing, light and imperfect pursuit memory.
+//   - Plan committed goals, search routes, predictions and retreat behaviour.
+//   - Sequence archetype rules, mutations, habits, dormancy and temporary reactions.
+//   - Admit attack contacts only outside Player revival protection.
+//   - Publish bounded movement decisions and Core attack/feedback facts.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
@@ -69,6 +58,8 @@ namespace Worsen.Domain.Hunter
         public bool Silent => ObservationRules?.Silent ?? false;
         public bool NeedsViewObservation => ObservationRules != null;
         public bool ArchetypeHeld => ObservationRules?.Hold ?? false;
+        public bool PlayerRevivalProtected => _player is IReadOnlyPlayerRevivalState protection &&
+            (protection.RevivalCollisionGraceActive || protection.RevivalDamageImmune);
         public void ObservePlayerView(bool clear) { _state.PlayerViewClear = clear; }
         public bool Dormant => (_archetype as Archetypes.Ticking.IHunterDormancyRules)?.Dormant ?? false;
         public void RefreshDormancy()
@@ -691,6 +682,7 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptRangedContact(EntityId target, int attackSerial, out HunterHit hit)
         {
             hit = default;
+            if (PlayerRevivalProtected) return false;
             if (_state.StunRemaining > 0f || _state.SlipRemaining > 0f || _state.ReactionHeld || _state.BreakingDoor != 0 ||
                 ArchetypeHeld || Dormant || _profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
                 attackSerial <= 0 || !_state.FiredRangedAttacks.Contains(attackSerial) || attackSerial > _state.AttackSerial || attackSerial < _state.AttackSerial - 8 ||
@@ -781,6 +773,7 @@ namespace Worsen.Domain.Hunter
         public bool TryAcceptContact(EntityId target, out HunterHit hit)
         {
             hit = default;
+            if (PlayerRevivalProtected) return false;
             if (_state.StunRemaining > 0f || _state.SlipRemaining > 0f || _state.ReactionHeld || _state.BreakingDoor != 0 ||
                 ArchetypeHeld || Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
                 target != _state.TargetId || !_player.IsAlive || !_state.IsActive) return false;
