@@ -13,6 +13,7 @@
 //   - Build the Environment configuration with the installed Lumen 2 effect prefab.
 //   - Replace standalone lights with broad soft Lumen effects and extract a freestanding door leaf.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Domain Floor/Procedural configs and Presentation Environment config schemas.
 //   - UnityEditor asset/prefab APIs; imported castle and embedded Lumen 2 assets.
 // USAGE NOTES:
@@ -276,7 +277,7 @@ namespace Worsen.Editor.Horror
         private static void SetArray(SerializedObject data, string field, GameObject[] values)
         { SerializedProperty array = Property(data, field); array.arraySize = values.Length; for (int i = 0; i < values.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = values[i]; }
         private static SerializedProperty Property(SerializedObject data, string field)
-            => data.FindProperty(field) ?? throw new InvalidOperationException("Required setup field missing: " + data.targetObject.GetType().Name + "." + field);
+            => Worsen.Editor.Common.SetupKit.RequireProperty(data, field);
         private static T RequireAsset<T>(string path) where T : Object
             => AssetDatabase.LoadAssetAtPath<T>(path) ?? throw new InvalidOperationException("Required imported " + typeof(T).Name + " is unavailable: " + path);
         private static T LoadOwned<T>(string path) where T : Object
@@ -293,12 +294,7 @@ namespace Worsen.Editor.Horror
                 throw new InvalidOperationException("World setup requires the project-owned config under " + folder);
         }
         private static void EnsureParent(string path)
-        {
-            string[] segments = path.Split('/'); string current = segments[0];
-            if (current != "Assets") throw new InvalidOperationException("Owned output must stay under Assets: " + path);
-            for (int i = 1; i < segments.Length - 1; i++)
-            { string next = current + "/" + segments[i]; if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, segments[i]); current = next; }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureParent(path);
         private static void Save(Object asset) { EditorUtility.SetDirty(asset); AssetDatabase.SaveAssetIfDirty(asset); }
         private static void RequireIdle()
         {

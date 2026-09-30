@@ -11,6 +11,7 @@
 //   - Implement the Floor responsibility named by this file.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
+//   - Common SetupKit owns checked serialized wiring and asset-folder creation.
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
@@ -85,22 +86,9 @@ namespace Worsen.Editor.Floor
             asset = ScriptableObject.CreateInstance<T>(); AssetDatabase.CreateAsset(asset, path); return asset;
         }
         private static void EnsureFolder(string path)
-        {
-            var parts = path.Split('/'); string current = parts[0];
-            for (int index = 1; index < parts.Length; index++)
-            {
-                string next = current + "/" + parts[index];
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[index]);
-                current = next;
-            }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
         private static void Wire(UnityEngine.Object target, string name, UnityEngine.Object value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(name);
-            if (property == null) throw new InvalidOperationException("Missing Floor serialized field: " + name);
-            property.objectReferenceValue = value; serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, name, value);
         private static void RequireEditor()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)

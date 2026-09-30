@@ -16,6 +16,7 @@
 //   - Save only the owned config asset after wiring.
 //
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Core CueId; Presentation Audio config and definition types; UnityEditor.
 //
 // USAGE NOTES:
@@ -96,14 +97,6 @@ namespace Worsen.Editor.Audio
         }
 
         private static void EnsureFolder()
-        {
-            string folder = "Assets";
-            foreach (string part in new[] { "Resources", "ScriptableObjects", "Presentation", "Audio" })
-            {
-                string next = folder + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(folder, part);
-                folder = next;
-            }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureParent(ConfigPath);
     }
 }

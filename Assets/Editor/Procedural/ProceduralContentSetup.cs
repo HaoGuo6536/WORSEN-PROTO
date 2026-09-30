@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Wire theme, challenge, organic fallback and validated room catalogue assets.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor and Domain.Procedural only.
 // USAGE NOTES:
 //   Coordinator-only under the Unity publication lease. Refuses play/import/compile;
@@ -28,10 +29,13 @@ namespace Worsen.Editor.Procedural
     {
         [MenuItem("Worsen/Procedural/Wire wave 3c content to selected config")]
         public static void WireSelected()
+            => Configure(Selection.activeObject as ProceduralConfig);
+
+        public static void Configure(ProceduralConfig selected)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
                 throw new InvalidOperationException("Content setup requires an idle editor and the coordinator's publication lease.");
-            var selected = Selection.activeObject as ProceduralConfig;
+
             if (selected == null || !AssetDatabase.Contains(selected)) throw new InvalidOperationException("Select an existing ProceduralConfig asset.");
             const string folder = "Assets/Resources/ScriptableObjects/Domain/Procedural";
             EnsureFolder(folder);
@@ -68,10 +72,6 @@ namespace Worsen.Editor.Procedural
             return value;
         }
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            int split = path.LastIndexOf('/'); string parent = path.Substring(0, split);
-            EnsureFolder(parent); AssetDatabase.CreateFolder(parent, path.Substring(split + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
     }
 }

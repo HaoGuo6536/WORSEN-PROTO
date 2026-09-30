@@ -12,6 +12,7 @@
 //   - Reject over-budget meshes and publish reusable kit prefab bindings.
 //   - Assemble deterministic room prefabs from the runtime placement presenter.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor asset APIs and Domain.Procedural definitions/presenters.
 // USAGE NOTES:
 //   Called only by the explicit content setup in an idle coordinated editor.
@@ -126,17 +127,13 @@ namespace Worsen.Editor.Procedural
             for (int i = 0; i < bindings.Count; i++)
             {
                 var item = pieces.GetArrayElementAtIndex(i);
-                item.FindPropertyRelative("Theme").stringValue = bindings[i].Theme;
-                item.FindPropertyRelative("Id").stringValue = bindings[i].Id;
-                item.FindPropertyRelative("Prefab").objectReferenceValue = bindings[i].Prefab;
+                Worsen.Editor.Common.SetupKit.RequireRelative(item, nameof(ProceduralRoomCatalogueData.KitAsset.Theme)).stringValue = bindings[i].Theme;
+                Worsen.Editor.Common.SetupKit.RequireRelative(item, nameof(ProceduralRoomCatalogueData.KitAsset.Id)).stringValue = bindings[i].Id;
+                Worsen.Editor.Common.SetupKit.RequireRelative(item, nameof(ProceduralRoomCatalogueData.KitAsset.Prefab)).objectReferenceValue = bindings[i].Prefab;
             }
             serialized.ApplyModifiedProperties(); AssetDatabase.SaveAssetIfDirty(asset);
         }
         private static void Folder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            int slash = path.LastIndexOf('/'); Folder(path.Substring(0, slash));
-            AssetDatabase.CreateFolder(path.Substring(0, slash), path.Substring(slash + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
     }
 }

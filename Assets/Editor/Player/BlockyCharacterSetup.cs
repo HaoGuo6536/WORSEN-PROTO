@@ -12,6 +12,7 @@
 //   - Import Generic arms and named baked clips without root-motion translation.
 //   - Retain flat material colours using the project's Universal Render Pipeline.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor import/asset APIs, UnityEngine, and PlayerPrefabGenerator only.
 // USAGE NOTES:
 //   Coordinator invokes under the Unity lease in idle Edit Mode; never automatic.
@@ -123,7 +124,7 @@ namespace Worsen.Editor.Player
         private static void RemapMaterials(ModelImporter importer)
         {
             string folder = ArtPath + "/Materials";
-            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(ArtPath, "Materials");
+            Worsen.Editor.Common.SetupKit.EnsureFolder(folder);
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null) throw new InvalidOperationException("Universal Render Pipeline/Lit is unavailable.");
             foreach (Material source in AssetDatabase.LoadAllAssetsAtPath(importer.assetPath).OfType<Material>())

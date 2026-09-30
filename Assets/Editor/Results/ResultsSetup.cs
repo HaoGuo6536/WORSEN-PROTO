@@ -15,6 +15,7 @@
 //   - Reuse one named service child and serialize its owned component references.
 //
 // DEPENDENCIES:
+//   - Common SetupKit owns checked serialized wiring and asset-folder creation.
 //   - Worsen.Presentation.Results; UnityEditor and Unity UI Toolkit asset APIs.
 //
 // USAGE NOTES:
@@ -121,21 +122,10 @@ namespace Worsen.Editor.Results
         }
 
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            int split = path.LastIndexOf('/');
-            EnsureFolder(path.Substring(0, split));
-            AssetDatabase.CreateFolder(path.Substring(0, split), path.Substring(split + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
 
         private static void Wire(UnityEngine.Object target, string field, UnityEngine.Object value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(field);
-            if (property == null) throw new InvalidOperationException("Missing serialized field: " + field);
-            property.objectReferenceValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, field, value);
 
         private static void RequireEditMode()
         {

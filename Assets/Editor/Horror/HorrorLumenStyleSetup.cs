@@ -10,6 +10,7 @@
 //   - Preserve owned profile/prefab identities across deterministic setup runs.
 //   - Use Lumen fake-light falloff and Voronoi fluctuation for broad soft pools.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   UnityEditor, UnityEngine, DistantLands.Lumen public authoring API.
 // USAGE NOTES:
 //   Called by HorrorWorldAssetSetup in an idle Editor under its Unity lease.
@@ -131,12 +132,6 @@ namespace Worsen.Editor.Horror
         }
 
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            int slash = path.LastIndexOf('/');
-            string parent = path.Substring(0, slash);
-            EnsureFolder(parent);
-            AssetDatabase.CreateFolder(parent, path.Substring(slash + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
     }
 }
