@@ -10,6 +10,7 @@
 //   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Distinguish a historical Player pose from the current pose at delivery.
 //   - Verify default hint age, uncertainty, aged belief and actual investigation.
+//   - Distinguish the SPEC-004 deliberation hold from subsequent motor path publication.
 //   - Bound timing by consecutive real Session ticks and detect early/duplicate hints.
 // DEPENDENCIES:
 //   - Core facts; Director, Player, Hunter, Chase; Session.Run; FloorLoopSceneRoot.
@@ -295,6 +296,16 @@ namespace Worsen.Tests.Director
                     {
                         if (firstInvestigateTick == 0) firstInvestigateTick = tick;
                         investigateTicks++;
+                        Assert.That(Vector3.Distance(hunterState.CurrentTarget, beliefAtHint), Is.LessThan(0.001f));
+                        if (hunterState.IsDeliberating)
+                        {
+                            Assert.That(tick - hint.DeliveredTick, Is.LessThanOrEqualTo(
+                                Mathf.CeilToInt(hunterProfile.DeliberationSeconds / dt)));
+                            Assert.That(Vector3.ProjectOnPlane(hunterState.Position - hunterAtHint, Vector3.up).magnitude,
+                                Is.LessThan(0.001f), "Deliberation must stop before investigating.");
+                            previousHunterPose = hunterState.Position;
+                            return;
+                        }
                         Assert.That(Vector3.Distance(motorState.LastTarget, beliefAtHint), Is.LessThan(0.001f));
                         if (driver.PathAvailable && motorState.Path.status == NavMeshPathStatus.PathComplete &&
                             motorState.Steering.Corners.Length >= 2)

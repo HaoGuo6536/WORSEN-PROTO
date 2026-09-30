@@ -11,6 +11,7 @@
 //   - Verify sample thresholds, aged information, failed paths and per-life contacts.
 //   - Verify instance speed scaling and phase-normalized attack indicators without shared asset mutation.
 //   - Verify walk/stalk speeds, reveal holds, sight/noise transitions and bounded path-failure replanning.
+//   - Bound stalled searches by the configured travel-aware leg deadline.
 // DEPENDENCIES:
 //   - Hunter pure logic and steering, Player fixture state, Level read-only contract,
 //     UnityEditor for temporary profile tuning, and NUnit.
@@ -238,7 +239,8 @@ namespace Worsen.Tests.Hunter
             _controller.Tick(default, memoryDt, 32);
             Assert.That(_state.BeliefConfidence, Is.Zero);
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.SearchLastKnown));
-            for (int tick = 33; tick <= 150; tick++) _controller.Tick(default, memoryDt, tick);
+            int deadline = 33 + Mathf.CeilToInt(6f * _profile.SearchMaximumLegSeconds / memoryDt);
+            for (int tick = 33; tick <= deadline; tick++) _controller.Tick(default, memoryDt, tick);
             Assert.That(_state.CurrentAction, Is.EqualTo(HunterAction.Patrol));
         }
 

@@ -12,6 +12,7 @@
 //   - Observe real Chase transitions and frozen default Director timing twice per seed.
 //   - Record every pose, pressure observation, hint belief and no-proximity interval.
 //   - Distinguish finite motor arrival from emitted hints and censored observation gaps.
+//   - Permit the bounded SPEC-004 deliberation beat, not an immediate motor repath.
 // DEPENDENCIES:
 //   - Core; Domain Player, Hunter, Chase, Floor; Session.Run; FloorLoopSceneRoot.
 //   - Presentation.Input device isolation; Unity physics/navigation; Editor asset reads.
@@ -423,7 +424,7 @@ namespace Worsen.Tests.Director
                 if (tick == hint.deliveredTick + 1)
                 {
                     Assert.That(hunterState.CurrentAction, Is.EqualTo(HunterAction.InvestigateHint));
-                    Assert.That(Vector3.Distance(motor.LastTarget, hint.belief), Is.LessThan(0.001f));
+                    Assert.That(Vector3.Distance(hunterState.CurrentTarget, hint.belief), Is.LessThan(0.001f));
                     report.firstInvestigationTick = tick;
                 }
                 if (hunterState.CurrentAction == HunterAction.InvestigateHint) report.investigationTicks++;
