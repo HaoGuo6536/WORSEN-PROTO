@@ -12,6 +12,7 @@
 //   Owns the pure Controller and BehaviorState; publishes Core-typed run facts.
 //
 // KEY RESPONSIBILITIES:
+//   - Pair Core hunter fact relays for initial/late spawns, web slowing and floor-wide Loud Keys.
 //   - Sample floor shrines after committed actor ticks and deliver delayed shrine hearing once.
 //   - Forward typed guidance/traps and route boundary acceleration using the Floor tick delta.
 //   - Share pickup/hand/trap hearing; environmental sources use Director only when bound.
@@ -91,6 +92,14 @@ namespace Worsen.Session.Run
         public event Action<PlayerMovementSample> PlayerMovementPublished;
         public event Action<HunterAttackSample> HunterAttackPublished;
         public event Action<HunterFeedbackEvent> HunterFeedbackPublished;
+        public event Action<HunterArchetypeFact> HunterArchetypePublished;
+        public event Action<HunterHabitFact> HunterHabitPublished;
+        public event Action<HunterMutationFact> HunterMutationPublished;
+        public event Action<WeaverFact> WeaverFactPublished;
+        public event Action<WebHitFact> WebHitPublished;
+        public event Action<TickingSoundFact> TickingSoundPublished;
+        public event Action<TickingGuidanceFact> TickingGuidancePublished;
+        public event Action<TickingNoiseFact> TickingNoisePublished;
         public event Action<HunterHit> HitAccepted;
         public event Action<GraceWindowFact> OnGraceStarted;
         public event Action<GraceWindowFact> OnGraceEnded;
@@ -242,7 +251,7 @@ namespace Worsen.Session.Run
             if (hunter == null || hunters.Contains(hunter)) return;
             hunters.Add(hunter);
             if (!isActiveAndEnabled) return;
-            hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback;
+            SubscribeHunter(hunter);
         }
 
         private void TickShrines(InputFrame frame, float dt, long tick)
@@ -281,7 +290,7 @@ namespace Worsen.Session.Run
                 player.OnTraversalProgress += HandleTraversalProgress; player.OnStumbled += HandleStumbled;
             }
             foreach (HunterManager hunter in hunters)
-            { hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback; }
+                SubscribeHunter(hunter);
             if (chase != null)
             {
                 chase.OnChaseStarted += HandleChaseStarted;
@@ -326,7 +335,7 @@ namespace Worsen.Session.Run
                     player.OnTraversalProgress -= HandleTraversalProgress; player.OnStumbled -= HandleStumbled;
                 }
             foreach (HunterManager hunter in hunters) if (hunter != null)
-            { hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HandleHunterFeedback; }
+                UnsubscribeHunter(hunter);
             if (chase != null)
             {
                 chase.OnChaseStarted -= HandleChaseStarted;
@@ -357,6 +366,54 @@ namespace Worsen.Session.Run
                 director.OnIntrusion -= HandleIntrusion;
                 director.OnPressureSampled -= HandlePressure;
             }
+        }
+
+        private void SubscribeHunter(HunterManager hunter)
+        {
+            hunter.OnLungeHit += QueueHit; hunter.OnFeedback += HandleHunterFeedback;
+            hunter.OnArchetypeFact += HandleHunterArchetype; hunter.OnHabit += HandleHunterHabit;
+            hunter.OnMutation += HandleHunterMutation; hunter.OnWeaverFact += HandleWeaver;
+            hunter.OnWebHit += HandleWebHit;
+            if (hunter.Ticking == null) return;
+            hunter.Ticking.OnSound += HandleTickingSound; hunter.Ticking.OnGuidance += HandleTickingGuidance;
+            hunter.Ticking.OnNoise += HandleTickingNoise;
+        }
+        private void UnsubscribeHunter(HunterManager hunter)
+        {
+            hunter.OnLungeHit -= QueueHit; hunter.OnFeedback -= HandleHunterFeedback;
+            hunter.OnArchetypeFact -= HandleHunterArchetype; hunter.OnHabit -= HandleHunterHabit;
+            hunter.OnMutation -= HandleHunterMutation; hunter.OnWeaverFact -= HandleWeaver;
+            hunter.OnWebHit -= HandleWebHit;
+            if (hunter.Ticking == null) return;
+            hunter.Ticking.OnSound -= HandleTickingSound; hunter.Ticking.OnGuidance -= HandleTickingGuidance;
+            hunter.Ticking.OnNoise -= HandleTickingNoise;
+        }
+        private void HandleHunterArchetype(HunterArchetypeFact fact)
+        { if (!IsPaused) HunterArchetypePublished?.Invoke(fact); }
+        private void HandleHunterHabit(HunterHabitFact fact)
+        { if (!IsPaused) HunterHabitPublished?.Invoke(fact); }
+        private void HandleHunterMutation(HunterMutationFact fact)
+        { if (!IsPaused) HunterMutationPublished?.Invoke(fact); }
+        private void HandleWeaver(WeaverFact fact)
+        { if (!IsPaused) WeaverFactPublished?.Invoke(fact); }
+        private void HandleWebHit(WebHitFact fact)
+        {
+            if (IsPaused) return;
+            players.Find(player => player != null && player.Id == fact.Player)?.ApplyWebSlow(fact);
+            WebHitPublished?.Invoke(fact);
+        }
+        private void HandleTickingSound(TickingSoundFact fact)
+        { if (!IsPaused) TickingSoundPublished?.Invoke(fact); }
+        private void HandleTickingGuidance(TickingGuidanceFact fact)
+        { if (!IsPaused) TickingGuidancePublished?.Invoke(fact); }
+        private void HandleTickingNoise(TickingNoiseFact fact)
+        {
+            if (IsPaused) return;
+            // Director owns fan-out when bound: never also enqueue its ranged hearing path.
+            if (director != null) director.HearFloorWideNoise(fact.Noise);
+            else foreach (var hunter in HunterRegistry.Items)
+                if (hunter != null && hunter.isActiveAndEnabled) hunter.HearFloorWideNoise(fact.Noise);
+            TickingNoisePublished?.Invoke(fact);
         }
 
         private void OnDisable() { SetPaused(false); UnsubscribeGameplay(); }
@@ -571,6 +628,9 @@ namespace Worsen.Session.Run
             PlayerMovementPublished = null;
             HunterAttackPublished = null;
             HunterFeedbackPublished = null; HitAccepted = null; PickupCollected = null;
+            HunterArchetypePublished = null; HunterHabitPublished = null; HunterMutationPublished = null;
+            WeaverFactPublished = null; WebHitPublished = null; TickingSoundPublished = null;
+            TickingGuidancePublished = null; TickingNoisePublished = null;
             OnGraceStarted = null; OnGraceEnded = null;
             RoomDestructionPublished = null; CollapseHandPublished = null;
             TrapSprung = null; GuidanceChanged = null;

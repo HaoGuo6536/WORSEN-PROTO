@@ -3,13 +3,13 @@
 // ============================================================================
 // PURPOSE:
 //   Defines the pure rule seam between shared Hunter decisions and archetypes.
-//   Recording commands and observations stay Hunter-local until their shared
-//   payloads are promoted by the coordinator; no presentation types cross here.
+//   Injected world views stay Hunter-local while outward immutable facts live in
+//   Core. No presentation types cross this decision boundary.
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Carry injected tick inputs, ordered replay motion and immutable facts.
-//   - Carry duplicate indices without changing the coordinator-owned spawn DTO.
+//   - Consume shared Core facts without coupling archetypes to Session consumers.
 // DEPENDENCIES:
 //   - Core values; read-only Player, Level and Floor views in Hunter's existing order.
 // USAGE NOTES:
@@ -59,31 +59,5 @@ namespace Worsen.Domain.Hunter
         public float SpeedRatio { get; }
         public IReadOnlyList<Bounds> UnavailableRooms { get; }
     }
-    public enum HunterArchetypeFactKind { ReplayedFootstep, ReplayedDoorPassage, TrailRevealed, ReplayTruncated, RecordingOverrun }
-    public readonly struct HunterArchetypeFact
-    {
-        public HunterArchetypeFact(Worsen.Core.EntityId hunter, HunterArchetypeFactKind kind, Vector3 position,
-            long tick, long recordedTick = -1, int objectId = -1, float gain = 1f, float pitch = 1f,
-            float duration = 0f, IReadOnlyList<Vector3> path = null)
-        { Hunter = hunter; Kind = kind; Position = position; Tick = tick; RecordedTick = recordedTick;
-            ObjectId = objectId; Gain = gain; Pitch = pitch; Duration = duration;
-            Path = path == null ? System.Array.Empty<Vector3>() : new List<Vector3>(path).AsReadOnly(); }
-        public Worsen.Core.EntityId Hunter { get; }
-        public HunterArchetypeFactKind Kind { get; }
-        public Vector3 Position { get; }
-        public long Tick { get; }
-        public long RecordedTick { get; }
-        public int ObjectId { get; }
-        public float Gain { get; }
-        public float Pitch { get; }
-        public float Duration { get; }
-        public IReadOnlyList<Vector3> Path { get; }
-    }
-    public readonly struct HunterSpawnRequest
-    {
-        public HunterSpawnRequest(SpawnRequest spawn, int duplicateIndex)
-        { Spawn = spawn; DuplicateIndex = duplicateIndex; }
-        public SpawnRequest Spawn { get; }
-        public int DuplicateIndex { get; }
-    }
+
 }

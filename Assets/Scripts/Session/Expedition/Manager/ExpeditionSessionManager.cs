@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
+//   - Bind every roster hunter's world/effects views and silently restore accepted run mutations.
+//   - Route Core Echo door-passage facts to Level through paired Run subscriptions.
 //   - Assemble floor shrines, preserve shields and route Wick, Passage and Purgatory outcomes.
 //   - Snapshot catalogue cake/collapse hooks and the actual round into each non-shop Floor.
 //   - Start each spawned Player at its effective maximum, never the previous floor's current health.
@@ -35,7 +37,7 @@
 //   Shop floors contain a player and geometry, with no pickups, collapse or hunters.
 //   BeginFloor updates HorrorEffects before assembly reads its optional-window multiplier.
 //   Scenes without the effect service use neutral window density, not a second tuning source.
-//   Floor bindings pair BindWorld/UnbindWorld; late hunters receive doors on BeforeTick.
+//   Floor bindings pair BindWorld/UnbindWorld; late hunters receive all world views on BeforeTick.
 //   Fallback layouts never publish readiness. FloorReleased clears presentation even on failure.
 //   Purgatory fraction means physical Golden Cakes collected / created, not exit credit.
 //   Wick restores the first activation's lamp states; overlaps extend without replacing that snapshot.
@@ -164,6 +166,8 @@ namespace Worsen.Session.Expedition
             _run.PlayerMovementPublished += HandleMovement;
             _run.PlayerTraversalPublished += HandleTraversal;
             _run.TickAdvanced += HandleTick;
+            _run.HunterArchetypePublished += HandleArchetype;
+            _run.HunterMutationPublished += HandleMutation;
             _subscribed = true;
         }
 
@@ -182,6 +186,8 @@ namespace Worsen.Session.Expedition
             { _floor.OnPickupCollected -= HandlePickup; _floor.OnRoomDestruction -= HandleDestruction; _floor.OnRoomPhaseChanged -= HandleRoomPhase; }
             if (_run != null)
             { _run.PlayerMovementPublished -= HandleMovement; _run.PlayerTraversalPublished -= HandleTraversal; _run.TickAdvanced -= HandleTick; }
+            if (_run != null)
+            { _run.HunterArchetypePublished -= HandleArchetype; _run.HunterMutationPublished -= HandleMutation; }
             _subscribed = false;
         }
 
@@ -256,7 +262,8 @@ namespace Worsen.Session.Expedition
             player.RestoreShield(_controller.CarriedShield);
             _controller.AdmitShieldTransfer();
 
-            var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions);
+            var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
+                position => _procedural.ValidateHunterSpawn(position, out _));
             if (_state.HunterSpawnShortfall > 0)
                 Debug.LogWarning("Floor " + request.Round + ", seed " + request.Seed + ": hunter spawn shortfall=" +
                     _state.HunterSpawnShortfall + ", spawning=" + spawns.Count + ", requested=" + request.Effects.ActiveThreatBudget, this);
@@ -270,7 +277,8 @@ namespace Worsen.Session.Expedition
                 if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Generated hunter failed to register.");
                 hunter.ApplyRunSpeedMultiplier(request.Effects.HunterSpeedMultiplier);
                 hunter.SetTraits(request.Effects.Traits);
-                hunter.SetClosedDoors(_level.ClosedDoors);
+                BindHunterWorld(hunter);
+                RestoreMutations(hunter);
             }
 
             if (request.IsShop) _run.BindGameplay(null, null, null);
@@ -317,7 +325,8 @@ namespace Worsen.Session.Expedition
             if (_level != null) _level.InteractableChanged -= HandleInteractable;
             if (_run != null) _run.BeforeTick -= RouteClosedDoors;
             _director?.SetClosedDoors(null);
-            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetClosedDoors(null);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null)
+            { hunter.SetClosedDoors(null); hunter.SetInteractables(null); hunter.SetFloorView(null); hunter.SetActiveEffects(null); }
             _worldBound = false;
         }
 
@@ -333,7 +342,27 @@ namespace Worsen.Session.Expedition
         {
             if (!_worldBound || !_level.ReadOnlyState.IsReady) return;
             _director.SetClosedDoors(_level.ClosedDoors);
-            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetClosedDoors(_level.ClosedDoors);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null) BindHunterWorld(hunter);
+        }
+
+        private void BindHunterWorld(HunterManager hunter)
+        {
+            hunter.SetClosedDoors(_level.ClosedDoors);
+            hunter.SetInteractables(_level.Interactables);
+            hunter.SetFloorView(_state != null && !_state.Request.IsShop ? _floor?.ReadOnlyState : null);
+            hunter.SetActiveEffects(_progression?.EffectsSnapshot.ActiveEffects);
+        }
+        private void RestoreMutations(HunterManager hunter)
+        {
+            foreach (var mutation in _controller.RetainedMutations(hunter.ArchetypeKey))
+                if (!hunter.ApplyMutation(mutation, announce: false))
+                    throw new InvalidOperationException("Retained mutation rejected by " + hunter.ArchetypeKey + ": " + mutation.Tunable);
+        }
+        private void HandleMutation(HunterMutationFact fact) => _controller.RetainMutation(fact);
+        private void HandleArchetype(HunterArchetypeFact fact)
+        {
+            if (_worldBound && _state != null && _state.Hunters.Contains(fact.Hunter) &&
+                fact.Kind == HunterArchetypeFactKind.ReplayedDoorPassage) _level.CloseDoor(fact.ObjectId);
         }
 
         private void HandleDestruction(RoomDestructionSample sample) => _procedural.SetRoomDestruction(sample);
@@ -410,12 +439,12 @@ namespace Worsen.Session.Expedition
             {
                 if (!_procedural.ValidateHunterSpawn(position, out _) || !LateSpawnRoomAvailable(position, player.ReadOnlyState.Position) ||
                     !_spawnDriver.Validate(position, player.ReadOnlyState.Position, _spawnConfig)) continue;
-                EntityId id = _hunterFactory.Spawn(new SpawnRequest(key, position, Quaternion.identity));
+                EntityId id = _hunterFactory.Spawn(_controller.HunterSpawn(key, position));
                 _controller.RecordHunter(id);
                 if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Purgatory hunter failed to register.");
                 hunter.ApplyRunSpeedMultiplier(_state.Request.Effects.HunterSpeedMultiplier);
-                hunter.SetTraits(_state.Request.Effects.Traits); hunter.SetClosedDoors(_level.ClosedDoors);
-                hunter.SetFloorView(_floor.ReadOnlyState);
+                hunter.SetTraits(_state.Request.Effects.Traits); BindHunterWorld(hunter);
+                RestoreMutations(hunter);
                 foreach (var phase in _floor.ReadOnlyState.RoomPhases) hunter.SetRoomPhase(new RoomPhaseChangedFact(phase.Key, phase.Value, _run.Tick));
                 _run.BindAdditionalHunter(hunter);
                 if (fact.Mutation)
@@ -487,6 +516,7 @@ namespace Worsen.Session.Expedition
                 snapshot.Revision != _progression.Snapshot.Revision) return;
             _effects?.UpdateEffects(snapshot.Effects);
             if (PlayerRegistry.TryGet(_state.Player, out var currentPlayer)) currentPlayer.SetActiveEffects(activeEffects);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetActiveEffects(activeEffects);
             if (_state.Phase != ExpeditionAssemblyPhase.Ready || !_state.Request.IsShop ||
                 snapshot.GenerationId != GenerationId || snapshot.Phase != ProgressionPhase.Shop) return;
             // Unchanged baseline publication must not cancel Player's pending floor-start effects.

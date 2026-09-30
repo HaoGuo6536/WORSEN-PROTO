@@ -8,6 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Controller (section 2) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
+//   - Accept explicit floor-wide Core noise delivery without acoustic range rejection.
+//   - Include accepted rule values in Core mutation facts for silent spawn restoration.
 //   - Forget pursuit decisions on Pacification without cancelling a committed attack.
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Admit only this archetype's curse bits while retaining general run traits.
@@ -433,7 +435,7 @@ namespace Worsen.Domain.Hunter
             _state.LossSeconds = _archetype.NeverLoses ? float.PositiveInfinity : Effective(HunterTunable.LossSeconds);
             _state.LossDistance = _archetype.NeverLoses ? float.PositiveInfinity : Effective(HunterTunable.LossDistance);
             if (mutation.Tunable == HunterTunable.ThresholdPauseEnabled && mutation.Value == 0f) _state.ThresholdPauseRemaining = 0f;
-            fact = new HunterMutationFact(_state.Id, _profile.ArchetypeKey, mutation.TellId, _state.Tick);
+            fact = new HunterMutationFact(_state.Id, _profile.ArchetypeKey, mutation.TellId, _state.Tick, mutation);
             return true;
         }
         public void SetRoomPhase(RoomPhaseChangedFact fact)
@@ -471,23 +473,30 @@ namespace Worsen.Domain.Hunter
             if (sample.Source != _state.TargetId) return;
             _state.Afterimage = sample; _state.AfterimageRemaining = Finite(lifetime) ? Mathf.Clamp(lifetime, 0f, 4f) : 0f;
         }
-        public bool HearNoise(NoiseEvent noise, float transmission)
+        public bool HearNoise(NoiseEvent noise, float transmission, bool floorWide = false)
         {
-            if (_archetype.OwnsPursuit) return false;
-            if (_state.PursuitSuppressed || noise.Source == _state.Id || noise.Tick > _state.Tick || _state.HeardNoises.Contains(noise) ||
+            if (!floorWide && (_archetype.OwnsPursuit || _state.PursuitSuppressed || noise.Tick > _state.Tick)) return false;
+            if (!_state.IsActive || noise.Source == _state.Id || noise.Tick < 0 || _state.HeardNoises.Contains(noise) ||
                 !Finite(noise.Position) || !Finite(noise.Loudness) || !Finite(transmission)) return false;
             float age = (_state.Tick - noise.Tick) * _state.DeltaTime;
             if (age - Mathf.Abs(age) * 1.1920929e-7f > _profile.NoiseMaxAgeSeconds * (Cursed(ProgressionTraits.RusherBloodScent) ? 2f : 1f)) return false;
             float range = _profile.HearingRange * (Cursed(ProgressionTraits.RusherBloodScent) ? 1.35f : 1f);
-            if (!_level.IsReady || _level.Graph == null || Vector3.Distance(noise.Position, _state.Position) >= range) return false;
-            HearingSample heard = AcousticOcclusionUtility.Sample(_level.Graph, HunterNavigationUtility.RoomAt(_level.Graph, noise.Position),
-                noise.Position, HunterNavigationUtility.RoomAt(_level.Graph, _state.Position), _state.Position,
-                noise.Loudness * Mathf.Clamp01(transmission), _profile.HearingModel, _closedDoors);
-            if (!heard.Audible) return false;
+            float loudness = noise.Loudness;
+            if (!floorWide)
+            {
+                if (!_level.IsReady || _level.Graph == null || Vector3.Distance(noise.Position, _state.Position) >= range) return false;
+                HearingSample heard = AcousticOcclusionUtility.Sample(_level.Graph, HunterNavigationUtility.RoomAt(_level.Graph, noise.Position),
+                    noise.Position, HunterNavigationUtility.RoomAt(_level.Graph, _state.Position), _state.Position,
+                    noise.Loudness * Mathf.Clamp01(transmission), _profile.HearingModel, _closedDoors);
+                if (!heard.Audible) return false;
+                loudness = heard.PerceivedLoudness;
+            }
             _state.HeardNoises.Add(noise); _state.LastNoiseTick = noise.Tick;
+            // Hearing does not override Echo playback or wind a dormant Ticking down.
+            if (_archetype.OwnsPursuit || _state.PursuitSuppressed) return true;
             if (_state.PlayerVisible || _state.LungePhase != HunterLungePhase.None) return true;
-            if (_state.PendingNoiseDecision && heard.PerceivedLoudness <= _state.PendingNoiseLoudness) return true;
-            _state.PendingNoise = noise; _state.PendingNoiseLoudness = heard.PerceivedLoudness;
+            if (_state.PendingNoiseDecision && loudness <= _state.PendingNoiseLoudness) return true;
+            _state.PendingNoise = noise; _state.PendingNoiseLoudness = loudness;
             _state.PendingNoiseDecision = true; BeginDeliberation(noise.Position);
             if (!_state.IsDeliberating) ResolveNoise();
             return true;

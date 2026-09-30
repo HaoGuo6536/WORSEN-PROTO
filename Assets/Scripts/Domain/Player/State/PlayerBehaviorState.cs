@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
+//   - Keep the web timer and factor independent of grab and trap owners.
 //   - Retain an independent trap speed factor, composed with grabs by the Controller.
 //   - Accumulate external velocity deltas until one movement tick consumes them.
 //   - Store shield HP separately from regenerating and floor-reset health.
@@ -93,6 +94,8 @@ namespace Worsen.Domain.Player
         public float ReboundCooldownMultiplier { get; set; } = 1f;
         public float GrabSpeedMultiplier { get; set; } = 1f;
         public float TrapSpeedMultiplier { get; set; } = 1f;
+        public float WebSpeedMultiplier { get; set; } = 1f;
+        public float WebSlowRemaining { get; set; }
         public float StumbleRemaining { get; set; }
         public float StumbleSpeedLimit { get; set; }
         public float StumbleStartedSeconds { get; set; }

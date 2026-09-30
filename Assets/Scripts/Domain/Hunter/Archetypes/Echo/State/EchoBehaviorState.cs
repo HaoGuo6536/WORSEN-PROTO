@@ -10,12 +10,13 @@
 // KEY RESPONSIBILITIES:
 //   - Keep ring slots, cursor, pending commands and fact queue independent per body.
 // DEPENDENCIES:
-//   - Hunter value definitions; Core noise and UnityEngine vector values only.
+//   - Hunter recording values; Core replay facts and UnityEngine vector values only.
 // USAGE NOTES:
 //   No events or logic. Reset clears floor recordings, including duplicate instances.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
+using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Echo
 {
     public sealed class EchoBehaviorState

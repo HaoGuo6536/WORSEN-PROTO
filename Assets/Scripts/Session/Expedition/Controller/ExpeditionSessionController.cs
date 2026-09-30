@@ -8,6 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Expedition.
 // KEY RESPONSIBILITIES:
+//   - Allocate duplicate indices and retain accepted Core mutations without selecting new rules.
 //   - Preserve living shield between floors, time Wick and count physical Golden Cake pickups.
 //   - Reject stale requests and preserve the queued phase during deferred cleanup.
 //   - Preserve selected hunter identities and validate real room crossings for retained perks.
@@ -77,23 +78,46 @@ namespace Worsen.Session.Expedition
             return new SpawnRequest(archetype, position, rotation);
         }
 
-        public IReadOnlyList<SpawnRequest> HunterSpawns(string archetype, IReadOnlyList<Vector3> positions)
+        public IReadOnlyList<SpawnRequest> HunterSpawns(string archetype, IReadOnlyList<Vector3> positions,
+            Func<Vector3, bool> validate = null)
         {
             RequireGenerating();
             int requested = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
             if (!_state.Request.IsShop && _state.Request.Effects.ActiveThreatIds != null && _state.Request.Effects.ActiveThreatIds.Count != requested)
                 throw new InvalidOperationException("Selected hunter identities must exactly match their budget.");
-            int count = Math.Min(requested, positions?.Count ?? 0);
+            var valid = new List<Vector3>();
+            if (positions != null) foreach (var position in positions)
+                if ((validate == null || validate(position)) && !valid.Contains(position)) valid.Add(position);
+            int count = Math.Min(requested, valid.Count);
             var requests = new SpawnRequest[count];
             for (int index = 0; index < count; index++)
             {
                 string selected = _state.Request.Effects.ActiveThreatIds == null ? archetype : _state.Request.Effects.ActiveThreatIds[index];
-                ValidatePlacement(selected, positions[index]);
-                requests[index] = new SpawnRequest(selected, positions[index], Quaternion.identity);
+                requests[index] = HunterSpawn(selected, valid[index]);
             }
             _state.HunterSpawnShortfall = requested - count;
             return requests;
         }
+
+        public SpawnRequest HunterSpawn(string archetype, Vector3 position)
+        {
+            if (_state.Phase != ExpeditionAssemblyPhase.Generating && _state.Phase != ExpeditionAssemblyPhase.Ready)
+                throw new InvalidOperationException("Hunter spawning requires an assembling or ready floor.");
+            ValidatePlacement(archetype, position);
+            _state.NextDuplicate.TryGetValue(archetype, out int duplicate);
+            _state.NextDuplicate[archetype] = checked(duplicate + 1);
+            return new SpawnRequest(archetype, position, Quaternion.identity, duplicateIndex: duplicate);
+        }
+
+        public void RetainMutation(HunterMutationFact fact)
+        {
+            if (!fact.Mutation.HasValue || !_state.Hunters.Contains(fact.Hunter) || string.IsNullOrWhiteSpace(fact.ArchetypeKey)) return;
+            if (!_state.Mutations.TryGetValue(fact.ArchetypeKey, out var rules))
+                _state.Mutations.Add(fact.ArchetypeKey, rules = new Dictionary<HunterTunable, HunterMutation>());
+            rules[fact.Mutation.Value.Tunable] = fact.Mutation.Value;
+        }
+        public IReadOnlyList<HunterMutation> RetainedMutations(string archetype) =>
+            _state.Mutations.TryGetValue(archetype, out var rules) ? new List<HunterMutation>(rules.Values).AsReadOnly() : Array.Empty<HunterMutation>();
 
         public void RecordGenerationOutcome(bool usedFallback, string layoutManifest)
         {
@@ -184,7 +208,7 @@ namespace Worsen.Session.Expedition
             !_state.Request.IsShop && player == _state.Player;
 
         public void ReleaseActors()
-        { _state.Player = EntityId.None; _state.Hunters.Clear(); _state.Rooms = Array.Empty<GeneratedRoomSample>();
+        { _state.Player = EntityId.None; _state.Hunters.Clear(); _state.NextDuplicate.Clear(); _state.Rooms = Array.Empty<GeneratedRoomSample>();
           _state.RequiredAnchors.Clear(); _state.GoldenEligible.Clear(); _state.GoldenCollected.Clear();
           _state.ResolvedShrines.Clear(); _state.GoldCreated = false;
           _state.HasPreviousPosition = false; _state.PreviousRoom = 0; }
@@ -194,7 +218,7 @@ namespace Worsen.Session.Expedition
         { _state.CarriedShield = _state.ShieldTransferAllowed && alive && Finite(shield) ? Mathf.Max(0f, shield) : 0f; }
         public float CarriedShield => _state.CarriedShield;
         public void ResetRun()
-        { _state.CarriedShield = 0f; _state.ShieldTransferAllowed = false; }
+        { _state.CarriedShield = 0f; _state.ShieldTransferAllowed = false; _state.Mutations.Clear(); }
         public void AdmitShieldTransfer() => _state.ShieldTransferAllowed = true;
         public bool AcceptShrine(ShrineResolvedFact fact) => _state.Phase == ExpeditionAssemblyPhase.Ready &&
             !_state.Request.IsShop && fact.GenerationId == _state.Request.GenerationId && _state.ResolvedShrines.Add(fact.Activation.ShrineId);

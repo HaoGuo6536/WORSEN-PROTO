@@ -7,6 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
+//   - Consume promoted Core sound/guidance/noise facts with their hunter attribution.
 //   - Reject gap-separated candidates and verify key touch identity and fact routing.
 // DEPENDENCIES:
 //   - Hunter runtime/setup, Core/Player, Unity navigation, UnityEditor and NUnit.
@@ -97,9 +98,9 @@ namespace Worsen.Tests.Hunter
                 var manager = root.AddComponent<HunterManager>(); manager.Initialize(profile, new EntityContext(new EntityId(-10), new System.Random(3)), player, new EchoControllerTests.World());
                 Assert.That(manager.Ticking, Is.Not.Null);
                 var sounds = new List<string>(); var noises = new List<NoiseEvent>(); var arrows = new List<GuidanceTarget>();
-                manager.Ticking.OnSound += (_, id, __, ___, ____) => sounds.Add(id);
-                manager.Ticking.OnNoise += noises.Add;
-                manager.Ticking.OnGuidance += (target, active, tick) => { if (active) arrows.Add(target); };
+                manager.Ticking.OnSound += fact => { Assert.That(fact.Hunter, Is.EqualTo(manager.Id)); sounds.Add(fact.SoundId); };
+                manager.Ticking.OnNoise += fact => { Assert.That(fact.Hunter, Is.EqualTo(manager.Id)); noises.Add(fact.Noise); };
+                manager.Ticking.OnGuidance += fact => { if (fact.Active) arrows.Add(fact.Target); };
                 manager.SetActiveEffects(new ActiveEffects(new[] { new ActiveEffect(TickingController.LoudKeys, EffectKind.Curse, 1) }));
                 manager.Tick(30f, 1); Assert.That(sounds, Does.Contain("ticking.tick"));
                 var field = typeof(TickingManager).GetField("_controller", BindingFlags.NonPublic | BindingFlags.Instance);
