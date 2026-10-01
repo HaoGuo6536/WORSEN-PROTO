@@ -34,7 +34,11 @@ namespace Worsen.Editor.Procedural
         {
             foreach (var catalogue in catalogues) ProceduralTemplateValidationUtility.Validate(catalogue);
             Undo.RecordObject(asset, "Import room catalogues");
-            EditorJsonUtility.FromJsonOverwrite(JsonUtility.ToJson(new Snapshot { _catalogues = catalogues }), asset);
+            // JsonUtility on both sides: EditorJsonUtility expects its own wrapped format and silently
+            // wrote zero catalogues, so no theme template or kit ever reached a build (owner playtest).
+            JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(new Snapshot { _catalogues = catalogues }), asset);
+            if (new SerializedObject(asset).FindProperty("_catalogues").arraySize != catalogues.Length)
+                throw new InvalidOperationException("Room catalogue publication lost catalogues.");
             EditorUtility.SetDirty(asset); AssetDatabase.SaveAssetIfDirty(asset);
         }
         public static ProceduralTemplateCatalogue Parse(string kitJson, string roomsJson)

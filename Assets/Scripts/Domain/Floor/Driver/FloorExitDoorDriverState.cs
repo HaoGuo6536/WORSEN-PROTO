@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Retain the native Lumen threshold glow alongside moving door references.
+//   - Retain the owned visual assembly and threshold references.
 //   - Keep visible door movement and physical passage in agreement.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
 // DEPENDENCIES:
@@ -27,10 +27,8 @@ namespace Worsen.Domain.Floor
         public bool FullyOpen;
         public float Elapsed;
         public float LastClock;
-        public Transform LeftHinge;
-        public Transform RightHinge;
+        public FloorExitDoorVisual Visual;
         public BoxCollider Threshold;
-        public FloorLumenGlow Glow;
         public readonly Dictionary<int, FloorExitCrossingDriverState> Contacts = new Dictionary<int, FloorExitCrossingDriverState>();
     }
     public sealed class FloorExitCrossingDriverState

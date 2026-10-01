@@ -731,6 +731,25 @@
         "castle_stone_dark"
       ],
       "geometrySha256": "5a552c4ff29804fe7024119781eb2b55b439e015003c8d2e76da4ed9396f9134"
+    },
+    {
+      "id": "prop_vault_low_wall",
+      "file": "Castle_prop_vault_low_wall.fbx",
+      "kind": "prop",
+      "size": [
+        1.2,
+        0.9,
+        0.5
+      ],
+      "triangles": 132,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "f8dfd2aa24b8f0765f96bb79429b97bed5ffe82ff63e6727b8768f7e63221d67",
+      "traversal": "vault",
+      "collision": true
     }
   ]
 }

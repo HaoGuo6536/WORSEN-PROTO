@@ -65,7 +65,7 @@ namespace Worsen.Tests.PostFX
             var presenter = new PostFXPresenter(); presenter.Tick(state, config, .1f);
             Assert.That(state.Blackout, Is.Zero); Assert.That(state.Injury, Is.EqualTo(.5f)); Assert.That(state.Proximity, Is.EqualTo(.6f));
             Assert.That(state.IntrusionRemaining, Is.GreaterThan(0f));
-            post.SetActiveEffects(View("blinded", "new-blind")); presenter.Tick(state, config, 0f);
+            post.SetActiveEffects(View("blinded", "new-blind")); presenter.Tick(state, config, config.BlindnessOnsetSeconds);
             Assert.That(state.Blackout, Is.GreaterThan(0f));
             post.SetActiveEffects(View()); post.SetActiveEffects(View("blinded")); presenter.Tick(state, config, 0f);
             Assert.That(state.Blackout, Is.GreaterThan(0f), "Removal ends suppression for a later application of the same identity.");

@@ -2,12 +2,12 @@
 // FogDriverConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Defines the provisional spatial and optical controls for collapse fog.
-//   One shared asset keeps density generation and the raymarch in agreement.
+//   Defines readable doorway haze and the retained opt-in volumetric spike controls.
+//   Doorway mode uses exact geometry instead of a leaking, interpolated density field.
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Presentation · Fog.
 // KEY RESPONSIBILITIES:
-//   - Define the provisional cold hospital palette independently of density and progress.
+//   - Define light grey palettes and a transparent doorway layer independently of hazards.
 //   - Bound texture memory, update frequency, portal shape and absorption.
 // DEPENDENCIES:
 //   - UnityEngine serialized values only.
@@ -22,21 +22,29 @@ namespace Worsen.Presentation.Fog
     [CreateAssetMenu(menuName = "Worsen/Fog/Driver Config")]
     public sealed class FogDriverConfig : ScriptableObject
     {
+        [SerializeField] private bool _doorwayOnly = true;
+        [SerializeField] private Shader _doorwayShader = null;
+        [SerializeField, Range(0f, .5f)] private float _doorwayOpacity = .22f;
+        [SerializeField, Range(0f, .1f)] private float _doorwayInset = .02f;
+        public bool DoorwayOnly => _doorwayOnly;
+        public Shader DoorwayShader => _doorwayShader;
+        public float DoorwayOpacity => Mathf.Clamp(_doorwayOpacity, 0f, .5f);
+        public float DoorwayInset => Mathf.Clamp(_doorwayInset, 0f, .1f);
         [SerializeField, Min(.01f)] private float _horizontalVoxel = 1f;
         [SerializeField, Min(.01f)] private float _verticalVoxel = .75f;
         [SerializeField] private Vector3Int _gridCap = new Vector3Int(128, 16, 128);
         [SerializeField, Range(0f, .1f)] private float _progressEpsilon = .01f;
         [SerializeField, Min(.001f)] private float _portalMatchTolerance = .05f;
-        [SerializeField, Min(.1f)] private float _portalWidth = 3f;
-        [SerializeField, Min(.1f)] private float _portalHeight = 3f;
+        [SerializeField, Min(.1f)] private float _portalWidth = 3.2f;
+        [SerializeField, Min(.1f)] private float _portalHeight = 2.8f;
         [SerializeField, Range(.01f, 1f)] private float _mouthSoftness = .25f;
         [SerializeField, Min(.1f)] private float _leakDistance = 4f;
         [SerializeField, Range(0f, 2f)] private float _leakGrowth = 1f;
         [SerializeField, Min(.1f)] private float _verticalFalloff = 1.5f;
         [SerializeField, Range(0f, 1f)] private float _tendrilStrength = .35f;
         [SerializeField, Min(.1f)] private float _tendrilWavelength = 3f;
-        [SerializeField] private Color _bodyColor = Color.black;
-        [SerializeField] private Color _coldBodyColor = new Color(.008f, .018f, .025f, 1f);
+        [SerializeField] private Color _bodyColor = new Color(.62f, .65f, .68f, 1f);
+        [SerializeField] private Color _coldBodyColor = new Color(.58f, .66f, .7f, 1f);
         [SerializeField] private Color _coldThinColor = new Color(.22f, .4f, .5f, 1f);
         public Color ColdBodyColor => _coldBodyColor;
         public Color ColdThinColor => _coldThinColor;

@@ -13,7 +13,8 @@
 //   - Hunter configs, Core rule identities and UnityEditor asset APIs.
 // USAGE NOTES:
 //   Coordinator runs the menu in admitted idle Edit Mode after importing scripts.
-//   Mannequin waits at light boundaries and wins silently in the shared catch.
+//   Mannequin moves whenever unseen, lit or dark, and freezes silently in view;
+//   it wins silently in the shared catch. Wick still freezes it.
 //   Stare holds eye contact, returns on cadence and wins with stare.catch.
 // ============================================================================
 using System;

@@ -9,7 +9,7 @@
 //   Controller (§2) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
 //   - Validate targets/restrictions, pause Gauze while still and expire speed bursts.
-//   - Require continuous face aim, spend one charge and recharge with Steady Hand.
+//   - Require continuous enabled beam aim, expose progress and recharge with Steady Hand.
 //   - Retain throws until impact and distinguish authorized firecrackers from world noise.
 // DEPENDENCIES:
 //   - Own BehaviorState/Config; immutable Core input, effect and world observations.
@@ -33,6 +33,10 @@ namespace Worsen.Session.HorrorEffects
         public ConsumableController(ConsumableBehaviorState state, HorrorEffectsConfig config)
         { this.state = state ?? throw new ArgumentNullException(nameof(state)); this.config = config ?? throw new ArgumentNullException(nameof(config)); }
         public bool Charged => state.RechargeRemaining <= 0d;
+        public float ChargeFraction => Charged ? 1f : state.RechargeDuration > 0d
+            ? Mathf.Clamp01((float)(1d - state.RechargeRemaining / state.RechargeDuration)) : 0f;
+        public float AimFraction => config.StunAimSeconds > 0f
+            ? Mathf.Clamp01((float)(state.AimSeconds / config.StunAimSeconds)) : 0f;
         public bool Active => state.Active;
         public bool RevivalPending => state.Reviving.IsValid;
         public float SpeedMultiplier => state.BurstRemaining > 0d ? config.AdrenalineMultiplier : 1f;
@@ -117,7 +121,8 @@ namespace Worsen.Session.HorrorEffects
             state.BurstRemaining = Math.Max(0d, state.BurstRemaining - dt);
             if (playerAlive && playerVelocity.sqrMagnitude > config.MovingSpeed * config.MovingSpeed)
             { healingSeconds = (float)Math.Min(dt, state.GauzeRemaining); state.GauzeRemaining -= healingSeconds; }
-            EntityId face = playerAlive && state.Hold && light.Enabled && Charged
+            // F toggles the beam. Holding the beam on a face, not holding F, charges aim.
+            EntityId face = playerAlive && !RevivalPending && light.Enabled && Charged
                 ? Face(light, hunters, light.Range, Math.Min(light.ConeDegrees, config.StunCone)) : EntityId.None;
             if (!face.IsValid || face != state.AimTarget) state.AimSeconds = 0d;
             state.AimTarget = face;
@@ -129,6 +134,7 @@ namespace Worsen.Session.HorrorEffects
                     state.Stuns.Add(new HunterStunFact(face, config.StunSeconds, config.StunStrength, tick));
                     state.AimSeconds = 0d;
                     state.RechargeRemaining = config.StunRechargeSeconds * Math.Pow(config.SteadyHandMultiplier, Math.Max(0, steadyHandStacks));
+                    state.RechargeDuration = state.RechargeRemaining;
                 }
             }
             foreach (int id in new List<int>(state.Jams.Keys))
@@ -191,16 +197,18 @@ namespace Worsen.Session.HorrorEffects
             return result;
         }
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
-        private static bool ValidAim(FlashlightSample aim) => aim.Source.IsValid && aim.Direction.sqrMagnitude > 0f;
+        private static bool Finite(Vector3 value) => Finite(value.x) && Finite(value.y) && Finite(value.z);
+        private static bool ValidAim(FlashlightSample aim) => aim.Source.IsValid && Finite(aim.Origin) &&
+            Finite(aim.Direction) && Finite(aim.Direction.sqrMagnitude) && aim.Direction.sqrMagnitude > 0f;
         private static EntityId Face(FlashlightSample aim, IReadOnlyList<HunterFaceSample> hunters, float range, float cone)
         {
-            if (!ValidAim(aim) || hunters == null) return EntityId.None;
+            if (!ValidAim(aim) || hunters == null || !Finite(range) || range <= 0f || !Finite(cone) || cone <= 0f) return EntityId.None;
             EntityId result = EntityId.None;
             float nearest = range * range, cosine = Mathf.Cos(cone * 0.5f * Mathf.Deg2Rad);
             foreach (var sample in hunters)
             {
                 Vector3 offset = sample.Head - aim.Origin;
-                if (!sample.HunterId.IsValid || !sample.Visible || offset.sqrMagnitude <= 0f || offset.sqrMagnitude > nearest ||
+                if (!sample.HunterId.IsValid || !sample.Visible || !Finite(offset) || offset.sqrMagnitude <= 0f || offset.sqrMagnitude > nearest ||
                     Vector3.Dot(offset.normalized, aim.Direction.normalized) < cosine) continue;
                 result = sample.HunterId; nearest = offset.sqrMagnitude;
             }

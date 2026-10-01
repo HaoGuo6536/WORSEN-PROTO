@@ -104,7 +104,8 @@ namespace Worsen.Tests.Player
                     foreach (float yaw in new[] { 0f, 180f })
                     {
                         camera.transform.SetPositionAndRotation(new Vector3(3f, 1.6f, 4f), Quaternion.Euler(pitch, yaw, 0f));
-                        limbs.Apply(MovementState.Ground, config.EyeHeight, config.HandOffset, config.FootOffset, 0f, false, .02f, config);
+                        // Owner playtest 2026-09-30 removed held crouch; Slide alone suppresses swing.
+                        limbs.Apply(MovementState.Ground, config.EyeHeight, config.HandOffset, config.FootOffset, 0f, .02f, config);
                         callback.Invoke(limbs, new object[] { default(UnityEngine.Rendering.ScriptableRenderContext), camera });
                         foreach (SkinnedMeshRenderer renderer in visuals.GetComponentsInChildren<SkinnedMeshRenderer>())
                         {

@@ -11,8 +11,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Supply Blind trap, Mirror Skin and brief Glimpse outline tuning.
-//   - Configure grace easing and exact catalogue ids that enable blindness.
-//   - Expose optional re-acquire blur and bounded effect strength.
+//   - Configure red damage/low-health borders and exact catalogue ids for blindness.
+//   - Expose optional re-acquire blur and bounded, eased blindness with its own lens border.
 //   - Tune the text-free camcorder frame, constant degradation and timed intrusion/blindness.
 //   - Keep runtime envelopes out of shared assets.
 //
@@ -32,6 +32,26 @@ namespace Worsen.Presentation.PostFX
     public sealed class PostFXDriverConfig : ScriptableObject
     {
         public const float DefaultMirrorSkinDurationMultiplier = 0.5f;
+        // Safety ceiling, also enforced at evaluation for legacy serialized values of 1.
+        public const float MaximumBlindnessDarkness = 0.88f;
+        [Header("Damage border (provisional)")]
+        [SerializeField] private Color _damageVignetteColor = new Color(1f, 0.015f, 0.01f, 1f);
+        [SerializeField, Range(0f, 1f)] private float _damageVignettePeak = 0.5f;
+        [SerializeField, Range(0.01f, 1f)] private float _damageFullStrengthHealthFraction = 0.5f;
+        [SerializeField, Min(0.001f)] private float _damageFadeSeconds = 1.25f;
+        [SerializeField, Range(0.01f, 1f)] private float _damageVignetteSmoothness = 0.3f;
+        [SerializeField, Range(0.01f, 1f)] private float _lowHealthFraction = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float _lowHealthVignette = 0.25f;
+        [SerializeField, Range(0f, 1f)] private float _lowHealthPulseMultiplier = 0.5f;
+        public Color DamageVignetteColor => _damageVignetteColor;
+        public float DamageVignettePeak => _damageVignettePeak;
+        public float DamageFullStrengthHealthFraction => _damageFullStrengthHealthFraction;
+        public float DamageFadeSeconds => _damageFadeSeconds;
+        public float DamageVignetteSmoothness => _damageVignetteSmoothness;
+        public float LowHealthFraction => _lowHealthFraction;
+        public float LowHealthVignette => _lowHealthVignette;
+        public float LowHealthPulseMultiplier => _lowHealthPulseMultiplier;
+
         [Header("Old camcorder (provisional)")]
         [SerializeField] private bool _camcorderEnabled = true;
         [SerializeField, Range(0f, 1f)] private float _camcorderCorners = 0.22f;
@@ -74,7 +94,8 @@ namespace Worsen.Presentation.PostFX
         public Color GlimpseColor => _glimpseColor;
         [SerializeField, Min(0f)] private float _blindTrapSeconds = 2.5f;
         public float BlindTrapSeconds => _blindTrapSeconds;
-        [SerializeField, Range(-100f, 0f)] private float _graceSaturation = -35f;
+        [Tooltip("Legacy serialized tuning; grace no longer desaturates on hit.")]
+        [SerializeField, Range(-100f, 0f)] private float _graceSaturation = 0f;
         [SerializeField, Min(0.001f)] private float _graceEaseInSeconds = 0.12f;
         [SerializeField, Min(0.001f)] private float _graceEaseOutSeconds = 0.25f;
         public System.Collections.Generic.IReadOnlyList<string> BlindnessEffectIds => _blindnessEffectIds;
@@ -83,16 +104,35 @@ namespace Worsen.Presentation.PostFX
         public float GraceEaseOutSeconds => _graceEaseOutSeconds;
         [SerializeField, Range(0f, 1f)] private float _baselineGrain = 0.08f;
         [SerializeField, Range(0f, 1f)] private float _baselineChromatic = 0.025f;
-        [SerializeField, Range(0f, 1f)] private float _frameVignette = 0.12f;
+        [Tooltip("Legacy serialized tuning; the URP vignette is now damage-only. Camcorder framing is separate.")]
+        [SerializeField, Range(0f, 1f)] private float _frameVignette = 0f;
         [SerializeField, Range(0f, 1f)] private float _subtleIntrusionMultiplier = 0.12f;
-        [SerializeField, Range(0f, 1f)] private float _blindnessDarkness = 1f;
+        [Header("Blindness (provisional; never full black)")]
+        [Tooltip("Fraction of linear scene light removed; the presenter encodes the retained light for URP's sRGB color filter.")]
+        [SerializeField, Range(0f, MaximumBlindnessDarkness)] private float _blindnessDarkness = 0.85f;
+        [SerializeField, Min(0.001f)] private float _blindnessOnsetSeconds = 0.08f;
+        [Tooltip("Recovery occupies the final part of the supplied duration; it does not extend the hit or trap.")]
+        [SerializeField, Min(0.001f)] private float _blindnessRecoverySeconds = 0.65f;
+        [SerializeField, Range(0f, MaximumBlindnessDarkness)] private float _blindnessVignette = 0.75f;
+        [SerializeField, Range(0.01f, 1f)] private float _blindnessVignetteRadius = 1f;
+        [SerializeField, Range(0.01f, 1f)] private float _blindnessVignetteSoftness = 0.6f;
+        [SerializeField, Range(0.5f, 1.5f)] private float _blindnessBlurRadius = 1.5f;
+        [SerializeField, Range(0f, 4f)] private float _blindnessEdgeBlurPixels = 4f;
         public float BaselineGrain => _baselineGrain;
         public float BaselineChromatic => _baselineChromatic;
         public float FrameVignette => _frameVignette;
         public float SubtleIntrusionMultiplier => _subtleIntrusionMultiplier;
         public float BlindnessDarkness => _blindnessDarkness;
+        public float BlindnessOnsetSeconds => _blindnessOnsetSeconds;
+        public float BlindnessRecoverySeconds => _blindnessRecoverySeconds;
+        public float BlindnessVignette => _blindnessVignette;
+        public float BlindnessVignetteRadius => _blindnessVignetteRadius;
+        public float BlindnessVignetteSoftness => _blindnessVignetteSoftness;
+        public float BlindnessBlurRadius => _blindnessBlurRadius;
+        public float BlindnessEdgeBlurPixels => _blindnessEdgeBlurPixels;
         [SerializeField, Range(0f, 1f)] private float _peripheralChromatic = 0.25f;
         [SerializeField, Range(0f, 0.3f)] private float _peripheralDistortion = 0.12f;
+        [Tooltip("Legacy serialized tuning; replaced by the timed red damage border.")]
         [SerializeField, Range(0f, 1f)] private float _injuryVignette = 0.45f;
         [SerializeField] private bool _reacquireBlurEnabled = true;
         [SerializeField, Min(0.001f)] private float _reacquireBlurSeconds = 0.1f;

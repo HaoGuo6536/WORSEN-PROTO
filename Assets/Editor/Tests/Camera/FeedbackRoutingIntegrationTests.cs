@@ -10,7 +10,7 @@
 //   - Drive look-back with mouse deltas and require exact rear/forward snaps in the committed frame.
 //   - Observe confirmed sight, two native lunges, hold-start sting and the close-up before restart.
 //   - Verify scene-local comfort settings without modifying shared designer assets.
-//   - Preserve pursuit/injury checks and require fresh-run restoration to the degradation baseline.
+//   - Preserve pursuit checks, observe fading red injury and require zero border on fresh runs.
 //   - Inspect cue identity, clips, gain/pitch and playback with disposable music stems and legacy coverage.
 // DEPENDENCIES:
 //   Core; Player/Hunter; Session.Run; Camera/PostFX/Audio/HUD/Results/Input;
@@ -152,6 +152,7 @@ namespace Worsen.Tests.Camera
             private float elapsedFromChase = -1f, peakFov, maxFrame;
             private float detectionMaxFrame, detectionMaximumError;
             private float proximity, health = 100f;
+            private float damageElapsed, damageFraction;
             private Vector3 killer;
             private bool returnedCapture;
             private readonly List<float> healthChanges = new List<float>();
@@ -305,6 +306,7 @@ namespace Worsen.Tests.Camera
             private void Injured(EntityId id, float value, float maximum) => Guard(() =>
             {
                 Assert.That(id, Is.EqualTo(player.Id)); Assert.That(maximum, Is.EqualTo(100f));
+                damageFraction = Mathf.Max(0f, health - value) / maximum; damageElapsed = 0f;
                 health = value; healthChanges.Add(value);
                 events.Add("health=" + value + " tick=" + Run.Tick + " frame=" + Time.frameCount);
             });
@@ -406,7 +408,13 @@ namespace Worsen.Tests.Camera
                         if (ThreatLayerPlaying() && ((AudioSource)Read(audio, "_breath")).isPlaying && ((AudioSource)Read(audio, "_breath")).volume > 0f)
                             proximityFrames++;
                     }
-                    Assert.That(Effect("_vignette", "intensity"), Is.EqualTo(Mathf.Clamp01(postConfig.FrameVignette + (1f - health / 100f) * postConfig.InjuryVignette)).Within(0.0001f));
+                    damageElapsed += dt;
+                    float hit = Mathf.Clamp01(damageFraction / postConfig.DamageFullStrengthHealthFraction)
+                        * postConfig.DamageVignettePeak * Mathf.Clamp01(1f - damageElapsed / postConfig.DamageFadeSeconds);
+                    float low = Mathf.Sqrt(Mathf.Clamp01((postConfig.LowHealthFraction - health / 100f) / postConfig.LowHealthFraction))
+                        * postConfig.LowHealthVignette * (1f + postConfig.LowHealthPulseMultiplier * ((PostFXDriverState)Read(postDriver, "_state")).HeartbeatEnvelope);
+                    Assert.That(Effect("_vignette", "intensity"), Is.EqualTo(Mathf.Max(hit, low)).Within(0.0001f));
+                    Assert.That(Read(Read(Read(postDriver, "_vignette"), "color"), "value"), Is.EqualTo(postConfig.DamageVignetteColor));
                     if (health == 50f) injuryFrames++;
                     if (Deaths == 1)
                     {
@@ -475,7 +483,7 @@ namespace Worsen.Tests.Camera
                 Assert.That(Vector3.Angle(output.transform.forward, Vector3.right), Is.LessThan(0.1f));
                 Assert.That(Effect("_chromatic", "intensity"), Is.EqualTo(postConfig.BaselineChromatic).Within(0.0001f));
                 Assert.That(Effect("_distortion", "intensity"), Is.Zero);
-                Assert.That(Effect("_vignette", "intensity"), Is.EqualTo(postConfig.FrameVignette).Within(0.0001f));
+                Assert.That(Effect("_vignette", "intensity"), Is.Zero);
                 Assert.That(Effect("_grain", "intensity"), Is.EqualTo(postConfig.BaselineGrain).Within(0.0001f));
                 Assert.That(Effect("_color", "saturation"), Is.Zero);
                 Assert.That(ThreatAndGameplayLoopsSilent(), Is.True, "Restart must clear threat music and gameplay loop playback.");

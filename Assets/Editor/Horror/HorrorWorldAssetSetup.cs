@@ -11,17 +11,20 @@
 //   - Validate every required source before creating or saving owned assets.
 //   - Wire physical doors, URP castle surface copies and animated grasp hands.
 //   - Build Environment/Lumen configuration and serialize required world shader references.
-//   - Replace standalone lights with broad soft Lumen effects and extract a freestanding door leaf.
+//   - Import and map the complete weathered exit assembly without changing its hinge or axes.
 // DEPENDENCIES:
 //   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Domain Floor/Procedural configs and Presentation Environment config schemas.
-//   - UnityEditor asset/prefab APIs; imported castle and embedded Lumen 2 assets.
+//   - UnityEditor asset/prefab APIs; original exit art, imported castle and embedded Lumen 2 assets.
 // USAGE NOTES:
 //   Editor-only. Caller owns the exclusive Unity lease and scene setup. This helper
 //   never edits scenes, renderer/project settings, vendor assets or unrelated dirties.
 //   The hand FBX must be published with its exact Grasp blend shape before execution.
+//   WireConfig is the argument-free integration entry; existing designer tuning and
+//   assigned Lumen references are preserved. Exit materials retain the portal shader.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -35,8 +38,12 @@ namespace Worsen.Editor.Horror
     public static class HorrorWorldAssetSetup
     {
         private const string Castle = "Assets/External/Environment/The_Modular_Medieval_Castle/";
-        private const string DoorPath = Castle + "Prefabs/Castle/MC_Castle_Gates_A.prefab";
+        private const string DoorPath = "Assets/Art/Exit/WeatheredDoor/WORSEN_WeatheredExitDoor.fbx";
+        private const string ExitPaintPath = "Assets/Art/Exit/WeatheredDoor/ExitPaint.png";
+        private const string ExitMaterials = "Assets/Art/Exit/WeatheredDoor/Materials/";
         private const string DoorLeafPath = "Assets/Prefabs/Horror/Environment/ExitDoorLeaf.prefab";
+        private const string HorrorFloorPath = "Assets/Resources/ScriptableObjects/Domain/Floor/HorrorFloorDriverConfig.asset";
+        private const string ProceduralPath = "Assets/Resources/ScriptableObjects/Domain/Procedural/ProceduralDriverConfig.asset";
         private const string WallPath = Castle + "Materials/House/MC_Castle_Wall_A.mat";
         private const string FloorPath = Castle + "Materials/House/MC_Castle_Stone_Floor.mat";
         private const string CeilingPath = Castle + "Materials/House/MC_Floor_Board.mat";
@@ -59,6 +66,13 @@ namespace Worsen.Editor.Horror
             Castle + "Prefabs/Environment/MC_Wooden_Barrel_01.prefab",
             Castle + "Prefabs/Environment/MC_Armor_Stand.prefab", ChestPath
         };
+
+        [MenuItem("Worsen/Horror/Wire world asset references")]
+        public static void WireConfig()
+        {
+            RequireIdle();
+            Configure(RequireAsset<FloorDriverConfig>(HorrorFloorPath), RequireAsset<ProceduralDriverConfig>(ProceduralPath));
+        }
 
         public static void Configure(FloorDriverConfig floor, ProceduralDriverConfig procedural)
         {
@@ -91,26 +105,36 @@ namespace Worsen.Editor.Horror
             mistMaterial.SetTexture("_BaseMap", BuildMistFalloff()); Save(mistMaterial);
             GameObject hand = BuildHandPrefab(sourceHand, handMaterial);
 
+            ConfigureReferences(floor, procedural, door, wall, stone, ceiling, hand, crackMaterial, mistMaterial);
+        }
+
+        // Separate publication from reference repair so native tests can exercise
+        // wiring with disposable persistent assets without rebuilding the project.
+        private static void ConfigureReferences(FloorDriverConfig floor, ProceduralDriverConfig procedural,
+            GameObject door, Material wall, Material stone, Material ceiling,
+            GameObject hand, Material crackMaterial, Material mistMaterial)
+        {
+            var floorData = new SerializedObject(floor);
+            var proceduralData = new SerializedObject(procedural);
             Property(floorData, "_usePhysicalExitDoor").boolValue = true;
-            Property(floorData, "_lumenRoomWarningPrefab").objectReferenceValue = HorrorLumenStyleSetup.EnsureRoomWarning();
-            Property(floorData, "_lumenExitGlowPrefab").objectReferenceValue = HorrorLumenStyleSetup.EnsureExitGlow();
+            if (floor.LumenRoomWarningPrefab == null)
+                Property(floorData, "_lumenRoomWarningPrefab").objectReferenceValue = HorrorLumenStyleSetup.EnsureRoomWarning();
+            if (floor.LumenExitGlowPrefab == null)
+                Property(floorData, "_lumenExitGlowPrefab").objectReferenceValue = HorrorLumenStyleSetup.EnsureExitGlow();
             Property(floorData, "_exitDoorPrefab").objectReferenceValue = door;
-            Property(floorData, "_exitDoorPrefabYaw").floatValue = 90f;
-            Property(floorData, "_exitDoorMaterial").objectReferenceValue = ceiling;
-            Property(floorData, "_exitDoorOpeningDuration").floatValue = 1.2f;
-            Property(floorData, "_exitDoorOpeningAngle").floatValue = 100f;
-            Property(floorData, "_handPrefab").objectReferenceValue = hand;
-            Property(floorData, "_crackMaterial").objectReferenceValue = crackMaterial;
-            Property(floorData, "_mistMaterial").objectReferenceValue = mistMaterial;
-            Property(floorData, "_handVisualScale").floatValue = 1f;
-            Property(floorData, "_handGridWidth").intValue = 5;
-            Property(floorData, "_portalInset").floatValue = 0.25f;
-            Property(floorData, "_warningColor").colorValue = new Color(0.26f, 0.08f, 0.48f, 1f);
-            Property(floorData, "_closedColor").colorValue = new Color(0.014f, 0.006f, 0.035f, 1f);
-            Property(floorData, "_warningIntensity").floatValue = 2.2f;
-            Property(proceduralData, "_wallMaterial").objectReferenceValue = wall;
-            Property(proceduralData, "_floorMaterial").objectReferenceValue = stone;
-            Property(proceduralData, "_ceilingMaterial").objectReferenceValue = ceiling;
+            Property(floorData, "_exitDoorPrefabYaw").floatValue = 0f;
+            if (floor.ExitDoorMaterial == null) Property(floorData, "_exitDoorMaterial").objectReferenceValue = ceiling;
+            if (floor.HandPrefab == null) Property(floorData, "_handPrefab").objectReferenceValue = hand;
+            if (floor.CrackMaterial == null) Property(floorData, "_crackMaterial").objectReferenceValue = crackMaterial;
+            if (floor.MistMaterial == null) Property(floorData, "_mistMaterial").objectReferenceValue = mistMaterial;
+            // Door opening, crossing, collapse and color tunings belong to the designer.
+            // In particular, do not replace the existing exit glow color/brightness policy.
+            if (Property(proceduralData, "_wallMaterial").objectReferenceValue == null)
+                Property(proceduralData, "_wallMaterial").objectReferenceValue = wall;
+            if (Property(proceduralData, "_floorMaterial").objectReferenceValue == null)
+                Property(proceduralData, "_floorMaterial").objectReferenceValue = stone;
+            if (Property(proceduralData, "_ceilingMaterial").objectReferenceValue == null)
+                Property(proceduralData, "_ceilingMaterial").objectReferenceValue = ceiling;
             floorData.ApplyModifiedPropertiesWithoutUndo(); proceduralData.ApplyModifiedPropertiesWithoutUndo();
             Save(floor); Save(procedural);
         }
@@ -162,18 +186,47 @@ namespace Worsen.Editor.Horror
 
         private static GameObject BuildExitLeaf()
         {
+            RequireIdle();
+            var importer = AssetImporter.GetAtPath(DoorPath) as ModelImporter
+                ?? throw new InvalidOperationException("Weathered exit requires a ModelImporter: " + DoorPath);
+            if (importer.bakeAxisConversion || importer.globalScale != 1f || !importer.useFileScale ||
+                importer.addCollider || importer.importAnimation || importer.animationType != ModelImporterAnimationType.None ||
+                !importer.preserveHierarchy || importer.materialImportMode != ModelImporterMaterialImportMode.ImportStandard)
+            {
+                importer.bakeAxisConversion = false;
+                importer.globalScale = 1f; importer.useFileScale = true;
+                importer.addCollider = false; importer.importAnimation = false;
+                importer.animationType = ModelImporterAnimationType.None;
+                importer.preserveHierarchy = true;
+                importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
+                importer.SaveAndReimport();
+            }
+            // Reacquire after import; normalizing individual parts would destroy the hinge.
             GameObject imported = RequireAsset<GameObject>(DoorPath);
-            Transform source = null;
-            foreach (Transform candidate in imported.GetComponentsInChildren<Transform>(true))
-                if (candidate.name == "MC_Castle_Gates_01")
-                { if (source != null) throw new InvalidOperationException("Ambiguous imported exit leaf."); source = candidate; }
-            if (source == null) throw new InvalidOperationException("Imported castle gate is missing its standalone leaf.");
+            foreach (string name in new[] { "DoorFrame", "DoorLeaf", "Threshold", "EscapeSurface" })
+            {
+                int count = 0;
+                foreach (Transform part in imported.GetComponentsInChildren<Transform>(true))
+                    if (part.name == name && part.GetComponent<Renderer>() != null) count++;
+                if (count != 1) throw new InvalidOperationException("Weathered exit requires exactly one rendered " + name);
+            }
+            Texture2D paint = RequireAsset<Texture2D>(ExitPaintPath);
+            RequireShader("Worsen/ExitPortal"); RequireShader("Universal Render Pipeline/Lit");
+            var slots = new Dictionary<string, Material>(StringComparer.Ordinal);
+            foreach (Renderer renderer in imported.GetComponentsInChildren<Renderer>(true))
+                foreach (Material material in renderer.sharedMaterials)
+                {
+                    ExitMaterialShader(material != null ? material.name : null);
+                    if (!slots.ContainsKey(material.name)) slots.Add(material.name, material);
+                }
+            var mapped = new Dictionary<string, Material>(StringComparer.Ordinal);
+            foreach (var slot in slots) mapped.Add(slot.Key, BuildExitMaterial(slot.Value, paint, ExitMaterials));
             LoadOwned<GameObject>(DoorLeafPath);
             EnsureParent(DoorLeafPath);
-            GameObject leaf = Object.Instantiate(source.gameObject);
+            GameObject leaf = Object.Instantiate(imported);
             try
             {
-                leaf.name = "Exit Door Leaf";
+                leaf.name = "Weathered Exit Door";
                 leaf.transform.SetParent(null, false);
                 leaf.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                 leaf.transform.localScale = Vector3.one;
@@ -182,14 +235,63 @@ namespace Worsen.Editor.Horror
                 foreach (Renderer renderer in leaf.GetComponentsInChildren<Renderer>(true))
                 {
                     Material[] materials = renderer.sharedMaterials;
-                    for (int i = 0; i < materials.Length; i++) materials[i] = HorrorMaterialSetup.BuildMaterial(materials[i]);
+                    for (int i = 0; i < materials.Length; i++) materials[i] = mapped[materials[i].name];
                     renderer.sharedMaterials = materials;
+                    if (renderer.name == "EscapeSurface")
+                    { renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false; renderer.enabled = false; }
                 }
                 GameObject saved = PrefabUtility.SaveAsPrefabAsset(leaf, DoorLeafPath, out bool success);
-                if (!success || saved == null) throw new InvalidOperationException("Standalone exit leaf save failed.");
+                if (!success || saved == null) throw new InvalidOperationException("Weathered exit assembly save failed.");
                 return saved;
             }
             finally { Object.DestroyImmediate(leaf); }
+        }
+
+        private static string ExitMaterialShader(string slot)
+        {
+            switch (slot)
+            {
+                case "Exit_EscapeSurface": return "Worsen/ExitPortal";
+                case "Exit_PatinatedPaint":
+                case "Exit_WornEdges":
+                case "Exit_OldBrass":
+                case "Exit_ThresholdStone": return "Universal Render Pipeline/Lit";
+                default: throw new InvalidOperationException("Unknown or missing weathered exit material slot: " + slot);
+            }
+        }
+
+        private static Material BuildExitMaterial(Material source, Texture2D paint, string materialRoot)
+        {
+            Shader shader = RequireShader(ExitMaterialShader(source.name));
+            string path = materialRoot + source.name + ".mat";
+            Material material = LoadOwned<Material>(path);
+            if (material == null)
+            { EnsureParent(path); material = new Material(shader) { name = source.name }; AssetDatabase.CreateAsset(material, path); }
+            var desired = source.name == "Exit_EscapeSurface" ? new Material(material) : new Material(shader);
+            try
+            {
+                desired.shader = shader; desired.name = source.name; desired.enableInstancing = true;
+                if (source.name != "Exit_EscapeSurface")
+                {
+                    bool painted = source.name == "Exit_PatinatedPaint";
+                    Color color = source.HasProperty("_BaseColor") ? source.GetColor("_BaseColor") :
+                        source.HasProperty("_Color") ? source.GetColor("_Color") :
+                        throw new InvalidOperationException("Imported exit material has no exported color: " + source.name);
+                    desired.SetColor("_BaseColor", painted ? Color.white : color);
+                    desired.SetTexture("_BaseMap", painted ? paint : null);
+                    desired.SetFloat("_Smoothness", 0.22f);
+                    desired.SetFloat("_Metallic", source.name == "Exit_OldBrass" ? 0.65f : 0f);
+                }
+                // Do not repeatedly dirty/save one persistent slot for every renderer.
+                if (EditorJsonUtility.ToJson(material) != EditorJsonUtility.ToJson(desired))
+                {
+                    material.shader = shader; material.name = source.name;
+                    material.CopyPropertiesFromMaterial(desired); material.enableInstancing = true;
+                    Save(material);
+                }
+                return material;
+            }
+            finally { Object.DestroyImmediate(desired); }
         }
 
         private static GameObject RequireHandModel()

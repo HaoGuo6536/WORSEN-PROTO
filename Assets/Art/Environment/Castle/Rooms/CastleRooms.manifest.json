@@ -812,15 +812,6 @@
           "rotY": 180
         },
         {
-          "id": "prop_trestle_table",
-          "pos": [
-            3,
-            0,
-            3
-          ],
-          "rotY": 0
-        },
-        {
           "id": "prop_bench",
           "pos": [
             3,
@@ -846,6 +837,27 @@
             6.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -1256,6 +1268,27 @@
             4.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -1768,6 +1801,27 @@
             6.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -2475,6 +2529,27 @@
             8.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.25,
+            0,
+            6.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.25,
+            0,
+            5.05
+          ],
+          "endpointB": [
+            3.25,
+            0,
+            6.95
+          ]
         }
       ]
     },
@@ -3333,6 +3408,27 @@
             5.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            1.75,
+            0,
+            4.25
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            1.75,
+            0,
+            3.3
+          ],
+          "endpointB": [
+            1.75,
+            0,
+            5.2
+          ]
         }
       ]
     },
@@ -4675,6 +4771,48 @@
             12.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            5.0,
+            0,
+            4.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.0,
+            0,
+            3.05
+          ],
+          "endpointB": [
+            5.0,
+            0,
+            4.95
+          ]
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            5.0,
+            0,
+            8.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.0,
+            0,
+            7.05
+          ],
+          "endpointB": [
+            5.0,
+            0,
+            8.95
+          ]
         }
       ]
     },
@@ -6767,6 +6905,48 @@
             7.0
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.25,
+            0,
+            8.5
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.25,
+            0,
+            7.55
+          ],
+          "endpointB": [
+            3.25,
+            0,
+            9.45
+          ]
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            7.75,
+            0,
+            8.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            7.75,
+            0,
+            7.05
+          ],
+          "endpointB": [
+            7.75,
+            0,
+            8.95
+          ]
         }
       ]
     },
@@ -7373,6 +7553,27 @@
             2.0
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            6.0,
+            0,
+            1.75
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.05,
+            0,
+            1.75
+          ],
+          "endpointB": [
+            6.95,
+            0,
+            1.75
+          ]
         }
       ]
     },
@@ -8131,6 +8332,27 @@
             10.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            6.75,
+            0,
+            6.25
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            6.75,
+            0,
+            5.3
+          ],
+          "endpointB": [
+            6.75,
+            0,
+            7.2
+          ]
         }
       ]
     },
@@ -9132,6 +9354,27 @@
             12.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            6.0,
+            0,
+            2.75
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.05,
+            0,
+            2.75
+          ],
+          "endpointB": [
+            6.95,
+            0,
+            2.75
+          ]
         }
       ]
     },
@@ -9736,6 +9979,27 @@
             8.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.0,
+            0,
+            4.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            3.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            4.95
+          ]
         }
       ]
     },
@@ -10814,6 +11078,48 @@
             10.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            3.75,
+            0,
+            1.25
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            2.8,
+            0,
+            1.25
+          ],
+          "endpointB": [
+            4.7,
+            0,
+            1.25
+          ]
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            7.25,
+            0,
+            9.25
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            6.3,
+            0,
+            9.25
+          ],
+          "endpointB": [
+            8.2,
+            0,
+            9.25
+          ]
         }
       ]
     },
@@ -11028,6 +11334,27 @@
             8.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            4.0,
+            0,
+            3.0
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.05,
+            0,
+            3.0
+          ],
+          "endpointB": [
+            4.95,
+            0,
+            3.0
+          ]
         }
       ],
       "anchors": {
@@ -11921,6 +12248,48 @@
             3.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            2.0,
+            0,
+            3.25
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            1.05,
+            0,
+            3.25
+          ],
+          "endpointB": [
+            2.95,
+            0,
+            3.25
+          ]
+        },
+        {
+          "id": "prop_vault_low_wall",
+          "pos": [
+            4.75,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.75,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            4.75,
+            0,
+            2.95
+          ]
         }
       ]
     }

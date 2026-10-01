@@ -2,16 +2,16 @@
 // FloorExitDoor.cs
 // ============================================================================
 // PURPOSE:
-//   Builds a freestanding medieval double door on slim grounded supports, with
-//   imported leaves fitted to the colliders that block passage until they swing.
+//   Operates a lone weathered door whose single leaf reveals a front-only escape.
+//   Its owned visual assembly keeps the hinge, aperture and collision aligned.
 //   Locked contact does nothing; open exits require deliberate crossing.
 //   Explicit timing and crossing observations keep the transition reproducible.
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by FloorDriver · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Keep visible door movement and physical passage in agreement.
-//   - Fit rotated imported art in an aligned wrapper so width and depth stay correct.
-//   - Fade a native Lumen threshold effect with the same opening progress.
+//   - Delegate art and escape rendering to the owned visual sub-driver.
+//   - Apply pure opening transitions using the injected Floor clock.
 //   - Expose continuous normalized opening progress.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
 // DEPENDENCIES:
@@ -39,111 +39,45 @@ namespace Worsen.Domain.Floor
         public float OpeningProgress => _config == null ? 0f : _presenter.OpeningProgress(_state.Elapsed, _config.ExitDoorOpeningDuration);
         public void Configure(FloorDriverConfig config, Material wood, Material stone, Material seal)
         {
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            Teardown();
             _config = config;
-            _state.Opening = false; _state.FullyOpen = false; _state.Elapsed = 0f; _state.LastClock = 0f; _state.Contacts.Clear();
+            _presenter.Reset(_state);
             _state.Threshold = GetComponent<BoxCollider>();
             _state.Threshold.isTrigger = true;
             _state.Threshold.size = new Vector3(config.ExitSize.x, config.ExitSize.y, Mathf.Max(config.ExitSize.z, config.ExitCrossingDistance * 2f + 0.6f));
             _state.Threshold.center = Vector3.up * (config.ExitSize.y * 0.5f);
             _state.Threshold.enabled = true;
-            float width = config.ExitSize.x, height = config.ExitSize.y, post = 0.14f;
-            Block("Left Door Support", transform, new Vector3(-width*0.5f-post*0.5f,height*0.5f,0f),new Vector3(post,height,0.22f),wood);
-            Block("Right Door Support", transform,new Vector3(width*0.5f+post*0.5f,height*0.5f,0f),new Vector3(post,height,0.22f),wood);
-            Block("Door Crossbar",transform,new Vector3(0f,height+post*0.5f,0f),new Vector3(width+post*2f,post,0.22f),wood);
-            Block("Left Grounded Foot",transform,new Vector3(-width*0.5f-post*0.5f,0.06f,0f),new Vector3(0.22f,0.12f,0.65f),stone);
-            Block("Right Grounded Foot",transform,new Vector3(width*0.5f+post*0.5f,0.06f,0f),new Vector3(0.22f,0.12f,0.65f),stone);
-            _state.LeftHinge = Hinge("Left Hinged Door",-1f,wood,seal);
-            _state.RightHinge = Hinge("Right Hinged Door",1f,wood,seal);
-            var keyStone = Block("Exit Seal",transform,new Vector3(0f,height+0.07f,-0.15f),new Vector3(0.2f,0.2f,0.07f),seal);
-            keyStone.GetComponent<Collider>().enabled=false;
-            var lightRoot=new GameObject("Exit Threshold Glow");lightRoot.transform.SetParent(transform,false);
-            lightRoot.transform.localPosition=new Vector3(0f,height*0.75f,0.55f);
-            _state.Glow=lightRoot.AddComponent<FloorLumenGlow>();
-            _state.Glow.Configure(config.LumenExitGlowPrefab,Mathf.Max(width,height)*2f,config.ExitLockedColor,0.3f,true);
+            var root = new GameObject("Standalone Exit Assembly");
+            root.transform.SetParent(transform, false);
+            _state.Visual = root.AddComponent<FloorExitDoorVisual>();
+            _state.Visual.Configure(config, wood, stone, seal);
         }
-        public void Open()
-        {
-            if (_state.Opening || _state.FullyOpen) return;
-            _state.Opening = true; _state.Elapsed = 0f; _state.Contacts.Clear();
-        }
+        public void Open() { if (_config != null) _presenter.Open(_state); }
         public void Tick(float clock)
         {
-            if (_config == null || float.IsNaN(clock) || float.IsInfinity(clock)) return;
-            float dt=Mathf.Max(0f,clock-_state.LastClock);_state.LastClock=clock;
-            if (!_state.Opening || _state.FullyOpen) return;
-            _state.Elapsed += dt;
-            float progress=OpeningProgress;
-            float angle=_presenter.HingeAngle(progress,_config.ExitDoorOpeningAngle);
-            _state.LeftHinge.localRotation=Quaternion.Euler(0f,-angle,0f);
-            _state.RightHinge.localRotation=Quaternion.Euler(0f,angle,0f);
-            _state.Glow.SetAppearance(Color.Lerp(_config.ExitLockedColor,_config.ExitOpenColor,progress),Mathf.Lerp(0.3f,2.5f,progress));
-            if(progress>=1f)
-            {
-                _state.FullyOpen=true;_state.Opening=false;_state.Contacts.Clear();
-                _state.Threshold.enabled=true;
-            }
+            if (_config == null) return;
+            float previous = _state.Elapsed;
+            _presenter.Tick(_state, clock, _config.ExitDoorOpeningDuration);
+            if (_state.Elapsed == previous) return;
+            float progress = OpeningProgress;
+            _state.Visual.Apply(_presenter.HingeAngle(progress, _config.ExitDoorOpeningAngle), progress);
             Physics.SyncTransforms();
         }
-        private Transform Hinge(string name,float side,Material wood,Material seal)
+        public void Teardown()
         {
-            float half=_config.ExitSize.x*0.5f,height=_config.ExitSize.y;
-            var root=new GameObject(name);root.transform.SetParent(transform,false);
-            root.transform.localPosition=new Vector3(side*half,0f,0f);
-            Vector3 center=new Vector3(-side*half*0.5f,height*0.5f,0f);
-            var collision=Block("Door Leaf Collision",root.transform,center,new Vector3(half-0.015f,height,0.18f),wood);
-            if(_config.ExitDoorPrefab!=null)
+            if (_state.Visual != null)
             {
-                collision.GetComponent<Renderer>().enabled=false;
-                // Fitting ratios are measured in hinge axes. Keep the fitting
-                // parent aligned with those axes while imported art keeps its
-                // required yaw; scaling the rotated mesh swaps width and depth.
-                var fitRoot=new GameObject("Fitted Door Leaf");fitRoot.transform.SetParent(root.transform,false);
-                var visual=Instantiate(_config.ExitDoorPrefab,fitRoot.transform,false);visual.name="Medieval Door Panel";
-                foreach(var behavior in visual.GetComponentsInChildren<MonoBehaviour>(true))behavior.enabled=false;
-                foreach(var animator in visual.GetComponentsInChildren<Animator>(true))animator.enabled=false;
-                foreach(var collider in visual.GetComponentsInChildren<Collider>(true))collider.enabled=false;
-                visual.transform.localRotation=Quaternion.Euler(0f,_config.ExitDoorPrefabYaw,0f);
-                FitPanel(fitRoot.transform,root.transform,center,new Vector3(half-0.015f,height,0.18f));
+                _state.Visual.gameObject.SetActive(false);
+                if (Application.isPlaying) Destroy(_state.Visual.gameObject);
+                else DestroyImmediate(_state.Visual.gameObject);
             }
-            else
-            {
-                for(int i=1;i<4;i++)
-                    Block("Forged Iron Strap",root.transform,center+new Vector3(0f,(i-2)*height*0.28f,-0.11f),
-                        new Vector3(half-0.03f,0.09f,0.045f),seal).GetComponent<Collider>().enabled=false;
-            }
-            return root.transform;
+            _state.Visual = null;
+            if (_state.Threshold != null) _state.Threshold.enabled = false;
+            _config = null;
+            _presenter.Reset(_state);
         }
-        private static GameObject Block(string name,Transform parent,Vector3 position,Vector3 size,Material material)
-        {
-            var part=GameObject.CreatePrimitive(PrimitiveType.Cube);part.name=name;part.transform.SetParent(parent,false);
-            part.transform.localPosition=position;part.transform.localScale=size;
-            part.GetComponent<Renderer>().sharedMaterial=material;return part;
-        }
-        private static void FitPanel(Transform visual,Transform hinge,Vector3 targetCenter,Vector3 targetSize)
-        {
-            var renderers=visual.GetComponentsInChildren<Renderer>(true);
-            if(renderers.Length==0)return;
-            var bounds=LocalBounds(renderers,hinge);
-            visual.localScale=Vector3.Scale(visual.localScale,new Vector3(targetSize.x/Mathf.Max(0.001f,bounds.size.x),
-                targetSize.y/Mathf.Max(0.001f,bounds.size.y),targetSize.z/Mathf.Max(0.001f,bounds.size.z)));
-            bounds=LocalBounds(renderers,hinge);
-            visual.localPosition += targetCenter-bounds.center;
-        }
-        private static Bounds LocalBounds(Renderer[] renderers,Transform parent)
-        {
-            Bounds bounds=default;bool first=true;
-            foreach(var renderer in renderers)
-            {
-                var local=renderer.localBounds;
-                for(int corner=0;corner<8;corner++)
-                {
-                    Vector3 point=local.center+Vector3.Scale(local.extents,new Vector3((corner&1)==0?-1f:1f,(corner&2)==0?-1f:1f,(corner&4)==0?-1f:1f));
-                    point=parent.InverseTransformPoint(renderer.transform.TransformPoint(point));
-                    if(first){bounds=new Bounds(point,Vector3.zero);first=false;}else bounds.Encapsulate(point);
-                }
-            }
-            return bounds;
-        }
+        private void OnDestroy() => Teardown();
         private void Observe(Collider other)
         {
             if (!isActiveAndEnabled || _config == null || !_state.Threshold.enabled ||

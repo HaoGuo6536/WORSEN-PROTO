@@ -2,7 +2,7 @@
 // PostFXGraceTests.cs
 // ============================================================================
 // PURPOSE:
-//   Tests grace desaturation and catalogue blindness independently of the renderer.
+//   Tests neutral grace color and catalogue blindness independently of the renderer.
 //   The real Run relay subscription path is exercised with owned state injection.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · PostFX.
@@ -37,16 +37,19 @@ namespace Worsen.Tests.PostFX
         [TearDown] public void TearDown() => Object.DestroyImmediate(_config);
         private GraceWindowFact Grace(long tick) => new GraceWindowFact(new EntityId(1), tick, tick + 60, HitSeverity.Heavy);
 
-        [Test] public void GraceEasesInAndOutWithoutClearingStrongerIntrusion()
+        [Test] public void GraceRetainsEnvelopeWithoutDesaturatingOrClearingIntrusion()
         {
             _presenter.SetGrace(_state, Grace(1), true);
             _presenter.Tick(_state, _config, _config.GraceEaseInSeconds / 2f);
-            Assert.That(_state.Saturation, Is.EqualTo(-17.5f).Within(.0001f));
+            Assert.That(_state.GraceWeight, Is.EqualTo(.5f).Within(.0001f));
+            Assert.That(_state.Saturation, Is.Zero);
             _presenter.Tick(_state, _config, _config.GraceEaseInSeconds / 2f);
-            Assert.That(_state.Saturation, Is.EqualTo(-35f));
+            Assert.That(_state.GraceWeight, Is.EqualTo(1f));
+            Assert.That(_state.Saturation, Is.Zero);
             _presenter.SetGrace(_state, Grace(1), false);
             _presenter.Tick(_state, _config, _config.GraceEaseOutSeconds / 2f);
-            Assert.That(_state.Saturation, Is.EqualTo(-17.5f).Within(.0001f));
+            Assert.That(_state.GraceWeight, Is.EqualTo(.5f).Within(.0001f));
+            Assert.That(_state.Saturation, Is.Zero);
             _presenter.Tick(_state, _config, _config.GraceEaseOutSeconds / 2f);
             Assert.That(_state.Saturation, Is.Zero);
             _presenter.SetGrace(_state, Grace(100), true);

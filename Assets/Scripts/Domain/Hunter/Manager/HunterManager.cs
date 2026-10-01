@@ -9,7 +9,7 @@
 //   Manager (section 1), Entity system - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Own per-life controllers, factory-created module and paired driver subscriptions.
-//   - Sequence sensing, navigation, committed motion and presentation commands.
+//   - Sequence sensing/navigation or opt-in kinematic replay and presentation commands.
 //   - Gate shared and specialised contacts on Player revival protection before acceptance.
 //   - Route accepted catch/chase (including Mannequin snap), reactions, effects and world inputs.
 //   - Publish archetype, attack, habit, mutation and navigation evidence facts.
@@ -23,6 +23,8 @@
 //   BeginCatch must follow Session damage acceptance, never an unconfirmed contact.
 //   A Stalk reveal hold (HoldPosition) uses the motor's stopped input to discard inertia.
 //   Mutation restoration uses announce=false; only newly accepted mutations publish tells.
+//   Kinematic replay records while absent, bypasses the shared motor and publishes
+//   contact hits through OnLungeHit's existing ordinary-hit route without rebound.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -130,10 +132,27 @@ namespace Worsen.Domain.Hunter
             _driver.ConfigureAttackFeedback(context.Id, profile.ArchetypeKey);
             _module = factory.CreateModule(gameObject, profile.ArchetypeRules);
             _module.InitializeModule(archetype, profile, _driver, _controller, _state, player, this);
+            if (_controller.KinematicReplay != null)
+            {
+                _driver.ConfigureKinematicReplay();
+                _driver.MoveKinematicReplay(_controller.KinematicReplay.ReplayActive,
+                    _controller.KinematicReplay.ReplayPose, _controller.KinematicReplay.ReplayPoses, 0f);
+                _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+            }
         }
         public void Tick(float dt, long tick)
         {
-            if (_controller == null || !_state.IsActive || !(dt > 0f) || float.IsInfinity(dt)) return;
+            if (_controller == null || (!_state.IsActive && _controller.KinematicReplay == null) || !(dt > 0f) || float.IsInfinity(dt)) return;
+            if (_controller.KinematicReplay != null)
+            {
+                _controller.Tick(default, dt, tick);
+                IHunterKinematicReplayRules replay = _controller.KinematicReplay;
+                _driver.MoveKinematicReplay(replay.ReplayActive, replay.ReplayPose, replay.ReplayPoses, dt);
+                _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+                if (replay.ReplayActive) _driver.Animate(dt, 0, 0f);
+                while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact replayFact)) OnArchetypeFact?.Invoke(replayFact);
+                return;
+            }
             if (_module != null && !_module.PrepareTick(dt, tick)) return;
             bool sample = _controller.NeedsViewObservation || _controller.ShouldProbe(tick);
             if (_controller.NeedsViewObservation)
@@ -203,6 +222,12 @@ namespace Worsen.Domain.Hunter
             if (_controller == null || _controller.PlayerRevivalProtected) return;
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle == null) return;
+            if (_controller.KinematicReplay != null)
+            {
+                _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+                if (_controller.TryAcceptContact(handle.Id, out HunterHit contactHit)) OnLungeHit?.Invoke(contactHit);
+                return;
+            }
             Vector3 normal = _driver.ContactNormal(collider);
             if (_module?.HandlesContact ?? false)
             {
@@ -239,7 +264,7 @@ namespace Worsen.Domain.Hunter
         public void SetChaseActive(bool active) { _controller?.SetChaseActive(active); }
         public void BeginCatch(Vector3 playerPosition)
         {
-            if (_controller == null || _state.CatchActive) return;
+            if (_controller == null || _controller.KinematicReplay != null || _state.CatchActive) return;
             _module?.BeforeCatch();
             _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
             _module?.BeginCatch();

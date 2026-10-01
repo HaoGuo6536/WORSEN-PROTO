@@ -2,19 +2,19 @@
 // FloorFreestandingExitTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies that the exit is a grounded freestanding assembly and that rotated
-//   imported door art fits its actual moving collider. The gate can open without
-//   placing oversized facade geometry into the central room's walking routes.
+//   Verifies the project-made door's imported axes, hinge and fixed aperture.
+//   The single moving leaf must fit its collision throughout opening. This native
+//   fixture also checks visibility reset and explicit teardown without saving assets.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Domain · Floor visual and physical integration.
 // KEY RESPONSIBILITIES:
-//   - Compare imported leaf bounds with collision before and after opening.
-//   - Check grounded supports, bounded footprint and the bail-enabled threshold.
+//   - Compare imported leaf width/height with collision across its swing.
+//   - Check fixed aperture, grounded frame and repeatable configuration teardown.
 // DEPENDENCIES:
 //   NUnit, UnityEditor AssetDatabase, UnityEngine and Floor-owned door/config types.
 // USAGE NOTES:
 //   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
-//   Edit Mode only. Reads the imported castle leaf asset without modifying it.
+//   Native Edit Mode only; coordinator runs after FBX/shader import.
 //   Creates only temporary objects/materials and destroys them after each test.
 // ============================================================================
 using System;
@@ -32,61 +32,75 @@ namespace Worsen.Tests.Floor
     public sealed class FloorFreestandingExitTests
     {
         [Test]
-        public void ImportedLeafFitsItsColliderAfterYawAndKeepsThatFitWhileOpening()
+        public void ImportedSingleLeafKeepsItsHingeFitAndRevealsAFixedAperture()
         {
-            GameObject root = null;
+            GameObject root = null, template = null;
+            FloorExitDoor door = null;
             FloorDriverConfig config = null;
-            Material material = null;
+            Material material = null, escapeMaterial = null;
             try
             {
                 Assert.That(Application.isPlaying, Is.False);
-                var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/External/Environment/The_Modular_Medieval_Castle/Prefabs/Castle/MC_Castle_Gates_A.prefab");
+                var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Exit/WeatheredDoor/WORSEN_WeatheredExitDoor.fbx");
                 Assert.That(source, Is.Not.Null);
-                var leaf = source.GetComponentsInChildren<Transform>(true).Single(item => item.name == "MC_Castle_Gates_01").gameObject;
-                Assert.That(leaf.GetComponentsInChildren<Renderer>(true).Length, Is.EqualTo(1), "Use the leaf child, never its surrounding castle facade.");
+                template = Object.Instantiate(source); template.SetActive(false);
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Shaders/ExitPortal.shader");
+                Assert.That(shader, Is.Not.Null); Assert.That(shader.isSupported, Is.True);
+                escapeMaterial = new Material(shader);
+                template.GetComponentsInChildren<Renderer>(true).Single(item => item.name == "EscapeSurface").sharedMaterial = escapeMaterial;
                 config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
-                typeof(FloorDriverConfig).GetField("_exitDoorPrefab", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, leaf);
+                typeof(FloorDriverConfig).GetField("_exitDoorPrefab", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, template);
                 material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 root = new GameObject("Freestanding exit test");
                 root.transform.position = new Vector3(51000f, 0f, 51000f);
-                var door = root.AddComponent<FloorExitDoor>();
+                door = root.AddComponent<FloorExitDoor>();
                 door.Configure(config, material, material, material);
-                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.True, "Locked overlap arms early bail.");
+                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.True);
                 AssertFitted(root);
-                var supports = root.GetComponentsInChildren<BoxCollider>().Where(item => item.name.Contains("Support") || item.name.Contains("Grounded Foot")).ToArray();
-                Assert.That(supports.Length, Is.EqualTo(4));
+                var escape = root.GetComponentsInChildren<Renderer>(true).Single(item => item.name == "EscapeSurface");
+                var plane = escape.transform.localToWorldMatrix;
+                Assert.That(escape.enabled, Is.False);
+                var supports = root.GetComponentsInChildren<BoxCollider>(true).Where(item => item.name.Contains("Support")).ToArray();
+                Assert.That(supports.Length, Is.EqualTo(2));
                 foreach (var support in supports)
                 {
-                    var localMin = support.transform.localPosition.y - support.transform.localScale.y * 0.5f;
+                    var localMin = support.center.y - support.size.y * 0.5f;
                     Assert.That(localMin, Is.EqualTo(0f).Within(0.0001f));
-                    Assert.That(Mathf.Abs(support.transform.localPosition.x) + support.transform.localScale.x * 0.5f, Is.LessThanOrEqualTo(1.2f));
-                    Assert.That(support.transform.localScale.z, Is.LessThanOrEqualTo(0.65f));
+                    Assert.That(Mathf.Abs(support.center.x) + support.size.x * 0.5f, Is.LessThanOrEqualTo(1.2f));
                 }
-                Assert.That(root.GetComponentsInChildren<Transform>().Any(item => item.name.StartsWith("Stone ")), Is.False);
+                Assert.That(root.GetComponentsInChildren<Transform>(true).Any(item => item.name.Contains("Medieval") || item.name == "Exit Seal"), Is.False);
                 door.Open(); door.Tick(config.ExitDoorOpeningDuration * 0.5f);
-                Assert.That(root.GetComponent<BoxCollider>().enabled, Is.True, "Observe gates crossing until fully open.");
+                Assert.That(escape.enabled, Is.True);
+                Assert.That(escape.transform.localToWorldMatrix, Is.EqualTo(plane));
                 AssertFitted(root);
                 door.Tick(config.ExitDoorOpeningDuration);
                 Assert.That(door.FullyOpen, Is.True);
                 Assert.That(root.GetComponent<BoxCollider>().enabled, Is.True);
                 AssertFitted(root);
+                door.Configure(config, material, material, material);
+                Assert.That(escape == null, Is.True, "Reconfiguration releases the previous hierarchy.");
+                Assert.That(root.GetComponentsInChildren<FloorExitDoorVisual>(true).Length, Is.EqualTo(1));
+                Assert.That(door.OpeningProgress, Is.Zero);
             }
             finally
             {
+                if (door != null) door.Teardown();
                 if (root != null) Object.DestroyImmediate(root);
+                if (template != null) Object.DestroyImmediate(template);
                 if (config != null) Object.DestroyImmediate(config);
                 if (material != null) Object.DestroyImmediate(material);
+                if (escapeMaterial != null) Object.DestroyImmediate(escapeMaterial);
             }
         }
 
         private static void AssertFitted(GameObject root)
         {
-            var hinges = root.GetComponentsInChildren<Transform>().Where(item => item.name.Contains("Hinged Door")).ToArray();
-            Assert.That(hinges.Length, Is.EqualTo(2));
+            var hinges = root.GetComponentsInChildren<Transform>(true).Where(item => item.name == "DoorLeaf").ToArray();
+            Assert.That(hinges.Length, Is.EqualTo(1));
             foreach (var hinge in hinges)
             {
-                var collision = hinge.GetComponentsInChildren<BoxCollider>().Single(item => item.name == "Door Leaf Collision");
-                var imported = hinge.GetComponentsInChildren<Renderer>().Single(item => item.name != "Door Leaf Collision");
+                var collision = hinge.GetComponentsInChildren<BoxCollider>(true).Single(item => item.name == "Door Leaf Collision");
+                var imported = hinge.GetComponent<Renderer>();
                 // Compare bounds expressed in the hinge frame rather than world
                 // bounds: opening rotates both pieces and must preserve their fit.
                 var local = imported.localBounds;
@@ -97,8 +111,12 @@ namespace Worsen.Tests.Floor
                     point = hinge.InverseTransformPoint(imported.transform.TransformPoint(point));
                     if (corner == 0) actual = new Bounds(point, Vector3.zero); else actual.Encapsulate(point);
                 }
-                Assert.That(Vector3.Distance(actual.center, collision.transform.localPosition), Is.LessThan(0.025f));
-                Assert.That(Vector3.Distance(actual.size, collision.transform.localScale), Is.LessThan(0.025f));
+                Assert.That(Vector3.Distance(hinge.localPosition, Vector3.left), Is.LessThan(.001f), "Hinge origin must survive FBX conversion.");
+                Assert.That(actual.center.x, Is.EqualTo(collision.center.x).Within(.025f));
+                Assert.That(actual.center.y, Is.EqualTo(collision.center.y).Within(.025f));
+                Assert.That(actual.size.x, Is.EqualTo(collision.size.x).Within(.025f));
+                Assert.That(actual.size.y, Is.EqualTo(collision.size.y).Within(.025f));
+                Assert.That(actual.size.z, Is.LessThan(.34f), "Handles decorate the outside of the .16 m physical slab.");
                 Assert.That(collision.enabled, Is.True);
                 Assert.That(collision.isTrigger, Is.False);
             }

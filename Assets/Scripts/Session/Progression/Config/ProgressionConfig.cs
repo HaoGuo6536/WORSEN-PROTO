@@ -127,7 +127,7 @@ namespace Worsen.Session.Progression
             new ProgressionEntryConfig("weaver", "THE WEAVER", "Adds a ceiling hunter whose webs block safe routes."),
             new ProgressionEntryConfig("ticking", "THE TICKING", "Adds a moving clock; collect keys before it winds down."),
             new ProgressionEntryConfig("ram", "THE RAM", "Adds a charging hunter that commits to a straight line."),
-            new ProgressionEntryConfig("mannequin", "THE MANNEQUIN", "Adds a hunter that moves only in darkness while unobserved."),
+            new ProgressionEntryConfig("mannequin", "THE MANNEQUIN", "Adds a hunter that moves whenever unseen and freezes while observed."),
             new ProgressionEntryConfig("mimic", "THE MIMIC", "Adds false cakes that punish careless collection."),
             new ProgressionEntryConfig("blinder", "THE BLINDER", "Adds traps and projectiles that remove vision."),
             new ProgressionEntryConfig("skip", "THE SKIP", "Adds a hunter that intercepts reused routes."),

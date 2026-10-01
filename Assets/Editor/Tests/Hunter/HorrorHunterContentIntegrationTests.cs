@@ -64,7 +64,7 @@ namespace Worsen.Tests.Hunter
             new[] { "weaver-stickier-webs", "weaver-wider-webs", "weaver-doorway-nests", "weaver-quick-spin" },
             new[] { "ticking-runs-faster", "ticking-farther-keys", "ticking-loud-keys", "ticking-double-spring" },
             new[] { "ram-longer-charge", "ram-shorter-windup", "ram-partition-breaker", "ram-second-charge" },
-            new[] { "mannequin-fewer-lamps", "mannequin-longer-strides", "mannequin-broken-lights", "mannequin-peripheral-creep" },
+            new[] { "mannequin-longer-strides", "mannequin-peripheral-creep" },
             new[] { "mimic-more-mimics", "mimic-golden-mimic", "mimic-faithless-arrow", "mimic-longer-bite" },
             new[] { "blinder-more-traps", "blinder-longer-dark", "blinder-muffled-dark", "blinder-silent-traps" },
             new[] { "skip-shorter-cooldown", "skip-quicker-learner", "skip-wider-reach", "skip-no-tell" },

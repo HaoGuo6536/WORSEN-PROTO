@@ -11,7 +11,7 @@
 //   Sub-driver (§7e), owned by ProgressionUIDriver · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Paint a cut-corner card and vector emblem with visible keyboard focus.
+//   - Paint a compact cut-corner card, an inline title emblem and visible keyboard focus.
 //   - Keep unavailable offers focusable for inspection, and scroll focused cards into view.
 //   - Pair native Button and focus callbacks across rebinding and teardown.
 //
@@ -59,8 +59,8 @@ namespace Worsen.Presentation.ProgressionUI
             _button.style.minWidth = 0;
             _button.style.flexBasis = config.CardWidth;
             _button.style.marginRight = _button.style.marginBottom = config.Spacing * .5f;
-            _button.style.paddingLeft = _button.style.paddingRight = config.Spacing;
-            _button.style.paddingTop = _button.style.paddingBottom = config.Spacing;
+            _button.style.paddingLeft = _button.style.paddingRight = config.Spacing * .75f;
+            _button.style.paddingTop = _button.style.paddingBottom = config.Spacing * .75f;
             _button.style.backgroundColor = Color.clear;
             _button.style.backgroundImage = new StyleBackground(StyleKeyword.None);
             _button.style.borderLeftWidth = _button.style.borderRightWidth = 0;
@@ -76,24 +76,33 @@ namespace Worsen.Presentation.ProgressionUI
             _button.RegisterCallback<PointerLeaveEvent>(OnPointerLeave);
             container.Add(_button);
 
+            // The emblem sits inline with the title so a card spends its height on text, not chrome.
+            var header = new VisualElement { name = "choice-header", pickingMode = PickingMode.Ignore };
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems = Align.Center;
+            header.style.alignSelf = Align.Stretch;
+            _button.Add(header);
             _emblem = new VisualElement { name = "choice-emblem", pickingMode = PickingMode.Ignore };
-            _emblem.style.width = _emblem.style.height = config.Spacing * 2;
-            _emblem.style.marginBottom = config.Spacing;
+            _emblem.style.width = _emblem.style.height = config.Spacing;
+            _emblem.style.flexShrink = 0;
+            _emblem.style.marginRight = config.Spacing * .5f;
             _emblem.generateVisualContent += PaintEmblem;
-            _button.Add(_emblem);
-            _title = Text("choice-title", config.FontSize, _button);
+            header.Add(_emblem);
+            _title = Text("choice-title", config.FontSize, header);
             _title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _title.style.flexShrink = 1;
+            _title.style.whiteSpace = WhiteSpace.Normal;
             _description = Text("choice-description", config.FontSize * .83f, _button);
             _description.style.whiteSpace = WhiteSpace.Normal;
-            _description.style.marginTop = config.Spacing * .5f;
-            _description.style.minHeight = config.FontSize * 3.6f;
+            _description.style.marginTop = config.Spacing * .35f;
             _description.style.flexGrow = 1;
             _detail = Text("choice-detail", config.FontSize * .65f, _button);
             _detail.style.color = config.MutedColor;
-            _detail.style.marginTop = config.Spacing;
+            _detail.style.whiteSpace = WhiteSpace.Normal;
+            _detail.style.marginTop = config.Spacing * .35f;
             _action = Text("choice-action", config.FontSize * .78f, _button);
             _action.style.letterSpacing = 1.5f;
-            _action.style.marginTop = config.Spacing;
+            _action.style.marginTop = config.Spacing * .5f;
         }
 
         public void Apply(ProgressionUICard model, int revision, bool pending)
@@ -104,8 +113,9 @@ namespace Worsen.Presentation.ProgressionUI
             _title.text = model.Title ?? "";
             _description.text = model.Description ?? "";
             _detail.text = model.Detail ?? "";
+            _detail.style.display = string.IsNullOrEmpty(model.Detail) ? DisplayStyle.None : DisplayStyle.Flex;
             _action.text = pending ? "CONFIRMING..." : model.Action;
-            _button.tooltip = model.Description + "\n" + model.Detail;
+            _button.tooltip = string.IsNullOrEmpty(model.Detail) ? model.Description : model.Description + "\n" + model.Detail;
             _button.SetEnabled(!pending);
             _button.style.opacity = model.Enabled ? 1f : .78f;
             _button.MarkDirtyRepaint();

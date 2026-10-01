@@ -401,7 +401,8 @@ namespace Worsen.Tests.Expedition
             var modelSignatures = new HashSet<string>();
             foreach (var hunter in HunterRegistry.Items)
             {
-                Assert.That(hunter.ReadOnlyState.IsActive, Is.True);
+                // Echo is deliberately inactive until its replay delay elapses (owner rule).
+                Assert.That(hunter.ReadOnlyState.IsActive || hunter.ArchetypeKey == "echo", Is.True);
                 Assert.That(hunter.ReadOnlyState.Id, Is.EqualTo(hunter.Id));
                 var animation = hunter.GetComponentInChildren<HunterAnimationDriver>(true);
                 Assert.That(animation, Is.Not.Null);

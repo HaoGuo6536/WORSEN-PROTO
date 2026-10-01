@@ -40,10 +40,10 @@ namespace Worsen.Tests.Floor
                 Assert.That(trigger.enabled,Is.True,"The threshold remains ready to observe later open crossings.");
                 Physics.SyncTransforms();
                 Assert.That(Physics.Raycast(f.Origin+new Vector3(0.25f,1.5f,-1f),Vector3.forward,2f,~0,QueryTriggerInteraction.Ignore),Is.True);
-                var hinges=f.Root.GetComponentsInChildren<Transform>().Where(t=>t.name.Contains("Hinged Door")).ToArray();
-                Assert.That(hinges.Length,Is.EqualTo(2));
+                var hinges=f.Root.GetComponentsInChildren<Transform>().Where(t=>t.name=="DoorLeaf").ToArray();
+                Assert.That(hinges.Length,Is.EqualTo(1));
                 var leaves=f.Root.GetComponentsInChildren<BoxCollider>().Where(c=>c.name=="Door Leaf Collision").ToArray();
-                Assert.That(leaves.Length,Is.EqualTo(2));Assert.That(leaves.All(c=>c.enabled&&!c.isTrigger),Is.True);
+                Assert.That(leaves.Length,Is.EqualTo(1));Assert.That(leaves.All(c=>c.enabled&&!c.isTrigger),Is.True);
                 f.Driver.OpenExit(Array.Empty<LevelAnchor>());
                 f.Driver.TickWarnings(0.6f);
                 Assert.That(trigger.enabled,Is.True);Assert.That(f.Door.Opening,Is.True);
@@ -81,6 +81,21 @@ namespace Worsen.Tests.Floor
                 var old=f.Door;Assert.That(old.FullyOpen,Is.True);
                 f.Initialize();Assert.That(old==null,Is.True);
                 Assert.That(f.Door.FullyOpen,Is.False);Assert.That(f.Door.GetComponent<BoxCollider>().enabled,Is.True);
+            }
+        }
+        [Test] public void ReverseAndSideContactsNeverReachTheFloor()
+        {
+            using (var f = new Fixture())
+            {
+                int contacts = 0; f.Driver.ExitContact += _ => contacts++;
+                f.Driver.OpenExit(Array.Empty<LevelAnchor>()); f.Driver.TickWarnings(1.2f);
+                foreach (var position in new[] { new Vector3(0f, 1f, .6f), new Vector3(0f, 1f, -.6f),
+                    new Vector3(1.5f, 1f, 0f), new Vector3(0f, 1f, .6f) })
+                {
+                    f.Actor.transform.position = f.Origin + position; Physics.SyncTransforms();
+                    Invoke(f.Door, "OnTriggerStay", f.Actor.GetComponent<Collider>());
+                }
+                Assert.That(contacts, Is.Zero);
             }
         }
         private static void Invoke(FloorExitDoor door,string method,Collider actor)

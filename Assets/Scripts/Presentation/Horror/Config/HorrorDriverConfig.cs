@@ -13,7 +13,7 @@
 //   - Tune Weaver warnings, micro-events and the earned-startle budget.
 //   - Bind catalogue lighting effects and supply Afterglow visual strengths.
 //   - Hold authored audio, warning materials and Lumen fake-light prefabs.
-//   - Tune collapse darkness, fog distances and smoothed torch loss.
+//   - Keep collapse fog distances and torch budgets readable; stronger darkness remains opt-in.
 //   - Tune the flashlight and its wall-limited close fill.
 //
 // DEPENDENCIES:
@@ -42,11 +42,11 @@ namespace Worsen.Presentation.Horror
         public Shader WebShader => _webShader;
         [Header("Deep dark in collapse (provisional)")]
         [SerializeField, Min(0f)] private float _sweepFogNearMeters = 24f;
-        [SerializeField, Min(0f)] private float _collapsedFogNearMeters = 10f;
+        [SerializeField, Min(0f)] private float _collapsedFogNearMeters = 24f;
         [SerializeField, Range(0f, 1f)] private float _encroachingCollapseWeight = 0.5f;
         [SerializeField, Min(0f)] private float _collapseSmoothingSeconds = 2f;
         [SerializeField, Range(0f, 1f)] private float _sweepTorchCountMultiplier = 1f;
-        [SerializeField, Range(0f, 1f)] private float _collapsedTorchCountMultiplier = 0.4f;
+        [SerializeField, Range(0f, 1f)] private float _collapsedTorchCountMultiplier = 1f;
         public float SweepFogNearMeters => _sweepFogNearMeters;
         public float CollapsedFogNearMeters => _collapsedFogNearMeters;
         public float EncroachingCollapseWeight => _encroachingCollapseWeight;

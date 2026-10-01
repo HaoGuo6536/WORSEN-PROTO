@@ -5,7 +5,9 @@
 // PURPOSE:
 //   Builds the progression status bar and modal frame with vector chrome.
 //   Choice cards are inserted by the owning Driver. This surface applies supplied
-//   text and exposes continue/restart clicks without deciding progression.
+//   text and exposes continue/restart clicks without deciding progression. The
+//   modal is ordered so the title, one stats line, the cards and the actions fit
+//   a 1920x1080 reference panel; the retained roster sits last, in columns.
 //
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by ProgressionUIDriver · Presentation · ProgressionUI.
@@ -14,8 +16,8 @@
 //   - Draw responsive panels and shelter-only health text and gauge with Painter2D.
 //   - Apply presenter health visibility to both readouts without deriving phase rules here.
 //   - Suppress the legacy in-run status panel; HUD owns the only in-run counts.
-//   - Keep long retained lists in their own scroll area and keyboard focus visible.
-//   - Preserve readable text and native keyboard/mouse buttons in a scrollable modal.
+//   - Lay retained sections out as bounded side-by-side columns; keep keyboard focus visible.
+//   - Keep actions and one short controls hint beside each other in a scrollable modal.
 //
 // DEPENDENCIES:
 //   Own display state, DriverConfig and geometry Presenter; Core phase values.
@@ -28,6 +30,7 @@
 // ============================================================================
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Worsen.Core;
@@ -36,11 +39,13 @@ namespace Worsen.Presentation.ProgressionUI
 {
     public sealed class ProgressionUIVisualDriver : MonoBehaviour
     {
+        private static readonly string[] SectionBreak = { "\n\n" };
         private ProgressionUIDriverConfig _config;
         private ProgressionUIDriverState _state;
         private readonly ProgressionUIGeometryPresenter _geometry = new ProgressionUIGeometryPresenter();
-        private VisualElement _root, _status, _gauge, _modal, _panel;
-        private Label _round, _wallet, _health, _title, _subtitle, _burdens, _retained, _message;
+        private readonly List<Label> _retainedColumns = new List<Label>();
+        private VisualElement _root, _status, _gauge, _modal, _panel, _retainedScroll, _retainedRow;
+        private Label _round, _wallet, _health, _title, _subtitle, _burdens, _message, _help;
         private Button _continue, _restart;
         public VisualElement CardContainer { get; private set; }
         public event Action<int> ContinueClicked;
@@ -84,56 +89,53 @@ namespace Worsen.Presentation.ProgressionUI
             var scroll = new ScrollView(ScrollViewMode.Vertical) { name = "progression-scroll" };
             scroll.style.width = config.PanelWidth;
             scroll.style.maxWidth = Length.Percent(92);
-            scroll.style.maxHeight = Length.Percent(90);
+            scroll.style.maxHeight = Length.Percent(94);
             scroll.style.flexShrink = 1;
             _modal.Add(scroll);
             _panel = Element("progression-panel", scroll);
             _panel.style.minWidth = 0;
-            _panel.style.paddingLeft = _panel.style.paddingRight = config.Spacing * 1.5f;
-            _panel.style.paddingTop = _panel.style.paddingBottom = config.Spacing * 1.25f;
+            _panel.style.paddingLeft = _panel.style.paddingRight = config.Spacing * 1.25f;
+            _panel.style.paddingTop = _panel.style.paddingBottom = config.Spacing;
             _panel.generateVisualContent += PaintPanel;
-            var brand = Text("progression-brand", _panel, config.FontSize * .65f);
-            brand.text = "W O R S E N";
-            brand.style.color = config.WarningColor;
-            brand.style.letterSpacing = 3;
-            _title = Text("progression-title", _panel, config.FontSize * 1.55f);
+            _title = Text("progression-title", _panel, config.FontSize * 1.4f);
             _title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _title.style.marginTop = config.Spacing * .5f;
-            _subtitle = Text("progression-subtitle", _panel, config.FontSize * .8f);
-            _subtitle.style.color = config.MutedColor;
-            _subtitle.style.marginTop = config.Spacing * .5f;
             _burdens = Text("retained-counts", _panel, config.FontSize * .65f);
-            _burdens.style.marginTop = config.Spacing;
+            _burdens.style.color = config.MutedColor;
+            _burdens.style.marginTop = config.Spacing * .25f;
+            _subtitle = Text("progression-subtitle", _panel, config.FontSize * .8f);
+            _subtitle.style.marginTop = config.Spacing * .25f;
             _health = Text("health", _panel, config.FontSize * .65f);
-            _health.style.marginTop = config.Spacing * .5f;
+            _health.style.marginTop = config.Spacing * .25f;
             _gauge = Element("health-gauge", _panel);
             _gauge.style.height = config.StrokeWidth * 3;
-            _gauge.style.marginTop = config.Spacing * .3f;
+            _gauge.style.marginTop = config.Spacing * .2f;
             _gauge.generateVisualContent += PaintHealth;
             CardContainer = Element("progression-cards", _panel);
             CardContainer.style.flexDirection = FlexDirection.Row;
             CardContainer.style.flexWrap = Wrap.Wrap;
-            CardContainer.style.marginTop = config.Spacing;
+            CardContainer.style.marginTop = config.Spacing * .75f;
             _message = Text("progression-feedback", _panel, config.FontSize * .8f);
-            _message.style.marginTop = config.Spacing * .5f;
-            var retainedScroll = new ScrollView(ScrollViewMode.Vertical) { name = "retained-scroll" };
-            retainedScroll.style.maxHeight = config.RetainedMaximumHeight;
-            retainedScroll.style.marginTop = config.Spacing;
-            _panel.Add(retainedScroll);
-            _retained = Text("retained-choices", retainedScroll, config.FontSize * .65f);
-            _retained.style.color = config.MutedColor;
+            _message.style.marginTop = config.Spacing * .25f;
             var buttons = Element("progression-actions", _panel);
             buttons.style.flexDirection = FlexDirection.Row;
             buttons.style.flexWrap = Wrap.Wrap;
-            buttons.style.marginTop = config.Spacing;
+            buttons.style.alignItems = Align.Center;
+            buttons.style.marginTop = config.Spacing * .5f;
             _continue = ActionButton("continue-button", "CONTINUE", buttons);
             _restart = ActionButton("progression-restart-button", "START AGAIN", buttons);
             _continue.clicked += OnContinue;
             _restart.clicked += OnRestart;
-            var help = Text("menu-controls", _panel, config.FontSize * .6f);
-            help.text = "TAB / SHIFT+TAB  FOCUS     ENTER / SPACE  CONFIRM     ESC / BACK  LEAVE SHOP";
-            help.style.color = config.MutedColor;
-            help.style.marginTop = config.Spacing;
+            _help = Text("menu-controls", buttons, config.FontSize * .6f);
+            _help.style.color = config.MutedColor;
+            _help.style.flexGrow = 1;
+            _help.style.unityTextAlign = TextAnchor.MiddleRight;
+            _retainedScroll = new ScrollView(ScrollViewMode.Vertical) { name = "retained-scroll" };
+            _retainedScroll.style.maxHeight = config.RetainedMaximumHeight;
+            _retainedScroll.style.marginTop = config.Spacing * .75f;
+            _panel.Add(_retainedScroll);
+            _retainedRow = Element("retained-choices", _retainedScroll);
+            _retainedRow.style.flexDirection = FlexDirection.Row;
+            _retainedRow.style.flexWrap = Wrap.Wrap;
         }
 
         public void Apply(ProgressionUIDriverState state)
@@ -150,15 +152,39 @@ namespace Worsen.Presentation.ProgressionUI
             _health.style.display = state.HealthVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _gauge.style.display = state.HealthVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _title.text = state.Title;
-            _subtitle.text = state.RoundText + "  /  " + state.WalletText + "\n" + state.Subtitle;
-            _burdens.text = state.BurdenText;
-            _retained.text = state.RetainedText;
+            _burdens.text = state.RoundText + "  ·  " + state.WalletText + "  ·  " + state.BurdenText;
+            _subtitle.text = state.Subtitle;
+            _subtitle.style.display = string.IsNullOrEmpty(state.Subtitle) ? DisplayStyle.None : DisplayStyle.Flex;
             _message.text = state.Pending ? "Waiting for confirmation..." : state.Message;
+            _message.style.display = string.IsNullOrEmpty(_message.text) ? DisplayStyle.None : DisplayStyle.Flex;
             _continue.style.display = state.CanContinue ? DisplayStyle.Flex : DisplayStyle.None;
             _restart.style.display = state.CanRestart ? DisplayStyle.Flex : DisplayStyle.None;
             _continue.SetEnabled(!state.Pending && state.CanContinue);
             _restart.SetEnabled(!state.Pending && state.CanRestart);
+            _help.text = state.CanContinue ? "ENTER  SELECT     ESC  CONTINUE" : "ENTER  SELECT";
+            bool actionable = state.Cards.Length > 0 || state.CanContinue || state.CanRestart;
+            _help.style.display = actionable ? DisplayStyle.Flex : DisplayStyle.None;
+            ApplyRetained(state.RetainedText);
             _gauge.MarkDirtyRepaint();
+        }
+
+        private void ApplyRetained(string text)
+        {
+            // The presenter separates roster sections with a blank line; each becomes a column.
+            var sections = string.IsNullOrEmpty(text) ? Array.Empty<string>() : text.Split(SectionBreak, StringSplitOptions.RemoveEmptyEntries);
+            while (_retainedColumns.Count > sections.Length)
+            { _retainedColumns[_retainedColumns.Count - 1].RemoveFromHierarchy(); _retainedColumns.RemoveAt(_retainedColumns.Count - 1); }
+            while (_retainedColumns.Count < sections.Length)
+            {
+                var column = Text("retained-section", _retainedRow, _config.FontSize * .65f);
+                column.style.color = _config.MutedColor;
+                column.style.flexBasis = _config.CardWidth * .75f;
+                column.style.flexGrow = 1;
+                column.style.marginRight = column.style.marginBottom = _config.Spacing * .5f;
+                _retainedColumns.Add(column);
+            }
+            for (int i = 0; i < sections.Length; i++) _retainedColumns[i].text = sections[i];
+            _retainedScroll.style.display = sections.Length == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         public bool FocusPrimary()
@@ -181,9 +207,10 @@ namespace Worsen.Presentation.ProgressionUI
             if (_restart != null) _restart.clicked -= OnRestart;
             ReleaseButton(_continue); ReleaseButton(_restart);
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
-            _root = _status = _gauge = _modal = _panel = CardContainer = null;
+            _root = _status = _gauge = _modal = _panel = _retainedScroll = _retainedRow = CardContainer = null;
             _continue = _restart = null;
-            _round = _wallet = _health = _title = _subtitle = _burdens = _retained = _message = null;
+            _round = _wallet = _health = _title = _subtitle = _burdens = _message = _help = null;
+            _retainedColumns.Clear();
             _state = null;
         }
 

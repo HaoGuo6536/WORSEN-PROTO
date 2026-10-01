@@ -441,6 +441,18 @@
         2.0
       ],
       "kind": "prop"
+    },
+    {
+      "id": "prop_vault_low_locker",
+      "file": "School_prop_vault_low_locker.fbx",
+      "size": [
+        1.2,
+        0.8,
+        0.5
+      ],
+      "kind": "prop",
+      "traversal": "vault",
+      "collision": true
     }
   ]
 }

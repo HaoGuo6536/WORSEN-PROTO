@@ -12,14 +12,11 @@
 //   Owned only by InputManager; calculation and buffering use InputFramePresenter.
 //
 // KEY RESPONSIBILITIES:
-//   - Capture consumable edges independently of flashlight and look-back controls.
-//   - Apply runtime look preferences and pause without interrupting the recording lifetime.
-//   - Create and dispose the gameplay map without editing the Unity template asset.
-//   - Capture device facts and ask the Presenter to buffer or publish one frame.
-//   - Own InputRecorder; select one source and clear stale live input on every switch.
-//   - Pair Input System subscriptions and clear pending input on disable or focus loss.
-//   - Capture the cursor only for ready, focused live gameplay; release it for UI.
-//   - Publish Escape/gamepad Start independently of the gameplay input gate.
+//   - Own gameplay and independent pause actions, pairing all device subscriptions.
+//   - Buffer device facts, direct inventory selection and press-to-slide bindings.
+//   - Own InputRecorder and select one source without stale input across switches.
+//   - Clear pending gameplay input on disable, readiness loss or focus loss.
+//   - Capture the cursor only for ready, focused live gameplay and restore it at teardown.
 //
 // DEPENDENCIES:
 //   - Core InputFrame/InputButtons; Unity Input System; the Input presentation stack.
@@ -32,9 +29,11 @@
 //     returning to ready live input locks/hides it. UI action maps remain independent.
 //   - Changes no global Input System settings; an uninitialized duplicate owns no cursor.
 //   - Bindings: WASD/arrows or left stick move; mouse/right stick look; left Shift/left
-//   - stick press hold to sprint; Space/south jump or cancel slide; C/east crouch/slide;
-//   - Tab/right stick press look back; E/west interact; F/left shoulder flashlight;
-//   - Q/right shoulder consume; wheel or D-pad left/right cycle. Template asset untouched.
+//   - stick press hold to sprint; Space/south jump or cancel slide; C/east press to slide;
+//   - Q or Tab/right stick press look back; E/west interact; F/left shoulder flashlight;
+//   - Left click/right shoulder consume; wheel or D-pad left/right cycle. Template asset untouched.
+//   - 1/2/3 select physical slots; emitted before the same tick's frame through the owner.
+//   - Direct selection needs a Core/replay contract extension before recorded playback supports it.
 //   - Serialized _config wins; Resources fallback warns and uses ephemeral defaults if absent.
 //   - Gamepad turn rate uses the render elapsed time passed to the Presenter.
 //   - Pause uses a separate owned action, available while gameplay is gated but not unfocused/disabled.
@@ -69,6 +68,7 @@ namespace Worsen.Presentation.Input
 
         public event Action<InputFrame> FrameCaptured;
         public event Action PausePressed;
+        public event Action<int> SlotSelected;
         public InputSource Source => _recorder == null ? InputSource.Live : _recorder.Source;
         public InputProbeRecord CurrentPlaybackRecord => _recorder == null ? default : _recorder.CurrentPlaybackRecord;
         public string LastRecordingPath => _recorder == null ? "" : _recorder.LastRecordingPath;
@@ -151,7 +151,11 @@ namespace Worsen.Presentation.Input
                     RefreshActions();
                 }
                 else
+                {
+                    int selected = _presenter.FlushSelectedSlot(_state);
+                    if (selected >= 0) SlotSelected?.Invoke(selected);
                     frame = _presenter.Flush(_state);
+                }
                 FrameCaptured?.Invoke(frame);
             }
         }
@@ -248,6 +252,7 @@ namespace Worsen.Presentation.Input
             Teardown();
             FrameCaptured = null;
             PausePressed = null;
+            SlotSelected = null;
         }
 
         private void OnApplicationFocus(bool focused)
@@ -327,12 +332,20 @@ namespace Worsen.Presentation.Input
                 return;
             }
 
+            switch (context.action.name)
+            {
+                case "SelectSlot1": if (context.performed) _presenter.SelectSlot(_state, 0); return;
+                case "SelectSlot2": if (context.performed) _presenter.SelectSlot(_state, 1); return;
+                case "SelectSlot3": if (context.performed) _presenter.SelectSlot(_state, 2); return;
+            }
+
             InputButtons button;
             switch (context.action.name)
             {
                 case "Sprint": button = InputButtons.Sprint; break;
                 case "Jump": button = InputButtons.Jump; break;
-                case "Crouch": button = InputButtons.Crouch; break;
+                // Preserve the Core/replay bit; holding it no longer requests a posture.
+                case "Slide": button = InputButtons.Crouch; break;
                 case "LookBack": button = InputButtons.LookBack; break;
                 case "Interact": button = InputButtons.Interact; break;
                 case "UseItem": button = InputButtons.UseItem; break;
@@ -368,13 +381,17 @@ namespace Worsen.Presentation.Input
             _look.AddBinding("<Gamepad>/rightStick");
             AddButton("Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftStickPress");
             AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
-            AddButton("Crouch", "<Keyboard>/c", "<Gamepad>/buttonEast");
-            AddButton("LookBack", "<Keyboard>/tab", "<Gamepad>/rightStickPress");
+            AddButton("Slide", "<Keyboard>/c", "<Gamepad>/buttonEast");
+            AddButton("LookBack", "<Keyboard>/q", "<Gamepad>/rightStickPress");
+            _actions["LookBack"].AddBinding("<Keyboard>/tab");
             AddButton("Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             AddButton("UseItem", "<Keyboard>/f", "<Gamepad>/leftShoulder");
-            AddButton("UseConsumable", "<Keyboard>/q", "<Gamepad>/rightShoulder");
+            AddButton("UseConsumable", "<Mouse>/leftButton", "<Gamepad>/rightShoulder");
             AddButton("CycleConsumable", "<Mouse>/scroll/up", "<Gamepad>/dpad/right");
             AddButton("CycleConsumablePrevious", "<Mouse>/scroll/down", "<Gamepad>/dpad/left");
+            _actions.AddAction("SelectSlot1", InputActionType.Button, "<Keyboard>/1");
+            _actions.AddAction("SelectSlot2", InputActionType.Button, "<Keyboard>/2");
+            _actions.AddAction("SelectSlot3", InputActionType.Button, "<Keyboard>/3");
         }
 
         private void AddButton(string name, string keyboardPath, string gamepadPath)

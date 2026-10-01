@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "Protection",
+  "source": "ArtSource/Shrine/Protection/WORSEN_ShrineProtection.blend",
+  "export": "Assets/Art/Shrine/Protection/WORSEN_ShrineProtection.fbx",
+  "units": "metres",
+  "authoring_axes": "Z up, -Y front",
+  "unity_axes": "Y up, -Z front",
+  "bakeAxisConversion": false,
+  "height": 1.33,
+  "footprint": [
+    0.86,
+    0.83
+  ],
+  "bounds_blender": {
+    "min": [
+      -0.4300000071525574,
+      -0.45000001788139343,
+      0.0
+    ],
+    "max": [
+      0.4300000071525574,
+      0.3799999952316284,
+      1.3299999237060547
+    ]
+  },
+  "interaction_blender": [
+    0,
+    -0.405,
+    0.3
+  ],
+  "interaction_unity": [
+    0,
+    0.3,
+    -0.405
+  ],
+  "triangles": 752,
+  "materials": [
+    {
+      "name": "M_ShrineBody",
+      "color_srgb": [
+        0.24,
+        0.27,
+        0.29
+      ],
+      "emission": 0,
+      "roughness": 0.82
+    },
+    {
+      "name": "M_ShrineAccent",
+      "color_srgb": [
+        0.5,
+        0.6,
+        1
+      ],
+      "emission": 0.65,
+      "roughness": 0.82
+    }
+  ],
+  "runtime_contract": "Static mesh only; two named material slots; no colliders or scripts. Authored scale, not fallback Size."
+}

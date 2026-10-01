@@ -10,7 +10,7 @@
 //   Manager (§1) · Presentation · PostFX (Service system).
 //
 // KEY RESPONSIBILITIES:
-//   - Forward independent cleanse, revival, grace and catch commands.
+//   - Forward independent health/heartbeat, cleanse, revival, grace and catch commands.
 //   - Expose Blind trap duration and forward injected effects and hunter-rim strength.
 //   - Forward runtime blur preferences without editing designer configuration.
 //   - Initialize and pair the owned Driver lifetime with mirrored config fallback.
@@ -61,6 +61,7 @@ namespace Worsen.Presentation.PostFX
         public void SetLookBack(bool held) { if (_initialized) _driver.SetLookBack(held); }
         public void SetHunterRim(float strength) { if (_initialized) _driver.SetHunterRim(strength); }
         public void SetInjury(float currentHealth, float maxHealth) { if (_initialized) _driver.SetInjury(currentHealth, maxHealth); }
+        public void SetHeartbeatEnvelope(float strength) { if (_initialized) _driver.SetHeartbeatEnvelope(strength); }
         public void PlayReacquireBlur() { if (_initialized) _driver.PlayReacquireBlur(); }
         public void SetReacquireBlurEnabled(bool enabled) { if (_initialized) _driver.SetReacquireBlurEnabled(enabled); }
         public void PlayIntrusion(float seconds) { if (_initialized) _driver.PlayIntrusion(seconds); }

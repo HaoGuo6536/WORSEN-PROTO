@@ -7,7 +7,7 @@
 # ARCHITECTURAL ROLE: Offline acceptance tool; outside Unity runtime layers.
 # KEY RESPONSIBILITIES:
 #   - Verify v1 kit gates with the new School's authored dimensions and surfaces.
-#   - Check end caps, floor/wall support, attached leaves and ceiling/enclosure.
+#   - Check end caps, support, enclosure and non-blocking vault density/clearance.
 #   - Verify saved assemblies, preview provenance and dark-scene light sources.
 #   - Regenerate twice and compare manifests and imported geometry when requested.
 # DEPENDENCIES: Blender 5.2, bundled FBX parser/NumPy, Python standard library;
@@ -581,6 +581,8 @@ def main():
     room_details=validate_catalogue(rooms,lookup)
     negatives=negative_controls(rooms,lookup,records)
     placement_regressions(rooms['templates'],lookup,{k:v['points'] for k,v in records.items()})
+    from validate_env_theme_vaults import validate_vaults
+    validate_vaults(rooms['templates'], lookup, {k:v['points'] for k,v in records.items()})
     check_door_previews('school', REPORT)
     validate_sources(rooms,records)
     previews=validate_previews(rooms)
