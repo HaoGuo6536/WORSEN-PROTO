@@ -4,14 +4,14 @@
 // PURPOSE:
 //   Positions optional generated blocky arms or legacy hands in first-person view.
 //   Hidden by default; the editor generator opts in only when the rigged art exists.
-//   Camera rendering supplies the final pose so pitch, interpolation and look-back
-//   cannot drag the hands through the near plane. Feet remain hidden.
+//   Camera rendering supplies final eye and yaw while arms hang independently of
+//   head pitch/roll. Injected movement ticks drive eased walking swing. Feet stay hidden.
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by PlayerDriver · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Position hand roots using all descendant renderer bounds and the final lens.
+//   - Position shoulder roots using descendant renderer bounds and the final lens.
 //   - Hide all limbs on teardown, pairing render callbacks with enable/disable.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Store local swing phase/envelope; delegate all pose math to the Presenter.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -39,6 +39,8 @@ namespace Worsen.Domain.Player
         private bool _visible;
         private Renderer[] _leftRenderers;
         private Renderer[] _rightRenderers;
+        private float _swingPhase;
+        private float _swingEnvelope;
 
         private void OnEnable() { RenderPipelineManager.beginCameraRendering += BeforeCameraRendering; }
         private void OnDisable()
@@ -47,10 +49,19 @@ namespace Worsen.Domain.Player
             Apply(MovementState.Ground, 0f, Vector3.zero, Vector3.zero);
         }
 
-        public void Apply(MovementState movement, float eyeHeight, Vector3 handOffset, Vector3 footOffset)
+        public void Apply(MovementState movement, float eyeHeight, Vector3 handOffset, Vector3 footOffset,
+            float horizontalSpeed = 0f, bool crouched = false, float deltaTime = 0f, PlayerMoverDriverConfig config = null)
         {
             _visible = _showHands && eyeHeight > 0f;
             _handOffset = handOffset;
+            if (!_visible || config == null) { _swingPhase = 0f; _swingEnvelope = 0f; }
+            else
+            {
+                float target = _presenter.SwingTarget(movement, crouched, horizontalSpeed,
+                    config.ArmSwingDegrees, config.ArmSwingReferenceSpeed);
+                _presenter.StepSwing(_swingPhase, _swingEnvelope, target, config.ArmSwingDegrees,
+                    config.ArmSwingFrequency, config.ArmSwingEaseSeconds, deltaTime, out _swingPhase, out _swingEnvelope);
+            }
             if (_leftHand != null)
             {
                 _leftHand.SetActive(_visible);
@@ -77,18 +88,26 @@ namespace Worsen.Domain.Player
         private void PlaceHand(GameObject hand, Renderer[] renderers, Camera camera, bool left)
         {
             if (hand == null) return;
-            hand.transform.rotation = camera.transform.rotation;
+            Vector3 forward = camera.transform.forward;
+            Quaternion yaw = _presenter.YawRotation(forward, transform.forward);
+            Quaternion rotation = _presenter.ArmRotation(yaw, _presenter.SwingAngle(_swingPhase, _swingEnvelope, left));
+            Vector3 shoulder = _presenter.ShoulderOffset(_handOffset, left, yaw);
+            // Set the candidate pose first: renderer.bounds must reflect this render's
+            // yaw/swing, not the previous camera callback or interpolated parent pose.
+            hand.transform.SetPositionAndRotation(camera.transform.position + shoulder, rotation);
             float rearExtent = 0f;
             if (renderers != null)
                 foreach (Renderer renderer in renderers)
                 {
                     if (renderer == null) continue;
                     Bounds bounds = renderer.bounds;
+                    renderer.enabled = !_presenter.BelowView(bounds.center - camera.transform.position,
+                        bounds.extents, forward, camera.transform.up, camera.fieldOfView);
                     rearExtent = Mathf.Max(rearExtent, _presenter.RearExtent(
-                        bounds.center - hand.transform.position, bounds.extents, camera.transform.forward));
+                        bounds.center - hand.transform.position, bounds.extents, forward));
                 }
-            Vector3 offset = _presenter.HandOffset(_handOffset, left, camera.nearClipPlane, rearExtent);
-            hand.transform.SetPositionAndRotation(camera.transform.TransformPoint(offset), camera.transform.rotation);
+            Vector3 offset = _presenter.ClearNearPlane(shoulder, forward, camera.nearClipPlane, rearExtent);
+            hand.transform.SetPositionAndRotation(camera.transform.position + offset, rotation);
         }
     }
 }

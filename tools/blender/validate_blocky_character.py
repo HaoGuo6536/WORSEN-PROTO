@@ -1,6 +1,8 @@
 # ============================================================================
 # validate_blocky_character.py
 # PURPOSE: Independently re-import the shipped FBXs and fail on contract drift.
+#   The full-body baseline stays frozen while relaxed arm geometry, palm facing
+#   and clipped first-person composition are checked against the runtime contract.
 # ARCHITECTURAL ROLE: Offline art validation; never starts Unity.
 # KEY RESPONSIBILITIES: Check rig, weights, geometry, units, takes and source IK.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils and Python standard library only.
@@ -11,17 +13,21 @@
 # ============================================================================
 import hashlib
 import json
+import math
+import re
 
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 ART = ROOT / "Assets/Art/Player/BlockyCharacter"
 SOURCE = ROOT / "ArtSource/Player/BlockyCharacter"
 REPORT = ROOT / "Logs/AgentValidation/Art/BlockyCharacter"
 ROWS, DETAILS = [], {}
+BODY_CONTENT_SHA256 = "31e548c370b6f52d98c00317177d90481d4f8ba5b88dfdfe96fce4fbdae2319f"
+BODY_FILE_SHA256 = "4a59ee5948290f449e3613394015148339f198af92b54326bbd9f01b9f63c6fb"
 
 
 def check(label, passed, detail):
@@ -106,9 +112,22 @@ def validate(name, full):
             vertices = [obj.matrix_world @ v.co for v in obj.data.vertices
                         if any(obj.vertex_groups[g.group].name == side + "Hand" for g in v.groups)]
             hands.append(sum(vertices, vertices[0] * 0) / len(vertices))
-        check(name + " view pose", all(.2 < abs(p.x) < .4 and -.35 < p.z < -.15 and -.6 < p.y < -.4 for p in hands),
+            # The shortest palm box edge is its .10m thickness, so its direction
+            # identifies the palm normal independently of imported leaf-bone rolls.
+            edges = [b - a for i, a in enumerate(vertices) for b in vertices[i + 1:]]
+            normal = min(edges, key=lambda edge: edge.length).normalized()
+            check(name + " " + side + " palm facing", abs(normal.x) > .95,
+                  f"palm thickness normal lateral component={abs(normal.x):.6f}")
+        check(name + " view pose", all(.3 < abs(p.x) < .45 and -.85 < p.z < -.65 and -.25 < p.y < -.1 for p in hands),
               "hand centres (Blender): " + str([tuple(round(v, 4) for v in p) for p in hands]))
-        check(name + " forward clearance", max(p.y for p in points) < -.05, f"nearest depth={-max(p.y for p in points):.6f}m > 0.05m")
+        for side in ("Left", "Right"):
+            joints = [armature.matrix_world @ armature.data.bones[side + suffix].head_local
+                      for suffix in ("UpperArm", "LowerArm", "Hand")]
+            upper, lower = (joints[1] - joints[0]).normalized(), (joints[2] - joints[1]).normalized()
+            drop, bend = math.degrees(upper.angle(Vector((0, 0, -1)))), math.degrees(upper.angle(lower))
+            check(name + " " + side + " relaxed angles", 8 <= drop <= 15 and 15 <= bend <= 25 and lower.y < 0,
+                  f"upper from vertical={drop:.4f}; elbow={bend:.4f}; forearm forward={-lower.y:.4f}")
+        view_contract(meshes, armature)
     expected = {"Idle": 2, "Walk": 1} if full else {"Hold": 1, "Sway": 2}
     clips = {a.name.split("|")[-1]: a for a in bpy.data.actions}
     check(name + " actions", set(clips) == set(expected), ", ".join(a.name for a in bpy.data.actions))
@@ -129,8 +148,74 @@ def validate(name, full):
     signature += sorted(actual.items())
     signature += [(m, tuple(round(v, 6) for v in bpy.data.materials[m].diffuse_color)) for m in sorted(materials)]
     digest = hashlib.sha256(json.dumps(sorted(signature, key=lambda entry: entry[0])).encode()).hexdigest()
+    if full:
+        check("Body content unchanged", digest == BODY_CONTENT_SHA256, digest)
+        binary = hashlib.sha256((ART / (name + ".fbx")).read_bytes()).hexdigest()
+        check("Body bytes unchanged", binary == BODY_FILE_SHA256, binary)
     DETAILS[name] = {"bones": actual, "triangles": counts, "vertices": len(points), "weight_errors": errors,
                      "actions": sorted(clips), "content_sha256": digest}
+
+
+def clip_polygon(polygon, axis):
+    result = []
+    for a, b in zip(polygon, polygon[1:] + polygon[:1]):
+        da, db = a.dot(axis), b.dot(axis)
+        if da >= 0:
+            result.append(a)
+        if (da >= 0) != (db >= 0):
+            result.append(a.lerp(b, da / (da - db)))
+    return result
+
+
+def view_contract(meshes, armature):
+    # Independently use imported FBX vertices, not the preview meshes or metrics.
+    text = (ROOT / "Assets/Scripts/Domain/Player/Config/PlayerMoverDriverConfig.cs").read_text()
+    values = re.search(r"DefaultShoulderOffset = new Vector3\(([^)]+)\)", text).group(1)
+    x, y, z = [float(v.strip().removesuffix("f")) for v in values.split(",")]
+    fixture = json.loads((SOURCE / "RelaxedArms.geometry.json").read_text())
+    tan_y, tan_x = math.tan(math.radians(37.5)), math.tan(math.radians(37.5)) * 16 / 9
+    rows = []
+    for obj in meshes:
+        side = obj.name.removesuffix("Arm")
+        shoulder = armature.matrix_world @ armature.data.bones[side + "Shoulder"].head_local
+        local = [obj.matrix_world @ v.co - shoulder for v in obj.data.vertices]
+        samples = [Vector((-p.x, p.z, -p.y)) for p in local]
+        expected = [Vector(v["position"]) for v in fixture["arms"][side]]
+        check(side + " pure fixture matches FBX", len(samples) == len(expected) and
+              all(min((p - q).length for q in expected) < 1e-5 for p in samples), "shoulder-relative Unity-space vertices")
+        anchor = Vector((x if side == "Left" else -x, -z, y))
+        for pitch in (0, 45, -30, 85):
+            for swing in (-8, 0, 8):
+                # Axial X rotation maps to the same angle in the mirrored basis.
+                rotation = Matrix.Rotation(math.radians(swing), 3, "X")
+                points = [anchor + rotation @ p for p in local]
+                a = math.radians(pitch)
+                forward, up = Vector((0, -math.cos(a), -math.sin(a))), Vector((0, -math.sin(a), math.cos(a)))
+                bottom = up + forward * tan_y
+                lo = Vector(tuple(min(p[i] for p in points) for i in range(3)))
+                hi = Vector(tuple(max(p[i] for p in points) for i in range(3)))
+                center, extents = (lo + hi) / 2, (hi - lo) / 2
+                below = center.dot(bottom) + sum(abs(bottom[i]) * extents[i] for i in range(3)) < 0
+                shift = max(0, .0501 - center.dot(forward) + sum(abs(forward[i]) * extents[i] for i in range(3)))
+                direction = Vector((0, -1, 0)) if pitch < 0 else forward
+                shifted = [p + direction * (shift / direction.dot(forward)) for p in points]
+                depth = min(p.dot(forward) for p in shifted)
+                visible = []
+                if not below:
+                    view = [Vector((p.x, p.dot(up), p.dot(forward))) for p in shifted]
+                    for polygon in obj.data.polygons:
+                        clipped = [view[i] for i in polygon.vertices]
+                        for axis in (Vector((1, 0, tan_x)), Vector((-1, 0, tan_x)),
+                                     Vector((0, 1, tan_y)), Vector((0, -1, tan_y))):
+                            clipped = clip_polygon(clipped, axis)
+                        visible += [(0.5 + p.x / (2 * tan_x * p.z), 0.5 + p.y / (2 * tan_y * p.z)) for p in clipped]
+                allowed = all((u <= .2 or u >= .8) and v <= .2 for u, v in visible)
+                valid = depth > .05 and (pitch != 0 or allowed) and (pitch != -30 or not visible) and (pitch != 45 or bool(visible))
+                check(f"{side} view pitch={pitch} swing={swing}", valid,
+                      f"min depth={depth:.6f}; clipped polygon points={len(visible)}; below={below}")
+                rows.append({"side": side, "pitch": pitch, "swing": swing, "minimum_depth": depth,
+                             "visible_polygon_points": len(visible), "below_view": below})
+    DETAILS["view_contract"] = rows
 
 
 def source_and_previews():
@@ -142,12 +227,14 @@ def source_and_previews():
         c.chain_count == 2 and c.target == armature and c.pole_target == armature and
         c.subtarget in {b.name for b in controls} and c.pole_subtarget in {b.name for b in controls} for c in constraints),
         f"{len(controls)} non-deform controls, {len(constraints)} two-bone IK constraints")
-    for name in ("front", "side", "three-quarter", "walk-mid-pose", "first-person"):
+    for name in ("front", "side", "three-quarter", "walk-mid-pose", "first-person",
+                 "fp-relaxed-pitch0", "fp-relaxed-pitch-down45", "fp-relaxed-pitch-up30", "fp-relaxed-side", "fp-old-hold"):
         path = REPORT / (name + ".png")
         image = bpy.data.images.load(str(path), check_existing=False)
         pixels = list(image.pixels)
         colors = {tuple(round(pixels[i + c], 3) for c in range(3)) for i in range(0, len(pixels), 16)}
-        check("Preview " + name, image.size[0] >= 720 and image.size[1] >= 720 and len(colors) > 10,
+        empty_allowed = name in {"first-person", "fp-relaxed-pitch0", "fp-relaxed-pitch-up30"}
+        check("Preview " + name, image.size[0] >= 720 and image.size[1] >= 720 and (empty_allowed or len(colors) > 10),
               f"{image.size[0]}x{image.size[1]}, {len(colors)} sampled colors")
         bpy.data.images.remove(image)
 
