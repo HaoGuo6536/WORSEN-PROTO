@@ -9,7 +9,7 @@
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Produce deterministic, separated placement candidates without random draws.
-//   - Size sockets to their actual cells and check standing envelope and floor support.
+//   - Reserve the larger of the shrine and supplied navigation agent envelopes.
 //   - Record candidate positions, room ownership, gap flags and facing in the manifest.
 //   - Admit gap sockets only when their straight crossing reaches an identified pocket.
 // DEPENDENCIES:
@@ -18,6 +18,7 @@
 //   Ground sockets retain the original room identity across storeys. The Driver
 //   filters these candidates with native navigation before the Manager publishes
 //   them. Shrine owns kind/count selection and must fit the reserved envelope.
+//   Unit collision rotations are inverted by conjugation to keep support managed.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -32,9 +33,13 @@ namespace Worsen.Domain.Procedural
     public sealed class ProceduralShrineSitePresenter
     {
         public IReadOnlyList<ProceduralShrineSite> Build(ProceduralLayout layout, ProceduralConfig config,
-            IReadOnlyList<ProceduralBlock> blocks)
+            IReadOnlyList<ProceduralBlock> blocks, float navigationRadius = 0f, float navigationHeight = 0f)
         {
             var size = config.ShrineSiteEnvelope;
+            if (!ProceduralTemplateUtility.Finite(navigationRadius) || navigationRadius < 0f ||
+                !ProceduralTemplateUtility.Finite(navigationHeight) || navigationHeight < 0f)
+                throw new ArgumentException("Invalid shrine navigation dimensions.");
+            size = new Vector3(Math.Max(size.x, navigationRadius * 2f), Math.Max(size.y, navigationHeight), Math.Max(size.z, navigationRadius * 2f));
             foreach (float value in new[] { size.x, size.y, size.z, config.ShrineSiteInset, config.ShrineSiteClearance })
                 if (!(value > 0f) || float.IsInfinity(value)) throw new ArgumentException("Invalid shrine site dimensions.");
             if (config.ShrineSiteInset <= Mathf.Max(size.x, size.z) * .5f || config.ShrineSiteInset >= config.RoomSize * .5f)
@@ -89,8 +94,7 @@ namespace Worsen.Domain.Procedural
                 foreach (float z in new[] { -size.z * .5f, size.z * .5f })
                 {
                     var foot = position + new Vector3(x, -.01f, z);
-                    if (!room.ContainsXZ(foot) || !blocks.Any(b => b.HasCollision && b.Kind == ProceduralSurfaceKind.Floor &&
-                        new Bounds(Vector3.zero, b.Size).Contains(Quaternion.Inverse(b.Rotation) * (foot - b.Center)))) return;
+                    if (!room.ContainsXZ(foot) || !blocks.Any(b => b.HasCollision && b.Kind == ProceduralSurfaceKind.Floor && Supports(b, foot))) return;
                 }
                 result.Add(new ProceduralShrineSite(roomId, position, gapEdge, facing, destination));
             }
@@ -112,6 +116,12 @@ namespace Worsen.Domain.Procedural
             { foreach (float value in values) text.Append(',').Append(value.ToString("R", CultureInfo.InvariantCulture)); }
         }
 
+        private static bool Supports(ProceduralBlock block, Vector3 foot)
+        {
+            var q = block.Rotation;
+            var p = new Quaternion(-q.x, -q.y, -q.z, q.w) * (foot - block.Center);
+            return Math.Abs(p.x) <= block.Size.x * .5f && Math.Abs(p.y) <= block.Size.y * .5f && Math.Abs(p.z) <= block.Size.z * .5f;
+        }
         private static float DistanceXZ(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
         private static bool Overlaps(Bounds a, Bounds b) => a.min.x < b.max.x && a.max.x > b.min.x &&
             a.min.y < b.max.y && a.max.y > b.min.y && a.min.z < b.max.z && a.max.z > b.min.z;

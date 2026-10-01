@@ -51,7 +51,7 @@ KINDS = {
     "floor_grate_2x2": "floor", "catwalk_2m": "floor", "catwalk_rail_2m": "prop",
     "pipe_run_wall_2m": "pipe", "duct_run_ceiling_2m": "duct", "cage_lamp": "prop",
     "cage_lamp_dead": "prop", "prop_pump": "prop", "prop_electrical_cabinet": "prop",
-    "prop_gauge_panel": "prop", "puddle_decal_quad": "prop", "prop_storage_cage": "prop",
+    "prop_gauge_panel": "prop", "puddle_decal_quad": "decal", "prop_storage_cage": "prop",
     "prop_fuel_bunker": "prop", "prop_steam_vent": "prop", "pit_liner_2x2": "prop",
     "pit_retaining_2m": "prop", "prop_bulkhead_leaf": "prop", "floor_sump_2x2": "floor"}
 
@@ -614,7 +614,9 @@ def catalogue():
                 cx,cz = math.floor((x-.1*math.sin(a))/2),math.floor((z-.1*math.cos(a))/2)
                 if any((cx+sign*tangent[0],cz+sign*tangent[1]) not in cells for sign in (-1,1)):
                     continue
-                pieces.append(placement("pipe_run_wall_2m",x-.28*math.sin(a),.7,z-.28*math.cos(a),yaw))
+                # The one-cell-deep bunker has no standing clearance beneath
+                # waist-height services opposite its door. Keep those overhead.
+                pieces.append(placement("pipe_run_wall_2m",x-.28*math.sin(a),2.1 if name=='fuel_bunker' else .7,z-.28*math.cos(a),yaw))
         # Reserve central cell centres for gameplay. Props occupy selected edge cells.
         blocked = set()
         def prop(piece,x,z,y=0,yaw=0):
@@ -661,7 +663,8 @@ def catalogue():
             if (x+3*z)%7 == 0 and (x,z) not in blocked:
                 pieces.append(placement("puddle_decal_quad",2*x+1,.002,2*z+1))
         available = [c for c in sorted(cells,key=lambda c:(c[1],c[0])) if c not in blocked]
-        cake_count = max(2,math.ceil(count/6)) if count > 4 else 1
+        cake_count = max(2,(count*2+8)//9) if count > 4 else 1
+        assert len(available) >= cake_count, (name, 'insufficient cake density')
         chosen = available[::max(1,len(available)//cake_count)][:cake_count]
         anchors = {"cake":[[2*x+1,0,2*z+1] for x,z in chosen],"goldenCake":[],"light":[],"hunterSpawn":[]}
         if count >= 10:
@@ -697,6 +700,18 @@ def catalogue():
                           "footprint":[list(c) for c in sorted(cells)],"height":HEIGHT,"doors":doors,
                           "anchors":anchors,"gimmick":gimmick,"minRound":3 if gimmick != "none" else 1,
                           "weight":.6 if gimmick != "none" else 1.0,"pieces":pieces})
+    corrections = {
+        'boiler_room': {'cake': [[1,0,1],[5,0,1],[13,0,1],[5,0,3],[11,0,3],
+                               [5,0,5],[11,0,7],[9,0,7],[5,0,9],[3,0,9]]},
+        'pump_room': {'cake': [[1,0,1],[7,0,1],[3,0,5],[5,0,5]]},
+        'pipe_tunnel': {'cake': [[1,0,1],[2,0,4],[2,0,8]]},
+        'service_bend': {'cake': [[1,0,1],[5,0,3],[3,0,3],[9,0,3]]},
+        'duct_junction': {'cake': [[1,0,1],[9,0,3],[7,0,3],[7,0,5]]},
+        'catwalk_hall': {'cake': [[1,0,1],[9,0,3],[7,0,3],[3,0,5],[9,0,5],[7,0,7],[5,0,7]]},
+        'flooding_pit_freeze': {'cake': [[1,0,1],[7,0,1],[5,0,3],[5,0,5]]},
+    }
+    for t in templates:
+        t['anchors'].update(corrections.get(t['id'].removeprefix('basement_'), {}))
     return {"theme":"basement","module":2.0,"templates":templates}
 
 

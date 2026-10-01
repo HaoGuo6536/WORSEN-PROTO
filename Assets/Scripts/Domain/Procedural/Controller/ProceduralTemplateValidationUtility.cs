@@ -14,8 +14,9 @@
 // DEPENDENCIES:
 //   - Own definitions and coordinate utility only; no file or engine access.
 // USAGE NOTES:
-//   Arc pivots use the chord midpoint of the wall plane; rotations follow the kit
-//   convention. Round closure uses chord endpoints with 1cm numeric tolerance.
+//   Legacy arcs use chord pivots; the Castle masonry kit uses radial pivots and
+//   explicit tangent piers. Admission follows their authored inner wall faces.
+//   The decal kind explicitly denotes render-only, non-collision geometry.
 //   Cake density is provisionally two per nine cells, rounded up, minimum two.
 // ============================================================================
 using System;
@@ -36,11 +37,11 @@ namespace Worsen.Domain.Procedural
             if (catalogue.Kit == null || catalogue.Kit.Length == 0 || catalogue.Kit.Length > 256 ||
                 catalogue.Kit.Any(p => p == null || !Identifier(p.Id)) ||
                 catalogue.Kit.Select(p => p.Id).Distinct().Count() != catalogue.Kit.Length) Fail("Invalid kit identities.");
-            var kinds = new[] { "wall", "door", "window", "arc", "corner", "pillar", "floor", "ceiling", "trim", "prop", "pipe", "duct" };
+            var kinds = new[] { "wall", "door", "window", "arc", "corner", "pillar", "floor", "ceiling", "trim", "prop", "pipe", "duct", "decal" };
             foreach (var piece in catalogue.Kit)
             {
                 if (!kinds.Contains(piece.Kind) || !ProceduralTemplateUtility.Finite(piece.Size) ||
-                    piece.Size.x <= 0f || piece.Size.y <= 0f || piece.Size.z <= 0f ||
+                    piece.Size.x <= 0f || piece.Size.y < 0f || (piece.Size.y == 0f && piece.Kind != "decal") || piece.Size.z <= 0f ||
                     string.IsNullOrEmpty(piece.File) || piece.File.Contains("/") || piece.File.Contains("\\") ||
                     piece.File != char.ToUpperInvariant(catalogue.Theme[0]) + catalogue.Theme.Substring(1) + "_" + piece.Id + ".fbx")
                     Fail("Invalid kit piece " + piece.Id);
@@ -94,8 +95,14 @@ namespace Worsen.Domain.Procedural
                 room.Doors.Any(d => d == null) || room.Doors.Select(d => (d.Cell, d.Side)).Distinct().Count() != room.Doors.Length)
                 Fail(room.Id + ": missing or duplicate door sockets.");
             foreach (var door in room.Doors)
-                if (!cells.Contains(door.Cell) || cells.Contains(door.Cell + ProceduralTemplateUtility.Direction(door.Side)))
-                    Fail(room.Id + ": door is not on a boundary edge.");
+            {
+                ProceduralTemplateUtility.SocketWidth(door); // Validate the complete authored span, not only its first cell.
+                var normal = ProceduralTemplateUtility.Direction(door.Side);
+                var tangent = normal.x == 0 ? Vector2Int.right : Vector2Int.up;
+                for (int i = 0; i < door.Span; i++)
+                    if (!cells.Contains(door.Cell + tangent * i) || cells.Contains(door.Cell + tangent * i + normal))
+                        Fail(room.Id + ": door span is not on a boundary edge.");
+            }
             if (room.Kind == "hallway" && room.Doors.Select(d => ProceduralTemplateUtility.Door(d)).Distinct().Count() < 2)
                 Fail(room.Id + ": hallway needs distinct ends.");
             if (room.Cake == null || room.GoldenCake == null || room.Light == null || room.HunterSpawn == null ||
@@ -117,25 +124,29 @@ namespace Worsen.Domain.Procedural
                 if ((piece.Kind == "wall" || piece.Kind == "door" || piece.Kind == "window") &&
                     !new[] { 0f, 90f, 180f, 270f }.Contains(placement.RotY)) Fail(room.Id + ": wall rotation is not a quarter turn.");
             }
-            var walls = room.Pieces.Where(p => Wall(kit[p.Id])).Select(p => Segment(p, kit[p.Id])).ToArray();
+            bool masonry = CastleMasonry(catalogue);
+            var walls = room.Pieces.Where(p => Wall(kit[p.Id]))
+                .SelectMany(p => ShellSegments(p, kit[p.Id], masonry && room.Shape == "round")).ToArray();
             foreach (var door in room.Doors)
             {
                 var alternatives = door.ClosedWith ?? Array.Empty<ProceduralTemplatePiece>();
                 if (alternatives.Any(p => !Wall(kit[p.Id]))) Fail(room.Id + ": closedWith must use wall pieces.");
-                var combined = room.Pieces.Where(p => Wall(kit[p.Id]) && kit[p.Id].Kind != "door")
-                    .Concat(alternatives).Select(p => Segment(p, kit[p.Id])).ToArray();
+                var existing = room.Pieces.Where(p => Wall(kit[p.Id]) && kit[p.Id].Kind != "door").ToArray();
                 for (int i = 0; i < alternatives.Length; i++)
                 {
-                    var line = Segment(alternatives[i], kit[alternatives[i].Id]);
-                    var axis = (line.b - line.a).normalized;
-                    int own = combined.Length - alternatives.Length + i;
-                    for (int j = 0; j < combined.Length; j++)
+                    var combined = existing.Concat(alternatives.Where((p, index) => index != i))
+                        .SelectMany(p => ShellSegments(p, kit[p.Id], masonry && room.Shape == "round")).ToArray();
+                    foreach (var line in ShellSegments(alternatives[i], kit[alternatives[i].Id], masonry && room.Shape == "round"))
                     {
-                        if (own == j || Mathf.Abs(Vector3.Cross(axis, combined[j].a - line.a).y) > .001f ||
-                            Mathf.Abs(Vector3.Cross(axis, combined[j].b - line.a).y) > .001f) continue;
-                        float a = Vector3.Dot(combined[j].a - line.a, axis), b = Vector3.Dot(combined[j].b - line.a, axis);
-                        if (Mathf.Min((line.b - line.a).magnitude, Mathf.Max(a, b)) - Mathf.Max(0f, Mathf.Min(a, b)) > .01f)
-                            Fail(room.Id + ": closedWith overlaps another wall piece.");
+                        var axis = (line.b - line.a).normalized;
+                        foreach (var other in combined)
+                        {
+                            if (Mathf.Abs(Vector3.Cross(axis, other.a - line.a).y) > .001f ||
+                                Mathf.Abs(Vector3.Cross(axis, other.b - line.a).y) > .001f) continue;
+                            float a = Vector3.Dot(other.a - line.a, axis), b = Vector3.Dot(other.b - line.a, axis);
+                            if (Mathf.Min((line.b - line.a).magnitude, Mathf.Max(a, b)) - Mathf.Max(0f, Mathf.Min(a, b)) > .01f)
+                                Fail(room.Id + ": closedWith overlaps another wall piece.");
+                        }
                     }
                 }
             }
@@ -164,10 +175,12 @@ namespace Worsen.Domain.Procedural
                 var center = ProceduralTemplateUtility.Door(door);
                 var tangent = ProceduralTemplateUtility.Direction(door.Side).x == 0 ? Vector3.right : Vector3.forward;
                 // An authored door frame already closes its wall-plane interval.
-                if (!walls.Any(w => Distance(center, w.a, w.b) < .01f)) closure.Add((center - tangent * 2f, center + tangent * 2f));
+                if (!HasDoorFrame(room, kit, door) && !walls.Any(w => Distance(center, w.a, w.b) < .01f))
+                    closure.Add((center - tangent * 2f, center + tangent * 2f));
             }
             if (room.Shape == "round")
             {
+                if (masonry) JoinMasonryCorners(closure);
                 if (!room.Pieces.Any(p => kit[p.Id].Kind == "arc")) Fail(room.Id + ": round rooms require arc pieces.");
                 foreach (var line in closure)
                     foreach (var end in new[] { line.a, line.b })
@@ -181,10 +194,10 @@ namespace Worsen.Domain.Procedural
             else foreach (var edge in ProceduralTemplateUtility.Boundary(room))
             {
                 var tangent = edge.normal.x == 0 ? Vector3.right : Vector3.forward;
-                var intervals = closure.Where(w => Mathf.Abs(Vector3.Cross(tangent, w.a - edge.center).y) < .001f &&
+                var intervals = (masonry ? MasonryIntervals(room, kit, edge.center, tangent) : closure.Where(w => Mathf.Abs(Vector3.Cross(tangent, w.a - edge.center).y) < .001f &&
                         Mathf.Abs(Vector3.Cross(tangent, w.b - edge.center).y) < .001f)
                     .Select(w => (a: Vector3.Dot(w.a - edge.center, tangent), b: Vector3.Dot(w.b - edge.center, tangent)))
-                    .Select(w => (lo: Mathf.Min(w.a, w.b), hi: Mathf.Max(w.a, w.b))).OrderBy(w => w.lo);
+                    .Select(w => (lo: Mathf.Min(w.a, w.b), hi: Mathf.Max(w.a, w.b)))).OrderBy(w => w.lo);
                 float covered = -1f;
                 foreach (var interval in intervals)
                 {
@@ -216,13 +229,17 @@ namespace Worsen.Domain.Procedural
         {
             if (room.Template.Shape != "round") return null;
             var kit = catalogue.Kit.ToDictionary(p => p.Id);
-            var lines = room.Template.Pieces.Where(p => Wall(kit[p.Id])).Select(p => Segment(p, kit[p.Id])).ToList();
+            bool masonry = CastleMasonry(catalogue);
+            var lines = room.Template.Pieces.Where(p => Wall(kit[p.Id]))
+                .SelectMany(p => ShellSegments(p, kit[p.Id], masonry)).ToList();
             foreach (var door in room.Template.Doors)
             {
                 var center = ProceduralTemplateUtility.Door(door);
                 var tangent = ProceduralTemplateUtility.Direction(door.Side).x == 0 ? Vector3.right : Vector3.forward;
-                if (!lines.Any(w => Distance(center, w.a, w.b) < .01f)) lines.Add((center - tangent * 2f, center + tangent * 2f));
+                if (!HasDoorFrame(room.Template, kit, door) && !lines.Any(w => Distance(center, w.a, w.b) < .01f))
+                    lines.Add((center - tangent * 2f, center + tangent * 2f));
             }
+            if (masonry) JoinMasonryCorners(lines);
             if (lines.Count == 0) return Array.Empty<Vector3>();
             var points = new List<Vector3> { lines[0].a }; var end = lines[0].b; lines.RemoveAt(0);
             while (lines.Count != 0)
@@ -246,9 +263,84 @@ namespace Worsen.Domain.Procedural
                 float angle = radius == 4f ? 30f : radius == 6f ? 20f : 15f;
                 width = 2f * radius * Mathf.Sin(angle * .5f * Mathf.Deg2Rad);
             }
-            var half = Quaternion.Euler(0f, placement.RotY, 0f) * Vector3.right * (width * .5f);
+            // Unity's positive yaw maps +X towards -Z. Quaternion.Euler calls
+            // native code even though Quaternion itself is a managed value type.
+            double yaw = placement.RotY * (Math.PI / 180d);
+            var half = new Vector3((float)Math.Cos(yaw), 0f, -(float)Math.Sin(yaw)) * (width * .5f);
             var center = placement.Position; center.y = 0f;
             return (center - half, center + half);
+        }
+        private static bool CastleMasonry(ProceduralTemplateCatalogue catalogue) => catalogue.Theme == "castle" &&
+            catalogue.Kit.Any(p => p.Id == "wall_2m" && Math.Abs(p.Size.z - .8f) < .00001f);
+        private static bool HasDoorFrame(ProceduralRoomTemplate room, Dictionary<string, ProceduralKitPiece> kit,
+            ProceduralTemplateDoor door) => room.Pieces.Any(p => kit[p.Id].Kind == "door" &&
+                (door.ClosedWith ?? Array.Empty<ProceduralTemplatePiece>()).Any(c =>
+                    (p.Position - c.Position).sqrMagnitude < .0001f && p.RotY == c.RotY));
+        private static Vector3 YawPoint(Vector3 point, float yaw)
+        {
+            double radians = yaw * Math.PI / 180d;
+            float c = (float)Math.Cos(radians), s = (float)Math.Sin(radians);
+            return new Vector3(point.x * c + point.z * s, point.y, -point.x * s + point.z * c);
+        }
+        private static IEnumerable<(Vector3 a, Vector3 b)> ShellSegments(ProceduralTemplatePiece p,
+            ProceduralKitPiece piece, bool masonry)
+        {
+            if (!masonry) { yield return Segment(p, piece); yield break; }
+            Vector3 At(float x, float z) => new Vector3(p.Position.x, 0f, p.Position.z) + YawPoint(new Vector3(x, 0f, z), p.RotY);
+            if (piece.Id == "wall_round_tangent_r4")
+            {
+                foreach (int sign in new[] { -1, 1 })
+                    yield return (At(sign * 2f, -.4f), At(sign * 1.8f, 3.6f * (float)Math.Cos(Math.PI / 6d) - 4.4f));
+            }
+            else if (piece.Kind == "arc")
+            {
+                float radius = piece.Id == "wall_arc_r4" ? 4f : piece.Id == "wall_arc_r6" ? 6f : piece.Id == "wall_arc_r8" ? 8f : 0f;
+                if (radius == 0f) Fail("Unknown arc radius.");
+                double sweep = (radius == 4f ? 30d : radius == 6f ? 20d : 15d) * Math.PI / 180d;
+                Vector3 End(double angle) => At((radius - .4f) * (float)Math.Sin(angle), (radius - .4f) * (float)Math.Cos(angle) - radius);
+                for (int i = 0; i < 4; i++) yield return (End(-sweep / 2d + sweep * i / 4d), End(-sweep / 2d + sweep * (i + 1) / 4d));
+            }
+            else yield return (At(-piece.Size.x * .5f, -.4f), At(piece.Size.x * .5f, -.4f));
+        }
+        private static void JoinMasonryCorners(List<(Vector3 a, Vector3 b)> lines)
+        {
+            // Only perpendicular straight end faces can meet through wall thickness.
+            // Never bridge an arc seam or a collinear missing wall.
+            for (int i = 0; i < lines.Count; i++) for (int j = i + 1; j < lines.Count; j++)
+            {
+                var u = lines[i].b - lines[i].a; var v = lines[j].b - lines[j].a;
+                if (Math.Abs(Vector3.Dot(u.normalized, v.normalized)) > .0001f ||
+                    (Math.Abs(u.x) > .0001f && Math.Abs(u.z) > .0001f) ||
+                    (Math.Abs(v.x) > .0001f && Math.Abs(v.z) > .0001f)) continue;
+                float cross = Vector3.Cross(u, v).y;
+                if (Math.Abs(cross) < .001f) continue;
+                var intersection = lines[i].a + u * (Vector3.Cross(lines[j].a - lines[i].a, v).y / cross);
+                bool a = (intersection - lines[i].a).sqrMagnitude <= .16001f, b = (intersection - lines[i].b).sqrMagnitude <= .16001f;
+                bool c = (intersection - lines[j].a).sqrMagnitude <= .16001f, d = (intersection - lines[j].b).sqrMagnitude <= .16001f;
+                if (!(a || b) || !(c || d)) continue;
+                lines[i] = a ? (intersection, lines[i].b) : (lines[i].a, intersection);
+                lines[j] = c ? (intersection, lines[j].b) : (lines[j].a, intersection);
+            }
+        }
+        private static IEnumerable<(float lo, float hi)> MasonryIntervals(ProceduralRoomTemplate room,
+            Dictionary<string, ProceduralKitPiece> kit, Vector3 center, Vector3 tangent)
+        {
+            // Intersect the grid boundary with each full-height slab. Perpendicular
+            // slab end faces close the 0.8m re-entrant corner, not a fictitious gap.
+            foreach (var p in room.Pieces.Where(p => Wall(kit[p.Id])))
+            {
+                var local = YawPoint(center - p.Position, -p.RotY);
+                var direction = YawPoint(tangent, -p.RotY);
+                float lo = float.NegativeInfinity, hi = float.PositiveInfinity;
+                bool Clip(float value, float delta, float half)
+                {
+                    if (Math.Abs(delta) < .00001f) return Math.Abs(value) <= half + .00001f;
+                    float a = (-half - value) / delta, b = (half - value) / delta;
+                    lo = Math.Max(lo, Math.Min(a, b)); hi = Math.Min(hi, Math.Max(a, b)); return lo <= hi;
+                }
+                if (Clip(local.x, direction.x, kit[p.Id].Size.x * .5f) && Clip(local.z, direction.z, .4f))
+                    yield return (lo, hi);
+            }
         }
         private static float Distance(Vector3 point, Vector3 a, Vector3 b)
         { point.y = 0f; var delta = b - a; return (point - a - delta * Mathf.Clamp01(Vector3.Dot(point - a, delta) / delta.sqrMagnitude)).magnitude; }

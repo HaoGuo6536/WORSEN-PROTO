@@ -3,8 +3,8 @@
 // ============================================================================
 // PURPOSE:
 //   Provides the exact coordinate and boundary model shared by template admission,
-//   seeded placement and shell construction. Door centers are cell-edge midpoints,
-//   not tile corners, and quarter turns rotate both cells and authored metre data.
+//   seeded placement and shell construction. Door centers follow the authored
+//   boundary-cell span, and quarter turns rotate cells and authored metre data.
 // ARCHITECTURAL ROLE:
 //   Utility (§2b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
@@ -16,6 +16,8 @@
 // USAGE NOTES:
 //   The origin is a corner: a rotated cell's lower corner is not its rotated center.
 //   Boundary clearance is horizontal, allowing floor-level gameplay anchors.
+//   All current art sockets use 4m frames with 3.2m clear throats, including span 1.
+//   Placement occupancy uses 1m subcells; authored tiles are never rescaled.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -53,11 +55,28 @@ namespace Worsen.Domain.Procedural
             return new Vector2Int(doubled.x / 2, doubled.y / 2);
         }
         public static Vector3 Point(ProceduralTemplateRoom room, Vector3 local, Vector2 origin)
-            => Rotate(local, room.Turns) + new Vector3(room.Offset.x * 2f + origin.x, 0f, room.Offset.y * 2f + origin.y);
+            => Rotate(local, room.Turns) + new Vector3(room.Offset.x * 2f + room.SubcellOffset.x + origin.x,
+                0f, room.Offset.y * 2f + room.SubcellOffset.y + origin.y);
+        public static float SocketWidth(ProceduralTemplateDoor door)
+        {
+            if (door.Span < 1 || door.Span > 2) throw new ArgumentException("Door span must be 1 or 2 boundary cells.");
+            return door.Span * 2f;
+        }
         public static Vector3 Door(ProceduralTemplateDoor door)
         {
             var normal = Direction(door.Side);
-            return new Vector3(door.Cell.x * 2f + 1f + normal.x, 0f, door.Cell.y * 2f + 1f + normal.y);
+            float shift = SocketWidth(door) * .5f - 1f;
+            return new Vector3(door.Cell.x * 2f + 1f + normal.x + (normal.x == 0 ? shift : 0f),
+                0f, door.Cell.y * 2f + 1f + normal.y + (normal.y == 0 ? shift : 0f));
+        }
+        public static IEnumerable<Vector2Int> OccupiedCells(ProceduralTemplateRoom room)
+        {
+            foreach (var cell in room.Template.Footprint)
+            {
+                var corner = (Cell(cell, room.Turns) + room.Offset) * 2 + room.SubcellOffset;
+                for (int x = 0; x < 2; x++) for (int z = 0; z < 2; z++)
+                    yield return corner + new Vector2Int(x, z);
+            }
         }
         public static IEnumerable<Vector2Int> Directions()
         { yield return Vector2Int.up; yield return Vector2Int.right; yield return Vector2Int.down; yield return Vector2Int.left; }
@@ -85,7 +104,7 @@ namespace Worsen.Domain.Procedural
         }
         public static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         public static bool Finite(Vector3 value) => Finite(value.x) && Finite(value.y) && Finite(value.z);
-        public static Bounds[] Volumes(IEnumerable<Vector2Int> cells, Vector2 origin, float height)
+        public static Bounds[] Volumes(IEnumerable<Vector2Int> cells, Vector2 origin, float height, float cellSize = 2f)
         {
             var sorted = cells.OrderBy(c => c.x).ThenBy(c => c.y).ToArray();
             var remaining = new HashSet<Vector2Int>(sorted); var result = new List<Bounds>();
@@ -96,8 +115,8 @@ namespace Worsen.Domain.Procedural
                 while (remaining.Contains(start + new Vector2Int(width, 0))) width++;
                 while (Enumerable.Range(0, width).All(x => remaining.Contains(start + new Vector2Int(x, depth)))) depth++;
                 for (int x = 0; x < width; x++) for (int z = 0; z < depth; z++) remaining.Remove(start + new Vector2Int(x, z));
-                result.Add(new Bounds(new Vector3(origin.x + start.x * 2f + width, height * .5f, origin.y + start.y * 2f + depth),
-                    new Vector3(width * 2f, height, depth * 2f)));
+                result.Add(new Bounds(new Vector3(origin.x + (start.x + width * .5f) * cellSize, height * .5f,
+                    origin.y + (start.y + depth * .5f) * cellSize), new Vector3(width * cellSize, height, depth * cellSize)));
             }
             return result.ToArray();
         }

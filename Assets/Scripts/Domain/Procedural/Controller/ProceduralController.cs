@@ -20,6 +20,8 @@
 //   Pure C# with injected System.Random. Construct a fresh random source with
 //   LayoutSeed for each run/round pair. Generation never retries indefinitely or
 //   reports an authored scene as a successful procedural fallback.
+//   A recorded organicFallbackReason bypasses templates after physical exhaustion;
+//   it never bypasses config, capacity, graph or native admission checks.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -46,7 +48,8 @@ namespace Worsen.Domain.Procedural
 
         public static int LayoutSeed(int runSeed, int roundIndex) => unchecked((runSeed * 397) ^ (roundIndex * 7919));
 
-        public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1)
+        public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1,
+            string organicFallbackReason = null)
         {
             Reset();
             ValidateConfig(roundIndex);
@@ -54,9 +57,11 @@ namespace Worsen.Domain.Procedural
                 throw new ArgumentOutOfRangeException(nameof(optionalWindowMultiplier));
             if (requiredHunterCount < 0) throw new ArgumentOutOfRangeException(nameof(requiredHunterCount));
             var selectedTheme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed));
-            if (new ProceduralTemplateController(_config, new System.Random(LayoutSeed(runSeed, roundIndex)))
-                .TryGenerate(runSeed, roundIndex, selectedTheme, merchantRefuge, requiredHunterCount, out var templateLayout, out string templateFailure))
+            string templateFailure = organicFallbackReason;
+            if (string.IsNullOrEmpty(organicFallbackReason) && new ProceduralTemplateController(_config, new System.Random(LayoutSeed(runSeed, roundIndex)))
+                .TryGenerate(runSeed, roundIndex, selectedTheme, merchantRefuge, requiredHunterCount, out var templateLayout, out templateFailure))
             {
+                _state.Layout = templateLayout; // Preserve template identity even if a subsequent pure check fails.
                 ProceduralFreezeUtility.Apply(templateLayout, _config);
                 templateLayout.PresentationRooms = DescribeRooms(templateLayout, templateLayout.Graph.ExitRoomId);
                 templateLayout.Manifest = Manifest(templateLayout);

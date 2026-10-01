@@ -41,7 +41,7 @@ REQUIRED = {"wall_2m":"wall","wall_door_4m":"door","wall_window_2m":"window",
             "pipe_straight_2m":"pipe","pipe_elbow":"pipe","pipe_tee":"pipe",
             "duct_straight_2m":"duct","duct_elbow":"duct","prop_valve_wheel":"prop",
             "prop_boiler":"prop"}
-ALLOWED_KINDS = {"wall","door","window","arc","corner","pillar","floor","ceiling","trim","prop","pipe","duct"}
+ALLOWED_KINDS = {"wall","door","window","arc","corner","pillar","floor","ceiling","trim","prop","pipe","duct","decal"}
 SURFACES = {"concrete","damp","rust","steel","galvanised","insulation","sodium","hazard","water","door_steel"}
 
 
@@ -426,7 +426,7 @@ def check_template(t,lookup):
         require(len(p["pos"])==3 and all(math.isfinite(v) for v in p["pos"]) and math.isfinite(p["rotY"]),"finite placement")
     anchors = t["anchors"]
     require(set(anchors)=={"cake","goldenCake","light","hunterSpawn"},"anchor families")
-    require(len(anchors["cake"]) >= (1 if n<=4 else max(2,math.ceil(n/6))),"cake density scales with area")
+    require(len(anchors["cake"]) >= (1 if n<=4 else max(2,(n*2+8)//9)),"cake density scales with area")
     require(len(anchors["goldenCake"])<=1 and anchors["light"],"golden/light count")
     require(n<10 or anchors["hunterSpawn"],"hunter spawn")
     edges = boundary(cells)

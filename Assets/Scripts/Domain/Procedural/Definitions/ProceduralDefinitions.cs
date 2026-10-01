@@ -20,6 +20,8 @@
 //   Block Size is local to Rotation. Ordinary blocks default to visible solid boxes;
 //   stair ramp endpoints describe the centerline of the walkable top face.
 //   CollisionOnly seals a view window without creating a traversable aperture.
+//   KitVisual emits one authored mesh; KitCollision supplies its compound collision
+//   and visible primitive fallback only when that mesh is unavailable.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -90,7 +92,7 @@ namespace Worsen.Domain.Procedural
         public int SurfaceId { get; }
     }
 
-    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding, CollisionOnly, PlayerOnly }
+    public enum ProceduralBlockRole { Solid, VisualOnly, StairRamp, StairLanding, CollisionOnly, PlayerOnly, KitVisual, KitCollision }
     public enum ProceduralVerticalKind { Ramp, LedgeClimb, ReboundClimb, FloorHole, Shaft, Balcony, CollapsedRamp }
 
     public readonly struct ProceduralStoreyPlan
@@ -188,8 +190,9 @@ namespace Worsen.Domain.Procedural
         public Vector3 Size { get; }
         public ProceduralBlockRole Role { get; }
         public Quaternion Rotation { get; }
-        public bool HasCollision => Role != ProceduralBlockRole.VisualOnly;
-        public bool HasRenderer => Role == ProceduralBlockRole.Solid || Role == ProceduralBlockRole.VisualOnly || Role == ProceduralBlockRole.PlayerOnly;
+        public bool HasCollision => Role != ProceduralBlockRole.VisualOnly && Role != ProceduralBlockRole.KitVisual;
+        public bool HasRenderer => Role == ProceduralBlockRole.Solid || Role == ProceduralBlockRole.VisualOnly ||
+            Role == ProceduralBlockRole.PlayerOnly || Role == ProceduralBlockRole.KitVisual || Role == ProceduralBlockRole.KitCollision;
         public int SurfaceId { get; }
         public TraversalSurfaceKind TraversalKind { get; }
         public Vector3 EndpointA { get; }
