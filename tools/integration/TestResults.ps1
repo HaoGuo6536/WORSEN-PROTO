@@ -38,6 +38,9 @@ function Read-TestSummary([string]$path) {
             $failures += [pscustomobject]@{ name = $name; categories = $categories; message = $message.Substring(0, [Math]::Min(400, $message.Length)) }
         }
     }
+    # A fixture ignored at fixture or parameterized-method level is emitted as a skipped suite with no leaf
+    # cases (HorrorRunFogWiringTests, batch 31b); record it so coverage treats it as present and skipped.
+    $ignoredFixtures = @($doc.SelectNodes("//test-suite[@type='TestFixture' and @result='Skipped']") | ForEach-Object { $_.GetAttribute('fullname') })
     foreach ($suite in $doc.SelectNodes("//test-suite[@result='Failed']")) {
         if ($suite.SelectNodes(".//test-case[@result='Failed']").Count -eq 0) { $issues += ('suite-only failure: ' + $suite.GetAttribute('fullname')) }
     }
@@ -50,13 +53,15 @@ function Read-TestSummary([string]$path) {
     if (-not $run.HasAttribute('total') -or [int]$run.GetAttribute('total') -ne $cases.Count) { $issues += 'aggregate mismatch: total' }
     if (@($cases.name | Select-Object -Unique).Count -ne $cases.Count) { $issues += 'duplicate test full names' }
     $result = $run.GetAttribute('result')
+    # Unity's runner reports a run whose failures are all in child tests as 'Failed(Child)'.
+    if ($result -eq 'Failed(Child)') { $result = 'Failed' }
     if ($result -notin @('Passed', 'Failed') -or ($result -eq 'Failed' -and $totals.failed -eq 0)) { $issues += "incomplete or suite-only root result: $result" }
     [pscustomobject]@{
         xml = $path; total = $cases.Count; passed = $totals.passed; failed = $totals.failed
         skipped = $totals.skipped; inconclusive = $totals.inconclusive; result = $result
         duration = [double]::Parse($run.GetAttribute('duration'), [Globalization.CultureInfo]::InvariantCulture)
         failures = $failures; skippedNames = @($cases | Where-Object { $_.result -eq 'Skipped' } | ForEach-Object { $_.name })
-        cases = $cases; issues = $issues
+        cases = $cases; issues = $issues; ignoredFixtures = $ignoredFixtures
     }
 }
 
@@ -68,7 +73,7 @@ function Get-CoverageIssues($results, [string[]]$fixtures) {
         $matched = @($results.cases | Where-Object { $_.fixture -ceq $fixture -or $_.fixture.StartsWith($fixture + '(') })
         # Existing explicit ignores (e.g. HorrorRunFogWiringTests) are reported as
         # skipped, not passed. Missing fixtures are different: the filter omitted them.
-        if ($matched.Count -eq 0) { $issues += "fixture absent from results: $fixture" }
+        if ($matched.Count -eq 0 -and @($results.ignoredFixtures) -cnotcontains $fixture) { $issues += "fixture absent from results: $fixture" }
     }
     return $issues
 }
