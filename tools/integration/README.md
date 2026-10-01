@@ -12,6 +12,7 @@
 | `run-tests.ps1` | A standalone suite or fixture run under the lease, for diagnosis or an owner-present focused pass. |
 | `await-results.ps1` | Waits for the NUnit XML and heartbeats the lease in-script; writes a JSON summary with categories. |
 | `build-smoke.ps1` | Mono player build of HorrorRun plus a short headless run; reported in `evidence/build-ledger.jsonl`. |
+| `restart-editor.ps1 [-ThresholdGB 20]` | Restarts the open editor when its committed memory exceeds the threshold (owner rule, 2026-09-30). The editor leaks about 2.5 GB per gate, and at 38 GB the suite took ~2.5 h instead of 8–12 min. It runs under the lease: refuse on a busy editor or an unsaved scene, back up and save the remaining dirty project assets (shaders excluded), exit directly, relaunch, wait for idle. The gate calls it before every Unity stage (`-RestartAboveGB`, 0 to skip). |
 | `probe.ps1` | Read-only one-line C# probe. |
 | `Common.ps1` | Lease, Synaptic bridge, editor state and console helpers. |
 

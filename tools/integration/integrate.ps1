@@ -10,6 +10,9 @@ param(
     # Wait for the Edit Mode results XML. Play-mode tests dominate (about 100 s of domain reload
     # each): batch 12 needed 116 minutes and batch 13 more than 150.
     [int]$TestTimeoutMinutes = 240,
+    # Owner rule 2026-09-30: restart the editor between gates when it exceeds this many GB committed
+    # (restart-editor.ps1). 0 skips the check.
+    [double]$RestartAboveGB = 20,
     [switch]$PrecheckOnly,
     [switch]$NoPush,
     [switch]$NoReindex,
@@ -105,6 +108,9 @@ Log "Offline pre-check passed; candidate $candidate"
 if ($PrecheckOnly) { Log 'Precheck only; nothing published.'; return }
 
 # ---------- 2. Unity gate on the detached candidate ----------
+if ($RestartAboveGB -gt 0) {
+    & (Join-Path $PSScriptRoot 'restart-editor.ps1') -ThresholdGB $RestartAboveGB -Plan $Plan | ForEach-Object { Log "  restart: $_" }
+}
 $token = Enter-UnityLease $Plan "Gate $Label`: candidate $($candidate.Substring(0,8)) import, setup, Edit Mode suite"
 Log "Lease acquired ($($token.Substring(0,8))...)"
 $safe = $false; $onCandidate = $false; $keepCandidate = $false; $verdict = $null
