@@ -13,6 +13,7 @@
 //   - Permit a kinematic partition crossing only on a verified area-3-only segment.
 //   - Return raw contacts synchronously for immediate Manager identity resolution.
 //   - Reuse pooled physics buffers, growing and retrying saturated queries before consumption.
+//   - Leave other Hunters' bodies out of shot, web and body-clearance probes.
 // DEPENDENCIES:
 //   - Core Weaver facts carry immutable nest commands from the owning Hunter.
 //   - Own DriverConfig, Hunter motor config, pure presenters and Unity physics/navigation.
@@ -23,6 +24,8 @@
 //   (the existing Hunter placeholder does); root capsule center is offset separately.
 //   Area 3 is the PLAN-026 link contract. Crossing snaps between verified endpoints,
 //   not through arbitrary walls; teardown restores all original local transforms.
+//   Hunters ignore each other's bodies (owner, 2026-10-01): HunterBody and the route gate
+//   leave the mask, so another Hunter never blocks a shot, a web or a firing spot.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -39,6 +42,7 @@ namespace Worsen.Domain.Hunter
         private HunterMotorDriverConfig _motor;
         private readonly WeaverPresenter _presenter = new WeaverPresenter();
         private readonly HunterSteeringPresenter _route = new HunterSteeringPresenter();
+        private readonly HunterBodyPresenter _bodies = new HunterBodyPresenter();
         public bool IsReady => _state != null;
         public float ShotHeight => _config.ShotHeight;
         private int Mask => _state.CollisionMask;
@@ -48,8 +52,8 @@ namespace Worsen.Domain.Hunter
             _config = config != null ? config : Resources.Load<WeaverDriverConfig>("ScriptableObjects/Domain/Hunter/Archetypes/Weaver/WeaverDriverConfig");
             if (_config == null) throw new InvalidOperationException("Build Weaver profile/configs before spawning it.");
             _motor = motor; _state = new WeaverDriverState { Capsule = GetComponent<CapsuleCollider>() };
-            int gate = LayerMask.NameToLayer("HunterRouteGate");
-            _state.CollisionMask = gate < 0 ? _motor.CollisionMask : _motor.CollisionMask & ~(1 << gate);
+            _state.CollisionMask = _bodies.WithoutLayers(_motor.CollisionMask,
+                LayerMask.NameToLayer("HunterRouteGate"), LayerMask.NameToLayer("HunterBody"));
             _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
             _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.CapsuleCenter = _state.Capsule.center;
