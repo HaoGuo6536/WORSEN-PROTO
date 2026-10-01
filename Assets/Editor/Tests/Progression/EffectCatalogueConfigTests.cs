@@ -8,8 +8,7 @@
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
 //   - Include More Shrines in the exact approved upgrade inventory.
-//   - Require owner-approved inventory; exclude retired Thin Skin, Bail Bond and
-//     the Mannequin light curses, and keep darkness out of Mannequin copy.
+//   - Require owner-approved inventory, exclude retired effects and keep light out of Mannequin copy.
 //   - Fail malformed data/copy; warn without failing on hunter-number-only changes.
 // DEPENDENCIES:
 //   - Core, Session Progression, NUnit and UnityEditor asset access.
@@ -53,21 +52,21 @@ namespace Worsen.Tests.Progression
             Assert.That(catalogue.Entries.Any(entry => ProgressionRosterUtility.Retired(entry.Id)), Is.False);
             foreach (var threat in catalogue.Entries.Where(entry => entry.Kind == EffectKind.Threat))
                 Assert.That(threat.AvailabilityRound, Is.EqualTo(ProgressionRosterUtility.FirstRound(threat.Id)), threat.Id);
-            AssertIds(catalogue, EffectKind.Curse, "no-look-back silent-presence hidden-count darker-floors random-spawn shuffled-collapse nothing spent-pockets greedy-door short-grace faster-collapse slow-mend no-regen rough-start short-burst heavy-legs", true);
-            AssertIds(catalogue, EffectKind.Upgrade, "stored-momentum soft-landing quiet-slide thick-skin wax-heart low-profile steady-hand second-bounce sweet-tooth glimpse latch echo-boots exit-sense blind-faith loud-heart gilded-greed longer-slide higher-jump sticky-fingers bigger-pockets cat-eyes field-kit lucky-reroll bargain-hunter keen-ears trail-reader sure-footing golden-sense stone-nerves web-cutter marked-doors afterglow spare-key mirror-skin ear-plugs extra-life golden-touch shop-reroll loyalty-card interest refund extra-pedestal more-shrines business-license speed-boost quick-start air-control fast-hands long-boost");
+            AssertIds(catalogue, EffectKind.Curse, "no-look-back silent-presence hidden-count darker-floors random-spawn shuffled-collapse nothing spent-pockets short-grace faster-collapse slow-mend no-regen rough-start short-burst heavy-legs", true);
+            AssertIds(catalogue, EffectKind.Upgrade, "stored-momentum soft-landing quiet-slide thick-skin wax-heart low-profile steady-hand second-bounce sweet-tooth glimpse latch echo-boots exit-sense loud-heart gilded-greed longer-slide higher-jump sticky-fingers bigger-pockets cat-eyes field-kit lucky-reroll bargain-hunter keen-ears trail-reader sure-footing golden-sense stone-nerves web-cutter marked-doors spare-key mirror-skin ear-plugs extra-life golden-touch shop-reroll loyalty-card interest refund extra-pedestal more-shrines business-license speed-boost quick-start air-control fast-hands long-boost");
             AssertIds(catalogue, EffectKind.Consumable, "firecracker gauze smelling-salts wax-ward doorstop oil-flask glass-vial adrenaline");
             Assert.That(EffectCatalogueUtility.Find(catalogue, "wagered-haul"), Is.Null);
             Assert.That(EffectCatalogueUtility.Find(catalogue, "thin-skin"), Is.Null);
             Assert.That(EffectCatalogueUtility.Find(catalogue, "bail-bond"), Is.Null);
-            foreach (string retired in new[] { "mannequin-fewer-lamps", "mannequin-broken-lights" })
+            foreach (string retired in new[] { "mannequin-fewer-lamps", "mannequin-broken-lights", "afterglow", "blind-faith", "greedy-door" })
                 Assert.That(EffectCatalogueUtility.Find(catalogue, retired), Is.Null, retired);
             foreach (var entry in catalogue.Entries.Where(e => e.Id == "mannequin" || (e.Kind == EffectKind.Curse && e.RequiredHunterIds.Contains("mannequin"))))
                 Assert.That(entry.CardCopy + " " + entry.ChangeStatement, Does.Not.Contain("dark").IgnoreCase, entry.Id + ": the Mannequin ignores light.");
             Assert.That(EffectCatalogueUtility.Find(catalogue, "no-regen").AvailabilityRound, Is.EqualTo(12));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "hidden-count").CardCopy, Is.EqualTo("Hides the cake counter during a floor."));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "extra-life").CardCopy, Is.EqualTo(
-                "Once per run, a catch revives you where you fell, with a brief collision grace and temporary damage immunity."));
-            Assert.That(EffectCatalogueUtility.Find(catalogue, "faster-collapse").CardCopy, Does.Contain("15% more golden cakes"));
+                "Once per run, revives you in place after a catch."));
+            Assert.That(EffectCatalogueUtility.Find(catalogue, "faster-collapse").CardCopy, Is.EqualTo("Rooms collapse faster; +15% golden cakes."));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "mimic-faithless-arrow").RequiredHunterIds, Is.EqualTo(new[] { "mimic" }));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "no-regen").PrerequisiteEffectId, Is.EqualTo("slow-mend"));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "heavy-legs").PrerequisiteEffectId, Is.EqualTo("short-burst"));

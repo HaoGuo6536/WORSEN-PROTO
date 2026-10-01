@@ -138,7 +138,7 @@ namespace Worsen.Session.Progression.Shop
             if (HasPending && !confirming) return "Choose a replacement slot or cancel first.";
             if (entry == null || !state.Offers.Contains(entry.Id)) return "That pedestal is unavailable.";
             if (state.Sold.Contains(entry.Id)) return "Sold out on this pedestal.";
-            if (!Eligible(entry, active)) return "Requirements, availability or stack cap not met.";
+            if (!Eligible(entry, active)) return "Not available yet.";
             if (wallet < Price(entry, active)) return "Not enough Golden Cakes.";
             return null;
         }

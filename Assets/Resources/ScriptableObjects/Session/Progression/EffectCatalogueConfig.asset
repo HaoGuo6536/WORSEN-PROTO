@@ -17,7 +17,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 2
     _title: The Echo
-    _cardCopy: Adds an Echo that replays your path; backtracking is no longer safe.
+    _cardCopy: Adds a hunter that repeats your exact path a few seconds behind you.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -31,7 +31,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 4
     _title: The Weaver
-    _cardCopy: Adds a ceiling hunter whose webs slow your movement.
+    _cardCopy: Adds a ceiling hunter whose webs slow you.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -44,8 +44,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 5
     _title: The Ticking
-    _cardCopy: Adds a winding clock; collect keys before its ticking stops and it
-      hunts.
+    _cardCopy: Adds a clock hunter; collect keys or it hunts when the ticking stops.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -59,8 +58,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 1
     _title: The Mannequin
-    _cardCopy: Adds a hunter that moves whenever you are not looking at it and freezes
-      the instant it is in view.
+    _cardCopy: Adds a hunter that moves only while unseen.
     _availabilityRound: 4
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -74,7 +72,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 5
     _title: The Stare
-    _cardCopy: Adds a threat you must find and stare down before its window ends.
+    _cardCopy: Adds a threat you must find and stare down in time.
     _availabilityRound: 6
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -88,7 +86,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 4
     _title: The Ram
-    _cardCopy: Adds a charging hunter that cannot turn until it stops.
+    _cardCopy: Adds a hunter that charges in a line and cannot turn mid-charge.
     _availabilityRound: 4
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -101,8 +99,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 1
     _title: The Mimic
-    _cardCopy: Adds false cakes; the white arrow never points at them unless Faithless
-      Arrow is active.
+    _cardCopy: Adds false cakes. The arrow never points at them.
     _availabilityRound: 5
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -116,7 +113,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 2
     _title: The Skip
-    _cardCopy: Adds a threat that intercepts doorways you reuse.
+    _cardCopy: Adds a hunter that ambushes doorways you reuse.
     _availabilityRound: 6
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -129,7 +126,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 1
     _title: The Blinder
-    _cardCopy: Adds a hunter whose traps and projectiles temporarily remove vision.
+    _cardCopy: Adds a hunter whose traps and shots blind you briefly.
     _availabilityRound: 5
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -143,8 +140,7 @@ MonoBehaviour:
     _kind: 0
     _axis: 1
     _title: The Herald
-    _cardCopy: Adds a screaming hunter that broadcasts your position and deafens
-      you.
+    _cardCopy: Adds a hunter whose scream reveals you and deafens you.
     _availabilityRound: 6
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -171,7 +167,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: Silent Presence
-    _cardCopy: Removes distant hunter presence loops; detection and attack cues remain.
+    _cardCopy: Removes distant hunter presence sounds.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -198,7 +194,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: Darker Floors
-    _cardCopy: Reduces lit rooms and the distance you can see through fog.
+    _cardCopy: Reduces lit rooms and how far you see through fog.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -211,7 +207,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 2
     _title: Random Spawn
-    _cardCopy: Replaces the exit-room start with a spawn elsewhere on the floor.
+    _cardCopy: Replaces the exit-room start with a random start.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -225,7 +221,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 2
     _title: Shuffled Collapse
-    _cardCopy: Removes farthest-first collapse order; an escape route remains guaranteed.
+    _cardCopy: Replaces farthest-first collapse with a random order.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -253,8 +249,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 3
     _title: Spent Pockets
-    _cardCopy: Removes unused consumables at the exit; they no longer carry between
-      floors.
+    _cardCopy: Removes unused consumables at the exit.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -264,23 +259,7 @@ MonoBehaviour:
     _onlyRaisesHunterNumbers: 0
     _changeStatement: Removes unused consumables at the exit; they no longer carry
       between floors.
-  - _id: greedy-door
-    _kind: 1
-    _axis: 4
-    _title: Greedy Door
-    _cardCopy: Replaces immediate exit opening with a quota of golden cakes originally
-      placed in rooms not fully collapsed. Completed collapse opens it anyway; the
-      exit room never collapses.
-    _availabilityRound: 1
-    _requiredHunterIds: []
-    _prerequisiteEffectId: 
-    _stackCap: 1
-    _price: 0
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces immediate exit opening with a quota of golden cakes
-      originally placed in rooms not fully collapsed. Completed collapse opens it
-      anyway; the exit room never collapses.
+
   - _id: short-grace
     _kind: 1
     _axis: 4
@@ -298,8 +277,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 5
     _title: Faster Collapse
-    _cardCopy: Shortens the time before rooms collapse after the exit opens; 15%
-      more golden cakes.
+    _cardCopy: Rooms collapse faster; +15% golden cakes.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -339,7 +317,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 3
     _title: Rough Start
-    _cardCopy: Replaces full starting health with half health on every floor.
+    _cardCopy: Replaces full starting health with half on every floor.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -443,7 +421,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 4
     _title: Low Profile
-    _cardCopy: Sliding passes under collapse hands; a slide cannot be grabbed.
+    _cardCopy: Slides cannot be grabbed by collapse hands.
     _availabilityRound: 2
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -502,8 +480,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 1
     _title: Glimpse
-    _cardCopy: The look-back snap also outlines the hunter behind you briefly through
-      fog.
+    _cardCopy: Look-back also outlines the hunter behind you.
     _availabilityRound: 4
     _requiredHunterIds:
     - echo
@@ -540,7 +517,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 1
     _title: Echo Boots
-    _cardCopy: Replaces your footstep origin with where you were three seconds ago.
+    _cardCopy: Your footsteps sound from where you were 3 s ago instead.
     _availabilityRound: 5
     _requiredHunterIds:
     - herald
@@ -565,27 +542,12 @@ MonoBehaviour:
     _value: 1
     _onlyRaisesHunterNumbers: 0
     _changeStatement: Once the exit opens, its arrow shows through walls.
-  - _id: blind-faith
-    _kind: 2
-    _axis: 1
-    _title: Blind Faith
-    _cardCopy: Every cake counts double toward the exit, but the arrow is removed.
-    _availabilityRound: 6
-    _requiredHunterIds:
-    - mimic
-    _prerequisiteEffectId: 
-    _stackCap: 1
-    _price: 12
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: Every cake counts double toward the exit, but the arrow is
-      removed.
+
   - _id: loud-heart
     _kind: 2
     _axis: 3
     _title: Loud Heart
-    _cardCopy: You sprint faster while chased, but hunters hear your heartbeat during
-      a chase.
+    _cardCopy: Faster sprint while chased; hunters hear your heartbeat.
     _availabilityRound: 6
     _requiredHunterIds:
     - herald
@@ -600,8 +562,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 3
     _title: Gilded Greed
-    _cardCopy: Golden Cakes are worth double, but the exit only opens after your
-      first Golden Cake.
+    _cardCopy: Golden Cakes count double; the exit needs one Golden Cake.
     _availabilityRound: 8
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -654,7 +615,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 4
     _title: Bigger Pockets
-    _cardCopy: Adds one consumable slot above the base of three.
+    _cardCopy: Adds one consumable slot.
     _availabilityRound: 2
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -667,7 +628,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 1
     _title: Cat Eyes
-    _cardCopy: You see farther into the dark; fog starts farther out.
+    _cardCopy: You see farther into the dark and fog.
     _availabilityRound: 2
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -753,7 +714,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 4
     _title: Sure Footing
-    _cardCopy: Removes damage from a glancing Ram charge; it still knocks you aside.
+    _cardCopy: Removes damage from glancing Ram charges.
     _availabilityRound: 3
     _requiredHunterIds:
     - ram
@@ -819,22 +780,7 @@ MonoBehaviour:
     _value: 1
     _onlyRaisesHunterNumbers: 0
     _changeStatement: Doorways the Skip watches show a faint mark.
-  - _id: afterglow
-    _kind: 2
-    _axis: 5
-    _title: Afterglow
-    _cardCopy: After a light breaks, its room stays safe from the Mannequin a few
-      seconds longer.
-    _availabilityRound: 4
-    _requiredHunterIds:
-    - mannequin
-    _prerequisiteEffectId: 
-    _stackCap: 1
-    _price: 12
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: After a light breaks, its room stays safe from the Mannequin
-      a few seconds longer.
+
   - _id: spare-key
     _kind: 2
     _axis: 5
@@ -881,8 +827,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 3
     _title: Extra Life
-    _cardCopy: Once per run, a catch revives you where you fell, with a brief collision
-      grace and temporary damage immunity.
+    _cardCopy: Once per run, revives you in place after a catch.
     _availabilityRound: 6
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -974,7 +919,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 3
     _title: Business License
-    _cardCopy: Golden Cake yield increases to 1.25 times, or 1.5 times with two copies.
+    _cardCopy: Increases Golden Cake yield to x1.25 (x1.5 with two).
     _availabilityRound: 5
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -988,7 +933,7 @@ MonoBehaviour:
     _kind: 2
     _axis: 4
     _title: Speed Boost
-    _cardCopy: Increases sprint speed, capped below hunters' chase speed.
+    _cardCopy: Increases sprint speed.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -1053,7 +998,7 @@ MonoBehaviour:
     _kind: 3
     _axis: 1
     _title: Firecracker
-    _cardCopy: 'Two throws: the bang draws nearby hunters to the impact point.'
+    _cardCopy: Two throws. The bang draws nearby hunters.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -1066,7 +1011,7 @@ MonoBehaviour:
     _kind: 3
     _axis: 3
     _title: Gauze
-    _cardCopy: Restores health over a few seconds while you keep moving.
+    _cardCopy: Restores health over a few seconds.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -1105,8 +1050,7 @@ MonoBehaviour:
     _kind: 3
     _axis: 5
     _title: Doorstop
-    _cardCopy: 'Two uses: jams the door behind you briefly; hunters must break it
-      loudly.'
+    _cardCopy: Two uses. Jams a door behind you briefly.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -1120,7 +1064,7 @@ MonoBehaviour:
     _kind: 3
     _axis: 4
     _title: Oil Flask
-    _cardCopy: A slick patch makes hunters slip and lose momentum briefly.
+    _cardCopy: Hunters slip on the spill and lose speed.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -1133,8 +1077,7 @@ MonoBehaviour:
     _kind: 3
     _axis: 4
     _title: Glass Vial
-    _cardCopy: Shatter it at a hunter's face for an instant short flinch, weaker
-      than flashlight stun.
+    _cardCopy: Throw at a hunter to make it flinch.
     _availabilityRound: 1
     _requiredHunterIds: []
     _prerequisiteEffectId: 
@@ -1175,8 +1118,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 5
     _title: Faster Playback
-    _cardCopy: Increases Echo playback speed above your recorded speed, gaining on
-      straight sections.
+    _cardCopy: The Echo replays your path faster than you moved.
     _availabilityRound: 1
     _requiredHunterIds:
     - echo
@@ -1191,8 +1133,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: Silent Steps
-    _cardCopy: Reduces the volume of the Echo's footsteps, making them harder to
-      place.
+    _cardCopy: Reduces Echo footstep volume.
     _availabilityRound: 1
     _requiredHunterIds:
     - echo
@@ -1221,7 +1162,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 4
     _title: Wider Webs
-    _cardCopy: Increases web projectile size, leaving less room to sidestep.
+    _cardCopy: Increases web size.
     _availabilityRound: 1
     _requiredHunterIds:
     - weaver
@@ -1235,7 +1176,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 4
     _title: Doorway Nests
-    _cardCopy: Replaces clear doorways with webs in some rooms at floor start.
+    _cardCopy: Adds webs to some doorways at floor start.
     _availabilityRound: 1
     _requiredHunterIds:
     - weaver
@@ -1291,8 +1232,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: Loud Keys
-    _cardCopy: Removes quiet key collection; taking a key makes a loud world sound,
-      not a hunter hearing stimulus.
+    _cardCopy: Removes quiet key pickup; taking a key makes a loud sound.
     _availabilityRound: 1
     _requiredHunterIds:
     - ticking
@@ -1307,7 +1247,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 5
     _title: Double Spring
-    _cardCopy: Replaces one-key winding with two keys to fully wind the Ticking.
+    _cardCopy: Replaces one-key winding with two keys.
     _availabilityRound: 1
     _requiredHunterIds:
     - ticking
@@ -1321,8 +1261,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: Faithless Arrow
-    _cardCopy: Replaces the white arrow's safe guidance with brief directions toward
-      a Mimic.
+    _cardCopy: The arrow sometimes shows the way to a Mimic instead.
     _availabilityRound: 1
     _requiredHunterIds:
     - mimic
@@ -1337,7 +1276,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: More Traps
-    _cardCopy: Adds Blinder traps, removing safe paths through the floor.
+    _cardCopy: Adds more Blinder traps.
     _availabilityRound: 1
     _requiredHunterIds:
     - blinder
@@ -1378,7 +1317,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 5
     _title: Longer Strides
-    _cardCopy: Shortens the time before an unseen Mannequin reaches you.
+    _cardCopy: The Mannequin reaches you faster.
     _availabilityRound: 1
     _requiredHunterIds:
     - mannequin
@@ -1392,7 +1331,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 1
     _title: Peripheral Creep
-    _cardCopy: Removes peripheral observation as a safe way to freeze the Mannequin.
+    _cardCopy: Seeing it at the edge of view no longer freezes it.
     _availabilityRound: 1
     _requiredHunterIds:
     - mannequin
@@ -1449,7 +1388,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 2
     _title: Wider Wander
-    _cardCopy: Replaces predictable edge placement with a wider wandering range.
+    _cardCopy: The Stare appears in a wider range instead.
     _availabilityRound: 1
     _requiredHunterIds:
     - stare
@@ -1506,8 +1445,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 5
     _title: Second Charge
-    _cardCopy: Replaces the first recovery with another warned charge when you remain
-      visible.
+    _cardCopy: The Ram charges again if it still sees you, instead of recovering.
     _availabilityRound: 1
     _requiredHunterIds:
     - ram
@@ -1578,7 +1516,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 2
     _title: Quicker Learner
-    _cardCopy: Reduces the route reuses needed for the Skip to learn them.
+    _cardCopy: The Skip learns your routes faster.
     _availabilityRound: 1
     _requiredHunterIds:
     - skip
@@ -1592,7 +1530,7 @@ MonoBehaviour:
     _kind: 1
     _axis: 4
     _title: Wider Reach
-    _cardCopy: Removes stairs and drops as safe alternatives to watched doorways.
+    _cardCopy: Stairs and drops no longer avoid the Skip.
     _availabilityRound: 1
     _requiredHunterIds:
     - skip

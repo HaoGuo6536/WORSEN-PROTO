@@ -73,6 +73,7 @@ namespace Worsen.Tests.Progression
                 Assert.That(state.CompletedCombatFloors, Is.EqualTo(combats));
                 if (shop)
                 {
+                    ChooseLoadout(); // Gate six selects before the unchanged refuge generation.
                     Assert.That(controller.GenerationRequest().IsShop, Is.True);
                     Assert.That(controller.GenerationRequest().Effects.ActiveThreatBudget, Is.Zero);
                     Assert.That(controller.ContinueShop(Revision), Is.False, "Unready refuge cannot continue.");
@@ -425,7 +426,7 @@ namespace Worsen.Tests.Progression
         {
             for (int round = 0; round < 100; round++)
             {
-                if (state.Phase == ProgressionPhase.Generating && state.IsShop) SkipPendingShop();
+                if (state.IsShop) SkipPendingShop();
                 int generation = OpenCombatFloor("weaver");
                 controller.CompleteFloor(generation);
             }
@@ -736,6 +737,7 @@ namespace Worsen.Tests.Progression
         private void SkipPendingShop()
         {
             if (!state.IsShop) return;
+            if (state.Phase == ProgressionPhase.ChooseThreat || state.Phase == ProgressionPhase.ChooseCurse) ChooseLoadout();
             if (state.Phase == ProgressionPhase.Generating) controller.ConfirmFloorReady(state.GenerationId);
             Assert.That(controller.ContinueShop(Revision), Is.True);
         }
@@ -770,6 +772,7 @@ namespace Worsen.Tests.Progression
                 if (health >= 0f) controller.RecordHealth(generation, health);
                 controller.CompleteFloor(generation);
             }
+            ChooseLoadout();
             Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
         }
         private ProgressionOffer Offer(string id)
