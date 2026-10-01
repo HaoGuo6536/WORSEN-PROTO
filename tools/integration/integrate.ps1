@@ -45,6 +45,17 @@ if (-not (Test-Path -LiteralPath $int)) {
 }
 Invoke-Git $int checkout -q wt/integration | Out-Null
 Invoke-Git $int reset -q --hard main | Out-Null
+# A file committed raw although .gitattributes routes it through LFS reads as modified right after the
+# reset (the clean filter turns it into a pointer), and a merge that touches it then refuses. When its
+# raw bytes equal the committed blob it is a filter artifact, not an edit: remove only the worktree copy
+# of this throwaway checkout; the index (and so the candidate) is unchanged and the next reset restores it.
+foreach ($line in @(Invoke-Git $int -c core.quotepath=off status --porcelain)) {
+    if ($line -notmatch '^ M (.+)$') { continue }
+    $f = $Matches[1].Trim('"')
+    $raw = (Invoke-Git $int hash-object --no-filters -- $f) | Select-Object -Last 1
+    $blob = (Invoke-Git $int rev-parse "HEAD:$f") | Select-Object -Last 1
+    if ($raw -eq $blob) { Remove-Item -LiteralPath (Join-Path $int $f) -Force; Log "Filter artifact (raw blob under an LFS rule), removed from the integration worktree only: $f" }
+}
 $mainHead = (Invoke-Git $main rev-parse HEAD) | Select-Object -Last 1
 $entry.base_main = $mainHead
 Log "Candidate base: main $mainHead"
