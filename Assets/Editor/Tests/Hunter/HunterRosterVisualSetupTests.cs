@@ -12,6 +12,7 @@
 //   - Verify ten saved rigs, six clip roles, project materials and visible dimensions.
 //   - Compare collision and protected gameplay/source assets against the base.
 //   - Prove first-import shader validation and repeated-build GUID/material stability.
+//   - Verify saved Mimic glow/elevation and native animation bone evaluation.
 // DEPENDENCIES:
 //   - HunterRosterVisualSetup, Hunter configs, NUnit and UnityEditor test APIs.
 // USAGE NOTES:
@@ -32,6 +33,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Worsen.Domain.Hunter;
+using Worsen.Domain.Floor;
+using DistantLands.Lumen;
 using Worsen.Editor.Hunter;
 using Setup = Worsen.Editor.Hunter.HunterRosterVisualSetup;
 using Object = UnityEngine.Object;
@@ -90,6 +93,9 @@ namespace Worsen.Tests.Hunter
         [TestCase("Echo")]
         [TestCase("Weaver")]
         [TestCase("Ticking")]
+        [TestCase("Ram")]
+        [TestCase("Skip")]
+        [TestCase("Blinder")]
         [TestCase("Mimic")]
         [TestCase("Herald")]
         [TestCase("Mannequin")]
@@ -196,27 +202,36 @@ namespace Worsen.Tests.Hunter
                         Assert.That(AssetDatabase.GetAssetPath(material), Does.StartWith(Setup.ArtPath(name) + "/Materials/"));
                     }
                 }
-                Assert.That(root.GetComponentsInChildren<Renderer>(true).Where(renderer => !renderer.transform.IsChildOf(visual)).All(renderer => !renderer.enabled), Is.True);
+                Transform glow = root.transform.Find("Mimic Cake Glow");
+                Assert.That(root.GetComponentsInChildren<Renderer>(true).Where(renderer => !renderer.transform.IsChildOf(visual) &&
+                    (glow == null || !renderer.transform.IsChildOf(glow))).All(renderer => !renderer.enabled), Is.True);
                 Assert.That(visual.GetComponentsInChildren<Collider>(true), Is.Empty);
                 Assert.That(visual.GetComponentsInChildren<Rigidbody>(true), Is.Empty);
-                float target = name == "Ram" ? 2.1f : name == "Skip" ? 1.2f : name == "Blinder" ? 1.5f :
-                    Setup.ParseManifest(File.ReadAllText(Setup.ManifestPath(name)), name).Height;
+                float target = Setup.ParseManifest(File.ReadAllText(Setup.ManifestPath(name)), name).Height;
+                float foot = root.transform.position.y;
+                if (name == "Mimic")
+                {
+                    var floor = Load<FloorDriverConfig>(Setup.CakeConfigPath);
+                    Bounds cake = Setup.MeasureVisualBounds(floor.CakePrefab);
+                    target = cake.size.y; foot += floor.PickupHeight + cake.min.y;
+                }
                 Bounds bounds = Setup.MeasureVisualBounds(visual.gameObject);
                 Assert.That(Math.Abs(bounds.size.y / target - 1f), Is.LessThanOrEqualTo(Setup.VisualHeightRelativeTolerance), name + " height");
-                Assert.That(bounds.min.y, Is.EqualTo(root.transform.position.y).Within(Setup.VisualFootTolerance), name + " feet");
+                Assert.That(bounds.min.y, Is.EqualTo(foot).Within(Setup.VisualFootTolerance), name + " feet");
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
         [Test]
         public void ProjectImportSettingsMatchManifestsAndDisableRootMotion()
         {
-            foreach (string name in Setup.Names.Where(value => value != "Ram" && value != "Skip" && value != "Blinder"))
+            foreach (string name in Setup.Names)
             {
                 var manifest = Setup.ParseManifest(File.ReadAllText(Setup.ManifestPath(name)), name);
                 var importer = (ModelImporter)AssetImporter.GetAtPath(Setup.ArtPath(name) + "/WORSEN_Hunter" + name + ".fbx");
                 Assert.That(importer.animationType, Is.EqualTo(ModelImporterAnimationType.Generic));
                 Assert.That(importer.avatarSetup, Is.EqualTo(ModelImporterAvatarSetup.CreateFromThisModel));
                 Assert.That(importer.bakeAxisConversion, Is.False);
+                Assert.That(importer.importNormals, Is.EqualTo(ModelImporterNormals.Import));
                 Assert.That(importer.clipAnimations.Length, Is.EqualTo(6));
                 foreach (var clip in importer.clipAnimations)
                 {
@@ -266,13 +281,83 @@ namespace Worsen.Tests.Hunter
             CollectionAssert.AreEquivalent(cake.shaderKeywords, mimic.shaderKeywords);
         }
         [Test]
+        public void SavedMimicHasTheThreeAlwaysOnCakeGlowLayers()
+        {
+            var floor = Load<FloorDriverConfig>(Setup.CakeConfigPath);
+            GameObject root = PrefabUtility.LoadPrefabContents(Setup.PrefabPath("Mimic"));
+            try
+            {
+                Transform glow = root.transform.Find("Mimic Cake Glow");
+                Assert.That(glow, Is.Not.Null); Assert.That(glow.gameObject.activeSelf, Is.True);
+                Assert.That(glow.GetComponentsInChildren<LumenEffectPlayer>(true).Length, Is.EqualTo(3));
+                var source = floor.LumenExitGlowPrefab.GetComponentInChildren<LumenEffectPlayer>(true);
+                string[] labels = { "Inner Cake Glow", "Outer Cake Glow", "Cake Light Pool" };
+                float[] radii = { floor.CakeGlowRadius, floor.CakeGlowRadius * 1.5f, floor.CakePoolRadius };
+                float[] heights = { floor.PickupHeight, floor.PickupHeight + 0.15f, 0.03f };
+                for (int i = 0; i < labels.Length; i++)
+                {
+                    Transform layer = glow.Find(labels[i]); Assert.That(layer, Is.Not.Null);
+                    Assert.That(layer.gameObject.activeSelf, Is.True);
+                    Assert.That(layer.localPosition, Is.EqualTo(Vector3.up * heights[i]));
+                    var player = layer.GetComponentInChildren<LumenEffectPlayer>(true);
+                    Assert.That(player.enabled, Is.True); Assert.That(player.profile, Is.EqualTo(source.profile));
+                    Assert.That(player.color, Is.EqualTo(floor.FrostingColor));
+                    Assert.That(player.brightness, Is.EqualTo(floor.CakeGlowBrightness));
+                    Assert.That(player.range, Is.EqualTo(Mathf.Sqrt(radii[i] * radii[i] + 1f) - 0.5f).Within(0.00001f));
+                    Assert.That(player.updateFrequency, Is.EqualTo(LumenEffectPlayer.UpdateFrequency.ViaScripting));
+                    Assert.That(player.initializationBehavior, Is.EqualTo(LumenEffectPlayer.InitializationBehavior.Immediate));
+                }
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+        [TestCase("Ram")] [TestCase("Skip")] [TestCase("Blinder")] [TestCase("Mimic")]
+        public void NativePlaybackMovesBoundBonesAndMimicDisguiseStaysStill(string name)
+        {
+            GameObject root = Object.Instantiate(Profile(name).Prefab);
+            HunterDriver driver = root.GetComponent<HunterDriver>();
+            try
+            {
+                driver.Initialize();
+                var animation = root.transform.Find("Imported Creature").GetComponent<HunterAnimationDriver>();
+                Assert.That(animation.IsReady, Is.True);
+                Transform[] bones = animation.Animator.GetComponentsInChildren<Transform>(true);
+                Quaternion[] closed = bones.Select(bone => bone.localRotation).ToArray();
+                for (int frame = 0; frame < 30; frame++) animation.Apply(1f / 30f, 0f, 0, 0f);
+                if (name == "Mimic")
+                    Assert.That(bones.Select((bone, i) => Quaternion.Angle(closed[i], bone.localRotation)).Max(), Is.LessThan(0.01f));
+                else
+                {
+                    Quaternion[] standing = bones.Select(bone => bone.localRotation).ToArray();
+                    float gaitMovement = 0f;
+                    for (int frame = 0; frame < 30; frame++)
+                    {
+                        animation.Apply(1f / 30f, 3f, 0, 0f);
+                        gaitMovement = Math.Max(gaitMovement, bones.Select((bone, i) => Quaternion.Angle(standing[i], bone.localRotation)).Max());
+                    }
+                    Assert.That(gaitMovement, Is.GreaterThan(10f), name + " locomotion never evaluated its bound bones");
+                }
+                foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(animation.Config.Attack))
+                {
+                    if (binding.type != typeof(Transform)) continue;
+                    Assert.That(AnimationUtility.GetAnimatedObject(animation.Animator.gameObject, binding), Is.Not.Null,
+                        name + " unresolved binding: " + binding.path + " / " + binding.propertyName);
+                }
+                Quaternion[] before = bones.Select(bone => bone.localRotation).ToArray();
+                for (int frame = 0; frame < 30; frame++) animation.Apply(1f / 30f, 0f, 2, name == "Mimic" ? 0.267f : 0.4f);
+                float movement = bones.Select((bone, i) => Quaternion.Angle(before[i], bone.localRotation)).Max();
+                Assert.That(movement, Is.GreaterThan(10f), name + " attack never evaluated its bound bones");
+            }
+            finally { driver.Teardown(); Object.DestroyImmediate(root); }
+        }
+        [Test]
         public void MimicClosedExteriorMatchesRealCakeGeometry()
         {
             GameObject mimic = PrefabUtility.LoadPrefabContents(Setup.PrefabPath("Mimic"));
             GameObject cake = null;
             try
             {
-                cake = PrefabUtility.LoadPrefabContents("Assets/Art/Horror/Cake/CakeSlice.prefab");
+                var floor = Load<FloorDriverConfig>(Setup.CakeConfigPath);
+                cake = PrefabUtility.LoadPrefabContents(AssetDatabase.GetAssetPath(floor.CakePrefab));
                 Transform visual = mimic.transform.Find("Imported Creature");
                 var animation = visual.GetComponent<HunterAnimationDriver>();
                 animation.Config.Idle.SampleAnimation(animation.Animator.gameObject, 0f);

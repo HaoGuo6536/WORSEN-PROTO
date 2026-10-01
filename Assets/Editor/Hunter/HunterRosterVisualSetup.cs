@@ -14,7 +14,8 @@
 //   - Reuse legacy wiring and bind ten distinct, stable-identity prefabs.
 //   - Fail the setup gate on missing content, invalid wiring or logged errors.
 // DEPENDENCIES:
-//   - Hunter configs and HorrorHunterSetup; UnityEditor asset APIs.
+//   - Hunter configs and HorrorHunterSetup; Floor cake config; native Lumen player.
+//   - UnityEditor asset APIs; all cross-system wiring is editor-only.
 //   - Framework DataContract JSON reader (no native JsonUtility or extra package).
 // USAGE NOTES:
 //   Explicit idle Edit Mode operation under the coordinator's Unity lease only.
@@ -22,6 +23,7 @@
 //   No scenes, vendor assets, keys or gameplay configs are saved. Mimic keeps its
 //   existing stationary touch path; Floor receives guidance facts, not a new body.
 //   Cake surface properties override manifest tint to match the real pickup exactly.
+//   Mimic also copies the configured cake elevation and native Lumen glow layers.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -34,19 +36,21 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Worsen.Domain.Hunter;
+using Worsen.Domain.Floor;
+using DistantLands.Lumen;
 using Object = UnityEngine.Object;
 
 namespace Worsen.Editor.Hunter
 {
     public static class HunterRosterVisualSetup
     {
-        public const string Summary = "Hunter roster visuals: 10 distinct prefabs; 7 project Generic imports; 3 pack bodies; 60 clips resolved; motor collision and gameplay tuning unchanged.";
+        public const string Summary = "Hunter roster visuals: 10 distinct prefabs; 10 project Generic imports; 0 pack bodies; 60 clips resolved; Mimic cake surface and glow matched; motor collision and gameplay tuning unchanged.";
         public const float PackDarkening = 0.55f;
         public const float PrototypeSmoothness = 0.25f;
         public const float VisualHeightRelativeTolerance = 0.005f;
         public const float VisualFootTolerance = 0.005f;
         public const string CakeMaterialPath = "Assets/Art/Horror/Cake/CakeSlice.mat";
-        private const string Bundle = "Assets/External/NHance/Creatures/StylizedCreaturesBundle/";
+        public const string CakeConfigPath = "Assets/Resources/ScriptableObjects/Domain/Floor/HorrorFloorDriverConfig.asset";
         private static readonly string[] Roles = { "idle", "walk", "run", "ready", "attack", "hit" };
         public static IReadOnlyList<string> Names { get; } = Array.AsReadOnly(new[]
             { "Echo", "Weaver", "Ticking", "Ram", "Skip", "Mimic", "Blinder", "Herald", "Mannequin", "Stare" });
@@ -176,9 +180,8 @@ namespace Worsen.Editor.Hunter
                 var animation = Require<HunterAnimationDriverConfig>(HorrorHunterSetup.ProfileDirectory + "/rusher_Animation.asset");
                 Require<Material>(CakeMaterialPath);
                 if (Shader.Find("Universal Render Pipeline/Lit") == null) throw new InvalidOperationException("URP Lit shader missing.");
-                // Vendor rigs are validated before the first project import; never repair vendor importers.
-                foreach (Entry entry in entries.Where(value => value.Manifest == null)) Resolve(entry);
-                foreach (Entry entry in entries.Where(value => value.Manifest != null)) { ImportProject(entry); Resolve(entry); }
+                // Every selectable body is now project-made; vendor importers stay untouched.
+                foreach (Entry entry in entries) { ImportProject(entry); Resolve(entry); }
                 foreach (Entry entry in entries) BuildEntry(entry, attack, animation);
                 var prefabs = new HashSet<GameObject>();
                 foreach (Entry entry in entries)
@@ -197,17 +200,6 @@ namespace Worsen.Editor.Hunter
             RequireMotor(Require<GameObject>(BasePrefabPath(name)));
             switch (name)
             {
-                case "Ram":
-                    entry.Model = Bundle + "Meshes/Satyr/Satyr_Full.fbx";
-                    entry.SourcePath = Bundle + "Prefabs/Satyr/Satyr_Unarmed.prefab"; entry.Height = 2.1f; break;
-                case "Skip":
-                    entry.Model = Bundle + "Meshes/ForestImp/ForestImp.fbx";
-                    entry.SourcePath = SelectPackPrefab(Bundle + "Prefabs/ForestImp", entry.Model); entry.Height = 1.2f; break;
-                case "Blinder":
-                    // Goblin, not the Kobold Thief: the Kobold pack is Humanoid-rigged and this pipeline needs a
-                    // Generic avatar (batch 14 setup failure). The Goblin is the proven legacy lurker body.
-                    entry.Model = Bundle + "Meshes/Goblin/GoblinMale.fbx";
-                    entry.SourcePath = SelectPackPrefab(Bundle + "Prefabs/GoblinMale", entry.Model); entry.Height = 1.5f; break;
                 default:
                     entry.Manifest = ParseManifest(File.ReadAllText(ManifestPath(name)), name);
                     entry.Height = entry.Manifest.Height;
@@ -235,6 +227,8 @@ namespace Worsen.Editor.Hunter
             importer.animationType = ModelImporterAnimationType.Generic;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             importer.sourceAvatar = null; importer.bakeAxisConversion = false;
+            // Preserve authored cake smoothing as well as the other bodies' flat normals.
+            importer.importNormals = ModelImporterNormals.Import;
             importer.importAnimation = true; importer.resampleCurves = true;
             importer.animationCompression = ModelImporterAnimationCompression.Off;
             importer.optimizeGameObjects = false;
@@ -273,9 +267,7 @@ namespace Worsen.Editor.Hunter
             entry.Avatar = animator != null ? animator.avatar : null;
             if (entry.Avatar == null || !entry.Avatar.isValid || entry.Avatar.isHuman)
                 throw new InvalidOperationException(entry.Name + " requires a valid Generic avatar.");
-            string[] names = entry.Name == "Ram" ? new[] { "Idle_Unarmed", "Walk_Unarmed", "run", "Ready_Unarmed", "Attack_Unarmed", "Hit_Unarmed" } :
-                (entry.Name == "Skip" || entry.Name == "Blinder") ? new[] { "idle", "walk", "run", "Ready", "attack", "hit" } :
-                Roles;
+            string[] names = Roles;
             AnimationClip[] clips = AssetDatabase.LoadAllAssetsAtPath(entry.Model).OfType<AnimationClip>().ToArray();
             entry.Clips = names.Select(name =>
             {
@@ -316,6 +308,7 @@ namespace Worsen.Editor.Hunter
                 // Measure after scaling and translate the actual feet to the root instead.
                 creature.transform.position += root.transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
                 ApplyMaterials(entry, creature);
+                if (entry.Name == "Mimic") MatchCakePresentation(root, creature);
                 ValidateVisualFit(entry, root);
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
                 if (prefab == null) throw new InvalidOperationException("Could not save " + path);
@@ -332,8 +325,15 @@ namespace Worsen.Editor.Hunter
         private static void ValidateVisualFit(Entry entry, GameObject root)
         {
             Bounds bounds = MeasureVisualBounds(root.transform.Find("Imported Creature").gameObject);
-            if (Math.Abs(bounds.size.y / entry.Height - 1f) > VisualHeightRelativeTolerance ||
-                Math.Abs(bounds.min.y - root.transform.position.y) > VisualFootTolerance)
+            float targetHeight = entry.Height, targetFoot = root.transform.position.y;
+            if (entry.Name == "Mimic")
+            {
+                var floor = Require<FloorDriverConfig>(CakeConfigPath);
+                Bounds cake = MeasureVisualBounds(floor.CakePrefab);
+                targetHeight = cake.size.y; targetFoot += floor.PickupHeight + cake.min.y;
+            }
+            if (Math.Abs(bounds.size.y / targetHeight - 1f) > VisualHeightRelativeTolerance ||
+                Math.Abs(bounds.min.y - targetFoot) > VisualFootTolerance)
                 throw new InvalidOperationException(entry.Name + " visual fit failed: height=" + bounds.size.y.ToString("0.######") +
                     " m, target=" + entry.Height.ToString("0.######") + " m, foot offset=" +
                     (bounds.min.y - root.transform.position.y).ToString("0.######") + " m.");
@@ -370,6 +370,41 @@ namespace Worsen.Editor.Hunter
             }
             if (!found || !Finite(bounds.size.y) || bounds.size.y <= 0.001f) throw new InvalidOperationException("Degenerate visual geometry.");
             return bounds;
+        }
+        private static void MatchCakePresentation(GameObject root, GameObject creature)
+        {
+            var floor = Require<FloorDriverConfig>(CakeConfigPath);
+            if (floor.CakePrefab == null || floor.LumenExitGlowPrefab == null)
+                throw new InvalidOperationException("Build the authored HorrorRun cake and native Lumen glow before Mimic visuals.");
+            Bounds cake = MeasureVisualBounds(floor.CakePrefab);
+            Bounds actual = MeasureVisualBounds(creature);
+            creature.transform.localScale *= cake.size.y / actual.size.y;
+            actual = MeasureVisualBounds(creature);
+            creature.transform.position += root.transform.position + Vector3.up * floor.PickupHeight + cake.center - actual.center;
+            Transform previous = root.transform.Find("Mimic Cake Glow");
+            if (previous != null) Object.DestroyImmediate(previous.gameObject);
+            var glow = new GameObject("Mimic Cake Glow");
+            glow.SetActive(false); glow.transform.SetParent(root.transform, false);
+            AddCakeGlow(glow.transform, floor, "Inner Cake Glow", Vector3.up * floor.PickupHeight, floor.CakeGlowRadius);
+            AddCakeGlow(glow.transform, floor, "Outer Cake Glow", Vector3.up * (floor.PickupHeight + 0.15f), floor.CakeGlowRadius * 1.5f);
+            AddCakeGlow(glow.transform, floor, "Cake Light Pool", Vector3.up * 0.03f, floor.CakePoolRadius);
+            glow.SetActive(true);
+        }
+        private static void AddCakeGlow(Transform parent, FloorDriverConfig floor, string label, Vector3 position, float radius)
+        {
+            var effect = Object.Instantiate(floor.LumenExitGlowPrefab, parent, false);
+            effect.name = label; effect.transform.localPosition = position;
+            var player = effect.GetComponentInChildren<LumenEffectPlayer>(true);
+            if (player == null || player.profile == null) throw new InvalidOperationException("Cake glow requires a native Lumen profile.");
+            // Persist the player fields, not FloorLumenGlow's transient ownership state.
+            player.updateFrequency = LumenEffectPlayer.UpdateFrequency.ViaScripting;
+            player.autoAssignSun = false; player.useLumenSunScript = false;
+            player.initializationBehavior = LumenEffectPlayer.InitializationBehavior.Immediate;
+            player.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
+            float safeRadius = Mathf.Max(0.1f, radius);
+            player.range = Mathf.Sqrt(safeRadius * safeRadius + 1f) - 0.5f;
+            player.color = floor.FrostingColor; player.brightness = floor.CakeGlowBrightness;
+            player.enabled = true; effect.SetActive(true);
         }
         private static void ApplyMaterials(Entry entry, GameObject creature)
         {
