@@ -9,6 +9,7 @@ NumPy 2.4.3 and Pillow 12.3.0 were the installed generation environment.
 From this worktree:
 
     python tools/textures/generate_theme_textures.py
+    python tools/textures/render_distance_review.py
     python -m unittest discover -s tools/textures -p 'test_*.py' -v
 
 Generation is deterministic per seed and exact slot name; unchanged output bytes
@@ -35,7 +36,9 @@ basement concrete have not silently been relabelled as those other surfaces.
 Output: `Assets/Art/Textures/<Theme>/<slot>_{Albedo,Normal,Smoothness}.png`.
 Each `<slot>.json` carries metres-per-tile, palette, seed and encoding details.
 
-- Albedo: full kit-palette RGB in sRGB, not a multiplier texture.
+- Albedo: full surface RGB in sRGB, not a multiplier texture. The source palette
+  remains the adoption identity; local pigments include ivory ceramic glaze,
+  orange corrosion, exposed plaster and multicolour terrazzo aggregate.
 - Normal: tangent-space RGB, linear, OpenGL/+Y. Height gradients wrap; image rows
   run down and tangent V runs up. No green flip or height-to-normal conversion.
 - Smoothness: RGBA data texture, R=metallic, A=smoothness, G=B=0. This is packed
@@ -67,7 +70,8 @@ No shader changes, transparency or emission authoring is included.
 
 `generate_theme_textures.py` owns these values:
 
-- CLI `--size`: default 512, optional 1024; delivered maps are 512 square.
+- CLI `--size`: default 1024, optional 512 for experiments; delivered maps and
+  the NUnit inventory fixture require 1024 square.
 - `SEED`: 261001, combined with SHA-256 of the exact slot for independent streams.
 - `METRES`: 2.0 m square per tile, copied to each JSON recipe.
 - `PROFILES`: base smoothness, relief amplitude metres, bare-metal fraction below.
@@ -75,22 +79,22 @@ No shader changes, transparency or emission authoring is included.
 
 | Recipe | Smoothness | Relief (m) | Metallic |
 |---|---:|---:|---:|
-| stone | .12 | .008 | 0 |
-| mortar | .08 | .002 | 0 |
-| plaster | .17 | .0018 | 0 |
-| concrete | .14 | .004 | 0 |
-| wood | .23 | .002 | 0 |
-| parquet | .35 | .002 | 0 |
-| tile | .55 | .002 | 0 |
-| vinyl | .32 | .0005 | 0 |
-| terrazzo | .42 | .001 | 0 |
-| brick | .10 | .009 | 0 |
-| iron | .32 | .002 | .72 |
-| steel | .52 | .0005 | .85 |
-| painted_metal | .38 | .001 | .05 |
-| rust | .08 | .003 | .03 |
-| fabric | .12 | .0005 | 0 |
-| rubber | .16 | .0004 | 0 |
+| stone | .12 | .030 | 0 |
+| mortar | .08 | .004 | 0 |
+| plaster | .17 | .003 | 0 |
+| concrete | .14 | .008 | 0 |
+| wood | .23 | .006 | 0 |
+| parquet | .35 | .003 | 0 |
+| tile | .55 | .004 | 0 |
+| vinyl | .32 | .001 | 0 |
+| terrazzo | .42 | .0012 | 0 |
+| brick | .10 | .018 | 0 |
+| iron | .32 | .005 | .72 |
+| steel | .52 | .001 | .85 |
+| painted_metal | .38 | .002 | .05 |
+| rust | .08 | .006 | .03 |
+| fabric | .12 | .007 | 0 |
+| rubber | .16 | .0005 | 0 |
 | glass | .86 | .00008 | 0 |
 | chalkboard | .12 | .0003 | 0 |
 | grime | .06 | .001 | 0 |
@@ -100,46 +104,75 @@ No shader changes, transparency or emission authoring is included.
 | water | .92 | .0003 | 0 |
 | hazard | .30 | .001 | .05 |
 
-Pattern decisions in `generate_surface`: 4x4 vinyl/ceramic/terrazzo tiles per
-repeat (0.5 m); 4x8 running-bond brick (0.5 x 0.25 m); eight timber boards per
-repeat (0.25 m); parquet 4x4 alternating squares with four strips per square;
-4 diagonal hazard stripe cycles. Grout half-width is .020 of a cell (.045 for
-brick), with a flat-bottomed 75% plateau to avoid sub-texel V-groove normal spikes.
-Noise lattice frequencies, wear masks and grain coefficients are deterministic
-art recipe constants in that function, not new runtime configuration knobs.
+The table is construction amplitude, not a bound on the total composite height.
+`material_fields.py` owns the following provisional dimensional recipe choices:
 
-Offline preview controls in `lit_wall`/`contact_sheet`: 100 px per repeated tile,
-300 px lit wall, diffuse ambient .24, key multiplier 2.4, roughness floor .06.
-They are diagnostic studio lighting, not Unity or game-lighting evidence.
+- `masonry` / `recipe_fields`: ashlar 3 columns x 6 courses, brick 5 x 10;
+  joint half-width .005/.003 UV, bevel .007 UV plus up to .003 irregular chips;
+  ashlar edge damage subtracts up to .009 m. Mortar stays recessed.
+- `timber`: six staggered boards, two lengths per repeat, four nail recesses
+  per board; 8 coarse grain cycles across each board, pore multiplier 3;
+  herringbone is a rotated interlocking 4:1 tessellation, grid frequency 8,
+  board IDs periodic modulo 8. Grain amplitude .20 for timber / .07 parquet,
+  grain colour contrast .34/.18. Nail depth .6 of the wood construction relief.
+- `recipe_fields` wear: 34 vertical marks, widths .003-.014 UV and lengths
+  .055-.23 UV; periodic rising-damp band centred at row .85, width .34 in
+  sine coordinates. This repeats vertically; it is not a world-space floor mask.
+- Ceramic/vinyl/terrazzo: 4 x 4 cells; ceramic recess .004 m, chips .0025 m;
+  glaze is 85% linear ivory (.72,.70,.62) + 15% source palette. Terrazzo has
+  2400 angular grains of radius .005 UV, flush aggregate relief .00016 m.
+  Vinyl has 100 scuffs (.001-.004 by .012-.065 UV), depth .00035 m.
+- Plaster: .0018 m paint skin, .0025 m lifted edge; peel threshold .23-.35;
+  School dado transitions at row .48-.49 and .965-.985, narrow line at
+  .474-.492, depth .0007 m. It requires upright, consistently phased wall UVs.
+- Concrete: eight formwork courses, 4 x 4 tie-hole lattice; board joints
+  .005 m, tie holes .006 m, broken grain .0006 m at frequency 80.
+- Metal: 16 dents (.012-.045 by .018-.075 UV), depth .014 m; 70 scratches
+  (.0008-.002 by .013-.05 UV), depth .0007 m. Painted-metal corrosion threshold
+  .18-.43 limits rust to damaged patches. Bare iron uses -.06-.27.
+- Cloth: ten fold cycles, .007 m amplitude; 180-cycle weave, .00045 m.
+  Chalkboard: 52 erased sweeps plus 34 fine strokes, relief .00025 m.
+- Finish: wet masonry adds up to .52 smoothness, wet concrete .50, wet plaster
+  .35; dry plaster .13, exposed plaster .06, ceramic glaze .68 minus chip wear.
+  Varnish wears down by .27, vinyl scuffs by .30, rust by .32. All clamp to
+  .02-.96; rust removes 97% of base metallic response. No runtime tunables added.
+
+Other inline colour/noise coefficients are deterministic recipe constants,
+editable in `material_fields.py`, not engine settings.
+
+`lit_wall` / `contact_sheet`: 100 px per repeated tile, 300 px wall; ambient .035,
+key 1.1, warm linear RGB (1,.57,.28), cold (.38,.62,1), roughness floor .06.
+`render_distance_review.py`: VIEWPORT=384, FOV=60 degrees, DISTANCES=(2,4) m;
+2 m front-facing wall projects to 333/166 px. Data are BOX-filtered in linear
+space before shading and normals renormalized. The GGX view vector remains a
+parallel approximation; these are dark CPU diagnostics, not Unity captures.
 
 ## Evidence and visual review
 
-`Logs/AgentValidation/Art/Textures/` contains:
+`tools/textures/review/` contains the pass-2 evidence (inside owned scope):
 
-- `Castle-contact.png`: cold stone/mineral pitting, mortar, soot, worn timber,
-  dark oxidised iron and ember-coloured surface.
-- `Hospital-contact.png`: mint tile/chips, warm vinyl, flecked terrazzo, aged
-  plaster, woven cloth and tarnished clinical metal.
-- `School-contact.png`: mustard plaster, teal painted metal, wiped chalkboard,
-  lino, alternating parquet grain, wood and support surfaces.
-- `Basement-contact.png`: grey concrete/damp, brick, orange rust, oily dark steel,
-  galvanised services, insulation and hazard stripes.
+- `<Theme>-contact.png`: all slots; three 3x3 map repeats and warm/cold walls.
+- `materials/<slot>.png`: readable individual contact-sheet rows.
+- `distance/<slot>.png`: warm/cold at 2 m, then warm/cold at 4 m, fixed exposure.
+- `distance-metrics.json`: filtered normal relief at both screen footprints.
+- `VISUAL-REVIEW.md`: observations per material and known visual limitations.
 - `generation.json`: exact SHA-256 per PNG.
-- `python-tests.log`: regeneration, normal packing/direction and seam checks.
-- `kit-inputs.json` / `kit-inputs.log`: actual-FBX coverage/UV audit.
+- `python-tests-final.log`: reproduction, packing, seams, periodic board colour,
+  normal relief after minification, and preview checks (ignored local log).
 
-Each row shows 3x3 albedo, normal and smoothness repeats, then a CPU GGX-lit wall
-using those maps. Vision review included the full sheets and full-resolution
-crops. Refinement removed pinstripe-like wood, softened lattice-shaped wear and
-replaced sharp V-groove grout normals. Final repeats showed no image-edge seams;
-pattern repetition remains visible, as expected for provisional two-metre tiles.
-Normals are subtle at sheet scale but resolve pitting/grain in the lit closeups.
-Dark metal/soot are deliberately dark; game-lighting readability is unverified.
+Vision review includes full sheets, lit-column crops and 2/4 m renders. Pass 2
+fixed a genuine parquet board-colour wrap discontinuity, reduced uniform rust
+coverage on paint, separated coarse timber grain from varnished parquet, and
+reduced concrete's initially corrugated appearance. Tests retain the original
+seam limits and explicitly reject the old near-flat structural normals.
+Repeat motifs remain visible; owner acceptance and actual Unity room lighting
+remain unverified. Glass/water still need the existing shader/reflection context.
 
 ## Coordinator hand-off / known input blockers
 
-The actual-FBX audit found no missing texture slots. Castle 45/45 and Hospital
+The pass-1 actual-FBX audit found no missing texture slots. Castle 45/45 and Hospital
 35/35 pieces have SurfaceMetres. School 44/44 and Basement 45/45 lack it.
+These are historical input findings, not a new audit of the parallel UV fixes.
 Required owner changes, NOT made here:
 
 1. `tools/blender/env_theme_school.py`, `SchoolMesh.finish`: create active UV0

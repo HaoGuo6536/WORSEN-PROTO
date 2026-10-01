@@ -9,7 +9,7 @@
 //   Editor tool (§10) · Tests · Art.
 // KEY RESPONSIBILITIES:
 //   - Check metre-to-tile scale, invalid inputs and theme-local path validation.
-//   - Require complete generated PNG sets alongside their per-slot recipes.
+//   - Require complete 1024 px PNG sets alongside matching per-slot recipes.
 // DEPENDENCIES:
 //   - NUnit, System.IO and Editor.Procedural texture contract methods.
 // USAGE NOTES:
@@ -63,12 +63,18 @@ namespace Worsen.Tests.Art
             foreach (string recipe in recipes)
             {
                 Assert.That(File.ReadAllText(recipe), Does.Contain("\"metresPerTile\": 2.0"));
+                Assert.That(File.ReadAllText(recipe), Does.Contain("\"resolution\": 1024"));
                 foreach (string suffix in new[] { "Albedo", "Normal", "Smoothness" })
                 {
                     string path = ProceduralKitAssetSetup.TexturePath(theme, Path.GetFileNameWithoutExtension(recipe), suffix);
                     var bytes = File.ReadAllBytes(path);
                     Assert.That(bytes.Length, Is.GreaterThan(128), path);
                     CollectionAssert.AreEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, new ArraySegment<byte>(bytes, 0, 8));
+                    // PNG IHDR width and height are unsigned big-endian words.
+                    CollectionAssert.AreEqual(new byte[] { 73, 72, 68, 82 }, new ArraySegment<byte>(bytes, 12, 4));
+                    CollectionAssert.AreEqual(new byte[] { 0, 0, 4, 0, 0, 0, 4, 0 }, new ArraySegment<byte>(bytes, 16, 8), path);
+                    Assert.That(bytes[24], Is.EqualTo(8), "Expected eight-bit channels: " + path);
+                    Assert.That(bytes[25], Is.EqualTo(suffix == "Smoothness" ? 6 : 2), "RGBA packing versus RGB maps: " + path);
                 }
             }
         }
