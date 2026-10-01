@@ -16,9 +16,13 @@ param(
 # and releases it.
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Common.ps1"
-function Step-Code([string]$spec) {
+# The Synaptic bridge answers HTTP 500 after 30 s while Unity keeps executing the step (measured
+# 2026-10-01). Each step therefore also writes its result to a marker file; when the HTTP reply is lost,
+# the runner waits for an idle editor and reads the marker instead of reporting UNKNOWN.
+function Step-Code([string]$spec, [string]$marker) {
     $type, $method = $spec -split '::', 2
-    return ('var t = System.Type.GetType("{0}, Worsen.Editor"); var m = t == null ? null : t.GetMethod("{1}", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static, null, System.Type.EmptyTypes, null); string r; if (t == null) {{ r = "FAIL type not found"; }} else if (m == null) {{ r = "FAIL method not found"; }} else {{ try {{ var v = m.Invoke(null, null); r = "OK" + (v == null ? "" : " " + v); }} catch (System.Exception e) {{ var x = e.InnerException ?? e; r = "FAIL " + x.GetType().Name + ": " + x.Message; }} }} return r;' -f $type, $method)
+    $path = $marker.Replace([char]92, [char]47)
+    return ('var t = System.Type.GetType("{0}, Worsen.Editor"); var m = t == null ? null : t.GetMethod("{1}", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static, null, System.Type.EmptyTypes, null); string r; if (t == null) {{ r = "FAIL type not found"; }} else if (m == null) {{ r = "FAIL method not found"; }} else {{ try {{ var v = m.Invoke(null, null); r = "OK" + (v == null ? "" : " " + v); }} catch (System.Exception e) {{ var x = e.InnerException ?? e; r = "FAIL " + x.GetType().Name + ": " + x.Message; }} }} try {{ System.IO.File.WriteAllText(@"{2}", r); }} catch (System.Exception) {{ }} return r;' -f $type, $method, $path)
 }
 $owned = [string]::IsNullOrEmpty($Token)
 if ($owned) { $Token = Enter-UnityLease $Plan $Purpose }
@@ -27,14 +31,26 @@ try {
     Assert-UnityLease $Token
     $s = Get-EditorState
     if (-not (Test-EditorIsMain $s) -or -not (Test-EditorIdle $s) -or $s.Failed) { throw "Editor not idle, compile failed, or wrong project: $($s | ConvertTo-Json -Compress)" }
-    $work = @($Steps | ForEach-Object { [pscustomobject]@{ Name = $_; Code = (Step-Code $_) } }) +
-            @($Snippets | ForEach-Object -Begin { $i = 0 } -Process { $i++; [pscustomobject]@{ Name = "snippet-$i"; Code = $_ } })
+    $markers = Join-Path $script:Main 'Logs\AgentValidation\SetupSteps'
+    New-Item -ItemType Directory -Force -Path $markers | Out-Null
+    $work = @($Steps | ForEach-Object { $mk = Join-Path $markers ([guid]::NewGuid().ToString('N') + '.txt'); [pscustomobject]@{ Name = $_; Code = (Step-Code $_ $mk); Marker = $mk } }) +
+            @($Snippets | ForEach-Object -Begin { $i = 0 } -Process { $i++; [pscustomobject]@{ Name = "snippet-$i"; Code = $_; Marker = $null } })
     foreach ($w in $work) {
         Assert-UnityLease $Token
         $status = 'fail'; $detail = ''
         for ($attempt = 1; $attempt -le 2; $attempt++) {
             try { $detail = Invoke-UnityCsharp $w.Code 300; $status = if ($detail -match '^OK') { 'ok' } else { 'fail' }; break }
-            catch { $detail = "no result: $($_.Exception.Message)"; $status = 'unknown'; if ($attempt -eq 1) { Wait-EditorIdle $Token 10 | Out-Null } }
+            catch {
+                $detail = "no result: $($_.Exception.Message)"; $status = 'unknown'
+                if ($attempt -eq 1) {
+                    # A long step keeps running after the bridge gives up; its marker holds the real result.
+                    Wait-EditorIdle $Token 30 | Out-Null
+                    if ($w.Marker -and (Test-Path -LiteralPath $w.Marker)) {
+                        $detail = (Get-Content -LiteralPath $w.Marker -Raw).Trim() + ' (result read from step marker after the bridge timed out)'
+                        $status = if ($detail -match '^OK') { 'ok' } else { 'fail' }; break
+                    }
+                }
+            }
         }
         $results += [pscustomobject]@{ step = $w.Name; status = $status; detail = $detail }
         "{0} {1}: {2}" -f $status.ToUpper(), $w.Name, $detail
