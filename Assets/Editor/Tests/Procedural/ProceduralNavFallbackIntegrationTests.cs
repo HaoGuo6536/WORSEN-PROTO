@@ -100,7 +100,8 @@ namespace Worsen.Tests.Procedural
                     {
                         Assert.DoesNotThrow(() => new ProceduralNavFallbackPresenter()
                             .ValidateTemplate(candidate, blocks, settings.agentRadius, settings.agentHeight));
-                        var boundary = owner.GetComponent<ProceduralDriver>() ?? owner.AddComponent<ProceduralDriver>();
+                        var existing = owner.GetComponent<ProceduralDriver>();
+                        var boundary = existing != null ? existing : owner.AddComponent<ProceduralDriver>();
                         var failure = Assert.Throws<InvalidOperationException>(() => boundary.Build(candidate, config, driver));
                         Assert.That(failure.Message, Does.Contain("Generated navigation cannot reach required"));
                         Assert.That(boundary.IsReady, Is.False); Assert.That(boundary.OwnedBlockCount, Is.Zero);

@@ -108,13 +108,15 @@ namespace Worsen.Editor.Hunter
             if (profile == null || profile.Prefab == null) throw new InvalidOperationException("Build the existing horror roster first.");
             return profile.Prefab;
         }
+        // Unity returns a fake-null component in the Editor; ?? only sees real nulls, so normalise first.
+        private static T Existing<T>(T value) where T : UnityEngine.Object => value != null ? value : null;
         public static void ConfigureMimicCollision(GameObject root, Vector3 center)
         {
             if (root == null || EditorUtility.IsPersistent(root))
                 throw new ArgumentException("Mimic collision requires isolated loaded prefab contents.", nameof(root));
             var capsule = root.GetComponent<CapsuleCollider>();
             if (capsule == null) throw new InvalidOperationException("Mimic motor requires its capsule component.");
-            var box = root.GetComponent<BoxCollider>() ?? root.AddComponent<BoxCollider>();
+            var box = Existing(root.GetComponent<BoxCollider>()) ?? root.AddComponent<BoxCollider>();
             box.size = MimicCollisionSize; box.center = center; box.enabled = true; box.isTrigger = false;
             box.sharedMaterial = capsule.sharedMaterial; box.contactOffset = capsule.contactOffset;
             box.includeLayers = capsule.includeLayers; box.excludeLayers = capsule.excludeLayers;

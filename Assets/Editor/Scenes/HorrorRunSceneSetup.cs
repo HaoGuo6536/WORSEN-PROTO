@@ -104,7 +104,7 @@ namespace Worsen.Editor.Scenes
                 RestoreFog(root);
                 RestoreEnvironmentVisuals(root);
                 var ui = Add<ProgressionUIManager>("Progression UI");
-                var uiDriver = ui.GetComponent<ProgressionUIDriver>() ?? ui.gameObject.AddComponent<ProgressionUIDriver>();
+                var uiDriver = Existing(ui.GetComponent<ProgressionUIDriver>()) ?? ui.gameObject.AddComponent<ProgressionUIDriver>();
                 var uiConfig = Ensure<ProgressionUIDriverConfig>(ConfigRoot + "Presentation/ProgressionUI/ProgressionUIDriverConfig.asset");
                 var panel = Ensure<PanelSettings>("Assets/Resources/UI/Presentation/ProgressionUI/ProgressionUIPanelSettings.asset");
                 panel.scaleMode = PanelScaleMode.ScaleWithScreenSize; panel.referenceResolution = new Vector2Int(1920, 1080);
@@ -164,8 +164,8 @@ namespace Worsen.Editor.Scenes
             WireMissing(floor, "_hazardConfig", Require<FloorCollapseHazardConfig>(Worsen.Editor.Floor.FloorConfigGenerator.HazardConfigPath));
             var horror = Referenced<HorrorManager>(root, "_horror") ?? throw new InvalidOperationException("HorrorRun requires Horror.");
             WireMissing(horror, "_driver", horror.GetComponent<HorrorDriver>());
-            WireMissing(root, "_horrorRoute", horror.GetComponent<HorrorOrchestrator>() ?? horror.gameObject.AddComponent<HorrorOrchestrator>());
-            WireMissing(root, "_heraldRoute", root.GetComponent<HeraldOrchestrator>() ?? root.gameObject.AddComponent<HeraldOrchestrator>());
+            WireMissing(root, "_horrorRoute", Existing(horror.GetComponent<HorrorOrchestrator>()) ?? horror.gameObject.AddComponent<HorrorOrchestrator>());
+            WireMissing(root, "_heraldRoute", Existing(root.GetComponent<HeraldOrchestrator>()) ?? root.gameObject.AddComponent<HeraldOrchestrator>());
         }
 
         public static void RestoreFog(HorrorRunSceneRoot root)
@@ -212,12 +212,12 @@ namespace Worsen.Editor.Scenes
                 var child = root.transform.Find("Menu Service");
                 var owner = child != null ? child.gameObject : new GameObject("Menu Service");
                 owner.transform.SetParent(root.transform, false);
-                menu = owner.GetComponent<MenuManager>() ?? owner.AddComponent<MenuManager>();
+                menu = Existing(owner.GetComponent<MenuManager>()) ?? owner.AddComponent<MenuManager>();
                 Wire(root, "_menu", menu);
             }
-            var driver = Referenced<MenuDriver>(menu, "_driver") ?? menu.GetComponent<MenuDriver>() ?? menu.gameObject.AddComponent<MenuDriver>();
+            var driver = Referenced<MenuDriver>(menu, "_driver") ?? Existing(menu.GetComponent<MenuDriver>()) ?? menu.gameObject.AddComponent<MenuDriver>();
             WireMissing(menu, "_driver", driver);
-            var document = driver.GetComponent<UIDocument>() ?? driver.gameObject.AddComponent<UIDocument>();
+            var document = Existing(driver.GetComponent<UIDocument>()) ?? driver.gameObject.AddComponent<UIDocument>();
             if (document.panelSettings == null)
             {
                 const string panelPath = "Assets/Resources/UI/Presentation/Menu/MenuPanelSettings.asset";
@@ -248,19 +248,21 @@ namespace Worsen.Editor.Scenes
                 }
                 Wire(root, "_settings", settings);
             }
-            var files = Referenced<SettingsDriver>(settings, "_driver") ?? settings.GetComponent<SettingsDriver>() ?? settings.gameObject.AddComponent<SettingsDriver>();
+            var files = Referenced<SettingsDriver>(settings, "_driver") ?? Existing(settings.GetComponent<SettingsDriver>()) ?? settings.gameObject.AddComponent<SettingsDriver>();
             WireMissing(settings, "_driver", files);
             if (Referenced<SettingsConfig>(settings, "_config") == null)
                 Wire(settings, "_config", Ensure<SettingsConfig>(ConfigRoot + "Session/Settings/SettingsConfig.asset"));
             if (Referenced<SettingsOrchestrator>(root, "_settingsRoute") == null)
-                Wire(root, "_settingsRoute", root.GetComponent<SettingsOrchestrator>() ?? root.gameObject.AddComponent<SettingsOrchestrator>());
+                Wire(root, "_settingsRoute", Existing(root.GetComponent<SettingsOrchestrator>()) ?? root.gameObject.AddComponent<SettingsOrchestrator>());
             var results = Referenced<ResultsManager>(root, "_results");
             if (results == null)
             { results = Worsen.Editor.Results.ResultsSetup.Create(root.transform); Wire(root, "_results", results); }
             if (results.GetComponent<ResultsOrchestrator>() == null) results.gameObject.AddComponent<ResultsOrchestrator>();
         }
+        // Unity returns a fake-null component in the Editor; ?? only sees real nulls, so normalise first.
+        private static T Existing<T>(T value) where T : UnityEngine.Object => value != null ? value : null;
         private static T Referenced<T>(UnityEngine.Object owner, string field) where T : UnityEngine.Object
-            => new SerializedObject(owner).FindProperty(field).objectReferenceValue as T;
+            => Existing(new SerializedObject(owner).FindProperty(field).objectReferenceValue as T);
         private static void WireMissing(UnityEngine.Object owner, string field, UnityEngine.Object value)
         { if (Referenced<UnityEngine.Object>(owner, field) == null) Wire(owner, field, value); }
 
@@ -283,7 +285,7 @@ namespace Worsen.Editor.Scenes
             WireMissing(heldItem, "_config", config);
             WireMissing(root, "_heldItem", heldItem);
             WireMissing(root, "_heldItemConfig", config);
-            WireMissing(root, "_heldItemRoute", heldItem.GetComponent<HeldItemOrchestrator>() ??
+            WireMissing(root, "_heldItemRoute", Existing(heldItem.GetComponent<HeldItemOrchestrator>()) ??
                 heldItem.gameObject.AddComponent<HeldItemOrchestrator>());
         }
 
@@ -368,7 +370,7 @@ namespace Worsen.Editor.Scenes
             var telemetry = Worsen.Editor.Telemetry.TelemetrySetup.CreateService(); Wire(root, "_telemetry", telemetry);
             Route<TelemetryOrchestrator>(telemetry.gameObject, run, "_telemetry", telemetry);
             var horror = Add<HorrorManager>("Horror Atmosphere");
-            var horrorDriver = horror.GetComponent<HorrorDriver>() ?? horror.gameObject.AddComponent<HorrorDriver>();
+            var horrorDriver = Existing(horror.GetComponent<HorrorDriver>()) ?? horror.gameObject.AddComponent<HorrorDriver>();
             var config = Ensure<HorrorDriverConfig>(ConfigRoot + "Presentation/Horror/HorrorDriverConfig.asset");
             ConfigureHorrorAudio(config);
             Worsen.Editor.Horror.HorrorShaderSetup.Configure(config);
