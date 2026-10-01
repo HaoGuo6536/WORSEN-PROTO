@@ -25,8 +25,8 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds an Echo that replays your path; backtracking is no longer
-      safe.
+    _changeStatement: Adds a hunter that repeats your exact path a few seconds behind
+      you.
   - _id: weaver
     _kind: 0
     _axis: 4
@@ -39,7 +39,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a ceiling hunter whose webs slow your movement.
+    _changeStatement: Adds a ceiling hunter whose webs slow you.
   - _id: ticking
     _kind: 0
     _axis: 5
@@ -52,8 +52,8 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a winding clock; collect keys before its ticking stops
-      and it hunts.
+    _changeStatement: Adds a clock hunter; collect keys or it hunts when the ticking
+      stops.
   - _id: mannequin
     _kind: 0
     _axis: 1
@@ -66,8 +66,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a hunter that moves whenever you are not looking at it
-      and freezes the instant it is in view.
+    _changeStatement: Adds a hunter that moves only while unseen.
   - _id: stare
     _kind: 0
     _axis: 5
@@ -80,8 +79,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a threat you must find and stare down before its window
-      ends.
+    _changeStatement: Adds a threat you must find and stare down in time.
   - _id: ram
     _kind: 0
     _axis: 4
@@ -94,7 +92,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a charging hunter that cannot turn until it stops.
+    _changeStatement: Adds a hunter that charges in a line and cannot turn mid-charge.
   - _id: mimic
     _kind: 0
     _axis: 1
@@ -107,8 +105,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds false cakes; the white arrow never points at them unless
-      Faithless Arrow is active.
+    _changeStatement: Adds false cakes. The arrow never points at them.
   - _id: skip
     _kind: 0
     _axis: 2
@@ -121,7 +118,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a threat that intercepts doorways you reuse.
+    _changeStatement: Adds a hunter that ambushes doorways you reuse.
   - _id: blinder
     _kind: 0
     _axis: 1
@@ -134,8 +131,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a hunter whose traps and projectiles temporarily remove
-      vision.
+    _changeStatement: Adds a hunter whose traps and shots blind you briefly.
   - _id: herald
     _kind: 0
     _axis: 1
@@ -148,8 +144,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds a screaming hunter that broadcasts your position and deafens
-      you.
+    _changeStatement: Adds a hunter whose scream reveals you and deafens you.
   - _id: no-look-back
     _kind: 1
     _axis: 1
@@ -175,8 +170,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes distant hunter presence loops; detection and attack
-      cues remain.
+    _changeStatement: Removes distant hunter presence sounds.
   - _id: hidden-count
     _kind: 1
     _axis: 1
@@ -202,7 +196,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Reduces lit rooms and the distance you can see through fog.
+    _changeStatement: Reduces lit rooms and how far you see through fog.
   - _id: random-spawn
     _kind: 1
     _axis: 2
@@ -215,8 +209,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces the exit-room start with a spawn elsewhere on the
-      floor.
+    _changeStatement: Replaces the exit-room start with a random start.
   - _id: shuffled-collapse
     _kind: 1
     _axis: 2
@@ -229,8 +222,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes farthest-first collapse order; an escape route remains
-      guaranteed.
+    _changeStatement: Replaces farthest-first collapse with a random order.
   - _id: nothing
     _kind: 1
     _axis: 2
@@ -257,9 +249,49 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes unused consumables at the exit; they no longer carry
-      between floors.
-
+    _changeStatement: Removes unused consumables at the exit.
+  - _id: mimic-faithless-arrow
+    _kind: 1
+    _axis: 1
+    _title: Faithless Arrow
+    _cardCopy: The arrow sometimes shows the way to a Mimic instead.
+    _availabilityRound: 1
+    _requiredHunterIds:
+    - mimic
+    _prerequisiteEffectId: 
+    _stackCap: 1
+    _price: 0
+    _value: 1
+    _onlyRaisesHunterNumbers: 0
+    _changeStatement: The arrow sometimes shows the way to a Mimic instead.
+  - _id: blinder-more-traps
+    _kind: 1
+    _axis: 1
+    _title: More Traps
+    _cardCopy: Adds more Blinder traps.
+    _availabilityRound: 1
+    _requiredHunterIds:
+    - blinder
+    _prerequisiteEffectId: 
+    _stackCap: 3
+    _price: 0
+    _value: 1
+    _onlyRaisesHunterNumbers: 0
+    _changeStatement: Adds more Blinder traps.
+  - _id: blinder-silent-traps
+    _kind: 1
+    _axis: 1
+    _title: Silent Traps
+    _cardCopy: Removes the sound warning from Blinder traps.
+    _availabilityRound: 1
+    _requiredHunterIds:
+    - blinder
+    _prerequisiteEffectId: 
+    _stackCap: 1
+    _price: 0
+    _value: 1
+    _onlyRaisesHunterNumbers: 0
+    _changeStatement: Removes the sound warning from Blinder traps.
   - _id: short-grace
     _kind: 1
     _axis: 4
@@ -285,8 +317,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Shortens the time before rooms collapse after the exit opens;
-      15% more golden cakes.
+    _changeStatement: Rooms collapse faster; +15% golden cakes.
   - _id: slow-mend
     _kind: 1
     _axis: 3
@@ -325,7 +356,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces full starting health with half health on every floor.
+    _changeStatement: Replaces full starting health with half on every floor.
   - _id: short-burst
     _kind: 1
     _axis: 4
@@ -429,7 +460,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Sliding passes under collapse hands; a slide cannot be grabbed.
+    _changeStatement: Slides cannot be grabbed by collapse hands.
   - _id: steady-hand
     _kind: 2
     _axis: 5
@@ -495,8 +526,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: The look-back snap also outlines the hunter behind you briefly
-      through fog.
+    _changeStatement: Look-back also outlines the hunter behind you.
   - _id: latch
     _kind: 2
     _axis: 4
@@ -527,8 +557,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces your footstep origin with where you were three seconds
-      ago.
+    _changeStatement: Your footsteps sound from where you were 3 s ago instead.
   - _id: exit-sense
     _kind: 2
     _axis: 1
@@ -542,7 +571,6 @@ MonoBehaviour:
     _value: 1
     _onlyRaisesHunterNumbers: 0
     _changeStatement: Once the exit opens, its arrow shows through walls.
-
   - _id: loud-heart
     _kind: 2
     _axis: 3
@@ -556,8 +584,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: You sprint faster while chased, but hunters hear your heartbeat
-      during a chase.
+    _changeStatement: Faster sprint while chased; hunters hear your heartbeat.
   - _id: gilded-greed
     _kind: 2
     _axis: 3
@@ -570,8 +597,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Golden Cakes are worth double, but the exit only opens after
-      your first Golden Cake.
+    _changeStatement: Golden Cakes count double; the exit needs one Golden Cake.
   - _id: longer-slide
     _kind: 2
     _axis: 4
@@ -623,7 +649,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds one consumable slot above the base of three.
+    _changeStatement: Adds one consumable slot.
   - _id: cat-eyes
     _kind: 2
     _axis: 1
@@ -636,7 +662,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: You see farther into the dark; fog starts farther out.
+    _changeStatement: You see farther into the dark and fog.
   - _id: field-kit
     _kind: 2
     _axis: 3
@@ -723,8 +749,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes damage from a glancing Ram charge; it still knocks
-      you aside.
+    _changeStatement: Removes damage from glancing Ram charges.
   - _id: golden-sense
     _kind: 2
     _axis: 1
@@ -780,7 +805,6 @@ MonoBehaviour:
     _value: 1
     _onlyRaisesHunterNumbers: 0
     _changeStatement: Doorways the Skip watches show a faint mark.
-
   - _id: spare-key
     _kind: 2
     _axis: 5
@@ -835,8 +859,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Once per run, a catch revives you where you fell, with a brief
-      collision grace and temporary damage immunity.
+    _changeStatement: Once per run, revives you in place after a catch.
   - _id: golden-touch
     _kind: 2
     _axis: 3
@@ -915,6 +938,19 @@ MonoBehaviour:
     _value: 1
     _onlyRaisesHunterNumbers: 0
     _changeStatement: The shop shows one more offer per visit.
+  - _id: more-shrines
+    _kind: 2
+    _axis: 4
+    _title: More Shrines
+    _cardCopy: Adds one shrine per eligible floor above the depth curve.
+    _availabilityRound: 1
+    _requiredHunterIds: []
+    _prerequisiteEffectId: 
+    _stackCap: 1
+    _price: 12
+    _value: 1
+    _onlyRaisesHunterNumbers: 0
+    _changeStatement: Adds one shrine per eligible floor above the depth curve.
   - _id: business-license
     _kind: 2
     _axis: 3
@@ -927,8 +963,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Golden Cake yield increases to 1.25 times, or 1.5 times with
-      two copies.
+    _changeStatement: Increases Golden Cake yield to x1.25 (x1.5 with two).
   - _id: speed-boost
     _kind: 2
     _axis: 4
@@ -941,7 +976,7 @@ MonoBehaviour:
     _price: 12
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Increases sprint speed, capped below hunters' chase speed.
+    _changeStatement: Increases sprint speed.
   - _id: quick-start
     _kind: 2
     _axis: 4
@@ -1006,7 +1041,7 @@ MonoBehaviour:
     _price: 4
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: 'Two throws: the bang draws nearby hunters to the impact point.'
+    _changeStatement: Two throws. The bang draws nearby hunters.
   - _id: gauze
     _kind: 3
     _axis: 3
@@ -1019,7 +1054,7 @@ MonoBehaviour:
     _price: 4
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Restores health over a few seconds while you keep moving.
+    _changeStatement: Restores health over a few seconds.
   - _id: smelling-salts
     _kind: 3
     _axis: 4
@@ -1058,8 +1093,7 @@ MonoBehaviour:
     _price: 4
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: 'Two uses: jams the door behind you briefly; hunters must break
-      it loudly.'
+    _changeStatement: Two uses. Jams a door behind you briefly.
   - _id: oil-flask
     _kind: 3
     _axis: 4
@@ -1072,7 +1106,7 @@ MonoBehaviour:
     _price: 4
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: A slick patch makes hunters slip and lose momentum briefly.
+    _changeStatement: Hunters slip on the spill and lose speed.
   - _id: glass-vial
     _kind: 3
     _axis: 4
@@ -1085,8 +1119,7 @@ MonoBehaviour:
     _price: 4
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Shatter it at a hunter's face for an instant short flinch,
-      weaker than flashlight stun.
+    _changeStatement: Throw at a hunter to make it flinch.
   - _id: adrenaline
     _kind: 3
     _axis: 4
@@ -1127,8 +1160,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 1
-    _changeStatement: Increases Echo playback speed above your recorded speed, gaining
-      on straight sections.
+    _changeStatement: The Echo replays your path faster than you moved.
   - _id: echo-silent-steps
     _kind: 1
     _axis: 1
@@ -1142,8 +1174,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Reduces the volume of the Echo's footsteps, making them harder
-      to place.
+    _changeStatement: Reduces Echo footstep volume.
   - _id: weaver-stickier-webs
     _kind: 1
     _axis: 4
@@ -1171,7 +1202,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 1
-    _changeStatement: Increases web projectile size, leaving less room to sidestep.
+    _changeStatement: Increases web size.
   - _id: weaver-doorway-nests
     _kind: 1
     _axis: 4
@@ -1185,7 +1216,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces clear doorways with webs in some rooms at floor start.
+    _changeStatement: Adds webs to some doorways at floor start.
   - _id: weaver-quick-spin
     _kind: 1
     _axis: 5
@@ -1241,8 +1272,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes quiet key collection; taking a key makes a loud world
-      sound, not a hunter hearing stimulus.
+    _changeStatement: Removes quiet key pickup; taking a key makes a loud sound.
   - _id: ticking-double-spring
     _kind: 1
     _axis: 5
@@ -1256,63 +1286,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces one-key winding with two keys to fully wind the Ticking.
-  - _id: mimic-faithless-arrow
-    _kind: 1
-    _axis: 1
-    _title: Faithless Arrow
-    _cardCopy: The arrow sometimes shows the way to a Mimic instead.
-    _availabilityRound: 1
-    _requiredHunterIds:
-    - mimic
-    _prerequisiteEffectId: 
-    _stackCap: 1
-    _price: 0
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces the white arrow's safe guidance with brief directions
-      toward a Mimic.
-  - _id: blinder-more-traps
-    _kind: 1
-    _axis: 1
-    _title: More Traps
-    _cardCopy: Adds more Blinder traps.
-    _availabilityRound: 1
-    _requiredHunterIds:
-    - blinder
-    _prerequisiteEffectId: 
-    _stackCap: 3
-    _price: 0
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds Blinder traps, removing safe paths through the floor.
-  - _id: blinder-silent-traps
-    _kind: 1
-    _axis: 1
-    _title: Silent Traps
-    _cardCopy: Removes the sound warning from Blinder traps.
-    _availabilityRound: 1
-    _requiredHunterIds:
-    - blinder
-    _prerequisiteEffectId: 
-    _stackCap: 1
-    _price: 0
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes the sound warning from Blinder traps.
-  - _id: more-shrines
-    _kind: 2
-    _axis: 4
-    _title: More Shrines
-    _cardCopy: Adds one shrine per eligible floor above the depth curve.
-    _availabilityRound: 1
-    _requiredHunterIds: []
-    _prerequisiteEffectId: 
-    _stackCap: 1
-    _price: 12
-    _value: 1
-    _onlyRaisesHunterNumbers: 0
-    _changeStatement: Adds one shrine per eligible floor above the depth curve.
+    _changeStatement: Replaces one-key winding with two keys.
   - _id: mannequin-longer-strides
     _kind: 1
     _axis: 5
@@ -1326,7 +1300,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 1
-    _changeStatement: Shortens the time before an unseen Mannequin reaches you.
+    _changeStatement: The Mannequin reaches you faster.
   - _id: mannequin-peripheral-creep
     _kind: 1
     _axis: 1
@@ -1340,8 +1314,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes peripheral observation as a safe way to freeze the
-      Mannequin.
+    _changeStatement: Seeing it at the edge of view no longer freezes it.
   - _id: stare-shorter-window
     _kind: 1
     _axis: 5
@@ -1397,8 +1370,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces predictable edge placement with a wider wandering
-      range.
+    _changeStatement: The Stare appears in a wider range instead.
   - _id: ram-longer-charge
     _kind: 1
     _axis: 4
@@ -1454,8 +1426,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Replaces the first recovery with another warned charge when
-      you remain visible.
+    _changeStatement: The Ram charges again if it still sees you, instead of recovering.
   - _id: mimic-more-mimics
     _kind: 1
     _axis: 2
@@ -1525,7 +1496,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Reduces the route reuses needed for the Skip to learn them.
+    _changeStatement: The Skip learns your routes faster.
   - _id: skip-wider-reach
     _kind: 1
     _axis: 4
@@ -1539,7 +1510,7 @@ MonoBehaviour:
     _price: 0
     _value: 1
     _onlyRaisesHunterNumbers: 0
-    _changeStatement: Removes stairs and drops as safe alternatives to watched doorways.
+    _changeStatement: Stairs and drops no longer avoid the Skip.
   - _id: skip-no-tell
     _kind: 1
     _axis: 1
