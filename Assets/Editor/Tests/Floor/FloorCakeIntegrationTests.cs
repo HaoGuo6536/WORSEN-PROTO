@@ -15,6 +15,8 @@
 //   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Unity Edit Mode only; temporary objects are destroyed without saving assets.
 //   Contact callbacks are invoked explicitly; physical collision/rendering needs live QA.
+//   PLAN-019 specifies typed coexisting arrows, not publication order; last-good
+//   direction is target-local path fallback, not priority between the two channels.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -113,7 +115,7 @@ namespace Worsen.Tests.Floor
                 foreach (var a in f.Manager.ReadOnlyState.ActiveCakeAnchors.ToArray()) f.Manager.Collect(new EntityId(1), a.Id, PickupKind.Cake);
                 Assert.That(opened, Is.Zero); Assert.That(f.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
                 Assert.That(f.Root.GetComponentsInChildren<CakePickup>().Count(p => p.Kind == PickupKind.GoldenCake), Is.EqualTo(6));
-                Assert.That(targets.Select(t => t.Kind), Is.EqualTo(new[] { GuidanceKind.WhiteArrow, GuidanceKind.GoldenSense }));
+                Assert.That(targets.Select(t => t.Kind), Is.EquivalentTo(new[] { GuidanceKind.WhiteArrow, GuidanceKind.GoldenSense }));
                 f.Manager.Tick(10000f, 2);
                 Assert.That(opened, Is.EqualTo(1)); Assert.That(f.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                 f.Manager.Tick(1f, 3); Assert.That(opened, Is.EqualTo(1));
