@@ -15,11 +15,19 @@ MonoBehaviour:
   _effectCatalogue: {fileID: 11400000, guid: 3e2e570a1a5a1a64ca4f02fa1c67adbb, type: 2}
   _shopConfig: {fileID: 11400000, guid: aacc7b8de0535444aa339aa779f85027, type: 2}
   _shrineConfig: {fileID: 11400000, guid: 5dd73667c03f76c4097bed37e18de79a, type: 2}
+  _firstEventRound: 8
+  _eventInterval: 8
+  _eventJitter: 1
+  _eventHazardFloors: 3
+  _maximumMutationSpeedMultiplier: 4
+  _eventPool: 0000000001000000020000000300000004000000
+  _mutationProfiles: []
   _selectionInterval: 2
   _shopInterval: 2
   _maximumActiveThreats: 5
   _goldenCakeValue: 1
-  _earlyBailWalletFraction: 0.75
+  _fasterCollapseGoldenCakeMultiplier: 1.15
+  _nothingShopPriceMultiplier: 0.85
   _initialMaximumHealth: 100
   _minimumMaximumHealth: 30
   _maximumMaximumHealth: 200
@@ -29,10 +37,9 @@ MonoBehaviour:
   _maximumFogMultiplier: 2
   _maximumFlashlightMultiplier: 2
   _threats:
-  - _id: watcher
-    _title: THE WATCHER
-    _description: A patient Satyr follows remembered light and tries to cut off your
-      route.
+  - _id: echo
+    _title: THE ECHO
+    _description: Removes safe backtracking by replaying your path.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -46,9 +53,9 @@ MonoBehaviour:
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: rusher
-    _title: THE RUSHER
-    _description: A Werewolf commits to aggressive close-range lunges.
+  - _id: weaver
+    _title: THE WEAVER
+    _description: Adds a ceiling hunter whose webs block safe routes.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -62,9 +69,9 @@ MonoBehaviour:
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: lurker
-    _title: THE LURKER
-    _description: A Goblin slips aside from your beam and attacks from the dark.
+  - _id: ticking
+    _title: THE TICKING
+    _description: Adds a moving clock; collect keys before it winds down.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -78,10 +85,9 @@ MonoBehaviour:
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: hexer
-    _title: THE HEXER
-    _description: A hovering Fairy casts clearly signalled projectiles along your
-      route.
+  - _id: ram
+    _title: THE RAM
+    _description: Adds a charging hunter that commits to a straight line.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -95,9 +101,89 @@ MonoBehaviour:
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: thorncaller
-    _title: THE THORNCALLER
-    _description: A rooted creature warns the ground before raising deadly thorns.
+  - _id: mannequin
+    _title: THE MANNEQUIN
+    _description: Adds a hunter that moves only in darkness while unobserved.
+    _descriptionAtThreatCap: 
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+    _traits: 0
+    _repeatable: 0
+    _stockPerVisit: 1
+    _grantsWaxWard: 0
+    _requiredThreatId: 
+  - _id: mimic
+    _title: THE MIMIC
+    _description: Adds false cakes that punish careless collection.
+    _descriptionAtThreatCap: 
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+    _traits: 0
+    _repeatable: 0
+    _stockPerVisit: 1
+    _grantsWaxWard: 0
+    _requiredThreatId: 
+  - _id: blinder
+    _title: THE BLINDER
+    _description: Adds traps and projectiles that remove vision.
+    _descriptionAtThreatCap: 
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+    _traits: 0
+    _repeatable: 0
+    _stockPerVisit: 1
+    _grantsWaxWard: 0
+    _requiredThreatId: 
+  - _id: skip
+    _title: THE SKIP
+    _description: Adds a hunter that intercepts reused routes.
+    _descriptionAtThreatCap: 
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+    _traits: 0
+    _repeatable: 0
+    _stockPerVisit: 1
+    _grantsWaxWard: 0
+    _requiredThreatId: 
+  - _id: herald
+    _title: THE HERALD
+    _description: Adds a screaming hunter that exposes your position.
+    _descriptionAtThreatCap: 
+    _price: 0
+    _movementSpeedMultiplier: 1
+    _hunterSpeedMultiplier: 1
+    _fogDensityMultiplier: 1
+    _flashlightRangeMultiplier: 1
+    _maximumHealthDelta: 0
+    _healing: 0
+    _traits: 0
+    _repeatable: 0
+    _stockPerVisit: 1
+    _grantsWaxWard: 0
+    _requiredThreatId: 
+  - _id: stare
+    _title: THE STARE
+    _description: Adds a threat you must find and stare down.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -112,9 +198,9 @@ MonoBehaviour:
     _grantsWaxWard: 0
     _requiredThreatId: 
   _curses:
-  - _id: echo-debt
-    _title: ECHO DEBT
-    _description: Hard landings leave a delayed noise that hunters can investigate.
+  - _id: no-look-back
+    _title: NO LOOK-BACK
+    _description: Removes the look-back snap.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -123,15 +209,14 @@ MonoBehaviour:
     _flashlightRangeMultiplier: 1
     _maximumHealthDelta: 0
     _healing: 0
-    _traits: 1
+    _traits: 0
     _repeatable: 0
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: afterimage
-    _title: AFTERIMAGE
-    _description: Switching off your flashlight leaves a brief light trace at your
-      last position.
+  - _id: hidden-count
+    _title: HIDDEN COUNT
+    _description: Hides the cake counter during a floor.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -140,15 +225,14 @@ MonoBehaviour:
     _flashlightRangeMultiplier: 1
     _maximumHealthDelta: 0
     _healing: 0
-    _traits: 2
+    _traits: 0
     _repeatable: 0
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: restless-masonry
-    _title: RESTLESS MASONRY
-    _description: Optional rooms begin cracking sooner. The escape route remains
-      intact.
+  - _id: short-grace
+    _title: SHORT GRACE
+    _description: Shortens the grace window after a hit.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
@@ -157,326 +241,11 @@ MonoBehaviour:
     _flashlightRangeMultiplier: 1
     _maximumHealthDelta: 0
     _healing: 0
-    _traits: 4
+    _traits: 0
     _repeatable: 0
     _stockPerVisit: 1
     _grantsWaxWard: 0
     _requiredThreatId: 
-  - _id: gilded-hunger
-    _title: GILDED HUNGER
-    _description: Golden Cakes announce their collection with a sound that draws
-      nearby hunters.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 8
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: 
-  - _id: borrowed-footsteps
-    _title: BORROWED FOOTSTEPS
-    _description: Your footsteps echo along your recent route after you have moved
-      on.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 16
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: 
-  - _id: unquiet-flame
-    _title: UNQUIET FLAME
-    _description: Sprinting gutters nearby decorative flames; route lights keep a
-      faint glow.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 32
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: 
-  - _id: sealed-sills
-    _title: SEALED SILLS
-    _description: Some optional vault windows are sealed. Required routes and stairs
-      remain passable.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 33554432
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: 
-  - _id: rusher-long-stride
-    _title: LONG STRIDE
-    _description: The Rusher commits to a farther-reaching lunge. Sidestep its warning
-      line.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 1024
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: rusher
-  - _id: rusher-second-wind
-    _title: SECOND WIND
-    _description: The Rusher recovers sooner after a missed lunge. Its next windup
-      remains visible.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 2048
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: rusher
-  - _id: rusher-blood-scent
-    _title: BLOOD SCENT
-    _description: The Rusher hears farther and remembers your last noise longer.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 4096
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: rusher
-  - _id: lurker-dark-adaptation
-    _title: DARK ADAPTATION
-    _description: The Lurker sees a wider arc around itself in darkness.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 8192
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: lurker
-  - _id: lurker-crooked-step
-    _title: CROOKED STEP
-    _description: The Lurker makes a stronger, longer sideways dodge when caught
-      in your light.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 16384
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: lurker
-  - _id: lurker-stolen-silence
-    _title: STOLEN SILENCE
-    _description: The Lurker attacks with a shorter but still readable windup.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 32768
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: lurker
-  - _id: watcher-long-memory
-    _title: LONG MEMORY
-    _description: The Watcher remembers seen players and flashlight traces for longer.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 65536
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: watcher
-  - _id: watcher-cutting-corners
-    _title: CUTTING CORNERS
-    _description: The Watcher predicts your route earlier and aims farther ahead
-      when cutting you off.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 131072
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: watcher
-  - _id: watcher-unquiet-gaze
-    _title: UNQUIET GAZE
-    _description: The Watcher sees farther and may scream as it attacks.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 262144
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: watcher
-  - _id: hexer-split-bolt
-    _title: SPLIT BOLT
-    _description: The Hexer fans three bolts across its warned firing line.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 524288
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: hexer
-  - _id: hexer-hasty-script
-    _title: HASTY SCRIPT
-    _description: The Hexer completes its casting warning sooner. Break line of sight
-      before release.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 1048576
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: hexer
-  - _id: hexer-lingering-hex
-    _title: LINGERING HEX
-    _description: The Hexer fires slower, wider bolts that occupy your escape path
-      longer.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 2097152
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: hexer
-  - _id: thorncaller-thorn-ring
-    _title: THORN RING
-    _description: The Thorncaller raises a ring of thorns around its warned target.
-      Move out of the marked zone.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 4194304
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: thorncaller
-  - _id: thorncaller-quick-roots
-    _title: QUICK ROOTS
-    _description: The Thorncaller shortens the ground warning before its thorns erupt.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 8388608
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: thorncaller
-  - _id: thorncaller-reaching-roots
-    _title: REACHING ROOTS
-    _description: The Thorncaller marks a larger eruption area before striking.
-    _descriptionAtThreatCap: 
-    _price: 0
-    _movementSpeedMultiplier: 1
-    _hunterSpeedMultiplier: 1
-    _fogDensityMultiplier: 1
-    _flashlightRangeMultiplier: 1
-    _maximumHealthDelta: 0
-    _healing: 0
-    _traits: 16777216
-    _repeatable: 0
-    _stockPerVisit: 1
-    _grantsWaxWard: 0
-    _requiredThreatId: thorncaller
   _offers:
   - _id: shuttered-lens
     _title: SHUTTERED LENS
