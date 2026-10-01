@@ -17,6 +17,8 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Slide steering is limited by lateral acceleration and angular rate; legacy LookBackSteerAuthority is unused.
+//   ReboundAngle is retained for existing authored-route tooling, not wall-jump admission.
+//   WallJumpOutwardRatio is provisional; the combined tangent/normal is rescaled to entry speed.
 //   Designer data only. The factory resolves ArchetypeKey; runtime code never edits this asset.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
@@ -69,6 +71,7 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _reboundJumpWindow = 0.15f;
         [SerializeField] private float _reboundUpwardBoost = 3f;
         [SerializeField] private float _reboundCooldown = 0.4f;
+        [SerializeField, Range(0.01f, 1f)] private float _wallJumpOutwardRatio = 0.5f;
         [SerializeField] private float _softLandingThreshold = 12f;
         [SerializeField] private float _hardLandingThreshold = 18f;
         [SerializeField] private float _softLandingRetention = 0.6f;
@@ -138,6 +141,7 @@ namespace Worsen.Domain.Player
         public float ReboundJumpWindow => _reboundJumpWindow;
         public float ReboundUpwardBoost => _reboundUpwardBoost;
         public float ReboundCooldown => _reboundCooldown;
+        public float WallJumpOutwardRatio => _wallJumpOutwardRatio;
         public float SoftLandingThreshold => _softLandingThreshold;
         public float HardLandingThreshold => _hardLandingThreshold;
         public float SoftLandingRetention => _softLandingRetention;

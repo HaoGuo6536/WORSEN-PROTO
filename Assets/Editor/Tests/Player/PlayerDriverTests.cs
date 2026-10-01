@@ -9,14 +9,11 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Require visible hands clear of the final camera near plane and hidden feet/teardown.
-//   - Exercise the actual Driver and Unity casts against temporary BoxColliders.
-//   - Bound every horizontal displacement and check continuous top support.
-//   - Keep tall walls, low ceilings and unsupported edges blocking or airborne.
-//   - Require bounded traversal completion with last-third steering release and failed-vault speed cuts.
-//   - Regress continuous 26.6-degree ramp motion, untagged edges and physical slide redirects.
-//   - Preserve endpoint rejection and honest intermediate collision failure.
-//   - Repeatedly jump, land and continue climbing real inclines at walk and sprint speed.
+//   - Verify wall probes in every direction without admitting floor or body contacts.
+//   - Verify clearance-safe slide exit restores the real capsule and eye height.
+//   - Exercise bounded swept steps, ramps, slides and vault/ledge outcomes.
+//   - Preserve resolved replay, endpoint rejection and intermediate collision failure.
+//   - Verify visible hands clear the near plane while feet/teardown remain hidden.
 // DEPENDENCIES:
 //   PlayerDriver/default config, NUnit, Unity physics and UnityEditor serialization.
 //   PlayerController/Core replay records and temporary LevelMarker endpoint metadata.
@@ -58,9 +55,66 @@ namespace Worsen.Tests.Player
         [TearDown]
         public void TearDown()
         {
+            if (driver != null) driver.Teardown();
             if (actor != null) Object.DestroyImmediate(actor);
             if (arrangement != null) Object.DestroyImmediate(arrangement);
             if (config != null) Object.DestroyImmediate(config);
+        }
+
+        [TestCase(0f)] [TestCase(45f)] [TestCase(90f)] [TestCase(135f)]
+        [TestCase(180f)] [TestCase(225f)] [TestCase(270f)] [TestCase(315f)]
+        public void UntaggedWallsAreDetectedAheadBesideAndBehindThePlayer(float angle)
+        {
+            Vector3 direction = Quaternion.Euler(0f, angle, 0f) * Vector3.right;
+            BoxCollider wall = Box("Ordinary untagged wall", direction * .8f + Vector3.up * 2f,
+                new Vector3(.2f, 4f, 4f));
+            wall.transform.localRotation = Quaternion.Euler(0f, angle, 0f);
+            Spawn(Vector3.zero);
+            MovementProbe probe = driver.Probe();
+            Assert.That(probe.WallDetected, Is.True);
+            Assert.That(probe.WallDistance, Is.InRange(0f, config.WallProbeDistance));
+            Assert.That(Vector3.Dot(probe.WallNormal, -direction), Is.GreaterThan(.99f));
+            Assert.That(probe.WallId, Is.Not.Zero);
+            Assert.That(driver.Probe().WallId, Is.EqualTo(probe.WallId));
+            Assert.That(probe.VaultCandidate, Is.False);
+        }
+
+        [Test]
+        public void FloorAndRigidbodyBodiesCannotBecomeOrdinaryWallJumpSurfaces()
+        {
+            Spawn(Vector3.zero);
+            Assert.That(driver.Probe().WallDetected, Is.False, "Support is not a wall.");
+            BoxCollider body = Box("Kinematic actor body", new Vector3(.8f, 1f, 0f), new Vector3(.2f, 2f, 2f));
+            body.gameObject.AddComponent<Rigidbody>().isKinematic = true;
+            Physics.SyncTransforms();
+            Assert.That(driver.Probe().WallDetected, Is.False, "Second Bounce must own hunter-body contacts.");
+        }
+
+        [Test]
+        public void SlideExpiryRestoresActualStandingCapsuleAndEyeDespiteHeldButton()
+        {
+            Spawn(Vector3.zero);
+            var profile = ScriptableObject.CreateInstance<PlayerProfile>();
+            try
+            {
+                var state = new PlayerBehaviorState();
+                var controller = new PlayerController(state, profile, new System.Random(13));
+                controller.Reset(new EntityId(13), driver.Position, driver.Heading);
+                state.Velocity = Vector3.right * 8f;
+                var press = new InputFrame(Vector2.zero, Vector2.zero, InputButtons.Crouch, InputButtons.Crouch, InputButtons.None);
+                var slide = controller.Tick(press, driver.Probe(), 1f / 60f, 1);
+                controller.CommitPose(driver.Move(slide.Displacement, state.Velocity, slide.Crouched, driver.Heading, 1f / 60f));
+                Assert.That(capsule.height, Is.EqualTo(config.Height * config.SlideHeightRatio));
+                var held = new InputFrame(Vector2.zero, Vector2.zero, InputButtons.Crouch, InputButtons.None, InputButtons.None);
+                var end = controller.Tick(held, driver.Probe(), profile.SlideDuration, 2);
+                // Only posture is applied here; the pure test separately covers the expiry displacement.
+                driver.Move(Vector3.zero, state.Velocity, end.Crouched, driver.Heading, 1f / 60f);
+                Assert.That(capsule.height, Is.EqualTo(config.Height));
+                Assert.That(driver.EyePosition.y - driver.Position.y, Is.EqualTo(config.EyeHeight).Within(.0001f));
+                Assert.That(state.MovementState, Is.EqualTo(MovementState.Ground));
+                AssertNoPenetration();
+            }
+            finally { Object.DestroyImmediate(profile); }
         }
 
         [TestCase(MovementState.Ground)]

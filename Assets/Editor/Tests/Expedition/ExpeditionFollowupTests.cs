@@ -187,7 +187,9 @@ namespace Worsen.Tests.Expedition
                 obstacle.transform.position, obstacle.transform.localScale, 90, TraversalSurfaceKind.Vault,
                 origin, origin + Vector3.forward * 1.6f));
             Physics.SyncTransforms(); var probe = driver.Probe();
-            Assert.That(probe.VaultCandidate, Is.True); Assert.That(probe.SurfaceId, Is.EqualTo(90)); Assert.That(probe.WallId, Is.Zero);
+            Assert.That(probe.VaultCandidate, Is.True); Assert.That(probe.SurfaceId, Is.EqualTo(90));
+            // Wall jumps (owner playtest): vault geometry also qualifies as a wall; vault keeps priority.
+            Assert.That(probe.WallId, Is.Zero.Or.EqualTo(90));
         }
         [Test]
         public void RejectedVaultPublishesItsProbeIdentityImmediately()

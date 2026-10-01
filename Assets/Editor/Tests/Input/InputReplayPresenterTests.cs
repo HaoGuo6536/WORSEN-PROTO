@@ -57,8 +57,10 @@ namespace Worsen.Tests.Input
             _presenter.TryReadPlayback(_state, true, out var frame);
             Assert.That(frame.Move, Is.EqualTo(Vector2.up));
         }
+        // Owner playtest 2026-09-30: Crouch remains the recording bit for press-to-slide.
+        [TestCase(InputButtons.Crouch)]
         [TestCase(InputButtons.UseConsumable)] [TestCase(InputButtons.CycleConsumable)] [TestCase(InputButtons.CycleConsumablePrevious)]
-        public void ConsumableMasksRemainValidAndRoundTrip(InputButtons button)
+        public void SlideAndConsumableMasksRemainValidAndRoundTrip(InputButtons button)
         {
             var frame = new InputFrame(Vector2.up, Vector2.zero, button, button, InputButtons.None);
             Assert.That(_presenter.StartPlayback(_state, _metadata, new[] { Record(1, frame) }, true), Is.True);

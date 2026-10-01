@@ -11,7 +11,7 @@
 //   - Check lifecycle gates and prove settings restoration across Play Mode exit.
 //   - Protect canonical-service cursor ownership and live/playback transitions.
 //   - Verify independent UI click actions survive the gameplay gate closing.
-//   - Verify C produces slide/crouch while Left Ctrl no longer does.
+//   - Verify C produces one slide press while Left Ctrl no longer does.
 //   - Preserve physical Shift press/hold/release through the Sprint input contract.
 // DEPENDENCIES:
 //   - Input presentation components, Core records, Unity Input System and Test Framework.
@@ -237,8 +237,11 @@ namespace Worsen.Tests.Input
         }
 
         [Test]
-        public void CPublishesCrouchAndControlDoesNot()
+        public void CPublishesOneSlidePressUsingLegacyBitAndControlDoesNot()
         {
+            // Owner playtest 2026-09-30: C slides; the Core bit is retained for recordings.
+            Assert.That(_gameplay.FindAction("Slide"), Is.Not.Null);
+            Assert.That(_gameplay.FindAction("Crouch"), Is.Null);
             _manager.SetInputEnabled(true);
             PushKeys(Key.LeftCtrl);
             _manager.PublishFrame();
@@ -246,6 +249,8 @@ namespace Worsen.Tests.Input
             PushKeys(Key.C);
             _manager.PublishFrame();
             Assert.That(_lastFrame.Pressed & InputButtons.Crouch, Is.EqualTo(InputButtons.Crouch));
+            _manager.PublishFrame();
+            Assert.That(_lastFrame.Pressed & InputButtons.Crouch, Is.EqualTo(InputButtons.None));
             PushKeys();
             _manager.PublishFrame();
             Assert.That(_lastFrame.Released & InputButtons.Crouch, Is.EqualTo(InputButtons.Crouch));

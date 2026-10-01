@@ -20,6 +20,7 @@
 //   URP render callbacks observe only the tagged MainCamera for this solo player.
 //   No camera is cached, reparented or modified; PlayerMoverDriverConfig owns offsets.
 //   No other Domain system or Presentation system is referenced.
+//   Slide suppresses arm swing through MovementState; there is no crouch input.
 // ============================================================================
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -50,14 +51,14 @@ namespace Worsen.Domain.Player
         }
 
         public void Apply(MovementState movement, float eyeHeight, Vector3 handOffset, Vector3 footOffset,
-            float horizontalSpeed = 0f, bool crouched = false, float deltaTime = 0f, PlayerMoverDriverConfig config = null)
+            float horizontalSpeed = 0f, float deltaTime = 0f, PlayerMoverDriverConfig config = null)
         {
             _visible = _showHands && eyeHeight > 0f;
             _handOffset = handOffset;
             if (!_visible || config == null) { _swingPhase = 0f; _swingEnvelope = 0f; }
             else
             {
-                float target = _presenter.SwingTarget(movement, crouched, horizontalSpeed,
+                float target = _presenter.SwingTarget(movement, horizontalSpeed,
                     config.ArmSwingDegrees, config.ArmSwingReferenceSpeed);
                 _presenter.StepSwing(_swingPhase, _swingEnvelope, target, config.ArmSwingDegrees,
                     config.ArmSwingFrequency, config.ArmSwingEaseSeconds, deltaTime, out _swingPhase, out _swingEnvelope);
