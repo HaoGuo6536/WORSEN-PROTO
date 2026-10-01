@@ -25,8 +25,10 @@ Run records live outside the repository in `%USERPROFILE%/.claude/delegations/<s
 | `wiring` — cross-system wiring, fixtures, Orchestrator or SceneRoot edits | `gpt-6-astra` high |
 | `fix` — known-cause test or regression fixes | `gpt-6-astra` high |
 | `design` — design-heavy, multi-system features; unknown-cause regressions | `gpt-6-astra` xhigh; split the task if it nears context compression |
-| `diagnosis` — read-only investigation | `gpt-6-astra` high, `terminal,file` toolsets, `## Read-only` task |
+| `diagnosis` — read-only investigation | `gpt-6-astra` high, `## Read-only` task |
 | `art` — Blender generators under `tools/blender/` | `gpt-6-astra` high |
+
+**Toolsets:** every worker gets `terminal,file,vision` by default (owner, 2026-10-01). Vision is for inspecting renders, contact sheets and screenshots that the worker produces or the coordinator supplies. Workers still never run Unity; the coordinator runs their named Unity tests.
 
 **Effort levels:** only `high` and `xhigh` are used. The medium A/B trial was stopped by the owner on 2026-09-30, and `medium` is no longer an option.
 
