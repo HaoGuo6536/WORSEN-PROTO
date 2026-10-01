@@ -33,6 +33,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionActiveEffectsTests
     {
         [Test]

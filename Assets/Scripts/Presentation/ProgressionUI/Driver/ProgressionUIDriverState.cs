@@ -15,7 +15,7 @@
 //   - Hold the latest terminal snapshot while an explicitly requested visual sequence finishes.
 //   - Retain display copies, revision and pending interaction state.
 //   - Store health visibility independently of modal and document visibility.
-//   - Retain the explicit Hidden Count flag and latest snapshot for immediate redaction.
+//   - Retain the latest snapshot for document rebinding.
 //
 // DEPENDENCIES:
 //   Core progression snapshots and own ProgressionUI stack only.
@@ -34,7 +34,6 @@ namespace Worsen.Presentation.ProgressionUI
     {
         public bool HasSnapshot, Hidden, ModalVisible, Pending, CanContinue, CanRestart;
         public bool HealthVisible;
-        public bool HideActiveHunters;
         public ProgressionSnapshot LatestSnapshot;
         public int Revision, GenerationId;
         public bool TerminalDeferred, HasDeferredTerminal;

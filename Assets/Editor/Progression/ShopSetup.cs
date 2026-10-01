@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Ensure catalogue and mirrored shop assets, filling only absent bindings.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Progression config, ShopConfig, existing catalogue setup and UnityEditor.
 // USAGE NOTES:
 //   Coordinator only, in idle Edit Mode under its lease. No scene/prefab edits.
@@ -33,8 +34,7 @@ namespace Worsen.Editor.Progression
             EffectCatalogueSetup.EnsureEffectCatalogue();
             var progression = AssetDatabase.LoadAssetAtPath<ProgressionConfig>(EffectCatalogueSetup.ProgressionPath);
             if (progression.ShopConfig != null) return;
-            if (!AssetDatabase.IsValidFolder(Folder))
-                AssetDatabase.CreateFolder("Assets/Resources/ScriptableObjects/Session/Progression", "Shop");
+            Worsen.Editor.Common.SetupKit.EnsureFolder(Folder);
             var shop = AssetDatabase.LoadAssetAtPath<ShopConfig>(AssetPath);
             if (shop == null)
             {

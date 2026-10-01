@@ -12,9 +12,9 @@
 //   - Verify Manager effect delivery waits for Tick and publishes maximum-only health changes.
 //   - Verify floor health hand-off and regeneration publish the live effective maximum.
 //   - Check Core grace facts, source-independent absorption and symmetric cleanup.
-//   - Check hunter-only capsule/ground filtering and the visible missing-layer fallback.
+//   - Check hunter-only collision filtering, revival deadlines and the missing-layer fallback.
 // DEPENDENCIES:
-//   Core, Player, NUnit, UnityEditor serialization and Unity Test Framework logging.
+//   Core, Player/Hunter drivers, NUnit, UnityEditor serialization and Unity Test Framework logging.
 // USAGE NOTES:
 //   Coordinator runs these Edit Mode engine tests in Unity. The built-in Ignore
 //   Raycast layer stands in for HunterBody; no project layers or matrix are edited.
@@ -33,6 +33,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class PlayerHitRecoveryIntegrationTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();
@@ -188,6 +189,87 @@ namespace Worsen.Tests.Player
             _player.Tick(default, 0.1f, 3);
             Assert.That(_player.ReadOnlyState.Velocity.z, Is.EqualTo(-2f).Within(0.00001f),
                 "Neither the throw nor acceleration may repeat without another command.");
+        }
+
+        [TestCase(HitSource.Lunge)] [TestCase(HitSource.Hand)] [TestCase(HitSource.Trap)]
+        [TestCase(HitSource.Projectile)] [TestCase(HitSource.Scream)]
+        public void RevivalImmunityRejectsEveryDamageSourceAfterCollisionGraceEnds(HitSource source)
+        {
+            _player.ApplyHit(1000f, _origin);
+            var starts = new List<GraceWindowFact>(); var ends = new List<GraceWindowFact>();
+            _player.OnGraceStarted += starts.Add; _player.OnGraceEnded += ends.Add;
+            Assert.That(_player.ReviveInPlace(.5f), Is.True);
+            Assert.That(starts.Count, Is.EqualTo(1));
+            Assert.That(_player.ApplyHit(1000f, _origin, HitSeverity.Heavy, source), Is.False);
+            long collisionEnd = (long)System.Math.Round(_profile.RevivalCollisionGraceSeconds / (double)Time.fixedDeltaTime);
+            _player.AdvanceRecovery(collisionEnd);
+            Assert.That(_capsule.excludeLayers.value, Is.EqualTo(1 << 4));
+            Assert.That(_player.ApplyHit(1000f, _origin, HitSeverity.Heavy, source), Is.False);
+            Assert.That(_player.IsUngrabbable, Is.True); Assert.That(ends, Is.Empty);
+            _player.AdvanceRecovery(starts[0].EndTick);
+            Assert.That(ends, Is.EqualTo(starts)); Assert.That(_player.IsUngrabbable, Is.False);
+            Assert.That(_player.ApplyHit(10f, _origin, HitSeverity.Heavy, source), Is.True);
+            Assert.That(_player.ReadOnlyState.Health, Is.EqualTo(40f));
+        }
+
+        [Test]
+        public void RevivalPassesThroughHunterUntilCollisionDeadlineButStillHitsWorld()
+        {
+            Box("Hunter", new Vector3(0f, 1f, 1f), new Vector3(2f, 2f, .5f), 2);
+            Box("World", new Vector3(0f, 1f, 3f), new Vector3(2f, 2f, .5f), 0);
+            Physics.SyncTransforms();
+            _player.ApplyHit(1000f, _origin); _player.ReviveInPlace(.5f);
+            long end = (long)System.Math.Round(_profile.RevivalCollisionGraceSeconds / (double)Time.fixedDeltaTime);
+            _player.AdvanceRecovery(end - 1);
+            Assert.That(_capsule.excludeLayers.value, Is.EqualTo((1 << 4) | (1 << 2)));
+            var passed = _driver.Move(Vector3.forward * 4f, Vector3.forward, false, 0f, 1f);
+            Assert.That(passed.Position.z, Is.InRange(1.5f, 2.75f));
+            _player.AdvanceRecovery(end);
+            Assert.That(_player.RevivalDamageImmune, Is.True);
+            Assert.That(_capsule.excludeLayers.value, Is.EqualTo(1 << 4));
+            Assert.That(_driver.Move(Vector3.back * 4f, Vector3.back, false, 0f, 1f).Position.z, Is.GreaterThan(1.25f));
+        }
+
+        [Test]
+        public void DeadTicksCannotDepenetrateAwayFromCatchAndFloorResetEndsIndicator()
+        {
+            _player.ApplyHit(1000f, _origin);
+            Box("Overlapping hunter", new Vector3(.1f, 1f, 0f), new Vector3(1f, 2f, 1f), 2);
+            Physics.SyncTransforms();
+            _player.Tick(default, Time.fixedDeltaTime, 1);
+            Assert.That(_player.ReadOnlyState.Position, Is.EqualTo(_origin));
+            _player.ReviveInPlace(.5f);
+            Assert.That(_driver.Position, Is.EqualTo(_origin));
+            int ends = 0; _player.OnGraceEnded += _ => ends++;
+            _player.BeginFloorHealth(100f, 1f);
+            Assert.That(ends, Is.EqualTo(1)); Assert.That(_player.RevivalDamageImmune, Is.False);
+            Assert.That(_capsule.excludeLayers.value, Is.EqualTo(1 << 4));
+        }
+
+        [Test]
+        public void HunterMotorMustPassRevivedPlayerButStillStopAtWorldAndRestoreBlocking()
+        {
+            // Acceptance gate for the HunterDriver owner: casts must honor the
+            // Player capsule exclusion too, not only the physics contact solver.
+            Box("Floor", new Vector3(0f, -.25f, 0f), new Vector3(20f, .5f, 20f), 0);
+            Box("World", new Vector3(0f, 1f, 3f), new Vector3(4f, 2f, .4f), 0);
+            var actor = Make("Hunter motor", Vector3.back * 2f); actor.layer = 2;
+            var motor = ScriptableObject.CreateInstance<Worsen.Domain.Hunter.HunterMotorDriverConfig>();
+            var hunter = actor.AddComponent<Worsen.Domain.Hunter.HunterDriver>();
+            try
+            {
+                hunter.Initialize(motor);
+                _player.ApplyHit(1000f, _origin); Assert.That(_player.ReviveInPlace(.5f), Is.True);
+                Physics.SyncTransforms();
+                Assert.That(hunter.MoveCharge(Vector3.forward * 6f, Vector3.forward, .1f, out var blocker), Is.True);
+                Assert.That(blocker, Is.Not.SameAs(_capsule), "Hunter casts must not body-block on an excluded player.");
+                Assert.That(hunter.Position.z, Is.InRange(1f, 2.8f), "World collision must remain enabled.");
+                long end = (long)System.Math.Round(_profile.RevivalCollisionGraceSeconds / (double)Time.fixedDeltaTime);
+                _player.AdvanceRecovery(end);
+                Assert.That(hunter.MoveCharge(Vector3.back * 6f, Vector3.back, .1f, out blocker), Is.True);
+                Assert.That(blocker, Is.SameAs(_capsule));
+            }
+            finally { hunter.Teardown(); Object.DestroyImmediate(motor); }
         }
 
         private void SetLayer(string name)

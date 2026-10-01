@@ -21,6 +21,7 @@ using UnityEngine;
 using Worsen.Domain.Floor;
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorExitDoorPresenterTests
     {
         private readonly FloorExitDoorPresenter _presenter = new FloorExitDoorPresenter();

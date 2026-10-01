@@ -8,18 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Progression (Session system).
 // KEY RESPONSIBILITIES:
-//   - Publish committed progression events once before generation and expose shrine/mutation inputs.
-//   - Publish selected slots with uses and transact consumable/Extra Life admission once.
+//   - Own persistent state, seeded run initialization and catalogue/shop configuration.
+//   - Relay choices, purchases, consumptions, health and normal floor completion.
 //   - Commit shrine costs and transient Player shield grants before publishing outcomes.
-//   - Publish belief-drop/world-effect intent and delayed shared-hearing noise facts.
-//   - Own persistent state and explicitly seeded new-run/replay initialization.
-//   - Relay choices, purchases, ward consumption, health and floor lifecycle facts.
-//   - Own the delegated shop through the controller; route rerolls and replacements.
-//   - Load catalogue/shop assets, with an owned default catalogue when not yet wired.
-//   - Forward the bail flag through the normal guarded floor-completion transaction.
-//   - Publish Core snapshots and newly committed generation requests once.
-//   - Pair each progression/inventory revision with a frozen active-effects view.
-//   - Publish read-only before/after transactions for observational consumers.
+//   - Publish event, shrine and generation facts once through the controller boundary.
+//   - Publish paired immutable progression/effect views and before/after transactions.
 // DEPENDENCIES:
 //   - Domain Hunter immutable mutation values form the read-only Expedition restoration view.
 //   - Progression Config, Controller and BehaviorState; Core progression types.
@@ -30,12 +23,11 @@
 //   Scene integration owns generation, teardown and readiness acknowledgment.
 //   GenerationRequested reports that a request was committed, not an engine call.
 //   TransactionCommitted reports accepted actions before other publication;
-//   operation and choice identity describe facts without changing any rule.
-//   Integration must supply bailed=true for an early escape; legacy calls remain penalty-free.
+//   Core operation and choice identity describe facts without changing any rule.
+//   Integration must report only normal escapes; early bail is not a supported action.
 // ============================================================================
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Session.Progression.Shop;
@@ -62,13 +54,15 @@ namespace Worsen.Session.Progression
         public IReadOnlyList<ProgressionEventFact> EventHistory => controller?.EventHistory ?? Array.Empty<ProgressionEventFact>();
         public IReadOnlyDictionary<string, IReadOnlyList<HunterMutation>> RetainedMutations => controller?.RetainedMutations;
         public FearAxis CurrentEventFearAxis => controller?.CurrentEventFearAxis ?? FearAxis.None;
-        public IReadOnlyCollection<FearAxis> ShrineExcludedAxes => controller?.ShrineExcludedAxes ?? Array.Empty<FearAxis>();
+
         public bool MoreShrines => controller?.MoreShrines ?? false;
+        public float FasterCollapseGoldenCakeMultiplier
+        { get { RequireInitialized(); return config.FasterCollapseGoldenCakeMultiplier; } }
         public event Action<ShrineResolvedFact> ShrineResolved;
         public event Action<NoiseEvent> ShrineNoiseEmitted;
         public IReadOnlyActiveEffects FloorEffects => controller == null ? default(ActiveEffects) : controller.FloorEffects;
         public float ShrineYieldMultiplier => controller?.ShrineYieldMultiplier ?? 1f;
-        public event Action<ProgressionSnapshot, ProgressionSnapshot, string, string> TransactionCommitted;
+        public event Action<ProgressionSnapshot, ProgressionSnapshot, ProgressionOperation, string> TransactionCommitted;
         public ProgressionSnapshot Snapshot => controller == null ? default : controller.Snapshot();
         public ProgressionEffectsSnapshot EffectsSnapshot => controller == null ? default : controller.EffectsSnapshot();
 
@@ -107,7 +101,7 @@ namespace Worsen.Session.Progression
             int previousGeneration = state.GenerationId;
             controller = new ProgressionSessionController(state, config, new System.Random(seed), shopConfig, shopCatalogue);
             controller.StartRun(seed);
-            TransactionCommitted?.Invoke(previous, controller.Snapshot(), nameof(StartRun), string.Empty);
+            TransactionCommitted?.Invoke(previous, controller.Snapshot(), ProgressionOperation.StartRun, string.Empty);
             Publish(previousGeneration);
         }
 
@@ -123,28 +117,27 @@ namespace Worsen.Session.Progression
             return true;
         }
 
-        public bool ChooseThreat(string id, int revision) => Change(() => controller.ChooseThreat(id, revision), id);
-        public bool ChooseCurse(string id, int revision) => Change(() => controller.ChooseCurse(id, revision), id);
-        public bool TakeBargain(string id, int revision) => Change(() => controller.TakeBargain(id, revision), id);
-        public bool Purchase(string id, int revision) => Change(() => controller.Purchase(id, revision), id);
-        public bool RerollShop(int revision) => Change(() => controller.RerollShop(revision));
-        public bool RerollSelection(int revision) => Change(() => controller.RerollSelection(revision));
+        public bool ChooseThreat(string id, int revision) => Change(() => controller.ChooseThreat(id, revision), ProgressionOperation.ChooseThreat, id);
+        public bool ChooseCurse(string id, int revision) => Change(() => controller.ChooseCurse(id, revision), ProgressionOperation.ChooseCurse, id);
+        public bool TakeBargain(string id, int revision) => Change(() => controller.TakeBargain(id, revision), ProgressionOperation.TakeBargain, id);
+        public bool Purchase(string id, int revision) => Change(() => controller.Purchase(id, revision), ProgressionOperation.Purchase, id);
+        public bool RerollShop(int revision) => Change(() => controller.RerollShop(revision), ProgressionOperation.RerollShop);
+        public bool RerollSelection(int revision) => Change(() => controller.RerollSelection(revision), ProgressionOperation.RerollSelection);
         public bool ReplaceInventorySlot(int slot, int revision) => Change(() => controller.ReplaceInventorySlot(slot, revision),
-            Snapshot.PendingOfferId, nameof(Purchase));
-        public bool CancelReplacement(int revision) => Change(() => controller.CancelReplacement(revision));
-        public bool ContinueShop(int revision) => Change(() => controller.ContinueShop(revision));
-        public bool ConfirmFloorReady(int generationId) => Change(() => controller.ConfirmFloorReady(generationId));
-        public bool FailGeneration(int generationId, string reason) => Change(() => controller.FailGeneration(generationId, reason));
-        public bool CompleteFloor(int generationId) => Change(() => controller.CompleteFloor(generationId));
-        public bool CompleteFloor(int generationId, bool bailed) => Change(() => controller.CompleteFloor(generationId, bailed),
-            reason: bailed ? "EarlyBail" : nameof(CompleteFloor));
-        public bool RecordGoldenCollected(int generationId, int anchorId) => Change(() => controller.RecordGoldenCollected(generationId, anchorId));
-        public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId));
-        public bool CycleConsumable(int generationId, int direction) => Change(() => controller.CycleConsumable(generationId, direction));
-        public bool TryConsumeSelected(int generationId, int revision, string id) => Change(() => controller.TryConsumeSelected(generationId, revision, id), id);
-        public bool TryConsumeExtraLife(int generationId) => Change(() => controller.TryConsumeExtraLife(generationId));
-        public bool RecordHealth(int generationId, float health) => Change(() => controller.RecordHealth(generationId, health));
-        public bool EndRun(int generationId) => Change(() => controller.EndRun(generationId));
+            ProgressionOperation.Purchase, Snapshot.PendingOfferId);
+        public bool CancelReplacement(int revision) => Change(() => controller.CancelReplacement(revision), ProgressionOperation.CancelReplacement);
+        public bool ContinueShop(int revision) => Change(() => controller.ContinueShop(revision), ProgressionOperation.ContinueShop);
+        public bool ConfirmFloorReady(int generationId) => Change(() => controller.ConfirmFloorReady(generationId), ProgressionOperation.ConfirmFloorReady);
+        public bool FailGeneration(int generationId, string reason) => Change(() => controller.FailGeneration(generationId, reason), ProgressionOperation.FailGeneration);
+        public bool CompleteFloor(int generationId) => Change(() => controller.CompleteFloor(generationId), ProgressionOperation.CompleteFloor);
+
+        public bool RecordGoldenCollected(int generationId, int anchorId) => Change(() => controller.RecordGoldenCollected(generationId, anchorId), ProgressionOperation.RecordGoldenCollected);
+        public bool TryConsumeWaxWard(int generationId) => Change(() => controller.TryConsumeWaxWard(generationId), ProgressionOperation.TryConsumeWaxWard);
+        public bool CycleConsumable(int generationId, int direction) => Change(() => controller.CycleConsumable(generationId, direction), ProgressionOperation.CycleConsumable);
+        public bool TryConsumeSelected(int generationId, int revision, string id) => Change(() => controller.TryConsumeSelected(generationId, revision, id), ProgressionOperation.TryConsumeSelected, id);
+        public bool TryConsumeExtraLife(int generationId) => Change(() => controller.TryConsumeExtraLife(generationId), ProgressionOperation.TryConsumeExtraLife);
+        public bool RecordHealth(int generationId, float health) => Change(() => controller.RecordHealth(generationId, health), ProgressionOperation.RecordHealth);
+        public bool EndRun(int generationId) => Change(() => controller.EndRun(generationId), ProgressionOperation.EndRun);
 
         public bool ActivateShrine(int generationId, ShrineActivatedFact fact, PlayerManager player, float collectedFraction = 0f)
         {
@@ -154,7 +147,7 @@ namespace Worsen.Session.Progression
                 collectedFraction, out var result)) return false;
             if (result.Shield > 0f && !player.GrantShield(result.Shield))
                 throw new InvalidOperationException("Admitted shield grant failed before shrine publication.");
-            TransactionCommitted?.Invoke(previous, controller.Snapshot(), nameof(ActivateShrine), fact.Kind.ToString());
+            TransactionCommitted?.Invoke(previous, controller.Snapshot(), ProgressionOperation.ActivateShrine, fact.Kind.ToString());
             ShrineResolved?.Invoke(result);
             Publish(generationId);
             return true;
@@ -166,7 +159,7 @@ namespace Worsen.Session.Progression
             foreach (var noise in controller.TickShrines(generationId, dt, tick)) ShrineNoiseEmitted?.Invoke(noise);
         }
 
-        private bool Change(Func<bool> action, string choiceId = "", [CallerMemberName] string reason = "")
+        private bool Change(Func<bool> action, ProgressionOperation operation, string choiceId = "")
         {
             RequireInitialized();
             ProgressionSnapshot previous = controller.Snapshot();
@@ -177,7 +170,8 @@ namespace Worsen.Session.Progression
             {
                 var current = controller.Snapshot();
                 TransactionCommitted?.Invoke(previous, current,
-                    reason == nameof(Purchase) && !string.IsNullOrEmpty(current.PendingOfferId) ? "ReservePurchase" : reason, choiceId);
+                    operation == ProgressionOperation.Purchase && !string.IsNullOrEmpty(current.PendingOfferId)
+                        ? ProgressionOperation.ReservePurchase : operation, choiceId);
             }
             if (state.Revision != revision) Publish(generation);
             return accepted;

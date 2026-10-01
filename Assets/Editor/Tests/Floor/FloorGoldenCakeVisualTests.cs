@@ -13,6 +13,7 @@
 // DEPENDENCIES:
 //   NUnit, UnityEngine, Core graph contracts and FloorDriver public lifecycle.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Edit Mode only. Creates temporary objects/materials; no asset writes or imports.
 //   Explicit teardown preserves the surrounding editor and authored source assets.
 // ============================================================================
@@ -27,6 +28,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class FloorGoldenCakeVisualTests
     {
         [Test]
@@ -40,7 +42,7 @@ namespace Worsen.Tests.Floor
             Texture2D palette = null;
             try
             {
-                config = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
                 var shader = Shader.Find("Universal Render Pipeline/Lit");
                 Assert.That(shader, Is.Not.Null);
                 source = new Material(shader);

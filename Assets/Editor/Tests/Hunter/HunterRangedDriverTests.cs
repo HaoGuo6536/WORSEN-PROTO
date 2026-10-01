@@ -17,29 +17,41 @@
 //   Coordinator runs Unity tests with the exclusive lease. Fixtures clean up their own objects.
 // ============================================================================
 using System.Collections.Generic;
+using UnityEditor;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterRangedDriverTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();
         private readonly List<Collider> _contacts = new List<Collider>();
         private readonly Vector3 _origin = new Vector3(2400f, 120f, 2400f);
         private HunterAttackDriver _driver;
+        private HunterAttackDriverConfig _config;
         private Collider Box(string name, Vector3 position, Vector3 size)
         { var go = new GameObject(name); _objects.Add(go); go.transform.position = position; var box = go.AddComponent<BoxCollider>(); box.size = size; return box; }
         [SetUp] public void SetUp()
         {
             var root = new GameObject("Attack fixture"); _objects.Add(root); root.transform.position = _origin;
-            _driver = root.AddComponent<HunterAttackDriver>(); _driver.Initialize(); _driver.SetTargetFilter(collider => collider.gameObject.name == "Target"); _driver.OnContact += Contact;
+            _driver = root.AddComponent<HunterAttackDriver>();
+            _config = ScriptableObject.CreateInstance<HunterAttackDriverConfig>();
+            var configData = new SerializedObject(_config);
+            configData.FindProperty("_fallbackShader").objectReferenceValue = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat").shader;
+            configData.ApplyModifiedPropertiesWithoutUndo();
+            var driverData = new SerializedObject(_driver);
+            driverData.FindProperty("_config").objectReferenceValue = _config;
+            driverData.ApplyModifiedPropertiesWithoutUndo();
+            _driver.Initialize(); _driver.SetTargetFilter(collider => collider.gameObject.name == "Target"); _driver.OnContact += Contact;
             Box("Floor", _origin + Vector3.down * 0.25f, new Vector3(30, 0.5f, 30));
         }
         private void Contact(Collider collider, int serial) { _contacts.Add(collider); }
         [TearDown] public void TearDown()
         {
             _driver.OnContact -= Contact; _driver.Teardown();
+            if (_config != null) Object.DestroyImmediate(_config);
             foreach (GameObject item in _objects) if (item != null) Object.DestroyImmediate(item);
             _objects.Clear(); _contacts.Clear();
         }

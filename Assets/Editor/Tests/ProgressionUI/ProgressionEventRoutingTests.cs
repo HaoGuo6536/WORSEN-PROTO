@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · ProgressionUI.
 // KEY RESPONSIBILITIES:
-//   - Set and clear Hidden Count from accepted choices and fresh-run snapshots.
+//   - Keep shelter rosters readable when Hidden Count is selected and after restart.
 //   - Publish each automatic event once before the affected generation is requested.
 // DEPENDENCIES:
 //   - NUnit, Core, Progression, ProgressionUI and the ProgressionUI Orchestrator.
@@ -27,9 +27,10 @@ using Worsen.Orchestrator;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionEventRoutingTests
     {
-        [Test] public void HiddenCountTracksAcceptedEffectsAndClearsOnRestartWithPairedTeardown()
+        [Test] public void HiddenCountDoesNotRedactShelterAndRoutingTeardownIsPaired()
         {
             WithManager((manager, config, catalogue) =>
             {
@@ -43,11 +44,12 @@ namespace Worsen.Tests.ProgressionUI
                     Set(driver, "_state", view); Set(driver, "_presenter", new ProgressionUIPresenter()); Set(ui, "_driver", driver);
                     route.Configure(manager, ui); Invoke(route, "OnEnable");
                     manager.StartRun(73);
-                    Assert.That(view.HideActiveHunters, Is.False);
+
                     manager.ChooseThreat("weaver", manager.Snapshot.Revision);
                     Assert.That(manager.ChooseCurse("hidden-count", manager.Snapshot.Revision), Is.True);
-                    Assert.That(view.HideActiveHunters, Is.True); Assert.That(view.RetainedText, Does.Not.Contain("Weaver"));
-                    manager.StartRun(73); Assert.That(view.HideActiveHunters, Is.False);
+                    Assert.That(manager.EffectsSnapshot.ActiveEffects.Has(new EffectId("hidden-count")), Is.True);
+                    Assert.That(view.RetainedText, Does.Contain("Weaver"));
+                    manager.StartRun(73);
                     manager.ChooseThreat("weaver", manager.Snapshot.Revision);
                     Assert.That(view.RetainedText, Does.Contain("Weaver"));
                     Invoke(route, "OnDisable");
@@ -102,10 +104,10 @@ namespace Worsen.Tests.ProgressionUI
             {
                 Set(config, "_effectCatalogue", catalogue); Set(config, "_eventPool", new[] { ProgressionEventKind.ExtraHunter });
                 Set(config, "_threats", new[] { new ProgressionEntryConfig("weaver", "Weaver", "Adds a hunter.") });
-                Set(config, "_curses", new[] { new ProgressionEntryConfig("hidden-count", "Hidden Count", "Removes hunter names.") });
+                Set(config, "_curses", new[] { new ProgressionEntryConfig("hidden-count", "Hidden Count", "Hides the cake counter during a floor.") });
                 Set(catalogue, "_entries", new[] {
                     new EffectCatalogueEntry("weaver", EffectKind.Threat, FearAxis.Agency, "Weaver", "Adds a hunter."),
-                    new EffectCatalogueEntry("hidden-count", EffectKind.Curse, FearAxis.Information, "Hidden Count", "Removes hunter names.") });
+                    new EffectCatalogueEntry("hidden-count", EffectKind.Curse, FearAxis.Information, "Hidden Count", "Hides the cake counter during a floor.") });
                 var manager = root.AddComponent<ProgressionSessionManager>(); var state = new ProgressionSessionBehaviorState();
                 Set(manager, "config", config); Set(manager, "state", state);
                 Set(manager, "controller", new ProgressionSessionController(state, config, new System.Random(73)));

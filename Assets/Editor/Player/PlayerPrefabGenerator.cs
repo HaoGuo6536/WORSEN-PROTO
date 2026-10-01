@@ -12,6 +12,7 @@
 //   - Preserve existing Player tuning and rebuild idempotent limb references.
 //   - Split the imported Hold rest pose into independent skinned arm roots.
 // DEPENDENCIES:
+//   - Common SetupKit owns checked serialized wiring and asset-folder creation.
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 //   - BlockyCharacterSetup supplies the configured Generic first-person model.
@@ -148,16 +149,7 @@ namespace Worsen.Editor.Player
             return asset;
         }
         private static void EnsureFolder(string path)
-        {
-            string[] parts = path.Split('/');
-            string parent = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = parent + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(parent, parts[i]);
-                parent = next;
-            }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
         private static T GetOrAdd<T>(GameObject target) where T : Component
         {
             T existing = target.GetComponent<T>();
@@ -184,12 +176,6 @@ namespace Worsen.Editor.Player
             return limb;
         }
         private static void Wire(UnityEngine.Object target, string name, UnityEngine.Object value)
-        {
-            var serialized = new SerializedObject(target);
-            SerializedProperty property = serialized.FindProperty(name);
-            if (property == null) throw new InvalidOperationException(target.name + " lacks " + name);
-            property.objectReferenceValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, name, value);
     }
 }

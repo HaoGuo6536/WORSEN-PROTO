@@ -14,6 +14,7 @@
 // DEPENDENCIES:
 //   NUnit, UnityEditor asset reads, UnityEngine, Core/Floor and DistantLands.Lumen.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Uses temporary objects and a private imported-profile copy; writes no assets.
 //   Existing Lumen managers are borrowed untouched; only newly created managers
 //   are removed after owned players are destroyed. No rendering result is inferred.
@@ -31,6 +32,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class FloorLumenIntegrationTests
     {
         [TestCase(false)]
@@ -60,7 +62,7 @@ namespace Worsen.Tests.Floor
                 prefab = new GameObject("Private Floor Lumen Prefab"); prefab.SetActive(false);
                 prefab.AddComponent<LumenEffectPlayer>().profile = profile;
                 Assert.That(prefab.GetComponentsInChildren<UnityEngine.Light>(true), Is.Empty);
-                config = ScriptableObject.CreateInstance<FloorDriverConfig>();
+                config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
                 Set(config, "_lumenRoomWarningPrefab", prefab); Set(config, "_lumenExitGlowPrefab", prefab);
                 Set(config, "_usePhysicalExitDoor", physicalDoor);
                 root = new GameObject("Native Floor Lumen Fixture");

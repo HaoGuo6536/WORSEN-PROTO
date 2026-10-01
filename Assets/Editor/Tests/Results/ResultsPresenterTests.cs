@@ -30,6 +30,7 @@ using Worsen.Presentation.Results;
 
 namespace Worsen.Tests.Results
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ResultsPresenterTests
     {
         [Test]

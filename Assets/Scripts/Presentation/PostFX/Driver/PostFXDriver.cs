@@ -10,13 +10,11 @@
 //   Driver (§7a) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Apply targeted blindness cleansing and revival latch clearing without resetting other inputs.
-//   - Forward Core grace windows and injected read-only effects to the Presenter.
+//   - Forward independent health, grace, blindness, revival and intrusion commands.
 //   - Apply blur preferences immediately to runtime state and the owned volume.
-//   - Own and apply distortion, vignette, desaturation, grain and optional blur.
-//   - Apply constant degradation and timed blindness only to the owned runtime volume.
-//   - Destroy the runtime profile and its components on teardown.
-//   - Retain all rendering package types behind this boundary.
+//   - Compose camcorder and Glimpse volumes with existing grain, distortion and color.
+//   - Destroy the runtime profile and all its components on teardown.
+//   - Retain rendering package types behind this boundary.
 //
 // DEPENDENCIES:
 //   - Core grace/effects contracts only; no Domain or Session types.
@@ -27,6 +25,7 @@
 //   - Scene-owned by PostFXManager; no global render settings are written.
 //   - Its dedicated global volume affects cameras whose volume mask includes its layer.
 //   - The scene coordinator must enable post-processing on the output camera.
+//   - CamcorderFrameRendererFeature must be installed on that camera's renderer.
 //   - ConfigureForSetup creates a disabled volume; Initialize begins runtime effects.
 //
 // ============================================================================
@@ -51,6 +50,8 @@ namespace Worsen.Presentation.PostFX
         private ColorAdjustments _color;
         private FilmGrain _grain;
         private DepthOfField _blur;
+        private CamcorderFrameVolume _frame;
+        private GlimpseVolume _glimpse;
         private bool _runtimeVolume;
 
         public bool IsReady => _state != null && _volume != null && _profile != null;
@@ -86,6 +87,8 @@ namespace Worsen.Presentation.PostFX
             _color = _profile.Add<ColorAdjustments>(false);
             _grain = _profile.Add<FilmGrain>(false);
             _blur = _profile.Add<DepthOfField>(false);
+            _frame = _profile.Add<CamcorderFrameVolume>(false);
+            _glimpse = _profile.Add<GlimpseVolume>(false);
             _blur.mode.Override(DepthOfFieldMode.Gaussian);
             _blur.gaussianStart.Override(0f);
             _blur.gaussianEnd.Override(1f);
@@ -110,6 +113,9 @@ namespace Worsen.Presentation.PostFX
         {
             if (_state != null) _presenter.SetLookBack(_state, _config, held);
         }
+
+        public void SetHunterRim(float strength)
+        { if (_state != null) _presenter.SetHunterRim(_state, strength); }
 
         public void SetInjury(float currentHealth, float maxHealth)
         {
@@ -187,6 +193,8 @@ namespace Worsen.Presentation.PostFX
             _profile = null;
             _chromatic = null; _distortion = null; _vignette = null;
             _color = null; _grain = null; _blur = null;
+            _frame = null;
+            _glimpse = null;
             _state = null; _presenter = null; _config = null;
         }
 
@@ -205,6 +213,19 @@ namespace Worsen.Presentation.PostFX
 
         private void Apply()
         {
+            if (_glimpse != null)
+            {
+                _glimpse.Strength.Override(_presenter.OutlineStrength(_state));
+                _glimpse.Width.Override(_config.GlimpseWidth);
+                _glimpse.Tint.Override(_config.GlimpseColor);
+            }
+            if (_frame != null)
+            {
+                _frame.Enabled.Override(_config.CamcorderEnabled);
+                _frame.Lens.Override(_state.Frame.Lens);
+                _frame.Tape.Override(_state.Frame.Tape);
+                _frame.EdgeStart.Override(_state.Frame.EdgeStart);
+            }
             _chromatic.intensity.Override(_state.Chromatic);
             _distortion.intensity.Override(_state.Distortion);
             _vignette.intensity.Override(_state.Vignette);

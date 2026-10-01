@@ -26,6 +26,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.CastleEnvironment
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EnvironmentPresenterTests
     {
         [TestCase(1f, 3)]

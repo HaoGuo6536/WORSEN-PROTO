@@ -41,6 +41,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000), Category("RequiresFocus")]
     public sealed class LookBackTraversalIntegrationTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";

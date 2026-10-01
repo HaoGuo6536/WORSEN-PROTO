@@ -1,0 +1,8 @@
+id: manager-no-manager-creation
+valid:
+  - 'class Owner { void Create() { gameObject.AddComponent<PlayerDriver>(); } }'
+invalid:
+  - 'class Owner { void Create() { AddComponent<PlayerManager>(); } }'
+  - 'class Owner { void Create() { gameObject.AddComponent<PlayerManager>(); } }'
+  - 'class Owner { void Create() { new GameObject("Player").AddComponent<PlayerManager>(); } }'
+  - 'class Owner { void Create() { gameObject.AddComponent<Worsen.Domain.Player.PlayerManager>(); } }'

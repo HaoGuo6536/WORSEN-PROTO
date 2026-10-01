@@ -1,0 +1,12 @@
+id: manager-no-manager-creation
+language: csharp
+severity: error
+message: "Managers never create another Manager; assembly belongs to the scene owner (§1, §6b; A2)."
+files:
+  - "Assets/Scripts/**/Manager/*.cs"
+ignores:
+  - "Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs" # debt: SPEC-001 Appendix A
+  - "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs" # debt: SPEC-001 Appendix A
+rule:
+  kind: invocation_expression
+  regex: '(?:^|\.)AddComponent\s*<\s*(?:[\w]+\.)*\w*Manager\s*>\s*\('

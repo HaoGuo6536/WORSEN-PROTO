@@ -13,6 +13,7 @@
 //   - Keep lethal health silent and admit one sting only at catch hold start, reset per run.
 //   - Verify ordinary pickups never become combo stings, and removed cues stay silent.
 //   - Verify per-action mapping and duplicate suppression.
+//   - Cover every typed progression operation, including intentionally silent transactions.
 //   - Verify silence-first posture/health/projectile removal and retained traversal facts.
 //
 // DEPENDENCIES:
@@ -30,6 +31,7 @@ using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Audio;
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioFeedbackPresenterTests
     {
         [Test]
@@ -236,6 +238,48 @@ namespace Worsen.Tests.Audio
             p.Room(s, new RoomDestructionSample(3, RoomPhase.Closed, 1), Vector3.zero); Assert.That(s.Commands, Is.Empty);
             Assert.That(s.Rooms[3].Phase, Is.EqualTo(RoomPhase.Closed), "World-mix scheduling owns the sole room cue.");
         }
+        [Test]
+        public void EveryOperationPreservesShopCueAndDuplicateSuppression([Values] ProgressionOperation operation)
+        {
+            var presenter = new AudioFeedbackPresenter();
+            var state = new AudioFeedbackDriverState { Phase = ProgressionPhase.Shop };
+            var before = TransactionSnapshot(1, ProgressionPhase.Shop);
+            var after = TransactionSnapshot(2, ProgressionPhase.Shop);
+            presenter.Transaction(state, before, after, operation);
+            if (operation == ProgressionOperation.Purchase || operation == ProgressionOperation.RerollShop)
+            {
+                Assert.That(state.Commands.Count, Is.EqualTo(1));
+                Assert.That(state.Commands[0].Cue, Is.EqualTo(operation == ProgressionOperation.Purchase ? CueId.ShopBuy : CueId.UiMove));
+            }
+            else Assert.That(state.Commands, Is.Empty);
+            presenter.Transaction(state, before, after, operation);
+            Assert.That(state.Commands, Is.Empty, "A replayed revision never sounds twice.");
+        }
+
+        [Test]
+        public void EveryOperationStaysSilentOutsideShop([Values] ProgressionOperation operation)
+        {
+            var state = new AudioFeedbackDriverState();
+            new AudioFeedbackPresenter().Transaction(state, TransactionSnapshot(1, ProgressionPhase.Exploring),
+                TransactionSnapshot(2, ProgressionPhase.Exploring), operation);
+            Assert.That(state.Commands, Is.Empty);
+        }
+
+        [Test]
+        public void PendingPurchaseAndUncommittedRevisionStaySilent()
+        {
+            var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState();
+            var before = TransactionSnapshot(1, ProgressionPhase.Shop);
+            presenter.Transaction(state, before, TransactionSnapshot(2, ProgressionPhase.Shop, "wax-ward"), ProgressionOperation.Purchase);
+            Assert.That(state.Commands, Is.Empty);
+            presenter.Transaction(state, before, before, ProgressionOperation.RerollShop);
+            Assert.That(state.Commands, Is.Empty);
+        }
+
+        private static ProgressionSnapshot TransactionSnapshot(int revision, ProgressionPhase phase, string pending = null) =>
+            new ProgressionSnapshot(revision, 1, 1, 0, 10, 0, 0, phase, 100, 100,
+                null, null, null, default, "", false, false, pendingOfferId: pending);
+
         [Test]
         public void RestartDoesNotPretendThatAStoredWardBroke()
         {

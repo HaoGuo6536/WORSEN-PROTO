@@ -37,6 +37,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerDriverTests
     {
         private static readonly Vector3 Origin = new Vector3(2000f, 0f, 0f);

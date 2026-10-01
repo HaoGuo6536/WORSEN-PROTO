@@ -1,0 +1,6 @@
+id: menu-under-project-root
+valid:
+  - 'class Tool { [MenuItem("Worsen/Test/Run")] static void Run() {} }'
+  - 'class Tool { [MenuItem("CONTEXT/Thing/Run")] static void Run() {} }'
+invalid:
+  - 'class Tool { [MenuItem("Tools/Test/Run")] static void Run() {} }'

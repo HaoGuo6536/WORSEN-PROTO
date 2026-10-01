@@ -22,6 +22,7 @@ using Worsen.Domain.Procedural;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralFreezeUtilityTests
     {
         [Test]
@@ -35,7 +36,7 @@ namespace Worsen.Tests.Procedural
                 settings.ApplyModifiedPropertiesWithoutUndo(); int count = 0;
                 for (int seed = 0; seed < 32; seed++)
                 {
-                    Assert.That(Generate(3).FreezeRooms, Is.Empty);
+                    Assert.That(Generate(2).FreezeRooms, Is.Empty);
                     var layout = Generate(4);
                     ProceduralFootprintUtility.Validate(layout);
                     foreach (var plan in layout.FreezeRooms)

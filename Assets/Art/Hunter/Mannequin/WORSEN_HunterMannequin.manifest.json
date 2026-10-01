@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "hunter": "Mannequin",
+  "fps": 30,
+  "height_m": 1.85,
+  "width_m": 0.8,
+  "triangles": 2308,
+  "bones": [
+    {
+      "name": "Root",
+      "parent": null,
+      "head_m": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Hips",
+      "parent": "Root",
+      "head_m": [
+        0,
+        0,
+        0.9065
+      ]
+    },
+    {
+      "name": "Chest",
+      "parent": "Hips",
+      "head_m": [
+        0.0,
+        0,
+        1.295
+      ]
+    },
+    {
+      "name": "Head",
+      "parent": "Chest",
+      "head_m": [
+        0,
+        0,
+        1.6095000000000002
+      ]
+    },
+    {
+      "name": "LeftArm",
+      "parent": "Chest",
+      "head_m": [
+        0.285,
+        0,
+        1.4615000000000002
+      ]
+    },
+    {
+      "name": "LeftForearm",
+      "parent": "LeftArm",
+      "head_m": [
+        0.31999999999999995,
+        0,
+        1.1007500000000001
+      ]
+    },
+    {
+      "name": "LeftHand",
+      "parent": "LeftForearm",
+      "head_m": [
+        0.355,
+        -0.015,
+        0.7400000000000001
+      ]
+    },
+    {
+      "name": "LeftThigh",
+      "parent": "Hips",
+      "head_m": [
+        0.105,
+        0,
+        0.9065
+      ]
+    },
+    {
+      "name": "LeftShin",
+      "parent": "LeftThigh",
+      "head_m": [
+        0.105,
+        0,
+        0.49950000000000006
+      ]
+    },
+    {
+      "name": "LeftFoot",
+      "parent": "LeftShin",
+      "head_m": [
+        0.105,
+        0,
+        0.1
+      ]
+    },
+    {
+      "name": "RightArm",
+      "parent": "Chest",
+      "head_m": [
+        -0.285,
+        0,
+        1.4615000000000002
+      ]
+    },
+    {
+      "name": "RightForearm",
+      "parent": "RightArm",
+      "head_m": [
+        -0.31999999999999995,
+        0,
+        1.1007500000000001
+      ]
+    },
+    {
+      "name": "RightHand",
+      "parent": "RightForearm",
+      "head_m": [
+        -0.355,
+        -0.015,
+        0.7400000000000001
+      ]
+    },
+    {
+      "name": "RightThigh",
+      "parent": "Hips",
+      "head_m": [
+        -0.105,
+        0,
+        0.9065
+      ]
+    },
+    {
+      "name": "RightShin",
+      "parent": "RightThigh",
+      "head_m": [
+        -0.105,
+        0,
+        0.49950000000000006
+      ]
+    },
+    {
+      "name": "RightFoot",
+      "parent": "RightShin",
+      "head_m": [
+        -0.105,
+        0,
+        0.1
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "idle",
+      "frames": [
+        0,
+        60
+      ],
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "frames": [
+        0,
+        36
+      ],
+      "loop": true
+    },
+    {
+      "name": "run",
+      "frames": [
+        0,
+        24
+      ],
+      "loop": true
+    },
+    {
+      "name": "ready",
+      "frames": [
+        0,
+        12
+      ],
+      "loop": false
+    },
+    {
+      "name": "attack",
+      "frames": [
+        0,
+        30
+      ],
+      "loop": false,
+      "contact_frame": 12
+    },
+    {
+      "name": "hit",
+      "frames": [
+        0,
+        18
+      ],
+      "loop": false
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_HunterMannequin_Body",
+      "base_color_srgb": [
+        0.79,
+        0.77,
+        0.7,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
+    },
+    {
+      "name": "M_HunterMannequin_Sheet",
+      "base_color_srgb": [
+        0.52,
+        0.53,
+        0.51,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
+    },
+    {
+      "name": "M_HunterMannequin_Joints",
+      "base_color_srgb": [
+        0.13,
+        0.14,
+        0.14,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
+    }
+  ],
+  "coordinate_system": "Blender Z-up, forward -Y, metres",
+  "socket_space": "bone-local Blender rest axes, metres; convert with FBX bone basis in Unity",
+  "unity_import": {
+    "bakeAxisConversion": false,
+    "rig": "Generic",
+    "root_motion": false
+  },
+  "sockets": {
+    "attack_origin": {
+      "bone": "LeftHand",
+      "local_offset": [
+        0,
+        0,
+        0.1
+      ]
+    },
+    "head_or_top": {
+      "bone": "Head",
+      "local_offset": [
+        0,
+        0.1,
+        0
+      ]
+    }
+  }
+}

@@ -28,6 +28,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class AudioChaseMusicPlaybackTests
     {
         private GameObject owner;

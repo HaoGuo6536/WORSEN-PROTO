@@ -3,16 +3,19 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises Floor event subscriptions through real Run, Player and hearing controllers.
+//   Separates presentation-only hand sounds from player-triggered trap hearing.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
 //   - Verify in-flight Floor delta during grace, typed relays and active hunter fan-out.
-//   - Verify environmental Director routing and replacement/disable/teardown pairing.
+//   - Verify player-trap Director routing, world-noise rejection and subscription pairing.
 // DEPENDENCIES:
 //   Core, Domain Player/Floor/Hunter/Director/Chase/Level, Run, NUnit and Unity.
 // USAGE NOTES:
 //   Edit Mode boundary tests; reflection injects controllers and publisher events.
 //   No scene, asset, navigation, Unity clock setting or Library mutation occurs.
+//   The fixture claims the canonical Run identity without persistent initialization,
+//   and explicitly restores it and resets actor registries on teardown.
 // ============================================================================
 using System;
 using System.Collections;
@@ -34,6 +37,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunFloorEffectWiringTests
     {
         private readonly List<Object> owned = new List<Object>();
@@ -47,7 +51,9 @@ namespace Worsen.Tests.Run
         [SetUp]
         public void Setup()
         {
+            ResetRegistries();
             Assert.That(PlayerRegistry.Items, Is.Empty); Assert.That(HunterRegistry.Items, Is.Empty);
+            Assert.That(RunSessionManager.Instance, Is.Null);
             player = Component<PlayerManager>();
             var profile = Config<PlayerProfile>(); var mover = Config<PlayerMoverDriverConfig>();
             Set(mover, "_hunterBodyLayer", "Ignore Raycast"); Set(player.GetComponent<PlayerDriver>(), "_config", mover);
@@ -57,6 +63,7 @@ namespace Worsen.Tests.Run
             run = Component<RunSessionManager>(); var state = new RunSessionBehaviorState(7);
             var clock = new RunSessionController(state, new System.Random(7)); clock.StartScene(SceneKey.HorrorRun);
             Set(run, "state", state); Set(run, "controller", clock); run.gameObject.SetActive(true);
+            typeof(RunSessionManager).GetProperty("Instance").SetValue(null, run);
             level = new LevelView(); floor = Component<FloorManager>();
             var fs = new FloorBehaviorState(); var fc = Config<FloorConfig>(); Set(fc, "_useRoomCakeDensity", false);
             var logic = new FloorController(fs, fc, new System.Random(7)); logic.Initialize(level.Graph, new[] { motion }, 1);
@@ -70,23 +77,50 @@ namespace Worsen.Tests.Run
         public void Cleanup()
         {
             if (run != null) run.DetachGameplay();
+            if (ReferenceEquals(RunSessionManager.Instance, run))
+                typeof(RunSessionManager).GetProperty("Instance").SetValue(null, null);
             if (player != null) Register(typeof(PlayerRegistry), "Unregister", player);
             foreach (var h in hunters) Register(typeof(HunterRegistry), "Unregister", h);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear(); hunters.Clear();
+            ResetRegistries();
         }
         [Test]
-        public void BoundaryUsesExactlyTheFloorTickDeltaEvenDuringGrace()
+        public void CounterSnapshotReplaysFloorTotalsBeforeAndAfterPhysicalPickups()
         {
-            Assert.That(player.ApplyHit(1f, Vector3.back), Is.True);
+            var snapshots = new List<FloorDisplaySnapshot>(); run.FloorDisplayChanged += snapshots.Add;
+            run.PublishFloorSnapshot();
+            Assert.That(snapshots.Count, Is.EqualTo(1));
+            Assert.That(snapshots[0].Collected, Is.Zero);
+            Assert.That(snapshots[0].TotalCakes, Is.EqualTo(1));
+            Assert.That(snapshots[0].TotalGoldenCakes, Is.EqualTo(1));
+            var logic = (FloorController)Get(floor, "_controller");
+            Assert.That(logic.Collect(player.Id, 11, PickupKind.Cake, 1, out _), Is.True);
+            Assert.That(logic.Collect(player.Id, 11, PickupKind.GoldenCake, 2, out _), Is.True);
+            run.PublishFloorSnapshot();
+            Assert.That(snapshots[1].Collected, Is.EqualTo(1)); Assert.That(snapshots[1].Golden, Is.EqualTo(1));
+            Assert.That(snapshots[1].TotalCakes, Is.EqualTo(1)); Assert.That(snapshots[1].TotalGoldenCakes, Is.EqualTo(1));
+            run.DetachGameplay(); run.PublishFloorSnapshot();
+            Assert.That(snapshots[2].TotalCakes, Is.Zero);
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void BoundaryUsesExactlyTheFloorTickDeltaEvenDuringGrace(bool grace)
+        {
+            if (grace) Assert.That(player.ApplyHit(1f, Vector3.back), Is.True);
+            int contacts = 0;
             floor.OnRoomDestruction += sample => {
-                if (sample.RoomId == 1) Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick);
+                if (sample.RoomId == 1) { contacts++; Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick); }
             };
+            float floorDelta = Time.fixedDeltaTime;
+            long previousTick = run.Tick;
             Call(run, "FixedUpdate");
-            Assert.That(motion.GraceActive, Is.True);
-            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * Time.fixedDeltaTime).Within(.00001f));
+            Assert.That(run.Tick, Is.EqualTo(previousTick + 1), "The canonical Run must execute its tick.");
+            Assert.That(contacts, Is.EqualTo(1));
+            Assert.That(motion.GraceActive, Is.EqualTo(grace));
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * floorDelta).Within(.00001f));
             Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick);
-            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * Time.fixedDeltaTime).Within(.00001f), "No stale delta outside the Floor tick.");
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * floorDelta).Within(.00001f), "No stale delta outside the Floor tick.");
         }
         [Test]
         public void TypedRelaysAndSubscriptionsPairAcrossRebindDisableAndTeardown()
@@ -96,7 +130,7 @@ namespace Worsen.Tests.Run
             var targets = new[] { new GuidanceTarget(GuidanceKind.WhiteArrow, Vector3.forward, Vector3.forward),
                 new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.right, Vector3.right) };
             run.TrapSprung += value => { Assert.That(value, Is.EqualTo(trap)); traps++; };
-            run.GuidanceChanged += value => { Assert.That(value, Is.SameAs(targets)); guidance++; };
+            run.FloorFacts.GuidanceChanged += value => { Assert.That(value, Is.SameAs(targets)); guidance++; };
             run.BindGameplay(null, floor, null); AssertBindings(floor, 1);
             Publish(floor, "OnTrapSprung", trap); Publish(floor, "OnGuidanceChanged", (object)targets);
             Assert.That(traps, Is.EqualTo(1)); Assert.That(guidance, Is.EqualTo(1));
@@ -110,29 +144,45 @@ namespace Worsen.Tests.Run
             run.BindGameplay(null, floor, null); Call(run, "OnDestroy"); AssertBindings(floor, 0);
         }
         [Test]
-        public void HandAndTrapNoiseReachEachActiveBoundHunterOnceAndEnvironmentalNoiseUsesDirector()
+        public void OnlyPlayerTrapNoiseReachesActiveHuntersDirectlyOrThroughDirectorOnce()
         {
             for (int i = 0; i < 4; i++) AddHunter(-i - 1);
             hunters[2].enabled = false;
             typeof(HunterBehaviorState).GetProperty("IsActive").SetValue(hunters[3].ReadOnlyState, false);
             run.BindGameplay(null, floor, null);
-            var hand = new NoiseEvent(player.Id, Vector3.zero, .8f, 0, NoiseSourceKind.Other);
+            var hand = new NoiseEvent(player.Id, Vector3.zero, .8f, 0, NoiseSourceKind.Other, NoiseOrigin.World);
             var trap = new NoiseEvent(player.Id, Vector3.zero, 1f, 0, NoiseSourceKind.Trap);
-            Publish(floor, "OnHandNoise", hand); Publish(floor, "OnTrapNoise", trap);
-            for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 2 : 0));
+            var published = new List<NoiseEvent>(); run.WorldFacts.WorldNoisePublished += published.Add;
+            Publish(floor, "OnHandNoise", hand);
+            foreach (var hunter in hunters) Assert.That(Heard(hunter), Is.Empty, "Hand sounds are presentation only.");
+            Publish(floor, "OnTrapNoise", trap);
+            Assert.That(published[0], Is.EqualTo(hand));
+            Assert.That(published[1].Origin, Is.EqualTo(NoiseOrigin.PlayerTriggeredCakeTrap));
+            for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 1 : 0));
             var director = Component<DirectorManager>();
             director.Initialize(Config<DirectorConfig>(), new System.Random(7), new ChaseBehaviorState(), floor.ReadOnlyState);
             director.SetLevelView(level); run.BindGameplay(null, floor, director);
             var environmental = new NoiseEvent(EntityId.None, Vector3.zero, 1f, 0, NoiseSourceKind.Trap);
             Publish(floor, "OnTrapNoise", environmental);
             var ds = (DirectorBehaviorState)Get(Get(director, "_controller"), "_state");
-            Assert.That(ds.Noises, Is.EqualTo(new[] { environmental }));
-            Assert.That(Heard(hunters[0]).Count, Is.EqualTo(2), "No simultaneous direct hearing path.");
+            Assert.That(ds.Noises, Is.Empty, "A trap without a player source is not gameplay hearing.");
+            Publish(floor, "OnHandNoise", hand);
+            Assert.That(ds.Noises, Is.Empty);
+            var directedTrap = new NoiseEvent(player.Id, Vector3.zero, 1f, 1,
+                NoiseSourceKind.Trap, NoiseOrigin.PlayerTriggeredCakeTrap);
+            Publish(floor, "OnTrapNoise", directedTrap); Publish(floor, "OnTrapNoise", directedTrap);
+            Assert.That(ds.Noises, Is.EqualTo(new[] { directedTrap }));
+            Assert.That(Heard(hunters[0]).Count, Is.EqualTo(1), "No simultaneous direct hearing path.");
             typeof(HunterBehaviorState).GetProperty("IsActive").SetValue(hunters[2].ReadOnlyState, false);
-            int deliveries = 0; director.OnNoiseHintIssued += (_, noise) => { Assert.That(noise, Is.EqualTo(environmental)); deliveries++; };
-            director.Tick(.02f, 0); director.Tick(.02f, 1);
+            int deliveries = 0; director.OnNoiseHintIssued += (_, noise) => { Assert.That(noise, Is.EqualTo(directedTrap)); deliveries++; };
+            director.Tick(.02f, 1); director.Tick(.02f, 2);
             Assert.That(ds.Noises, Is.Empty); Assert.That(deliveries, Is.EqualTo(2));
-            Assert.That(Heard(hunters[0]).Count, Is.EqualTo(3)); Assert.That(Heard(hunters[1]).Count, Is.EqualTo(3));
+            for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 2 : 0));
+        }
+        private static void ResetRegistries()
+        {
+            typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            typeof(HunterRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         }
         private void AddHunter(int id)
         {
@@ -143,7 +193,9 @@ namespace Worsen.Tests.Run
         }
         private static IList Heard(HunterManager hunter) => (IList)Get(hunter.ReadOnlyState, "HeardNoises");
         private void AssertBindings(FloorManager publisher, int count)
-        { foreach (string name in Events) Assert.That((Get(publisher, name) as Delegate)?.GetInvocationList().Count(d => ReferenceEquals(d.Target, run)) ?? 0, Is.EqualTo(count), name); }
+        { foreach (string name in Events) Assert.That((Get(publisher, name) as Delegate)?.GetInvocationList().Count(d =>
+            ReferenceEquals(d.Target, run) || ReferenceEquals(d.Target, run.FloorFacts) ||
+            ReferenceEquals(d.Target, run.WorldFacts)) ?? 0, Is.EqualTo(count), name); }
         private T Component<T>() where T : Component
         { var go = new GameObject(typeof(T).Name + " floor wiring test"); go.SetActive(false); owned.Add(go); return go.AddComponent<T>(); }
         private T Config<T>() where T : ScriptableObject
