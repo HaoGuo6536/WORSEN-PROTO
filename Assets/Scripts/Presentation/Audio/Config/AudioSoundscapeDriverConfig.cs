@@ -62,6 +62,8 @@ namespace Worsen.Presentation.Audio
         [SerializeField, Range(0, 100)] private int _rosterClipPriority = 60;
         [SerializeField, Range(0f, .2f)] private float _rosterPitchVariation = .03f;
         [SerializeField, Range(0f, .2f)] private float _rosterGainVariation = .02f;
+        [SerializeField, Min(1f)] private float _rosterMaximumDistance = 32f;
+        public float RosterMaximumDistance => _rosterMaximumDistance;
         [SerializeField, Range(0f, 1f)] private float _earPlugsDurationMultiplier = .5f;
         [SerializeField, Range(0f, 1f)] private float _mirrorSkinDurationMultiplier = .5f;
         public float RosterPitchVariation => _rosterPitchVariation;

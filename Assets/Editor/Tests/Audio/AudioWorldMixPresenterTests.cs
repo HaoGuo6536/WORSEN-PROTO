@@ -75,6 +75,20 @@ namespace Worsen.Tests.Audio
             Assert.That(closed, Is.EqualTo(expected.Audible ? expected.PerceivedLoudness : 0f));
             _mix.SetWorld(state, null, null); Assert.That(_mix.Gain(state, entry, Vector3.zero, _config), Is.Zero);
         }
+        [Test] public void NativeRolloffRemovesOnlyDistanceLossAndRetainsPortalDoorAndMaskLoss()
+        {
+            var state = State(); var entry = Entry(CueId.DoorOpen);
+            Assert.That(_mix.Gain(state, entry, Vector3.right * 3, _config, true), Is.EqualTo(1f));
+            float one = _mix.Gain(state, entry, Vector3.right * 8, _config, true);
+            Assert.That(one, Is.EqualTo(_config.Hearing.PerPortalAttenuation).Within(.000001f));
+            Assert.That(_mix.Gain(state, entry, Vector3.right * 8, _config), Is.LessThan(one));
+            Assert.That(_mix.Gain(state, entry, Vector3.right * 16, _config, true), Is.LessThan(one));
+            state.ClosedDoors[1] = true; state.MaskGain = .5f;
+            Assert.That(_mix.Gain(state, entry, Vector3.right * 8, _config, true),
+                Is.EqualTo(one * _config.Hearing.ClosedDoorAttenuation * .5f).Within(.000001f));
+            _mix.SetWorld(state, null, null);
+            Assert.That(_mix.Gain(state, entry, Vector3.zero, _config, true), Is.Zero);
+        }
         [Test] public void SilentPresenceAndKeenEarsOnlyChangePresenceWhileProtectedTellsIgnoreMasking()
         {
             var state = State(); var presence = Entry(CueId.Presence); var attack = Entry(CueId.EnemyWindup); var door = Entry(CueId.DoorOpen);
@@ -177,5 +191,33 @@ namespace Worsen.Tests.Audio
         }
         private ProgressionSnapshot Shop(int revision, string pending = "", int wallet = 10) => new ProgressionSnapshot(revision, 1, 1, 0, wallet, 0, 0,
             ProgressionPhase.Shop, 100, 100, null, null, null, default, "", false, false, pendingOfferId: pending);
+    }
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
+    public sealed class AudioWorldMixDistanceTests
+    {
+        [TestCase(false)] [TestCase(true)]
+        public void DistanceIsAppliedOnceWhilePortalAndDoorRetentionRemain(bool nativeRolloff)
+        {
+            var presenter = new AudioWorldMixPresenter();
+            var state = new AudioWorldMixDriverState { Graph = AudioWorldMixPresenterTests.Graph() };
+            var hearing = new HearingModelSettings(2f, 1f, .7f, .35f, .001f);
+            float distance = nativeRolloff ? 1f : .25f;
+            Assert.That(presenter.AcousticGain(state, Vector3.right * 8f, hearing, nativeRolloff),
+                Is.EqualTo(distance * .7f).Within(.000001f));
+            state.ClosedDoors[1] = true;
+            Assert.That(presenter.AcousticGain(state, Vector3.right * 8f, hearing, nativeRolloff),
+                Is.EqualTo(distance * .7f * .35f).Within(.000001f));
+            Assert.That(presenter.AcousticGain(state, Vector3.right * 3f, hearing, nativeRolloff),
+                Is.EqualTo(nativeRolloff ? 1f : 2f / 3f).Within(.000001f));
+        }
+        [TestCase(false)] [TestCase(true)]
+        public void MissingTopologyAndUnknownRoomStaySilentWithEitherDistanceOwner(bool nativeRolloff)
+        {
+            var presenter = new AudioWorldMixPresenter(); var state = new AudioWorldMixDriverState();
+            var hearing = new HearingModelSettings(2f, 1f, .7f, .35f, .001f);
+            Assert.That(presenter.AcousticGain(state, Vector3.zero, hearing, nativeRolloff), Is.Zero);
+            state.Graph = AudioWorldMixPresenterTests.Graph();
+            Assert.That(presenter.AcousticGain(state, Vector3.right * 1000f, hearing, nativeRolloff), Is.Zero);
+        }
     }
 }

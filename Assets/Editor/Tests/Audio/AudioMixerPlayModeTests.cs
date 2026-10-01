@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
 // KEY RESPONSIBILITIES:
-//   - Require accepted Master/Music/Effects writes and matching native readback.
+//   - Require accepted Master/Music/Effects/Ambience writes and matching native readback.
 //   - Check assigned routing and no repeated preference attenuation at sources.
 //   - Restore mixer values and release all transient fixture objects before exiting play.
 // DEPENDENCIES:
@@ -49,7 +49,7 @@ namespace Worsen.Tests.Audio
             Assert.That(Application.isPlaying, Is.True);
             var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(AudioMixerSetup.MixerPath);
             Assert.That(mixer, Is.Not.Null, "Run the coordinator's mixer setup before this acceptance test.");
-            var parameters = new[] { "MasterVolume", "MusicVolume", "EffectsVolume" };
+            var parameters = new[] { "MasterVolume", "MusicVolume", "EffectsVolume", "AmbienceVolume" };
             var previous = new float[parameters.Length];
             int captured = 0;
             bool background = Application.runInBackground;
@@ -74,8 +74,8 @@ namespace Worsen.Tests.Audio
                 var data = new SerializedObject(config);
                 data.FindProperty("_mixer").objectReferenceValue = mixer;
                 data.FindProperty("_musicGroup").objectReferenceValue = mixer.FindMatchingGroups("Music").Single();
-                data.FindProperty("_effectsGroup").objectReferenceValue = mixer.FindMatchingGroups("Effects").Single();
-                data.FindProperty("_ambienceGroup").objectReferenceValue = mixer.FindMatchingGroups("Effects").Single();
+                data.FindProperty("_effectsGroup").objectReferenceValue = mixer.FindMatchingGroups("Effects").Single(g => g.name == "Effects");
+                data.FindProperty("_ambienceGroup").objectReferenceValue = mixer.FindMatchingGroups("Ambience").Single();
                 data.FindProperty("_masterParameter").stringValue = parameters[0];
                 data.FindProperty("_musicParameter").stringValue = parameters[1];
                 data.FindProperty("_effectsParameter").stringValue = parameters[2];
@@ -114,7 +114,8 @@ namespace Worsen.Tests.Audio
                     Assert.That(request.MasterAccepted, Is.True, "MasterVolume SetFloat rejected in Play Mode.");
                     Assert.That(request.MusicAccepted, Is.True, "MusicVolume SetFloat rejected in Play Mode.");
                     Assert.That(request.EffectsAccepted, Is.True, "EffectsVolume SetFloat rejected in Play Mode.");
-                    var expected = new[] { volume.Decibels(settings.MasterVolume), volume.Decibels(settings.MusicVolume), volume.Decibels(settings.EffectsVolume) };
+                    Assert.That(mixer.SetFloat("AmbienceVolume", -12f), Is.True);
+                    var expected = new[] { volume.Decibels(settings.MasterVolume), volume.Decibels(settings.MusicVolume), volume.Decibels(settings.EffectsVolume), -12f };
                     Assert.That(request.Master, Is.EqualTo(expected[0]).Within(.001f));
                     Assert.That(request.Music, Is.EqualTo(expected[1]).Within(.001f));
                     Assert.That(request.Effects, Is.EqualTo(expected[2]).Within(.001f));

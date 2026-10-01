@@ -46,7 +46,15 @@ namespace Worsen.Tests.Audio
                 var mixer = AudioMixerSetup.Configure(path, config);
                 string identity = AssetDatabase.AssetPathToGUID(path);
                 var groups = mixer.FindMatchingGroups("").Select(g => g.GetInstanceID()).OrderBy(id => id).ToArray();
-                Assert.That(groups.Length, Is.EqualTo(3));
+                Assert.That(groups.Length, Is.EqualTo(4));
+                Assert.That(config.AmbienceGroup.name, Is.EqualTo("Ambience"));
+                Assert.That(config.AmbienceGroup, Is.Not.SameAs(config.EffectsGroup));
+                CollectionAssert.AreEquivalent(new[] { config.EffectsGroup, config.AmbienceGroup }, mixer.FindMatchingGroups("Effects"));
+                var exposed = new SerializedObject(mixer).FindProperty("m_ExposedParameters");
+                Assert.That(exposed.arraySize, Is.EqualTo(4));
+                var parameterNames = Enumerable.Range(0, exposed.arraySize)
+                    .Select(i => exposed.GetArrayElementAtIndex(i).FindPropertyRelative("name").stringValue).ToArray();
+                CollectionAssert.Contains(parameterNames, "AmbienceVolume");
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
                 Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(identity));
                 CollectionAssert.AreEqual(groups, mixer.FindMatchingGroups("").Select(g => g.GetInstanceID()).OrderBy(id => id).ToArray());
@@ -55,6 +63,9 @@ namespace Worsen.Tests.Audio
                 soundscapeConfig.ApplyModifiedPropertiesWithoutUndo();
                 var serialized = new SerializedObject(ownerConfig); serialized.FindProperty("_soundscape").objectReferenceValue = config; serialized.ApplyModifiedPropertiesWithoutUndo();
                 driver = owner.AddComponent<AudioDriver>(); driver.Initialize(ownerConfig); driver.SetOwnerEnabled(true);
+                Assert.That(driver.EffectsGroup, Is.SameAs(config.EffectsGroup));
+                foreach (var ambience in owner.GetComponentsInChildren<AudioSource>().Where(s => s.name == "Interior" || s.name == "Exterior"))
+                    Assert.That(ambience.outputAudioMixerGroup, Is.SameAs(config.AmbienceGroup));
                 var settings = new PlayerSettingsRecord(1, 1f, false, 90f, true, true, true, .5f, .25f, .75f);
                 driver.ApplySettings(settings);
                 var volume = new AudioVolumePresenter();

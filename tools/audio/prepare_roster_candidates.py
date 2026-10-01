@@ -1,7 +1,7 @@
 # ============================================================================
 # prepare_roster_candidates.py
 # PURPOSE:
-#   Freeze read-only hunter candidates and verify the installed model offline.
+#   Freeze read-only hunter or feedback candidates and verify the installed model offline.
 #   Preserve the pre-review selection and source hashes without copying audio.
 # ARCHITECTURAL ROLE:
 #   Offline audio tooling utility; outside Unity assemblies.
@@ -51,11 +51,25 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def validate_candidates(candidates):
+    if not isinstance(candidates, dict) or not candidates:
+        raise ValueError("Candidate manifest must be a nonempty key-to-project-WAV-path object.")
+    for key, relative in candidates.items():
+        if not isinstance(key, str) or not key or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-" for c in key):
+            raise ValueError("Candidate keys use lowercase letters, digits and hyphens.")
+        if (not isinstance(relative, str) or not relative.startswith("Assets/") or
+                not relative.lower().endswith(".wav") or "\\" in relative or ":" in relative or
+                any(part in ("", ".", "..") for part in relative.split("/"))):
+            raise ValueError("Candidate paths must be project-relative WAV paths: " + str(relative))
+    return candidates
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--results", type=Path, required=True)
     parser.add_argument("--model-manifest", type=Path, required=True)
+    parser.add_argument("--candidate-manifest", type=Path, help="Use this path-only JSON catalogue instead of the roster catalogue.")
     parser.add_argument("--only", nargs="*", help="Candidate keys to freeze; omitted freezes the whole catalogue.")
     args = parser.parse_args()
     result = args.results.resolve()
@@ -70,6 +84,9 @@ def main():
         if len(cells) == 8 and cells[1].startswith("clip:"):
             candidates[cells[1][5:]] = cells[2]
     candidates.update(EXTRA)
+    if args.candidate_manifest:
+        candidates = validate_candidates(json.loads(args.candidate_manifest.read_text(encoding="utf-8-sig")))
+        (result / "candidate-manifest.json").write_text(json.dumps(candidates, indent=2), encoding="utf-8")
     if args.only:
         candidates = {key: candidates[key] for key in args.only}
     records, excluded = [], []
@@ -98,7 +115,7 @@ def main():
             raise ValueError("Installed model differs from manifest: " + entry["path"])
     manifest["verified_from"] = str(args.model_manifest.resolve())
     (result / "model-files.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    payload = {"method": "Previous roster plus alternative textures and diagnostic controls. Whole files only; model receives no names or proposed roles.",
+    payload = {"method": "Explicit path-only candidates. Whole files only; model receives no names or proposed roles.",
                "source_root": str(args.source_root.resolve()), "candidates": records, "excluded": excluded}
     (result / "candidates.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(json.dumps({"candidates": len(records), "excluded": excluded, "verified_model_files": len(manifest["files"]), "results": str(result)}, indent=2))

@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Verify enemy one-shots stop at death, late feedback is rejected and the player's own death cue survives.
-//   - Verify pool ownership, attenuation, pitch and disabled admission.
+//   - Verify pool ownership, logarithmic attenuation, guarded spatialization and disabled admission.
 //   - Verify health-zero cleanup, death cue admission, revival and cue-isolated stops.
 //   - Verify removed layers cannot bypass the budget; retained loops reuse sources.
 //
@@ -27,6 +27,7 @@
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Audio;
@@ -226,12 +227,45 @@ namespace Worsen.Tests.Audio
                 int found = 0;
                 foreach (AudioSource source in owner.GetComponentsInChildren<AudioSource>())
                     if (source.spatialBlend == 1f && source.clip == clip)
-                    { found++; Assert.That(source.transform.position, Is.EqualTo(Vector3.up)); Assert.That(source.pitch, Is.InRange(.94f, 1.06f)); Assert.That(source.maxDistance, Is.EqualTo(12)); }
+                    {
+                        found++; Assert.That(source.transform.position, Is.EqualTo(Vector3.up)); Assert.That(source.pitch, Is.InRange(.94f, 1.06f));
+                        Assert.That(source.minDistance, Is.EqualTo(2)); Assert.That(source.maxDistance, Is.EqualTo(12));
+                        Assert.That(source.rolloffMode, Is.EqualTo(AudioRolloffMode.Logarithmic));
+                        Assert.That(source.spatialize, Is.EqualTo(!string.IsNullOrEmpty(AudioSettings.GetSpatializerPluginName())));
+                    }
                 Assert.That(found, Is.EqualTo(1));
                 driver.SetOwnerEnabled(false); Assert.That(driver.PlayCueAt(CueId.TorchLoop, Vector3.zero, 1, 51), Is.False);
                 driver.Teardown(); Assert.That(owner.GetComponentsInChildren<AudioSource>(), Is.Empty);
             }
             finally { Object.DestroyImmediate(owner); Object.DestroyImmediate(config); Object.DestroyImmediate(bank); Object.DestroyImmediate(clip); }
+        }
+        [Test]
+        public void MissingHeartbeatNeverBorrowsLandingWarnsOnceAndRetainsGatedEnvelope()
+        {
+            var owner = new GameObject("Missing heartbeat fixture");
+            var config = ScriptableObject.CreateInstance<AudioSoundscapeDriverConfig>();
+            var clip = AudioClip.Create("Not a heartbeat", 48000, 1, 48000, false);
+            AudioSoundscapeDriver driver = null;
+            try
+            {
+                var serialized = new SerializedObject(config); var banks = serialized.FindProperty("_sounds"); banks.arraySize = 1;
+                var bank = banks.GetArrayElementAtIndex(0); bank.FindPropertyRelative("Cue").intValue = (int)CueId.Land;
+                var clips = bank.FindPropertyRelative("Clips"); clips.arraySize = 1; clips.GetArrayElementAtIndex(0).objectReferenceValue = clip;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                driver = owner.AddComponent<AudioSoundscapeDriver>();
+                driver.Initialize(config); driver.Initialize(config);
+                LogAssert.Expect(LogType.Warning, "Heartbeat clip is missing; heartbeat audio is silent (envelope retained).");
+                driver.SetOwnerEnabled(true); driver.SetInRun(true); driver.ObserveGrace(); driver.TickEmbodiment(0f, .01f);
+                Assert.That(driver.HeartbeatClip, Is.Null); Assert.That(driver.HeartbeatEnvelope, Is.GreaterThan(0f));
+                driver.SetPaused(true); Assert.That(driver.HeartbeatEnvelope, Is.Zero);
+                driver.SetPaused(false); driver.SetAlive(false); Assert.That(driver.HeartbeatEnvelope, Is.Zero);
+                driver.ResetRun(); driver.SetInRun(true); driver.ObserveGrace(); driver.TickEmbodiment(0f, .01f);
+                Assert.That(driver.HeartbeatClip, Is.Null);
+                LogAssert.NoUnexpectedReceived();
+                driver.SetOwnerEnabled(false); Assert.That(driver.HeartbeatEnvelope, Is.Zero);
+                driver.Teardown(); Assert.That(driver.HeartbeatClip, Is.Null); Assert.That(driver.HeartbeatEnvelope, Is.Zero);
+            }
+            finally { if (driver != null) driver.Teardown(); Object.DestroyImmediate(owner); Object.DestroyImmediate(config); Object.DestroyImmediate(clip); }
         }
     }
 }

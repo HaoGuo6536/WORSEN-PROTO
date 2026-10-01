@@ -2,7 +2,8 @@
 // AudioMixerSetup.cs
 // ============================================================================
 // PURPOSE:
-//   Creates or repairs the three-bus runtime volume mixer without replacing its identity.
+//   Creates or repairs runtime volume buses without replacing their identities.
+//   Ambience is an Effects child with its own exposed trim, so Effects preferences still apply once.
 //   The coordinator runs this setup; it never starts Unity or downloads content.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Audio.
@@ -52,12 +53,14 @@ namespace Worsen.Editor.Audio
             var master = (AudioMixerGroup)Property(type, "masterGroup").GetValue(mixer);
             EnsureCurrentView(mixer);
             var music = Group(mixer, master, "Music"); var effects = Group(mixer, master, "Effects");
+            var ambience = Group(mixer, effects, "Ambience");
             Expose(mixer, master, "MasterVolume"); Expose(mixer, music, "MusicVolume"); Expose(mixer, effects, "EffectsVolume");
+            Expose(mixer, ambience, "AmbienceVolume");
             var serialized = new SerializedObject(config);
             serialized.FindProperty("_mixer").objectReferenceValue = mixer;
             serialized.FindProperty("_musicGroup").objectReferenceValue = music;
             serialized.FindProperty("_effectsGroup").objectReferenceValue = effects;
-            serialized.FindProperty("_ambienceGroup").objectReferenceValue = effects;
+            serialized.FindProperty("_ambienceGroup").objectReferenceValue = ambience;
             serialized.FindProperty("_masterParameter").stringValue = "MasterVolume";
             serialized.FindProperty("_musicParameter").stringValue = "MusicVolume";
             serialized.FindProperty("_effectsParameter").stringValue = "EffectsVolume";
