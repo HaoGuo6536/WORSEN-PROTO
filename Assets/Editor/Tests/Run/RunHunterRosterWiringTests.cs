@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises promoted hunter facts through real Session, Player and Director routes.
+//   Valid two-room door topology keeps world validation active in every wiring case.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
@@ -59,9 +60,11 @@ namespace Worsen.Tests.Run
             var clock = new RunSessionController(state, new System.Random(7)); clock.StartScene(SceneKey.HorrorRun);
             Set(run, "state", state); Set(run, "controller", clock); run.gameObject.SetActive(true);
             level = Component<LevelManager>();
-            level.InitializeGenerated(LevelGraphUtility.Build(new[] { new LevelRoom(1, Vector3.zero, Vector3.one * 20f) },
-                Array.Empty<LevelEdge>(), Array.Empty<LevelAnchor>(), 1, Vector3.zero),
-                new[] { new InteractableState(101, InteractableKind.Door, 1, Vector3.right, InteractableStateValue.Open) });
+            level.InitializeGenerated(LevelGraphUtility.Build(new[] {
+                new LevelRoom(1, Vector3.zero, Vector3.one * 20f),
+                new LevelRoom(2, Vector3.right * 20f, Vector3.one * 20f) },
+                new[] { new LevelEdge(11, 1, 2, true, TraversalAccess.All) }, Array.Empty<LevelAnchor>(), 1, Vector3.zero),
+                new[] { new InteractableState(101, InteractableKind.Door, 1, Vector3.right * 10f, InteractableStateValue.Open, 11) });
             floor = Component<FloorManager>(); Set(floor, "_state", new FloorBehaviorState());
             progression = Component<ProgressionSessionManager>();
             var pc = new ProgressionSessionController(new ProgressionSessionBehaviorState(), Config<ProgressionConfig>(), new System.Random(7));
@@ -215,7 +218,7 @@ namespace Worsen.Tests.Run
                 new LevelRoom(2, new Vector3(12, 3, 0), new Vector3(12, 6, 12)) };
             level.InitializeGenerated(new LevelGraph(rooms, new[] { new LevelEdge(1, 1, 2, true) },
                 Array.Empty<LevelAnchor>(), 2, Vector3.right * 12),
-                new[] { new InteractableState(101, InteractableKind.Door, 1, Vector3.right * 6, InteractableStateValue.Open) });
+                new[] { new InteractableState(101, InteractableKind.Door, 1, Vector3.right * 6, InteractableStateValue.Open, 1) });
             assembly.RecordRooms(new[] {
                 new GeneratedRoomSample(1, rooms[0].Bounds, false, false, new[] { Vector3.right * 6 }),
                 new GeneratedRoomSample(2, rooms[1].Bounds, false, false, new[] { Vector3.right * 6 }) });

@@ -2,14 +2,14 @@
 // HorrorHunterContentIntegrationTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies the saved five-hunter roster produced by HorrorHunterSetup rather
-//   than constructing substitute profiles or clips. Factory-spawned creatures
-//   evaluate their real imported animation graphs and deform their actual skins.
+//   Verifies saved legacy rigs for compatibility scenes and the ten-hunter run
+//   catalogue without constructing substitute profiles or clips. Factory-spawned
+//   legacy creatures evaluate imported graphs and deform their actual skins.
 // ARCHITECTURAL ROLE:
 //   Editor tool (section 10), test suite (section 11) - Domain - Hunter integration.
 // KEY RESPONSIBILITIES:
 //   - Check distinct imported meshes, Generic Avatars, six clip roles and hidden capsules.
-//   - Verify saved per-hunter curse identities and runtime attack configuration.
+//   - Verify approved run-roster curse identities, prerequisites and stack caps.
 //   - Exercise actual factory initialization, clip evaluation and graph teardown.
 // DEPENDENCIES:
 //   - Core traits; Domain Hunter/Player/Level; Session Progression saved config.
@@ -34,6 +34,7 @@ using Worsen.Core;
 using Worsen.Domain.Hunter;
 using Worsen.Domain.Level;
 using Worsen.Domain.Player;
+using Worsen.Editor.Hunter;
 using Worsen.Session.Progression;
 using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
@@ -59,18 +60,16 @@ namespace Worsen.Tests.Hunter
             HunterLightResponse.Investigate, HunterLightResponse.Avoid, HunterLightResponse.Flank, HunterLightResponse.Investigate, HunterLightResponse.Investigate
         };
         private static readonly string[][] CurseIds = {
-            new[] { "rusher-long-stride", "rusher-second-wind", "rusher-blood-scent" },
-            new[] { "lurker-dark-adaptation", "lurker-crooked-step", "lurker-stolen-silence" },
-            new[] { "watcher-long-memory", "watcher-cutting-corners", "watcher-unquiet-gaze" },
-            new[] { "hexer-split-bolt", "hexer-hasty-script", "hexer-lingering-hex" },
-            new[] { "thorncaller-thorn-ring", "thorncaller-quick-roots", "thorncaller-reaching-roots" }
-        };
-        private static readonly ProgressionTraits[][] CurseTraits = {
-            new[] { ProgressionTraits.RusherLongStride, ProgressionTraits.RusherSecondWind, ProgressionTraits.RusherBloodScent },
-            new[] { ProgressionTraits.LurkerDarkAdaptation, ProgressionTraits.LurkerCrookedStep, ProgressionTraits.LurkerStolenSilence },
-            new[] { ProgressionTraits.WatcherLongMemory, ProgressionTraits.WatcherCuttingCorners, ProgressionTraits.WatcherUnquietGaze },
-            new[] { ProgressionTraits.HexerSplitBolt, ProgressionTraits.HexerHastyScript, ProgressionTraits.HexerLingeringHex },
-            new[] { ProgressionTraits.ThorncallerThornRing, ProgressionTraits.ThorncallerQuickRoots, ProgressionTraits.ThorncallerReachingRoots }
+            new[] { "echo-shorter-delay", "echo-faster-playback", "echo-silent-steps" },
+            new[] { "weaver-stickier-webs", "weaver-wider-webs", "weaver-doorway-nests", "weaver-quick-spin" },
+            new[] { "ticking-runs-faster", "ticking-farther-keys", "ticking-loud-keys", "ticking-double-spring" },
+            new[] { "ram-longer-charge", "ram-shorter-windup", "ram-partition-breaker", "ram-second-charge" },
+            new[] { "mannequin-fewer-lamps", "mannequin-longer-strides", "mannequin-broken-lights", "mannequin-peripheral-creep" },
+            new[] { "mimic-more-mimics", "mimic-golden-mimic", "mimic-faithless-arrow", "mimic-longer-bite" },
+            new[] { "blinder-more-traps", "blinder-longer-dark", "blinder-muffled-dark", "blinder-silent-traps" },
+            new[] { "skip-shorter-cooldown", "skip-quicker-learner", "skip-wider-reach", "skip-no-tell" },
+            new[] { "herald-longer-deafness", "herald-wider-scream", "herald-sharper-ears", "herald-restless-throat", "herald-deaf-landing" },
+            new[] { "stare-shorter-window", "stare-sooner-return", "stare-quieter-call", "stare-wider-wander" }
         };
         private sealed class LevelFixture : IReadOnlyLevelState
         { public bool IsReady => false; public LevelGraph Graph => null; }
@@ -143,25 +142,34 @@ namespace Worsen.Tests.Hunter
         }
 
         [Test]
-        public void SavedProgressionCatalogAssociatesExactlyThreeUniqueRuntimeTraitsWithEachActualHunter()
+        public void SavedProgressionCatalogAssociatesApprovedRosterGatedCursesWithEachRunHunter()
         {
-            HunterProfile[] profiles = LoadProfiles(); ProgressionConfig progression = LoadAsset<ProgressionConfig>(ProgressionPath);
+            string[] roster = { "echo", "weaver", "ticking", "ram", "mannequin", "mimic", "blinder", "skip", "herald", "stare" };
+            HunterProfile[] profiles = ExpansionHunterProfileSetup.LoadProfiles();
+            ProgressionConfig progression = LoadAsset<ProgressionConfig>(ProgressionPath);
+            CollectionAssert.AreEquivalent(roster, profiles.Select(profile => profile.ArchetypeKey));
             CollectionAssert.AreEquivalent(profiles.Select(profile => profile.ArchetypeKey), progression.Threats.Select(threat => threat.Id));
-            var seenIds = new HashSet<string>(); var seenTraits = new HashSet<ProgressionTraits>();
-            for (int i = 0; i < Keys.Length; i++)
+            var catalogue = progression.EffectCatalogue;
+            Assert.That(catalogue, Is.Not.Null);
+            Assert.That(catalogue.Entries.Any(entry => ProgressionRosterUtility.Retired(entry.Id)), Is.False);
+            var seenIds = new HashSet<string>();
+            for (int i = 0; i < roster.Length; i++)
             {
-                ProgressionEntryConfig[] associated = progression.Curses.Where(curse => curse.RequiredThreatId == Keys[i]).ToArray();
-                Assert.That(associated.Length, Is.EqualTo(3), Keys[i]);
-                CollectionAssert.AreEquivalent(CurseIds[i], associated.Select(curse => curse.Id), Keys[i]);
-                for (int j = 0; j < 3; j++)
+                string key = roster[i];
+                var associated = catalogue.Entries.Where(curse => curse.Kind == EffectKind.Curse && curse.RequiredHunterIds.Contains(key)).ToArray();
+                CollectionAssert.AreEquivalent(CurseIds[i], associated.Select(curse => curse.Id), key);
+                var held = new ActiveEffects(new[] { new ActiveEffect(new EffectId(key), EffectKind.Threat, 1) });
+                foreach (var curse in associated)
                 {
-                    ProgressionEntryConfig curse = associated.Single(entry => entry.Id == CurseIds[i][j]);
-                    Assert.That(curse.Traits, Is.EqualTo(CurseTraits[i][j]), curse.Id);
-                    Assert.That(curse.Repeatable, Is.False, curse.Id);
-                    Assert.That(seenIds.Add(curse.Id) && seenTraits.Add(curse.Traits), Is.True, curse.Id + " must remain unique.");
+                    Assert.That(curse.RequiredHunterIds, Is.EqualTo(new[] { key }), curse.Id);
+                    Assert.That(seenIds.Add(curse.Id), Is.True, curse.Id + " must remain unique.");
+                    Assert.That(EffectCatalogueUtility.Eligible(curse, 100, default(ActiveEffects)), Is.False, curse.Id);
+                    Assert.That(EffectCatalogueUtility.Eligible(curse, 100, held), Is.True, curse.Id);
+                    var capped = new ActiveEffects(held.Concat(new[] { new ActiveEffect(new EffectId(curse.Id), EffectKind.Curse, curse.StackCap) }));
+                    Assert.That(EffectCatalogueUtility.Eligible(curse, 100, capped), Is.False, curse.Id);
                 }
             }
-            Assert.That(seenIds.Count, Is.EqualTo(15));
+            Assert.That(seenIds.Count, Is.EqualTo(CurseIds.Sum(ids => ids.Length)));
         }
 
         [Test]

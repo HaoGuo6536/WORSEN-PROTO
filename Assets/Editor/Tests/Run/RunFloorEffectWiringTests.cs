@@ -3,11 +3,12 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises Floor event subscriptions through real Run, Player and hearing controllers.
+//   Separates presentation-only hand sounds from player-triggered trap hearing.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
 //   - Verify in-flight Floor delta during grace, typed relays and active hunter fan-out.
-//   - Verify environmental Director routing and replacement/disable/teardown pairing.
+//   - Verify player-trap Director routing, world-noise rejection and subscription pairing.
 // DEPENDENCIES:
 //   Core, Domain Player/Floor/Hunter/Director/Chase/Level, Run, NUnit and Unity.
 // USAGE NOTES:
@@ -143,29 +144,40 @@ namespace Worsen.Tests.Run
             run.BindGameplay(null, floor, null); Call(run, "OnDestroy"); AssertBindings(floor, 0);
         }
         [Test]
-        public void HandAndTrapNoiseReachEachActiveBoundHunterOnceAndEnvironmentalNoiseUsesDirector()
+        public void OnlyPlayerTrapNoiseReachesActiveHuntersDirectlyOrThroughDirectorOnce()
         {
             for (int i = 0; i < 4; i++) AddHunter(-i - 1);
             hunters[2].enabled = false;
             typeof(HunterBehaviorState).GetProperty("IsActive").SetValue(hunters[3].ReadOnlyState, false);
             run.BindGameplay(null, floor, null);
-            var hand = new NoiseEvent(player.Id, Vector3.zero, .8f, 0, NoiseSourceKind.Other);
+            var hand = new NoiseEvent(player.Id, Vector3.zero, .8f, 0, NoiseSourceKind.Other, NoiseOrigin.World);
             var trap = new NoiseEvent(player.Id, Vector3.zero, 1f, 0, NoiseSourceKind.Trap);
-            Publish(floor, "OnHandNoise", hand); Publish(floor, "OnTrapNoise", trap);
-            for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 2 : 0));
+            var published = new List<NoiseEvent>(); run.WorldFacts.WorldNoisePublished += published.Add;
+            Publish(floor, "OnHandNoise", hand);
+            foreach (var hunter in hunters) Assert.That(Heard(hunter), Is.Empty, "Hand sounds are presentation only.");
+            Publish(floor, "OnTrapNoise", trap);
+            Assert.That(published[0], Is.EqualTo(hand));
+            Assert.That(published[1].Origin, Is.EqualTo(NoiseOrigin.PlayerTriggeredCakeTrap));
+            for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 1 : 0));
             var director = Component<DirectorManager>();
             director.Initialize(Config<DirectorConfig>(), new System.Random(7), new ChaseBehaviorState(), floor.ReadOnlyState);
             director.SetLevelView(level); run.BindGameplay(null, floor, director);
             var environmental = new NoiseEvent(EntityId.None, Vector3.zero, 1f, 0, NoiseSourceKind.Trap);
             Publish(floor, "OnTrapNoise", environmental);
             var ds = (DirectorBehaviorState)Get(Get(director, "_controller"), "_state");
-            Assert.That(ds.Noises, Is.EqualTo(new[] { environmental }));
-            Assert.That(Heard(hunters[0]).Count, Is.EqualTo(2), "No simultaneous direct hearing path.");
+            Assert.That(ds.Noises, Is.Empty, "A trap without a player source is not gameplay hearing.");
+            Publish(floor, "OnHandNoise", hand);
+            Assert.That(ds.Noises, Is.Empty);
+            var directedTrap = new NoiseEvent(player.Id, Vector3.zero, 1f, 1,
+                NoiseSourceKind.Trap, NoiseOrigin.PlayerTriggeredCakeTrap);
+            Publish(floor, "OnTrapNoise", directedTrap); Publish(floor, "OnTrapNoise", directedTrap);
+            Assert.That(ds.Noises, Is.EqualTo(new[] { directedTrap }));
+            Assert.That(Heard(hunters[0]).Count, Is.EqualTo(1), "No simultaneous direct hearing path.");
             typeof(HunterBehaviorState).GetProperty("IsActive").SetValue(hunters[2].ReadOnlyState, false);
-            int deliveries = 0; director.OnNoiseHintIssued += (_, noise) => { Assert.That(noise, Is.EqualTo(environmental)); deliveries++; };
-            director.Tick(.02f, 0); director.Tick(.02f, 1);
+            int deliveries = 0; director.OnNoiseHintIssued += (_, noise) => { Assert.That(noise, Is.EqualTo(directedTrap)); deliveries++; };
+            director.Tick(.02f, 1); director.Tick(.02f, 2);
             Assert.That(ds.Noises, Is.Empty); Assert.That(deliveries, Is.EqualTo(2));
-            Assert.That(Heard(hunters[0]).Count, Is.EqualTo(3)); Assert.That(Heard(hunters[1]).Count, Is.EqualTo(3));
+            for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 2 : 0));
         }
         private static void ResetRegistries()
         {

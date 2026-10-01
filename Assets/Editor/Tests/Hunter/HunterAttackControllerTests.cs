@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify committed heading, phase carry, feedback order and missed-lunge stumble.
 //   - Verify contact deduplication, interruption gates and revival admission.
+//   - Keep Skip's dormant body interception on the normal silent hit path.
 // DEPENDENCIES:
 //   - Hunter attack logic/state, Player state, Core values, reflection and NUnit.
 // USAGE NOTES:
@@ -24,6 +25,7 @@ using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Domain.Hunter;
+using Worsen.Domain.Hunter.Archetypes.Skip;
 using Worsen.Domain.Player;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
@@ -107,5 +109,48 @@ namespace Worsen.Tests.Hunter
             Assert.That(attack.TryAcceptRangedContact(player.Id, state.AttackSerial, out _), Is.False);
             Assert.That(attack.TryAcceptRangedContact(player.Id, state.AttackSerial + 1, out _), Is.False);
         }
+
+        [Test] public void SkipDormantBodyContactProducesNormalSilentHitAndRecoversOnce()
+        {
+            var skip = SkipRules();
+            attack = new HunterAttackController(state, profile, new System.Random(5), player, skip);
+            Assert.That(skip.Dormant, Is.True); Assert.That(state.LungePhase, Is.EqualTo(HunterLungePhase.None));
+            Assert.That(attack.TryAcceptContact(new EntityId(2), out _), Is.False);
+            Assert.That(skip.ContactReady, Is.True);
+            Assert.That(attack.TryAcceptContact(player.Id, out var hit), Is.True);
+            Assert.That(hit.Hunter, Is.EqualTo(state.Id)); Assert.That(hit.Target, Is.EqualTo(player.Id));
+            Assert.That(hit.Damage, Is.EqualTo(profile.LungeDamage));
+            Assert.That(hit.Source, Is.EqualTo(HitSource.Lunge)); Assert.That(hit.Severity, Is.EqualTo(HitSeverity.Heavy));
+            Assert.That(hit.Reason, Is.EqualTo(ChaseEndReason.Lunge));
+            Assert.That(attack.TryAcceptContact(player.Id, out _), Is.False);
+            Assert.That(Get<Queue<HunterFeedbackKind>>(state, "Feedback"), Is.Empty);
+            skip.Tick(SkipContext(profile.LungeRecoverySeconds, 1));
+            Assert.That(attack.TryAcceptContact(player.Id, out _), Is.True);
+            Assert.That(attack.TryAcceptContact(player.Id, out _), Is.False);
+        }
+
+        [Test] public void SkipRevivalProtectionDoesNotSpendContactReadiness()
+        {
+            var skip = SkipRules();
+            attack = new HunterAttackController(state, profile, new System.Random(5), player, skip);
+            Set(player, "RevivalCollisionEndTick", 1L);
+            Assert.That(attack.TryAcceptContact(player.Id, out _), Is.False);
+            player.Tick = 1;
+            Set(player, "RevivalImmunityWindow", new GraceWindowFact(player.Id, 0, 2, HitSeverity.Heavy));
+            Assert.That(attack.TryAcceptContact(player.Id, out _), Is.False);
+            Assert.That(skip.ContactReady, Is.True);
+            player.Tick = 2;
+            Assert.That(attack.TryAcceptContact(player.Id, out _), Is.True);
+        }
+
+        private SkipController SkipRules()
+        {
+            var config = (SkipConfig)FormatterServices.GetUninitializedObject(typeof(SkipConfig));
+            Set(config, "_usesRequired", 3); Set(config, "_cooldownSeconds", 12f); Set(config, "_shorterCooldownMultiplier", .8f);
+            var skip = new SkipController(config, profile, new System.Random(5));
+            skip.Reset(SkipContext(0f, 0)); return skip;
+        }
+        private HunterArchetypeContext SkipContext(float dt, long tick) => new HunterArchetypeContext(
+            state, player, null, null, null, null, default(ActiveEffects), dt, tick, false, 1f);
     }
 }
