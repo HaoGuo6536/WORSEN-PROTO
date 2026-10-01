@@ -10,6 +10,7 @@
 //   DriverConfig (Â§7d) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
+//   - Bound sample interpolation with a positional discontinuity threshold.
 //   - Author progress-based vault height, landing depths and stumble comfort tuning.
 //   - Retain legacy look fields while the fixed-frame rear view disables scanning.
 //   - Tune the held catch framing and timing, slide banking and bounded shake.
@@ -34,6 +35,9 @@ namespace Worsen.Presentation.Camera
     [CreateAssetMenu(fileName = "CameraDriverConfig", menuName = "Worsen/Camera/Driver Config")]
     public sealed class CameraDriverConfig : ScriptableObject
     {
+        [Tooltip("Provisional metres per committed sample. Larger jumps snap instead of interpolating.")]
+        [SerializeField, Min(0.01f)] private float _positionSnapDistance = 3f;
+        public float PositionSnapDistance => _positionSnapDistance;
         [SerializeField] private Shader _handShader = null;
         public Shader HandShader => _handShader;
         [SerializeField] private AnimationCurve _vaultHeight = new AnimationCurve(
