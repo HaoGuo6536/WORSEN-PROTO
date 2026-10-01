@@ -600,6 +600,146 @@
       "geometrySha256": "41abf0068db399c5982b056c13b4647f2563702a779e3739fb1aa479c5e45f62"
     },
     {
+      "id": "prop_room_radiator",
+      "file": "Hospital_prop_room_radiator.fbx",
+      "kind": "prop",
+      "size": [
+        1.74,
+        0.89,
+        0.22
+      ],
+      "triangles": 280,
+      "materials": [
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "e5bfd5b6e360250cb9f6b53769315f0cf5b06509dded28dfb8620754e8a85699"
+    },
+    {
+      "id": "prop_room_side_table",
+      "file": "Hospital_prop_room_side_table.fbx",
+      "kind": "prop",
+      "size": [
+        0.6,
+        0.62,
+        0.55
+      ],
+      "triangles": 84,
+      "materials": [
+        "hospital_paint",
+        "hospital_stainless",
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "f877e09762a78e3ea736b6360a40696cfb0d82527307dca082ecf00a0f9f8c3e"
+    },
+    {
+      "id": "prop_room_visitor_chair",
+      "file": "Hospital_prop_room_visitor_chair.fbx",
+      "kind": "prop",
+      "size": [
+        0.625,
+        1.01,
+        0.54
+      ],
+      "triangles": 152,
+      "materials": [
+        "hospital_curtain",
+        "hospital_stainless",
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "0d7d8bc2375a9da88bb3bcf73ab66b3e13a77d910958851b76180174ebd90dcf"
+    },
+    {
+      "id": "prop_room_linen_shelf",
+      "file": "Hospital_prop_room_linen_shelf.fbx",
+      "kind": "prop",
+      "size": [
+        1.8,
+        2.2,
+        0.48
+      ],
+      "triangles": 276,
+      "materials": [
+        "hospital_curtain",
+        "hospital_linen",
+        "hospital_paint",
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "602bdae6f180c2778f5dcfa843a7bb8137755c16f2f44256b9d98e9df9676226"
+    },
+    {
+      "id": "prop_room_curtain_screen",
+      "file": "Hospital_prop_room_curtain_screen.fbx",
+      "kind": "prop",
+      "size": [
+        1.28,
+        1.86,
+        0.34
+      ],
+      "triangles": 252,
+      "materials": [
+        "hospital_curtain",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "0cfabdc98c0d3c0e7f9bccd22ec1fc084b47e951c571332f790c14cc008068a0"
+    },
+    {
+      "id": "prop_room_washer",
+      "file": "Hospital_prop_room_washer.fbx",
+      "kind": "prop",
+      "size": [
+        0.88,
+        1.05,
+        0.857
+      ],
+      "triangles": 224,
+      "materials": [
+        "hospital_curtain",
+        "hospital_linen",
+        "hospital_paint",
+        "hospital_rubber",
+        "hospital_stainless"
+      ],
+      "geometrySha256": "611820f18e5a5def705f3d9e2e06ec7b2309a3a633c1ebc46957bad765d74736"
+    },
+    {
+      "id": "prop_room_reception_desk",
+      "file": "Hospital_prop_room_reception_desk.fbx",
+      "kind": "prop",
+      "size": [
+        1.96,
+        1.1,
+        0.75
+      ],
+      "triangles": 108,
+      "materials": [
+        "hospital_paint",
+        "hospital_stainless",
+        "hospital_tile",
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "c815f0fbe32a7d40049eb3bf90f5ad14c75d805db49686c062dc9c10f55ad6bd"
+    },
+    {
+      "id": "prop_room_niche_panel",
+      "file": "Hospital_prop_room_niche_panel.fbx",
+      "kind": "prop",
+      "size": [
+        1.92,
+        2.92,
+        0.18
+      ],
+      "triangles": 72,
+      "materials": [
+        "hospital_curtain",
+        "hospital_linen",
+        "hospital_stainless",
+        "hospital_tile"
+      ],
+      "geometrySha256": "99456c0840f39bae2097002a4c2679e6269867842690c88bb261d8f69b647539"
+    },
+    {
       "id": "prop_vault_partition",
       "file": "Hospital_prop_vault_partition.fbx",
       "kind": "prop",

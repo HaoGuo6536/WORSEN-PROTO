@@ -30,6 +30,15 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateValidationUtilityTests
     {
+        [TestCase(10f, 3, true)] [TestCase(10f, 2, false)]
+        [TestCase(float.NaN, 3, false)] [TestCase(15f, 3, false)] [TestCase(6f, 3, false)]
+        public void TallRoomEnvelopeIsFiniteBoundedAndRoundGated(float height, int round, bool accepted)
+        {
+            var c = ProceduralTemplateTestData.Catalogue(); var room = c.Templates[3];
+            room.Height = height; room.MinRound = round;
+            if (accepted) Assert.DoesNotThrow(() => ProceduralTemplateValidationUtility.ValidateRoom(c, room));
+            else Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.ValidateRoom(c, room));
+        }
         [TestCase("Castle", 15)] [TestCase("Hospital", 14)]
         [TestCase("School", 12)] [TestCase("Basement", 13)]
         public void CheckedInThemeManifestsPassProductionAdmission(string theme, int expectedCount)

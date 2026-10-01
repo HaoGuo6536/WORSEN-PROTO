@@ -92,7 +92,7 @@ namespace Worsen.Domain.Procedural
                 room.Id > connectedCount ? 1 : 0)).ToArray();
             modules = ProceduralGimmickUtility.Reserve(modules, _config.Challenges, roundIndex,
                 new System.Random(LayoutSeed(runSeed, roundIndex)));
-            doors = doors.Where(d => !d.IsOptional ||
+            doors = doors.Where(d => !d.IsOptional || !merchantRefuge && d.TraversalKind == TraversalSurfaceKind.Vault ||
                 (modules[d.FromRoomId - 1].TraversalObstacles && modules[d.ToRoomId - 1].TraversalObstacles)).ToList();
             var edges = doors.Select((door, index) => new LevelEdge(1001 + index,
                 door.FromRoomId, door.ToRoomId, true, door.IsOptional ? TraversalAccess.Player : TraversalAccess.All)).ToArray();
@@ -145,6 +145,7 @@ namespace Worsen.Domain.Procedural
                 HunterSpawnPositions = Array.Empty<Vector3>()
             };
             ProceduralStoreyUtility.Apply(layout, _config, _random);
+            layout.ExitDoorYaw = ProceduralExitHubUtility.ApproachYaw(layout.PlayerSpawnPosition, layout.Graph.ExitPosition);
             layout.GapSites = GapSites(layout);
             ProceduralOrganicUtility.Apply(layout, _config, new System.Random(LayoutSeed(runSeed, roundIndex)));
             layout.Manifest = Manifest(layout);
@@ -518,6 +519,7 @@ namespace Worsen.Domain.Procedural
             text.Append("|Player:"); Append(text, layout.PlayerSpawnPosition);
             Append(text, layout.PlayerSpawnRotation * Vector3.forward);
             text.Append("|Exit:"); Append(text, layout.Graph.ExitPosition);
+            text.Append(",yaw=").Append(layout.ExitDoorYaw.ToString("R", CultureInfo.InvariantCulture));
             foreach (var spawn in layout.HunterSpawnPositions) { text.Append("|H:"); Append(text, spawn); }
             text.Append(ProceduralStoreyUtility.Manifest(layout, _config));
             text.Append(ProceduralThemeUtility.Manifest(layout.Theme));

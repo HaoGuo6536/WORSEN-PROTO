@@ -33,17 +33,20 @@ namespace Worsen.Domain.Procedural
             var blocks = new List<ProceduralBlock>();
             foreach (var s in layout.Storeys)
             {
+                double yaw = s.Turns * Math.PI * .25d;
+                var facing = new Quaternion(0f, (float)Math.Sin(yaw), 0f, (float)Math.Cos(yaw));
                 float h = s.Height, t = driver.FloorThickness;
                 if (t <= 0f || t > h - 2f || driver.StairLandingExtension <= 0f || driver.StairLandingExtension > 1f)
                     throw new ArgumentException("Storey floor thickness/landing extension obstructs standing circulation.");
                 bool hole = s.Drop == ProceduralVerticalKind.FloorHole || s.Drop == ProceduralVerticalKind.Shaft;
                 // Exact cut boundaries; no overlapping slab fills a well or drop opening.
                 float[] xs = { -4f, -2f, -0.8f, 0.8f, 2f, 4f }, zs = { -4f, -1f, 0f, 1.2f, 2.6f, 4f };
+                zs = zs.Concat(new[] { s.LedgeAdvance }).Distinct().OrderBy(v => v).ToArray();
                 for (int x = 1; x < xs.Length; x++)
                 for (int z = 1; z < zs.Length; z++)
                 {
                     float cx = (xs[x - 1] + xs[x]) * 0.5f, cz = (zs[z - 1] + zs[z]) * 0.5f;
-                    if (cx < -2f && cz < 1.2f || cx > 2f && cz < 0f ||
+                    if (cx < -2f && cz < 1.2f || cx > 2f && cz < s.LedgeAdvance ||
                         Mathf.Abs(cx) < 0.8f && (hole ? cz > 1.2f && cz < 2.6f : cz < -1f)) continue;
                     Box(ProceduralSurfaceKind.Floor, new Vector3(cx, h - t * 0.5f, cz),
                         new Vector3(xs[x] - xs[x - 1], t, zs[z] - zs[z - 1]));
@@ -59,12 +62,12 @@ namespace Worsen.Domain.Procedural
                 var physicalRamp = blocks[blocks.Count - 3];
                 blocks.Add(new ProceduralBlock(s.RoomId, physicalRamp.Kind, physicalRamp.Center, physicalRamp.Size,
                     role: ProceduralBlockRole.VisualOnly, rotation: physicalRamp.Rotation));
-                Box(ProceduralSurfaceKind.Floor, new Vector3(3f, h * 0.25f, -1f),
+                Box(ProceduralSurfaceKind.Floor, new Vector3(3f, h * 0.25f, -1f + s.LedgeAdvance),
                     new Vector3(2f, h * 0.5f, 2f), ProceduralBlockRole.PlayerOnly);
                 // Give the final ledge a chest-height untagged face, not only a thin slab lip.
-                Box(ProceduralSurfaceKind.Wall, new Vector3(3f, h * 0.75f, 0f), new Vector3(2f, h * 0.5f, 0.1f));
+                Box(ProceduralSurfaceKind.Wall, new Vector3(3f, h * 0.75f, s.LedgeAdvance), new Vector3(2f, h * 0.5f, 0.1f));
                 if (config.BaseReboundSupported)
-                    Box(ProceduralSurfaceKind.Wall, new Vector3(1.75f, h * 0.5f, -1.1f), new Vector3(0.3f, h, 1.8f),
+                    Box(ProceduralSurfaceKind.Wall, new Vector3(1.75f, h * 0.5f, -1.1f + s.LedgeAdvance), new Vector3(0.3f, h, 1.8f),
                         id: 95000 + s.RoomId * 10, traversal: TraversalSurfaceKind.Rebound);
                 if (s.Drop == ProceduralVerticalKind.Shaft)
                     foreach (float x in new[] { -0.95f, 0.95f })
@@ -77,16 +80,20 @@ namespace Worsen.Domain.Procedural
                         traversal: TraversalSurfaceKind.Vault, a: drop.Points[0], b: drop.Points[1]);
                 }
                 if (s.Drop == ProceduralVerticalKind.CollapsedRamp)
-                    Ramp(s.Origin + new Vector3(0f, h, -1f), s.Origin + new Vector3(0f, h * 0.5f, -2.5f),
+                    Ramp(ProceduralStoreyUtility.Point(s, new Vector3(0f, h, -1f)), ProceduralStoreyUtility.Point(s, new Vector3(0f, h * 0.5f, -2.5f)),
                         2f, ProceduralBlockRole.PlayerOnly);
 
                 void Box(ProceduralSurfaceKind kind, Vector3 local, Vector3 size,
                     ProceduralBlockRole role = ProceduralBlockRole.Solid, int id = 0,
                     TraversalSurfaceKind traversal = TraversalSurfaceKind.None, Vector3 a = default, Vector3 b = default)
-                    => blocks.Add(new ProceduralBlock(s.RoomId, kind, s.Origin + local, size, id, traversal, a, b, role));
+                    => blocks.Add(new ProceduralBlock(s.RoomId, kind, ProceduralStoreyUtility.Point(s, local), size, id, traversal, a, b, role, facing));
                 void Ramp(Vector3 a, Vector3 b, float width, ProceduralBlockRole role)
                 {
-                    var rotation = Quaternion.LookRotation(b - a, Vector3.up);
+                    var delta = b - a;
+                    double angle = Math.Atan2(delta.x, delta.z) * .5d;
+                    double pitch = -Math.Atan2(delta.y, Math.Sqrt(delta.x * delta.x + delta.z * delta.z)) * .5d;
+                    var rotation = new Quaternion(0f, (float)Math.Sin(angle), 0f, (float)Math.Cos(angle)) *
+                        new Quaternion((float)Math.Sin(pitch), 0f, 0f, (float)Math.Cos(pitch));
                     blocks.Add(new ProceduralBlock(s.RoomId, ProceduralSurfaceKind.Floor,
                         (a + b) * 0.5f - rotation * Vector3.up * (t * 0.5f), new Vector3(width, t, Vector3.Distance(a, b)),
                         endpointA: a, endpointB: b, role: role, rotation: rotation));
@@ -111,6 +118,9 @@ namespace Worsen.Domain.Procedural
             }
         }
         private static bool Contains(ProceduralBlock b, Vector3 p)
-            => new Bounds(Vector3.zero, b.Size).Contains(Quaternion.Inverse(b.Rotation) * (p - b.Center));
+        {
+            p = new Quaternion(-b.Rotation.x, -b.Rotation.y, -b.Rotation.z, b.Rotation.w) * (p - b.Center);
+            return Math.Abs(p.x) <= b.Size.x * .5f && Math.Abs(p.y) <= b.Size.y * .5f && Math.Abs(p.z) <= b.Size.z * .5f;
+        }
     }
 }

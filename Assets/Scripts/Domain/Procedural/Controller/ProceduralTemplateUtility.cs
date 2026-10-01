@@ -11,6 +11,7 @@
 //   - Transform cells, points and door normals without engine calls.
 //   - Enumerate exposed edges and test authored anchor clearance.
 //   - Merge tiles into nonoverlapping rectangles for Core room consumers.
+//   - Reserve physical placement overhangs except reconstructible shared walls.
 // DEPENDENCIES:
 //   - Own definitions and Unity value types only.
 // USAGE NOTES:
@@ -77,6 +78,65 @@ namespace Worsen.Domain.Procedural
                 for (int x = 0; x < 2; x++) for (int z = 0; z < 2; z++)
                     yield return corner + new Vector2Int(x, z);
             }
+        }
+        public static bool Compatible(ProceduralTemplateRoom a, ProceduralTemplateRoom b, ProceduralTemplateCatalogue catalogue)
+        {
+            var kit = catalogue.Kit.ToDictionary(p => p.Id);
+            return Clear(a, b) && Clear(b, a);
+            bool Clear(ProceduralTemplateRoom source, ProceduralTemplateRoom target)
+            {
+                var own = new HashSet<Vector2Int>(OccupiedCells(source));
+                var other = new HashSet<Vector2Int>(OccupiedCells(target));
+                foreach (var p in source.Template.Pieces.Concat(source.Template.Doors.SelectMany(d => d.ClosedWith ?? Array.Empty<ProceduralTemplatePiece>())))
+                {
+                    var piece = kit[p.Id];
+                    if (piece.Kind == "floor" || piece.Kind == "ceiling" || piece.Kind == "decal") continue;
+                    // Socket leaves are opened or replaced by closedWith before collision construction.
+                    if (piece.Id == "door_iron_strapped" || piece.Id == "door_double_porthole_4m" ||
+                        piece.Id == "prop_classroom_door_leaf" || piece.Id == "prop_bulkhead_leaf") continue;
+                    var center = Point(source, p.Position, Vector2.zero);
+                    double yaw = (p.RotY + source.Turns * 90f) * Math.PI / 180d;
+                    float dx = (float)(Math.Abs(Math.Cos(yaw)) * piece.Size.x + Math.Abs(Math.Sin(yaw)) * piece.Size.z) * .5f;
+                    float dz = (float)(Math.Abs(Math.Sin(yaw)) * piece.Size.x + Math.Abs(Math.Cos(yaw)) * piece.Size.z) * .5f;
+                    bool straight = (piece.Kind == "wall" || piece.Kind == "door" || piece.Kind == "window") && piece.Id != "wall_round_tangent_r4";
+                    var normal = Math.Abs(Math.Cos(yaw)) > .999f ? Vector2Int.up : Vector2Int.right;
+                    for (int x = (int)Math.Floor(center.x - dx + .001f); x < center.x + dx - .001f; x++)
+                    for (int z = (int)Math.Floor(center.z - dz + .001f); z < center.z + dz - .001f; z++)
+                    {
+                        var cell = new Vector2Int(x, z);
+                        if (!other.Contains(cell)) continue;
+                        bool shared = false;
+                        if (straight)
+                            foreach (int sign in new[] { -1, 1 })
+                            {
+                                if (!own.Contains(cell + normal * sign)) continue;
+                                float plane = normal.x == 0 ? z + .5f + sign * .5f : x + .5f + sign * .5f;
+                                if (Math.Abs((normal.x == 0 ? center.z : center.x) - plane) <= piece.Size.z * .5f + .001f) shared = true;
+                            }
+                        if (!shared) return false;
+                    }
+                }
+                return true;
+            }
+        }
+        public static bool DoorClear(ProceduralRoomTemplate room, int socket, ProceduralTemplateCatalogue catalogue)
+        {
+            var kit = catalogue.Kit.ToDictionary(p => p.Id);
+            var door = room.Doors[socket]; var normal = Direction(door.Side);
+            var center = Door(door) + Vector3.up;
+            var across = new Vector3(normal.x, 0f, normal.y);
+            foreach (var p in room.Pieces)
+            {
+                var piece = kit[p.Id];
+                if (ProceduralTemplateValidationUtility.Wall(piece) || piece.Kind == "floor" || piece.Kind == "ceiling" || piece.Kind == "decal" ||
+                    piece.Id == "door_iron_strapped" || piece.Id == "door_double_porthole_4m" ||
+                    piece.Id == "prop_classroom_door_leaf" || piece.Id == "prop_bulkhead_leaf") continue;
+                double angle = p.RotY * Math.PI / 360d;
+                var block = new ProceduralBlock(0, ProceduralSurfaceKind.Wall, p.Position + Vector3.up * (piece.Size.y * .5f),
+                    piece.Size, rotation: new Quaternion(0f, (float)Math.Sin(angle), 0f, (float)Math.Cos(angle)));
+                if (ProceduralNavFallbackPresenter.Blocked(block, center - across, center + across, .5001f, 2f)) return false;
+            }
+            return true;
         }
         public static IEnumerable<Vector2Int> Directions()
         { yield return Vector2Int.up; yield return Vector2Int.right; yield return Vector2Int.down; yield return Vector2Int.left; }

@@ -1,5 +1,7 @@
 # School art handoff — PLAN-026
 
+2026-10-01 expansion: [Furnished rooms](../FurnishedRooms.md) inventories ten additional assembled rooms and eight new furniture meshes in these same Kit/Rooms sources. The expansion manifest is intentionally pending coordinator activation; the twelve active templates below are preserved.
+
 ## Deliverables
 
 `Kit/SchoolKit.blend` contains editable, origin-centred export masters and a labelled sheet. Small props are enlarged only in the sheet for legible thumbnails; export masters and room instances remain metre-scale. `Rooms/SchoolRooms.blend` contains a separate, fully assembled scene for every room template, plus the full-shell darkness scene. All room instances are generated directly from `Assets/Art/Environment/School/Rooms/SchoolRooms.manifest.json`; there are no room FBXs. Viewport geometry keeps the full shell; render visibility cuts away south/west walls and most ceiling tiles for the room sheets.

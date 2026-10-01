@@ -28,6 +28,24 @@ namespace Worsen.Tests.Procedural
     public sealed class ProceduralGimmickUtilityTests
     {
         [Test]
+        public void BasicVaultsAndStoreysDoNotSpendZeroEarlyGimmickBudget()
+        {
+            var c = ProceduralTemplateSeamPresenterTests.Empty<ProceduralChallengeConfig>();
+            ProceduralTemplateSeamPresenterTests.Field(c, "_gimmickFirstRound", 3);
+            ProceduralTemplateSeamPresenterTests.Field(c, "_gimmickFullRound", 8);
+            ProceduralTemplateSeamPresenterTests.Field(c, "_gimmickInitialBudget", 1);
+            ProceduralTemplateSeamPresenterTests.Field(c, "_gimmickMaximumBudget", 3);
+            var modules = new[] { new ProceduralRoomModule(1, ProceduralModuleKind.VaultPartition, true, new[] { Vector2Int.zero }),
+                new ProceduralRoomModule(2, ProceduralModuleKind.BrokenGallery, true, new[] { Vector2Int.right }) };
+            var reserved = ProceduralGimmickUtility.Reserve(modules, c, 1, new System.Random(1));
+            Assert.That(reserved[0].TraversalObstacles, Is.True); Assert.That(reserved[1].TraversalObstacles, Is.False);
+            var layout = new ProceduralLayout();
+            ProceduralTemplateSeamPresenterTests.Set(layout, "Modules", reserved);
+            ProceduralTemplateSeamPresenterTests.Set(layout, "Storeys", new[] { new ProceduralStoreyPlan(2, Vector3.zero, 3.2f, ProceduralVerticalKind.Balcony) });
+            ProceduralTemplateSeamPresenterTests.Set(layout, "Doors", new[] { new ProceduralDoorPlan(1, 2, Vector3.zero, true, TraversalSurfaceKind.Vault) });
+            Assert.That(ProceduralGimmickUtility.Rooms(layout), Is.Empty);
+        }
+        [Test]
         public void LinearCurveStartsAtThreeAndSaturatesAtEight()
         {
             var c = ScriptableObject.CreateInstance<ProceduralChallengeConfig>();
@@ -69,8 +87,10 @@ namespace Worsen.Tests.Procedural
                     if (round <= 2)
                     {
                         Assert.That(occupied, Is.Empty); Assert.That(layout.Storeys, Is.Empty);
-                        Assert.That(blocks.Any(b => b.TraversalKind != TraversalSurfaceKind.None), Is.False);
-                        Assert.That(layout.Doors.Any(v => v.IsOptional), Is.False);
+                        Assert.That(blocks.Where(b => b.TraversalKind != TraversalSurfaceKind.None)
+                            .All(b => b.TraversalKind == TraversalSurfaceKind.Vault), Is.True,
+                            "Basic vaults are allowed before gimmicks.");
+                        Assert.That(layout.Doors.Where(v => v.IsOptional).All(v => v.TraversalKind == TraversalSurfaceKind.Vault), Is.True);
                     }
                     if (round >= 8) lateMaximum = Math.Max(lateMaximum, occupied.Length);
                     ProceduralFootprintUtility.Validate(layout); ProceduralStoreyUtility.Validate(layout, c);

@@ -37,7 +37,11 @@ namespace Worsen.Domain.Procedural
         }
 
         public static LevelRoom At(ProceduralLayout layout, Vector3 position)
-            => layout.Graph.Rooms.SelectMany(r => Volumes(layout, r)).FirstOrDefault(r => r.Bounds.Contains(position));
+            => layout.Graph.Rooms.SelectMany(r => Volumes(layout, r)).FirstOrDefault(r => Contains(r, position));
+
+        // Bounds.Contains is a native call; pure admission uses the same inclusive bounds.
+        internal static bool Contains(LevelRoom room, Vector3 point)
+            => room.ContainsXZ(point) && point.y >= room.Bounds.min.y && point.y <= room.Bounds.max.y;
 
         public static void Validate(ProceduralLayout layout)
         {
@@ -60,7 +64,7 @@ namespace Worsen.Domain.Procedural
             foreach (var anchor in layout.Graph.Anchors)
                 if (Pocket(anchor.RoomId) || layout.OrganicRooms.Any(r => r.RoomId == anchor.RoomId && !ProceduralOrganicUtility.Clear(r, anchor.Position)) ||
                     !Volumes(layout, layout.Graph.Rooms.First(r => r.Id == anchor.RoomId))
-                    .Any(r => r.Bounds.Contains(anchor.Position)))
+                    .Any(r => Contains(r, anchor.Position)))
                     throw new InvalidOperationException("Required anchor is in a pocket or outside its footprint: " + anchor.Id);
             foreach (var anchor in layout.PocketAnchors)
                 if (!Pocket(anchor.RoomId) || At(layout, anchor.Position).Id != anchor.RoomId)

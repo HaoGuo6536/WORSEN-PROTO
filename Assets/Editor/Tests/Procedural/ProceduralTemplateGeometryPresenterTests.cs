@@ -28,6 +28,30 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateGeometryPresenterTests
     {
+        [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
+        public void EveryAuthoredFloorAndCeilingPlacementBuildsOnceAtItsExactPivot(string theme)
+        {
+            var catalogue = ProceduralTemplateSeamPresenterTests.Read(theme);
+            int authored = 0, built = 0;
+            foreach (var template in catalogue.Templates)
+            for (int turn = 0; turn < 4; turn++)
+            {
+                var room = new ProceduralTemplateRoom { RoomId = 1, Template = template, Turns = turn, Offset = new Vector2Int(3, -7) };
+                var blocks = new ProceduralTemplateGeometryPresenter().Build(catalogue, room,
+                    ProceduralTemplateSeamPresenterTests.Config(theme), ProceduralTemplateSeamPresenterTests.Driver());
+                var expected = template.Pieces.Where(p => catalogue.Kit.Any(k => k.Id == p.Id && (k.Kind == "floor" || k.Kind == "ceiling"))).ToArray();
+                var actual = blocks.Where(b => b.HasRenderer && b.PieceId != null &&
+                    catalogue.Kit.Any(k => k.Id == b.PieceId && (k.Kind == "floor" || k.Kind == "ceiling"))).ToArray();
+                authored += expected.Length; built += actual.Length;
+                Assert.That(actual.Length, Is.EqualTo(expected.Length), template.Id);
+                foreach (var p in expected)
+                    Assert.That(actual.Count(b => b.PieceId == p.Id && b.PiecePosition == ProceduralTemplateUtility.Point(room, p.Position, Vector2.zero)),
+                        Is.EqualTo(1), template.Id + "/" + p.Id);
+                Assert.That(blocks.Where(b => b.Kind == ProceduralSurfaceKind.Floor && b.Role == ProceduralBlockRole.CollisionOnly)
+                    .All(b => Math.Abs(b.Center.y + b.Size.y * .5f) < .0001f), Is.True, "No lowered round-room floor.");
+            }
+            TestContext.WriteLine("PLACEMENTS theme=" + theme + " authored=" + authored + " built=" + built + " turns=4");
+        }
         [Test]
         public void TilesAndWallCommandsPreserveKitIdentityAndOnlyOpenedSocketsAreCut()
         {
@@ -38,7 +62,7 @@ namespace Worsen.Tests.Procedural
                 var catalogue = ProceduralTemplateTestData.Catalogue();
                 var room = new ProceduralTemplateRoom { RoomId = 1, Template = catalogue.Templates[3], OpenDoors = new[] { 0 } };
                 var blocks = new ProceduralTemplateGeometryPresenter().Build(catalogue, room, config, driver);
-                Assert.That(blocks.Count(b => b.Kind == ProceduralSurfaceKind.Floor), Is.EqualTo(room.Template.Footprint.Length));
+                Assert.That(blocks.Count(b => b.Kind == ProceduralSurfaceKind.Floor && b.HasCollision), Is.EqualTo(room.Template.Footprint.Length));
                 Assert.That(blocks.Any(b => b.PieceId == "wall_2m"), Is.True);
                 for (int i = 0; i < room.Template.Doors.Length; i++)
                 {

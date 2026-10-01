@@ -27,6 +27,7 @@ namespace Worsen.Domain.Procedural
         public int RetryBudget { get; internal set; }
         public bool GenerationSucceeded { get; internal set; }
         public bool UsedFallback { get; internal set; }
+        public int FallbackCount { get; internal set; }
         public string TemplateFailureReason { get; internal set; } = string.Empty;
         public string OrganicFallbackReason { get; internal set; } = string.Empty;
         public string GenerationManifest { get; internal set; } = string.Empty;

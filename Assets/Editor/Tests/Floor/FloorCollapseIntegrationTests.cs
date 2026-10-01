@@ -46,12 +46,12 @@ namespace Worsen.Tests.Floor
                 fixture.Open();
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
                 int count = fixture.Root.GetComponentsInChildren<Transform>(true).Length;
-                fixture.Manager.Tick(6f, 1);
+                fixture.Manager.Tick(4f, 1);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Tearing));
                 Assert.That(fixture.Player.Health, Is.EqualTo(100f));
                 fixture.Manager.Tick(2f, 2);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Encroaching));
-                fixture.Manager.Tick(6f, 3);
+                fixture.Manager.Tick(4f, 3);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Closed));
                 Assert.That(fixture.Player.Health, Is.EqualTo(100f), "A large stage tick cannot skip hand warning and grace.");
                 Assert.That(fixture.Root.GetComponentsInChildren<NavMeshObstacle>(true), Is.Empty);
@@ -60,26 +60,26 @@ namespace Worsen.Tests.Floor
             }
         }
         [Test]
-        public void GoldenCakesRemainUntilClosureThenPublishTheirLoss()
+        public void CompletedCollectionNeverRespawnsGoldOrPublishesCakeLoss()
         {
             using (var fixture = new Fixture())
             {
                 fixture.Open(); fixture.Manager.Tick(6.5f, 1);
-                Assert.That(fixture.Driver.PickupAvailable(101), Is.True);
-                Assert.That(fixture.Driver.PickupAvailable(102), Is.True);
+                Assert.That(fixture.Driver.PickupAvailable(101), Is.False);
+                Assert.That(fixture.Driver.PickupAvailable(102), Is.False);
                 var losses = new List<int>();
                 fixture.Manager.OnCakeLost += (anchor, roomId, kind, tick) => losses.Add(anchor);
                 fixture.Manager.Tick(3.5f, 2);
-                Assert.That(fixture.Driver.PickupAvailable(102), Is.True, "Hands reach but only snatch on completion.");
-                Assert.That(fixture.Driver.PickupAvailable(101), Is.True);
+                Assert.That(fixture.Driver.PickupAvailable(102), Is.False);
+                Assert.That(fixture.Driver.PickupAvailable(101), Is.False);
                 fixture.Manager.Collect(fixture.Player.Id, 101, PickupKind.GoldenCake);
-                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.EqualTo(1));
+                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.Zero);
                 fixture.Manager.Tick(4f, 3);
                 fixture.Manager.Collect(fixture.Player.Id, 102, PickupKind.GoldenCake);
-                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.EqualTo(1));
-                Assert.That(losses, Is.EqualTo(new[] { 102 }));
+                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.Zero);
+                Assert.That(losses, Is.Empty);
                 Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true)
-                    .Single(value => value.AnchorId == 102 && value.Kind == PickupKind.GoldenCake).gameObject.activeSelf, Is.False);
+                    .Any(value => value.Kind == PickupKind.GoldenCake), Is.False);
             }
         }
         [Test]

@@ -37,6 +37,21 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralExitHubUtilityTests
     {
+        [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
+        public void CanonicalSwingEnvelopeIncludesPlayerClearanceAtEveryYaw(int turn)
+        {
+            var exit = new Vector3(7f, 0f, -11f);
+            var envelope = ProceduralExitHubUtility.DoorEnvelope(exit, turn * 90f);
+            foreach (float x in new[] { -1.48f, 1.2f }) foreach (float z in new[] { -1.97f, .2f })
+            {
+                var p = exit + ProceduralTemplateUtility.Rotate(new Vector3(x, 3.21f, z), turn);
+                Assert.That(p.x >= envelope.min.x && p.x <= envelope.max.x && p.y <= envelope.max.y &&
+                    p.z >= envelope.min.z && p.z <= envelope.max.z, Is.True);
+            }
+            Assert.That(envelope.size.y, Is.EqualTo(3.21f));
+            var approach = exit + ProceduralTemplateUtility.Rotate(Vector3.back * 4f, turn);
+            Assert.That(ProceduralExitHubUtility.ApproachYaw(approach, exit), Is.EqualTo(turn * 90f));
+        }
         [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
         public void RealThemesOfferSupportedSeparatedHubSockets(string theme)
         {
@@ -126,14 +141,13 @@ namespace Worsen.Tests.Procedural
         }
 
         [Test]
-        public void NotchCentreDoesNotDisqualifyAnOtherwiseSupportedHub()
+        public void NarrowNotchHubCannotFitTheNewSingleLeafSwing()
         {
             var catalogue = ProceduralTemplateTestData.Catalogue();
             var room = catalogue.Templates.Single(t => t.Id == "castle_medium_l");
             Assert.That(ProceduralTemplateUtility.Inside(room, new Vector3(4f, 0f, 4f), 1.6f), Is.False);
-            Assert.That(Select(catalogue, room, out _, out var exit), Is.True);
-            Assert.That(ProceduralTemplateUtility.Inside(room, exit, 1.6f), Is.True);
-            Assert.That(exit, Is.Not.EqualTo(new Vector3(4f, 0f, 4f)));
+            Assert.That(Select(catalogue, room, out _, out _), Is.False,
+                "The former point-socket fits; the complete swing plus player and wall clearance does not.");
         }
 
         [TestCase("single-door")] [TestCase("gimmick")] [TestCase("blocked")]

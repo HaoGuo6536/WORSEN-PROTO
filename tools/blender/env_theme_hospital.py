@@ -827,7 +827,7 @@ def main():
     parser.add_argument('--skip-previews', action='store_true')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     assert bpy.app.version[:2] == (5, 2), 'Use Blender 5.2'
-    assert ROOT.name in ('theme-hospital', 'art-fixes', 'theme-catalogues', 'template-vaults') and (ROOT/'.git').is_file(), \
+    assert ROOT.name in ('theme-hospital', 'art-fixes', 'theme-catalogues', 'template-vaults', 'theme-rooms') and (ROOT/'.git').is_file(), \
         'Publish only to an authorized isolated worktree, never the shared checkout'
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.preferences.filepaths.save_version = 0
@@ -840,10 +840,17 @@ def main():
     materials()
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from env_theme_vaults import PIECES, build_vault, add_vaults
+    from env_kit_furnishings import ids, build_furnishing
+    from env_theme_furnished import publish_expansion
+    KINDS.update({pid: 'prop' for pid in ids('hospital')})
     KINDS[PIECES['hospital']] = 'prop'
     objects, rows = {}, []
     for piece in KINDS:
-        if piece == PIECES['hospital']:
+        if piece in ids('hospital'):
+            mesh = WardMesh(piece)
+            build_furnishing('hospital', mesh, piece)
+            obj = mesh.finish(center=True)
+        elif piece == PIECES['hospital']:
             mesh = WardMesh(piece)
             build_vault('hospital', mesh)
             obj = mesh.finish(center=True)
@@ -875,6 +882,7 @@ def main():
     sheet.hide_render = True
     sheet.hide_viewport = True
     room_sources(objects, templates, camera, args.skip_previews)
+    publish_expansion('hospital', globals(), objects, rows, args.skip_previews)
     print(f'GENERATED hospital: {len(rows)} pieces; {len(templates)} templates; four 512px textures')
 
 

@@ -1,5 +1,7 @@
 # Castle Gothic keep — PLAN-026 art hand-off
 
+2026-10-01 expansion: [Furnished rooms](../FurnishedRooms.md) inventories ten additional assembled rooms and eight new furniture meshes in these same Kit/Rooms sources. The expansion manifest is intentionally pending coordinator activation; the fifteen active templates below are preserved.
+
 Original authored art; no downloaded assets, packages, Unity operations or v1 script imports. The new generator is `tools/blender/env_theme_castle.py`; the independent re-import validator is `tools/blender/validate_env_theme_castle.py`. Both resolve paths from their own worktree. Do not run the v1 Castle/Hospital generator to regenerate these v2 Castle exports.
 
 ## Sources and review

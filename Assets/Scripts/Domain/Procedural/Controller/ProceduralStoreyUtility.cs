@@ -14,7 +14,7 @@
 // DEPENDENCIES:
 //   - Own config/layout and Core graph values; no Player assembly or engine calls.
 // USAGE NOTES:
-//   One upper storey per eligible traversal-budget room; hubs, refuges and pockets
+//   One upper storey per eligible extension room, independent of gimmicks; hubs, refuges and pockets
 //   are unchanged. Core room identity remains the collapse unit for both storeys.
 //   Region ids are local validation nodes, not new published Core room identities.
 //   Rebound routes are optional and never counted towards required reachability.
@@ -40,7 +40,7 @@ namespace Worsen.Domain.Procedural
             var anchors = layout.Graph.Anchors.ToArray();
             foreach (var module in layout.Modules)
             {
-                if (!module.TraversalObstacles || module.PocketId != 0 || module.Kind == ProceduralModuleKind.MerchantRefuge ||
+                if (module.PocketId != 0 || module.Kind == ProceduralModuleKind.MerchantRefuge ||
                     module.RoomId == layout.Graph.ExitRoomId || module.Cells.Count < 2) continue;
                 if (random.NextDouble() >= config.StoreyProbability) continue;
                 var cell = module.Cells[1];
@@ -61,7 +61,15 @@ namespace Worsen.Domain.Procedural
             }
             layout.Storeys = storeys.AsReadOnly();
             layout.VerticalRoutes = routes.AsReadOnly();
-            layout.Graph = LevelGraphUtility.Build(layout.Graph.Rooms, layout.Graph.Edges, anchors,
+            var rooms = layout.Graph.Rooms.Select(room =>
+            {
+                if (!storeys.Any(s => s.RoomId == room.Id) || room.Bounds.max.y >= config.StoreyHeight + 2.8f) return room;
+                float height = config.StoreyHeight + 2.8f;
+                return new LevelRoom(room.Id, new Vector3(room.Center.x, height * .5f, room.Center.z),
+                    new Vector3(room.Size.x, height, room.Size.z), cells: room.Cells.Select(b => new Bounds(
+                        new Vector3(b.center.x, height * .5f, b.center.z), new Vector3(b.size.x, height, b.size.z))).ToArray(), pocket: room.Pocket);
+            }).ToArray();
+            layout.Graph = LevelGraphUtility.Build(rooms, layout.Graph.Edges, anchors,
                 layout.Graph.ExitRoomId, layout.Graph.ExitPosition);
         }
 
@@ -69,11 +77,12 @@ namespace Worsen.Domain.Procedural
         {
             var result = new List<ProceduralVerticalRoute>();
             int lower = storey.RoomId, upper = storey.UpperRegionId;
-            float h = storey.Height, reach = config.BaseLedgeReach * 0.4f;
+            float h = storey.Height, reach = config.BaseLedgeReach * 0.49f;
             Add(ProceduralVerticalKind.Ramp, lower, upper, true, TraversalAccess.All,
                 new Vector3(-3f, 0f, -3.6f), new Vector3(-3f, h, 1.2f));
             var climb = new[] { new Vector3(3f, 0f, -2f - reach), new Vector3(3f, h * 0.5f, -2f + reach),
                 new Vector3(3f, h * 0.5f, -reach), new Vector3(3f, h, reach) };
+            climb = climb.Select(p => p + Vector3.forward * storey.LedgeAdvance).ToArray();
             Add(ProceduralVerticalKind.LedgeClimb, lower, upper, false, TraversalAccess.Player, climb);
             if (config.BaseReboundSupported)
                 Add(ProceduralVerticalKind.ReboundClimb, lower, upper, false, TraversalAccess.Player, climb);
@@ -87,8 +96,10 @@ namespace Worsen.Domain.Procedural
 
             void Add(ProceduralVerticalKind kind, int from, int to, bool both, TraversalAccess access, params Vector3[] points)
                 => result.Add(new ProceduralVerticalRoute(90000 + lower * 10 + (int)kind, lower, kind, from, to,
-                    both, access, Array.AsReadOnly(points.Select(p => p + storey.Origin).ToArray())));
+                    both, access, Array.AsReadOnly(points.Select(p => Point(storey, p)).ToArray())));
         }
+        public static Vector3 Point(ProceduralStoreyPlan storey, Vector3 local)
+            => ProceduralTemplateUtility.Rotate(new Vector3(local.x, local.y, storey.Mirrored ? -local.z : local.z), storey.Turns) + storey.Origin;
 
         public static void Validate(ProceduralLayout layout, ProceduralConfig config)
         {
@@ -99,8 +110,9 @@ namespace Worsen.Domain.Procedural
             {
                 var room = layout.Graph.Rooms.Single(r => r.Id == storey.RoomId);
                 var module = layout.Modules.Single(m => m.RoomId == storey.RoomId);
-                if (module.PocketId != 0 || storey.Height != config.StoreyHeight ||
-                    room.Bounds.max.y < storey.Height + 2.8f || !room.Bounds.Contains(storey.Origin + Vector3.up))
+                float expectedHeight = layout.UsesTemplates && room.Id == layout.Graph.ExitRoomId ? Math.Max(config.StoreyHeight, 3.6f) : config.StoreyHeight;
+                if (module.PocketId != 0 || storey.Height != expectedHeight ||
+                    room.Bounds.max.y < storey.Height + 2.8f || !ProceduralFootprintUtility.Contains(room, storey.Origin + Vector3.up))
                     throw new InvalidOperationException("Storey has no connected footprint or standing headroom.");
                 var routes = layout.VerticalRoutes.Where(r => r.RoomId == storey.RoomId).ToArray();
                 if (!routes.Any(r => r.Kind == ProceduralVerticalKind.Ramp && r.Access == TraversalAccess.All && r.Bidirectional) ||

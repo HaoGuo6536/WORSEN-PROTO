@@ -9,7 +9,7 @@
 //   Driver (§7a) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Build kit visuals with primitive collision/fallback and owned collapse fragments.
-//   - Preflight template sockets, then bake and verify objectives, spawns and pockets.
+//   - Finalize walking cake lines against collision, then admit navigation and pockets.
 //   - Own interactables, puzzles and routed state changes without sibling calls.
 //   - Admit shrine sites and Passage apertures, tiles and future reward counts.
 //   - Release only owned geometry, materials, links and navigation on teardown.
@@ -157,6 +157,7 @@ namespace Worsen.Domain.Procedural
                 }
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(navigationBlocks);
                 var agent = NavMesh.GetSettingsByID(driverConfig.NavMeshAgentTypeId);
+                new ProceduralCakeLinePresenter().Apply(layout, config, navigationBlocks, agent.agentRadius, agent.agentHeight);
                 layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks, agent.agentRadius, agent.agentHeight);
                 BuildNavigation(layout, navigationBlocks, driverConfig);
                 layout.FuturePassageGoldenAnchorCount = new ProceduralPassagePresenter().FutureGoldenAnchorCount(layout, config, driverConfig, navigationBlocks);
@@ -399,6 +400,20 @@ namespace Worsen.Domain.Procedural
                     !NavMesh.CalculatePath(start.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete ||
                     !NavMesh.CalculatePath(end.position, start.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
                     throw new InvalidOperationException("Generated navigation cannot reach required " + target.label + " position " + target.position + ".");
+            // One bidirectional global path per straight segment. Every remaining
+            // cake must sample locally and connect to that representative by an
+            // unobstructed native surface ray, never by a distant projection.
+            foreach (var line in layout.CakeLines)
+            {
+                NavMesh.SamplePosition(line.Anchors[0].Position, out var origin, config.NavSampleRadius, filter);
+                foreach (var anchor in line.Anchors)
+                {
+                    if (!NavMesh.SamplePosition(anchor.Position, out var end, config.NavVoxelSize, filter) ||
+                        NavMesh.Raycast(origin.position, end.position, out _, filter) ||
+                        NavMesh.Raycast(end.position, origin.position, out _, filter))
+                        throw new InvalidOperationException("Generated cake line has no continuous navigation at anchor " + anchor.Id + ".");
+                }
+            }
             foreach (var pocket in layout.Modules.Where(m => m.PocketId != 0).GroupBy(m => m.PocketId))
             {
                 var anchors = layout.PocketAnchors.Where(a => pocket.Any(m => m.RoomId == a.RoomId)).ToArray();

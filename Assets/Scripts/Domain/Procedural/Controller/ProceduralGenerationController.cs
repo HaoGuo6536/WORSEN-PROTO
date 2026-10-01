@@ -19,7 +19,7 @@
 //   no map or actors are admitted; Session chooses the screen/authored fallback.
 //   Success is recorded only after the Manager completes physical validation.
 //   UsedFallback retains its existing no-floor meaning for Session/UI consumers;
-//   successful organic recovery is explicitly reported in the generation journal.
+//   successful organic recovery is counted separately and reported in the journal.
 // ============================================================================
 using System;
 
@@ -37,6 +37,7 @@ namespace Worsen.Domain.Procedural
             if (retries < 0 || retries > 8) throw new ArgumentOutOfRangeException(nameof(retries));
             _state.BaseSeed = seed; _state.AttemptSeed = seed; _state.AttemptIndex = 0;
             _state.RetryBudget = retries; _state.GenerationSucceeded = false; _state.UsedFallback = false;
+            _state.FallbackCount = 0;
             _state.TemplateFailureReason = string.Empty; _state.OrganicFallbackReason = string.Empty;
             _state.IsReady = false; _state.Layout = null;
             _state.GenerationManifest = "generation-v1|seed=" + seed + "|round=" + round +
@@ -60,6 +61,7 @@ namespace Worsen.Domain.Procedural
                     return true;
                 }
                 _state.UsedFallback = true;
+                _state.FallbackCount = 1;
                 _state.GenerationManifest += "|fallback=NoFloorAwaitingSession|generationSucceeded=false";
                 return false;
             }
@@ -68,13 +70,16 @@ namespace Worsen.Domain.Procedural
             return true;
         }
 
-        public void Succeed(string layoutManifest)
+        public void Succeed(string layoutManifest, string templateFallbackReason = null)
         {
             RequirePending();
+            if (!string.IsNullOrEmpty(templateFallbackReason)) _state.OrganicFallbackReason = templateFallbackReason;
             Record("validated", layoutManifest);
             _state.GenerationSucceeded = true;
+            _state.FallbackCount = _state.OrganicFallbackReason.Length == 0 ? 0 : 1;
             _state.GenerationManifest += (_state.OrganicFallbackReason.Length == 0 ? "|fallback=none" : "|fallback=Organic") +
-                "|generationSucceeded=true";
+                "|generationSucceeded=true|fallbackCount=" + _state.FallbackCount +
+                "|fallbackReason=" + Uri.EscapeDataString(_state.OrganicFallbackReason);
         }
 
         private void RequirePending()

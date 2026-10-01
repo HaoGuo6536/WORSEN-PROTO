@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Describe one reproducible layout and its physical construction commands.
 //   - Carry geometry commands, effective spawn policy and world-object plans.
-//   - Record footprints, pocket anchors and identified shrine/Passage sites.
+//   - Record footprints, collision-checked cake lines and optional reward sites.
 //   - Retain storeys, directed routes and permissioned navigation links.
 //   - Keep template provenance, organic fallback and admitted capacity explicit.
 // DEPENDENCIES:
@@ -44,6 +44,7 @@ namespace Worsen.Domain.Procedural
 
     public sealed class ProceduralLayout
     {
+        public IReadOnlyList<ProceduralCakeLine> CakeLines { get; internal set; } = System.Array.Empty<ProceduralCakeLine>();
         public IReadOnlyList<ProceduralTemplateRoom> TemplateRooms { get; internal set; } = System.Array.Empty<ProceduralTemplateRoom>();
         public ProceduralTemplateCatalogue TemplateCatalogue { get; internal set; }
         public string TemplateFallbackReason { get; internal set; } = string.Empty;
@@ -72,6 +73,7 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<ProceduralRoomModule> Modules { get; internal set; }
         public Vector3 PlayerSpawnPosition { get; internal set; }
         public Quaternion PlayerSpawnRotation { get; internal set; }
+        public float ExitDoorYaw { get; internal set; }
         public IReadOnlyList<Vector3> HunterSpawnPositions { get; internal set; }
         public int MinimumHunterSpawnRooms { get; internal set; }
         public string SpawnValidationReport { get; internal set; }
@@ -83,6 +85,11 @@ namespace Worsen.Domain.Procedural
     }
 
     public enum ProceduralSurfaceKind { Floor, Wall, Ceiling }
+    public readonly struct ProceduralCakeLine
+    {
+        public ProceduralCakeLine(IReadOnlyList<LevelAnchor> anchors) { Anchors = anchors; }
+        public IReadOnlyList<LevelAnchor> Anchors { get; }
+    }
     public readonly struct ProceduralInteractablePlan
     {
         public ProceduralInteractablePlan(InteractableState state, Vector3 size, int surfaceId = 0)
@@ -97,8 +104,11 @@ namespace Worsen.Domain.Procedural
 
     public readonly struct ProceduralStoreyPlan
     {
-        public ProceduralStoreyPlan(int roomId, Vector3 origin, float height, ProceduralVerticalKind drop)
-        { RoomId = roomId; Origin = origin; Height = height; Drop = drop; }
+        public ProceduralStoreyPlan(int roomId, Vector3 origin, float height, ProceduralVerticalKind drop, int turns = 0, bool mirrored = false, float ledgeAdvance = 0f)
+        { RoomId = roomId; Origin = origin; Height = height; Drop = drop; Turns = turns; Mirrored = mirrored; LedgeAdvance = ledgeAdvance; }
+        public int Turns { get; }
+        public bool Mirrored { get; }
+        public float LedgeAdvance { get; }
         public int RoomId { get; }
         public int UpperRegionId => 10000 + RoomId;
         public Vector3 Origin { get; }
