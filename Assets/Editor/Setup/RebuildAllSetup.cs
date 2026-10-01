@@ -85,6 +85,7 @@ namespace Worsen.Editor.Setup
             new SetupStep("FloorLoop", "Build the floor fixture after base assets; preserve legacy support.", FloorLoopSceneSetup.BuildFloorLoop),
             new SetupStep("HorrorRun", "Build expansion, roster, soundscape/mixer, world and fog; promote the title scene last.", HorrorRunSceneSetup.Build),
             new SetupStep("Hunter roster audio", "Apply reviewed roster bindings after HorrorRun soundscape setup.", Audio.HunterRosterAudioSetup.BuildMenu),
+            new SetupStep("Hunter roster visuals", "Bind a distinct body to each hunter profile after HorrorRun and profile setup.", () => { Hunter.HunterRosterVisualSetup.Build(); }),
             new SetupStep("Final provenance", "Stamp every scene after the last shared config mutation.", SceneProvenanceRefreshTools.RefreshAllCaptureProvenance)
         };
 
@@ -112,9 +113,21 @@ namespace Worsen.Editor.Setup
             for (int index = 0; index < SceneManager.sceneCount; index++)
                 if (SceneManager.GetSceneAt(index).isDirty)
                     throw new InvalidOperationException("Save or revert scene edits before Rebuild All: " + SceneManager.GetSceneAt(index).path);
+            var unsaved = new List<string>();
             foreach (var asset in Resources.FindObjectsOfTypeAll<UnityEngine.Object>())
-                if (EditorUtility.IsPersistent(asset) && EditorUtility.IsDirty(asset))
-                    throw new InvalidOperationException("Save or revert asset edits before Rebuild All: " + AssetDatabase.GetAssetPath(asset));
+                if (asset != null && EditorUtility.IsPersistent(asset) && EditorUtility.IsDirty(asset) && HoldsUserEdits(asset))
+                    unsaved.Add(AssetDatabase.GetAssetPath(asset));
+            if (unsaved.Count > 0)
+                throw new InvalidOperationException("Save or revert asset edits before Rebuild All: " + string.Join(", ", unsaved));
+        }
+
+        // Unity always carries dirty built-in resources, read-only package assets and compiled shaders;
+        // none can hold a user's unsaved edit, so only project assets and settings are checked.
+        public static bool HoldsUserEdits(UnityEngine.Object asset)
+        {
+            if (asset is Shader || asset is ComputeShader) return false;
+            string path = AssetDatabase.GetAssetPath(asset);
+            return path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("ProjectSettings/", StringComparison.Ordinal);
         }
 
         private static void RunChecked(Action action)
