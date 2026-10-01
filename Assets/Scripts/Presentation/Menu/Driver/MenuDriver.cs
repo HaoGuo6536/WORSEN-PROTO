@@ -4,6 +4,7 @@
 // PURPOSE:
 //   Builds a title/headphones overlay and a pause/settings menu in the current scene.
 //   It reports user intent as Core values and waits for the simulation owner's response.
+//   Copy is limited to the game name, the headphones line, short setting labels and actions.
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Menu.
 // KEY RESPONSIBILITIES:
@@ -141,21 +142,25 @@ namespace Worsen.Presentation.Menu
             body.style.paddingLeft = body.style.paddingRight = _config.Padding;
             body.style.paddingTop = body.style.paddingBottom = _config.Padding; _root.Add(body);
             _title = new Label { name = "menu-title", enableRichText = false }; body.Add(_title);
+            _title.style.fontSize = _config.FontSize * 2; _title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _title.style.unityTextAlign = TextAnchor.MiddleCenter; _title.style.marginBottom = _config.Padding * .5f;
             _headphones = new Label("Wear headphones.") { name = "headphones", enableRichText = false }; body.Add(_headphones);
+            _headphones.style.unityTextAlign = TextAnchor.MiddleCenter; _headphones.style.marginBottom = _config.Padding * .5f;
             _start = Button(body, "start-run", "START RUN"); _start.clicked += OnStart;
             _resume = Button(body, "resume-run", "RESUME"); _resume.clicked += TogglePause;
             _settings = new VisualElement { name = "player-settings" }; body.Add(_settings);
-            _sensitivity = new FloatField("Mouse sensitivity (degrees / pixel)") { name = "sensitivity" };
+            _settings.style.marginTop = _settings.style.marginBottom = _config.Padding * .5f;
+            _sensitivity = new FloatField("Mouse sensitivity") { name = "sensitivity" };
             _settings.Add(_sensitivity); _sensitivity.RegisterValueChangedCallback(OnFloat);
             _invert = Toggle("Invert Y", "invert-y");
-            _fov = Slider("Horizontal field of view", "field-of-view", 1, 179);
+            _fov = Slider("Field of view", "field-of-view", 1, 179);
             _tilt = Toggle("Camera tilt", "camera-tilt");
             _punch = Toggle("Camera punch", "camera-punch");
             _blur = Toggle("Reacquire blur", "reacquire-blur");
             _master = Slider("Master volume", "master-volume", 0, 1);
             _music = Slider("Music volume", "music-volume", 0, 1);
             _effects = Slider("Effects volume", "effects-volume", 0, 1);
-            _apply = Button(_settings, "apply-settings", "APPLY AND SAVE"); _apply.clicked += OnApply;
+            _apply = Button(_settings, "apply-settings", "SAVE SETTINGS"); _apply.clicked += OnApply;
             _message = new Label { name = "settings-feedback", enableRichText = false }; _message.style.whiteSpace = WhiteSpace.Normal;
             _settings.Add(_message);
             _quit = Button(body, "quit-game", "QUIT"); _quit.clicked += OnQuit;
@@ -164,7 +169,8 @@ namespace Worsen.Presentation.Menu
         private Button Button(VisualElement parent, string name, string text)
         {
             var button = new Button { name = name, text = text };
-            button.style.minHeight = _config.ButtonHeight; parent.Add(button); return button;
+            button.style.minHeight = _config.ButtonHeight; button.style.marginTop = _config.Padding * .25f;
+            parent.Add(button); return button;
         }
         private Toggle Toggle(string label, string name)
         {

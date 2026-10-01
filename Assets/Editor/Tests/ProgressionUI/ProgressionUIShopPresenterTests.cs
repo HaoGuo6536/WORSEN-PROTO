@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10), Tests (§11) · Editor · ProgressionUI.
 // KEY RESPONSIBILITIES:
-//   - Preserve pedestal copy, fear axis, price and authoritative rejection reasons.
+//   - Preserve pedestal copy, price and authoritative rejection reasons on one detail line.
 //   - Show priced rerolls and slot replacement/cancel choices with revision latches.
 // DEPENDENCIES:
 //   - NUnit, Core and the pure ProgressionUI presentation stack.
@@ -35,14 +35,17 @@ namespace Worsen.Tests.ProgressionUI
             replacement ? "wax-ward" : null, replacement ? "Wax Ward" : null, 6, !replacement, 2, 0);
 
         [Test]
-        public void PedestalPreservesCopyAxisPriceAndGreyedReasonAndRerollShowsItsCost()
+        public void PedestalPreservesCopyPriceAndGreyedReasonAndRerollShowsItsCost()
         {
             var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
             presenter.Present(state, Snapshot());
             var pedestal = state.Cards.Single(card => card.Kind == ProgressionUIAction.Purchase);
             Assert.That(pedestal.Title, Is.EqualTo("Wax Ward"));
             Assert.That(pedestal.Description, Is.EqualTo("Breaks the next grab automatically."));
-            Assert.That(pedestal.Detail, Does.Contain("Agency").And.Contain("6 coins").And.Contain("Not enough Golden Cakes."));
+            // One detail line: the reason first, then the kind. The price lives on the action only.
+            Assert.That(pedestal.Detail, Does.StartWith("Not enough Golden Cakes.").And.Contain("Consumable").And.Not.Contain("\n"));
+            Assert.That(pedestal.Detail, Does.Not.Contain("Agency"), "Fear axis is design metadata, not player copy.");
+            Assert.That(pedestal.Action, Is.EqualTo("BUY  6"));
             Assert.That(pedestal.Enabled, Is.False);
             Assert.That(presenter.TryIssue(state, ProgressionUIAction.Purchase, pedestal.Id, 10), Is.False);
             Assert.That(state.Cards.Single(card => card.Kind == ProgressionUIAction.Reroll).Action, Is.EqualTo("REROLL  2"));

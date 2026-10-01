@@ -45,7 +45,8 @@ namespace Worsen.Presentation.ProgressionUI
         [SerializeField, Min(18)] private int _smallFontSize = 20;
         [SerializeField, Min(600f)] private float _panelWidth = 1120f;
         [SerializeField, Min(220f)] private float _cardWidth = 320f;
-        [SerializeField, Min(100f)] private float _retainedMaximumHeight = 240f;
+        [Tooltip("Retained-roster columns scroll past this height so cards and actions stay on a 1080-tall panel.")]
+        [SerializeField, Min(100f)] private float _retainedMaximumHeight = 160f;
         [SerializeField, Min(0f)] private float _spacing = 24f;
         [SerializeField, Min(0f)] private float _cornerCut = 10f;
         [SerializeField, Min(1f)] private float _strokeWidth = 1.5f;

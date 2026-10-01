@@ -4,14 +4,16 @@
 //
 // PURPOSE:
 //   Formats immutable progression snapshots into readable menu cards and status.
-//   It also prevents a single displayed revision from issuing duplicate UI
-//   actions while awaiting the next authoritative response. No run rules live here.
+//   Labels are plain and functional: a short title per phase, one detail line per
+//   card, and no lore or flavour copy. It also prevents a single displayed revision
+//   from issuing duplicate UI actions while awaiting the next authoritative response.
+//   No run rules live here.
 //
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · ProgressionUI.
 //
 // KEY RESPONSIBILITIES:
-//   - Present Session-admitted choices, purchases, inventory and shelter Bargains.
+//   - Present Session-admitted choices, purchases, inventory and shelter Bargains tersely.
 //   - Group all retained hunters and effects; Hidden Count belongs to the in-level HUD.
 //   - Gate terminal presentation on catch completion with a bounded, flagged timeout.
 //   - Reject hidden, stale or repeated clicks and distinguish intent from purchase feedback.
@@ -69,19 +71,18 @@ namespace Worsen.Presentation.ProgressionUI
                 || snapshot.Phase == ProgressionPhase.GenerationFailed;
             state.HealthText = state.HealthVisible ? "HEALTH  " + Health(snapshot.Health) + " / " + Health(snapshot.MaxHealth) : "";
             state.HealthFraction = state.HealthVisible ? Fraction(snapshot.Health, snapshot.MaxHealth) : 0f;
-            state.BurdenText = Number(snapshot.ThreatCount) + " THREATS"
-                + "  /  " + Number(snapshot.CurseCount) + " CURSES";
+            state.BurdenText = Count(snapshot.ThreatCount, "THREAT") + "  ·  " + Count(snapshot.CurseCount, "CURSE");
             state.Message = snapshot.Message ?? "";
             state.Title = Title(snapshot.Phase);
-            state.Subtitle = Subtitle(snapshot.Phase);
+            state.Subtitle = "";
             if (snapshot.Phase == ProgressionPhase.Shop && snapshot.Bargain.Pending)
             {
-                state.Title = "THE BARGAIN";
-                state.Subtitle = "Take one curse and receive Golden Cakes now. CONTINUE walks away for free.";
+                state.Title = "BARGAIN";
+                state.Subtitle = "Take one curse for Golden Cakes, or continue for free.";
                 if ((snapshot.Bargain.Offers?.Count ?? 0) == 0)
-                    state.Message = "No eligible curses remain. Walk away for free.";
+                    state.Message = "No eligible curses. Continue for free.";
             }
-            state.RetainedText = Retained(snapshot) + Inventory(snapshot);
+            state.RetainedText = Join(Retained(snapshot), Inventory(snapshot));
             state.Cards = Cards(snapshot);
             return true;
         }
@@ -178,8 +179,7 @@ namespace Worsen.Presentation.ProgressionUI
                 var offers = snapshot.Bargain.Offers;
                 var cards = new ProgressionUICard[offers?.Count ?? 0];
                 for (int i = 0; i < cards.Length; i++)
-                    cards[i] = new ProgressionUICard(offers[i].Id, offers[i].Title, offers[i].Copy,
-                        "Kept for this run · reward " + Number(offers[i].Payout) + " Golden Cakes",
+                    cards[i] = new ProgressionUICard(offers[i].Id, offers[i].Title, offers[i].Copy, "Curse · kept for this run",
                         "TAKE  +" + Number(offers[i].Payout), true, ProgressionUIAction.TakeBargain);
                 return cards;
             }
@@ -190,12 +190,11 @@ namespace Worsen.Presentation.ProgressionUI
                 {
                     var item = snapshot.Inventory[slot];
                     replacements.Add(new ProgressionUICard(Number(slot), "SLOT " + Number(slot + 1) + " · " + item.Title,
-                        "Discard this item for " + snapshot.PendingOfferTitle + ". The discarded item is gone.",
-                        "Pending purchase · " + Number(snapshot.PendingPrice) + " coins. Nothing charged yet.",
+                        "Replace with " + snapshot.PendingOfferTitle + ".", "Nothing charged yet.",
                         "REPLACE  " + Number(snapshot.PendingPrice), !string.IsNullOrEmpty(item.Id), ProgressionUIAction.ReplaceSlot));
                 }
-                replacements.Add(new ProgressionUICard("cancel-replacement", "KEEP YOUR INVENTORY", "Cancel this purchase.",
-                    "No debit and no refund. Keep every held item.", "CANCEL", true, ProgressionUIAction.CancelReplacement));
+                replacements.Add(new ProgressionUICard("cancel-replacement", "KEEP ITEMS", "Cancel this purchase.", "",
+                    "CANCEL", true, ProgressionUIAction.CancelReplacement));
                 return replacements.ToArray();
             }
             if (snapshot.Phase == ProgressionPhase.Shop)
@@ -207,13 +206,13 @@ namespace Worsen.Presentation.ProgressionUI
                     var offer = offers[i];
                     bool owned = offer.Purchased && !offer.Repeatable;
                     bool soldOut = offer.Repeatable && offer.StockRemaining <= 0;
+                    // One line: why it is unavailable (if it is), then its kind and stock. The price is on the action.
                     string status = owned ? "Owned for this run" : soldOut ? "Sold out this visit"
                         : !string.IsNullOrEmpty(offer.UnavailableReason) ? offer.UnavailableReason
-                        : !offer.CanAfford ? "Not enough currency" : "Available";
-                    string detail = status + "\nPrice · " + Number(offer.Price) + " coins\n" +
-                        (offer.Kind == EffectKind.Consumable ? "Consumable · inventory slot" : "Upgrade · kept for this run") +
-                        (offer.Repeatable ? " · stock " + Number(Math.Max(0, offer.StockRemaining)) : "") +
-                        (offer.Axis == FearAxis.None ? "" : "\nFear axis · " + offer.Axis);
+                        : !offer.CanAfford ? "Not enough currency" : "";
+                    string detail = (status.Length > 0 ? status + " · " : "") +
+                        (offer.Kind == EffectKind.Consumable ? "Consumable" : "Upgrade") +
+                        (offer.Repeatable ? " · stock " + Number(Math.Max(0, offer.StockRemaining)) : "");
                     bool available = !owned && !soldOut && offer.CanAfford && string.IsNullOrEmpty(offer.UnavailableReason);
                     cards[i] = new ProgressionUICard(offer.Id, offer.Title, offer.Description, detail,
                         owned ? "OWNED" : soldOut ? "SOLD OUT" : "BUY  " + Number(offer.Price), available,
@@ -230,7 +229,7 @@ namespace Worsen.Presentation.ProgressionUI
             {
                 var choice = choices[i];
                 output[i] = new ProgressionUICard(choice.Id, choice.Title, choice.Description,
-                    choice.SelectedCount > 0 ? "Already retained: " + Number(choice.SelectedCount) : "New to this expedition",
+                    choice.SelectedCount > 0 ? "Already retained: " + Number(choice.SelectedCount) : "",
                     "CHOOSE", !string.IsNullOrEmpty(choice.Id), kind);
             }
             return WithReroll(output, snapshot);
@@ -242,16 +241,19 @@ namespace Worsen.Presentation.ProgressionUI
             if (!snapshot.CanReroll && snapshot.Inventory == null) return cards;
             var result = new List<ProgressionUICard>(cards);
             result.Add(new ProgressionUICard("reroll", "REROLL", snapshot.Phase == ProgressionPhase.Shop
-                ? "Draw a new set of eligible pedestals." : "Draw new eligible choices.",
-                snapshot.RerollUnavailableReason ?? (Number(snapshot.FreeRerollsRemaining) + " free rerolls remaining"),
+                ? "New offers." : "New choices.",
+                snapshot.RerollUnavailableReason ?? (Number(snapshot.FreeRerollsRemaining) + " free left"),
                 "REROLL  " + Number(snapshot.RerollPrice), snapshot.CanReroll, ProgressionUIAction.Reroll));
             return result.ToArray();
         }
 
+        private static string Join(string first, string second)
+            => first.Length == 0 ? second : second.Length == 0 ? first : first + "\n\n" + second;
+
         private static string Inventory(ProgressionSnapshot snapshot)
         {
             if (snapshot.Inventory == null) return "";
-            var text = new StringBuilder("\n\nINVENTORY");
+            var text = new StringBuilder("INVENTORY");
             for (int slot = 0; slot < snapshot.Inventory.Count; slot++)
                 text.Append("\n").Append(Number(slot + 1)).Append(" · ").Append(snapshot.Inventory[slot].Title ?? "Empty");
             if (!string.IsNullOrEmpty(snapshot.PendingOfferId)) text.Append("\n\nCHOOSE A SLOT TO REPLACE · ").Append(snapshot.PendingOfferTitle);
@@ -260,7 +262,7 @@ namespace Worsen.Presentation.ProgressionUI
 
         private static string Retained(ProgressionSnapshot snapshot)
         {
-            if (snapshot.Retained == null || snapshot.Retained.Count == 0) return "No retained choices yet.";
+            if (snapshot.Retained == null || snapshot.Retained.Count == 0) return "";
             var text = new StringBuilder();
             foreach (ProgressionChoiceKind kind in new[] { ProgressionChoiceKind.Threat, ProgressionChoiceKind.Curse, ProgressionChoiceKind.Upgrade })
             {
@@ -271,7 +273,7 @@ namespace Worsen.Presentation.ProgressionUI
                     if (!heading)
                     {
                         if (text.Length > 0) text.Append("\n\n");
-                        text.Append(kind == ProgressionChoiceKind.Threat ? "FOLLOWING YOU" : kind == ProgressionChoiceKind.Curse ? "YOUR CURSES" : "YOUR EQUIPMENT");
+                        text.Append(kind == ProgressionChoiceKind.Threat ? "THREATS" : kind == ProgressionChoiceKind.Curse ? "CURSES" : "UPGRADES");
                         heading = true;
                     }
                     text.Append("\n• ").Append(selection.Title);
@@ -285,30 +287,17 @@ namespace Worsen.Presentation.ProgressionUI
         {
             switch (phase)
             {
-                case ProgressionPhase.ChooseThreat: return "CHOOSE WHO FOLLOWS";
-                case ProgressionPhase.ChooseCurse: return "CHOOSE YOUR CURSE";
-                case ProgressionPhase.Generating: return "THE NEXT ROOM STIRS";
-                case ProgressionPhase.Shop: return "A MOMENT OF SHELTER";
-                case ProgressionPhase.Ended: return "THE EXPEDITION ENDS";
-                case ProgressionPhase.GenerationFailed: return "THE WAY IS CLOSED";
+                case ProgressionPhase.ChooseThreat: return "CHOOSE A THREAT";
+                case ProgressionPhase.ChooseCurse: return "CHOOSE A CURSE";
+                case ProgressionPhase.Generating: return "LOADING";
+                case ProgressionPhase.Shop: return "SHOP";
+                case ProgressionPhase.Ended: return "RUN OVER";
+                case ProgressionPhase.GenerationFailed: return "GENERATION FAILED";
                 default: return "";
             }
         }
 
-        private static string Subtitle(ProgressionPhase phase)
-        {
-            switch (phase)
-            {
-                case ProgressionPhase.ChooseThreat: return "Choose one threat. It remains with this expedition.";
-                case ProgressionPhase.ChooseCurse: return "Each curse changes a specific rule. Only eligible choices below their stack cap are offered.";
-                case ProgressionPhase.Generating: return "Preparing the next room...";
-                case ProgressionPhase.Shop: return "Upgrades stay with you. Consumables occupy slots; full inventory requires a replacement choice.";
-                case ProgressionPhase.Ended: return "Your retained choices are shown below.";
-                case ProgressionPhase.GenerationFailed: return "The room could not be prepared. Start again to begin a fresh expedition.";
-                default: return "";
-            }
-        }
-
+        private static string Count(int value, string noun) => Number(value) + " " + noun + (value == 1 ? "" : "S");
         private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
         private static string Health(float value) => Finite(value) ? value.ToString("0", CultureInfo.InvariantCulture) : "—";
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

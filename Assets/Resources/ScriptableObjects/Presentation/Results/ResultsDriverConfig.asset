@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: ResultsDriverConfig
   m_EditorClassIdentifier: Worsen.Presentation::Worsen.Presentation.Results.ResultsDriverConfig
   _fontSize: 20
-  _panelWidth: 460
+  _panelWidth: 600

@@ -51,7 +51,7 @@ namespace Worsen.Presentation.Results
         private Label _title, _runTime, _cakes, _goldenCakes, _chases, _escapes, _chaseTime, _endReason;
         private Button _restart, _returnTitle;
         private VisualElement _metrics;
-        private Label _kicker, _hint;
+        private Label _hint;
         private TextField _seedInput;
         private Label _cause, _killer, _grabs, _exitTime, _depth, _seed, _best, _seedError;
 
@@ -167,7 +167,7 @@ namespace Worsen.Presentation.Results
             _restart = root.Q<Button>("restart-button");
             _returnTitle = root.Q<Button>("return-title-button");
             _metrics = root.Q<VisualElement>("results-metrics");
-            _kicker = root.Q<Label>("results-kicker"); _hint = root.Q<Label>("restart-hint");
+            _hint = root.Q<Label>("restart-hint");
             _cause = root.Q<Label>("death-cause"); _killer = root.Q<Label>("killer");
             _grabs = root.Q<Label>("grabs-escaped"); _exitTime = root.Q<Label>("exit-to-escape");
             _depth = root.Q<Label>("depth-reached"); _seed = root.Q<Label>("run-seed"); _best = root.Q<Label>("best-depth");
@@ -201,8 +201,8 @@ namespace Worsen.Presentation.Results
             _metrics.style.display = _state.NoFloor ? DisplayStyle.None : DisplayStyle.Flex;
             _returnTitle.style.display = _state.NoFloor ? DisplayStyle.Flex : DisplayStyle.None;
             _returnTitle.SetEnabled(_state.Visible && !_state.RestartIssued);
-            _kicker.text = _state.NoFloor ? "THE NIGHT NEVER BEGAN" : "AFTER THE NIGHT";
-            _hint.text = _state.NoFloor ? "RETRY WITH A NEW SEED OR RETURN TO TITLE" : "ENTER / SPACE  ·  RUN AGAIN";
+            // The no-floor buttons already name both actions; only the normal summary keeps a key hint.
+            _hint.style.display = _state.NoFloor ? DisplayStyle.None : DisplayStyle.Flex;
             _runTime.text = _state.RunTime;
             _cakes.text = _state.Cakes;
             _goldenCakes.text = _state.GoldenCakes;
@@ -273,7 +273,7 @@ namespace Worsen.Presentation.Results
             _boundRoot = null;
             _overlay = null;
             _restart = null;
-            _returnTitle = null; _metrics = null; _kicker = _hint = null;
+            _returnTitle = null; _metrics = null; _hint = null;
             _seedInput = null;
             _cause = _killer = _grabs = _exitTime = _depth = _seed = _best = _seedError = null;
             _title = _runTime = _cakes = _goldenCakes = _chases = _escapes = _chaseTime = _endReason = null;
