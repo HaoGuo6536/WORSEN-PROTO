@@ -10,7 +10,7 @@
 //   Editor tool (§11 tests) Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
-//   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Keep continuous phase progress and separated front-aligned hand roots.
 //   - Reject L-shaped notches and internal seams while retaining rectangle probes exactly.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
@@ -86,6 +86,21 @@ namespace Worsen.Tests.Floor
             Assert.That(_presenter.HandReveal(_room,outer,0.3f),Is.GreaterThan(0f));
             Assert.That(_presenter.HandReveal(_room,center,0.3f),Is.Zero);
             Assert.That(_presenter.HandReveal(_room,center,1f),Is.EqualTo(1f).Within(0.0001f));
+        }
+        [TestCase(1, 0)] [TestCase(-1, 0)] [TestCase(0, 1)] [TestCase(0, -1)]
+        public void ProjectedGridHandsRemainDistinctOnTheSameFront(int x, int z)
+        {
+            var positions = new System.Collections.Generic.HashSet<Vector3>();
+            int axis = x != 0 ? 0 : 2;
+            for (int i = 0; i < 25; i++)
+            {
+                Vector3 origin = _presenter.GridPoint(_room, i, 5, .25f);
+                Vector3 root = _presenter.FrontHandRoot(_room, origin, new Vector3(x, 0f, z), 1f, 5);
+                Assert.That(root[axis], Is.EqualTo(1f));
+                for (int coordinate = 0; coordinate < 3; coordinate++)
+                    Assert.That(root[coordinate], Is.InRange(_room.min[coordinate], _room.max[coordinate]));
+                Assert.That(positions.Add(root), Is.True, "Projecting the grid must not stack its rows.");
+            }
         }
         [Test] public void BoundaryReachesDoorwayAndTracksOutwardDirectionWithoutVisualHands()
         {

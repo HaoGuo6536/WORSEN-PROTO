@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Fog.
 // KEY RESPONSIBILITIES:
-//   - Check progress, readability defaults, theme colour and floor replacement.
+//   - Check that the doorway face waits for full consumption, theme colour and replacement.
 //   - Check shader reference failure, disabled ownership and private-resource teardown.
 // DEPENDENCIES:
 //   - NUnit, Core, Fog and UnityEditor asset lookup with native Unity rendering objects.
@@ -64,6 +64,7 @@ namespace Worsen.Tests.Fog
                 driver.SetEnabled(false); Assert.That(sheet.gameObject.activeInHierarchy, Is.False);
                 driver.SetEnabled(true); driver.SetRoomProgress(1, .5f); driver.Flush();
                 Assert.That(material.GetColor("_HazeColor").a, Is.EqualTo(.11f));
+                Assert.That(sheet.gameObject.activeSelf, Is.False, "The room front, not an early doorway overlay, shows growth.");
                 driver.SetRooms(rooms, graph); driver.Flush();
                 Assert.That(sheet == null && mesh == null && material == null, Is.True);
                 Assert.That(root.GetComponentsInChildren<MeshRenderer>(true)[0].gameObject.activeSelf, Is.False);

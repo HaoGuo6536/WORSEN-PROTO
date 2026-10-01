@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Route theme optics before room construction and clear them on floor release.
 //   - Pair room and destruction subscriptions and reset on floor replacement.
+//   - Forward monotonic whole-room consumption, not resetting per-phase progress.
 // DEPENDENCIES:
 //   - Session Expedition publishes rooms; Domain Level supplies the Core graph;
 //     Domain Floor publishes destruction; Presentation Fog receives Core values.
@@ -57,6 +58,7 @@ namespace Worsen.Orchestrator
         private void OnFloorReleased() => _fog.ResetFloor();
         private void OnDestroy() => OnDisable();
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _fog.SetRooms(rooms, _level.ReadOnlyState.Graph);
-        private void OnDestruction(RoomDestructionSample sample) => _fog.SetRoomProgress(sample.RoomId, sample.Progress);
+        private void OnDestruction(RoomDestructionSample sample) => _fog.SetRoomProgress(sample.RoomId,
+            Mathf.Max(_fog.RoomProgress(sample.RoomId), FloorCollapseFrontUtility.Consumption(sample.Phase, sample.Progress)));
     }
 }

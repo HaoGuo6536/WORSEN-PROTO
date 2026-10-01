@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Sample Walkable guidance paths and report target-local fallback/held flags.
 //   - Own cake/trap visuals, materials, lights and duplicate-safe optional rewards.
-//   - Relay pickup/trap contacts and apply explicit visual/audio commands.
+//   - Relay pickup/trap contacts and emit collapse presentation cue facts to its Manager.
 //   - Apply staged destruction and supply player observations/time to cosmetic hands.
 //   - Operate normal exit opening, crossing contacts and continuous progress.
 // DEPENDENCIES:
@@ -46,13 +46,14 @@ namespace Worsen.Domain.Floor
         public event Action<Collider, int> TrapContact;
 
         public event Action<Collider> ExitContact;
+        public event Action<CueId, Vector3> CollapseCue;
 
         public int OwnedPickupCount => _state.Pickups.Count;
         public int OwnedRoomCount => _state.Rooms.Count;
         public float OpeningProgress(bool open) => _state.ExitDoor != null ? _state.ExitDoor.OpeningProgress : open ? 1f : 0f;
 
         public void Initialize(LevelGraph graph, IReadOnlyList<LevelAnchor> anchors, Func<Collider, EntityId> resolveIdentity = null,
-            float boundaryReach = 0f, IReadOnlyList<FloorTrapSpawn> traps = null)
+            float boundaryReach = 0f, IReadOnlyList<FloorTrapSpawn> traps = null, FloorCollapseHazardConfig hazard = null)
         {
             Teardown();
             if (_config == null) _config = Resources.Load<FloorDriverConfig>("ScriptableObjects/Domain/Floor/FloorDriverConfig");
@@ -73,7 +74,7 @@ namespace Worsen.Domain.Floor
             {
                 int cakes = 0;
                 foreach (var anchor in anchors) if (anchor.RoomId == room.Id) cakes++;
-                BuildRoom(room, resolveIdentity, boundaryReach, cakes);
+                BuildRoom(room, resolveIdentity, boundaryReach, cakes, graph.ExitPosition - room.Center, hazard);
             }
             foreach (var anchor in anchors) { _state.Anchors.Add(anchor.Id, anchor); BuildPickup(anchor, PickupKind.Cake); }
             if (traps != null && traps.Count > 0)
@@ -152,7 +153,13 @@ namespace Worsen.Domain.Floor
 
         public void ApplyRoomPhase(int roomId, RoomPhase phase)
         {
-            if (_state.Rooms.TryGetValue(roomId, out var room)) room.ApplyPhase(phase, _config.WarningColor, _config.ClosedColor);
+            if (!_state.Rooms.TryGetValue(roomId, out var room)) return;
+            bool changed = room.Phase != phase;
+            room.ApplyPhase(phase, _config.WarningColor, _config.ClosedColor);
+            if (!changed) return;
+            if (phase == RoomPhase.Tearing) CollapseCue?.Invoke(CueId.RoomTear, room.RoomBounds.center);
+            if (phase == RoomPhase.Encroaching) CollapseCue?.Invoke(CueId.MistAdvance, room.RoomBounds.center);
+            if (phase == RoomPhase.Closed) CollapseCue?.Invoke(CueId.RoomConsumed, room.RoomBounds.center);
         }
 
         public void TickWarnings(float elapsed)
@@ -164,6 +171,7 @@ namespace Worsen.Domain.Floor
         public void ApplyDestruction(RoomDestructionSample sample, float elapsed)
         {
             if (!_state.Rooms.TryGetValue(sample.RoomId, out var room)) return;
+            ApplyRoomPhase(sample.RoomId, sample.Phase);
             var cakes = new List<Vector3>();
             foreach (var pickup in _state.Pickups)
                 if (pickup != null && pickup.gameObject.activeSelf && _state.Anchors.TryGetValue(pickup.AnchorId, out var anchor) &&
@@ -171,7 +179,13 @@ namespace Worsen.Domain.Floor
             room.ApplyDestruction(sample, elapsed, cakes);
         }
         public void ApplyHandFact(CollapseHandFact fact)
-        { if (_state.Rooms.TryGetValue(fact.RoomId, out var room)) room.ApplyHandFact(fact); }
+        {
+            if (_state.Rooms.TryGetValue(fact.RoomId, out var room)) room.ApplyHandFact(fact);
+            if (fact.Kind == CollapseHandEventKind.Warning) CollapseCue?.Invoke(CueId.GrabWarning, fact.Position);
+            if (fact.Kind == CollapseHandEventKind.Grabbed) CollapseCue?.Invoke(CueId.GrabStart, fact.Position);
+            if (fact.Kind == CollapseHandEventKind.Hit) CollapseCue?.Invoke(CueId.GrabHit, fact.Position);
+            if (fact.Kind == CollapseHandEventKind.Escaped) CollapseCue?.Invoke(CueId.GrabEscape, fact.Position);
+        }
         public void PreviewCracks(int roomId)
         { if (_state.Rooms.TryGetValue(roomId, out var room)) room.PreviewCracks(); }
         public bool PickupAvailable(int anchorId)
@@ -360,7 +374,8 @@ namespace Worsen.Domain.Floor
             marker.transform.localScale = new Vector3(_config.ExitSize.x, _config.BlockerThickness, _config.BlockerThickness);
             marker.GetComponent<Renderer>().sharedMaterial = _state.ExitMaterial; Release(marker.GetComponent<Collider>());
         }
-        private void BuildRoom(LevelRoom room, Func<Collider, EntityId> resolveIdentity, float boundaryReach, int cakes)
+        private void BuildRoom(LevelRoom room, Func<Collider, EntityId> resolveIdentity, float boundaryReach, int cakes,
+            Vector3 towardExit, FloorCollapseHazardConfig hazard)
         {
             var root = new GameObject("Collapse Room " + room.Id); root.transform.SetParent(_state.Root.transform, false);
             root.transform.position = room.Center;
@@ -374,7 +389,8 @@ namespace Worsen.Domain.Floor
             var warning = warningRoot.AddComponent<FloorLumenGlow>();
             warning.Configure(_config.LumenRoomWarningPrefab, Mathf.Min(room.Cells[0].size.x, room.Cells[0].size.z) * 0.48f,
                 _config.WarningColor, _config.WarningIntensity, false);
-            roomVolume.Configure(room, _config, _state.BlockerMaterial, warning, resolveIdentity, boundaryReach, cakes); _state.Rooms.Add(room.Id, roomVolume);
+            roomVolume.Configure(room, _config, _state.BlockerMaterial, warning, resolveIdentity, boundaryReach, cakes,
+                towardExit, hazard); _state.Rooms.Add(room.Id, roomVolume);
         }
         private Material MakeMaterial(Color color)
         {

@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Retain cosmetic hand look, player observations and grip independently of hazards.
 //   - Retain the room-owned native Lumen warning effect.
-//   - Retain cell-local triggers and hand bounds without filling the room's bounding rectangle.
+//   - Retain cell-local triggers, advancing fog meshes and inward-only Closed seals.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Hold pooled query buffers until the owning volume is destroyed.
 // DEPENDENCIES:
@@ -34,6 +34,12 @@ namespace Worsen.Domain.Floor
         public RaycastHit[] QueryHits;
         public Collider[] QueryOverlaps;
         public readonly List<BoxCollider> Boundaries = new List<BoxCollider>();
+        public readonly List<BoxCollider> ClosedWalls = new List<BoxCollider>();
+        public readonly List<Transform> FogCells = new List<Transform>();
+        public Material FogMaterial;
+        public Vector3 FrontDirection = Vector3.right;
+        public float Consumption;
+        public float FrontExponent = 1f;
         public readonly List<Bounds> HandBounds = new List<Bounds>();
         public int RoomId;
         public RoomPhase Phase;

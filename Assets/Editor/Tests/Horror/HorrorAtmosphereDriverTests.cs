@@ -13,7 +13,7 @@
 //   - Check spotlight output and private dither parameters against unchanged shared assets.
 //   - Check camera, daylight, global render and prior Volume restoration and object cleanup.
 //   - Preserve existing scene identities, dirty flags, roots and render settings.
-//   - Keep near-fill on/off contrast and close-surface falloff independently tunable.
+//   - Keep a nonblack ambient/fill floor and visible ordered dither with every lamp off.
 //
 // DEPENDENCIES:
 //   - HorrorAtmosphereDriver; Unity Editor scene management; imported DitherFogVolume; NUnit.
@@ -182,6 +182,10 @@ namespace Worsen.Tests.Horror
             Assert.That(runtimeFog.curvedFog.value, Is.False);
             Assert.That(runtimeFog.fogStart.value, Is.EqualTo(0.45f));
             Assert.That(runtimeFog.intensity.value, Is.EqualTo(1f));
+            Assert.That(runtimeFog.fogColor.value.r, Is.GreaterThan(0f));
+            Assert.That(runtimeFog.fogOpacity.value, Is.EqualTo(.72f));
+            Assert.That(runtimeFog.ditheringMode.value, Is.EqualTo(DitheringModes.Bayer8x8));
+            Assert.That(runtimeFog.ditherScale.value, Is.EqualTo(2));
             Assert.That(_shared.TryGet(out DitherFogVolume originalFog), Is.True);
             Assert.That(originalFog.fogCurveStart.value, Is.EqualTo(0.21f));
             Assert.That(originalFog.fogCurveEnd.value, Is.EqualTo(0.75f));
@@ -274,6 +278,24 @@ namespace Worsen.Tests.Horror
         }
 
         private void Initialize() => _driver.Initialize(_config, _camera, _volume, new[] { _daylight });
+
+        [Test]
+        public void EveryLampOffStillHasCoolAmbientAndIndependentFill()
+        {
+            using (var data = new SerializedObject(_config))
+            {
+                data.FindProperty("_ambientColor").colorValue = Color.black;
+                data.FindProperty("_nearFillIntensity").floatValue = 0f;
+                data.FindProperty("_nearFillOffMultiplier").floatValue = 0f;
+                data.ApplyModifiedPropertiesWithoutUndo();
+            }
+            Initialize(); _driver.SetOwnershipEnabled(true); _driver.Apply(.06f, .3f, 0f, 0f, false);
+            Assert.That(_daylight.enabled, Is.False);
+            Assert.That(RenderSettings.ambientLight.r, Is.GreaterThanOrEqualTo(.09f));
+            Assert.That(RenderSettings.ambientLight.b, Is.GreaterThan(RenderSettings.ambientLight.r));
+            Assert.That(FindLight(LightType.Spot).gameObject.activeSelf, Is.False);
+            Assert.That(FindLight(LightType.Point).brightness, Is.EqualTo(.16f));
+        }
 
         [Test]
         public void ConeUpdatesNeverMutateAuthoredProfile()

@@ -8,7 +8,7 @@
 //   Sub-driver (§7e), owned by FogDriver · Presentation · Fog.
 // KEY RESPONSIBILITIES:
 //   - Build private doorway meshes from pure confined geometry.
-//   - Apply published progress and theme colour without modifying gameplay triggers.
+//   - Show the final doorway face only when the travelling room front has arrived.
 //   - Destroy every owned mesh, material and root on floor replacement.
 // DEPENDENCIES:
 //   - Core room facts, own Fog presenter/config/state and Unity rendering APIs.
@@ -87,7 +87,7 @@ namespace Worsen.Presentation.Fog
             foreach (var sheet in _sheets)
             {
                 float progress = state.Rooms.TryGetValue(sheet.Room, out var room) ? room.Progress : 0f;
-                sheet.Root.SetActive(state.Enabled && progress > 0f);
+                sheet.Root.SetActive(state.Enabled && progress >= 1f);
                 Color color = FogLookPresenter.Body(state.Look, config);
                 color.a = config.DoorwayOpacity * progress;
                 sheet.Material.SetColor("_HazeColor", color);
