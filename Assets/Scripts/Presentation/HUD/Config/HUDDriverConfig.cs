@@ -14,7 +14,7 @@
 //   - Distinguish Golden Sense and Exit Sense arrows using designer-owned colors.
 //   - Expose restoration, display limits and the vector interface palette and geometry.
 //   - Keep shared asset values read-only at runtime.
-//   - Size the white three-dimensional compass independently of inventory slots.
+//   - Tune flat-arrow turning and number clearance independently of inventory slots.
 //
 // DEPENDENCIES:
 //   - Unity ScriptableObject and value types only.
@@ -47,6 +47,10 @@ namespace Worsen.Presentation.HUD
         [SerializeField, Min(20f)] private float _slotSize = 32f;
         [SerializeField, Min(0f)] private float _slotGap = 8f;
         [SerializeField, Min(48f)] private float _compassSize = 84f;
+        [SerializeField, Min(1f)] private float _arrowTurnDegreesPerSecond = 360f;
+        [SerializeField, Min(0f)] private float _counterArrowGap = 4f;
+        public float ArrowTurnDegreesPerSecond => _arrowTurnDegreesPerSecond;
+        public float CounterArrowGap => _counterArrowGap;
         [SerializeField] private Color _goldenSenseColor = new Color(1f, 0.75f, 0.15f, 1f);
         [SerializeField] private Color _exitSenseColor = new Color(0.3f, 0.85f, 1f, 1f);
         public Color ExitSenseColor => _exitSenseColor;

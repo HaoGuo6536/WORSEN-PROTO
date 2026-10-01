@@ -19,6 +19,7 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Passive per-entity data. PlayerController.Reset replaces every value when a pooled life begins.
+//   Crouched is a legacy read-only name for Slide's reduced capsule, never a held posture.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -83,7 +84,7 @@ namespace Worsen.Domain.Player
         public InventorySnapshot Inventory { get; set; }
         public Vector2 HeadLookDelta { get; set; }
         public bool Grounded { get; set; }
-        public bool Crouched { get; set; }
+        public bool Crouched => MovementState == MovementState.Slide;
         public bool IsSprinting { get; set; }
         public float JumpBufferRemaining { get; set; }
         public bool VaultAttemptResolvedForPress { get; set; }

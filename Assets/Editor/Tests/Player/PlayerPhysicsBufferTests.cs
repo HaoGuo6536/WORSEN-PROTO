@@ -49,6 +49,7 @@ namespace Worsen.Tests.Player
         [TearDown]
         public void TearDown()
         {
+            if (driver != null) driver.Teardown();
             if (actor != null) Object.DestroyImmediate(actor);
             if (root != null) Object.DestroyImmediate(root);
             if (config != null) Object.DestroyImmediate(config);
@@ -69,12 +70,13 @@ namespace Worsen.Tests.Player
                 Physics.RaycastAll(from, Vector3.forward, distance, config.CollisionMask, QueryTriggerInteraction.Ignore);
             var expected = legacy.Where(hit => !hit.collider.transform.IsChildOf(actor.transform)).OrderBy(hit => hit.distance).First();
             LogAssert.Expect(LogType.Warning, new Regex("^Player physics query buffer saturated; grew from " + capacity + " to [0-9]+ and retrying[.]$"));
-            object[] args = capsule ? new object[] { origin, config.Height, Vector3.forward, distance, default(RaycastHit) } :
+            // Ordinary movement casts retain all contacts; wall-only filtering is opt-in.
+            object[] args = capsule ? new object[] { origin, config.Height, Vector3.forward, distance, default(RaycastHit), false } :
                 new object[] { from, Vector3.forward, distance, default(RaycastHit) };
             var method = typeof(PlayerDriver).GetMethod(capsule ? "Cast" : "Ray", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(method.Invoke(driver, args), Is.True);
             Assert.That(state.QueryHits.Length, Is.GreaterThan(capacity));
-            var actual = (RaycastHit)args[args.Length - 1];
+            var actual = (RaycastHit)args[capsule ? 4 : 3];
             Assert.That(actual.collider, Is.SameAs(expected.collider));
             Assert.That(actual.distance, Is.EqualTo(expected.distance).Within(.0001f));
             var buffer = state.QueryHits;

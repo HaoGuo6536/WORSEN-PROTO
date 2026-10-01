@@ -2,14 +2,14 @@
 // MannequinModuleManager.cs
 // ============================================================================
 // PURPOSE:
-//   Registers Mannequin observation rules and forwards its light-safety inputs.
+//   Registers the light-independent Mannequin observation rules.
 //   The distinctive accepted catch is published only after the shared catch gate,
 //   while ordinary module facts keep their original end-of-tick ordering.
 // ARCHITECTURAL ROLE:
 //   Manager (§1), Entity system facet · Domain · Hunter Mannequin.
 // KEY RESPONSIBILITIES:
 //   - Register rules and supply authored observation height.
-//   - Forward effects/afterglow and publish light and accepted-catch facts.
+//   - Publish silence and accepted-catch facts; retain inert legacy light entry points.
 // DEPENDENCIES:
 //   - Local Mannequin rules/config, parent Hunter contracts and Core facts.
 // USAGE NOTES:

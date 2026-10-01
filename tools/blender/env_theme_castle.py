@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Build original low-poly masonry, pointed openings, vaults and furnishings.
 #   - Export metre-scale pieces with stable IDs, materials and geometry digests.
-#   - Author grid/curved rooms, supported dressing and centred end-cap sockets.
+#   - Author grid/curved rooms, supported dressing, end caps and vault shortcuts.
 #   - Assemble exactly the manifest placements and render review evidence.
 #   - Render reusable front/back door inspection scenes for all theme generators.
 # DEPENDENCIES: Blender 5.2 bpy/bmesh/mathutils, bundled NumPy, Python stdlib.
@@ -16,7 +16,7 @@
 #   Blender --background --factory-startup --python-exit-code 1 --python FILE
 #   -- [--skip-previews]. Outputs only Castle art and Logs in this worktree.
 #   Blender +Z -> Unity +Y; Blender +Y -> Unity -Z. Seed is explicit.
-#   No runtime behaviour, collision or Unity light is authored by this script.
+#   Traversal metadata requests runtime collision/tagging; no Unity API is used.
 # ============================================================================
 import argparse
 import hashlib
@@ -1113,14 +1113,23 @@ def main():
         path.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'Kit/CastleKit.blend'))
     materials()
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from env_theme_vaults import PIECES, build_vault, add_vaults
+    EXTRA[PIECES['castle']] = 'prop'
     objects, rows = {}, []
     for piece, kind in dict(COMMON, **EXTRA).items():
-        obj = prop(piece) if kind == 'prop' else architecture(piece)
+        if piece == PIECES['castle']:
+            mesh = MasonMesh(piece)
+            build_vault('castle', mesh)
+            obj = mesh.finish(centered=True)
+        else:
+            obj = prop(piece) if kind == 'prop' else architecture(piece)
         objects[piece] = obj
         rows.append(export(obj, piece, kind))
     kit = {'theme': 'castle', 'wallHeight': HEIGHT, 'paletteSrgb': PALETTE,
            'lightColorSrgb': '#ffb347', 'pieces': rows}
     rooms = catalogue()
+    add_vaults(rooms['templates'], rows, 'castle')
     for path, value in ((ART/'Kit/CastleKit.manifest.json', kit), (ART/'Rooms/CastleRooms.manifest.json', rooms)):
         path.write_text(json.dumps(value, indent=2)+'\n', encoding='utf-8', newline='\n')
         print('MANIFEST SHA256', path.name, hashlib.sha256(path.read_bytes()).hexdigest())

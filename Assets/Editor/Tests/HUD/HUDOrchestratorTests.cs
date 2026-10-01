@@ -2,7 +2,7 @@
 // HUDOrchestratorTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies authoritative floor-count routing without rendering a document.
+//   Verifies authoritative floor-count routing into remaining numbers without rendering.
 //   The real Managers and Drivers retain routed values in their presentation state.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · HUD routing.
@@ -64,18 +64,18 @@ namespace Worsen.Tests.HUD
         {
             Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(3, 5, 7, ExitState.Locked, false, Vector3.zero,
                 totalCakes: 20, totalGoldenCakes: 10, hiddenCount: true));
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 7 / 10"));
-            Assert.That(_state.CountText, Is.EqualTo("Cakes: 3 / 20"));
+            Assert.That(_state.GoldenText, Is.EqualTo("3"));
+            Assert.That(_state.CountText, Is.EqualTo("17"));
             Assert.That(_state.HiddenCount, Is.True);
             Publish(_run, "EmptyItemSlotsChanged", 1);
             Assert.That(_state.DisplayedSlots, Is.Zero, "Empty capacity is not a held item.");
             Publish(_run, "CaptureStarted", default(RunCaptureMetadata));
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 0 / 0"));
+            Assert.That(_state.GoldenText, Is.EqualTo("0"));
             Assert.That(_state.HiddenCount, Is.False);
             Assert.That(_state.DisplayedSlots, Is.Zero);
             Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(1, 5, 2, ExitState.Locked, false, Vector3.zero,
                 totalCakes: 12, totalGoldenCakes: 6));
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 2 / 6"));
+            Assert.That(_state.GoldenText, Is.EqualTo("4"));
         }
         [Test]
         public void RepeatedEnableAndDisableLeaveNoDuplicateOrStaleSubscribers()
@@ -92,14 +92,14 @@ namespace Worsen.Tests.HUD
             Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(2, 5, 1, ExitState.Locked, false, Vector3.zero,
                 totalCakes: 8, totalGoldenCakes: 4, hiddenCount: true));
             Assert.That(_state.HiddenCount, Is.True);
-            Assert.That(_state.CountText, Is.EqualTo("Cakes: 2 / 8"), "Hiding must not corrupt the retained count.");
-            Assert.That(_state.GoldenText, Is.EqualTo("Golden: 1 / 4"));
+            Assert.That(_state.CountText, Is.EqualTo("6"), "Hiding must not corrupt the retained count.");
+            Assert.That(_state.GoldenText, Is.EqualTo("3"));
             Publish(_run, "CaptureStarted", default(RunCaptureMetadata));
             Assert.That(_state.HiddenCount, Is.False);
             Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(0, 5, 0, ExitState.Locked, false, Vector3.zero,
                 totalCakes: 10, totalGoldenCakes: 5));
             Assert.That(_state.HiddenCount, Is.False);
-            Assert.That(_state.CountText, Is.EqualTo("Cakes: 0 / 10"));
+            Assert.That(_state.CountText, Is.EqualTo("10"));
         }
         private T Component<T>() where T : Component
         {

@@ -598,6 +598,26 @@
         "hospital_stainless"
       ],
       "geometrySha256": "41abf0068db399c5982b056c13b4647f2563702a779e3739fb1aa479c5e45f62"
+    },
+    {
+      "id": "prop_vault_partition",
+      "file": "Hospital_prop_vault_partition.fbx",
+      "kind": "prop",
+      "size": [
+        1.2,
+        0.9,
+        0.5
+      ],
+      "triangles": 60,
+      "materials": [
+        "hospital_rubber",
+        "hospital_stainless",
+        "hospital_tile",
+        "hospital_vinyl"
+      ],
+      "geometrySha256": "8ad2e4880881a7dcedba4427a7735b479668255cc3a547665b568b389dba1f3d",
+      "traversal": "vault",
+      "collision": true
     }
   ]
 }

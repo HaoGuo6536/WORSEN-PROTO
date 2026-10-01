@@ -11,11 +11,14 @@
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Reuse complete physics query buffers and diagnose missing fallback shader wiring once.
+//   - Leave other Hunters' bodies out of attack queries; walls and targets still stop them.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
 // USAGE NOTES:
 //   Scene-owned, no independent simulation loop. Teardown destroys only owned transient effects.
+//   Hunters ignore each other's bodies (owner, 2026-10-01): the HunterBody layer is removed
+//   from the attack mask, so warnings, projectiles and spikes pass through other Hunters.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -29,6 +32,7 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterAttackDriverConfig _config;
         private HunterAttackDriverState _state;
         private readonly HunterAttackPresenter _presenter = new HunterAttackPresenter();
+        private readonly HunterBodyPresenter _bodies = new HunterBodyPresenter();
         public event Action<Collider, int> OnContact;
         public event Action<int> OnMiss;
         public event Action<HunterFeedbackEvent> OnFeedback;
@@ -38,7 +42,7 @@ namespace Worsen.Domain.Hunter
             _state = new HunterAttackDriverState {
                 QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64),
                 QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64),
-                CollisionMask = _config != null ? _config.CollisionMask : ~0 };
+                CollisionMask = _bodies.WithoutLayer(_config != null ? _config.CollisionMask : ~0, LayerMask.NameToLayer("HunterBody")) };
         }
         public void ConfigureFeedback(EntityId hunter, string archetypeKey)
         { if (_state != null) { _state.Hunter = hunter; _state.ArchetypeKey = archetypeKey; } }

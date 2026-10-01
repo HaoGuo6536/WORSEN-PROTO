@@ -561,7 +561,9 @@ namespace Worsen.Tests.Chase
                         return;
                     }
                     Assert.That(hudExtra.style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                    Assert.That(hudPanel.style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                    // Owner playtest: the cake number rides above the guidance arrow. TagArena
+                    // publishes no Floor guidance, so the counter stays hidden outside a chase.
+                    Assert.That(hudPanel.style.display.value, Is.EqualTo(DisplayStyle.None));
                     if (feedbackRestored)
                     { Assert.That(hudExtra.style.opacity.value, Is.EqualTo(1f)); return; }
                     float dt = Time.unscaledDeltaTime;

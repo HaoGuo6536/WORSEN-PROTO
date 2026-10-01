@@ -24,6 +24,7 @@
 //   Scene-owned. This sub-driver exclusively owns RenderSettings, supplied daylight enable flags,
 //   and the supplied camera's clear mode/background while ownership is active.
 //   The private Volume profile/components and light rig are destroyed; shared assets are never edited.
+//   Teardown explicitly clears native layers even if a player was already disabled.
 //   Camera depth handles visible surfaces; static obstruction clamps are conservative approximations,
 //   not physical shadows. Gameplay visibility remains independently authoritative.
 //
@@ -336,6 +337,18 @@ namespace Worsen.Presentation.Horror
             _state.AtmosphereCaptured = false;
         }
 
+        public void ResetFloor()
+        {
+            if (_state == null) return;
+            // Scene teardown can destroy the camera first: release the rig rather than rebuild it.
+            if (_camera == null) { Teardown(); return; }
+            bool owned = _state.AtmosphereCaptured;
+            // Initialize releases the detached rig, afterimage and private profiles,
+            // then builds fresh camera-local lights without carrying the old aim forward.
+            Initialize(_config, _camera, _volume, _daylights);
+            SetOwnershipEnabled(owned);
+        }
+
         public void Teardown()
         {
             if (_state == null) return;
@@ -363,6 +376,17 @@ namespace Worsen.Presentation.Horror
         private static void DestroyOwned(Object target)
         {
             if (target == null) return;
+            if (target is GameObject root)
+            {
+                foreach (var player in root.GetComponentsInChildren<LumenEffectPlayer>(true))
+                {
+                    if (player == null) continue;
+                    player.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
+                    player.enabled = false;
+                    player.ClearEffect();
+                }
+                root.SetActive(false);
+            }
             if (Application.isPlaying) Destroy(target);
             else DestroyImmediate(target);
         }

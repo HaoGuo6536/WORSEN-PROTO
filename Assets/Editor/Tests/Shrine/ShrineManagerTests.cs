@@ -36,7 +36,8 @@ namespace Worsen.Tests.Shrine
             {
                 var placements = manager.Assemble(new[] { new ShrineSite(Vector3.zero, 7) }, 3, config, visual, new System.Random(3));
                 Assert.That(placements.Count, Is.EqualTo(1));
-                Assert.That(root.GetComponentsInChildren<TextMesh>().Length, Is.EqualTo(1));
+                // Owner playtest: no world text; each shrine is a primitive silhouette.
+                Assert.That(root.GetComponentsInChildren<TextMesh>(), Is.Empty); Assert.That(root.GetComponentsInChildren<Renderer>(), Is.Not.Empty);
                 foreach (var collider in root.GetComponentsInChildren<Collider>()) Assert.That(collider.enabled, Is.False);
                 var position = interact ? Vector3.right * 1.5f : Vector3.zero;
                 var pressed = interact ? InputButtons.Interact : InputButtons.None;
@@ -45,7 +46,7 @@ namespace Worsen.Tests.Shrine
                 Assert.That(manager.Sample(position, Vector3.forward, pressed, 3), Is.False);
                 Assert.That(facts.Count, Is.EqualTo(1)); Assert.That(facts[0].RoomId, Is.EqualTo(7));
                 Assert.That(facts[0].Kind, Is.EqualTo(placements[0].Kind)); Assert.That(facts[0].Tick, Is.EqualTo(2));
-                manager.Teardown(); Assert.That(root.GetComponentsInChildren<TextMesh>(), Is.Empty);
+                manager.Teardown(); Assert.That(root.GetComponentsInChildren<Renderer>(), Is.Empty);
             }
             finally
             {

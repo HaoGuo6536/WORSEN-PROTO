@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
-//   - Retain the cosmetic hand look independently of hazard geometry and phase.
+//   - Retain cosmetic hand look, player observations and grip independently of hazards.
 //   - Retain the room-owned native Lumen warning effect.
 //   - Retain cell-local triggers and hand bounds without filling the room's bounding rectangle.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
@@ -41,6 +41,9 @@ namespace Worsen.Domain.Floor
         public float Elapsed;
         public bool OptionalCracks;
         public string HandLook;
+        public Vector3? PlayerTarget;
+        public float GripWeight;
+        public readonly List<SkinnedMeshRenderer[]> HandSkins = new List<SkinnedMeshRenderer[]>();
         public FloorLumenGlow Warning;
 
         public float BoundaryReach;
@@ -48,9 +51,8 @@ namespace Worsen.Domain.Floor
         public readonly Dictionary<Collider, EntityId> Contacts = new Dictionary<Collider, EntityId>();
         public readonly List<Transform> Hands = new List<Transform>();
         public readonly List<Vector3> HandPositions = new List<Vector3>();
-        public readonly List<ParticleSystem> Mist = new List<ParticleSystem>();
+
         public readonly List<LineRenderer> Cracks = new List<LineRenderer>();
-        public readonly List<Material> OwnedMaterials = new List<Material>();
-        public readonly List<UnityEngine.Object> OwnedResources = new List<UnityEngine.Object>();
+
     }
 }

@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own document binding and the HUDVisualDriver lifetime.
 //   - Forward counters, floor hiding, inventory and shield to the pure Presenter.
-//   - Forward independent guidance and camera aim to presentation calculations.
+//   - Forward independent guidance and smooth bearings after the current camera aim.
 //   - Admit phantom counts only on a bound, enabled display.
 //   - Preserve supplied facts across document recreation and disable/enable.
 //
@@ -24,6 +24,7 @@
 //   Scene-owned through HUDManager; own HUDDriverConfig. No global side effects.
 //   Serialized UXML is retained for scene compatibility, but the vector tree is built in code.
 //   Only this Driver samples unscaled time and passes it to the pure Presenter.
+//   Execution order 200 follows HUD camera-aim routing at 100, so turning uses this frame's aim.
 //
 // ============================================================================
 
@@ -35,6 +36,7 @@ using Worsen.Core;
 namespace Worsen.Presentation.HUD
 {
     [RequireComponent(typeof(UIDocument))]
+    [DefaultExecutionOrder(200)]
     public sealed class HUDDriver : MonoBehaviour
     {
         [SerializeField] private UIDocument _document;
@@ -43,6 +45,7 @@ namespace Worsen.Presentation.HUD
         private HUDDriverConfig _config;
         private HUDDriverState _state;
         private HUDPresenter _presenter;
+        private readonly HUDGuidancePresenter _guidance = new HUDGuidancePresenter();
         private HUDVisualDriver _visual;
         private VisualElement _boundRoot;
         private bool _ownsVisual;
@@ -190,6 +193,7 @@ namespace Worsen.Presentation.HUD
         {
             if (_state == null || _config == null || _document == null) return;
             _presenter.Tick(_state, Time.unscaledDeltaTime, _config.RestoreSeconds);
+            _guidance.Tick(_state, Time.unscaledDeltaTime, _config.ArrowTurnDegreesPerSecond);
             if (!_document.isActiveAndEnabled) { HideAndUnbind(); return; }
             Apply();
         }

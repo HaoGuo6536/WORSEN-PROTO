@@ -2,7 +2,8 @@
 // HorrorCollapsePresenterTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies per-floor deep darkness without camera, render assets or gameplay ticks.
+//   Verifies readable collapse defaults and optional darkness without scene rendering.
+//   Retained curse modifiers continue to compose independently of collapse tuning.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Horror.
 // KEY RESPONSIBILITIES:
@@ -14,6 +15,7 @@
 //   Edit Mode; only a transient config is allocated and always destroyed.
 // ============================================================================
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Worsen.Core;
 using Worsen.Presentation.Horror;
@@ -46,6 +48,12 @@ namespace Worsen.Tests.Horror
         }
         [Test] public void FogAndTorchesDieMonotonicallyWithInjectedTimeAndComposeWithDarkerFloors()
         {
+            // Explicit opt-in preserves the smoothing/composition regression coverage;
+            // the owner-approved defaults are tested separately below.
+            var tuning = new SerializedObject(_config);
+            tuning.FindProperty("_collapsedFogNearMeters").floatValue = 10f;
+            tuning.FindProperty("_collapsedTorchCountMultiplier").floatValue = .4f;
+            tuning.ApplyModifiedPropertiesWithoutUndo();
             var effects = new ActiveEffects(new[] { new ActiveEffect(new EffectId("darker-floors"), EffectKind.Curse, 1) });
             new HorrorPresenter().SetActiveEffects(_state, _config, effects);
             float darker = _state.TorchCountMultiplier;
@@ -76,6 +84,17 @@ namespace Worsen.Tests.Horror
             Assert.That(HorrorCollapsePresenter.TorchMultiplier(_state, _config), Is.EqualTo(darker));
             new HorrorPresenter().ResetRound(_state);
             Assert.That(_state.CollapseRooms, Is.Empty); Assert.That(_state.HasCollapseFloor, Is.False);
+        }
+        [Test] public void DefaultCollapseDoesNotMoveFogCloserOrRemoveTorches()
+        {
+            Observe(1, RoomPhase.Closed); Observe(2, RoomPhase.Closed);
+            for (int i = 0; i < 8; i++)
+            {
+                HorrorCollapsePresenter.Tick(_state, _config, .25f);
+                Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.EqualTo(24f));
+                Assert.That(HorrorCollapsePresenter.TorchMultiplier(_state, _config), Is.EqualTo(1f));
+            }
+            Assert.That(_state.SmoothedCollapseFraction, Is.EqualTo(1f));
         }
         [Test] public void EmptyOrOnlyExitFloorStaysReadable()
         {

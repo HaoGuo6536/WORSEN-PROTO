@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Maintain observable sight, hearing, light and imperfect pursuit memory.
 //   - Coordinate route commitments and retreat with attack and habit decisions.
-//   - Sequence archetype rules, dormancy and temporary reactions.
+//   - Sequence archetypes, with an opt-in replay bypass of sensing/planning/reactions.
 //   - Route mutations and contact admission to their focused Controllers.
 //   - Publish bounded movement decisions and Core attack/feedback facts.
 // DEPENDENCIES:
@@ -31,6 +31,8 @@
 //   Connected-room entry approximates thresholds until Level supplies portal crossings.
 //   Reset is a floor reset and retains overrides; Manager.Initialize creates a new run/spawn state.
 //   Session supplies authoritative chase/catch state; raw contacts are not accepted catches.
+//   Kinematic replay has no lunge or catch hold. Contacts remain ordinary Player hit
+//   candidates; Player owns post-hit grace and the replay never changes its clock.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -58,6 +60,7 @@ namespace Worsen.Domain.Hunter
         private readonly HunterHabitController _habits;
         private readonly HunterRouteController _routes;
         public bool CatchActive => _state.CatchActive;
+        public IHunterKinematicReplayRules KinematicReplay => _archetype as IHunterKinematicReplayRules;
         public bool PursuitSuppressed => _state.PursuitSuppressed;
         public HunterPlayerView PlayerView => _state.PlayerView;
         private IHunterObservationRules ObservationRules => _archetype as IHunterObservationRules;
@@ -82,7 +85,7 @@ namespace Worsen.Domain.Hunter
         }
         public IReadOnlyList<Vector3> ReplayPath => _archetype.ReplayPath;
         private HunterArchetypeContext ArchetypeContext => new HunterArchetypeContext(_state, _player, _level,
-            _floor, ArchetypeDoors(), _interactables, _effects, _state.DeltaTime, _state.Tick,
+            _floor, KinematicReplay != null ? _closedDoors : ArchetypeDoors(), _interactables, _effects, _state.DeltaTime, _state.Tick,
             !_state.ReactionHeld && !_state.CatchActive && _state.LungePhase == HunterLungePhase.None,
             Effective(HunterTunable.ChaseSpeedMultiplier) * _state.RunSpeedMultiplier, _state.UnavailableRooms);
         private IReadOnlyDictionary<int, bool> ArchetypeDoors()
@@ -108,6 +111,7 @@ namespace Worsen.Domain.Hunter
         public bool ReactionHeld => _state.ReactionHeld;
         public void ApplyStun(float seconds, float strength)
         {
+            if (KinematicReplay != null) return;
             if (!Finite(seconds) || !Finite(strength) || seconds <= 0f || strength <= 0f) return;
             // Full strength freezes; weaker hits are proportionally shorter flinches.
             _state.StunRemaining = Mathf.Max(_state.StunRemaining, seconds * Mathf.Clamp01(strength));
@@ -115,6 +119,7 @@ namespace Worsen.Domain.Hunter
         }
         public void ApplySlip(float seconds)
         {
+            if (KinematicReplay != null) return;
             if (!Finite(seconds) || seconds <= 0f) return;
             _state.SlipRemaining = Mathf.Max(_state.SlipRemaining, seconds);
             CancelReactionAttack();
@@ -140,6 +145,7 @@ namespace Worsen.Domain.Hunter
         }
         public bool BlockJammedPath(IReadOnlyList<Vector3> path, float dt, Vector3? intendedTarget = null)
         {
+            if (KinematicReplay != null) return false;
             if (!Finite(dt) || dt <= 0f || _state.CatchActive) return false;
             var jams = _state.WorldView?.JammedDoors;
             bool retained = false;
@@ -244,10 +250,12 @@ namespace Worsen.Domain.Hunter
             _state.LoopDetected = false; _state.RecentRooms.Clear(); _state.DeltaTime = 0f;
             _state.DuplicateIndex = 0;
             _archetype.Reset(ArchetypeContext);
+            if (KinematicReplay != null) _state.IsActive = KinematicReplay.ReplayActive;
             if (_archetype.NeverLoses) { _state.LossSeconds = float.PositiveInfinity; _state.LossDistance = float.PositiveInfinity; }
             RefreshDormancy();
         }
-        public bool ShouldProbe(long tick) => !_state.CatchActive && (!_state.SensorInitialized || tick % Math.Max(1, _profile.SensorIntervalTicks) == 0);
+        public bool ShouldProbe(long tick) => KinematicReplay == null && !_state.CatchActive &&
+            (!_state.SensorInitialized || tick % Math.Max(1, _profile.SensorIntervalTicks) == 0);
         public void ClearBelief()
         {
             _state.PlayerVisible = false; _state.PlayerHeard = false; _state.HasHint = false;
@@ -278,6 +286,15 @@ namespace Worsen.Domain.Hunter
         public HunterTickResult Tick(SightProbe probe, HunterLightObservation light, float dt, long tick)
         {
             if (!(dt > 0f) || float.IsNaN(dt) || float.IsInfinity(dt)) return default;
+            if (KinematicReplay != null)
+            {
+                _state.Tick = tick; _state.DeltaTime = dt;
+                _archetype.Tick(ArchetypeContext);
+                _state.IsActive = KinematicReplay.ReplayActive;
+                _state.NavigationTarget = KinematicReplay.ReplayPose.Position;
+                return new HunterTickResult(_state.NavigationTarget, 0f, HunterLungePhase.None,
+                    Vector3.zero, false, false, !_state.IsActive);
+            }
             float beliefAgeBefore = BeliefAge(_state.DeltaTime, _state.Tick);
             _state.AttackBecameActive = false;
             _state.Tick = tick; _state.DeltaTime = dt;
@@ -441,7 +458,7 @@ namespace Worsen.Domain.Hunter
         public bool LookAtMemory => _state.IsDeliberating || _state.Action == HunterAction.SearchLastKnown || _state.SearchActive;
         public Vector3 LookTarget => _state.IsDeliberating ? _state.DeliberationTarget : _state.LastKnownPosition;
         public void SetChaseActive(bool active) => _habits.SetChaseActive(active);
-        public void SetCatchActive(bool active) => _habits.SetCatchActive(active);
+        public void SetCatchActive(bool active) { if (KinematicReplay == null) _habits.SetCatchActive(active); }
         public bool TryTakeHabit(out HunterHabitFact fact) => _habits.TryTakeHabit(out fact);
         private void BeginLossBeat() => _habits.BeginLossBeat();
         public float Effective(HunterTunable tunable) => _habits.Effective(tunable);
@@ -480,6 +497,7 @@ namespace Worsen.Domain.Hunter
         }
         public bool HearNoise(NoiseEvent noise, float transmission, bool floorWide = false)
         {
+            if (KinematicReplay != null) return false;
             if (!HunterHearingUtility.Allows(noise)) return false;
             if (!floorWide && (_archetype.OwnsPursuit || _state.PursuitSuppressed || noise.Tick > _state.Tick)) return false;
             if (!_state.IsActive || noise.Source == _state.Id || noise.Tick < 0 || _state.HeardNoises.Contains(noise) ||
@@ -621,7 +639,16 @@ namespace Worsen.Domain.Hunter
             { _state.LightReactionRemaining = 0f; _state.LightExposure = 0f; }
         }
         public bool TryAcceptContact(EntityId target, out HunterHit hit)
-            => _attack.TryAcceptContact(target, out hit);
+        {
+            if (KinematicReplay == null) return _attack.TryAcceptContact(target, out hit);
+            hit = default;
+            if (!_state.IsActive || !_player.IsAlive || PlayerRevivalProtected || target != _state.TargetId ||
+                !KinematicReplay.ContactReady) return false;
+            KinematicReplay.CommitContact();
+            hit = new HunterHit(_state.Id, target, _profile.LungeDamage, _state.Tick, _state.Position,
+                ChaseEndReason.Unknown, HitSeverity.Heavy, HitSource.Other);
+            return true;
+        }
         public bool ReceiveHint(HintPayload hint)
         {
             if (_archetype.OwnsPursuit) return false;

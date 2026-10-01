@@ -15,6 +15,7 @@
 //   - Player pure controller/state/profile, Core values and NUnit.
 // USAGE NOTES:
 //   Edit Mode; profile objects are temporary and never saved.
+//   Owner playtest 2026-09-30: only Slide can retain a low capsule during revival.
 // ============================================================================
 using NUnit.Framework;
 using System.Reflection;
@@ -69,7 +70,7 @@ namespace Worsen.Tests.Player
             player.Reset(new EntityId(1), Vector3.zero, 0f, 1f / rate);
             player.ApplyRunModifiers(0f, 120f, 1.2f);
             state.Position = new Vector3(20f, 4f, 30f); state.HeadingDegrees = 123f;
-            state.Tick = 900; state.Crouched = true; state.Grounded = true;
+            state.Tick = 900; state.MovementState = MovementState.Slide; state.Grounded = true;
             player.SetHealthRecoveryEffects(0f);
             Assert.That(player.ReviveInPlace(.25f), Is.True);
             Assert.That(state.Position, Is.EqualTo(new Vector3(20f, 4f, 30f)));

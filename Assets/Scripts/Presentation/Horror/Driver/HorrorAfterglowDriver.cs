@@ -8,7 +8,7 @@
 //   Sub-driver (§7e), owned by HorrorDriver · Presentation · Horror.
 // KEY RESPONSIBILITIES:
 //   - Render supplied dying-light envelopes without editing shared profiles.
-//   - Release transient lights on expiry, floor reset, disable and teardown.
+//   - Release native layers and player registrations on expiry, floor reset and teardown.
 // DEPENDENCIES:
 //   Core observations, own Horror config/presenters and wrapped Lumen engine API.
 // USAGE NOTES:
@@ -83,7 +83,18 @@ namespace Worsen.Presentation.Horror
         }
         private static void Release(Object target)
         {
-            if (target is GameObject owner) owner.SetActive(false);
+            if (target == null) return;
+            if (target is GameObject owner)
+            {
+                foreach (var player in owner.GetComponentsInChildren<LumenEffectPlayer>(true))
+                {
+                    if (player == null) continue;
+                    player.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
+                    player.enabled = false;
+                    player.ClearEffect();
+                }
+                owner.SetActive(false);
+            }
             if (Application.isPlaying) Destroy(target); else DestroyImmediate(target);
         }
         private void OnDisable() => Clear();
