@@ -583,6 +583,8 @@ def main():
     placement_regressions(rooms['templates'],lookup,{k:v['points'] for k,v in records.items()})
     from validate_env_theme_vaults import validate_vaults
     validate_vaults(rooms['templates'], lookup, {k:v['points'] for k,v in records.items()})
+    from validate_env_theme_furnished import validate_expansion
+    validate_expansion('school', lookup, {k:v['points'] for k,v in records.items()})
     check_door_previews('school', REPORT)
     validate_sources(rooms,records)
     previews=validate_previews(rooms)

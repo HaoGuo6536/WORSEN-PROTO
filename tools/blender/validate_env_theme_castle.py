@@ -1064,6 +1064,8 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from validate_env_theme_vaults import validate_vaults
     validate_vaults(rooms, {r['id']:r for r in rows}, {k:v['points'] for k,v in meshes.items()})
+    from validate_env_theme_furnished import validate_expansion
+    validate_expansion('castle', {r['id']:r for r in rows}, {k:v['points'] for k,v in meshes.items()}, not args.skip_previews)
     if not args.skip_previews:
         check_door_previews('castle', OUT)
     check_sources(rows,rooms)

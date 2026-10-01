@@ -539,6 +539,8 @@ def main():
     placement_regressions(rooms['templates'], rows, points)
     from validate_env_theme_vaults import validate_vaults
     vault_details = validate_vaults(rooms['templates'], rows, points)
+    from validate_env_theme_furnished import validate_expansion
+    validate_expansion('hospital', rows, points, not args.skip_previews)
     if not args.skip_previews:
         check_door_previews('hospital', OUT)
     sources(rows, rooms)

@@ -935,11 +935,16 @@ def main():
     materials()
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from env_theme_vaults import PIECES, build_vault, add_vaults
+    from env_kit_furnishings import ids, build_furnishing
+    from env_theme_furnished import publish_expansion
+    KINDS.update({pid: 'prop' for pid in ids('school')})
     KINDS[PIECES['school']] = 'prop'
     pieces,rows={},[]
     for name,kind in KINDS.items():
         builder=SchoolMesh(name)
-        if name == PIECES['school']:
+        if name in ids('school'):
+            build_furnishing('school', builder, name)
+        elif name == PIECES['school']:
             build_vault('school', builder)
         else:
             (furniture if kind=='prop' else architecture)(builder)
@@ -962,6 +967,7 @@ def main():
         render_door_reviews(pieces, KINDS, 'School', REVIEW)
     kit_sheet(pieces,not args.skip_previews)
     room_scenes(rooms,pieces,not args.skip_previews)
+    publish_expansion('school', globals(), pieces, rows, args.skip_previews)
     if not args.skip_previews:
         inputs = [Path(__file__),ART/'Kit/SchoolKit.manifest.json',ART/'Rooms/SchoolRooms.manifest.json']
         provenance = {str(path.relative_to(ROOT)).replace('\\','/'):

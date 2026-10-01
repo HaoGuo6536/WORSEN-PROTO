@@ -1115,10 +1115,17 @@ def main():
     materials()
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from env_theme_vaults import PIECES, build_vault, add_vaults
+    from env_kit_furnishings import ids, build_furnishing
+    from env_theme_furnished import publish_expansion
+    EXTRA.update({pid: 'prop' for pid in ids('castle')})
     EXTRA[PIECES['castle']] = 'prop'
     objects, rows = {}, []
     for piece, kind in dict(COMMON, **EXTRA).items():
-        if piece == PIECES['castle']:
+        if piece in ids('castle'):
+            mesh = MasonMesh(piece)
+            build_furnishing('castle', mesh, piece)
+            obj = mesh.finish(centered=True)
+        elif piece == PIECES['castle']:
             mesh = MasonMesh(piece)
             build_vault('castle', mesh)
             obj = mesh.finish(centered=True)
@@ -1136,6 +1143,7 @@ def main():
     if not args.skip_previews:
         render_door_reviews(objects, dict(COMMON, **EXTRA), 'Castle', OUTPUT)
     previews_and_sources(objects, rooms, args.skip_previews)
+    publish_expansion('castle', globals(), objects, rows, args.skip_previews)
     print(f'GENERATED Castle: {len(rows)} pieces; {len(rooms["templates"])} rooms')
 
 
