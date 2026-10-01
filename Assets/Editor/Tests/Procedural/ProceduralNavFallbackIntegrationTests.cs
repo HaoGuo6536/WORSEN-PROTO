@@ -12,7 +12,8 @@
 //   - NUnit, Domain.Procedural, synthetic manifest fixture and Unity objects.
 // USAGE NOTES:
 //   Coordinator-only native Edit Mode test; the offline runner reports environment.
-//   No assets, scenes, agent settings or catalogue files are changed.
+//   No assets, scenes, agent settings or catalogue files are changed. Owners are
+//   torn down explicitly; Edit Mode does not call OnDestroy on runtime components.
 // ============================================================================
 using System;
 using System.Linq;
@@ -47,7 +48,7 @@ namespace Worsen.Tests.Procedural
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(owner);
+                Release(owner);
                 UnityEngine.Object.DestroyImmediate(config); UnityEngine.Object.DestroyImmediate(driver);
             }
         }
@@ -118,11 +119,20 @@ namespace Worsen.Tests.Procedural
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(owner);
+                Release(owner);
                 foreach (var value in new UnityEngine.Object[] { config, organic, challenges, data, driver }) UnityEngine.Object.DestroyImmediate(value);
             }
         }
         private static void Set(object target, string name, object value)
             => target.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance).SetValue(target, value);
+
+        // Edit Mode never sends OnDestroy to these components: destroying the owner alone
+        // leaves its baked NavMesh registered for later fixtures that share this origin.
+        private static void Release(GameObject owner)
+        {
+            foreach (var manager in owner.GetComponents<ProceduralManager>()) manager.Teardown();
+            foreach (var driver in owner.GetComponents<ProceduralDriver>()) driver.Teardown();
+            UnityEngine.Object.DestroyImmediate(owner);
+        }
     }
 }

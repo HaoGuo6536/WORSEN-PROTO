@@ -146,7 +146,12 @@ namespace Worsen.Tests.Procedural
                 Assert.That(manager.LayoutManifest, Is.EqualTo(manifest));
                 Assert.That(manager.ShrineSites, Is.EqualTo(sites));
             }
-            finally { UnityEngine.Object.DestroyImmediate(owner); }
+            finally
+            {
+                // Edit Mode skips OnDestroy; release the bake so later fixtures at this origin start clean.
+                foreach (var manager in owner.GetComponents<ProceduralManager>()) manager.Teardown();
+                UnityEngine.Object.DestroyImmediate(owner);
+            }
         }
 
         [Test]
