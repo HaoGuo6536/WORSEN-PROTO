@@ -53,6 +53,7 @@ namespace Worsen.Tests.Editor
             { "HunterDriver._animation", "optional animation driver on legacy hunter prefabs" },
             { "HunterDriver._attacks", "HunterDriver resolves the sibling HunterAttackDriver or runs without one" },
             { "HunterProfile._motorOverride", "optional per-profile motor override; the shared motor config applies" },
+            { "HunterProfile._archetypeRules", "null selects the registered Default module (HunterArchetypeFactory); legacy profiles use it" },
             { "PlayerManager._effectConfig", "PlayerDriver.ResolveEffectConfig loads the Resources fallback" },
         };
 
