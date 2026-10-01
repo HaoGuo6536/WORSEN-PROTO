@@ -31,6 +31,7 @@ using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Audio;
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioSoundscapeDriverTests
     {
         [Test]

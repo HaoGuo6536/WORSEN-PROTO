@@ -33,6 +33,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Results
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunInterfaceRoutingTests
     {
         private readonly List<Object> _owned = new List<Object>();

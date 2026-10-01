@@ -30,6 +30,7 @@ using Worsen.Domain.Procedural;
 using Worsen.Domain.Player;
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralCastlePresenterTests
     {
         private ProceduralConfig _config;

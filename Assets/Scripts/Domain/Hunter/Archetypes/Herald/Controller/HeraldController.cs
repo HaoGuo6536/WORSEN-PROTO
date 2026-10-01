@@ -8,10 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
+//   - Hand out a read-only state view without exposing mutable runtime collections.
 //   - Alternate fixed chase files with injected random pitch and spacing.
 //   - Keep attack pitch fixed and publish deafen/Deaf Landing intent on radius hits.
 // DEPENDENCIES:
-//   - Own config/state, Core facts and Hunter-local independent attack interface.
+//   - Own config/state, Core facts and parent Hunter neutral/independent attack contracts.
 // USAGE NOTES:
 //   Tick captures context; ResolveAfterSensing runs once after shared Hunter.Tick,
 //   so discovery/loss use this tick's sight. A warned scream commits even if sight
@@ -21,11 +22,10 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
-using Worsen.Domain.Hunter.Archetypes.Blinder;
+
 namespace Worsen.Domain.Hunter.Archetypes.Herald
 {
-    public sealed class HeraldController : DefaultHunterController, IHunterIndependentAttackRules
+    public sealed class HeraldController : HunterArchetypeController, IHunterIndependentAttackRules
     {
         public static readonly EffectId LongerDeafness = new EffectId("herald-longer-deafness");
         public static readonly EffectId WiderScream = new EffectId("herald-wider-scream");
@@ -42,6 +42,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Herald
         public HeraldController(HeraldBehaviorState state, HeraldConfig config, System.Random random)
         { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config));
             _random = random ?? throw new ArgumentNullException(nameof(random)); }
+        public IReadOnlyHeraldState ReadOnlyState => _state;
         public bool AllowSharedAttack => false;
         public bool Hold => _state.Warning;
         public long LastTick => _state.LastTick;

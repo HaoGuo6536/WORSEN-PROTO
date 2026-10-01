@@ -7,18 +7,17 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
-//   - Scale the nearest eligible lit-torch budget, never reviving unlit or destroyed sockets.
-//   - Keep decoration above running lanes and away from door apertures.
-//   - Select the nearest effects under fixed budgets and preserve a readable flame minimum.
-//   - Compute local flame falloff and bounded chalk crosses with room ownership.
-//   - Apply default-off Wick and Darker Floors without bypassing destruction or light budgets.
-//   - Match Level light facts to exact room/socket positions and preserve destruction gating.
-//   - Place multi-cell dressing only inside occupied cells and on exposed walls, never seams.
+//   - Budget eligible lights with protected exit priority and destruction gating.
+//   - Admit dressing on occupied geometry, including supplied curved shell boundaries.
+//   - Preserve exact authored lights and mirrored low-ceiling corridor sockets.
+//   - Compute bounded flicker, curse falloff and room-owned chalk placement.
+//   - Fit imported decoration without blocking running lanes or door apertures.
 // DEPENDENCIES:
 //   - Its own definitions/state, Core interactable snapshots and Unity value math.
 // USAGE NOTES:
 //   Room bounds start at the walking surface, not the structural foundation.
 //   Time is explicit and cosmetic variation never consumes the game's random stream.
+//   Exit lights retain ordinary range/cap culling; priority prevents collapse-density starvation.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,7 +33,7 @@ namespace Worsen.Presentation.Environment
             for (int i = 0; i < state.Flames.Count; i++)
             {
                 var flame = state.Flames[i];
-                if (flame.Moon || flame.Exit || flame.RoomId != light.RoomId || !flame.SocketPosition.Equals(light.Position)) continue;
+                if (flame.Moon || IsExitRoomLight(state, flame) || flame.RoomId != light.RoomId || !flame.SocketPosition.Equals(light.Position)) continue;
                 flame.Lit = light.Value == InteractableStateValue.Lit;
                 state.Available[i] = flame.Lit && flame.Destruction < 1f;
                 return true;
@@ -87,8 +86,18 @@ namespace Worsen.Presentation.Environment
         }
 
         public static EnvironmentSlot[] BuildDressing(int roomId, Bounds bounds, bool openSky, bool refuge,
-            Vector3[] portals, Bounds[] reserved = null, IReadOnlyList<Bounds> cells = null)
+            Vector3[] portals, Bounds[] reserved = null, IReadOnlyList<Bounds> cells = null,
+            IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
         {
+            if (boundary != null || lightSockets != null)
+            {
+                var admitted = new List<EnvironmentSlot>();
+                foreach (var slot in BuildDressing(roomId, bounds, openSky, refuge, portals, reserved, cells))
+                    if ((!slot.Torch || lightSockets == null) && FitsBoundary(slot, boundary)) admitted.Add(slot);
+                if (lightSockets != null)
+                    foreach (var point in lightSockets) admitted.Add(new EnvironmentSlot(point, 0f, true));
+                return admitted.ToArray();
+            }
             if (cells != null && cells.Count > 1)
             {
                 var dressing = new List<EnvironmentSlot>();
@@ -188,7 +197,7 @@ namespace Worsen.Presentation.Environment
             }
             if (cells != null && cells.Count == 1) bounds = cells[0];
             var slots = new List<EnvironmentSlot>(4);
-            if (bounds.size.x < 5f || bounds.size.z < 5f || bounds.size.y < 3.4f) return slots.ToArray();
+            if (bounds.size.x < 4f || bounds.size.z < 4f || bounds.size.y < 3.2f) return slots.ToArray();
             int torchCount = 0, decorCount = 0;
             int start = (roomId & int.MaxValue) % 8;
             for (int n = 0; n < 8; n++)
@@ -197,7 +206,7 @@ namespace Worsen.Presentation.Environment
                 int wall = index / 2;
                 float offset = index % 2 == 0 ? -0.28f : 0.28f;
                 Vector3 position = bounds.center;
-                position.y = bounds.min.y + 2.75f;
+                position.y = bounds.min.y + Mathf.Min(2.75f, bounds.size.y - .6f);
                 float yaw;
                 if (wall == 0 || wall == 2)
                 {
@@ -219,6 +228,23 @@ namespace Worsen.Presentation.Environment
                 if (torchCount == 2 && decorCount == 2) break;
             }
             return slots.ToArray();
+        }
+
+        public static bool FitsBoundary(EnvironmentSlot slot, IReadOnlyList<Vector3> polygon)
+        {
+            if (polygon == null) return true;
+            if (polygon.Count < 3) return false;
+            var rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
+            for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++)
+            {
+                var point = slot.Position + rotation * new Vector3(x * slot.Envelope.x * .5f, 0f, z * slot.Envelope.z * .5f);
+                bool inside = false;
+                for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+                    if ((polygon[i].z > point.z) != (polygon[j].z > point.z) && point.x <
+                        (polygon[j].x - polygon[i].x) * (point.z - polygon[i].z) / (polygon[j].z - polygon[i].z) + polygon[i].x) inside = !inside;
+                if (!inside) return false;
+            }
+            return true;
         }
 
         private static bool FitsCell(EnvironmentSlot slot, Bounds cell, IReadOnlyList<Bounds> cells)
@@ -263,19 +289,26 @@ namespace Worsen.Presentation.Environment
             return true;
         }
 
+        public static bool IsExitRoomLight(EnvironmentDriverState state, EnvironmentFlameDriverState flame)
+            => flame.Exit || (state.ExitLightIndex >= 0 && state.ExitLightIndex < state.Flames.Count &&
+                flame.RoomId == state.Flames[state.ExitLightIndex].RoomId);
+
         public static int[] BudgetedLights(EnvironmentDriverState state, int maximum, float distance)
         {
             int[] eligible = Nearest(state.Observer, state.Positions, state.Available, state.Flames.Count, distance);
             int torches = 0;
-            foreach (int i in eligible) if (!state.Flames[i].Moon && !state.Flames[i].Exit) torches++;
+            foreach (int i in eligible) if (!state.Flames[i].Moon && !IsExitRoomLight(state, state.Flames[i])) torches++;
             float multiplier = float.IsNaN(state.TorchCountMultiplier) || float.IsInfinity(state.TorchCountMultiplier)
                 ? 1f : Mathf.Clamp01(state.TorchCountMultiplier);
             int budget = Mathf.FloorToInt(Mathf.Min(Mathf.Max(0, maximum), torches) * multiplier);
             var visible = new List<int>();
             foreach (int i in eligible)
+                if (visible.Count < maximum && IsExitRoomLight(state, state.Flames[i])) visible.Add(i);
+            foreach (int i in eligible)
             {
                 if (visible.Count >= maximum) break;
-                if (!state.Flames[i].Moon && !state.Flames[i].Exit && budget-- <= 0) continue;
+                if (IsExitRoomLight(state, state.Flames[i])) continue;
+                if (!state.Flames[i].Moon && budget-- <= 0) continue;
                 visible.Add(i);
             }
             return visible.ToArray();

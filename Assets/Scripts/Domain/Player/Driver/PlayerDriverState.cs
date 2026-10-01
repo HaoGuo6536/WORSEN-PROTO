@@ -9,8 +9,8 @@
 //   DriverState (§7c) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Retain grace query filtering, original capsule exclusions and the session warning latch.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Retain resolved poses, interpolation timing and posture.
+//   - Hold Driver-rented query buffers across ticks until teardown.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -39,5 +39,7 @@ namespace Worsen.Domain.Player
         public bool GraceActive;
         public int OriginalExcludeLayers;
         public bool MissingHunterLayerWarned;
+        public RaycastHit[] QueryHits;
+        public Collider[] QueryOverlaps;
     }
 }

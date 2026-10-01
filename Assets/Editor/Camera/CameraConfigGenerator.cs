@@ -12,9 +12,12 @@
 // KEY RESPONSIBILITIES:
 //   - Create only the owning system's missing config asset.
 //   - Save only that config asset from the standalone menu action.
+//   - Retain a shader-bound hand material and fallback shader reference for player builds.
+//   - Return the config's retained material reference on creation and subsequent runs.
 //   - Leave scene saving, imports and test lease admission to the caller.
 //
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Worsen.Presentation.Camera config type; UnityEditor asset APIs.
 //
 // USAGE NOTES:
@@ -46,17 +49,51 @@ namespace Worsen.Editor.Camera
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play Mode before generating Camera assets.");
             var existing = AssetDatabase.LoadAssetAtPath<CameraDriverConfig>(ConfigPath);
-            if (existing != null) return existing;
-            var folder = "Assets";
-            foreach (var part in new[] { "Resources", "ScriptableObjects", "Presentation", "Camera" })
-            {
-                var next = folder + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(folder, part);
-                folder = next;
-            }
+            if (existing != null) { EnsureHandMaterial(existing); return existing; }
+            Worsen.Editor.Common.SetupKit.EnsureParent(ConfigPath);
             var config = ScriptableObject.CreateInstance<CameraDriverConfig>();
             AssetDatabase.CreateAsset(config, ConfigPath);
+            EnsureHandMaterial(config);
             return config;
+        }
+
+        public static Material EnsureHandMaterial(CameraDriverConfig config)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+                throw new InvalidOperationException("Hand material setup requires idle Edit Mode.");
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (!AssetDatabase.Contains(config)) throw new InvalidOperationException("Persist Camera config before assigning its hand material.");
+            var serialized = new SerializedObject(config);
+            if (config.HandShader == null)
+            {
+                serialized.FindProperty("_handShader").objectReferenceValue = Shader.Find("Universal Render Pipeline/Unlit")
+                    ?? throw new InvalidOperationException("Camera setup requires URP Unlit.");
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (config.HandMaterial != null && AssetDatabase.Contains(config.HandMaterial))
+            {
+                AssetDatabase.SaveAssetIfDirty(config);
+                return config.HandMaterial;
+            }
+            Material material = null;
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(config)))
+                if (asset is Material candidate && candidate.name == "Hand Catch Material") { material = candidate; break; }
+            if (material == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null) throw new InvalidOperationException("URP Lit shader is required for the retained hand material.");
+                material = new Material(shader) { name = "Hand Catch Material" };
+                material.SetColor("_BaseColor", new Color(0.12f, 0.10f, 0.09f, 1f));
+                AssetDatabase.AddObjectToAsset(material, config);
+            }
+            // Asset loading can refresh serialized state; bind through a fresh snapshot.
+            serialized = new SerializedObject(config);
+            serialized.FindProperty("_handMaterial").objectReferenceValue = material;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssetIfDirty(config);
+            // Material wrappers returned by SerializedProperty need not be reference-identical
+            // to the original new Material. Both paths expose the same retained managed field.
+            return config.HandMaterial;
         }
     }
 }

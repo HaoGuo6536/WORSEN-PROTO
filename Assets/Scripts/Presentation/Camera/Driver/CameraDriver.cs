@@ -10,13 +10,11 @@
 //   Driver (Â§7a) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Forward traversal progress, landing severity and stumble duration to pure visual math.
-//   - Apply runtime lens/comfort preferences and immediately suppress disabled impulses.
-//   - Bind the serialized output camera and rebuild missing owned rig components.
-//   - Apply pose and lens in LateUpdate, then manually advance the owned brain.
-//   - Expose unshaken aim and route explicit event shake without moving gameplay authority.
-//   - Advance held catches with unscaled time and publish hold edges after applying the pose.
-//   - Generate the detection impulse and release only owned runtime objects.
+//   - Forward traversal and comfort inputs to pure visual math without moving gameplay authority.
+//   - Bind the output camera and rebuild missing owned rig components.
+//   - Apply pose/lens before manually advancing the brain and the owned hand close-up.
+//   - Advance catches with injected unscaled time and publish timing edges after applying visuals.
+//   - Generate detection impulses and release only owned runtime objects.
 //
 // DEPENDENCIES:
 //   - Core movement facts; Unity.Cinemachine package only in this Driver.
@@ -48,6 +46,7 @@ namespace Worsen.Presentation.Camera
         private CameraDriverConfig _config;
         private CameraDriverState _state;
         private CameraFeedbackPresenter _presenter;
+        private CameraHandCatchDriver _hand;
         private bool _runtimeRig;
         private bool _runtimeBrain;
         private bool _runtimeImpulse;
@@ -157,17 +156,31 @@ namespace Worsen.Presentation.Camera
 
         public void PlayConsumed(Vector3 handPosition)
         {
-            if (_state != null) _presenter.PlayConsumed(_state, _config, handPosition);
+            if (_state == null) return;
+            bool consumed = _state.Consumed;
+            _presenter.PlayConsumed(_state, _config, handPosition);
+            if (!consumed && _state.Consumed && _outputCamera != null)
+            {
+                if (_hand == null) _hand = gameObject.AddComponent<CameraHandCatchDriver>();
+                _hand.Initialize(_config, _outputCamera);
+            }
         }
 
         public void ResetView()
         {
+            if (_hand != null) _hand.Hide();
             if (_state != null) _presenter.Reset(_state);
             if (_listener != null) _listener.Gain = 0f;
         }
 
         public void Teardown()
         {
+            if (_hand != null)
+            {
+                _hand.Teardown();
+                if (Application.isPlaying) Destroy(_hand); else DestroyImmediate(_hand);
+                _hand = null;
+            }
             if (_state != null && _brain != null)
             {
                 _brain.UpdateMethod = _previousUpdateMethod;
@@ -230,6 +243,7 @@ namespace Worsen.Presentation.Camera
             _rig.Lens.FieldOfView = _state.VerticalFieldOfView;
             _listener.Gain = _state.DeathSnapped || !_state.PunchEnabled ? 0f : _config.PunchIntensity * _config.ShakeIntensity;
             _brain.ManualUpdate();
+            if (_hand != null) _hand.Apply(_state.HandDistance, _state.HandReveal, _state.HandGrip);
             if (!holdStarted && _state.CatchHoldStarted) CatchHoldStarted?.Invoke(_state.PlayerId);
             if (_state != null && !holdEnded && _state.CatchHoldEnded) CatchHoldEnded?.Invoke(_state.PlayerId);
         }

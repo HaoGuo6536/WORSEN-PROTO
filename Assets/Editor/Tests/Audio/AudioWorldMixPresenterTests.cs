@@ -24,6 +24,7 @@ using Worsen.Presentation.Audio;
 
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioWorldMixPresenterTests
     {
         private AudioSoundscapeDriverConfig _config;
@@ -168,11 +169,11 @@ namespace Worsen.Tests.Audio
         {
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState { Phase = ProgressionPhase.Shop };
             presenter.Progression(state, Shop(1)); presenter.Progression(state, Shop(2, wallet: 1)); Assert.That(state.Commands, Is.Empty);
-            presenter.Transaction(state, Shop(2), Shop(3, "pending"), "ReservePurchase"); Assert.That(state.Commands, Is.Empty);
-            presenter.Transaction(state, Shop(3, "pending"), Shop(4), "Purchase"); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.ShopBuy));
-            presenter.Transaction(state, Shop(3), Shop(4), "Purchase"); Assert.That(state.Commands, Is.Empty);
-            presenter.Transaction(state, Shop(4), Shop(5), "RerollShop"); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.UiMove));
-            presenter.Transaction(state, Shop(5), Shop(6), "CancelReplacement"); Assert.That(state.Commands, Is.Empty);
+            presenter.Transaction(state, Shop(2), Shop(3, "pending"), ProgressionOperation.ReservePurchase); Assert.That(state.Commands, Is.Empty);
+            presenter.Transaction(state, Shop(3, "pending"), Shop(4), ProgressionOperation.Purchase); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.ShopBuy));
+            presenter.Transaction(state, Shop(3), Shop(4), ProgressionOperation.Purchase); Assert.That(state.Commands, Is.Empty);
+            presenter.Transaction(state, Shop(4), Shop(5), ProgressionOperation.RerollShop); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.UiMove));
+            presenter.Transaction(state, Shop(5), Shop(6), ProgressionOperation.CancelReplacement); Assert.That(state.Commands, Is.Empty);
         }
         private ProgressionSnapshot Shop(int revision, string pending = "", int wallet = 10) => new ProgressionSnapshot(revision, 1, 1, 0, wallet, 0, 0,
             ProgressionPhase.Shop, 100, 100, null, null, null, default, "", false, false, pendingOfferId: pending);

@@ -10,6 +10,7 @@
 //   - Preserve source texture channels, tiling, opaque/cutout and particle blending.
 //   - Save stable source-GUID material copies and prefab renderer overrides.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor asset/prefab APIs and Unity URP Lit / Particles Unlit shaders.
 // USAGE NOTES:
 //   Called by HorrorWorldAssetSetup only while the coordinator holds the Unity
@@ -180,12 +181,7 @@ namespace Worsen.Editor.Horror
         }
 
         private static void EnsureParent(string path)
-        {
-            string[] segments = path.Split('/');
-            string current = segments[0];
-            for (int i = 1; i < segments.Length - 1; i++)
-            { string next = current + "/" + segments[i]; if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, segments[i]); current = next; }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureParent(path);
 
         private static void RequireIdle()
         {

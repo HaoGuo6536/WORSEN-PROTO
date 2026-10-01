@@ -14,14 +14,14 @@
 //   - Wire Run 1, Run 2 and Run End for the confirmed pursuit sequence.
 //   - Reserve enemy scream clips for enemy feedback; player death uses one subdued body impact.
 //   - Keep posture cloth quiet and exertion below critical breathing using dedicated reusable banks.
-//   - Preserve existing config identities and save only the two intended config assets.
+//   - Preserve config identities and deterministically bind the runtime mixer buses.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
 //
 // USAGE NOTES:
 //   Coordinator invokes only under the exclusive Unity lease, after imports settle.
-//   Selection and derivation provenance lives in Logs/HorrorExpansion/audio; the optional mixer bus references are preserved.
+//   Selection provenance lives in Logs/HorrorExpansion/audio; mixer groups are repaired by AudioMixerSetup.
 //
 // ============================================================================
 
@@ -85,6 +85,7 @@ namespace Worsen.Editor.Audio
             ownerSerialized.FindProperty("_soundscape").objectReferenceValue = config;
             ownerSerialized.FindProperty("_breathLoop").objectReferenceValue = Clip("Assets/Audio/Horror/Expansion/WORSEN_breath_01.wav");
             ownerSerialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(owner); AssetDatabase.SaveAssetIfDirty(owner);
+            AudioMixerSetup.Configure(AudioMixerSetup.MixerPath, config);
             return config;
         }
         private static AudioClip Clip(string path)

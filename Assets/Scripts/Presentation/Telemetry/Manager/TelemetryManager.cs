@@ -6,6 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Telemetry (Service system).
 // KEY RESPONSIBILITIES:
+//   - Forward primitive fallback/manifest evidence without referencing Expedition.
 //   - Forward primitive micro-event outcomes to the existing observation journal.
 //   - Initialize a canonical service; forward capture, movement, traversal and lifecycle commands.
 //   - Forward read-only progression facts and translated stalls to the expedition journal.
@@ -56,8 +57,9 @@ namespace Worsen.Presentation.Telemetry
         public void RecordObservation(TelemetrySample sample) { if (_initialized) _driver.RecordObservation(sample); }
         public void RecordMicroEvent(int kind, int target, Vector3 position, float seconds, bool applied, long tick, int seed)
         { if (_initialized) _driver.RecordMicroEvent(kind, target, position, seconds, applied, tick, seed); }
-        public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choiceId, long tick)
-        { if (_initialized) _driver.RecordProgression(before, after, operation, choiceId, tick); }
+        public void RecordProgression(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choiceId, long tick,
+            bool? usedFallback = null, string layoutManifest = null)
+        { if (_initialized) _driver.RecordProgression(before, after, operation, choiceId, tick, usedFallback, layoutManifest); }
         public void RecordGeneration(ProgressionGenerationRequest request, long tick)
         { if (_initialized) _driver.RecordGeneration(request, tick); }
         public void RecordMovement(PlayerMovementSample sample) { if (_initialized) _driver.RecordMovement(sample); }

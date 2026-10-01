@@ -11,6 +11,7 @@
 //   - Preserve owned material, mesh and navigation asset identities on rebuild.
 //   - Give the six free-standing waist vaults explicit landings on both sides.
 // DEPENDENCIES:
+//   - Common SetupKit owns checked serialized wiring and asset-folder creation.
 //   - Core records, Domain Level, UnityEditor and installed AI Navigation.
 // USAGE NOTES:
 //   Coordinator invokes under the exclusive Unity lease with an identity parent.
@@ -335,29 +336,13 @@ namespace Worsen.Editor.Level
         }
 
         private static void Wire(UnityEngine.Object target, string field, UnityEngine.Object value)
-        {
-            var serialized = new SerializedObject(target);
-            serialized.FindProperty(field).objectReferenceValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, field, value);
 
         private static void Wire(UnityEngine.Object target, string field, LevelMarker[] values)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(field);
-            property.arraySize = values.Length;
-            for (var index = 0; index < values.Length; index++)
-                property.GetArrayElementAtIndex(index).objectReferenceValue = values[index];
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, field, values);
 
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            var split = path.LastIndexOf('/');
-            EnsureFolder(path.Substring(0, split));
-            AssetDatabase.CreateFolder(path.Substring(0, split), path.Substring(split + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
 
         private static void RequireEditor()
         {

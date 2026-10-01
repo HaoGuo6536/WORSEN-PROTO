@@ -24,6 +24,7 @@ using Worsen.Core;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterDriverTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

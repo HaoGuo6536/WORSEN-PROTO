@@ -21,6 +21,7 @@ using Worsen.Session.Progression;
 using Worsen.Session.Progression.Shop;
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ShrineYieldCreditTests
     {
         [Test]

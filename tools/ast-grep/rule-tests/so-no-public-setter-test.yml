@@ -1,0 +1,7 @@
+id: so-no-public-setter
+valid:
+  - 'class Config : ScriptableObject { public int Value { get; private set; } }'
+  - 'class Config : ScriptableObject { public int Value { get; } }'
+invalid:
+  - 'class Config : ScriptableObject { public int Value { get; set; } }'
+  - 'class Config : ScriptableObject { internal int Value { get; set; } }'

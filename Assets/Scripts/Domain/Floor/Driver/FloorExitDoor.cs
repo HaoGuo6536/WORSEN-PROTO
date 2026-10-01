@@ -4,7 +4,7 @@
 // PURPOSE:
 //   Builds a freestanding medieval double door on slim grounded supports, with
 //   imported leaves fitted to the colliders that block passage until they swing.
-//   Locked contact permits a bail hold; open exits still require deliberate crossing.
+//   Locked contact does nothing; open exits require deliberate crossing.
 //   Explicit timing and crossing observations keep the transition reproducible.
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by FloorDriver · Domain · Floor.
@@ -12,21 +12,19 @@
 //   - Keep visible door movement and physical passage in agreement.
 //   - Fit rotated imported art in an aligned wrapper so width and depth stay correct.
 //   - Fade a native Lumen threshold effect with the same opening progress.
-//   - Expose continuous normalized progress, including the committed bail pose.
+//   - Expose continuous normalized opening progress.
 //   - Prevent a stationary overlap from becoming an accidental floor transition.
-//   - Report locked overlaps and last-collider departures, including missing exit callbacks.
 // DEPENDENCIES:
 //   - Core shared values and Floor-owned visual configuration only.
 // USAGE NOTES:
 //   Scene-owned through FloorDriver. Session supplies elapsed time; no Update loop.
 //   No global settings. Reinitialization clears crossing and opening state.
-//   FloorManager supplies identity resolution; cached identities survive destroyed colliders.
-//   Locked overlaps are separate from the unchanged fully-open crossing observations.
+//   Only fully-open crossing observations publish contact to FloorManager.
 // ============================================================================
 using System;
-using System.Collections.Generic;
+
 using UnityEngine;
-using EntityId = Worsen.Core.EntityId;
+
 namespace Worsen.Domain.Floor
 {
     [RequireComponent(typeof(BoxCollider))]
@@ -35,18 +33,12 @@ namespace Worsen.Domain.Floor
         private readonly FloorExitDoorDriverState _state = new FloorExitDoorDriverState();
         private readonly FloorExitDoorPresenter _presenter = new FloorExitDoorPresenter();
         private FloorDriverConfig _config;
-        private Func<Collider, EntityId> _resolveIdentity;
-        private readonly Dictionary<EntityId, HashSet<Collider>> _overlaps = new Dictionary<EntityId, HashSet<Collider>>();
         public event Action<Collider> Contact;
-        public event Action<EntityId> Departed;
         public bool FullyOpen => _state.FullyOpen;
         public bool Opening => _state.Opening;
         public float OpeningProgress => _config == null ? 0f : _presenter.OpeningProgress(_state.Elapsed, _config.ExitDoorOpeningDuration);
-        public void Configure(FloorDriverConfig config, Material wood, Material stone, Material seal,
-            Func<Collider, EntityId> resolveIdentity = null)
+        public void Configure(FloorDriverConfig config, Material wood, Material stone, Material seal)
         {
-            ClearOverlaps();
-            _resolveIdentity = resolveIdentity;
             _config = config;
             _state.Opening = false; _state.FullyOpen = false; _state.Elapsed = 0f; _state.LastClock = 0f; _state.Contacts.Clear();
             _state.Threshold = GetComponent<BoxCollider>();
@@ -73,30 +65,6 @@ namespace Worsen.Domain.Floor
         {
             if (_state.Opening || _state.FullyOpen) return;
             _state.Opening = true; _state.Elapsed = 0f; _state.Contacts.Clear();
-            ClearOverlaps();
-        }
-        public void PresentBail()
-        {
-            // Run stops ticking on completion, so commit the visual pose immediately.
-            Open();
-            Tick(_state.LastClock + _config.ExitDoorOpeningDuration);
-        }
-        public void RefreshContacts()
-        {
-            foreach (var id in new List<EntityId>(_overlaps.Keys))
-            {
-                if (!_overlaps.TryGetValue(id, out var colliders)) continue;
-                colliders.RemoveWhere(other => other == null || !other.enabled || !other.gameObject.activeInHierarchy);
-                if (colliders.Count != 0 && _state.Threshold != null && _state.Threshold.enabled) continue;
-                _overlaps.Remove(id);
-                Departed?.Invoke(id);
-            }
-        }
-        private void ClearOverlaps()
-        {
-            var ids = new List<EntityId>(_overlaps.Keys);
-            _overlaps.Clear();
-            foreach (var id in ids) Departed?.Invoke(id);
         }
         public void Tick(float clock)
         {
@@ -180,19 +148,7 @@ namespace Worsen.Domain.Floor
         {
             if (!isActiveAndEnabled || _config == null || !_state.Threshold.enabled ||
                 other == null || !other.enabled || !other.gameObject.activeInHierarchy) return;
-            if (!_state.FullyOpen)
-            {
-                if (_state.Opening) return;
-                EntityId id = _resolveIdentity?.Invoke(other) ?? EntityId.None;
-                if (id.IsValid)
-                {
-                    if (!_overlaps.TryGetValue(id, out var colliders))
-                    { colliders = new HashSet<Collider>(); _overlaps.Add(id, colliders); }
-                    colliders.Add(other);
-                }
-                Contact?.Invoke(other);
-                return;
-            }
+            if (!_state.FullyOpen) return;
             int key=other.GetInstanceID();
             if(!_state.Contacts.TryGetValue(key,out var crossing))
             { crossing=new FloorExitCrossingDriverState();_state.Contacts.Add(key,crossing); }
@@ -204,11 +160,9 @@ namespace Worsen.Domain.Floor
         private void OnTriggerStay(Collider other) => Observe(other);
         private void OnTriggerExit(Collider other)
         {
-            if (other == null) { RefreshContacts(); return; }
+            if (other == null) return;
             _state.Contacts.Remove(other.GetInstanceID());
-            foreach (var colliders in _overlaps.Values) colliders.Remove(other);
-            RefreshContacts();
         }
-        private void OnDisable() { _state.Contacts.Clear(); ClearOverlaps(); }
+        private void OnDisable() => _state.Contacts.Clear();
     }
 }

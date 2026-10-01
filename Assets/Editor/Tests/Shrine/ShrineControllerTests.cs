@@ -8,7 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Shrine.
 // KEY RESPONSIBILITIES:
 //   - Cover contact, Interact, thresholds, nearest selection and activation payloads.
-//   - Cover every availability floor, gap edges and event-axis exclusions over seeds.
+//   - Cover every availability floor and gap edges without event-axis exclusion.
 // DEPENDENCIES:
 //   - Domain Shrine, Core, NUnit and temporary Unity config allocation.
 // USAGE NOTES:
@@ -22,6 +22,7 @@ using Worsen.Core;
 using Worsen.Domain.Shrine;
 namespace Worsen.Tests.Shrine
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ShrineControllerTests
     {
         private ShrineConfig config;
@@ -71,32 +72,33 @@ namespace Worsen.Tests.Shrine
             Assert.That(controller.CountForFloor(floor, true), Is.EqualTo(count == 0 ? 0 : count + 1));
         }
         [Test]
-        public void SeededPlacementHonoursFloorsGapEdgesAndExcludedAxes()
+        public void SeededPlacementHonoursFloorsAndGapEdgesWithoutExcludingAxes()
         {
             var sites = Enumerable.Range(0, 8).Select(i => new ShrineSite(Vector3.right * i * 5, i, i % 2 == 0)).ToArray();
+            bool sawStakes = false;
             foreach (int floor in new[] { 3, 5, 6, 8, 10 })
                 for (int seed = 0; seed < 40; seed++)
                 {
                     var a = new ShrineController(new ShrineBehaviorState(), config, new System.Random(seed));
                     var b = new ShrineController(new ShrineBehaviorState(), config, new System.Random(seed));
-                    var placed = a.Assemble(sites, floor, false, new[] { FearAxis.Stakes });
-                    Assert.That(placed.Select(p => p.Kind), Is.EqualTo(b.Assemble(sites, floor, false, new[] { FearAxis.Stakes }).Select(p => p.Kind)));
+                    var placed = a.Assemble(sites, floor, false);
+                    Assert.That(placed.Select(p => p.Kind), Is.EqualTo(b.Assemble(sites, floor, false).Select(p => p.Kind)));
                     Assert.That(placed.Count, Is.EqualTo(a.CountForFloor(floor, false)));
                     foreach (var placement in placed)
                     {
                         var entry = config.Availability.Single(e => e.Kind == placement.Kind);
                         Assert.That(entry.Floor, Is.LessThanOrEqualTo(floor));
-                        Assert.That(entry.Axis, Is.Not.EqualTo(FearAxis.Stakes));
+                        sawStakes |= entry.Axis == FearAxis.Stakes;
                         if (placement.Kind == ShrineKind.Passage) Assert.That(placement.Site.GapEdge, Is.True);
                     }
                 }
+            Assert.That(sawStakes, Is.True);
         }
         [Test]
-        public void AllBlockedOrAbsentSitesProduceNoPlacements()
+        public void AbsentSitesProduceNoPlacementsAndOneSiteAdmitsOneShrine()
         {
             Assert.That(controller.Assemble(Array.Empty<ShrineSite>(), 10), Is.Empty);
-            Assert.That(controller.Assemble(new[] { new ShrineSite(Vector3.zero, 1) }, 10, true,
-                new[] { FearAxis.Information, FearAxis.Unpredictability, FearAxis.Stakes, FearAxis.Agency, FearAxis.Time }), Is.Empty);
+            Assert.That(controller.Assemble(new[] { new ShrineSite(Vector3.zero, 1) }, 10, true).Count, Is.EqualTo(1));
         }
     }
 }

@@ -19,6 +19,7 @@ using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Core
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterCorePayloadTests
     {
         [Test] public void SpawnIsCompatibleAndRejectsNegativeDuplicateIndices()

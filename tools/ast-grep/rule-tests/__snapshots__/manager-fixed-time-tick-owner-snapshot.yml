@@ -1,0 +1,14 @@
+id: manager-fixed-time-tick-owner
+snapshots:
+  class Owner { float Step() => Time.fixedDeltaTime; }:
+    labels:
+    - source: Time.fixedDeltaTime
+      style: primary
+      start: 30
+      end: 49
+  class Owner { float Step() => UnityEngine.Time.fixedDeltaTime; }:
+    labels:
+    - source: UnityEngine.Time.fixedDeltaTime
+      style: primary
+      start: 30
+      end: 61

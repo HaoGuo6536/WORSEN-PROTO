@@ -48,6 +48,7 @@ using Worsen.Orchestrator;
 
 namespace Worsen.Tests.Chase
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HunterRouteIntegrationTests
     {
         private const string ScenePath = "Assets/Scenes/TagArena.unity";

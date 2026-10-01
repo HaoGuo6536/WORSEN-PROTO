@@ -32,6 +32,7 @@ using Worsen.Presentation.ProgressionUI;
 
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionUIPresenterTests
     {
         private static readonly ProgressionChoice[] Choices =

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Ensure placement, appearance, progression and live spawn configs without scene edits.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Domain Shrine, Session Expedition/Progression, existing catalogue path and UnityEditor.
 // USAGE NOTES:
 //   Coordinator invokes in idle Edit Mode under its lease. Never overwrites authored assets.
@@ -53,10 +54,6 @@ namespace Worsen.Editor.Shrine
             AssetDatabase.SaveAssetIfDirty(asset); return asset;
         }
         private static void Folder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            int slash = path.LastIndexOf('/'); string parent = path.Substring(0, slash);
-            Folder(parent); AssetDatabase.CreateFolder(parent, path.Substring(slash + 1));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
     }
 }

@@ -12,7 +12,7 @@
 //   - Maintain per-player heat, relief, target-compatible assignment, and bounded history.
 //   - Return delayed hints and one intrusion per qualifying slow episode.
 //   - Produce raw pressure observations without resetting gaps on hint emission.
-//   - Request seeded withdrawals after continuous pursuit; emit room regions and audible noises.
+//   - Request seeded withdrawals; project admitted noises without changing their provenance.
 // DEPENDENCIES:
 //   - Director state/config, Core hearing/topology and optional injected Level read-only view.
 // USAGE NOTES:
@@ -25,6 +25,8 @@
 //   against the earlier evaluation boundary within that tick or catch-up batch.
 //   Reset removes all scene history. Missing history suppresses a hint. Ring
 //   capacity must retain HintAgeSeconds at the configured Session sample rate.
+//   Scratch collections are retained per controller. Nonempty returned results
+//   are independent snapshots, so later ticks/reset cannot mutate delivered facts.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -43,6 +45,19 @@ namespace Worsen.Domain.Director
         private readonly System.Random _random;
         private IReadOnlyLevelState _level;
         private IReadOnlyDictionary<int, bool> _closedDoors;
+        private readonly List<DirectorPlayerSample> _orderedPlayers = new List<DirectorPlayerSample>();
+        private readonly List<DirectorHunterSample> _orderedHunters = new List<DirectorHunterSample>();
+        private readonly HashSet<EntityId> _livePlayers = new HashSet<EntityId>();
+        private readonly HashSet<EntityId> _presentHunters = new HashSet<EntityId>();
+        private readonly List<EntityId> _removed = new List<EntityId>();
+        private readonly List<HintPayload> _hints = new List<HintPayload>();
+        private readonly List<IntrusionSample> _intrusions = new List<IntrusionSample>();
+        private readonly List<DirectorPressureSample> _pressure = new List<DirectorPressureSample>();
+        private readonly List<EntityId> _retreats = new List<EntityId>();
+        private readonly List<DirectorRegionHint> _regions = new List<DirectorRegionHint>();
+        private readonly List<DirectorNoiseHint> _noiseHints = new List<DirectorNoiseHint>();
+        private static readonly Comparison<DirectorPlayerSample> PlayerOrder = (a, b) => a.PlayerId.Value.CompareTo(b.PlayerId.Value);
+        private static readonly Comparison<DirectorHunterSample> HunterOrder = (a, b) => a.HunterId.Value.CompareTo(b.HunterId.Value);
 
         public DirectorController(DirectorBehaviorState state, DirectorConfig config, System.Random random)
         {
@@ -85,9 +100,9 @@ namespace Worsen.Domain.Director
                 player.WasChasing = sample.IsChasing;
             }
 
-            var hints = new List<HintPayload>();
-            var intrusions = new List<IntrusionSample>();
-            var pressure = new List<DirectorPressureSample>();
+            var hints = _hints; hints.Clear();
+            var intrusions = _intrusions; intrusions.Clear();
+            var pressure = _pressure; pressure.Clear();
             double remaining = deltaTime;
             while (remaining > Epsilon)
             {
@@ -114,22 +129,24 @@ namespace Worsen.Domain.Director
             var regions = Regions(hints, hunters);
             var noises = NoiseHints(hunters, tick, deltaTime);
             _state.LastTick = tick;
-            return new DirectorTickResult(hints, intrusions, pressure, retreats, regions, noises);
+            return new DirectorTickResult(Snapshot(hints), Snapshot(intrusions), Snapshot(pressure),
+                Snapshot(retreats), Snapshot(regions), Snapshot(noises));
         }
         public void SetLevelView(IReadOnlyLevelState level) { _level = level; }
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _closedDoors = doors; }
         public void HearNoise(NoiseEvent noise)
         {
-            if (!Finite(noise.Position) || float.IsNaN(noise.Loudness) || float.IsInfinity(noise.Loudness) ||
+            if (!HunterHearingUtility.Allows(noise) || !Finite(noise.Position) || float.IsNaN(noise.Loudness) || float.IsInfinity(noise.Loudness) ||
                 _state.Noises.Contains(noise) || _state.DeliveredNoises.Contains(noise)) return;
             _state.Noises.Add(noise);
         }
         private List<EntityId> Retreats(IReadOnlyList<DirectorHunterSample> hunters, float dt, double now)
         {
-            var result = new List<EntityId>();
-            var ordered = new List<DirectorHunterSample>(hunters);
-            ordered.Sort((a, b) => a.HunterId.Value.CompareTo(b.HunterId.Value));
-            var present = new HashSet<EntityId>();
+            var result = _retreats; result.Clear();
+            var ordered = _orderedHunters; ordered.Clear();
+            for (int i = 0; i < hunters.Count; i++) ordered.Add(hunters[i]);
+            ordered.Sort(HunterOrder);
+            var present = _presentHunters; present.Clear();
             foreach (var hunter in ordered)
             {
                 if (!hunter.IsActive || !hunter.HunterId.IsValid || !_state.Players.ContainsKey(hunter.TargetId) || !present.Add(hunter.HunterId)) continue;
@@ -142,25 +159,31 @@ namespace Worsen.Domain.Director
                 pursuit.AvailableAt = now + _config.RetreatCooldownSeconds;
                 if (_random.NextDouble() < _config.RetreatProbability) result.Add(hunter.HunterId);
             }
-            foreach (var id in new List<EntityId>(_state.Pursuits.Keys))
-                if (!present.Contains(id)) _state.Pursuits.Remove(id);
+            _removed.Clear();
+            foreach (var id in _state.Pursuits.Keys) if (!present.Contains(id)) _removed.Add(id);
+            foreach (var id in _removed) _state.Pursuits.Remove(id);
             return result;
         }
         private int RoomAt(Vector3 point)
         {
             if (_level != null && _level.IsReady && _level.Graph != null)
-                foreach (var room in _level.Graph.Rooms) if (room.Bounds.Contains(point)) return room.Id;
+                for (int i = 0; i < _level.Graph.Rooms.Count; i++)
+                {
+                    var room = _level.Graph.Rooms[i];
+                    if (room.Bounds.Contains(point)) return room.Id;
+                }
             return 0;
         }
         private List<DirectorRegionHint> Regions(List<HintPayload> hints, IReadOnlyList<DirectorHunterSample> hunters)
         {
-            var result = new List<DirectorRegionHint>();
+            var result = _regions; result.Clear();
             foreach (var hint in hints)
             {
                 int roomId = RoomAt(hint.Position);
                 if (roomId == 0) continue;
-                foreach (var hunter in hunters)
+                for (int h = 0; h < hunters.Count; h++)
                 {
+                    var hunter = hunters[h];
                     if (hunter.HunterId != hint.Hunter || hunter.Hearing.ReferenceDistance <= 0f) continue;
                     var hearing = AcousticOcclusionUtility.Sample(_level.Graph, roomId, hint.Position,
                         RoomAt(hunter.Position), hunter.Position, 1f, hunter.Hearing, _closedDoors);
@@ -168,8 +191,9 @@ namespace Worsen.Domain.Director
                     double falloff = Math.Pow(Math.Max(1d, Vector3.Distance(hint.Position, hunter.Position) /
                         hunter.Hearing.ReferenceDistance), -hunter.Hearing.Rolloff);
                     float occlusion = 1f - Mathf.Clamp01((float)(hearing.PerceivedLoudness / Math.Max(double.Epsilon, falloff)));
-                    foreach (var room in _level.Graph.Rooms)
+                    for (int r = 0; r < _level.Graph.Rooms.Count; r++)
                     {
+                        var room = _level.Graph.Rooms[r];
                         if (room.Id != roomId) continue;
                         var region = new HintPayload(hint.Hunter, hint.Player, hint.ObservedTick, hint.DeliveredTick,
                             new Vector3(room.Center.x, room.Bounds.min.y, room.Center.z), hint.AgeSeconds,
@@ -183,13 +207,16 @@ namespace Worsen.Domain.Director
         }
         private List<DirectorNoiseHint> NoiseHints(IReadOnlyList<DirectorHunterSample> hunters, long tick, float dt)
         {
-            var result = new List<DirectorNoiseHint>();
-            _state.DeliveredNoises.RemoveAll(noise => (tick - noise.Tick) * dt > _config.NoiseMaxAgeSeconds);
+            var result = _noiseHints; result.Clear();
+            for (int i = _state.DeliveredNoises.Count - 1; i >= 0; i--)
+                if ((tick - _state.DeliveredNoises[i].Tick) * dt > _config.NoiseMaxAgeSeconds)
+                    _state.DeliveredNoises.RemoveAt(i);
             foreach (var noise in _state.Noises)
             {
-                if (noise.Tick > tick || (tick - noise.Tick) * dt > _config.NoiseMaxAgeSeconds || RoomAt(noise.Position) == 0) continue;
-                foreach (var hunter in hunters)
+                if (!HunterHearingUtility.Allows(noise) || noise.Tick > tick || (tick - noise.Tick) * dt > _config.NoiseMaxAgeSeconds || RoomAt(noise.Position) == 0) continue;
+                for (int h = 0; h < hunters.Count; h++)
                 {
+                    var hunter = hunters[h];
                     if (!hunter.IsActive || hunter.HunterId == noise.Source || hunter.Hearing.ReferenceDistance <= 0f) continue;
                     var heard = AcousticOcclusionUtility.Sample(_level.Graph, RoomAt(noise.Position), noise.Position,
                         RoomAt(hunter.Position), hunter.Position, noise.Loudness, hunter.Hearing, _closedDoors);
@@ -202,10 +229,11 @@ namespace Worsen.Domain.Director
 
         private List<DirectorPlayerSample> ReconcilePlayers(IReadOnlyList<DirectorPlayerSample> samples)
         {
-            var live = new HashSet<EntityId>();
-            var ordered = new List<DirectorPlayerSample>();
-            foreach (var sample in samples)
+            var live = _livePlayers; live.Clear();
+            var ordered = _orderedPlayers; ordered.Clear();
+            for (int i = 0; i < samples.Count; i++)
             {
+                var sample = samples[i];
                 if (!sample.PlayerId.IsValid || !sample.IsAlive) continue;
                 if (!live.Add(sample.PlayerId)) throw new ArgumentException("Player identities must be unique.", nameof(samples));
                 ordered.Add(sample);
@@ -215,22 +243,26 @@ namespace Worsen.Domain.Director
                     History = new DirectorPositionSample[_config.HistoryCapacity]
                 });
             }
-            var removed = new List<EntityId>();
+            var removed = _removed; removed.Clear();
             foreach (var id in _state.Players.Keys) if (!live.Contains(id)) removed.Add(id);
             foreach (var id in removed) _state.Players.Remove(id);
-            ordered.Sort((a, b) => a.PlayerId.Value.CompareTo(b.PlayerId.Value));
+            ordered.Sort(PlayerOrder);
             return ordered;
         }
 
         private void AssignHunter(DirectorPlayerBehaviorState player, IReadOnlyList<DirectorHunterSample> hunters)
         {
-            foreach (var hunter in hunters)
+            for (int i = 0; i < hunters.Count; i++)
+            {
+                var hunter = hunters[i];
                 if (hunter.IsActive && hunter.HunterId.IsValid && hunter.TargetId == player.PlayerId &&
                     hunter.HunterId == player.AssignedHunterId) return;
+            }
             player.AssignedHunterId = EntityId.None;
             int leastAssignments = int.MaxValue;
-            foreach (var hunter in hunters)
+            for (int i = 0; i < hunters.Count; i++)
             {
+                var hunter = hunters[i];
                 if (!hunter.IsActive || !hunter.HunterId.IsValid || hunter.TargetId != player.PlayerId) continue;
                 int assignments = 0;
                 foreach (var other in _state.Players.Values)
@@ -245,8 +277,11 @@ namespace Worsen.Domain.Director
         private bool IsNearHunter(Vector3 position, IReadOnlyList<DirectorHunterSample> hunters)
         {
             float squaredRadius = _config.ProximityRadiusMeters * _config.ProximityRadiusMeters;
-            foreach (var hunter in hunters)
+            for (int i = 0; i < hunters.Count; i++)
+            {
+                var hunter = hunters[i];
                 if (hunter.IsActive && hunter.HunterId.IsValid && (hunter.Position - position).sqrMagnitude < squaredRadius) return true;
+            }
             return false;
         }
 
@@ -319,14 +354,22 @@ namespace Worsen.Domain.Director
         private static DirectorTickResult EmptyResult() => new DirectorTickResult(Array.Empty<HintPayload>(),
             Array.Empty<IntrusionSample>(), Array.Empty<DirectorPressureSample>());
 
+        private static T[] Snapshot<T>(List<T> values) => values.Count == 0 ? Array.Empty<T>() : values.ToArray();
+
         private static void ValidateSamples(IReadOnlyList<DirectorPlayerSample> players, IReadOnlyList<DirectorHunterSample> hunters)
         {
-            foreach (var player in players)
+            for (int i = 0; i < players.Count; i++)
+            {
+                var player = players[i];
                 if (player.PlayerId.IsValid && player.IsAlive && (!Finite(player.Position) || !Finite(player.Velocity)))
                     throw new ArgumentException("Living player observations must be finite.", nameof(players));
-            foreach (var hunter in hunters)
+            }
+            for (int i = 0; i < hunters.Count; i++)
+            {
+                var hunter = hunters[i];
                 if (hunter.HunterId.IsValid && hunter.IsActive && !Finite(hunter.Position))
                     throw new ArgumentException("Active hunter observations must be finite.", nameof(hunters));
+            }
         }
 
         private static bool Finite(Vector3 vector) =>
@@ -336,22 +379,35 @@ namespace Worsen.Domain.Director
 
         private void ValidateConfig()
         {
-            foreach (float value in new[] { _config.EvaluationIntervalSeconds, _config.HintAgeSeconds,
-                _config.HintCadenceSeconds, _config.ExitOpenHintCadenceSeconds, _config.IntrusionDurationSeconds, _config.RetreatCooldownSeconds })
-                if (float.IsNaN(value) || float.IsInfinity(value) || value <= 0f)
-                    throw new ArgumentException("Director durations must be finite and positive.", nameof(_config));
-            foreach (float value in new[] { _config.HeatThresholdSeconds, _config.ReliefMinimumSeconds,
-                _config.HintRadiusMeters, _config.ProximityRadiusMeters, _config.SlowSpeedMetersPerSecond,
-                _config.SlowThresholdSeconds, _config.IntrusionCooldownSeconds, _config.RetreatPursuitSeconds,
-                _config.OcclusionHintRadiusMeters, _config.NoiseMaxAgeSeconds })
-                if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
-                    throw new ArgumentException("Director tuning must be finite and nonnegative.", nameof(_config));
+            ValidateTuning(_config.EvaluationIntervalSeconds, true);
+            ValidateTuning(_config.HintAgeSeconds, true);
+            ValidateTuning(_config.HintCadenceSeconds, true);
+            ValidateTuning(_config.ExitOpenHintCadenceSeconds, true);
+            ValidateTuning(_config.IntrusionDurationSeconds, true);
+            ValidateTuning(_config.RetreatCooldownSeconds, true);
+            ValidateTuning(_config.HeatThresholdSeconds, false);
+            ValidateTuning(_config.ReliefMinimumSeconds, false);
+            ValidateTuning(_config.HintRadiusMeters, false);
+            ValidateTuning(_config.ProximityRadiusMeters, false);
+            ValidateTuning(_config.SlowSpeedMetersPerSecond, false);
+            ValidateTuning(_config.SlowThresholdSeconds, false);
+            ValidateTuning(_config.IntrusionCooldownSeconds, false);
+            ValidateTuning(_config.RetreatPursuitSeconds, false);
+            ValidateTuning(_config.OcclusionHintRadiusMeters, false);
+            ValidateTuning(_config.NoiseMaxAgeSeconds, false);
             if (_config.HistoryCapacity < 2) throw new ArgumentException("Director history needs two or more samples.", nameof(_config));
             if (!(_config.RetreatProbability >= 0f && _config.RetreatProbability <= 1f))
                 throw new ArgumentException("Retreat probability must be between zero and one.", nameof(_config));
             if (float.IsNaN(_config.HintConfidence) || float.IsInfinity(_config.HintConfidence) ||
                 _config.HintConfidence < 0f || _config.HintConfidence > 1f)
                 throw new ArgumentException("Director hint confidence must be finite and between zero and one.", nameof(_config));
+        }
+
+        private void ValidateTuning(float value, bool positive)
+        {
+            if (float.IsNaN(value) || float.IsInfinity(value) || (positive ? value <= 0f : value < 0f))
+                throw new ArgumentException(positive ? "Director durations must be finite and positive." :
+                    "Director tuning must be finite and nonnegative.", nameof(_config));
         }
     }
 }

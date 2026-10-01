@@ -9,7 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Project empty capacity from Progression's variable-length slots, not Player's legacy pair.
 //   - Verify confirmed chase durations, restart reset and exactly-once completion.
-//   - Cover flagged early escapes, death priority, summary compatibility and bail reset.
+//   - Reject early escapes, preserve death priority and reset pending outcomes.
 // DEPENDENCIES:
 //   - Session Run Controller/state, Core facts and NUnit assertions.
 // USAGE NOTES:
@@ -23,6 +23,7 @@ using Worsen.Session.Run;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunOutcomeTests
     {
         private RunSessionBehaviorState state;
@@ -37,45 +38,44 @@ namespace Worsen.Tests.Run
             controller.StartScene(SceneKey.FloorLoop);
         }
         [Test]
-        public void FlaggedFirstSweepEscapeCarriesBailOnceAndResetsForNextScene()
+        public void FirstSweepCannotEscapeAndNormalEscapeCompletesOnce()
         {
-            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
-            Assert.That(state.PendingBailed, Is.True);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
+            Assert.That(controller.TryFinish(out _), Is.False);
+            controller.Apply(RunEvent.ExitOpened);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             Assert.That(controller.TryFinish(out var summary), Is.True);
             Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
-            Assert.That(summary.Bailed, Is.True);
             Assert.That(controller.TryFinish(out _), Is.False);
             controller.StartScene(SceneKey.HorrorRun);
-            Assert.That(state.PendingBailed, Is.False);
             controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             Assert.That(controller.TryFinish(out _), Is.False);
             controller.Apply(RunEvent.ExitOpened);
             controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             Assert.That(controller.TryFinish(out summary), Is.True);
-            Assert.That(summary.Bailed, Is.False);
-            Assert.That(new RunSummary(0, 0, 0, 0, 0, 0, RunEndReason.Escaped).Bailed, Is.False);
+            Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Escaped));
         }
         [TestCase(false)]
         [TestCase(true)]
-        public void DeathWinsBailInEitherOrder(bool deathFirst)
+        public void DeathWinsPrematureEscapeInEitherOrder(bool deathFirst)
         {
             if (deathFirst) controller.RequestEnd(RunEndReason.Died, player, Vector3.right);
-            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             if (!deathFirst) controller.RequestEnd(RunEndReason.Died, player, Vector3.right);
             Assert.That(controller.TryFinish(out var summary), Is.True);
             Assert.That(summary.EndReason, Is.EqualTo(RunEndReason.Died));
-            Assert.That(summary.Bailed, Is.False);
             Assert.That(state.KillerPosition, Is.EqualTo(Vector3.right));
         }
         [Test]
-        public void BailCannotEscapeBootAndPendingBailClearsOnSceneReset()
+        public void BootCannotEscapeAndPendingCompletionClearsOnSceneReset()
         {
             var boot = new RunSessionController(new RunSessionBehaviorState(1), new System.Random(1));
-            boot.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            boot.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             Assert.That(boot.TryFinish(out _), Is.False);
-            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero, true);
+            controller.Apply(RunEvent.ExitOpened);
+            controller.RequestEnd(RunEndReason.Escaped, player, Vector3.zero);
             controller.StartScene(SceneKey.HorrorRun);
-            Assert.That(state.PendingBailed, Is.False);
+            Assert.That(state.PendingEndReason, Is.EqualTo(RunEndReason.Unknown));
             Assert.That(controller.TryFinish(out _), Is.False);
         }
         private void Advance(float seconds) => controller.TryTick(seconds, out _);

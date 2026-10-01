@@ -1,0 +1,6 @@
+id: subscribe-in-onenable-only
+valid:
+  - 'class Owner { void OnEnable() { source.Changed += Handle; } void OnDisable() { source.Changed -= Handle; } }'
+invalid:
+  - 'class Owner { void Awake() { source.Changed += Handle; } }'
+  - 'class Owner { void Start() { source.Changed += Handle; } }'

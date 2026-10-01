@@ -8,12 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   Content SO (§4b) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Bound total commanded speed on ticks that consume external impulses or acceleration.
-//   - Tune passive health regeneration and the quiet interval after accepted damage.
-//   - Tune ledge reach, late traversal steering, timed boosts and fail-forward recovery.
-//   - Tune grace duration and independent light/heavy hit recovery speed and duration.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Define the archetype identity and prefab.
+//   - Tune locomotion, traversal, external motion and movement noise.
+//   - Tune health, regeneration and severity-based hit recovery.
+//   - Tune independent Extra Life collision grace and damage immunity.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -83,6 +81,8 @@ namespace Worsen.Domain.Player
         [SerializeField, Min(0f)] private float _healthRegenerationDelay = 4f;
         [SerializeField] private float _lungeDamage = 50f;
         [SerializeField, Min(0f)] private float _hitGraceSeconds = 1.2f;
+        [SerializeField, Min(0f)] private float _revivalCollisionGraceSeconds = 2f;
+        [SerializeField, Min(0f)] private float _revivalDamageImmunitySeconds = 3f;
         [SerializeField, Min(0f)] private float _lightHitSpeedBoost = 0.12f;
         [SerializeField, Min(0f)] private float _lightHitBoostSeconds = 0.6f;
         [SerializeField, Min(0f)] private float _heavyHitSpeedBoost = 0.25f;
@@ -150,6 +150,8 @@ namespace Worsen.Domain.Player
         public float HealthRegenerationDelay => _healthRegenerationDelay;
         public float LungeDamage => _lungeDamage;
         public float HitGraceSeconds => _hitGraceSeconds;
+        public float RevivalCollisionGraceSeconds => _revivalCollisionGraceSeconds;
+        public float RevivalDamageImmunitySeconds => _revivalDamageImmunitySeconds;
         public float LightHitSpeedBoost => _lightHitSpeedBoost;
         public float LightHitBoostSeconds => _lightHitBoostSeconds;
         public float HeavyHitSpeedBoost => _heavyHitSpeedBoost;

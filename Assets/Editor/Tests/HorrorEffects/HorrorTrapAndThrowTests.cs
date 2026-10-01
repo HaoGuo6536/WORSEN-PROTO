@@ -8,11 +8,13 @@
 // KEY RESPONSIBILITIES:
 //   - Check accepted, duplicate, lethal, grace and ward outcomes; pair hazard subscriptions.
 //   - Check independent slow/grab composition, expiry and floor reset.
+//   - Verify revival rejects real hand admission and queued grab/hit facts until immunity ends.
 // DEPENDENCIES:
 //   Core, Player/Floor, HorrorEffects/Progression, NUnit and transient Unity objects.
 // USAGE NOTES:
 //   Edit Mode. Reflection supplies controllers and facts, never fabricated Player events.
 //   The isolated ward fixture restores the canonical Progression reference on teardown.
+//   Hand-step checkpoints distinguish missing facts/bindings from failed ward consumption.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -29,6 +31,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.HorrorEffects
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorTrapAndThrowTests
     {
         private readonly List<Object> owned = new List<Object>();
@@ -43,6 +46,7 @@ namespace Worsen.Tests.HorrorEffects
         [SetUp]
         public void Setup()
         {
+            ResetRegistry();
             Assert.That(PlayerRegistry.Items, Is.Empty); Assert.That(ProgressionSessionManager.Instance, Is.Null);
             player = Component<PlayerManager>(); var mover = Config<PlayerMoverDriverConfig>();
             Set(mover, "_hunterBodyLayer", "Ignore Raycast"); Set(player.GetComponent<PlayerDriver>(), "_config", mover);
@@ -64,6 +68,7 @@ namespace Worsen.Tests.HorrorEffects
             typeof(ProgressionSessionManager).GetProperty("Instance").SetValue(null, null);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear();
+            ResetRegistry();
         }
         [TestCase(false, 10f, true)] [TestCase(true, 10f, false)] [TestCase(false, 100f, false)]
         public void ThrowIsAppliedOnceOnlyForAcceptedSurvivingHit(bool grace, float damage, bool thrown)
@@ -84,11 +89,24 @@ namespace Worsen.Tests.HorrorEffects
             Set(progression, "state", ps); Set(progression, "controller", pc);
             typeof(ProgressionSessionManager).GetProperty("Instance").SetValue(null, progression);
             effects.ConfigureHazards(progression, floor);
+            Assert.That(Get(effects, "progression"), Is.SameAs(progression));
+            Assert.That(((HorrorEffectsController)Get(effects, "controller")).GenerationId, Is.EqualTo(ps.GenerationId));
+            Assert.That(PlayerRegistry.TryGet(player.Id, out var registered), Is.True);
+            Assert.That(registered, Is.SameAs(player));
+            Assert.That(motion.IsAlive, Is.True);
+            Assert.That(Get(floor, "OnCollapseHand"), Is.Not.Null, "The real hazard route must be subscribed.");
+            var facts = new List<CollapseHandEventKind>(); floor.OnCollapseHand += fact => facts.Add(fact.Kind);
             var probe = new FloorHandProbe(1, 0, Vector3.zero, 0f, true, Vector3.right);
-            Step(probe, 0f, 1); Step(probe, floorConfig.HandWarningDuration, 2);
+            Step(probe, 0f, 1);
+            Assert.That(facts, Does.Contain(CollapseHandEventKind.Warning));
+            Step(probe, floorConfig.HandWarningDuration, 2);
+            Assert.That(facts, Does.Contain(CollapseHandEventKind.Grabbed));
             Assert.That(ps.WaxWardCharges, Is.Zero);
             Assert.That(handState.Contacts[player.Id].Phase, Is.EqualTo(FloorHandPhase.Cooldown));
+            Assert.That(facts, Does.Contain(CollapseHandEventKind.Escaped));
             Step(probe, floorConfig.HandEscapeGrace, 3);
+            Assert.That(facts.Contains(CollapseHandEventKind.Hit), Is.False);
+            Assert.That(motion.GrabSpeedMultiplier, Is.EqualTo(1f));
             Assert.That(motion.Health, Is.EqualTo(100f)); Assert.That(motion.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
         }
         [Test]
@@ -109,6 +127,31 @@ namespace Worsen.Tests.HorrorEffects
             effects.BeginFloor(3, default); Call(effects, "OnEnable");
             effects.ClearHazards(); Assert.That(Get(floor, "OnTrapSprung"), Is.Null);
         }
+        [Test]
+        public void RevivalPreventsHandAdmissionDamageAndThrowUntilExactImmunityEnd()
+        {
+            player.ApplyHit(1000f, Vector3.zero);
+            GraceWindowFact immunity = default;
+            player.OnGraceStarted += fact => immunity = fact;
+            Assert.That(player.ReviveInPlace(.5f), Is.True);
+            var probe = new FloorHandProbe(1, 0, Vector3.zero, 0f, true, Vector3.right);
+            player.AdvanceRecovery(immunity.EndTick - 1);
+            Assert.That(hands.Tick(player.Id, true, probe, 10f, motion.Tick, out _, motion), Is.False);
+            Publish(floor, "OnCollapseHand", new CollapseHandFact(player.Id, 1, CollapseHandEventKind.Grabbed,
+                Vector3.zero, .5f, 0f, motion.Tick));
+            Publish(floor, "OnCollapseHand", new CollapseHandFact(player.Id, 1, CollapseHandEventKind.Hit,
+                Vector3.zero, 1f, 25f, motion.Tick, throwVelocity: Vector3.right * 8f));
+            Assert.That(motion.GrabSpeedMultiplier, Is.EqualTo(1f));
+            Assert.That(motion.Health, Is.EqualTo(50f)); Assert.That(motion.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            player.AdvanceRecovery(immunity.EndTick);
+            Assert.That(hands.Tick(player.Id, true, probe, 0f, motion.Tick, out var warning, motion), Is.True);
+            Assert.That(warning.Kind, Is.EqualTo(CollapseHandEventKind.Warning));
+            Publish(floor, "OnCollapseHand", new CollapseHandFact(player.Id, 1, CollapseHandEventKind.Hit,
+                Vector3.zero, 1f, 25f, motion.Tick, throwVelocity: Vector3.right * 8f));
+            Assert.That(motion.Health, Is.EqualTo(25f)); Assert.That(motion.PendingExternalVelocity, Is.EqualTo(Vector3.right * 8f));
+        }
+
+        private static void ResetRegistry() => typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         private void Step(FloorHandProbe probe, float dt, long tick)
         { Set(floorState, "Tick", tick); if (hands.Tick(player.Id, true, probe, dt, tick, out var fact)) Publish(floor, "OnCollapseHand", fact); }
         private T Component<T>() where T : Component

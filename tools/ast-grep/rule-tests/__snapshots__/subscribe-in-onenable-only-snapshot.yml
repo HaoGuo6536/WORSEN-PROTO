@@ -1,0 +1,30 @@
+id: subscribe-in-onenable-only
+snapshots:
+  class Owner { void Awake() { source.Changed += Handle; } }:
+    labels:
+    - source: void Awake() { source.Changed += Handle; }
+      style: primary
+      start: 14
+      end: 56
+    - source: Awake
+      style: secondary
+      start: 19
+      end: 24
+    - source: source.Changed += Handle
+      style: secondary
+      start: 29
+      end: 53
+  class Owner { void Start() { source.Changed += Handle; } }:
+    labels:
+    - source: void Start() { source.Changed += Handle; }
+      style: primary
+      start: 14
+      end: 56
+    - source: Start
+      style: secondary
+      start: 19
+      end: 24
+    - source: source.Changed += Handle
+      style: secondary
+      start: 29
+      end: 53

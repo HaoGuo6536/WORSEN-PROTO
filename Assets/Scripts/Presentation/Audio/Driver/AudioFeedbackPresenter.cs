@@ -14,9 +14,8 @@
 //   - Scale landing impacts by committed stumble severity and sliding friction by actual turn rate.
 //   - Keep posture, exertion and health changes silent; embodiment owns breathing.
 //   - Admit one death sting only at catch hold start and one physical exit-opening cue.
-//   - Choose presentation commands without changing gameplay.
+//   - Route typed shop operations and pickups without changing gameplay or cue cadence.
 //   - Suppress initialization damage and repeated same-event sounds.
-//   - Preserve one ordinary or golden pickup cue without a combo replacement.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -176,13 +175,13 @@ namespace Worsen.Presentation.Audio
             if (state.EventTicks.TryGetValue(key, out long prior) && tick <= prior) return false;
             state.EventTicks[key] = tick; return true;
         }
-        public void Transaction(AudioFeedbackDriverState state, ProgressionSnapshot previous, ProgressionSnapshot current, string operation)
+        public void Transaction(AudioFeedbackDriverState state, ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation)
         {
             state.Commands.Clear();
             if (previous.Phase != ProgressionPhase.Shop || current.Phase != ProgressionPhase.Shop || current.Revision <= previous.Revision || current.Revision <= state.TransactionRevision) return;
             state.TransactionRevision = current.Revision;
-            if (operation == "Purchase" && string.IsNullOrEmpty(current.PendingOfferId)) Add(state, CueId.ShopBuy);
-            else if (operation == "RerollShop") Add(state, CueId.UiMove);
+            if (operation == ProgressionOperation.Purchase && string.IsNullOrEmpty(current.PendingOfferId)) Add(state, CueId.ShopBuy);
+            else if (operation == ProgressionOperation.RerollShop) Add(state, CueId.UiMove);
             // ReservePurchase and CancelReplacement are intentionally silent.
         }
         public void Exit(AudioFeedbackDriverState state, FloorDisplaySnapshot sample, Vector3 position, float threshold)

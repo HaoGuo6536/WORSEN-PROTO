@@ -7,12 +7,12 @@
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Core · Hunter Mimic contracts.
 // KEY RESPONSIBILITIES:
-//   - Carry pose, arrow exclusion, bite hold and default-off faithless hook facts.
+//   - Carry pose, arrow exclusion, bite hold and Faithless Arrow curse facts.
 // DEPENDENCIES:
 //   - Core entity identity and UnityEngine value types only.
 // USAGE NOTES:
 //   Pose never belongs to the white-arrow candidate set, even when golden.
-//   FaithlessWindow is a separate temporary override requiring owner opt-in.
+//   FaithlessWindow is a separate temporary override enabled by the ordinary Mimic curse.
 //   BiteStarted is a contact fact, not damage acceptance: Player grace wins.
 // ============================================================================
 using UnityEngine;

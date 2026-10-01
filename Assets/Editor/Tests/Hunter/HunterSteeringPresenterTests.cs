@@ -26,6 +26,7 @@ using Worsen.Domain.Hunter;
 
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterSteeringPresenterTests
     {
         private HunterSteeringPresenter _presenter;

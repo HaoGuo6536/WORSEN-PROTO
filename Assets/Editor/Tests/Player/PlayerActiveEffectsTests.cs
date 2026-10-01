@@ -9,6 +9,7 @@
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Verify tick-boundary replacement, one-use momentum, action hooks and life reset.
+//   - Verify delayed footsteps, chase speed/heartbeat and body/Ram/door contact hooks.
 // DEPENDENCIES:
 //   - Player logic/config, Core effects/input, NUnit and temporary Unity configs.
 // USAGE NOTES:
@@ -25,6 +26,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerActiveEffectsTests
     {
         private PlayerProfile _profile;
@@ -245,6 +247,125 @@ namespace Worsen.Tests.Player
             Assert.That(_state.AppliedEffects.Count, Is.Zero);
             Assert.That(_state.StoredMomentumRemaining, Is.Zero);
             Assert.That(_state.IsUngrabbable, Is.False);
+        }
+
+        [Test]
+        public void ContactPerkDefaultsMatchTheCatalogueAndRemainIndependentOfOldMappings()
+        {
+            Assert.That(_config.SecondBounceId, Is.EqualTo("second-bounce"));
+            Assert.That(_config.EchoBootsId, Is.EqualTo("echo-boots"));
+            Assert.That(_config.LoudHeartId, Is.EqualTo("loud-heart"));
+            Assert.That(_config.SureFootingId, Is.EqualTo("sure-footing"));
+            Assert.That(_config.LatchId, Is.EqualTo("latch"));
+            Assert.That(_config.EchoBootsDelaySeconds, Is.EqualTo(3f));
+            Assert.That(_config.LoudHeartSprintMultiplier, Is.EqualTo(1.1f));
+            Assert.That(_config.HeartbeatIntervalSeconds, Is.EqualTo(1f));
+            Assert.That(_config.HeartbeatLoudness, Is.EqualTo(.5f));
+        }
+
+        [Test]
+        public void EchoBootsOnlyReplaceFootstepOriginsNotLandingOriginsOrNoiseMetadata()
+        {
+            _controller.Reset(new EntityId(1), Vector3.zero, 0f, 1f);
+            Set("echo-boots");
+            for (int tick = 0; tick <= 5; tick++)
+            {
+                _state.Position = Vector3.right * tick;
+                _state.FootstepRemaining = 0f;
+                _controller.Tick(Frame(move: Vector2.up), Ground, 1f, tick);
+                NoiseEvent noise = _state.RecentNoises[_state.RecentNoises.Count - 1];
+                Assert.That(noise.Position, Is.EqualTo(Vector3.right * System.Math.Max(0, tick - 3)));
+                Assert.That(noise.SourceKind, Is.EqualTo(NoiseSourceKind.Footstep));
+                Assert.That(noise.Source, Is.EqualTo(_state.Id)); Assert.That(noise.Tick, Is.EqualTo(tick));
+                Assert.That(noise.Loudness, Is.EqualTo(_profile.WalkingLoudness));
+            }
+            _state.Position = Vector3.one * 20f; _state.MovementState = MovementState.Air;
+            _state.Velocity = Vector3.down * 20f; _state.Grounded = false;
+            _controller.Tick(default, Ground, 1f, 6);
+            NoiseEvent landing = _state.RecentNoises[_state.RecentNoises.Count - 1];
+            Assert.That(landing.SourceKind, Is.EqualTo(NoiseSourceKind.Landing));
+            Assert.That(landing.Position, Is.EqualTo(_state.Position));
+        }
+
+        [Test]
+        public void LoudHeartBoostsOnlyChasedSprintAndHeartbeatIsNotAnAmbientOrFootstepRecord()
+        {
+            Set("loud-heart");
+            _controller.Tick(Frame(held: InputButtons.Sprint, move: Vector2.up), Ground, 1f, 0);
+            Assert.That(Speed, Is.EqualTo(8f)); Assert.That(_controller.TakeHeartbeat(out _), Is.False);
+            _controller.ReceiveChase(new ChaseFact(1, _state.Id, new EntityId(-1), 0, ChasePhase.Confirmed));
+            _controller.Tick(Frame(held: InputButtons.Sprint, move: Vector2.up), Ground, 1f, 60);
+            Assert.That(Speed, Is.EqualTo(8.8f).Within(.00001f));
+            Assert.That(_controller.TakeHeartbeat(out var heartbeat), Is.True);
+            Assert.That(heartbeat.Source, Is.EqualTo(_state.Id)); Assert.That(heartbeat.Tick, Is.EqualTo(60));
+            foreach (NoiseEvent noise in _state.RecentNoises) Assert.That(noise.SourceKind, Is.Not.EqualTo(NoiseSourceKind.Other));
+            _controller.Tick(Frame(move: Vector2.up), Ground, 1f, 120);
+            Assert.That(Speed, Is.EqualTo(4f), "Walking is not boosted by Loud Heart.");
+            _controller.ReceiveChase(new ChaseFact(1, _state.Id, new EntityId(-1), 120, ChasePhase.None));
+            _controller.Tick(Frame(held: InputButtons.Sprint, move: Vector2.up), Ground, 1f, 180);
+            Assert.That(Speed, Is.EqualTo(8f)); Assert.That(_controller.TakeHeartbeat(out _), Is.False);
+        }
+
+        [Test]
+        public void LoudHeartStacksWithSpeedUpgradesUnderTheExistingStrictHunterCeiling()
+        {
+            _controller.SetActiveEffects(new ActiveEffects(new[] {
+                new ActiveEffect(new EffectId("loud-heart"), EffectKind.Upgrade, 1),
+                new ActiveEffect(new EffectId("speed-boost"), EffectKind.Upgrade, 99) }));
+            _controller.ReceiveChase(new ChaseFact(1, _state.Id, new EntityId(-1), 0, ChasePhase.Confirmed));
+            _controller.Tick(Frame(held: InputButtons.Sprint, move: Vector2.up), Ground, 1f, 1);
+            Assert.That(Speed, Is.EqualTo(9.49f).Within(.00001f));
+            Assert.That(_state.SprintSpeed, Is.EqualTo(_profile.SprintSpeed));
+        }
+
+        [Test]
+        public void SecondBounceConsumesJumpRequestPublishesReboundAndLeavesWallIdentityAlone()
+        {
+            Set("second-bounce"); _state.MovementState = MovementState.Air;
+            _state.Velocity = Vector3.forward * 8f; _state.LastReboundWall = 17;
+            _controller.ReceiveChase(new ChaseFact(1, _state.Id, new EntityId(-1), 0, ChasePhase.Confirmed));
+            _controller.Tick(Frame(InputButtons.Jump), default, Dt, 1);
+            Assert.That(_controller.TryReboundFromHunter(new EntityId(-1), Vector3.back, out var fact), Is.True);
+            Assert.That(_state.Velocity.z, Is.EqualTo(-8f)); Assert.That(_state.Velocity.y, Is.GreaterThan(0f));
+            Assert.That(_state.JumpBufferRemaining, Is.Zero); Assert.That(_state.ReboundJumpRemaining, Is.Zero);
+            Assert.That(_state.LastReboundWall, Is.EqualTo(17)); Assert.That(_state.Health, Is.EqualTo(100f));
+            Assert.That(fact.Kind, Is.EqualTo(TraversalKind.Rebound)); Assert.That(fact.Tick, Is.EqualTo(1));
+            Assert.That(_state.RecentNoises[0].SourceKind, Is.EqualTo(NoiseSourceKind.Rebound));
+            _state.Velocity = Vector3.forward * 8f; _state.ReboundJumpRemaining = .1f;
+            Assert.That(_controller.TryReboundFromHunter(new EntityId(-1), Vector3.back, out _), Is.False);
+        }
+
+        [Test]
+        public void SureFootingRemovesOnlyGlancingRamDamageAndKeepsTheKnockbackWithoutStartingGrace()
+        {
+            Set("sure-footing"); _controller.Tick(default, Ground, Dt, 1);
+            _controller.GrantShield(10f);
+            Assert.That(_controller.TryDeflectGlancingRam(false, Vector3.right * 3f), Is.False);
+            Assert.That(_state.PendingExternalVelocity, Is.EqualTo(Vector3.zero));
+            Assert.That(_controller.TryDeflectGlancingRam(true, Vector3.right * 3f), Is.True);
+            Assert.That(_state.Health, Is.EqualTo(100f)); Assert.That(_state.Shield, Is.EqualTo(10f));
+            Assert.That(_state.GraceActive, Is.False); Assert.That(_state.HitBoostMultiplier, Is.EqualTo(1f));
+            _controller.Tick(default, Ground, Dt, 2);
+            Assert.That(_state.Velocity.x, Is.EqualTo(3f));
+            Assert.That(_controller.ApplyHit(30f).Changed, Is.True);
+            Assert.That(_state.Health, Is.EqualTo(80f)); Assert.That(_state.Shield, Is.Zero);
+        }
+
+        [Test]
+        public void LatchUsesAchievedCommittedSprintAndFloorResetRearmsRoomAllowance()
+        {
+            Set("latch");
+            var frame = Frame(held: InputButtons.Sprint, move: Vector2.up);
+            _controller.Tick(frame, Ground, 1f, 1);
+            Assert.That(_controller.TryLatchDoor(0, 1), Is.False, "Intent alone is not a committed sprint.");
+            var resolution = new MovementResolution(Vector3.forward, _state.Velocity, true, false, Vector3.up);
+            _controller.CommitFrame(Vector3.up, new InputProbeRecord(InputProbeRecord.CurrentSchemaVersion, 1, frame, Ground, 1f, resolution), null);
+            Assert.That(_controller.TryLatchDoor(0, 1), Is.True); Assert.That(_controller.TryLatchDoor(0, 2), Is.False);
+            _controller.BeginFloorHealth(100f, 1f);
+            Assert.That(_controller.TryLatchDoor(0, 1), Is.False, "A new floor needs a new committed sprint.");
+            _controller.Tick(frame, Ground, 1f, 2);
+            _controller.CommitFrame(Vector3.up, new InputProbeRecord(InputProbeRecord.CurrentSchemaVersion, 2, frame, Ground, 1f, resolution), null);
+            Assert.That(_controller.TryLatchDoor(0, 1), Is.True);
         }
 
         private sealed class MutableView : IReadOnlyActiveEffects

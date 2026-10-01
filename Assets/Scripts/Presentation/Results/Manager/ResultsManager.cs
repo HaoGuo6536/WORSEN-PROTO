@@ -11,6 +11,7 @@
 //   Manager (§1) · Presentation · Results (Service system).
 //
 // KEY RESPONSIBILITIES:
+//   - Forward no-floor seed facts and republish paired title navigation intent.
 //   - Forward catch identity and completion; DriverState owns the pending summary.
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward summary display commands and republish one accepted restart click.
@@ -40,6 +41,7 @@ namespace Worsen.Presentation.Results
         private bool _initialized;
 
         public event Action RestartRequested;
+        public event Action ReturnToTitleRequested;
         public event Action<bool, int> RestartWithSeedRequested;
 
         public void Initialize()
@@ -54,6 +56,8 @@ namespace Worsen.Presentation.Results
         }
 
         public void Show(RunSummary summary) { if (_driver != null) _driver.Show(summary); }
+        public void ShowNoFloor(int seed) { if (_driver != null) _driver.ShowNoFloor(seed); }
+        public void SetGenerationSeed(int seed) { if (_driver != null) _driver.SetGenerationSeed(seed); }
         public void SetBestDepth(int depth) { if (_driver != null) _driver.SetBestDepth(depth); }
         public void PrepareCatch(EntityId player) { if (_driver != null) _driver.PrepareCatch(player); }
         public void EndCatch(EntityId player) { if (_driver != null) _driver.EndCatch(player); }
@@ -70,6 +74,8 @@ namespace Worsen.Presentation.Results
             _driver.RestartClicked += OnRestartClicked;
             _driver.RestartWithSeedClicked -= OnRestartWithSeedClicked;
             _driver.RestartWithSeedClicked += OnRestartWithSeedClicked;
+            _driver.ReturnToTitleClicked -= OnReturnToTitleClicked;
+            _driver.ReturnToTitleClicked += OnReturnToTitleClicked;
         }
 
         private void OnDisable()
@@ -78,6 +84,7 @@ namespace Worsen.Presentation.Results
             _driver.RestartClicked -= OnRestartClicked;
             _driver.enabled = false;
             _driver.RestartWithSeedClicked -= OnRestartWithSeedClicked;
+            _driver.ReturnToTitleClicked -= OnReturnToTitleClicked;
         }
 
         private void OnDestroy()
@@ -86,6 +93,7 @@ namespace Worsen.Presentation.Results
         }
 
         private void OnRestartClicked() => RestartRequested?.Invoke();
+        private void OnReturnToTitleClicked() => ReturnToTitleRequested?.Invoke();
         private void OnRestartWithSeedClicked(bool fixedSeed, int seed) => RestartWithSeedRequested?.Invoke(fixedSeed, seed);
     }
 }

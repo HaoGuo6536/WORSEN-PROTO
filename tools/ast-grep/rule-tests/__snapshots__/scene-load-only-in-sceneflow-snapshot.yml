@@ -1,0 +1,14 @@
+id: scene-load-only-in-sceneflow
+snapshots:
+  class Owner { void Run() { SceneManager.LoadScene("x"); } }:
+    labels:
+    - source: SceneManager.LoadScene
+      style: primary
+      start: 27
+      end: 49
+  class Owner { void Run() { SceneManager.UnloadSceneAsync("x"); } }:
+    labels:
+    - source: SceneManager.UnloadSceneAsync
+      style: primary
+      start: 27
+      end: 56

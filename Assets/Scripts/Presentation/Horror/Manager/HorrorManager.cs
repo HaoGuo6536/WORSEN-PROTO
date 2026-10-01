@@ -11,10 +11,11 @@
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
-//   - Forward injected candidates/effects and publish micro-event outcomes for telemetry.
-//   - Forward authoritative aim and afterimage facts from gameplay without taking ownership.
-//   - Forward explicit run reset, injected clock deltas, startle admission and default-off fog hooks.
-//   - Pair owner enable, disable and destruction with rendering restoration.
+//   - Forward room collapse, Weaver warnings and authoritative Afterglow windows.
+//   - Forward injected candidates/effects and publish micro-event outcomes.
+//   - Forward authoritative aim and afterimages without taking gameplay ownership.
+//   - Forward resets, clock deltas, startle admission and lighting hooks.
+//   - Pair lifecycle boundaries with rendering restoration.
 //
 // DEPENDENCIES:
 //   - Core HunterAttackSample and EntityId; its own Horror presentation stack.
@@ -66,10 +67,15 @@ namespace Worsen.Presentation.Horror
 
         public void SetFlashlight(FlashlightSample sample) { if (_driver != null) _driver.SetFlashlight(sample); }
         public void SetAfterimage(FlashlightSample sample, float lifetime) { if (_driver != null) _driver.SetAfterimage(sample, lifetime); }
+        public void SetAfterglow(InteractableState light, float safetySeconds)
+        { if (_driver != null && isActiveAndEnabled) _driver.SetAfterglow(light, safetySeconds); }
         public void ToggleFlashlight() { if (_driver != null && isActiveAndEnabled) _driver.ToggleFlashlight(); }
         public void SetEffects(float fogMultiplier, float flashlightMultiplier)
         { if (_driver != null) _driver.SetEffects(fogMultiplier, flashlightMultiplier); }
         public void ResetRound() { if (_driver != null) _driver.ResetRound(); }
+        public void SetCollapseRooms(IReadOnlyList<GeneratedRoomSample> rooms, int? exitRoom)
+        { if (_driver != null) _driver.SetCollapseRooms(rooms, exitRoom); }
+        public void ObserveCollapse(RoomDestructionSample sample) { if (_driver != null) _driver.ObserveCollapse(sample); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_driver != null) _driver.SetActiveEffects(effects); }
         public void SetMicroEventWorld(IReadOnlyInteractableSet world, IReadOnlyList<Vector3> unreachableAnchors)
         { if (_driver != null) _driver.SetMicroEventWorld(world, unreachableAnchors); }
@@ -91,6 +97,8 @@ namespace Worsen.Presentation.Horror
         { if (_driver != null) _driver.SetLightingHooks(darkerFloors, catEyes); }
         public void SetAttack(HunterAttackSample sample)
         { if (_driver != null && isActiveAndEnabled) _driver.SetAttack(sample); }
+        public void ObserveWeaver(WeaverFact fact)
+        { if (_driver != null && isActiveAndEnabled) _driver.ObserveWeaver(fact); }
         public void RemoveAttack(EntityId hunter) { if (_driver != null) _driver.RemoveAttack(hunter); }
 
         private void OnEnable()

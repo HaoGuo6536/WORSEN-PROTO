@@ -1,0 +1,50 @@
+id: driver-no-allocating-physics
+snapshots:
+  class Driver { void Probe() { Physics.BoxCastAll(origin, size, direction); } }:
+    labels:
+    - source: Physics.BoxCastAll(origin, size, direction)
+      style: primary
+      start: 30
+      end: 73
+  class Driver { void Probe() { Physics.CapsuleCastAll(a, b, radius, direction); } }:
+    labels:
+    - source: Physics.CapsuleCastAll(a, b, radius, direction)
+      style: primary
+      start: 30
+      end: 77
+  class Driver { void Probe() { Physics.OverlapBox(origin, size); } }:
+    labels:
+    - source: Physics.OverlapBox(origin, size)
+      style: primary
+      start: 30
+      end: 62
+  class Driver { void Probe() { Physics.OverlapCapsule(a, b, radius); } }:
+    labels:
+    - source: Physics.OverlapCapsule(a, b, radius)
+      style: primary
+      start: 30
+      end: 66
+  class Driver { void Probe() { Physics.OverlapSphere(origin, radius); } }:
+    labels:
+    - source: Physics.OverlapSphere(origin, radius)
+      style: primary
+      start: 30
+      end: 67
+  class Driver { void Probe() { Physics.RaycastAll(origin, direction); } }:
+    labels:
+    - source: Physics.RaycastAll(origin, direction)
+      style: primary
+      start: 30
+      end: 67
+  class Driver { void Probe() { Physics.SphereCastAll(origin, radius, direction); } }:
+    labels:
+    - source: Physics.SphereCastAll(origin, radius, direction)
+      style: primary
+      start: 30
+      end: 78
+  class Driver { void Probe() { UnityEngine.Physics.RaycastAll(origin, direction); } }:
+    labels:
+    - source: UnityEngine.Physics.RaycastAll(origin, direction)
+      style: primary
+      start: 30
+      end: 79
