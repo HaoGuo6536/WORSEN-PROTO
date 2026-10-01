@@ -236,7 +236,9 @@ namespace Worsen.Domain.Player
         public void ShowMovement(MovementState movement)
         {
             if (movement != MovementState.Vault) ClearTraversal();
-            if (_limbs != null) _limbs.Apply(movement, _config.EyeHeight, _config.HandOffset, _config.FootOffset);
+            // Relaxed arms swing with horizontal speed and settle when crouched (PlayerLimbPresenter).
+            if (_limbs != null) _limbs.Apply(movement, _config.EyeHeight, _config.HandOffset, _config.FootOffset,
+                new Vector2(_state.Velocity.x, _state.Velocity.z).magnitude, _state.Height < _config.Height, _state.LastStepDuration, _config);
         }
 
         public void Teardown()
