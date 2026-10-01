@@ -2,12 +2,15 @@
 // TelemetrySetup.cs
 // ============================================================================
 // PURPOSE:
-//   Rebuilds the Telemetry service and its mirrored config deterministically. Existing config assets retain their identity and settings while scene wiring can be reconstructed after imports.
+//   Rebuilds the Telemetry service and its mirrored config deterministically.
+//   Existing config assets retain their identity and settings while scene wiring
+//   can be reconstructed after imports through shared setup primitives.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Presentation · Telemetry.
 // KEY RESPONSIBILITIES:
 //   - Create missing config and a root service with explicit serialized Driver/config references.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor and Telemetry runtime types only.
 // USAGE NOTES:
 //   - Editor-only. Caller owns shared-scene construction and Unity lease; persistent services must remain root objects.
@@ -48,11 +51,6 @@ namespace Worsen.Editor.Telemetry
             return manager;
         }
         private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            string parent = Path.GetDirectoryName(path).Replace('\\', '/');
-            EnsureFolder(parent);
-            AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
     }
 }

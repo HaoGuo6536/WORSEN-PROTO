@@ -1,0 +1,6 @@
+id: scene-load-only-in-sceneflow
+valid:
+  - 'class Owner { void Run() { flow.RequestLoad(key); } }'
+invalid:
+  - 'class Owner { void Run() { SceneManager.LoadScene("x"); } }'
+  - 'class Owner { void Run() { SceneManager.UnloadSceneAsync("x"); } }'

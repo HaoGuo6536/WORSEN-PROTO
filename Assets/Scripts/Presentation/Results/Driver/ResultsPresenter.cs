@@ -11,6 +11,7 @@
 //   Presenter (§7b) · Presentation · Results.
 //
 // KEY RESPONSIBILITIES:
+//   - Present seed-specific no-floor failures immediately, with new-seed Retry and title intent.
 //   - Hold death summaries until the catch ends; flag a bounded missing-event fallback.
 //   - Format times and counts without changing run rules or inventing missing values.
 //   - Accept one restart interaction while visible; rearm only after explicit hiding.
@@ -36,6 +37,7 @@ namespace Worsen.Presentation.Results
         public void Show(ResultsDriverState state, RunSummary summary,
             float timeoutSeconds = ResultsDriverConfig.DefaultCatchTimeoutSeconds)
         {
+            if (state.NoFloor) return;
             if (summary.EndReason == RunEndReason.Died && !state.CatchCompleted)
             {
                 if (!state.HasPendingSummary)
@@ -50,6 +52,24 @@ namespace Worsen.Presentation.Results
             state.PendingSummary = default;
             state.CatchRemaining = 0f;
             PresentSummary(state, summary);
+        }
+
+        public void ShowNoFloor(ResultsDriverState state, int seed)
+        {
+            bool issued = state.Visible && state.RestartIssued;
+            Hide(state);
+            state.Visible = state.NoFloor = true;
+            state.RestartIssued = issued;
+            state.Title = "NO FLOOR";
+            state.Seed = (state.GenerationSeed ?? seed).ToString(CultureInfo.InvariantCulture);
+            state.EndReason = "The castle would not form. Seed " + state.Seed + ".";
+        }
+
+        public bool TryReturnToTitle(ResultsDriverState state)
+        {
+            if (!state.NoFloor || !state.Visible || state.RestartIssued) return false;
+            state.RestartIssued = true;
+            return true;
         }
 
         public void PrepareCatch(ResultsDriverState state, EntityId player)
@@ -102,7 +122,7 @@ namespace Worsen.Presentation.Results
 
         public bool SetNextSeed(ResultsDriverState state, string text)
         {
-            if (state.RestartIssued) return false;
+            if (state.RestartIssued || state.NoFloor) return false;
             state.NextSeedText = text ?? "";
             state.UseFixedSeed = state.NextSeedText.Length > 0;
             state.NextSeed = 0;
@@ -118,6 +138,8 @@ namespace Worsen.Presentation.Results
         public void SetSummary(ResultsDriverState state, double runSeconds, int cakes, int goldenCakes,
             int chases, int escapes, double chaseSeconds, string endReason)
         {
+            state.NoFloor = false;
+            state.Title = "RUN COMPLETE";
             if (!state.Visible) state.RestartIssued = false;
             state.Visible = true;
             state.RunTime = FormatDuration(runSeconds);
@@ -138,6 +160,8 @@ namespace Worsen.Presentation.Results
 
         public void Hide(ResultsDriverState state)
         {
+            state.NoFloor = false;
+            state.Title = "RUN COMPLETE";
             state.HasPendingSummary = state.CatchCompleted = state.CatchFallbackFired = false;
             state.PendingSummary = default;
             state.CatchPlayer = default;

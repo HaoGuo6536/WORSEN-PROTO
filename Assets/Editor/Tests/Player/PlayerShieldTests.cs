@@ -20,6 +20,7 @@ using Worsen.Domain.Player;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerShieldTests
     {
         private PlayerProfile profile;

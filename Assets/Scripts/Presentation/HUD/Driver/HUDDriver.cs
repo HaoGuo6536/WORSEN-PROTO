@@ -11,11 +11,11 @@
 //   Driver (§7a) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Forward selected inventory and use counts to the pure Presenter.
-//   - Route typed arrows and admit phantom counts only on a bound, enabled display.
 //   - Own document binding and the HUDVisualDriver lifetime.
+//   - Forward counters, floor hiding, inventory and shield to the pure Presenter.
+//   - Forward independent guidance and camera aim to presentation calculations.
+//   - Admit phantom counts only on a bound, enabled display.
 //   - Preserve supplied facts across document recreation and disable/enable.
-//   - Receive camera aim, golden count and occupied-item facts for a flat, decluttered HUD.
 //
 // DEPENDENCIES:
 //   Core primitives and own HUD presentation stack; Unity UI Toolkit only at Driver boundaries.
@@ -72,6 +72,17 @@ namespace Worsen.Presentation.HUD
             _presenter.SetCount(_state, collected, total);
             Apply();
         }
+
+        public void SetFloorCounters(FloorDisplaySnapshot display)
+        {
+            if (_state == null) return;
+            _presenter.SetFloorCounters(_state, display); Apply();
+        }
+
+        public void SetThreat(TickingGuidanceFact fact)
+        { if (_state != null) { _presenter.SetThreat(_state, fact); Apply(); } }
+        public void SetShield(float shield)
+        { if (_state != null) { _presenter.SetShield(_state, shield); Apply(); } }
 
         public void SetGoldenCount(int count)
         {

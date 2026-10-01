@@ -29,6 +29,7 @@ namespace Worsen.Domain.Floor
         int CakeCount { get; }
         int RequiredCakeCount { get; }
         int GoldenCakeCount { get; }
+        int OptionalGoldenCakeCount => 0;
         ExitState ExitState { get; }
         IReadOnlyDictionary<int, RoomPhase> RoomPhases { get; }
         IReadOnlyList<LevelAnchor> ActiveCakeAnchors { get; }

@@ -1,7 +1,7 @@
 id: pure-layer-no-engine-calls
 language: csharp
 severity: error
-message: "Engine calls belong in a Driver; pass the result in as data (§7 'What counts as an engine call')."
+message: "Engine calls belong in a Driver; inject time and randomness as data (§2, §7)."
 files:
   - "Assets/Scripts/**/Controller/**/*.cs"
   - "Assets/Scripts/**/State/**/*.cs"
@@ -23,3 +23,14 @@ rule:
     - pattern: GetComponentInParent<$T>($$$A)
     - pattern: GetComponentInChildren<$T>($$$A)
     - pattern: Camera.main
+    - pattern: Random.$M($$$A)
+    - pattern: Random.$P
+    - pattern: UnityEngine.Random.$P
+    - kind: invocation_expression
+      regex: '^(?:(?:UnityEngine\.)?Object\.)?Find(ObjectOfType|ObjectsOfType|FirstObjectByType|AnyObjectByType|ObjectsByType)\b'
+    - kind: invocation_expression
+      regex: '^(?:UnityEngine\.)?GameObject\.Find\w*\b'
+    - kind: member_access_expression
+      regex: '^(?:System\.)?DateTime\.(Now|UtcNow)$'
+    - kind: identifier
+      regex: '^Stopwatch$'

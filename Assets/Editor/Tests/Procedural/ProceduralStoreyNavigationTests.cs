@@ -13,6 +13,7 @@
 // DEPENDENCIES:
 //   - Core, Domain.Procedural, NUnit and UnityEngine.AI native navigation.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Coordinator-only EditMode execution under the Unity lease. All generated
 //   geometry is remote from authored scenes; teardown never clears global navigation.
 // ============================================================================
@@ -26,6 +27,7 @@ using Worsen.Domain.Procedural;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralStoreyNavigationTests
     {
         private ProceduralConfig _config;
@@ -35,7 +37,7 @@ namespace Worsen.Tests.Procedural
         [SetUp] public void SetUp()
         {
             _config = ScriptableObject.CreateInstance<ProceduralConfig>();
-            _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            _driverConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<ProceduralDriverConfig>();
             Set(_config, "_origin", new Vector2(20000f, 20000f));
             Set(_config, "_oneCellWeight", 0f); Set(_config, "_twoCellWeight", 1f); Set(_config, "_threeCellWeight", 0f);
             Set(_config, "_storeyProbability", 1f); Set(_config, "_gapProbability", 0f);

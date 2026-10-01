@@ -22,6 +22,7 @@ using Worsen.Presentation.Telemetry;
 
 namespace Worsen.Tests.Telemetry
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class TelemetryCsvPresenterTests
     {
         [TestCase(true)]

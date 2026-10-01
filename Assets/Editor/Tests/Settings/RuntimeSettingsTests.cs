@@ -31,6 +31,7 @@ using Worsen.Tests.Menu;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Settings
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RuntimeSettingsTests
     {
         private readonly List<Object> _owned = new List<Object>();

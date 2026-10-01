@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "hunter": "Herald",
+  "fps": 30,
+  "height_m": 2.5,
+  "width_m": 0.85,
+  "triangles": 1628,
+  "bones": [
+    {
+      "name": "Root",
+      "parent": null,
+      "head_m": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Hips",
+      "parent": "Root",
+      "head_m": [
+        0,
+        0,
+        1.225
+      ]
+    },
+    {
+      "name": "Chest",
+      "parent": "Hips",
+      "head_m": [
+        0.0,
+        0,
+        1.75
+      ]
+    },
+    {
+      "name": "Head",
+      "parent": "Chest",
+      "head_m": [
+        0,
+        0,
+        2.175
+      ]
+    },
+    {
+      "name": "LeftArm",
+      "parent": "Chest",
+      "head_m": [
+        0.31,
+        0,
+        1.975
+      ]
+    },
+    {
+      "name": "LeftForearm",
+      "parent": "LeftArm",
+      "head_m": [
+        0.345,
+        0,
+        1.3
+      ]
+    },
+    {
+      "name": "LeftHand",
+      "parent": "LeftForearm",
+      "head_m": [
+        0.38,
+        -0.015,
+        0.78
+      ]
+    },
+    {
+      "name": "LeftThigh",
+      "parent": "Hips",
+      "head_m": [
+        0.105,
+        0,
+        1.225
+      ]
+    },
+    {
+      "name": "LeftShin",
+      "parent": "LeftThigh",
+      "head_m": [
+        0.105,
+        0,
+        0.675
+      ]
+    },
+    {
+      "name": "LeftFoot",
+      "parent": "LeftShin",
+      "head_m": [
+        0.105,
+        0,
+        0.1
+      ]
+    },
+    {
+      "name": "LeftRibs",
+      "parent": "Chest",
+      "head_m": [
+        0.23,
+        0.045,
+        1.7999999999999998
+      ]
+    },
+    {
+      "name": "RightArm",
+      "parent": "Chest",
+      "head_m": [
+        -0.31,
+        0,
+        1.975
+      ]
+    },
+    {
+      "name": "RightForearm",
+      "parent": "RightArm",
+      "head_m": [
+        -0.345,
+        0,
+        1.3
+      ]
+    },
+    {
+      "name": "RightHand",
+      "parent": "RightForearm",
+      "head_m": [
+        -0.38,
+        -0.015,
+        0.78
+      ]
+    },
+    {
+      "name": "RightThigh",
+      "parent": "Hips",
+      "head_m": [
+        -0.105,
+        0,
+        1.225
+      ]
+    },
+    {
+      "name": "RightShin",
+      "parent": "RightThigh",
+      "head_m": [
+        -0.105,
+        0,
+        0.675
+      ]
+    },
+    {
+      "name": "RightFoot",
+      "parent": "RightShin",
+      "head_m": [
+        -0.105,
+        0,
+        0.1
+      ]
+    },
+    {
+      "name": "RightRibs",
+      "parent": "Chest",
+      "head_m": [
+        -0.23,
+        0.045,
+        1.7999999999999998
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "idle",
+      "frames": [
+        0,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "frames": [
+        0,
+        40
+      ],
+      "loop": true
+    },
+    {
+      "name": "run",
+      "frames": [
+        0,
+        24
+      ],
+      "loop": true
+    },
+    {
+      "name": "ready",
+      "frames": [
+        0,
+        24
+      ],
+      "loop": false
+    },
+    {
+      "name": "attack",
+      "frames": [
+        0,
+        40
+      ],
+      "loop": false,
+      "contact_frame": 16
+    },
+    {
+      "name": "hit",
+      "frames": [
+        0,
+        20
+      ],
+      "loop": false
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_HunterHerald_Skin",
+      "base_color_srgb": [
+        0.49,
+        0.48,
+        0.46,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
+    },
+    {
+      "name": "M_HunterHerald_Cavity",
+      "base_color_srgb": [
+        0.17,
+        0.022,
+        0.03,
+        1
+      ],
+      "emission_color_srgb": [
+        0.3,
+        0.025,
+        0.035,
+        1
+      ],
+      "emission_strength": 0.3
+    }
+  ],
+  "coordinate_system": "Blender Z-up, forward -Y, metres",
+  "socket_space": "bone-local Blender rest axes, metres; convert with FBX bone basis in Unity",
+  "unity_import": {
+    "bakeAxisConversion": false,
+    "rig": "Generic",
+    "root_motion": false
+  },
+  "sockets": {
+    "attack_origin": {
+      "bone": "Chest",
+      "local_offset": [
+        0,
+        0,
+        0.1
+      ]
+    },
+    "head_or_top": {
+      "bone": "Head",
+      "local_offset": [
+        0,
+        0.1,
+        0
+      ]
+    }
+  }
+}

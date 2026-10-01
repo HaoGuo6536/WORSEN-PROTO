@@ -11,10 +11,11 @@
 //   - Carry injected tick inputs, ordered replay motion and immutable facts.
 //   - Consume shared Core facts without coupling archetypes to Session consumers.
 //   - Let specialised attacks opt out of the shared lunge without replacing sensing.
+//   - Admit silent body interceptions through the shared hit and recovery boundary.
 // DEPENDENCIES:
 //   - Core values; read-only Player, Level and Floor views in Hunter's existing order.
 // USAGE NOTES:
-//   Modules are per entity, constructed by its Manager. Replay paths are consumed
+//   Rules are per entity, constructed through the registered factory. Replay paths are consumed
 //   synchronously and acknowledged before the next tick. Facts own copied paths.
 // ============================================================================
 using System.Collections.Generic;
@@ -25,6 +26,11 @@ using Worsen.Domain.Level;
 using Worsen.Domain.Floor;
 namespace Worsen.Domain.Hunter
 {
+    public interface IHunterContactRules
+    {
+        bool ContactReady { get; }
+        void CommitContact();
+    }
     public interface IHunterAttackRules
     {
         bool UsesSharedAttacks { get; }

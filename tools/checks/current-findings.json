@@ -1,0 +1,994 @@
+{
+  "date": "2026-09-30",
+  "findings": [
+    {
+      "path": "Assets/Editor/Scenes/HorrorRunSceneSetup.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Architecture/ArchitectureConformanceTests.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Camera/FeedbackRoutingIntegrationTests.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Chase/HunterRouteIntegrationTests.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Director/DirectorHintIntegrationTests.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Expedition/HorrorRunIntegrationTests.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Floor/FloorControllerTests.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Floor/FloorLifecycleTests.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Hunter/HunterChaseIntegrationTests.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Hunter/HunterRouteComparisonTests.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Player/PlayerControllerTests.cs",
+      "alarm": "responsibilities",
+      "measured": 11,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Player/PlayerDriverTests.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Player/PlayerMoverPresenterTests.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Procedural/ProceduralCastlePresenterTests.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Editor/Tests/Progression/ProgressionSessionControllerTests.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Core/Definitions/PlayerMovementDefinitions.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Core/Definitions/ProgressionDefinitions.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Core/Worsen.Core.asmdef",
+      "alarm": "asmdef",
+      "measured": "autoReferenced=true",
+      "detail": "Layer assembly is automatically referenced (\u00a713a)",
+      "severity": "warning",
+      "waived": false
+    },
+    {
+      "path": "Assets/Scripts/Domain/Director/Manager/DirectorManager.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Config/FloorConfig.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Config/FloorDriverConfig.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Controller/FloorController.cs",
+      "alarm": "responsibilities",
+      "measured": 13,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Driver/FloorDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 14,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Driver/FloorExitDoor.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Driver/RoomCollapseVolume.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Manager/FloorManager.cs",
+      "alarm": "relay-surface",
+      "measured": {
+        "publicEvents": 17,
+        "relayHandlers": 0,
+        "handlers": 4
+      },
+      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
+      "severity": "error",
+      "waived": false,
+      "symbol": "FloorManager",
+      "relayNames": []
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/Manager/FloorManager.cs",
+      "alarm": "responsibilities",
+      "measured": 12,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Floor/State/FloorBehaviorState.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Config/HunterProfile.cs",
+      "alarm": "responsibilities",
+      "measured": 10,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Controller/HunterController.cs",
+      "alarm": "responsibilities",
+      "measured": 14,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Driver/HunterDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Driver/HunterSteeringPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs",
+      "alarm": "relay-surface",
+      "measured": {
+        "publicEvents": 20,
+        "relayHandlers": 2,
+        "handlers": 5
+      },
+      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
+      "severity": "error",
+      "waived": false,
+      "symbol": "HunterManager",
+      "relayNames": [
+        "HandleAttackFeedback",
+        "HandleStall"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs",
+      "alarm": "responsibilities",
+      "measured": 11,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/Manager/HunterManager.cs",
+      "alarm": "type-switch",
+      "measured": 8,
+      "detail": "Config/State/Profile type tests in one method >= 3 (A3)",
+      "severity": "error",
+      "waived": false,
+      "symbol": "Initialize",
+      "line": 119
+    },
+    {
+      "path": "Assets/Scripts/Domain/Hunter/State/HunterBehaviorState.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Level/Manager/LevelManager.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Player/Config/PlayerProfile.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Player/Controller/PlayerController.cs",
+      "alarm": "responsibilities",
+      "measured": 22,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Player/Driver/PlayerDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 14,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Player/Driver/PlayerMoverPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Player/Manager/PlayerManager.cs",
+      "alarm": "responsibilities",
+      "measured": 13,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Player/State/PlayerBehaviorState.cs",
+      "alarm": "responsibilities",
+      "measured": 14,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Config/ProceduralConfig.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Controller/ProceduralController.cs",
+      "alarm": "responsibilities",
+      "measured": 11,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Definitions/ProceduralDefinitions.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Driver/ProceduralDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 11,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Driver/ProceduralDriverState.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Driver/ProceduralGeometryPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Procedural/Manager/ProceduralManager.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Domain/Worsen.Domain.asmdef",
+      "alarm": "asmdef",
+      "measured": "autoReferenced=true",
+      "detail": "Layer assembly is automatically referenced (\u00a713a)",
+      "severity": "warning",
+      "waived": false
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/AudioOrchestrator.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/EnvironmentOrchestrator.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/HUDOrchestrator.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/HorrorOrchestrator.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/MenuOrchestrator.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/ProgressionUIOrchestrator.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/Scenes/HorrorRunSceneRoot.cs",
+      "alarm": "responsibilities",
+      "measured": 10,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Orchestrator/Worsen.Orchestrator.asmdef",
+      "alarm": "asmdef",
+      "measured": "autoReferenced=true",
+      "detail": "Layer assembly is automatically referenced (\u00a713a)",
+      "severity": "warning",
+      "waived": false
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Audio/Config/AudioSoundscapeDriverConfig.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Audio/Driver/AudioDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Audio/Driver/AudioFeedbackPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Audio/Driver/AudioSoundscapeDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 11,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Audio/Driver/AudioSoundscapePresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Audio/Manager/AudioManager.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Camera/Driver/CameraDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Camera/Driver/CameraDriverState.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Camera/Driver/CameraFeedbackPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Camera/Manager/CameraManager.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Environment/Driver/EnvironmentDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Environment/Driver/EnvironmentPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Environment/Manager/EnvironmentManager.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/HUD/Driver/HUDPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/HUD/Manager/HUDManager.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Input/Driver/PlayerInputDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Input/Manager/InputManager.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/PostFX/Driver/PostFXDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/PostFX/Driver/PostFXDriverState.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/PostFX/Driver/PostFXPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/PostFX/Manager/PostFXManager.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/ProgressionUI/Driver/ProgressionUIDriver.cs",
+      "alarm": "responsibilities",
+      "measured": 8,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/ProgressionUI/Driver/ProgressionUIPresenter.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/ProgressionUI/Manager/ProgressionUIManager.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/Worsen.Presentation.asmdef",
+      "alarm": "asmdef",
+      "measured": "autoReferenced=true",
+      "detail": "Layer assembly is automatically referenced (\u00a713a)",
+      "severity": "warning",
+      "waived": false
+    },
+    {
+      "path": "Assets/Scripts/Session/Expedition/Controller/ExpeditionSessionController.cs",
+      "alarm": "responsibilities",
+      "measured": 10,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs",
+      "alarm": "fan-out",
+      "measured": 11,
+      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Domain.Procedural, Domain.Shrine, Session.HorrorEffects, Session.Progression, Session.Run",
+      "severity": "error",
+      "waived": false,
+      "symbol": "ExpeditionSessionManager"
+    },
+    {
+      "path": "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs",
+      "alarm": "responsibilities",
+      "measured": 18,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Expedition/State/ExpeditionSessionBehaviorState.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/HorrorEffects/Manager/HorrorEffectsManager.cs",
+      "alarm": "fan-out",
+      "measured": 6,
+      "detail": "Domain.Director, Domain.Floor, Domain.Hunter, Domain.Level, Domain.Player, Session.Progression",
+      "severity": "error",
+      "waived": false,
+      "symbol": "HorrorEffectsManager"
+    },
+    {
+      "path": "Assets/Scripts/Session/Progression/Config/ProgressionConfig.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Progression/Controller/ProgressionSessionController.cs",
+      "alarm": "responsibilities",
+      "measured": 13,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Progression/Manager/ProgressionSessionManager.cs",
+      "alarm": "responsibilities",
+      "measured": 12,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Progression/Shop/Controller/ShopController.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Progression/State/ProgressionSessionBehaviorState.cs",
+      "alarm": "responsibilities",
+      "measured": 7,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Run/Controller/RunSessionController.cs",
+      "alarm": "responsibilities",
+      "measured": 9,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "alarm": "fan-out",
+      "measured": 7,
+      "detail": "Domain.Chase, Domain.Director, Domain.Floor, Domain.Hunter, Domain.Player, Domain.Shrine, Session.Progression",
+      "severity": "error",
+      "waived": false,
+      "symbol": "RunSessionManager"
+    },
+    {
+      "path": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "alarm": "relay-surface",
+      "measured": {
+        "publicEvents": 44,
+        "relayHandlers": 19,
+        "handlers": 37
+      },
+      "detail": "public events > 15 or relay handlers > half (\u00a71, \u00a79; A3)",
+      "severity": "error",
+      "waived": false,
+      "symbol": "RunSessionManager",
+      "relayNames": [
+        "HandleHunterArchetype",
+        "HandleHunterHabit",
+        "HandleHunterMutation",
+        "HandleWeaver",
+        "HandleTickingSound",
+        "HandleTickingGuidance",
+        "HandleTraversalProgress",
+        "HandleStumbled",
+        "HandleCakeLost",
+        "HandleTrapSprung",
+        "HandleGuidance",
+        "HandleHunterFeedback",
+        "HandleRoomDestruction",
+        "HandleHealth",
+        "HandleGraceStarted",
+        "HandleGraceEnded",
+        "HandleChasePhase",
+        "HandleFloorDisplay",
+        "HandleIntrusion"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs",
+      "alarm": "responsibilities",
+      "measured": 16,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Run/State/RunSessionBehaviorState.cs",
+      "alarm": "responsibilities",
+      "measured": 6,
+      "detail": "KEY RESPONSIBILITIES bullets > 5 (\u00a70; A3)",
+      "severity": "error",
+      "waived": true,
+      "waiver": "baseline"
+    },
+    {
+      "path": "Assets/Scripts/Session/Worsen.Session.asmdef",
+      "alarm": "asmdef",
+      "measured": "autoReferenced=true",
+      "detail": "Layer assembly is automatically referenced (\u00a713a)",
+      "severity": "warning",
+      "waived": false
+    }
+  ],
+  "waived": 88,
+  "expired": [],
+  "sessionEdges": [
+    {
+      "source": "Expedition",
+      "target": "HorrorEffects",
+      "paths": [
+        "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"
+      ]
+    },
+    {
+      "source": "Expedition",
+      "target": "Progression",
+      "paths": [
+        "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"
+      ]
+    },
+    {
+      "source": "Expedition",
+      "target": "Run",
+      "paths": [
+        "Assets/Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"
+      ]
+    },
+    {
+      "source": "HorrorEffects",
+      "target": "Progression",
+      "paths": [
+        "Assets/Scripts/Session/HorrorEffects/Manager/HorrorEffectsManager.cs"
+      ]
+    },
+    {
+      "source": "Run",
+      "target": "Progression",
+      "paths": [
+        "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs"
+      ]
+    }
+  ],
+  "sessionOrder": [
+    "Progression",
+    "SceneFlow",
+    "Settings",
+    "HorrorEffects",
+    "Run",
+    "Expedition"
+  ],
+  "proposedSessionOrder": [
+    "Progression",
+    "SceneFlow",
+    "Settings",
+    "HorrorEffects",
+    "Run",
+    "Expedition"
+  ]
+}

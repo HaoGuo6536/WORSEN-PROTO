@@ -11,22 +11,27 @@
 //   Presenter (§7b) · Presentation · Telemetry.
 //
 // KEY RESPONSIBILITIES:
-//   - Emit one wallet row per balance change and one choice row per accepted choice.
+//   - Add fallback evidence and a stable UTF-8 manifest SHA-256 to generation-failure round rows only.
+//   - Emit wallet and choice rows from typed operations, preserving legacy output labels.
 //   - Describe round boundaries and generation seeds with named CSV payload fields.
 //   - Format Hunter evidence supplied as primitives, never Hunter-local types.
 //
 // DEPENDENCIES:
-//   - Core progression/sample values, local CSV presenter and Unity value types.
+//   - Core progression/sample values, local CSV presenter, UTF-8/SHA-256 and Unity value types.
 //
 // USAGE NOTES:
 //   Pure and stateless; ticks and floor seeds are supplied by the routing boundary.
 //   Round start means a committed generation request, not successful assembly.
 //   Failed generation ends that round. Shop continuation is an explicit outcome.
+//   Early bail is retired; operation labels never classify an escape as a bail.
 //   Missing floor seed or room/obstacle evidence remains blank, never invented.
+//   Failure evidence stays in CSV Detail; existing named-column/schema widths remain unchanged.
 //
 // ============================================================================
 using System.Collections.Generic;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
@@ -36,25 +41,70 @@ namespace Worsen.Presentation.Telemetry
     public sealed class TelemetryObservationPresenter
     {
         public IEnumerable<TelemetrySample> Transaction(ProgressionSnapshot before, ProgressionSnapshot after,
-            string operation, string choiceId, long tick, int? floorSeed)
+            ProgressionOperation operation, string choiceId, long tick, int? floorSeed, bool? usedFallback = null, string layoutManifest = null)
         {
             bool ended = before.Phase == ProgressionPhase.Exploring &&
                 (after.Round != before.Round || after.Phase == ProgressionPhase.Ended);
             bool shopEnded = before.Phase == ProgressionPhase.Shop && after.Round != before.Round;
             bool failed = before.Phase == ProgressionPhase.Generating && after.Phase == ProgressionPhase.GenerationFailed;
-            if (ended || shopEnded || failed)
+            if (failed)
+                yield return TelemetryCsvPresenter.Observation(tick, TelemetrySampleKind.RoundEnded,
+                    ("round_index", before.Round), ("generation_id", before.GenerationId), ("generation_seed", floorSeed),
+                    ("round_outcome", "GenerationFailed"), ("used_fallback", usedFallback),
+                    ("layout_manifest_hash", ManifestHash(layoutManifest)));
+            else if (ended || shopEnded)
                 yield return Round(tick, TelemetrySampleKind.RoundEnded, before.Round, before.GenerationId, floorSeed,
-                    failed ? "GenerationFailed" : shopEnded ? "ShopContinued" : after.Phase == ProgressionPhase.Ended ? "Died" :
-                    operation == "EarlyBail" ? "Bailed" : "Escaped");
+                    shopEnded ? "ShopContinued" : after.Phase == ProgressionPhase.Ended ? "Died" : "Escaped");
             if (before.Wallet != after.Wallet)
                 yield return TelemetryCsvPresenter.Observation(tick, TelemetrySampleKind.WalletChanged,
                     ("round_index", before.Round), ("generation_id", before.GenerationId), ("generation_seed", floorSeed),
-                    ("wallet_delta", (long)after.Wallet - before.Wallet), ("wallet_balance", after.Wallet), ("wallet_reason", operation));
-            string kind = operation == "ChooseThreat" ? "Threat" : operation == "ChooseCurse" ? "Curse" :
-                operation == "Purchase" ? "Purchase" : null;
+                    ("wallet_delta", (long)after.Wallet - before.Wallet), ("wallet_balance", after.Wallet), ("wallet_reason", OperationLabel(operation)));
+            string kind = operation == ProgressionOperation.ChooseThreat ? "Threat" : operation == ProgressionOperation.ChooseCurse ? "Curse" :
+                operation == ProgressionOperation.Purchase ? "Purchase" : null;
             if (kind != null)
                 yield return TelemetryCsvPresenter.Observation(tick, TelemetrySampleKind.ProgressionChoice,
                     ("round_index", after.Round), ("choice_id", choiceId), ("choice_kind", kind));
+        }
+
+        private static string OperationLabel(ProgressionOperation operation)
+        {
+            switch (operation)
+            {
+                case ProgressionOperation.StartRun: return "StartRun";
+                case ProgressionOperation.ChooseThreat: return "ChooseThreat";
+                case ProgressionOperation.ChooseCurse: return "ChooseCurse";
+                case ProgressionOperation.TakeBargain: return "TakeBargain";
+                case ProgressionOperation.Purchase: return "Purchase";
+                case ProgressionOperation.ReservePurchase: return "ReservePurchase";
+                case ProgressionOperation.RerollShop: return "RerollShop";
+                case ProgressionOperation.RerollSelection: return "RerollSelection";
+                case ProgressionOperation.CancelReplacement: return "CancelReplacement";
+                case ProgressionOperation.ContinueShop: return "ContinueShop";
+                case ProgressionOperation.ConfirmFloorReady: return "ConfirmFloorReady";
+                case ProgressionOperation.FailGeneration: return "FailGeneration";
+                case ProgressionOperation.CompleteFloor: return "CompleteFloor";
+                case ProgressionOperation.RecordGoldenCollected: return "RecordGoldenCollected";
+                case ProgressionOperation.TryConsumeWaxWard: return "TryConsumeWaxWard";
+                case ProgressionOperation.CycleConsumable: return "CycleConsumable";
+                case ProgressionOperation.TryConsumeSelected: return "TryConsumeSelected";
+                case ProgressionOperation.TryConsumeExtraLife: return "TryConsumeExtraLife";
+                case ProgressionOperation.RecordHealth: return "RecordHealth";
+                case ProgressionOperation.EndRun: return "EndRun";
+                case ProgressionOperation.ActivateShrine: return "ActivateShrine";
+                default: throw new System.ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported progression operation.");
+            }
+        }
+
+        public static string ManifestHash(string manifest)
+        {
+            if (string.IsNullOrEmpty(manifest)) return "";
+            using (var hash = SHA256.Create())
+            {
+                var bytes = hash.ComputeHash(Encoding.UTF8.GetBytes(manifest));
+                var text = new StringBuilder();
+                foreach (byte value in bytes) text.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+                return text.ToString();
+            }
         }
 
         public IEnumerable<TelemetrySample> Generation(ProgressionGenerationRequest request, long tick)

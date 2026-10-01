@@ -1,0 +1,736 @@
+{
+  "theme": "castle",
+  "wallHeight": 7.0,
+  "paletteSrgb": {
+    "stone": "#4a4f55",
+    "stone_dark": "#2e3136",
+    "soot": "#141416",
+    "mortar": "#6b675f",
+    "wood": "#4a3423",
+    "metal": "#26282b"
+  },
+  "lightColorSrgb": "#ffb347",
+  "pieces": [
+    {
+      "id": "wall_2m",
+      "file": "Castle_wall_2m.fbx",
+      "kind": "wall",
+      "size": [
+        2.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 176,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "bc72c576f72c6de2befd858a6dba94cfdcf808ad8a6778b20326e4c1b52cdee6"
+    },
+    {
+      "id": "wall_door_4m",
+      "file": "Castle_wall_door_4m.fbx",
+      "kind": "door",
+      "size": [
+        4.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 268,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "728d78fb887aa42ee699c84f1129b11289ace05e7af1d83aaf9cb6ce699c6df6"
+    },
+    {
+      "id": "wall_window_2m",
+      "file": "Castle_wall_window_2m.fbx",
+      "kind": "window",
+      "size": [
+        2.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 280,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "fe60d3ff370404e3be8184fdc488bd7b859a0f10ae7c9ab5c6967c672fbf304d"
+    },
+    {
+      "id": "wall_arc_r4",
+      "file": "Castle_wall_arc_r4.fbx",
+      "kind": "arc",
+      "size": [
+        2.277608,
+        7.0,
+        0.936616
+      ],
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "6446c71d215e9c4f640291ff7d4189c3a7af69f5406b741ec6c7f5bbbfaf3088"
+    },
+    {
+      "id": "wall_arc_r6",
+      "file": "Castle_wall_arc_r6.fbx",
+      "kind": "arc",
+      "size": [
+        2.222697,
+        7.0,
+        0.902462
+      ],
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "1e4e05210018e47a77b404996ddc0f44a2c980d221ab319cda6f37a747469bda"
+    },
+    {
+      "id": "wall_arc_r8",
+      "file": "Castle_wall_arc_r8.fbx",
+      "kind": "arc",
+      "size": [
+        2.19284,
+        7.0,
+        0.883953
+      ],
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "43880a183929ef78bb2a9528287f4250949d789b78533d75a47d562f781914d3"
+    },
+    {
+      "id": "corner_in",
+      "file": "Castle_corner_in.fbx",
+      "kind": "corner",
+      "size": [
+        0.8,
+        7.0,
+        0.8
+      ],
+      "triangles": 24,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "3d8d09c567581f3777c29b30e2f0306e09ea8c96ab8fba324ec425f1030393e2"
+    },
+    {
+      "id": "corner_out",
+      "file": "Castle_corner_out.fbx",
+      "kind": "corner",
+      "size": [
+        0.8,
+        7.0,
+        0.8
+      ],
+      "triangles": 24,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "19d7a57c85b679931a0a38d21c0898031f2bc67bfa87052744bdb58417f4e64a"
+    },
+    {
+      "id": "pillar",
+      "file": "Castle_pillar.fbx",
+      "kind": "pillar",
+      "size": [
+        0.8,
+        7.0,
+        0.8
+      ],
+      "triangles": 164,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "b13dabc909f7d89adb1c121ed246089383e1d9961d08f9a908f9041c3cab0824"
+    },
+    {
+      "id": "floor_2x2",
+      "file": "Castle_floor_2x2.fbx",
+      "kind": "floor",
+      "size": [
+        2.0,
+        0.16,
+        2.0
+      ],
+      "triangles": 52,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "1748347cf4991a07171aaf590b5e1063f333281287dc91ea52ab04f710bf04da"
+    },
+    {
+      "id": "ceiling_2x2",
+      "file": "Castle_ceiling_2x2.fbx",
+      "kind": "ceiling",
+      "size": [
+        2.0,
+        0.18,
+        2.0
+      ],
+      "triangles": 52,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "166034b02d18c96d1cdf43908df537eb53cafaf5849ae6c9466abd40859299ec"
+    },
+    {
+      "id": "trim_base_2m",
+      "file": "Castle_trim_base_2m.fbx",
+      "kind": "trim",
+      "size": [
+        2.0,
+        0.24,
+        0.18
+      ],
+      "triangles": 12,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "22382d10b443a67e96a275a34e280dfa3f9e6f80de73e701b3567cfb3b266dec"
+    },
+    {
+      "id": "prop_torch_sconce",
+      "file": "Castle_prop_torch_sconce.fbx",
+      "kind": "prop",
+      "size": [
+        0.255911,
+        1.16,
+        0.5
+      ],
+      "triangles": 192,
+      "materials": [
+        "castle_ember",
+        "castle_metal",
+        "castle_soot",
+        "castle_wood"
+      ],
+      "geometrySha256": "8f7e9f46004cd86daf21b8f966a496c1dae4a7a200a2151073893289d5baf6af"
+    },
+    {
+      "id": "prop_banner",
+      "file": "Castle_prop_banner.fbx",
+      "kind": "prop",
+      "size": [
+        1.2,
+        2.550311,
+        0.115
+      ],
+      "triangles": 104,
+      "materials": [
+        "castle_metal",
+        "castle_soot",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "c850f44fb769a0e892fa4195bb142afe59d11d438858251844fb5ef799efa34c"
+    },
+    {
+      "id": "prop_barrel",
+      "file": "Castle_prop_barrel.fbx",
+      "kind": "prop",
+      "size": [
+        0.9,
+        1.1,
+        0.9
+      ],
+      "triangles": 248,
+      "materials": [
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "3e4f0463a7a077995193775d787689eb08da9e68abf40d019d5f89269c67cc86"
+    },
+    {
+      "id": "prop_rubble",
+      "file": "Castle_prop_rubble.fbx",
+      "kind": "prop",
+      "size": [
+        1.455819,
+        0.308683,
+        0.701936
+      ],
+      "triangles": 308,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "27c1ae5f2b55a6db8d94be1af8c3bc1829d07c177a998e2de56cf26f6771e3b9"
+    },
+    {
+      "id": "arch_pointed_door",
+      "file": "Castle_arch_pointed_door.fbx",
+      "kind": "door",
+      "size": [
+        4.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 268,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "c7ff79f9d78002275435b6feee38bc5338bef24d04c48c56707df878987633d0"
+    },
+    {
+      "id": "wall_arrow_slit_2m",
+      "file": "Castle_wall_arrow_slit_2m.fbx",
+      "kind": "window",
+      "size": [
+        2.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 280,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "d0a9c77158f679cb76f18a649fbee0f1bad6b8819deac6b83c10ff625644eb2c"
+    },
+    {
+      "id": "vault_rib_bay",
+      "file": "Castle_vault_rib_bay.fbx",
+      "kind": "ceiling",
+      "size": [
+        4.184242,
+        2.187765,
+        4.184242
+      ],
+      "triangles": 284,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "5a755f5a899920af9efb4a8a4678d5c14707476c11e03e70fe2fb27c590734b3"
+    },
+    {
+      "id": "vault_web_bay",
+      "file": "Castle_vault_web_bay.fbx",
+      "kind": "ceiling",
+      "size": [
+        4.0,
+        2.09,
+        4.0
+      ],
+      "triangles": 96,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "ed987473e74fe35b5f3ed35dbdbee7e346c94955c44ed81982ae7b83b3bcde51"
+    },
+    {
+      "id": "beam_timber_2m",
+      "file": "Castle_beam_timber_2m.fbx",
+      "kind": "ceiling",
+      "size": [
+        2.0,
+        0.38,
+        0.32
+      ],
+      "triangles": 68,
+      "materials": [
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "afa4c788db590da58ae0e17b957b1265245f4cc11df6bd4a8de8768e14f25f18"
+    },
+    {
+      "id": "tower_wall_arc_r4",
+      "file": "Castle_tower_wall_arc_r4.fbx",
+      "kind": "arc",
+      "size": [
+        2.277608,
+        7.0,
+        0.936133
+      ],
+      "triangles": 236,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "c563598031f9700dee98051155c114f328c21e18a2fb4848d48168e6515dc689"
+    },
+    {
+      "id": "stair_stone_2m",
+      "file": "Castle_stair_stone_2m.fbx",
+      "kind": "floor",
+      "size": [
+        2.0,
+        1.0,
+        2.0
+      ],
+      "triangles": 220,
+      "materials": [
+        "castle_stone"
+      ],
+      "geometrySha256": "a736bdd50a8ccd79db58d9dd061d3a413cf8a1b438dcaf5e98ac123a89d5070e"
+    },
+    {
+      "id": "door_iron_strapped",
+      "file": "Castle_door_iron_strapped.fbx",
+      "kind": "prop",
+      "size": [
+        3.1,
+        2.74,
+        0.394
+      ],
+      "triangles": 1324,
+      "materials": [
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "face999dd861cd72f0e3260ecb01282f9872621fa90753cda8949fac4b194b81"
+    },
+    {
+      "id": "prop_candelabra",
+      "file": "Castle_prop_candelabra.fbx",
+      "kind": "prop",
+      "size": [
+        0.89,
+        1.852363,
+        0.559556
+      ],
+      "triangles": 224,
+      "materials": [
+        "castle_ember",
+        "castle_metal",
+        "castle_soot"
+      ],
+      "geometrySha256": "2555526074dff445cfe001bd4e41f6252300ff9a34a573d863edd58e72e9b015"
+    },
+    {
+      "id": "prop_chain_hanging",
+      "file": "Castle_prop_chain_hanging.fbx",
+      "kind": "prop",
+      "size": [
+        0.291412,
+        1.971412,
+        0.034
+      ],
+      "triangles": 864,
+      "materials": [
+        "castle_metal"
+      ],
+      "geometrySha256": "80934fc5a1f15f9f9033f35d9e33acd30f0fdfbe0a338331538f12d6fc52aea8"
+    },
+    {
+      "id": "prop_weapon_rack",
+      "file": "Castle_prop_weapon_rack.fbx",
+      "kind": "prop",
+      "size": [
+        1.8,
+        2.58,
+        0.355
+      ],
+      "triangles": 132,
+      "materials": [
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "d1688cd88bffed8427df97cd0a47affe9dffa174cd47fd16a6deb9a602f3159d"
+    },
+    {
+      "id": "prop_portcullis",
+      "file": "Castle_prop_portcullis.fbx",
+      "kind": "prop",
+      "size": [
+        3.19,
+        3.32,
+        0.09
+      ],
+      "triangles": 156,
+      "materials": [
+        "castle_metal"
+      ],
+      "geometrySha256": "7bec156c64367cd1c318ed47b990bda8677b6f957674f74ca69366cec2476865"
+    },
+    {
+      "id": "prop_trestle_table",
+      "file": "Castle_prop_trestle_table.fbx",
+      "kind": "prop",
+      "size": [
+        2.4,
+        1.0,
+        1.0
+      ],
+      "triangles": 132,
+      "materials": [
+        "castle_wood"
+      ],
+      "geometrySha256": "fc9b785a091ea97a79c23b95268fd13a5379d9599871cd5ac1ec25e828d6d1fa"
+    },
+    {
+      "id": "prop_bench",
+      "file": "Castle_prop_bench.fbx",
+      "kind": "prop",
+      "size": [
+        2.4,
+        0.5,
+        0.5
+      ],
+      "triangles": 132,
+      "materials": [
+        "castle_wood"
+      ],
+      "geometrySha256": "ce35944ed850748a64a77bbc0e76ad75aef1bd68af01c1499feb93aa2b1f2175"
+    },
+    {
+      "id": "prop_altar",
+      "file": "Castle_prop_altar.fbx",
+      "kind": "prop",
+      "size": [
+        2.4,
+        1.26,
+        1.2
+      ],
+      "triangles": 176,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "ca4b007f81260b8d7d446d62fae24ddfdfe28ba5cd88ab46dee08d652d0bca41"
+    },
+    {
+      "id": "prop_soot_streak",
+      "file": "Castle_prop_soot_streak.fbx",
+      "kind": "prop",
+      "size": [
+        0.57,
+        2.0,
+        0.016
+      ],
+      "triangles": 40,
+      "materials": [
+        "castle_soot"
+      ],
+      "geometrySha256": "b7f1fe31e30a19ba233cfe33cc5657745f920530570966d6598d63a55c031afe"
+    },
+    {
+      "id": "prop_torch_dead",
+      "file": "Castle_prop_torch_dead.fbx",
+      "kind": "prop",
+      "size": [
+        0.255911,
+        0.936371,
+        0.5
+      ],
+      "triangles": 180,
+      "materials": [
+        "castle_metal",
+        "castle_soot",
+        "castle_wood"
+      ],
+      "geometrySha256": "48b6608074ffd418cb6094f6afd8554fe27ab118e6d0df7b2450650ce7eb145c"
+    },
+    {
+      "id": "floor_broken_2x2",
+      "file": "Castle_floor_broken_2x2.fbx",
+      "kind": "floor",
+      "size": [
+        2.0,
+        0.16,
+        2.0
+      ],
+      "triangles": 54,
+      "materials": [
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "832b459e1690e590e24330b5ee8dab0d36fae2db73c07e3f1f8a7a23f074a81d"
+    },
+    {
+      "id": "wall_end_1m",
+      "file": "Castle_wall_end_1m.fbx",
+      "kind": "wall",
+      "size": [
+        1.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 176,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "acde897feb5aef3674601e0dd10ccb1cbe8f9ed02501be79ea6ca9ed5e4f8d53"
+    },
+    {
+      "id": "wall_door_closed_4m",
+      "file": "Castle_wall_door_closed_4m.fbx",
+      "kind": "wall",
+      "size": [
+        4.0,
+        7.0,
+        0.8
+      ],
+      "triangles": 246,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "1e04e3036c9b58fb0ced5d5deb50ba170e36cbdcf11a696ae0ad498dc616dcd1"
+    },
+    {
+      "id": "prop_cell_grille",
+      "file": "Castle_prop_cell_grille.fbx",
+      "kind": "prop",
+      "size": [
+        1.89,
+        3.32,
+        0.09
+      ],
+      "triangles": 156,
+      "materials": [
+        "castle_metal"
+      ],
+      "geometrySha256": "3ae5a33ad2ed2772f30c4c2703e4d48c5e6cb66c72dcd98e0cba195c644545eb"
+    },
+    {
+      "id": "prop_cauldron",
+      "file": "Castle_prop_cauldron.fbx",
+      "kind": "prop",
+      "size": [
+        0.96,
+        0.68,
+        0.96
+      ],
+      "triangles": 128,
+      "materials": [
+        "castle_metal",
+        "castle_soot"
+      ],
+      "geometrySha256": "9ca0a0eab8d017013d4bded6c1552b03442ad8e47dfe4c4d2b7cea2c1ddad8bf"
+    },
+    {
+      "id": "wall_concave_1p2m",
+      "file": "Castle_wall_concave_1p2m.fbx",
+      "kind": "wall",
+      "size": [
+        1.2,
+        7.0,
+        0.8
+      ],
+      "triangles": 176,
+      "materials": [
+        "castle_mortar",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "bf72e419977d1a3645d529242747bceeb95c74850baba4525e1593e65c06c93d"
+    },
+    {
+      "id": "wall_round_tangent_r4",
+      "file": "Castle_wall_round_tangent_r4.fbx",
+      "kind": "wall",
+      "size": [
+        4.4,
+        7.0,
+        1.682309
+      ],
+      "triangles": 24,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "d40da2e5d418afc711fa7872f64e3cbf8289143896213e1bddcdd8da63680536"
+    },
+    {
+      "id": "floor_disk_r4",
+      "file": "Castle_floor_disk_r4.fbx",
+      "kind": "floor",
+      "size": [
+        8.8,
+        0.16,
+        8.8
+      ],
+      "triangles": 188,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "d33221a8b9861577ff593702905b4341221af7860418147694f7923d3c27a159"
+    },
+    {
+      "id": "ceiling_disk_r4",
+      "file": "Castle_ceiling_disk_r4.fbx",
+      "kind": "ceiling",
+      "size": [
+        8.8,
+        0.18,
+        8.8
+      ],
+      "triangles": 188,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "5056a133b51fe82e7210d510ad51b14be5e75e4421b4db9a4dcf3a4b29439f3a"
+    },
+    {
+      "id": "floor_apse_r4",
+      "file": "Castle_floor_apse_r4.fbx",
+      "kind": "floor",
+      "size": [
+        8.8,
+        0.16,
+        4.4
+      ],
+      "triangles": 96,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "dadbfddfb9ce58cf6df322bfb4c22f722a947bbceee03b3234b69bf5b62500fc"
+    },
+    {
+      "id": "ceiling_apse_r4",
+      "file": "Castle_ceiling_apse_r4.fbx",
+      "kind": "ceiling",
+      "size": [
+        8.8,
+        0.18,
+        4.4
+      ],
+      "triangles": 96,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "1620e9998bd85ccfd8218bbedc21dedbd031ac640be28ff9ea80e3851d60127a"
+    },
+    {
+      "id": "floor_portal_4m",
+      "file": "Castle_floor_portal_4m.fbx",
+      "kind": "floor",
+      "size": [
+        4.0,
+        0.16,
+        0.8
+      ],
+      "triangles": 12,
+      "materials": [
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "5a552c4ff29804fe7024119781eb2b55b439e015003c8d2e76da4ed9396f9134"
+    }
+  ]
+}

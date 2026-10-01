@@ -2,26 +2,17 @@
 // HunterController.cs
 // ============================================================================
 // PURPOSE:
-//   Decides Hunter behavior from observable sight, light, noises and memory.
-//   Pure rules select goals and committed attack phases while preserving distinct
-//   archetype curses, reachable melee elevation, occasional attack vocals and bounded light reactions.
+//   Coordinates Hunter sensing, interruptions and the ordered decision tick.
+//   Focused route, attack and habit Controllers own goal commitments, contact
+//   admission and learnable beats while this entry point preserves their ordering.
 // ARCHITECTURAL ROLE:
 //   Controller (section 2) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Accept explicit floor-wide Core noise delivery without acoustic range rejection.
-//   - Include accepted rule values in Core mutation facts for silent spawn restoration.
-//   - Forget pursuit decisions on Pacification without cancelling a committed attack.
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Admit only this archetype's curse bits while retaining general run traits.
-//   - Walk to uncertain clues and stalk fresh beliefs, holding when the player looks toward the hunter.
-//   - Weigh competing goals, remember pickups/search order, deliberate and withdraw on request.
-//   - Emit gated habit facts and validate run-long single-rule overrides without editing assets.
-//   - Commit bounded chase predictions, retry failed guesses against sight, and prioritize real loops.
-//   - Budget walking travel separately from search; keep CutOff's room intercept distinct from chase lead.
-//   - Consult injected archetype rules without branching on specialised archetype names.
-//   - Honor optional dormancy before planning and contact acceptance, cancelling stale attacks.
-//   - Allow specialised attacks to opt out of shared lunges while retaining sensing.
-//   - Let independent weapons retain pursuit without starting a shared lunge.
+//   - Maintain observable sight, hearing, light and imperfect pursuit memory.
+//   - Coordinate route commitments and retreat with attack and habit decisions.
+//   - Sequence archetype rules, dormancy and temporary reactions.
+//   - Route mutations and contact admission to their focused Controllers.
+//   - Publish bounded movement decisions and Core attack/feedback facts.
 // DEPENDENCIES:
 //   - Hunter state, profile, action definitions and pure GOAP planner; Core event values.
 //   - Injected Player, Level and optional Floor views supply observable clues and topology.
@@ -63,7 +54,19 @@ namespace Worsen.Domain.Hunter
         private IReadOnlyInteractableSet _interactables;
         private IReadOnlyActiveEffects _effects;
         private readonly IHunterArchetypeController _archetype;
-        public bool Dormant => (_archetype as Archetypes.Ticking.IHunterDormancyRules)?.Dormant ?? false;
+        private readonly HunterAttackController _attack;
+        private readonly HunterHabitController _habits;
+        private readonly HunterRouteController _routes;
+        public bool CatchActive => _state.CatchActive;
+        public bool PursuitSuppressed => _state.PursuitSuppressed;
+        public HunterPlayerView PlayerView => _state.PlayerView;
+        private IHunterObservationRules ObservationRules => _archetype as IHunterObservationRules;
+        public bool Silent => (ObservationRules?.Silent ?? false) || _archetype is IHunterContactRules;
+        public bool NeedsViewObservation => ObservationRules != null;
+        public bool ArchetypeHeld => ObservationRules?.Hold ?? false;
+        public bool PlayerRevivalProtected => _attack.PlayerRevivalProtected;
+        public void ObservePlayerView(bool clear) { _state.PlayerViewClear = clear; }
+        public bool Dormant => (_archetype as IHunterDormancyRules)?.Dormant ?? false;
         public void RefreshDormancy()
         {
             if (!Dormant) return;
@@ -79,10 +82,111 @@ namespace Worsen.Domain.Hunter
         }
         public IReadOnlyList<Vector3> ReplayPath => _archetype.ReplayPath;
         private HunterArchetypeContext ArchetypeContext => new HunterArchetypeContext(_state, _player, _level,
-            _floor, _closedDoors, _interactables, _effects, _state.DeltaTime, _state.Tick,
-            !_state.CatchActive && _state.LungePhase == HunterLungePhase.None,
+            _floor, ArchetypeDoors(), _interactables, _effects, _state.DeltaTime, _state.Tick,
+            !_state.ReactionHeld && !_state.CatchActive && _state.LungePhase == HunterLungePhase.None,
             Effective(HunterTunable.ChaseSpeedMultiplier) * _state.RunSpeedMultiplier, _state.UnavailableRooms);
+        private IReadOnlyDictionary<int, bool> ArchetypeDoors()
+        {
+            if (_closedDoors == null || _interactables == null || _state.WorldView?.JammedDoors == null) return _closedDoors;
+            Dictionary<int, bool> doors = null;
+            foreach (HunterDoorJam jam in _state.WorldView.JammedDoors)
+                if (_interactables.TryGet(jam.DoorId, out InteractableState door) && door.EdgeId >= 0)
+                {
+                    if (doors == null) { doors = new Dictionary<int, bool>(); foreach (var pair in _closedDoors) doors.Add(pair.Key, pair.Value); }
+                    doors[door.EdgeId] = false; // Shared reaction gate owns this crossing, not replay truncation.
+                }
+            return doors ?? _closedDoors;
+        }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { _effects = effects; }
+        public void SetWorldView(IReadOnlyHunterWorldView world) { _state.WorldView = world; }
+        public void SetPlayerView(HunterPlayerView view) { _state.PlayerView = view; }
+        public void SetWickActive(bool active)
+        {
+            _state.WickActive = active;
+            ObservationRules?.Observe(_state.PlayerView, _state.PlayerViewClear, _state.DirectlyIlluminated, _state.WorldView, active);
+        }
+        public bool ReactionHeld => _state.ReactionHeld;
+        public void ApplyStun(float seconds, float strength)
+        {
+            if (!Finite(seconds) || !Finite(strength) || seconds <= 0f || strength <= 0f) return;
+            // Full strength freezes; weaker hits are proportionally shorter flinches.
+            _state.StunRemaining = Mathf.Max(_state.StunRemaining, seconds * Mathf.Clamp01(strength));
+            CancelReactionAttack();
+        }
+        public void ApplySlip(float seconds)
+        {
+            if (!Finite(seconds) || seconds <= 0f) return;
+            _state.SlipRemaining = Mathf.Max(_state.SlipRemaining, seconds);
+            CancelReactionAttack();
+        }
+        private void CancelReactionAttack()
+        {
+            _state.Velocity = Vector3.zero; _state.LungePhase = HunterLungePhase.None;
+            _state.PhaseSeconds = 0f; _state.AttackBecameActive = false;
+            _state.FiredRangedAttacks.Clear(); _state.Feedback.Clear();
+            _state.PlannedFacts = ulong.MaxValue;
+        }
+        public HunterTickResult HoldMotion()
+        {
+            CancelReactionAttack();
+            return new HunterTickResult(_state.Position, 0f, HunterLungePhase.None, Vector3.zero, false, false, true);
+        }
+        public IReadOnlyList<Vector3> ReactionPath(HunterTickResult result, IReadOnlyList<Vector3> route)
+        {
+            if (result.Phase != HunterLungePhase.None)
+                return new[] { _state.Position, _state.Position + result.LungeDirection * EffectiveAttackDistance };
+            if (_archetype.ReplayPath == null) return route;
+            var points = new List<Vector3> { _state.Position }; points.AddRange(_archetype.ReplayPath); return points;
+        }
+        public bool BlockJammedPath(IReadOnlyList<Vector3> path, float dt, Vector3? intendedTarget = null)
+        {
+            if (!Finite(dt) || dt <= 0f || _state.CatchActive) return false;
+            var jams = _state.WorldView?.JammedDoors;
+            bool retained = false;
+            if (jams != null) foreach (HunterDoorJam jam in jams)
+                if (jam.DoorId == _state.BreakingDoor && jam.Revision == _state.DoorRevision) { retained = true; break; }
+            if (!retained) _state.BreakingDoor = 0;
+            HunterDoorJam selected = default;
+            if (jams != null) foreach (HunterDoorJam jam in jams)
+            {
+                if (jam.DoorId <= 0 || !Finite(jam.BreakSeconds) || jam.BreakSeconds < 0f || !Finite(jam.Bounds.center) || !Finite(jam.Bounds.size)) continue;
+                if (_state.BreakingDoor == jam.DoorId && _state.DoorRevision == jam.Revision)
+                { selected = jam; break; }
+                if (_state.BreakingDoor != 0 || path == null || path.Count < 2 ||
+                    Vector3.Distance(_state.Position, jam.Bounds.ClosestPoint(_state.Position)) > _profile.DoorBreakReach) continue;
+                for (int i = 1; i < path.Count; i++)
+                {
+                    Vector3 delta = path[i] - path[i - 1];
+                    if (jam.Bounds.Contains(path[i - 1]) || jam.Bounds.Contains(path[i]) ||
+                        (delta.sqrMagnitude > 0f && jam.Bounds.IntersectRay(new Ray(path[i - 1], delta.normalized), out float distance) && distance <= delta.magnitude))
+                    { selected = jam; break; }
+                }
+                // A carved/closed door can terminate a partial path on its near face.
+                if (selected.DoorId == 0 && intendedTarget.HasValue &&
+                    Vector3.Distance(path[path.Count - 1], jam.Bounds.ClosestPoint(path[path.Count - 1])) <= _profile.DoorBreakReach)
+                {
+                    Vector3 end = path[path.Count - 1], delta = intendedTarget.Value - end;
+                    if (delta.sqrMagnitude > 0f && jam.Bounds.IntersectRay(new Ray(end, delta.normalized), out float distance) && distance <= delta.magnitude) selected = jam;
+                }
+                if (selected.DoorId != 0) break;
+            }
+            if (selected.DoorId == 0)
+            { _state.BreakingDoor = 0; _state.DoorBreakPublished = false; return false; }
+            if (_state.BreakingDoor == 0)
+            {
+                _state.BreakingDoor = selected.DoorId; _state.DoorRevision = selected.Revision;
+                _state.DoorBreakRemaining = selected.BreakSeconds; _state.DoorBreakPublished = false;
+            }
+            if (!_state.ReactionHeld) _state.DoorBreakRemaining = Mathf.Max(0f, _state.DoorBreakRemaining - dt);
+            if (!_state.DoorBreakPublished && _state.DoorBreakRemaining <= 0.000001f)
+            {
+                _state.DoorBreakPublished = true;
+                _state.DoorBreakFacts.Enqueue(new HunterDoorBreakFact(_state.Id, selected.DoorId, selected.Revision, _state.Tick));
+            }
+            CancelReactionAttack(); return true;
+        }
+        public bool TryTakeDoorBreak(out HunterDoorBreakFact fact)
+        { fact = default; if (_state.DoorBreakFacts.Count == 0) return false; fact = _state.DoorBreakFacts.Dequeue(); return true; }
         public void SetInteractables(IReadOnlyInteractableSet interactables) { _interactables = interactables; }
         public void CommitReplay(int reachedPoints, bool unreachable = false) { _archetype.CommitReplay(reachedPoints, unreachable); }
         public bool TryTakeArchetypeFact(out HunterArchetypeFact fact) => _archetype.TryTakeFact(out fact);
@@ -94,10 +198,16 @@ namespace Worsen.Domain.Hunter
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _level = level ?? throw new ArgumentNullException(nameof(level));
-            _archetype = archetype ?? new Archetypes.Default.DefaultHunterController();
+            _archetype = archetype ?? new HunterArchetypeController();
+            _attack = new HunterAttackController(state, profile, random, player, _archetype);
+            _habits = new HunterHabitController(state, profile, player, level, _archetype);
+            _routes = new HunterRouteController(state, profile, random, player, level, _archetype, _habits);
         }
         public void Reset(EntityId id, Vector3 position, Vector3 forward)
         {
+            _state.StunRemaining = _state.SlipRemaining = _state.DoorBreakRemaining = 0f;
+            _state.ReactionHeld = _state.WickActive = _state.DoorBreakPublished = false;
+            _state.BreakingDoor = 0; _state.DoorBreakFacts.Clear(); _state.WorldView = null; _state.PlayerView = default;
             _state.LossSeconds = Effective(HunterTunable.LossSeconds); _state.LossDistance = Effective(HunterTunable.LossDistance);
             _state.CatchActive = false; _state.ChaseActive = false; _state.LossHabitObserved = false;
             _state.ThresholdPauseRemaining = 0f; _state.HabitFacts.Clear(); _state.CakePositions.Clear();
@@ -168,10 +278,28 @@ namespace Worsen.Domain.Hunter
         public HunterTickResult Tick(SightProbe probe, HunterLightObservation light, float dt, long tick)
         {
             if (!(dt > 0f) || float.IsNaN(dt) || float.IsInfinity(dt)) return default;
+            float beliefAgeBefore = BeliefAge(_state.DeltaTime, _state.Tick);
             _state.AttackBecameActive = false;
             _state.Tick = tick; _state.DeltaTime = dt;
-            _archetype.Tick(ArchetypeContext);
+            _state.ReactionHeld = _state.StunRemaining > 0f || _state.SlipRemaining > 0f;
+            _state.StunRemaining = Mathf.Max(0f, _state.StunRemaining - dt);
+            _state.SlipRemaining = Mathf.Max(0f, _state.SlipRemaining - dt);
+            ObservationRules?.Observe(_state.PlayerView, _state.PlayerViewClear,
+                light.Tick == tick && light.Illuminated, _state.WorldView, _state.WickActive);
+            _archetype.Tick(ArchetypeContext); // Record prey even while an interruption prevents playback.
+            if (_state.ReactionHeld)
+            {
+                // Move the memory reference forward so the interruption does not age it out.
+                _state.BeliefAgeAtReference = beliefAgeBefore; _state.BeliefReferenceTick = tick;
+                return HoldMotion();
+            }
+            if (ObservationRules != null)
+            {
+                _state.LossSeconds = Effective(HunterTunable.LossSeconds) * ObservationRules.LossMultiplier;
+                _state.LossDistance = Effective(HunterTunable.LossDistance) * ObservationRules.LossMultiplier;
+            }
             RefreshDormancy();
+            if (ArchetypeHeld) return HoldMotion();
             UpdateFloorMemory(); // Consume removals even during a catch; never replay them afterward.
             if (_state.CatchActive)
                 return new HunterTickResult(_state.Position, 0f, HunterLungePhase.None, Vector3.zero, false, false, true);
@@ -244,59 +372,13 @@ namespace Worsen.Domain.Hunter
             else DecayBelief(dt, tick);
             TrackRooms();
             bool begin = false;
-            float recoveryBefore = _state.LungePhase == HunterLungePhase.Recovery ? _state.PhaseSeconds : 0f;
-            float untilRecovery = _state.LungePhase == HunterLungePhase.Windup ?
-                Duration(HunterLungePhase.Windup) - _state.PhaseSeconds + Duration(HunterLungePhase.Active) :
-                _state.LungePhase == HunterLungePhase.Active ? Duration(HunterLungePhase.Active) - _state.PhaseSeconds : 0f;
-            bool wasAttacking = _state.LungePhase != HunterLungePhase.None;
-            if (_state.LungePhase != HunterLungePhase.None)
-            {
-                _state.PhaseSeconds += dt;
-                while (_state.LungePhase != HunterLungePhase.None &&
-                    _state.PhaseSeconds + 0.000001f >= Duration(_state.LungePhase))
-                {
-                    _state.PhaseSeconds = Mathf.Max(0f, _state.PhaseSeconds - Duration(_state.LungePhase));
-                    _state.LungePhase = _state.LungePhase == HunterLungePhase.Windup ? HunterLungePhase.Active :
-                        _state.LungePhase == HunterLungePhase.Active ? HunterLungePhase.Recovery : HunterLungePhase.None;
-                    if (_state.LungePhase == HunterLungePhase.Active)
-                    {
-                        _state.AttackBecameActive = true;
-                        if (_profile.AttackStyle != HunterAttackStyle.Lunge) _state.FiredRangedAttacks.Add(_state.AttackSerial);
-                        _state.Feedback.Enqueue(HunterFeedbackKind.AttackSwing);
-                    }
-                    if (_state.LungePhase == HunterLungePhase.Recovery)
-                    {
-                        if (_profile.AttackStyle == HunterAttackStyle.Lunge && !_state.LungeHitAccepted) _state.Feedback.Enqueue(HunterFeedbackKind.AttackMiss);
-                        _state.Feedback.Enqueue(HunterFeedbackKind.AttackRecovery);
-                    }
-                    if (_state.LungePhase == HunterLungePhase.None)
-                    { _state.PlannedFacts = ulong.MaxValue; _state.PhaseSeconds = 0f; }
-                }
-            }
-            float stumbleSeconds = !_archetype.OwnsPursuit && wasAttacking && !_state.LungeHitAccepted && _profile.AttackStyle == HunterAttackStyle.Lunge ?
-                Mathf.Clamp(recoveryBefore + dt - untilRecovery, 0f, _profile.MissStaggerSeconds) -
-                Mathf.Clamp(recoveryBefore, 0f, _profile.MissStaggerSeconds) : 0f;
-            Vector3 stumble = _state.LungeDirection * (stumbleSeconds * _profile.MissStumbleMeters / _profile.MissStaggerSeconds);
+            Vector3 stumble = _attack.Advance(dt, out float stumbleSeconds);
             if (_state.LungePhase == HunterLungePhase.None && !_state.AttackBecameActive && stumbleSeconds <= 0f)
             {
                 Replan();
                 if (!_archetype.TryMovement(out Vector3 movementTarget, out _)) UpdateTarget(dt);
                 else _state.NavigationTarget = movementTarget;
-                if (_state.Action == HunterAction.Lunge && _state.PlayerVisible && !_state.IsDeliberating &&
-                    (!(_archetype is IHunterAttackRules attacks) || attacks.UsesSharedAttacks))
-                {
-                    _state.LungePhase = HunterLungePhase.Windup; _state.PhaseSeconds = 0f;
-                    _state.AttackSerial++; _state.AttackTarget = _player.Position;
-                    _state.AcceptedRangedAttacks.RemoveWhere(serial => serial < _state.AttackSerial - 8);
-                    _state.FiredRangedAttacks.RemoveWhere(serial => serial < _state.AttackSerial - 8);
-                    Vector3 direction = _player.Position - _state.Position; direction.y = 0f;
-                    _state.LungeDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : _state.Forward;
-                    _state.LungeHitAccepted = false; begin = true;
-                    if ((_profile.AttackScreamsEnabled || Cursed(ProgressionTraits.WatcherUnquietGaze)) &&
-                        _state.ScreamCooldown <= 0f && _random.NextDouble() < _profile.AttackScreamChance)
-                    { _state.Feedback.Enqueue(HunterFeedbackKind.Scream); _state.ScreamCooldown = _profile.ScreamCooldownSeconds; }
-                    else _state.Feedback.Enqueue(HunterFeedbackKind.AttackWindup);
-                }
+                begin = _attack.TryBegin();
             }
             bool thinking = _state.IsDeliberating && _state.LungePhase == HunterLungePhase.None;
             if (ActiveChase || _state.LungePhase != HunterLungePhase.None) _state.ThresholdPauseRemaining = 0f;
@@ -312,7 +394,7 @@ namespace Worsen.Domain.Hunter
             float speed = hold ? 0f : MovementSpeed();
             if (_state.LungePhase == HunterLungePhase.None && _archetype.TryMovement(out Vector3 target, out float overrideSpeed))
             { _state.NavigationTarget = target; speed = overrideSpeed; hold = false; face = Vector3.zero; }
-            return new HunterTickResult(_state.NavigationTarget, speed * _state.RunSpeedMultiplier, _state.LungePhase,
+            return new HunterTickResult(_state.NavigationTarget, speed * _state.RunSpeedMultiplier * (ObservationRules?.SpeedMultiplier ?? 1f), _state.LungePhase,
                 _state.LungeDirection, begin, _state.LungePhase == HunterLungePhase.Active, hold, stumble, face);
         }
         private float MovementSpeed()
@@ -340,9 +422,10 @@ namespace Worsen.Domain.Hunter
         }
         public float EffectiveAttackDistance => _profile.AttackStyle == HunterAttackStyle.Lunge ?
             _profile.LungeDistance * (Cursed(ProgressionTraits.RusherLongStride) ? 1.35f : 1f) : _profile.RangedAttackDistance;
-        public float EffectiveSightRange => _profile.SightRange * (Cursed(ProgressionTraits.WatcherUnquietGaze) ? 1.25f : 1f);
+        public float EffectiveSightRange => _profile.SightRange * (Cursed(ProgressionTraits.WatcherUnquietGaze) ? 1.25f : 1f) *
+            (_state.WickActive ? _profile.WickSightMultiplier : 1f);
         public float EffectiveSightCone => _profile.SightConeDegrees * (Cursed(ProgressionTraits.LurkerDarkAdaptation) ? 1.3f : 1f);
-        public float WindupDuration => Duration(HunterLungePhase.Windup);
+        public float WindupDuration => _attack.Duration(HunterLungePhase.Windup);
         public float ProjectileSpeed => _profile.ProjectileSpeed * (Cursed(ProgressionTraits.HexerLingeringHex) ? 0.65f : 1f);
         public float ProjectileRadius => _profile.ProjectileRadius * (Cursed(ProgressionTraits.HexerLingeringHex) ? 1.7f : 1f);
         public float SpikeRadius => _profile.SpikeRadius * (Cursed(ProgressionTraits.ThorncallerReachingRoots) ? 1.4f : 1f);
@@ -351,107 +434,26 @@ namespace Worsen.Domain.Hunter
         public IReadOnlyList<Bounds> UnavailableRooms => _state.UnavailableRooms;
         public float EffectiveAcceleration => Effective(HunterTunable.Acceleration);
         public float EffectiveTurnRate => Effective(HunterTunable.TurnRate);
-        public bool ActiveChase => !Dormant && (_state.ChaseActive || _state.PlayerVisible);
+        public bool ActiveChase => _habits.ActiveChase;
         public bool PreferEmergence => _profile.EmergenceBias && !ActiveChase && !_state.CatchActive &&
             _state.LungePhase == HunterLungePhase.None && (_state.Action == HunterAction.Stalk ||
             _state.Action == HunterAction.InvestigateHint || _state.Action == HunterAction.SearchLastKnown);
         public bool LookAtMemory => _state.IsDeliberating || _state.Action == HunterAction.SearchLastKnown || _state.SearchActive;
         public Vector3 LookTarget => _state.IsDeliberating ? _state.DeliberationTarget : _state.LastKnownPosition;
-        private bool HabitsAllowed => _state.IsActive && _player.IsAlive && !_state.CatchActive &&
-            _state.LungePhase == HunterLungePhase.None && !_state.AttackBecameActive;
-        public void SetChaseActive(bool active)
-        {
-            _state.ChaseActive = active;
-            if (!active) return;
-            _state.ThresholdPauseRemaining = 0f; _state.DeliberationRemaining = 0f;
-            _state.DeliberationFactPending = false; _state.PendingNoiseDecision = false;
-            _state.HabitFacts.Clear();
-        }
-        public void SetCatchActive(bool active)
-        {
-            _state.CatchActive = active;
-            _state.HabitFacts.Clear(); _state.ThresholdPauseRemaining = 0f;
-            _state.DeliberationRemaining = 0f; _state.DeliberationFactPending = false;
-            _state.PendingNoiseDecision = false;
-        }
-        private HunterHabitData Habit(HunterHabitKind kind)
-        {
-            if (_profile.Habits != null) foreach (HunterHabitData habit in _profile.Habits)
-                if (habit != null && habit.Kind == kind) return habit;
-            return null;
-        }
-        private bool HabitEnabled(HunterHabitKind kind)
-        {
-            HunterTunable rule = kind == HunterHabitKind.ThresholdPause ? HunterTunable.ThresholdPauseEnabled :
-                kind == HunterHabitKind.TurnToFace ? HunterTunable.TurnToFaceEnabled : HunterTunable.CakeReactionEnabled;
-            return Habit(kind) != null && Effective(rule) == 1f;
-        }
-        private void EmitHabit(HunterHabitKind kind, Vector3 position)
-        { if (HabitsAllowed) _state.HabitFacts.Enqueue(new HunterHabitFact(_state.Id, kind, position, _state.Tick)); }
-        public bool TryTakeHabit(out HunterHabitFact fact)
-        {
-            fact = default;
-            if (!HabitsAllowed) _state.HabitFacts.Clear();
-            if (_state.HabitFacts.Count == 0) return false;
-            fact = _state.HabitFacts.Dequeue(); return true;
-        }
-        private void BeginLossBeat()
-        {
-            if (_state.LossHabitObserved) return;
-            _state.LossHabitObserved = true;
-            if (!HabitEnabled(HunterHabitKind.TurnToFace) || !HabitsAllowed || ActiveChase) return;
-            BeginDeliberation(_state.LastKnownPosition);
-            if (_state.IsDeliberating) EmitHabit(HunterHabitKind.TurnToFace, _state.LastKnownPosition);
-        }
-        public float Effective(HunterTunable tunable)
-        {
-            if (_state.Mutations.TryGetValue(tunable, out float value)) return value;
-            switch (tunable)
-            {
-                case HunterTunable.Acceleration: return _profile.Acceleration;
-                case HunterTunable.TurnRate: return _profile.TurnRate;
-                case HunterTunable.ChaseSpeedMultiplier: return _profile.ChaseSpeedMultiplier;
-                case HunterTunable.ActionCommitmentSeconds: return _profile.ActionCommitmentSeconds;
-                case HunterTunable.LossSeconds: return _profile.LossSeconds;
-                case HunterTunable.LossDistance: return _profile.LossDistance;
-                case HunterTunable.ThresholdPauseEnabled: return Habit(HunterHabitKind.ThresholdPause)?.Enabled == true ? 1f : 0f;
-                case HunterTunable.TurnToFaceEnabled: return Habit(HunterHabitKind.TurnToFace)?.Enabled == true ? 1f : 0f;
-                case HunterTunable.CakeReactionEnabled: return Habit(HunterHabitKind.CakeReaction)?.Enabled == true ? 1f : 0f;
-                default: throw new ArgumentOutOfRangeException(nameof(tunable));
-            }
-        }
+        public void SetChaseActive(bool active) => _habits.SetChaseActive(active);
+        public void SetCatchActive(bool active) => _habits.SetCatchActive(active);
+        public bool TryTakeHabit(out HunterHabitFact fact) => _habits.TryTakeHabit(out fact);
+        private void BeginLossBeat() => _habits.BeginLossBeat();
+        public float Effective(HunterTunable tunable) => _habits.Effective(tunable);
         public bool ApplyMutation(HunterMutation mutation, out HunterMutationFact fact)
-        {
-            fact = default;
-            if (_archetype.NeverLoses && (mutation.Tunable == HunterTunable.LossSeconds || mutation.Tunable == HunterTunable.LossDistance)) return false;
-            if (!Enum.IsDefined(typeof(HunterTunable), mutation.Tunable) || !Finite(mutation.Value) ||
-                string.IsNullOrWhiteSpace(mutation.TellId) || mutation.Value < 0f) return false;
-            bool rule = mutation.Tunable >= HunterTunable.ThresholdPauseEnabled;
-            if (rule && mutation.Value != 0f && mutation.Value != 1f) return false;
-            if (rule && Habit((HunterHabitKind)((int)mutation.Tunable - (int)HunterTunable.ThresholdPauseEnabled)) == null) return false;
-            if (!rule && mutation.Tunable <= HunterTunable.ActionCommitmentSeconds && mutation.Value <= 0f) return false;
-            if (mutation.Tunable == HunterTunable.ActionCommitmentSeconds && mutation.Value < 0.1f) return false;
-            if (mutation.Tunable == HunterTunable.ChaseSpeedMultiplier &&
-                !Finite(_player.SprintSpeed * mutation.Value * _state.RunSpeedMultiplier)) return false;
-            if (Effective(mutation.Tunable) == mutation.Value) return false; // Reapplication is idempotent.
-            _state.Mutations[mutation.Tunable] = mutation.Value;
-            _state.LossSeconds = _archetype.NeverLoses ? float.PositiveInfinity : Effective(HunterTunable.LossSeconds);
-            _state.LossDistance = _archetype.NeverLoses ? float.PositiveInfinity : Effective(HunterTunable.LossDistance);
-            if (mutation.Tunable == HunterTunable.ThresholdPauseEnabled && mutation.Value == 0f) _state.ThresholdPauseRemaining = 0f;
-            fact = new HunterMutationFact(_state.Id, _profile.ArchetypeKey, mutation.TellId, _state.Tick, mutation);
-            return true;
-        }
-        public void SetRoomPhase(RoomPhaseChangedFact fact)
-        {
-            if (fact.Phase != RoomPhase.Closed || !_state.UnavailableRoomIds.Add(fact.RoomId) || _level.Graph == null) return;
-            foreach (LevelRoom room in _level.Graph.Rooms)
-                if (room.Id == fact.RoomId) { _state.UnavailableRooms.Add(room.Bounds); break; }
-            _state.PlannedFacts = ulong.MaxValue; _state.HasPatrolTarget = false;
-        }
-        private bool Unavailable(Vector3 point)
-        { foreach (Bounds room in _state.UnavailableRooms) if (room.Contains(point)) return true; return false; }
+            => _habits.ApplyMutation(mutation, out fact);
+        public void SetRoomPhase(RoomPhaseChangedFact fact) => _routes.SetRoomPhase(fact);
         public void SetTraits(ProgressionTraits traits)
         {
+            // Legacy flags belong only to the default compatibility machinery. A
+            // borrowed legacy profile/prefab must not leak flags into a new module.
+            if (_profile.ArchetypeRules != null || !(_archetype is IHunterLegacyRules legacy) || !legacy.AllowsLegacyTraits)
+                traits = ProgressionTraits.None;
             const ProgressionTraits rusher = ProgressionTraits.RusherLongStride | ProgressionTraits.RusherSecondWind | ProgressionTraits.RusherBloodScent;
             const ProgressionTraits lurker = ProgressionTraits.LurkerDarkAdaptation | ProgressionTraits.LurkerCrookedStep | ProgressionTraits.LurkerStolenSilence;
             const ProgressionTraits watcher = ProgressionTraits.WatcherLongMemory | ProgressionTraits.WatcherCuttingCorners | ProgressionTraits.WatcherUnquietGaze;
@@ -478,6 +480,7 @@ namespace Worsen.Domain.Hunter
         }
         public bool HearNoise(NoiseEvent noise, float transmission, bool floorWide = false)
         {
+            if (!HunterHearingUtility.Allows(noise)) return false;
             if (!floorWide && (_archetype.OwnsPursuit || _state.PursuitSuppressed || noise.Tick > _state.Tick)) return false;
             if (!_state.IsActive || noise.Source == _state.Id || noise.Tick < 0 || _state.HeardNoises.Contains(noise) ||
                 !Finite(noise.Position) || !Finite(noise.Loudness) || !Finite(transmission)) return false;
@@ -516,20 +519,8 @@ namespace Worsen.Domain.Hunter
             _state.SearchRoute.Clear(); _state.SearchIndex = 0; _state.SearchActive = false; _state.SearchSeconds = 0f;
             _state.CommitmentRemaining = 0f; _state.PlannedFacts = ulong.MaxValue;
         }
-        private void BeginDeliberation(Vector3 target)
-        {
-            if (_state.LungePhase != HunterLungePhase.None || _state.CatchActive || _state.ChaseActive) return;
-            _state.DeliberationTarget = target;
-            if (_state.IsDeliberating) return; // Fresh sounds may change facing, never indefinitely restart the beat.
-            _state.DeliberationRemaining = _profile.DeliberationSeconds;
-            _state.DeliberationFactPending = _state.IsDeliberating;
-        }
-        public bool TryTakeDeliberation(out Vector3 candidate)
-        {
-            candidate = _state.DeliberationTarget;
-            bool pending = _state.DeliberationFactPending;
-            _state.DeliberationFactPending = false; return pending;
-        }
+        private void BeginDeliberation(Vector3 target) => _habits.BeginDeliberation(target);
+        public bool TryTakeDeliberation(out Vector3 candidate) => _habits.TryTakeDeliberation(out candidate);
         public void SetFloorView(IReadOnlyFloorState floor)
         { if (ReferenceEquals(_floor, floor)) return; _floor = floor; _state.CakeRooms.Clear(); _state.CakePositions.Clear(); _state.LastPickupRoom = 0; }
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _closedDoors = doors; }
@@ -559,26 +550,15 @@ namespace Worsen.Domain.Hunter
             return true;
         }
         public bool TryAcceptRangedContact(EntityId target, int attackSerial, out HunterHit hit)
-        {
-            hit = default;
-            if (Dormant || _profile.AttackStyle == HunterAttackStyle.Lunge || target != _state.TargetId || !_player.IsAlive || !_state.IsActive ||
-                attackSerial <= 0 || !_state.FiredRangedAttacks.Contains(attackSerial) || attackSerial > _state.AttackSerial || attackSerial < _state.AttackSerial - 8 ||
-                !_state.AcceptedRangedAttacks.Add(attackSerial)) return false;
-            _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
-            hit = new HunterHit(_state.Id, target, _profile.LungeDamage, _state.Tick, _state.Position,
-                _profile.AttackStyle == HunterAttackStyle.Projectile ? ChaseEndReason.Projectile : ChaseEndReason.GroundSpike);
-            return true;
-        }
+            => _attack.TryAcceptRangedContact(target, attackSerial, out hit);
         public void ReportAttackMiss(int attackSerial)
-        {
-            if (!_state.AcceptedRangedAttacks.Contains(attackSerial)) _state.Feedback.Enqueue(HunterFeedbackKind.AttackMiss);
-        }
+            => _attack.ReportAttackMiss(attackSerial);
         public void SetFlashlight(FlashlightSample sample)
         { if (sample.Source == _state.TargetId) _state.Flashlight = sample; }
         public bool TryDequeueFeedback(out HunterFeedbackEvent feedback)
         {
             feedback = default;
-            if (!_player.IsAlive) { _state.Feedback.Clear(); return false; }
+            if (!_player.IsAlive || Silent) { _state.Feedback.Clear(); return false; }
             if (_state.Feedback.Count == 0) return false;
             feedback = new HunterFeedbackEvent(_state.Id, _profile.ArchetypeKey, _state.Feedback.Dequeue(), _state.Position, _state.Tick);
             return true;
@@ -603,7 +583,7 @@ namespace Worsen.Domain.Hunter
             _state.LastLightPosition = observation.Position;
             _state.LightMemoryRemaining = _profile.LightMemorySeconds * (Cursed(ProgressionTraits.WatcherLongMemory) ? 1.75f : 1f);
         }
-        public float LungeSpeed => _profile.LungeSpeed * _state.RunSpeedMultiplier;
+        public float LungeSpeed => _profile.LungeSpeed * _state.RunSpeedMultiplier * (ObservationRules?.SpeedMultiplier ?? 1f);
         public void ApplyRunSpeedMultiplier(float multiplier)
         {
             if (!Finite(multiplier) || multiplier <= 0f || !Finite(_profile.PatrolSpeed * multiplier)
@@ -613,14 +593,7 @@ namespace Worsen.Domain.Hunter
                 throw new ArgumentOutOfRangeException(nameof(multiplier), "Hunter run speed must be finite and positive.");
             _state.RunSpeedMultiplier = multiplier;
         }
-        public HunterAttackSample AttackSample()
-        {
-            bool attacking = _state.IsActive && _state.LungePhase != HunterLungePhase.None;
-            return new HunterAttackSample(_state.Id, _state.Position,
-                attacking ? _state.LungeDirection : _state.Forward,
-                attacking ? (int)_state.LungePhase : 0,
-                attacking ? Mathf.Clamp01(_state.PhaseSeconds / Mathf.Max(0.0001f, Duration(_state.LungePhase))) : 0f);
-        }
+        public HunterAttackSample AttackSample() => _attack.AttackSample();
         public void CommitPose(Vector3 position, Vector3 velocity, Vector3 forward)
         {
             Vector3 displacement = position - _state.Position; displacement.y = 0f;
@@ -648,15 +621,7 @@ namespace Worsen.Domain.Hunter
             { _state.LightReactionRemaining = 0f; _state.LightExposure = 0f; }
         }
         public bool TryAcceptContact(EntityId target, out HunterHit hit)
-        {
-            hit = default;
-            if (Dormant || _state.LungePhase != HunterLungePhase.Active || _state.LungeHitAccepted ||
-                target != _state.TargetId || !_player.IsAlive || !_state.IsActive) return false;
-            _state.LungeHitAccepted = true;
-            _state.Feedback.Enqueue(HunterFeedbackKind.AttackHit);
-            hit = new HunterHit(_state.Id, target, _profile.LungeDamage, _state.Tick, _state.Position);
-            return true;
-        }
+            => _attack.TryAcceptContact(target, out hit);
         public bool ReceiveHint(HintPayload hint)
         {
             if (_archetype.OwnsPursuit) return false;
@@ -714,7 +679,8 @@ namespace Worsen.Domain.Hunter
                 _state.ObservedPlayerVelocity = _player.Velocity;
             }
             if (_player.RecentNoises != null)
-                foreach (NoiseEvent noise in _player.RecentNoises) HearNoise(noise, 1f);
+                foreach (NoiseEvent noise in _player.RecentNoises)
+                    if (noise.SourceKind != NoiseSourceKind.Heartbeat) HearNoise(noise, 1f);
         }
 
         private void Observe(Vector3 position, long tick, float confidence)
@@ -740,301 +706,10 @@ namespace Worsen.Domain.Hunter
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         private static bool Finite(Vector3 value) => Finite(value.x) && Finite(value.y) && Finite(value.z);
         private float MemoryDuration => _profile.MemoryDecaySeconds * (Cursed(ProgressionTraits.WatcherLongMemory) ? 1.75f : 1f);
-        private float Duration(HunterLungePhase phase)
-        {
-            if (phase == HunterLungePhase.Windup)
-                return Mathf.Max(0.15f, _profile.LungeWindupSeconds *
-                    (Cursed(ProgressionTraits.LurkerStolenSilence) || Cursed(ProgressionTraits.HexerHastyScript) || Cursed(ProgressionTraits.ThorncallerQuickRoots) ? 0.7f : 1f));
-            if (phase == HunterLungePhase.Active) return Mathf.Max(0.05f, _profile.LungeActiveSeconds);
-            float recovery = Mathf.Max(0.15f, _profile.LungeRecoverySeconds * (Cursed(ProgressionTraits.RusherSecondWind) ? 0.65f : 1f));
-            return !_state.LungeHitAccepted && _profile.AttackStyle == HunterAttackStyle.Lunge ? Mathf.Max(recovery, _profile.MissStaggerSeconds) : recovery;
-        }
-        private void Replan()
-        {
-            bool sharedAttack = !(_archetype is Archetypes.Blinder.IHunterIndependentAttackRules weapon) || weapon.AllowSharedAttack;
-            ulong facts = 0;
-            if (_state.PlayerVisible) facts |= (ulong)HunterWorldFacts.PlayerVisible;
-            if (_state.PlayerHeard) facts |= (ulong)HunterWorldFacts.PlayerHeard;
-            if (_state.BeliefConfidence > 0f || _state.SearchActive) facts |= (ulong)HunterWorldFacts.HasBelief;
-            if (!_state.SearchActive && _state.BeliefConfidence >= _profile.StalkMinimumConfidence &&
-                BeliefAge(_state.DeltaTime, _state.Tick) <= _profile.BeliefFreshSeconds)
-                facts |= (ulong)HunterWorldFacts.BeliefFresh;
-            bool reachableElevation = _profile.AttackStyle != HunterAttackStyle.Lunge ||
-                Mathf.Abs(_state.Position.y - _player.Position.y) <= _profile.MaximumMeleeElevation;
-            if (sharedAttack && _state.PlayerVisible && reachableElevation && !Unavailable(_state.Position) && !Unavailable(_player.Position) && Vector3.Distance(_state.Position, _player.Position) <= EffectiveAttackDistance)
-                facts |= (ulong)HunterWorldFacts.InLungeRange;
-            if (_state.LoopDetected || (_profile.LightResponse == HunterLightResponse.Flank && _state.PlayerVisible)) facts |= (ulong)HunterWorldFacts.LoopDetected;
-            if (_state.HasHint) facts |= (ulong)HunterWorldFacts.HasHint;
-            if (_state.LightObserved) facts |= (ulong)HunterWorldFacts.LightObserved;
-            if (_state.DirectlyIlluminated) facts |= (ulong)HunterWorldFacts.DirectlyIlluminated;
-            if (_state.LightMemoryRemaining > 0f) facts |= (ulong)HunterWorldFacts.LightMemoryFresh;
-            bool react = _profile.LightResponse != HunterLightResponse.Investigate &&
-                ((_state.LightExposure >= _profile.LightExposureSeconds && _state.LightReactionCooldown <= 0f) || _state.LightReactionRemaining > 0f);
-            if (react) facts |= (ulong)HunterWorldFacts.LightReactionReady;
-            bool urgent = ((facts ^ _state.PlannedFacts) & (ulong)(HunterWorldFacts.PlayerVisible | HunterWorldFacts.InLungeRange |
-                HunterWorldFacts.LightReactionReady | HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh |
-                HunterWorldFacts.LightMemoryFresh | HunterWorldFacts.LoopDetected)) != 0;
-            if (_state.CommitmentRemaining > 0.000001f && !urgent) return;
-            _state.CommitmentRemaining = Effective(HunterTunable.ActionCommitmentSeconds);
-            UpdateGoalTargets();
-            if (_state.CakeAvailable) facts |= (ulong)HunterWorldFacts.CakeAvailable;
-            if (_state.ExitAvailable) facts |= (ulong)HunterWorldFacts.ExitOpen;
-            var actions = new List<GoapActionDefinition>
-            {
-                Action(HunterAction.DenyCake, HunterWorldFacts.CakeAvailable, 0, HunterWorldFacts.RouteDenied, 1f),
-                Action(HunterAction.ProtectExit, HunterWorldFacts.ExitOpen, 0, HunterWorldFacts.ExitProtected, 1f),
-                Action(HunterAction.BreakLoop, HunterWorldFacts.LoopDetected | HunterWorldFacts.HasBelief,
-                    HunterWorldFacts.PlayerVisible, HunterWorldFacts.LoopBroken, 1f),
-                Action(HunterAction.InvestigateLight, HunterWorldFacts.LightMemoryFresh, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 0.75f),
-                Action(_profile.LightResponse == HunterLightResponse.Avoid ? HunterAction.AvoidLight : HunterAction.FlankLight,
-                    HunterWorldFacts.LightReactionReady, 0, HunterWorldFacts.EscapedBeam, 0.5f),
-                Action(HunterAction.Patrol, 0, 0, HunterWorldFacts.Patrolled, 4f),
-                Action(HunterAction.Stalk, HunterWorldFacts.HasBelief | HunterWorldFacts.BeliefFresh,
-                    HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 0.5f),
-                Action(HunterAction.InvestigateHint, HunterWorldFacts.HasHint, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 1f),
-                Action(HunterAction.SearchLastKnown, HunterWorldFacts.HasBelief, HunterWorldFacts.PlayerVisible, HunterWorldFacts.LocatedPlayer, 2f),
-                Action(HunterAction.Chase, HunterWorldFacts.PlayerVisible, HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange, 2f),
-                Action(HunterAction.CutOff, HunterWorldFacts.PlayerVisible | HunterWorldFacts.LoopDetected,
-                    HunterWorldFacts.InLungeRange, HunterWorldFacts.InLungeRange | HunterWorldFacts.LoopBroken, 1f),
-                Action(HunterAction.Lunge, HunterWorldFacts.PlayerVisible | HunterWorldFacts.InLungeRange, 0, HunterWorldFacts.CaughtPlayer, 1f)
-            };
-            if (!sharedAttack) actions.RemoveAll(action => action.Id == (int)HunterAction.Lunge);
-            if (_state.ActionFailed)
-            {
-                actions.RemoveAll(action => action.Id == (int)_state.Action);
-                _state.HasPatrolTarget = false;
-            }
-            ulong goal = react ? (ulong)HunterWorldFacts.EscapedBeam : _state.PlayerVisible ?
-                (ulong)(sharedAttack ? HunterWorldFacts.CaughtPlayer : HunterWorldFacts.InLungeRange) :
-                _state.SearchActive || _state.BeliefConfidence > 0f || _state.LightMemoryRemaining > 0f ? (ulong)HunterWorldFacts.LocatedPlayer : (ulong)HunterWorldFacts.Patrolled;
-            var goals = new[] {
-                new GoapGoalDefinition((int)HunterGoal.LocatePrey, goal, react ? 200f : _state.PlayerVisible ? 100f :
-                    _state.SearchActive ? 70f : _state.BeliefConfidence > 0f ? 20f + 80f * _state.BeliefConfidence : 10f),
-                new GoapGoalDefinition((int)HunterGoal.DenyCake, (ulong)HunterWorldFacts.RouteDenied,
-                    _state.CakeAvailable ? _profile.CakeGoalUtility : 0f),
-                new GoapGoalDefinition((int)HunterGoal.ProtectExit, (ulong)HunterWorldFacts.ExitProtected,
-                    _state.ExitAvailable ? _profile.ExitGoalUtility : 0f),
-                new GoapGoalDefinition((int)HunterGoal.BreakLoop, (ulong)HunterWorldFacts.LoopBroken,
-                    _state.LoopDetected && (facts & (ulong)HunterWorldFacts.InLungeRange) == 0 ? _profile.LoopGoalUtility : 0f) };
-            for (int i = 0; i < goals.Length; i++)
-                goals[i] = new GoapGoalDefinition(goals[i].Id, goals[i].Facts,
-                    _archetype.GoalUtility((HunterGoal)goals[i].Id, goals[i].Utility));
-            GoapPlanResult plan = GoapPlannerUtility.Select(facts, goals, actions, out int selectedGoal);
-            HunterAction chosen = plan.ActionIds.Length > 0 ? (HunterAction)plan.ActionIds[0] : HunterAction.Patrol;
-            bool changed = chosen != _state.Action || selectedGoal != (int)_state.CurrentGoal || facts != _state.PlannedFacts || _state.ActionFailed;
-            _state.CurrentGoal = selectedGoal < 0 ? HunterGoal.LocatePrey : (HunterGoal)selectedGoal;
-            if (changed)
-            {
-                _state.Action = chosen; _state.HasPatrolTarget = false; _state.ReplanCount++;
-            }
-            // Sample once per commitment, even when the action/facts stay unchanged.
-            // Hold the chosen point rather than bending the prediction through each
-            // newly observed cut. Urgent sight/attack/loop facts still interrupt it.
-            _state.Predict = chosen == HunterAction.Chase && _state.PlayerVisible &&
-                _state.ObservedPlayerVelocity.sqrMagnitude > 0.0001f &&
-                _level.IsReady && _level.Graph != null && _profile.PredictionChance > 0f &&
-                _random.NextDouble() < _profile.PredictionChance;
-            _state.PredictionRoute.Clear();
-            if (_state.Predict)
-            {
-                _state.NavigationTarget = PursuitTarget();
-                _state.Predict = _state.NavigationTarget != _state.LastKnownPosition;
-            }
-            if ((_state.Action == HunterAction.AvoidLight || _state.Action == HunterAction.FlankLight) && _state.LightReactionRemaining <= 0f)
-            {
-                Vector3 away = _state.Position - _state.LastLightPosition; away.y = 0f;
-                away = away.sqrMagnitude > 0.001f ? away.normalized : -_state.Forward;
-                Vector3 lateral = Vector3.Cross(Vector3.up, away) * ((_state.Id.Value & 1) == 0 ? 1f : -1f);
-                _state.LightReactionTarget = _state.Position +
-                    (_state.Action == HunterAction.AvoidLight ? (away + lateral).normalized : lateral) * _profile.LightReactionDistance * (Cursed(ProgressionTraits.LurkerCrookedStep) ? 1.5f : 1f);
-                _state.LightReactionRemaining = _profile.LightReactionSeconds * (Cursed(ProgressionTraits.LurkerCrookedStep) ? 1.3f : 1f);
-                _state.LightReactionCooldown = _profile.LightReactionSeconds + _profile.LightReactionCooldownSeconds;
-                _state.Feedback.Enqueue(HunterFeedbackKind.LightReaction);
-            }
-            _state.PlannedFacts = facts;
-            _state.ActionFailed = false;
-        }
-        private static GoapActionDefinition Action(HunterAction id, HunterWorldFacts required, HunterWorldFacts absent, HunterWorldFacts effect, float cost)
-            => new GoapActionDefinition((int)id, (ulong)required, (ulong)absent, (ulong)effect, 0, cost);
-        private void UpdateTarget(float dt)
-        {
-            if (_state.Action == HunterAction.DenyCake) _state.NavigationTarget = _state.CakeTarget;
-            else if (_state.Action == HunterAction.ProtectExit) _state.NavigationTarget = _state.ExitTarget;
-            else if (_state.Action == HunterAction.BreakLoop) _state.NavigationTarget = InterceptRoom();
-            else if (_state.Action == HunterAction.AvoidLight || _state.Action == HunterAction.FlankLight)
-                _state.NavigationTarget = _state.LightReactionTarget;
-            else if (_state.Action == HunterAction.InvestigateLight)
-            {
-                _state.NavigationTarget = _state.LastLightPosition;
-                if (Vector3.Distance(_state.Position, _state.NavigationTarget) <= _profile.ArrivalRadius)
-                { _state.LightMemoryRemaining = 0f; _state.PlannedFacts = ulong.MaxValue; }
-            }
-            else if (_state.Action == HunterAction.Chase)
-            {
-                if (!_state.Predict) _state.NavigationTarget = _state.LastKnownPosition;
-            }
-            else if (_state.Action == HunterAction.Lunge)
-                _state.NavigationTarget = _player.Position;
-            else if (_state.Action == HunterAction.CutOff) _state.NavigationTarget = InterceptRoom();
-            else if (_state.Action == HunterAction.Stalk) _state.NavigationTarget = _state.LastKnownPosition;
-            else if (_state.Action == HunterAction.InvestigateHint || _state.Action == HunterAction.SearchLastKnown)
-            {
-                if (_state.SearchRoute.Count == 0)
-                    _state.SearchRoute.AddRange(HunterNavigationUtility.Search(_level.Graph, _state.LastKnownPosition,
-                        _state.ObservedPlayerVelocity, 0, HunterNavigationUtility.RoomAt(_level.Graph, _state.LastKnownPosition),
-                        _profile.SearchExpansionMeters, _state.UnavailableRoomIds));
-                _state.SearchActive = true;
-                _state.NavigationTarget = _state.SearchRoute[_state.SearchIndex];
-                if (!_state.IsDeliberating)
-                {
-                    if (_state.SearchSeconds == 0f)
-                    {
-                        float speed = _profile.InvestigateSpeed * _state.RunSpeedMultiplier;
-                        float travel = speed > 0f ? Vector3.Distance(_state.Position, _state.NavigationTarget) / speed : 0f;
-                        _state.SearchLegBudget = Mathf.Min(_profile.SearchMaximumLegSeconds,
-                            _profile.SearchLegTimeoutSeconds + travel * _profile.SearchTravelAllowance);
-                    }
-                    _state.SearchSeconds += dt;
-                    if (Vector3.Distance(_state.Position, _state.NavigationTarget) <= _profile.ArrivalRadius ||
-                        _state.SearchSeconds >= _state.SearchLegBudget)
-                    {
-                        _state.SearchSeconds = 0f;
-                        if (++_state.SearchIndex >= _state.SearchRoute.Count)
-                        {
-                            _state.SearchActive = false; _state.SearchRoute.Clear(); _state.SearchIndex = 0;
-                            _state.BeliefInitialConfidence = 0f; _state.BeliefConfidence = 0f; _state.HasHint = false;
-                            _state.PlannedFacts = ulong.MaxValue; _state.CommitmentRemaining = 0f;
-                            _state.Action = HunterAction.Patrol; _state.HasPatrolTarget = false;
-                        }
-                    }
-                }
-            }
-            else if (!_state.HasPatrolTarget || Vector3.Distance(_state.Position, _state.NavigationTarget) <= _profile.ArrivalRadius)
-            {
-                int preferred = HunterNavigationUtility.PreferredRoom(_level.Graph, _state.LastRoom, _state.Position,
-                    _floor?.ActiveCakeAnchors, _floor?.ExitState == ExitState.Open, _state.LastPickupRoom, _state.UnavailableRoomIds);
-                if (preferred == 0 && _level.Graph != null)
-                {
-                    var available = new List<int>();
-                    foreach (LevelRoom room in _level.Graph.Rooms)
-                        if (room.Id != _state.LastRoom && HunterNavigationUtility.Path(_level.Graph, _state.LastRoom, room.Id, _state.UnavailableRoomIds).Count > 0)
-                            available.Add(room.Id);
-                    if (available.Count > 0) preferred = available[_random.Next(available.Count)];
-                }
-                _state.NavigationTarget = HunterNavigationUtility.RoomTarget(_level.Graph, preferred, _state.Position);
-                _state.HasPatrolTarget = true;
-            }
-        }
-        private Vector3 PursuitTarget()
-        {
-            if (_state.ObservedPlayerVelocity.sqrMagnitude <= 0.0001f) return _state.LastKnownPosition;
-            Vector3 candidate = InterceptRoom();
-            Vector3 observed = _state.LastKnownPosition - _state.Position; observed.y = 0f;
-            Vector3 aim = candidate - _state.Position; aim.y = 0f;
-            // Do not steer away from visible prey merely to pursue an extrapolation.
-            // The physical motor still owns turn inertia and obstacle clearance.
-            return aim.sqrMagnitude > 0.0001f && Vector3.Angle(observed, aim) < EffectiveSightCone * 0.5f ?
-                candidate : _state.LastKnownPosition;
-        }
-        private Vector3 InterceptRoom()
-        {
-            if (!_level.IsReady || _level.Graph == null || _state.LastRoom == 0) return _state.LastKnownPosition;
-            float horizon = _state.Action == HunterAction.Chase ? _profile.ChasePredictionSeconds : _profile.CutOffPredictionSeconds;
-            Vector3 predicted = _state.LastKnownPosition + _state.ObservedPlayerVelocity * horizon * (Cursed(ProgressionTraits.WatcherCuttingCorners) ? 1.7f : 1f);
-            Vector3 best = _state.LastKnownPosition; float score = float.PositiveInfinity; int bestRoom = 0;
-            foreach (LevelRoom room in _level.Graph.Rooms)
-                if (Vector3.SqrMagnitude(RoomTarget(room) - predicted) < score &&
-                    HunterNavigationUtility.Path(_level.Graph, _state.LastRoom, room.Id, _state.UnavailableRoomIds).Count > 0)
-                { best = RoomTarget(room); bestRoom = room.Id; score = Vector3.SqrMagnitude(best - predicted); }
-            // A detected loop retains the explicit reachable-room intercept contract.
-            if (_state.Action == HunterAction.CutOff || _state.Action == HunterAction.BreakLoop) return best;
-            if (bestRoom == _state.LastRoom) return predicted;
-            if (_state.PredictionRoute.Count == 0)
-            {
-                if (_random.NextDouble() < _profile.ParallelCorridorChance)
-                    _state.PredictionRoute.AddRange(HunterNavigationUtility.ParallelPath(_level.Graph, _state.LastRoom, bestRoom, _state.UnavailableRoomIds));
-                if (_state.PredictionRoute.Count == 0) _state.PredictionRoute.Add(bestRoom);
-                _state.PredictionIndex = _state.PredictionRoute.Count > 1 ? 1 : 0;
-            }
-            if (_state.PredictionRoute.Count == 1 && bestRoom == _state.ObservedPlayerRoom) return predicted;
-            if (_state.PredictionIndex < _state.PredictionRoute.Count)
-            {
-                Vector3 waypoint = HunterNavigationUtility.RoomTarget(_level.Graph, _state.PredictionRoute[_state.PredictionIndex], best);
-                if (Vector3.Distance(_state.Position, waypoint) > _profile.ArrivalRadius) return waypoint;
-                _state.PredictionIndex++;
-            }
-            if (bestRoom == _state.ObservedPlayerRoom) return _state.LastKnownPosition;
-            return best;
-        }
-        private void UpdateFloorMemory()
-        {
-            if (_floor == null || !_floor.IsReady) return;
-            var present = new HashSet<int>();
-            foreach (LevelAnchor cake in _floor.ActiveCakeAnchors) present.Add(cake.Id);
-            int removed = int.MaxValue;
-            foreach (var pair in _state.CakeRooms)
-                if (!present.Contains(pair.Key) && pair.Key < removed)
-                { removed = pair.Key; _state.LastPickupRoom = pair.Value; _state.HasPatrolTarget = false; }
-            if (removed != int.MaxValue && HabitEnabled(HunterHabitKind.CakeReaction) &&
-                _state.CakePositions.TryGetValue(removed, out Vector3 pickup) &&
-                Vector3.Distance(_state.Position, pickup) <= Habit(HunterHabitKind.CakeReaction).Radius)
-                EmitHabit(HunterHabitKind.CakeReaction, pickup);
-            _state.CakeRooms.Clear();
-            _state.CakePositions.Clear();
-            foreach (LevelAnchor cake in _floor.ActiveCakeAnchors)
-            { _state.CakeRooms[cake.Id] = cake.RoomId; _state.CakePositions[cake.Id] = cake.Position; }
-        }
-        private void UpdateGoalTargets()
-        {
-            _state.CakeAvailable = false; _state.ExitAvailable = false;
-            if (_floor == null || !_floor.IsReady || !_level.IsReady || _level.Graph == null) return;
-            foreach (var room in _floor.RoomPhases)
-                if (room.Value == RoomPhase.Closed) SetRoomPhase(new RoomPhaseChangedFact(room.Key, room.Value, _state.Tick));
-            float nearest = float.PositiveInfinity;
-            foreach (LevelAnchor cake in _floor.ActiveCakeAnchors)
-            {
-                float distance = Vector3.SqrMagnitude(cake.Position - _state.Position);
-                List<int> path = HunterNavigationUtility.Path(_level.Graph, _state.LastRoom, cake.RoomId, _state.UnavailableRoomIds);
-                if (distance >= nearest || path.Count == 0) continue;
-                nearest = distance; _state.CakeAvailable = true;
-                _state.CakeTarget = path.Count > 1 ? HunterNavigationUtility.Doorway(_level.Graph,
-                    path[path.Count - 2], cake.RoomId, cake.Position) : cake.Position;
-            }
-            List<int> exitPath = HunterNavigationUtility.Path(_level.Graph, _state.LastRoom, _level.Graph.ExitRoomId, _state.UnavailableRoomIds);
-            _state.ExitAvailable = _floor.ExitState == ExitState.Open && exitPath.Count > 0;
-            _state.ExitTarget = exitPath.Count > 1 ? HunterNavigationUtility.Doorway(_level.Graph,
-                exitPath[exitPath.Count - 2], _level.Graph.ExitRoomId, _level.Graph.ExitPosition) : _level.Graph.ExitPosition;
-        }
-        private static Vector3 RoomTarget(LevelRoom room) => new Vector3(room.Center.x, room.Bounds.min.y, room.Center.z);
-        private void TrackRooms()
-        {
-            if (!_level.IsReady || _level.Graph == null) return;
-            foreach (LevelRoom room in _level.Graph.Rooms)
-            {
-                if (!room.Bounds.Contains(_state.Position)) continue;
-                // Match RoomAt's first-containing-room rule at shared boundaries; never
-                // alternate between overlapping bounds while a threshold pause holds still.
-                if (room.Id == _state.LastRoom) break;
-                if (HabitEnabled(HunterHabitKind.ThresholdPause) && !ActiveChase && HabitsAllowed)
-                    foreach (LevelEdge edge in _level.Graph.Edges)
-                        if ((edge.Access & TraversalAccess.Hunter) != 0 &&
-                            ((edge.FromRoomId == _state.LastRoom && edge.ToRoomId == room.Id) ||
-                            (edge.Bidirectional && edge.ToRoomId == _state.LastRoom && edge.FromRoomId == room.Id)))
-                        {
-                            _state.ThresholdPauseRemaining = Habit(HunterHabitKind.ThresholdPause).PauseSeconds;
-                            EmitHabit(HunterHabitKind.ThresholdPause, _state.Position); break;
-                        }
-                _state.LastRoom = room.Id;
-                // Following the first loss leg still follows prey through occlusion;
-                // patrol, hint travel and the later sweep/return legs do not prove a loop.
-                if (!_state.PlayerVisible && (_state.BeliefConfidence <= 0f || _state.HasHint ||
-                    (_state.SearchActive && _state.SearchIndex > 0) ||
-                    _state.Action == HunterAction.Patrol || _state.Action == HunterAction.Retreat)) break;
-                _state.RecentRooms.Add(room.Id);
-                if (_state.RecentRooms.Count > 8) _state.RecentRooms.RemoveAt(0);
-                int visits = 0; foreach (int id in _state.RecentRooms) if (id == room.Id) visits++;
-                _state.LoopDetected = visits >= 3; break;
-            }
-        }
+
+        private void Replan() => _routes.Replan(_floor, BeliefAge(_state.DeltaTime, _state.Tick), EffectiveAttackDistance, EffectiveSightCone);
+        private void UpdateTarget(float dt) => _routes.UpdateTarget(dt, _floor);
+        private void UpdateFloorMemory() => _habits.UpdateFloorMemory(_floor);
+        private void TrackRooms() => _habits.TrackRooms();
     }
 }

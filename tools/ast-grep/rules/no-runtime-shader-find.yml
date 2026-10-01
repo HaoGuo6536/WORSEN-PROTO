@@ -1,0 +1,11 @@
+id: no-runtime-shader-find
+language: csharp
+severity: error
+message: "Serialize Shader or Material references on the owning Config; resolve shader names only in deterministic editor setup (§4, §7d, §10)."
+files:
+  - "Assets/Scripts/**/*.cs"
+rule:
+  any:
+    - pattern: Shader.Find($$$ARGS)
+    - pattern: UnityEngine.Shader.Find($$$ARGS)
+    - pattern: global::UnityEngine.Shader.Find($$$ARGS)

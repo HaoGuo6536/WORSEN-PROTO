@@ -27,6 +27,7 @@ using Worsen.Presentation.ProgressionUI;
 
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionUIGeometryPresenterTests
     {
         [TestCase(ProgressionUIAction.ChooseThreat)]

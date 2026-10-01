@@ -18,6 +18,7 @@ using Worsen.Core;
 using Worsen.Presentation.Results;
 namespace Worsen.Tests.Results
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorRunResultsPresenterTests
     {
         [TestCase(RunEndReason.Died, DeathCause.Hunter, "echo", "Hunter", "echo", -1, "—")]

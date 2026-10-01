@@ -1,0 +1,10 @@
+id: no-runtime-shader-find
+valid:
+  - 'class Driver { void Build() { var material = new Material(config.SurfaceShader); } }'
+  - 'class Driver { string name = "Shader.Find(ignored)"; }'
+  - 'class Driver { /* Shader.Find("Ignored"); */ }'
+invalid:
+  - 'class Driver { void Build() { var shader = Shader.Find("Universal Render Pipeline/Lit"); } }'
+  - 'class Driver { void Build() { var shader = UnityEngine.Shader.Find(name); } }'
+  - 'class Driver { void Build() { var shader = global::UnityEngine.Shader.Find(name); } }'
+  - 'class Driver { void Build() { var shader = Shader.Find(first) ?? Shader.Find(second); } }'

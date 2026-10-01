@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Authors a stationary false cake and a short one-shot bite hold.
-//   Arrow betrayal is deliberately a separate owner-controlled, default-off hook.
+//   Arrow betrayal timing applies only while the Faithless Arrow curse is held.
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Hunter Mimic.
 // KEY RESPONSIBILITIES:
@@ -25,7 +25,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mimic
         [SerializeField, Min(.01f)] private float _touchRadius = .65f;
         [SerializeField, Min(1f)] private float _longerBiteMultiplier = 1.25f;
         [SerializeField, Range(0f, 1f)] private float _goldenChance = .25f;
-        [SerializeField] private bool _allowFaithlessArrow = false;
+
         [SerializeField, Min(.01f)] private float _faithlessInterval = 20f;
         [SerializeField, Min(.01f)] private float _faithlessSeconds = 2f;
         [SerializeField] private string _biteSound = "mimic-wrong-bite";
@@ -35,7 +35,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mimic
         public float TouchRadius => Mathf.Max(.01f, _touchRadius);
         public float LongerBiteMultiplier => Mathf.Max(1f, _longerBiteMultiplier);
         public float GoldenChance => Mathf.Clamp01(_goldenChance);
-        public bool AllowFaithlessArrow => _allowFaithlessArrow;
+
         public float FaithlessInterval => Mathf.Max(.01f, _faithlessInterval);
         public float FaithlessSeconds => Mathf.Max(.01f, _faithlessSeconds);
         public string BiteSound => _biteSound;

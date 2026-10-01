@@ -21,6 +21,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.Core
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AcousticOcclusionUtilityTests
     {
         private static LevelGraph Graph(params LevelEdge[] edges) => LevelGraphUtility.Build(

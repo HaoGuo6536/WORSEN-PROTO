@@ -8,24 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
-//   - Open the identified Passage before pocket collapse and route its optional Golden Cakes.
-//   - Bind every roster hunter's world/effects views and silently restore accepted run mutations.
-//   - Route Core Echo door-passage facts to Level through paired Run subscriptions.
-//   - Subscribe before generation to theme, optional-reward and threshold-freeze facts.
-//   - Route committed puzzle ticks once, retain the run theme seed and release challenge state.
-//   - Assemble floor shrines, preserve shields and route Wick, Passage and Purgatory outcomes.
-//   - Snapshot catalogue cake/collapse hooks and the actual round into each non-shop Floor.
-//   - Start each spawned Player at its effective maximum, never the previous floor's current health.
-//   - Route immutable active effects before floor health and on current-floor revisions.
-//   - Bind scene-owned services explicitly and release every binding on disable.
-//   - Defer new assembly until old factory objects finish deferred destruction.
-//   - Route authoritative light/curse effects, staged destruction and actual selected hunter identities.
-//   - Apply run-scoped modifiers and route completed floor facts to progression.
-//   - Forward resolved bail flags with the admitted generation for exactly-once penalties.
-//   - Pass HorrorEffects' configured optional-window multiplier to procedural generation.
-//   - Announce assembled floors for the SceneRoot readiness hand-off.
-//   - Route Level interactables to geometry and door acoustics before hunter ticks.
-//   - Retain fallback manifests and spawn shortfalls through the existing diagnostic path.
+//   - Own generation/admission and paired scene-service bindings with diagnostic failures.
+//   - Spawn every retained hunter plus seeded Nothing extras and restore run mutations.
+//   - Snapshot configured effects, rewards, theme and freeze facts into floor assembly.
+//   - Route world/view, Skip routes, break/light work, puzzles and shrine facts through owned services.
+//   - Route terminal outcomes to Progression and defer reassembly until cleanup completes.
 // DEPENDENCIES:
 //   - Domain Shrine owns single-use world objects; own spawn Driver validates live late-spawn cover.
 //   - Session HorrorEffects owns retained gameplay effects; its actor and hazard binding is floor-scoped.
@@ -67,10 +54,14 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Session.Expedition
 {
+    [RequireComponent(typeof(ExpeditionViewDriver))]
     public sealed class ExpeditionSessionManager : MonoBehaviour
     {
         private ExpeditionSessionBehaviorState _state;
         private ExpeditionSessionController _controller;
+        private ExpeditionHunterController _hunterWorld;
+        private ExpeditionLightController _hunterLights;
+        private ExpeditionViewDriver _viewDriver;
         private RunSessionManager _run;
         private ProgressionSessionManager _progression;
         private ProceduralManager _procedural;
@@ -95,6 +86,7 @@ namespace Worsen.Session.Expedition
         [SerializeField] private ShrineConfig _shrineConfig = null;
         [SerializeField] private ShrineDriverConfig _shrineDriverConfig = null;
         [SerializeField] private ExpeditionSpawnDriverConfig _spawnConfig = null;
+
         private ShrineManager _shrines;
         private ExpeditionSpawnDriver _spawnDriver;
 
@@ -130,6 +122,7 @@ namespace Worsen.Session.Expedition
                 _state = new ExpeditionSessionBehaviorState();
                 _controller = new ExpeditionSessionController(_state);
             }
+
             DontDestroyOnLoad(gameObject);
             return this;
         }
@@ -175,6 +168,11 @@ namespace Worsen.Session.Expedition
             _run.TickAdvanced += HandleTick;
             _run.HunterArchetypePublished += HandleArchetype;
             _run.HunterMutationPublished += HandleMutation;
+            _run.RamFactPublished += HandleRam;
+            _run.MannequinFactPublished += HandleMannequin;
+            _run.SkipFactPublished += HandleSkip;
+            _run.HunterDoorBreakPublished += HandleDoorBreak;
+            if (_effects != null) _effects.DoorJamChanged += HandleDoorJam;
             if (_procedural != null)
             {
                 _procedural.ThemePublished += HandleTheme;
@@ -190,6 +188,14 @@ namespace Worsen.Session.Expedition
         private void Unsubscribe()
         {
             if (!_subscribed) return;
+            if (_effects != null) _effects.DoorJamChanged -= HandleDoorJam;
+            if (_run != null)
+            {
+                _run.RamFactPublished -= HandleRam;
+                _run.MannequinFactPublished -= HandleMannequin;
+                _run.SkipFactPublished -= HandleSkip;
+                _run.HunterDoorBreakPublished -= HandleDoorBreak;
+            }
             if (_procedural != null)
             {
                 _procedural.ThemePublished -= HandleTheme;
@@ -263,16 +269,25 @@ namespace Worsen.Session.Expedition
         private void AssembleFloor()
         {
             var request = _state.Request;
+            var roster = new List<string>();
+            if (_hunterRoster != null && _hunterRoster.Length > 0)
+            { foreach (var profile in _hunterRoster) if (profile != null) roster.Add(profile.ArchetypeKey); }
+            else roster.Add(_hunterProfile.ArchetypeKey);
+            var extras = request.IsShop ? Array.Empty<string>() : ExpeditionFloorEffectUtility.ExtraHunters(
+                _progression.EffectsSnapshot.ActiveEffects, roster, _progression.Snapshot.Seed, request.Round);
+            int requiredHunterCount = _controller.RequiredHunterCount(extras.Count);
             try
             {
                 _procedural.Initialize(_proceduralConfig, _proceduralDriverConfig, request.Seed, request.Round,
-                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier, themeSeed: _progression.Snapshot.Seed);
+                    request.IsShop, _effects == null ? 1f : _effects.OptionalWindowMultiplier, themeSeed: _progression.Snapshot.Seed,
+                    requiredHunterCount: requiredHunterCount);
             }
             finally { _controller.RecordGenerationOutcome(_procedural.UsedFallback, _procedural.LayoutManifest); }
             if (_state.UsedFallback || !_procedural.GenerationSucceeded)
                 throw new InvalidOperationException("Procedural generation did not succeed; fallback layouts are not playable floors.");
             if (!_procedural.IsReady || _procedural.Graph == null)
                 throw new InvalidOperationException("Procedural generation returned without a ready graph.");
+            _controller.RequireHunterCapacity(extras.Count, _procedural.ValidatedHunterSpawnCapacity);
             _level.InitializeGenerated(_procedural.Graph, _procedural.Interactables);
             BindWorld();
             _controller.RecordRooms(_procedural.PresentationRooms);
@@ -288,10 +303,12 @@ namespace Worsen.Session.Expedition
             _controller.AdmitShieldTransfer();
 
             var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
-                position => _procedural.ValidateHunterSpawn(position, out _));
+                position => _procedural.ValidateHunterSpawn(position, out _), extras);
             if (_state.HunterSpawnShortfall > 0)
-                Debug.LogWarning("Floor " + request.Round + ", seed " + request.Seed + ": hunter spawn shortfall=" +
-                    _state.HunterSpawnShortfall + ", spawning=" + spawns.Count + ", requested=" + request.Effects.ActiveThreatBudget, this);
+                throw new InvalidOperationException("hunter-spawn-capacity-shortfall: required=" +
+                    (spawns.Count + _state.HunterSpawnShortfall) + ", admitted=" + spawns.Count +
+                    ", shortfall=" + _state.HunterSpawnShortfall + ", nothingExtras=" + extras.Count +
+                    ". Procedural must supply safe capacity for the full retained roster plus Nothing stacks.");
             if (_hunterRoster != null && _hunterRoster.Length > 0)
                 _hunterFactory.Configure(_hunterRoster, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
             else _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
@@ -314,8 +331,12 @@ namespace Worsen.Session.Expedition
                 _floor.Initialize(_floorConfig, _level.ReadOnlyState, new[] { player.ReadOnlyState },
                     _run.RandomSource, fasterCollapse: ExpeditionFloorEffectUtility.FasterCollapse(activeEffects),
                     shuffledCollapse: ExpeditionFloorEffectUtility.ShuffledCollapse(activeEffects), round: request.Round,
-                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
-                    preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook);
+                    cakeHooks: ExpeditionFloorEffectUtility.CakeHooks(activeEffects, _progression.FasterCollapseGoldenCakeMultiplier), waxHeart: ExpeditionFloorEffectUtility.WaxHeart(activeEffects),
+                    preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook,
+                    optionalGoldenCakeCount: checked(_state.PuzzleRewards.Count + _procedural.FuturePassageGoldenAnchorCount));
+                _floor.SetActiveEffects(activeEffects);
+                foreach (var id in _state.Hunters)
+                    if (HunterRegistry.TryGet(id, out var actor) && actor.TryGetBlinderTrapPolicy(out var policy)) _floor.ReceiveBlinderTrapPolicy(policy);
                 foreach (var reward in _state.PuzzleRewards)
                     if (!_floor.RegisterPuzzleReward(reward.Key, reward.Value.Anchor, reward.Value.Position))
                         throw new InvalidOperationException("Floor rejected optional puzzle reward " + reward.Key + ".");
@@ -343,6 +364,7 @@ namespace Worsen.Session.Expedition
         private void BindWorld()
         {
             if (_worldBound) return;
+            _hunterLights = new ExpeditionLightController(new ExpeditionLightBehaviorState());
             _level.InteractableChanged += HandleInteractable;
             _run.BeforeTick += RouteClosedDoors;
             _worldBound = true;
@@ -355,7 +377,9 @@ namespace Worsen.Session.Expedition
             if (_run != null) _run.BeforeTick -= RouteClosedDoors;
             _director?.SetClosedDoors(null);
             foreach (var hunter in HunterRegistry.Items) if (hunter != null)
-            { hunter.SetClosedDoors(null); hunter.SetInteractables(null); hunter.SetFloorView(null); hunter.SetActiveEffects(null); }
+            { hunter.SetClosedDoors(null); hunter.SetInteractables(null); hunter.SetFloorView(null); hunter.SetActiveEffects(null);
+                hunter.SetWorldView(null); hunter.SetPlayerView(default); }
+            _hunterWorld = null;
             _worldBound = false;
         }
 
@@ -364,18 +388,28 @@ namespace Worsen.Session.Expedition
             _procedural.ApplyInteractableState(after);
             if (WickActive && after.Kind == InteractableKind.Light && after.Value != InteractableStateValue.Lit)
                 _level.SetLit(after.Id, true);
+            if (!WickActive && before.Kind == InteractableKind.Light && before.Value == InteractableStateValue.Lit &&
+                after.Value != InteractableStateValue.Lit) _run.ObserveLightExtinguished(after.RoomId);
             if (after.Kind == InteractableKind.Door) RouteClosedDoors();
         }
 
         private void RouteClosedDoors()
         {
             if (!_worldBound || !_level.ReadOnlyState.IsReady) return;
-            _director.SetClosedDoors(_level.ClosedDoors);
+            _director?.SetClosedDoors(_level.ClosedDoors);
             foreach (var hunter in HunterRegistry.Items) if (hunter != null) BindHunterWorld(hunter);
+            if (_viewDriver == null) _viewDriver = GetComponent<ExpeditionViewDriver>();
+            HunterPlayerView view = default;
+            if (_viewDriver != null) _viewDriver.TrySample(_run.Tick + 1, out view);
+            foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetPlayerView(view);
         }
 
         private void BindHunterWorld(HunterManager hunter)
         {
+            if (_hunterWorld == null) _hunterWorld = new ExpeditionHunterController(new ExpeditionHunterBehaviorState(),
+                GenerationId, _level.ReadOnlyState.Graph, _level.Interactables);
+            hunter.SetWorldView(_hunterWorld);
+            if (_hunterWorld.BindHunter(hunter.Id)) hunter.BeginSkipFloor(GenerationId);
             hunter.SetClosedDoors(_level.ClosedDoors);
             hunter.SetInteractables(_level.Interactables);
             hunter.SetFloorView(_state != null && !_state.Request.IsShop ? _floor?.ReadOnlyState : null);
@@ -388,6 +422,54 @@ namespace Worsen.Session.Expedition
                     throw new InvalidOperationException("Retained mutation rejected by " + hunter.ArchetypeKey + ": " + mutation.Tunable);
         }
         private void HandleMutation(HunterMutationFact fact) => _controller.RetainMutation(fact);
+        private void HandleRam(RamFact fact)
+        {
+            if (_worldBound && _state.Hunters.Contains(fact.Hunter) && fact.Kind == RamFactKind.PartitionImpact &&
+                _level.Interactables.TryGet(fact.ObjectId, out var item) &&
+                (item.Kind == InteractableKind.Partition || item.Kind == InteractableKind.KnockableProp)) _level.Break(fact.ObjectId);
+        }
+        private void HandleMannequin(MannequinFact fact)
+        {
+            if (!_worldBound || !_state.Hunters.Contains(fact.Hunter)) return;
+            _hunterLights?.Observe(fact);
+            RefreshHunterLights(0f);
+        }
+        private void RefreshHunterLights(float dt)
+        {
+            if (_hunterLights == null || _level?.ReadOnlyState?.Graph == null) return;
+            var lights = new List<InteractableState>();
+            foreach (var room in _level.ReadOnlyState.Graph.Rooms)
+                foreach (var item in _level.Interactables.InRoom(room.Id))
+                    if (item.Kind == InteractableKind.Light) lights.Add(item);
+            foreach (var change in _hunterLights.Tick(dt, WickActive, lights)) _level.SetLit(change.Key, change.Value);
+        }
+        private void HandleSkip(SkipFact fact)
+        {
+            if (_worldBound && fact.Floor == GenerationId && _state.Hunters.Contains(fact.Hunter) &&
+                fact.Kind == SkipFactKind.Marked) _level.Mark(fact.MarkId);
+        }
+        private void HandleDoorBreak(HunterDoorBreakFact fact)
+        {
+            if (_hunterWorld != null && _hunterWorld.MatchesBreak(fact) && _effects != null && _effects.CompleteDoorBreak(fact.DoorId))
+                _hunterWorld.RemoveJam(fact.DoorId);
+        }
+        private void HandleDoorJam(DoorJamFact fact)
+        {
+            if (_hunterWorld == null) return;
+            if (!fact.Active) { _hunterWorld.RemoveJam(fact.DoorId); return; }
+            if (_procedural == null || !_level.Interactables.TryGet(fact.DoorId, out var item)) return;
+            // Generated ordinary door edges use the same stable index as ProceduralInteractablePresenter.
+            int index = item.EdgeId - 1001;
+            if (index < 0 || index >= _procedural.Doors.Count) return;
+            var door = _procedural.Doors[index];
+            var size = door.AlongX ? new Vector3(_proceduralConfig.DoorWidth, _proceduralConfig.DoorHeight, _proceduralDriverConfig.WallThickness) :
+                new Vector3(_proceduralDriverConfig.WallThickness, _proceduralConfig.DoorHeight, _proceduralConfig.DoorWidth);
+            _hunterWorld.SetJam(fact, new Bounds(item.Position, size));
+        }
+        private void RecordSkipUse(SkipTraversalUse use)
+        {
+            foreach (var id in _state.Hunters) if (HunterRegistry.TryGet(id, out var hunter)) hunter.RecordSkipUse(use);
+        }
         private void HandleArchetype(HunterArchetypeFact fact)
         {
             if (_worldBound && _state != null && _state.Hunters.Contains(fact.Hunter) &&
@@ -401,18 +483,47 @@ namespace Worsen.Session.Expedition
         {
             _controller.ObservePuzzleMovement(sample);
             _effects?.ObserveMovement(sample);
-            if (_controller.ObserveCrossing(sample, out int door, out Vector3 position)) _effects?.RecordDoorCrossed(door, position);
+            if (_controller.ObserveCrossing(sample, out int door, out Vector3 position))
+            {
+                _effects?.RecordDoorCrossed(door, position);
+                if (PlayerRegistry.TryGet(sample.Id, out var player))
+                    foreach (var room in _level.ReadOnlyState.Graph.Rooms)
+                    {
+                        if (!room.ContainsXZ(sample.Position)) continue;
+                        foreach (var source in _level.ReadOnlyState.Graph.Rooms)
+                            foreach (var item in _level.Interactables.InRoom(source.Id))
+                                if (item.Kind == InteractableKind.Door && item.Value == InteractableStateValue.Open &&
+                                    Vector3.ProjectOnPlane(item.Position - position, Vector3.up).sqrMagnitude < .01f &&
+                                    player.TryLatchDoor(room.Id, item.Id)) _level.CloseDoor(item.Id);
+                        break;
+                    }
+                if (_hunterWorld != null && _hunterWorld.TryDoorway(sample.Id, sample.Tick, position, sample.Position, out var use)) RecordSkipUse(use);
+            }
         }
         private void HandleTraversal(PlayerTraversalFact fact)
         {
             _effects?.ObserveTraversal(fact);
             CompletePuzzleVault(fact, fact.SurfaceId);
+            if (_hunterWorld == null || !_controller.AcceptsGameplay(fact.Id) || !fact.Succeeded || fact.SurfaceId <= 0 ||
+                (fact.Kind != TraversalKind.Vault && fact.Kind != TraversalKind.Mantle && fact.Kind != TraversalKind.Land) ||
+                !PlayerRegistry.TryGet(fact.Id, out var player)) return;
+            foreach (var marker in _procedural.TraversalMarkers)
+            {
+                if (marker.Id != fact.SurfaceId) continue;
+                SkipRouteKind kind;
+                if (marker.Kind == LevelMarkerKind.VaultSurface) kind = SkipRouteKind.VaultWindow;
+                else if (marker.Kind == LevelMarkerKind.OneWayDrop) kind = SkipRouteKind.Drop;
+                else continue;
+                if (_hunterWorld.TryRoute(fact.Id, fact.Tick, fact.SurfaceId, kind, player.ReadOnlyState.Position, -1, out var use)) RecordSkipUse(use);
+                break;
+            }
         }
         private void HandleTick(InputFrame frame, float dt, long tick)
         {
             if (_controller.TryTickPuzzles(dt, tick, out var movement)) _procedural?.TickPuzzles(movement, dt);
             _effects?.Tick(frame, dt, tick);
             if (_controller.TickWick(dt, tick)) RestoreWick();
+            RefreshHunterLights(dt);
         }
 
         public void CompletePuzzleVault(PlayerTraversalFact fact, int surfaceId)
@@ -460,8 +571,8 @@ namespace Worsen.Session.Expedition
             _run.BindShrines(_shrines, _progression, GenerationId, _state.Player, () => _controller.CollectedFraction);
         }
 
-        private void HandleProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choice)
-        { if (operation == nameof(ProgressionSessionManager.StartRun)) _controller.ResetRun(); }
+        private void HandleProgressionTransaction(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choice)
+        { if (operation == ProgressionOperation.StartRun) _controller.ResetRun(); }
 
         private void HandleShrineResolved(ShrineResolvedFact fact)
         {
@@ -525,13 +636,26 @@ namespace Worsen.Session.Expedition
                     {
                         int first = random.Next(pool.Count);
                         for (int n = 0; n < pool.Count && !applied; n++)
-                        { var entry = pool[(first + n) % pool.Count]; if (entry != null) applied = hunter.ApplyMutation(entry.Mutation); }
+                        {
+                            var entry = pool[(first + n) % pool.Count];
+                            if (entry != null) applied = ApplyTypeMutation(hunter, entry.Mutation);
+                        }
                     }
                     if (!applied) Unresolved(fact, "purgatory-mutation-unavailable:" + key);
                 }
                 return;
             }
             Unresolved(fact, "purgatory-no-safe-live-spawn");
+        }
+
+        private bool ApplyTypeMutation(HunterManager hunter, HunterMutation mutation)
+        {
+            if (!hunter.ApplyMutation(mutation)) return false;
+            foreach (var matching in HunterRegistry.Items)
+                if (matching != null && matching.Id != hunter.Id && matching.ArchetypeKey == hunter.ArchetypeKey &&
+                    !matching.HasMutation(mutation) && !matching.ApplyMutation(mutation, announce: false))
+                    throw new InvalidOperationException("Purgatory type-wide mutation rejected by " + matching.Id);
+            return true;
         }
 
         private bool LateSpawnRoomAvailable(Vector3 candidate, Vector3 player)
@@ -576,7 +700,7 @@ namespace Worsen.Session.Expedition
             int generationId = GenerationId;
             if (PlayerRegistry.TryGet(_state.Player, out var player) && player.ReadOnlyState != null)
                 _progression.RecordHealth(generationId, player.ReadOnlyState.Health);
-            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId, summary.Bailed);
+            if (summary.EndReason == RunEndReason.Escaped) _progression.CompleteFloor(generationId);
             else _progression.EndRun(generationId);
         }
 
@@ -585,6 +709,7 @@ namespace Worsen.Session.Expedition
             if (snapshot.GenerationId != GenerationId || snapshot.Round != _state.Request.Round ||
                 snapshot.Revision != _progression.Snapshot.Revision) return;
             _effects?.UpdateEffects(snapshot.Effects);
+            _floor?.SetActiveEffects(activeEffects);
             if (PlayerRegistry.TryGet(_state.Player, out var currentPlayer)) currentPlayer.SetActiveEffects(activeEffects);
             foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.SetActiveEffects(activeEffects);
             if (_state.Phase != ExpeditionAssemblyPhase.Ready || !_state.Request.IsShop ||
@@ -613,6 +738,8 @@ namespace Worsen.Session.Expedition
             if (_spawnDriver != null)
             { if (Application.isPlaying) Destroy(_spawnDriver); else DestroyImmediate(_spawnDriver); _spawnDriver = null; }
             UnbindWorld();
+            _hunterWorld = null;
+            _hunterLights = null;
             Release(() => FloorReleased?.Invoke(), failures);
             if (_effects != null) { _effects.ClearHazards(); _effects.Suspend(); }
             if (_director != null) Release(_director.Teardown, failures);
@@ -648,6 +775,7 @@ namespace Worsen.Session.Expedition
         private void OnDestroy()
         {
             ClearScene();
+
             if (Instance == this) Instance = null;
             AssemblyReady = null; RoomsReady = null; FloorReleased = null;
             ThemePublished = null; RoomThemePublished = null; ThresholdFreezePublished = null;

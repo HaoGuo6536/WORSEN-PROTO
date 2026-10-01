@@ -14,7 +14,7 @@
 // DEPENDENCIES:
 //   - Own config/layout and Core graph values; no Player assembly or engine calls.
 // USAGE NOTES:
-//   One upper storey per eligible multi-cell castle room; hubs, refuges and pockets
+//   One upper storey per eligible traversal-budget room; hubs, refuges and pockets
 //   are unchanged. Core room identity remains the collapse unit for both storeys.
 //   Region ids are local validation nodes, not new published Core room identities.
 //   Rebound routes are optional and never counted towards required reachability.
@@ -40,7 +40,7 @@ namespace Worsen.Domain.Procedural
             var anchors = layout.Graph.Anchors.ToArray();
             foreach (var module in layout.Modules)
             {
-                if (module.PocketId != 0 || module.Kind == ProceduralModuleKind.MerchantRefuge ||
+                if (!module.TraversalObstacles || module.PocketId != 0 || module.Kind == ProceduralModuleKind.MerchantRefuge ||
                     module.RoomId == layout.Graph.ExitRoomId || module.Cells.Count < 2) continue;
                 if (random.NextDouble() >= config.StoreyProbability) continue;
                 var cell = module.Cells[1];

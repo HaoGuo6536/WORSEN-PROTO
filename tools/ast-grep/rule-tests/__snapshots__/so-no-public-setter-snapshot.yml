@@ -1,0 +1,22 @@
+id: so-no-public-setter
+snapshots:
+  'class Config : ScriptableObject { internal int Value { get; set; } }':
+    labels:
+    - source: internal int Value { get; set; }
+      style: primary
+      start: 34
+      end: 66
+    - source: '{ get; set; }'
+      style: secondary
+      start: 53
+      end: 66
+  'class Config : ScriptableObject { public int Value { get; set; } }':
+    labels:
+    - source: public int Value { get; set; }
+      style: primary
+      start: 34
+      end: 64
+    - source: '{ get; set; }'
+      style: secondary
+      start: 51
+      end: 64

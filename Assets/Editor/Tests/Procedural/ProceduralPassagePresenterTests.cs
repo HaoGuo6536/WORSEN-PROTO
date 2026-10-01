@@ -24,6 +24,7 @@ using Worsen.Domain.Procedural;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralPassagePresenterTests
     {
         private ProceduralConfig _config;
@@ -116,6 +117,17 @@ namespace Worsen.Tests.Procedural
             Property(layout, nameof(layout.GapCells), Array.Empty<Vector2Int>());
             Assert.That(_presenter.Destination(layout, site.RoomId, site.Position, site.Facing), Is.Zero);
             Assert.That(new ProceduralShrineSitePresenter().Build(layout, _config, blocks).Any(s => s.GapEdge), Is.False);
+        }
+
+        [Test]
+        public void FutureGoldenCountDeduplicatesAllSitesLeadingToTheSamePocket()
+        {
+            var layout = Layout(19, out var blocks);
+            var site = layout.ShrineSites.First(s => s.GapEdge);
+            Property(layout, nameof(layout.ShrineSites), new[] { site, site });
+            var anchors = _presenter.Build(layout, 0, _config, _driver, blocks).LinedAnchors;
+            Assert.That(_presenter.FutureGoldenAnchorCount(layout, _config, _driver, blocks), Is.EqualTo(anchors.Select(a => a.Id).Distinct().Count()));
+            Assert.That(anchors, Is.Not.Empty);
         }
 
         [Test]

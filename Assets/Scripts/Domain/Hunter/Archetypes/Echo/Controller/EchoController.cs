@@ -13,7 +13,7 @@
 //   - Read capped active-effect multipliers without changing shared assets.
 //   - Use the hyphenated catalogue identifiers for all three Echo curses.
 // DEPENDENCIES:
-//   - Hunter definitions/default rules, injected Player/Level/Floor views and Core effects.
+//   - Parent Hunter definitions and neutral rules, injected Player/Level/Floor views and Core effects.
 // USAGE NOTES:
 //   Never backtracks means recording order never rewinds, even if the player loops.
 //   Off-trail spawns, post-lunge displacement and overwritten history wait for a
@@ -25,10 +25,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
+
 namespace Worsen.Domain.Hunter.Archetypes.Echo
 {
-    public sealed class EchoController : DefaultHunterController
+    public sealed class EchoController : HunterArchetypeController
     {
         public static readonly EffectId ShorterDelay = new EffectId("echo-shorter-delay");
         public static readonly EffectId FasterPlayback = new EffectId("echo-faster-playback");

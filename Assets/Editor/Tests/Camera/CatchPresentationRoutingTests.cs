@@ -37,6 +37,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Camera
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class CatchPresentationRoutingTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();

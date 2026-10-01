@@ -9,7 +9,7 @@
 //   Tests (§11) · Editor · Expedition.
 // KEY RESPONSIBILITIES:
 //   - Check committed Level state reaches Procedural geometry and current/late hunters.
-//   - Require one Director noise route, with no direct duplicate hunter delivery.
+//   - Admit player gameplay noise through one Director route and reject world/audio origins.
 //   - Preserve fallback diagnostics on failure and check both Director assembly call sites.
 // DEPENDENCIES:
 //   Core; Domain Level/Procedural/Hunter/Director/Player/Chase/Floor;
@@ -44,6 +44,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionWorldWiringTests
     {
         private readonly List<Object> _owned = new List<Object>();
@@ -148,25 +149,46 @@ namespace Worsen.Tests.Expedition
         }
 
         [Test]
-        public void EnvironmentalNoiseUsesDirectorOnceAndNoDirectHunterDuplicate()
+        public void SpawnCapacityFailureKeepsActionableReasonAfterCleanup()
+        {
+            const string reason = "hunter-spawn-capacity-shortfall: required=7, admitted=3, shortfall=4, nothingExtras=2";
+            LogAssert.Expect(LogType.Error, new Regex(Regex.Escape(reason)));
+            Call(_expedition, "FailAssembly", 1, new InvalidOperationException(reason));
+            Assert.That(_expedition.AssemblyPhase, Is.EqualTo(ExpeditionAssemblyPhase.Failed));
+            Assert.That(_expedition.LastError, Does.Contain(reason));
+            string source = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"));
+            Assert.That(source, Does.Contain("hunter-spawn-capacity-shortfall: required="));
+            Assert.That(source, Does.Contain("_progression.FailGeneration(generationId, _state.Failure)"));
+        }
+
+        [TestCase(NoiseOrigin.PlayerMovement, true)]
+        [TestCase(NoiseOrigin.Firecracker, true)]
+        [TestCase(NoiseOrigin.PlayerTriggeredCakeTrap, true)]
+        [TestCase(NoiseOrigin.Unspecified, false)]
+        [TestCase(NoiseOrigin.World, false)]
+        [TestCase(NoiseOrigin.Pacification, false)]
+        [TestCase(NoiseOrigin.Presentation, false)]
+        [TestCase(NoiseOrigin.FalsePositive, false)]
+        public void OnlyPlayerGameplayNoiseUsesDirectorOnceAndNoDirectHunterDuplicate(NoiseOrigin origin, bool allowed)
         {
             var hunter = Hunter(-703);
             var effects = Component<HorrorEffectsManager>();
             var state = new HorrorEffectsBehaviorState();
             Set(effects, "controller", new HorrorEffectsController(state, Config<HorrorEffectsConfig>()));
             effects.ConfigureHazards(null, null, _director);
-            var noise = new NoiseEvent(new EntityId(901), new Vector3(0f, 1f, 0f), 1f, 0);
+            var noise = new NoiseEvent(origin == NoiseOrigin.World ? EntityId.None : new EntityId(901),
+                new Vector3(0f, 1f, 0f), 1f, 0, origin: origin);
             int emitted = 0, delivered = 0;
             effects.NoiseEmitted += fact => { Assert.That(fact, Is.EqualTo(noise)); emitted++; };
             _director.OnNoiseHintIssued += (id, fact) => { Assert.That(id, Is.EqualTo(hunter.Id)); delivered++; };
             state.Facts.Add(new HorrorEffectFact(HorrorEffectKind.Noise, noise: noise));
             Call(effects, "Publish"); Call(effects, "Publish");
             Assert.That(emitted, Is.EqualTo(1));
-            Assert.That(((DirectorBehaviorState)Get(Get(_director, "_controller"), "_state")).Noises.Count, Is.EqualTo(1));
+            Assert.That(((DirectorBehaviorState)Get(Get(_director, "_controller"), "_state")).Noises.Count, Is.EqualTo(allowed ? 1 : 0));
             var heard = (IList)Get(Get(hunter, "_state"), "HeardNoises");
             Assert.That(heard.Count, Is.Zero, "Bound noise must not also use the direct hunter path.");
             _director.Tick(.02f, 0); _director.Tick(.02f, 1);
-            Assert.That(delivered, Is.EqualTo(1)); Assert.That(heard.Count, Is.EqualTo(1));
+            Assert.That(delivered, Is.EqualTo(allowed ? 1 : 0)); Assert.That(heard.Count, Is.EqualTo(allowed ? 1 : 0));
             effects.ClearHazards(); Assert.That(Get(effects, "director"), Is.Null);
         }
 

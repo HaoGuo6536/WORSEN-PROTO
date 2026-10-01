@@ -1,0 +1,182 @@
+id: pure-layer-no-engine-calls
+snapshots:
+  class Logic { DateTime Run() => DateTime.Now; }:
+    labels:
+    - source: DateTime.Now
+      style: primary
+      start: 32
+      end: 44
+  class Logic { DateTime Run() => DateTime.UtcNow; }:
+    labels:
+    - source: DateTime.UtcNow
+      style: primary
+      start: 32
+      end: 47
+  class Logic { DateTime Run() => System.DateTime.Now; }:
+    labels:
+    - source: System.DateTime.Now
+      style: primary
+      start: 32
+      end: 51
+  class Logic { DateTime Run() => System.DateTime.UtcNow; }:
+    labels:
+    - source: System.DateTime.UtcNow
+      style: primary
+      start: 32
+      end: 54
+  class Logic { float Run() => Random.Range(0f, 1f); }:
+    labels:
+    - source: Random.Range(0f, 1f)
+      style: primary
+      start: 29
+      end: 49
+  class Logic { float Run() => Random.value; }:
+    labels:
+    - source: Random.value
+      style: primary
+      start: 29
+      end: 41
+  class Logic { float Run() => Time.deltaTime; }:
+    labels:
+    - source: Time.deltaTime
+      style: primary
+      start: 29
+      end: 43
+  class Logic { float Run() => UnityEngine.Random.Range(0f, 1f); }:
+    labels:
+    - source: UnityEngine.Random.Range(0f, 1f)
+      style: primary
+      start: 29
+      end: 61
+  class Logic { float Run() => UnityEngine.Random.value; }:
+    labels:
+    - source: UnityEngine.Random.value
+      style: primary
+      start: 29
+      end: 53
+  class Logic { object Run() => Camera.main; }:
+    labels:
+    - source: Camera.main
+      style: primary
+      start: 30
+      end: 41
+  class Logic { void Run() { FindAnyObjectByType<Player>(); } }:
+    labels:
+    - source: FindAnyObjectByType<Player>()
+      style: primary
+      start: 27
+      end: 56
+  class Logic { void Run() { FindFirstObjectByType<Player>(); } }:
+    labels:
+    - source: FindFirstObjectByType<Player>()
+      style: primary
+      start: 27
+      end: 58
+  class Logic { void Run() { FindObjectOfType<Player>(); } }:
+    labels:
+    - source: FindObjectOfType<Player>()
+      style: primary
+      start: 27
+      end: 53
+  class Logic { void Run() { FindObjectsByType<Player>(mode); } }:
+    labels:
+    - source: FindObjectsByType<Player>(mode)
+      style: primary
+      start: 27
+      end: 58
+  class Logic { void Run() { FindObjectsOfType<Player>(); } }:
+    labels:
+    - source: FindObjectsOfType<Player>()
+      style: primary
+      start: 27
+      end: 54
+  class Logic { void Run() { GameObject.Find("x"); } }:
+    labels:
+    - source: GameObject.Find("x")
+      style: primary
+      start: 27
+      end: 47
+  class Logic { void Run() { GameObject.FindWithTag("x"); } }:
+    labels:
+    - source: GameObject.FindWithTag("x")
+      style: primary
+      start: 27
+      end: 54
+  class Logic { void Run() { GetComponent<Player>(); } }:
+    labels:
+    - source: GetComponent<Player>()
+      style: primary
+      start: 27
+      end: 49
+  class Logic { void Run() { GetComponentInChildren<Player>(); } }:
+    labels:
+    - source: GetComponentInChildren<Player>()
+      style: primary
+      start: 27
+      end: 59
+  class Logic { void Run() { GetComponentInParent<Player>(); } }:
+    labels:
+    - source: GetComponentInParent<Player>()
+      style: primary
+      start: 27
+      end: 57
+  class Logic { void Run() { Instantiate(prefab); Destroy(obj); } }:
+    labels:
+    - source: Instantiate(prefab)
+      style: primary
+      start: 27
+      end: 46
+  class Logic { void Run() { Object.FindFirstObjectByType<Player>(); } }:
+    labels:
+    - source: Object.FindFirstObjectByType<Player>()
+      style: primary
+      start: 27
+      end: 65
+  class Logic { void Run() { Physics.Raycast(ray); } }:
+    labels:
+    - source: Physics.Raycast(ray)
+      style: primary
+      start: 27
+      end: 47
+  class Logic { void Run() { Physics2D.Raycast(ray); } }:
+    labels:
+    - source: Physics2D.Raycast(ray)
+      style: primary
+      start: 27
+      end: 49
+  class Logic { void Run() { Resources.Load("x"); } }:
+    labels:
+    - source: Resources.Load("x")
+      style: primary
+      start: 27
+      end: 46
+  class Logic { void Run() { SceneManager.LoadScene("x"); } }:
+    labels:
+    - source: SceneManager.LoadScene("x")
+      style: primary
+      start: 27
+      end: 54
+  class Logic { void Run() { UnityEngine.GameObject.FindGameObjectsWithTag("x"); } }:
+    labels:
+    - source: UnityEngine.GameObject.FindGameObjectsWithTag("x")
+      style: primary
+      start: 27
+      end: 77
+  class Logic { void Run() { UnityEngine.Object.FindAnyObjectByType<Player>(); } }:
+    labels:
+    - source: UnityEngine.Object.FindAnyObjectByType<Player>()
+      style: primary
+      start: 27
+      end: 75
+  class Logic { void Run() { var watch = System.Diagnostics.Stopwatch.StartNew(); } }:
+    labels:
+    - source: Stopwatch
+      style: primary
+      start: 58
+      end: 67
+  class Logic { void Run() { var watch = new Stopwatch(); } }:
+    labels:
+    - source: Stopwatch
+      style: primary
+      start: 43
+      end: 52
