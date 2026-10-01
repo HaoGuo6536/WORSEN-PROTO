@@ -52,6 +52,7 @@ namespace Worsen.Tests.Editor
             { "FloorDriverConfig._mistMaterial", "RoomCollapseVolume.MakeFogMaterial" },
             { "HunterDriver._animation", "optional animation driver on legacy hunter prefabs" },
             { "HunterDriver._attacks", "HunterDriver resolves the sibling HunterAttackDriver or runs without one" },
+            { "HunterDriver._config", "HunterDriver.Initialize uses the profile motor override, then the Resources HunterMotorDriverConfig" },
             { "HunterProfile._motorOverride", "optional per-profile motor override; the shared motor config applies" },
             { "HunterProfile._archetypeRules", "null selects the registered Default module (HunterArchetypeFactory); legacy profiles use it" },
             { "PlayerManager._effectConfig", "PlayerDriver.ResolveEffectConfig loads the Resources fallback" },
