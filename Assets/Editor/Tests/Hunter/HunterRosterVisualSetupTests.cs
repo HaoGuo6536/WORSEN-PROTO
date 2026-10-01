@@ -199,7 +199,10 @@ namespace Worsen.Tests.Hunter
             Assert.That(EditorUtility.IsPersistent(asset), Is.True);
             string path = AssetDatabase.GetAssetPath(asset), before = File.ReadAllText(path + ".meta");
             bool active = asset.activeSelf;
-            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+            // LoadPrefabContents accepts only .prefab files; a model asset is measured on a temporary instance.
+            bool prefab = path.EndsWith(".prefab", System.StringComparison.OrdinalIgnoreCase);
+            GameObject contents = prefab ? PrefabUtility.LoadPrefabContents(path) : UnityEngine.Object.Instantiate(asset);
+            if (!prefab) contents.hideFlags = HideFlags.HideAndDontSave;
             try
             {
                 Bounds expected = Setup.MeasureVisualBounds(contents), actual = Setup.MeasureVisualBounds(asset);
@@ -209,7 +212,7 @@ namespace Worsen.Tests.Hunter
                 Assert.That(asset.activeSelf, Is.EqualTo(active));
                 Assert.That(File.ReadAllText(path + ".meta"), Is.EqualTo(before), "Measurement must not reimport the asset.");
             }
-            finally { PrefabUtility.UnloadPrefabContents(contents); }
+            finally { if (prefab) PrefabUtility.UnloadPrefabContents(contents); else UnityEngine.Object.DestroyImmediate(contents); }
         }
         [Test]
         public void MeasurementExcludesDisabledRenderersAndInactiveSubtrees()
