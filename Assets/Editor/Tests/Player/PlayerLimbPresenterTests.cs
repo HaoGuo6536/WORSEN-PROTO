@@ -79,16 +79,16 @@ namespace Worsen.Tests.Player
             Assert.That((yaw * Vector3.forward - Vector3.right).sqrMagnitude, Is.LessThan(0.000001f));
         }
 
-        [TestCase(MovementState.Ground, false, 0f)]
-        [TestCase(MovementState.Ground, true, 4f)]
-        [TestCase(MovementState.Slide, false, 12f)]
-        [TestCase(MovementState.Vault, false, 4f)]
-        [TestCase(MovementState.Air, false, 4f)]
-        [TestCase(MovementState.Stumble, false, 4f)]
-        public void NonWalkingStatesHaveZeroSwingAndSettleWithoutSnapping(MovementState movement, bool crouched, float speed)
+        // Owner playtest 2026-09-30 removed the held-crouch pose, not Slide settling.
+        [TestCase(MovementState.Ground, 0f)]
+        [TestCase(MovementState.Slide, 12f)]
+        [TestCase(MovementState.Vault, 4f)]
+        [TestCase(MovementState.Air, 4f)]
+        [TestCase(MovementState.Stumble, 4f)]
+        public void NonWalkingStatesHaveZeroSwingAndSettleWithoutSnapping(MovementState movement, float speed)
         {
             var presenter = new PlayerLimbPresenter();
-            float target = presenter.SwingTarget(movement, crouched, speed, 6f, 4f);
+            float target = presenter.SwingTarget(movement, speed, 6f, 4f);
             Assert.That(target, Is.Zero);
             presenter.StepSwing(0f, 0f, target, 6f, 1.3f, 0.2f, 0.02f, out float phase, out float envelope);
             Assert.That(presenter.SwingAngle(phase, envelope, true), Is.Zero);
@@ -105,9 +105,9 @@ namespace Worsen.Tests.Player
         public void WalkingAmplitudeIsSpeedProportionalBoundedAndOppositePhase()
         {
             var presenter = new PlayerLimbPresenter();
-            Assert.That(presenter.SwingTarget(MovementState.Ground, false, 2f, 6f, 4f), Is.EqualTo(3f));
-            Assert.That(presenter.SwingTarget(MovementState.Ground, false, 20f, 90f, 4f), Is.EqualTo(8f));
-            Assert.That(presenter.SwingTarget(MovementState.Ground, false, -2f, 6f, 4f), Is.Zero);
+            Assert.That(presenter.SwingTarget(MovementState.Ground, 2f, 6f, 4f), Is.EqualTo(3f));
+            Assert.That(presenter.SwingTarget(MovementState.Ground, 20f, 90f, 4f), Is.EqualTo(8f));
+            Assert.That(presenter.SwingTarget(MovementState.Ground, -2f, 6f, 4f), Is.Zero);
             float phase = 0f, envelope = 0f;
             for (int i = 0; i < 300; i++)
             {

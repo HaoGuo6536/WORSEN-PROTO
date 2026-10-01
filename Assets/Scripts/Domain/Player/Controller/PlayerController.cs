@@ -31,6 +31,8 @@
 //   Its next ticks use ordinary friction, gravity and locomotion caps; replay callers
 //   must supply external commands at matching ticks, as they already do for hits.
 //   No other Domain system or Presentation system is referenced.
+//   Owner playtest 2026-09-30: C is press-to-slide only. Low clearance extends
+//   Slide until standing is safe; wall jumps are requested, never impact bounces.
 //   Reset clears shield for a new life; assembly must restore the previous floor's
 //   captured Shield after replacing a living Player, never after starting a new run.
 // ============================================================================
@@ -85,7 +87,7 @@ namespace Worsen.Domain.Player
             _state.ConsumableSpeedMultiplier = 1f;
             _state.PendingExternalVelocity = Vector3.zero;
             _state.HeadingDegrees = headingDegrees;
-            _state.Forward = Quaternion.Euler(0f, headingDegrees, 0f) * Vector3.forward;
+            _state.Forward = RotateHorizontal(Vector3.forward, headingDegrees);
             _state.MovementSpeedMultiplier = 1f;
             _state.FootstepNoiseMultiplier = _state.ReboundCooldownMultiplier = _state.GrabSpeedMultiplier = 1f;
             _state.TrapSpeedMultiplier = 1f;
@@ -102,7 +104,7 @@ namespace Worsen.Domain.Player
             _state.RegenerationMultiplier = _state.FloorStartHealthFraction = 1f;
             _state.HealthState = PlayerHealthState.Healthy;
             _state.MovementState = MovementState.Ground;
-            _state.LookBack = _state.Grounded = _state.Crouched = _state.IsSprinting = false;
+            _state.LookBack = _state.Grounded = _state.IsSprinting = false;
             _state.Tick = 0;
             _state.HeadLookDelta = Vector2.zero;
             _state.JumpBufferRemaining = _state.ReboundJumpRemaining = _state.CoyoteRemaining = 0f;
@@ -164,7 +166,8 @@ namespace Worsen.Domain.Player
                 if (hold.Value > tick)
                 {
                     _state.Velocity = _state.PendingExternalVelocity; _state.PendingExternalVelocity = Vector3.zero;
-                    _state.MovementState = probe.Grounded ? MovementState.Ground : MovementState.Air;
+                    _state.MovementState = _state.Crouched && probe.StandingBlocked ? MovementState.Slide
+                        : probe.Grounded ? MovementState.Ground : MovementState.Air;
                     _state.VaultRemaining = 0f;
                     return new PlayerTickResult(_state.Velocity * deltaTime, _state.Crouched, facts.ToArray());
                 }
@@ -189,6 +192,7 @@ namespace Worsen.Domain.Player
 
             // A slope can project a landing velocity upward without starting a jump.
             // The last resolved contact distinguishes that support from a rising jump.
+            bool keepLowSlide = _state.MovementState == MovementState.Slide && probe.StandingBlocked;
             bool grounded = probe.Grounded && (_state.MovementState != MovementState.Air
                 || _state.Grounded || _state.Velocity.y <= 0f);
             _state.Grounded = grounded;
@@ -200,15 +204,18 @@ namespace Worsen.Domain.Player
             }
             else if (_state.MovementState != MovementState.Air)
                 _state.MovementState = MovementState.Air;
+            if (keepLowSlide) _state.MovementState = MovementState.Slide;
+            if (ValidWall(probe) && probe.WallId != _state.LastReboundWall)
+                _state.LastReboundWall = 0;
 
             bool cancelSlide = _state.MovementState == MovementState.Slide
                 && (frame.Pressed & InputButtons.Jump) != 0;
             if (cancelSlide)
             {
                 _state.SlideRemaining = 0f;
-                _state.MovementState = grounded ? MovementState.Ground : MovementState.Air;
-                // A blocked cancellation ends the forced slide, but cannot grow the
-                // capsule or leave a delayed jump waiting for the ceiling to clear.
+                if (!probe.StandingBlocked)
+                    _state.MovementState = grounded ? MovementState.Ground : MovementState.Air;
+                // Keep sliding beneath a ceiling, without a delayed jump on exit.
                 if (probe.StandingBlocked) ConsumeJump();
             }
 
@@ -237,12 +244,22 @@ namespace Worsen.Domain.Player
                 ConsumeJump();
                 jump = false;
             }
-            if (_state.MovementState == MovementState.Air && CanRebound(probe))
+            bool wallJumped = CanRebound(probe);
+            if (wallJumped)
             {
-                _state.Velocity = Vector3.Reflect(_state.Velocity, probe.WallNormal.normalized)
-                    + Vector3.up * _profile.ReboundUpwardBoost;
+                Vector3 normal = Horizontal(probe.WallNormal).normalized;
+                Vector3 horizontal = Horizontal(_state.Velocity);
+                float speed = horizontal.sqrMagnitude > 0f ? horizontal.magnitude : _profile.AirControlSpeedFloor;
+                Vector3 tangent = Vector3.ProjectOnPlane(horizontal, normal);
+                float outward = Mathf.Max(Mathf.Abs(Vector3.Dot(horizontal, normal)),
+                    speed * _profile.WallJumpOutwardRatio);
+                _state.Velocity = (tangent + normal * outward).normalized * speed
+                    + Vector3.up * (Mathf.Max(0f, _state.Velocity.y) + _profile.ReboundUpwardBoost);
                 _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
                 ReleaseStoredMomentum();
+                _state.MovementState = MovementState.Air;
+                _state.Grounded = grounded = false;
+                _state.CoyoteRemaining = _state.SlideRemaining = 0f;
                 _state.LastReboundWall = probe.WallId;
                 _state.ReboundCooldownRemaining = _profile.ReboundCooldown * _state.ReboundCooldownMultiplier;
                 ConsumeJump();
@@ -272,8 +289,9 @@ namespace Worsen.Domain.Player
                 if (!HasEffect(PlayerEffectStat.QuietSlide)) AddNoise(_profile.SlideLoudness, NoiseSourceKind.Slide);
             }
 
-            MoveHorizontal(frame, probe, deltaTime);
-            if (_state.MovementState == MovementState.Air)
+            // Input steering resumes next tick; it must not undo this kick or its speed.
+            if (!wallJumped) MoveHorizontal(frame, probe, deltaTime);
+            if (!_state.Grounded)
                 _state.Velocity += Vector3.down * _profile.Gravity * deltaTime;
             else _state.Velocity = Horizontal(_state.Velocity);
             _state.Velocity = ClampHorizontal(_state.Velocity, EffectiveMaximumSpeed());
@@ -284,13 +302,12 @@ namespace Worsen.Domain.Player
                 _state.PendingExternalVelocity = Vector3.zero;
                 if (_state.Velocity.y > 0f)
                 {
-                    _state.MovementState = MovementState.Air;
+                    _state.MovementState = keepLowSlide ? MovementState.Slide : MovementState.Air;
                     _state.Grounded = false;
                     _state.CoyoteRemaining = 0f;
                 }
             }
-            _state.Crouched = _state.MovementState == MovementState.Slide || probe.StandingBlocked
-                || (_state.Grounded && (frame.Held & InputButtons.Crouch) != 0);
+
             if (_state.Grounded && Horizontal(_state.Velocity).magnitude >= 0.5f
                 && _state.FootstepRemaining <= 0f && _state.MovementState != MovementState.Slide)
             {
@@ -364,7 +381,7 @@ namespace Worsen.Domain.Player
 
         private bool AchievedSprinting(InputProbeRecord record)
         {
-            if (!_state.IsAlive || _state.Tick < _state.PreventRunningEndTick || _state.Crouched || _state.MovementState != MovementState.Ground
+            if (!_state.IsAlive || _state.Tick < _state.PreventRunningEndTick || _state.MovementState != MovementState.Ground
                 || !record.Resolution.Present || !record.Resolution.Grounded
                 || (record.Input.Held & InputButtons.Sprint) == 0) return false;
             Vector2 move = record.Input.Move;
@@ -471,15 +488,14 @@ namespace Worsen.Domain.Player
             long immunityEnd = RecoveryEndTick(_profile.RevivalDamageImmunitySeconds);
             Vector3 position = _state.Position;
             float heading = _state.HeadingDegrees;
-            bool crouched = _state.Crouched, grounded = _state.Grounded;
+            bool sliding = _state.MovementState == MovementState.Slide, grounded = _state.Grounded;
             InventorySnapshot inventory = _state.Inventory;
             if (!RespawnAtFloorStart(healthFraction)) return false;
             _state.Position = position;
             _state.HeadingDegrees = heading;
-            _state.Forward = Quaternion.Euler(0f, heading, 0f) * Vector3.forward;
-            _state.Crouched = crouched;
+            _state.Forward = RotateHorizontal(Vector3.forward, heading);
             _state.Grounded = grounded;
-            _state.MovementState = grounded ? MovementState.Ground : MovementState.Air;
+            _state.MovementState = sliding ? MovementState.Slide : grounded ? MovementState.Ground : MovementState.Air;
             _state.Inventory = inventory;
             _state.RevivalCollisionEndTick = collisionEnd;
             _state.RevivalImmunityWindow = new GraceWindowFact(_state.Id, _state.Tick, immunityEnd, HitSeverity.Light);
@@ -746,7 +762,7 @@ namespace Worsen.Domain.Player
                 && (frame.Held & InputButtons.LookBack) != 0;
             Vector2 look = Finite(frame.LookDelta.x) && Finite(frame.LookDelta.y) ? frame.LookDelta : Vector2.zero;
             _state.HeadingDegrees = Mathf.Repeat(_state.HeadingDegrees + look.x, 360f);
-            _state.Forward = Quaternion.Euler(0f, _state.HeadingDegrees, 0f) * Vector3.forward;
+            _state.Forward = RotateHorizontal(Vector3.forward, _state.HeadingDegrees);
             _state.HeadLookDelta = _state.LookBack ? Vector2.zero : new Vector2(0f, look.y);
         }
 
@@ -765,10 +781,23 @@ namespace Worsen.Domain.Player
                 float strafe = Finite(frame.Move.x) ? Mathf.Clamp(frame.Move.x, -1f, 1f) : 0f;
                 float mouseTurn = Finite(frame.LookDelta.x) ? frame.LookDelta.x : 0f;
                 float turn = Mathf.Clamp(mouseTurn + strafe * rate * dt, -rate * dt, rate * dt);
-                horizontal = Quaternion.AngleAxis(turn, Vector3.up) * horizontal.normalized * speed;
+                horizontal = RotateHorizontal(horizontal.normalized, turn) * speed;
                 _state.SlideTurnRateDegrees = turn / dt;
+                // An expired slide arrested under a gate still needs an escape route.
+                // Explicit movement can reverse/restart it; no held button keeps it low.
+                if (_state.SlideRemaining <= 0f && probe.StandingBlocked && _state.Grounded)
+                {
+                    Vector2 escape = Finite(frame.Move.x) && Finite(frame.Move.y)
+                        ? Vector2.ClampMagnitude(frame.Move, 1f) : Vector2.zero;
+                    if (escape.sqrMagnitude > 0f)
+                    {
+                        Vector3 wish = _state.Forward * escape.y + Vector3.Cross(Vector3.up, _state.Forward) * escape.x;
+                        horizontal = Vector3.MoveTowards(horizontal, wish * Mathf.Min(_profile.WalkSpeed, EffectiveMaximumSpeed()),
+                            _profile.GroundAcceleration * dt);
+                    }
+                }
                 if (_state.SlideRemaining <= 0f && !probe.StandingBlocked)
-                    _state.MovementState = MovementState.Ground;
+                    _state.MovementState = _state.Grounded ? MovementState.Ground : MovementState.Air;
             }
             else
             {
@@ -864,7 +893,7 @@ namespace Worsen.Domain.Player
             _state.VaultSteeringOffset = Vector3.zero;
             _state.VaultProgress = 0f;
             _state.MovementState = MovementState.Vault;
-            _state.Crouched = false;
+
             // Look stays live; the base path is captured once and steering is a separate swept offset.
             _state.Grounded = false;
             ConsumeJump();
@@ -925,11 +954,16 @@ namespace Worsen.Domain.Player
         private bool CanRebound(MovementProbe probe)
         {
             return _state.ReboundJumpRemaining > 0f && _state.ReboundCooldownRemaining <= 0f
-                && probe.WallDetected && probe.WallId != 0 && probe.WallId != _state.LastReboundWall
+                && !probe.StandingBlocked && ValidWall(probe) && probe.WallId != _state.LastReboundWall
+                && (!_state.Grounded || Horizontal(_state.Velocity).sqrMagnitude > 0.0001f);
+        }
+
+        private bool ValidWall(MovementProbe probe)
+        {
+            return probe.WallDetected && probe.WallId != 0
                 && Finite(probe.WallDistance) && probe.WallDistance >= 0f && probe.WallDistance <= _profile.ReboundDistance
-                && Finite(probe.WallAngleDegrees) && probe.WallAngleDegrees >= 0f && probe.WallAngleDegrees <= _profile.ReboundAngle
                 && Finite(probe.WallNormal) && probe.WallNormal.sqrMagnitude > 0.5f
-                && Vector3.Dot(_state.Velocity, probe.WallNormal) < 0f;
+                && Mathf.Abs(probe.WallNormal.normalized.y) < 0.5f;
         }
 
         private void ConsumeJump() { _state.JumpBufferRemaining = _state.ReboundJumpRemaining = 0f; }
@@ -957,6 +991,13 @@ namespace Worsen.Domain.Player
             int first = (_state.NextNoiseIndex - _state.NoiseCount + _state.NoiseRing.Length) % _state.NoiseRing.Length;
             for (int i = 0; i < ordered.Length; i++) ordered[i] = _state.NoiseRing[(first + i) % _state.NoiseRing.Length];
             _state.RecentNoises = Array.AsReadOnly(ordered);
+        }
+        // Managed yaw math keeps the pure tick independent of Unity's native Quaternion constructors.
+        private static Vector3 RotateHorizontal(Vector3 value, float degrees)
+        {
+            double radians = degrees * Math.PI / 180d;
+            float sin = (float)Math.Sin(radians), cos = (float)Math.Cos(radians);
+            return new Vector3(value.x * cos + value.z * sin, value.y, value.z * cos - value.x * sin);
         }
         private static Vector3 Horizontal(Vector3 value) => new Vector3(value.x, 0f, value.z);
         private static Vector3 ClampHorizontal(Vector3 value, float maximum)
