@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10), Tests (§11) · Editor · HorrorEffects.
 // KEY RESPONSIBILITIES:
-//   - Cover every consumable, invalid targets, paused healing, charge and cleanup.
+//   - Cover every consumable, invalid targets, paused healing, visible progress and cleanup.
 // DEPENDENCIES:
 //   - HorrorEffects pure controllers, Core values, NUnit and transient Config creation.
 // USAGE NOTES:
@@ -156,6 +156,16 @@ namespace Worsen.Tests.HorrorEffects
             Tick(25f, Vector3.forward); Assert.That(items.DrainStuns(), Is.Empty);
             Tick(.79f, Vector3.forward); Assert.That(items.DrainStuns(), Is.Empty);
             Tick(.02f, Vector3.forward); Assert.That(items.DrainStuns().Length, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ReleasedToggleStillAimsAndReportsAuthoritativeProgress()
+        {
+            items.ReceiveInput(default);
+            Tick(.4f, Vector3.zero); Assert.That(items.AimFraction, Is.EqualTo(.5f).Within(.0001f));
+            Tick(.4f, Vector3.zero); Assert.That(items.DrainStuns().Length, Is.EqualTo(1));
+            Assert.That(items.ChargeFraction, Is.Zero); Assert.That(items.AimFraction, Is.Zero);
+            Tick(12.5f, Vector3.zero); Assert.That(items.ChargeFraction, Is.EqualTo(.5f).Within(.0001f));
         }
         [Test]
         public void LosingFaceVisibilityDistanceOrLightResetsAimAndNewFloorDoesNotRefillCharge()

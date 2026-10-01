@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Format remaining cake counts and floor-scoped hiding independently of guidance.
 //   - Compute independent objective, threat, Golden Sense and Exit Sense bearings.
-//   - Retain shield facts and format only occupied inventory selections, never empty capacity.
+//   - Retain shield facts and forward physical inventory formatting to its Presenter.
 //   - Compute interruptible chase restoration using supplied time and explicit resets.
 //   - Keep phantom counts temporary and separate from authoritative pickup counts.
 //
@@ -176,38 +176,21 @@ namespace Worsen.Presentation.HUD
 
         public void SetItemSlots(HUDDriverState state, int emptySlotCount, int maximumDisplayedSlots)
         {
-            // Compatibility entry point: empty capacity is not an item and must not draw outlines.
             SetHeldItemCount(state, 0, maximumDisplayedSlots);
         }
 
         public void SetHeldItemCount(HUDDriverState state, int heldItemCount, int maximumDisplayedSlots)
         {
-            state.SelectedDisplaySlot = -1; state.SelectedSlotText = "";
+            new HUDInventoryPresenter().SetSlots(state, default);
             int count = Math.Max(0, heldItemCount);
-            state.DisplayedSlots = Math.Min(count, Math.Max(1, maximumDisplayedSlots));
             int overflow = count - state.DisplayedSlots;
             state.SlotOverflowText = overflow > 0 ? "+" + overflow.ToString(CultureInfo.InvariantCulture) + " items" : "";
+            for (int i = 0; i < Math.Min(count, state.DisplayedSlots); i++) state.SlotLabels[i] = "Item";
         }
 
         public void SetConsumables(HUDDriverState state, ConsumableInventorySnapshot snapshot, int maximumDisplayedSlots)
         {
-            int occupied = 0, selected = -1;
-            if (snapshot.Inventory != null)
-                for (int i = 0; i < snapshot.Inventory.Count; i++)
-                {
-                    if (string.IsNullOrEmpty(snapshot.Inventory[i].Id)) continue;
-                    if (i == snapshot.SelectedIndex) selected = occupied;
-                    occupied++;
-                }
-            SetHeldItemCount(state, occupied, maximumDisplayedSlots);
-            state.SelectedDisplaySlot = selected < state.DisplayedSlots ? selected : -1;
-            if (snapshot.Inventory == null || snapshot.SelectedIndex < 0 || snapshot.SelectedIndex >= snapshot.Inventory.Count) return;
-            var slot = snapshot.Inventory[snapshot.SelectedIndex];
-            if (string.IsNullOrEmpty(slot.Id)) return;
-            string title = slot.Title;
-            string uses = snapshot.RemainingUses != null && snapshot.SelectedIndex < snapshot.RemainingUses.Count && !string.IsNullOrEmpty(slot.Id)
-                ? " ×" + snapshot.RemainingUses[snapshot.SelectedIndex].ToString(CultureInfo.InvariantCulture) : "";
-            state.SelectedSlotText = (snapshot.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture) + ": " + title + uses;
+            new HUDInventoryPresenter().SetSlots(state, snapshot);
         }
 
         public void SetChaseMode(HUDDriverState state, bool chasing)

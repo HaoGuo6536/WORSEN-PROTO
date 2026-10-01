@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
-//   - Store flight sweeps, origin-marked noise, contacts, deadlines and revival identity.
+//   - Store flight sweeps, noise, contacts, charge duration, deadlines and revival identity.
 // DEPENDENCIES:
 //   - Core immutable identities/facts and Unity value types only.
 // USAGE NOTES:
@@ -25,7 +25,7 @@ namespace Worsen.Session.HorrorEffects
     {
         internal bool Active, Hold;
         internal long LastTick = -1;
-        internal double Clock, RechargeRemaining, AimSeconds, GauzeRemaining, BurstRemaining;
+        internal double Clock, RechargeRemaining, RechargeDuration, AimSeconds, GauzeRemaining, BurstRemaining;
         internal EntityId AimTarget, Reviving;
         internal int NextId;
         internal readonly Dictionary<int, (Vector3 Position, Vector3 Velocity, double Expires)> Flights = new Dictionary<int, (Vector3, Vector3, double)>();

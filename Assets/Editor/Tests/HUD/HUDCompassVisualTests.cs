@@ -8,8 +8,8 @@
 //   Editor tool (section 10) - test suite (section 11) - Presentation - HUD.
 // KEY RESPONSIBILITIES:
 //   - Ensure bind/unbind leaves no duplicate indicator or obsolete caption.
-//   - Preserve guidance in chases; forbid chrome, hints and empty slot outlines.
-//   - Keep occupied captions under the same chase gate and suppress empty selections.
+//   - Preserve guidance in chases; forbid obsolete chrome and hints.
+//   - Keep three slots, empty selection and flashlight under the same chase gate.
 //   - Keep one remaining number above its selected arrow, with no separate golden label.
 // DEPENDENCIES:
 //   NUnit, HUD presentation, Unity objects and UI Toolkit.
@@ -134,8 +134,17 @@ namespace Worsen.Tests.HUD
                 Assert.That(root.Q("hud-extra").style.opacity.value, Is.EqualTo(1f));
                 presenter.SetConsumables(state, new ConsumableInventorySnapshot(
                     new[] { default(ProgressionInventorySlot) }, new[] { 0 }, 0), 8); driver.Apply(state);
-                Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.None));
-                Assert.That(root.Q("selected-consumable").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("selected-consumable").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q<Label>("selected-consumable").text, Is.EqualTo("1: Empty"));
+                Assert.That(root.Q("item-slot-1"), Is.Not.Null);
+                Assert.That(root.Q("item-slot-2"), Is.Not.Null);
+                Assert.That(root.Q("item-slot-3"), Is.Not.Null);
+                Assert.That(root.Q("item-slot-4"), Is.Null);
+                Assert.That(root.Q("flashlight-slot").parent, Is.SameAs(root.Q("inventory-panel")));
+                new HUDInventoryPresenter().SetFlashlight(state, true, 1f, .5f); driver.Apply(state);
+                Assert.That(root.Q("flashlight-aim").style.width.value.value, Is.EqualTo(50f));
+                Assert.That(root.Q<Label>("flashlight-status").text, Is.EqualTo("Aim 50%"));
                 // Edit Mode does not exercise ordinary runtime MonoBehaviour callbacks.
                 driver.Unbind();
                 Object.DestroyImmediate(owner);

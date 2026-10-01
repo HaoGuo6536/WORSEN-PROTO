@@ -5,7 +5,7 @@
 // PURPOSE:
 //   Verifies presentation-only HUD behavior with primitive samples and explicit time.
 //   These tests protect chase chrome suppression, interrupted restoration, missing direction
-//   samples and suppression of empty capacity without opening a Unity scene.
+//   samples and the fixed three-slot contract without opening a Unity scene.
 //
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · HUD.
@@ -64,7 +64,7 @@ namespace Worsen.Tests.HUD
             presenter.SetChaseMode(state, true);
             presenter.Tick(state, 1f, 0.5f);
             Assert.That(state.CountText, Is.EqualTo("4"));
-            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ExtraOpacity, Is.Zero);
             Assert.That(state.ChaseMode, Is.True);
@@ -149,13 +149,13 @@ namespace Worsen.Tests.HUD
             presenter.SetCount(state, -1, 4);
             Assert.That(state.CountText, Is.EqualTo("—"));
             presenter.SetItemSlots(state, 11, 8);
-            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             Assert.That(state.SlotOverflowText, Is.Empty);
             presenter.SetHeldItemCount(state, 11, 8);
-            Assert.That(state.DisplayedSlots, Is.EqualTo(8));
-            Assert.That(state.SlotOverflowText, Is.EqualTo("+3 items"));
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
+            Assert.That(state.SlotOverflowText, Is.EqualTo("+8 items"));
             presenter.SetItemSlots(state, -2, 8);
-            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             Assert.That(state.SlotOverflowText, Is.Empty);
         }
 

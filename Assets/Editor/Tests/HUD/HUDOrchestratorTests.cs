@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · HUD routing.
 // KEY RESPONSIBILITIES:
-//   - Cover golden and occupied-slot updates, capture reset and subscription cleanup.
+//   - Cover golden and fixed-slot updates, capture reset and subscription cleanup.
 //   - Hide only the in-level cake counter and reset that state on a fresh capture.
 // DEPENDENCIES:
 //   NUnit, Core, Run/Progression, HUD/ProgressionUI and their Orchestrators.
@@ -68,11 +68,11 @@ namespace Worsen.Tests.HUD
             Assert.That(_state.CountText, Is.EqualTo("17"));
             Assert.That(_state.HiddenCount, Is.True);
             Publish(_run, "EmptyItemSlotsChanged", 1);
-            Assert.That(_state.DisplayedSlots, Is.Zero, "Empty capacity is not a held item.");
+            Assert.That(_state.DisplayedSlots, Is.EqualTo(3), "The HUD always retains three physical slots.");
             Publish(_run, "CaptureStarted", default(RunCaptureMetadata));
             Assert.That(_state.GoldenText, Is.EqualTo("0"));
             Assert.That(_state.HiddenCount, Is.False);
-            Assert.That(_state.DisplayedSlots, Is.Zero);
+            Assert.That(_state.DisplayedSlots, Is.EqualTo(3));
             Publish(_run, "FloorDisplayChanged", new FloorDisplaySnapshot(1, 5, 2, ExitState.Locked, false, Vector3.zero,
                 totalCakes: 12, totalGoldenCakes: 6));
             Assert.That(_state.GoldenText, Is.EqualTo("4"));

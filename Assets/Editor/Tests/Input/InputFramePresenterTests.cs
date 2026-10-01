@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Assert that both edges of an inter-tick tap survive publication.
 //   - Assert that motion and button edges are consumed once while held data persists.
-//   - Assert that disabled and unfocused input cannot leak stale commands.
+//   - Assert that disabled and unfocused input cannot leak stale commands or slot choices.
 //
 // DEPENDENCIES:
 //   - NUnit, Worsen.Core, and Worsen.Presentation.Input pure types.
@@ -213,6 +213,33 @@ namespace Worsen.Tests.Input
             _presenter.SetButton(_state, InputButtons.Sprint, true);
             _presenter.SetButton(_state, InputButtons.Jump, true);
             _presenter.SetButton(_state, InputButtons.Jump, false);
+        }
+
+        [TestCase(0)] [TestCase(1)] [TestCase(2)]
+        public void DirectSelectionIsLastPressWinsAndConsumedOnce(int index)
+        {
+            _presenter.SelectSlot(_state, 0); _presenter.SelectSlot(_state, index);
+            Assert.That(_presenter.FlushSelectedSlot(_state), Is.EqualTo(index));
+            Assert.That(_presenter.FlushSelectedSlot(_state), Is.EqualTo(-1));
+            _presenter.SelectSlot(_state, 3); _presenter.SelectSlot(_state, -1);
+            Assert.That(_presenter.FlushSelectedSlot(_state), Is.EqualTo(-1), "Flashlight is never an item slot.");
+        }
+
+        [TestCase("focus")] [TestCase("pause")] [TestCase("owner")] [TestCase("ready")] [TestCase("reset")]
+        public void DirectSelectionCannotSurviveAnyGameplayGate(string gate)
+        {
+            _presenter.SelectSlot(_state, 2);
+            switch (gate)
+            {
+                case "focus": _presenter.SetFocus(_state, false); _presenter.SetFocus(_state, true); break;
+                case "pause": _presenter.SetPaused(_state, true); _presenter.SetPaused(_state, false); break;
+                case "owner": _presenter.SetOwnerEnabled(_state, false); _presenter.SetOwnerEnabled(_state, true); break;
+                case "ready": _presenter.SetInputEnabled(_state, false); _presenter.SetInputEnabled(_state, true); break;
+                default: _presenter.Reset(_state); break;
+            }
+            Assert.That(_presenter.FlushSelectedSlot(_state), Is.EqualTo(-1));
+            _presenter.SetPaused(_state, true); _presenter.SelectSlot(_state, 1);
+            Assert.That(_presenter.FlushSelectedSlot(_state), Is.EqualTo(-1));
         }
 
         private static void AssertNeutral(InputFrame frame)

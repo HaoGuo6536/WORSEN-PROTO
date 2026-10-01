@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Retain remaining counter text, Hidden Count and phantom presentation lifetime.
 //   - Retain independent objective/threat/Exit Sense guidance and supplied camera orientation.
-//   - Retain shield and selected occupied inventory presentation.
+//   - Retain three physical item slots and independent flashlight display samples.
 //   - Retain chrome visibility and fade progress independently of guidance.
 //
 // DEPENDENCIES:
@@ -56,9 +56,14 @@ namespace Worsen.Presentation.HUD
         public string ExitText = "Exit: —";
         public string DirectionCaption = "";
         public string SlotOverflowText = "";
-        public int DisplayedSlots;
+        public int DisplayedSlots = 3;
         public int SelectedDisplaySlot = -1;
         public string SelectedSlotText = "";
+        public readonly string[] SlotLabels = { "Empty", "Empty", "Empty" };
+        public bool FlashlightKnown, FlashlightOn;
+        public float FlashlightCharge, FlashlightAim, FlashlightPulsePhase;
+        public string FlashlightText = "Flashlight —";
+        public string FlashlightStatusText = "—";
         public float CountFraction;
         public bool CountKnown;
         public bool ExitOpen;

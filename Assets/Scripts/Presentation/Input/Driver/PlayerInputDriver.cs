@@ -13,7 +13,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own gameplay and independent pause actions, pairing all device subscriptions.
-//   - Buffer device facts with configured look preferences and press-to-slide bindings.
+//   - Buffer device facts, direct inventory selection and press-to-slide bindings.
 //   - Own InputRecorder and select one source without stale input across switches.
 //   - Clear pending gameplay input on disable, readiness loss or focus loss.
 //   - Capture the cursor only for ready, focused live gameplay and restore it at teardown.
@@ -32,6 +32,8 @@
 //   - stick press hold to sprint; Space/south jump or cancel slide; C/east press to slide;
 //   - Tab/right stick press look back; E/west interact; F/left shoulder flashlight;
 //   - Q/right shoulder consume; wheel or D-pad left/right cycle. Template asset untouched.
+//   - 1/2/3 select physical slots; emitted before the same tick's frame through the owner.
+//   - Direct selection needs a Core/replay contract extension before recorded playback supports it.
 //   - Serialized _config wins; Resources fallback warns and uses ephemeral defaults if absent.
 //   - Gamepad turn rate uses the render elapsed time passed to the Presenter.
 //   - Pause uses a separate owned action, available while gameplay is gated but not unfocused/disabled.
@@ -66,6 +68,7 @@ namespace Worsen.Presentation.Input
 
         public event Action<InputFrame> FrameCaptured;
         public event Action PausePressed;
+        public event Action<int> SlotSelected;
         public InputSource Source => _recorder == null ? InputSource.Live : _recorder.Source;
         public InputProbeRecord CurrentPlaybackRecord => _recorder == null ? default : _recorder.CurrentPlaybackRecord;
         public string LastRecordingPath => _recorder == null ? "" : _recorder.LastRecordingPath;
@@ -148,7 +151,11 @@ namespace Worsen.Presentation.Input
                     RefreshActions();
                 }
                 else
+                {
+                    int selected = _presenter.FlushSelectedSlot(_state);
+                    if (selected >= 0) SlotSelected?.Invoke(selected);
                     frame = _presenter.Flush(_state);
+                }
                 FrameCaptured?.Invoke(frame);
             }
         }
@@ -245,6 +252,7 @@ namespace Worsen.Presentation.Input
             Teardown();
             FrameCaptured = null;
             PausePressed = null;
+            SlotSelected = null;
         }
 
         private void OnApplicationFocus(bool focused)
@@ -324,6 +332,13 @@ namespace Worsen.Presentation.Input
                 return;
             }
 
+            switch (context.action.name)
+            {
+                case "SelectSlot1": if (context.performed) _presenter.SelectSlot(_state, 0); return;
+                case "SelectSlot2": if (context.performed) _presenter.SelectSlot(_state, 1); return;
+                case "SelectSlot3": if (context.performed) _presenter.SelectSlot(_state, 2); return;
+            }
+
             InputButtons button;
             switch (context.action.name)
             {
@@ -373,6 +388,9 @@ namespace Worsen.Presentation.Input
             AddButton("UseConsumable", "<Keyboard>/q", "<Gamepad>/rightShoulder");
             AddButton("CycleConsumable", "<Mouse>/scroll/up", "<Gamepad>/dpad/right");
             AddButton("CycleConsumablePrevious", "<Mouse>/scroll/down", "<Gamepad>/dpad/left");
+            _actions.AddAction("SelectSlot1", InputActionType.Button, "<Keyboard>/1");
+            _actions.AddAction("SelectSlot2", InputActionType.Button, "<Keyboard>/2");
+            _actions.AddAction("SelectSlot3", InputActionType.Button, "<Keyboard>/3");
         }
 
         private void AddButton(string name, string keyboardPath, string gamepadPath)

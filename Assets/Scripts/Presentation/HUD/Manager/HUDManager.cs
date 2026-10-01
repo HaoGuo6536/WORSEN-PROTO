@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward fixed-total counters, floor hiding and chase/reset facts.
-//   - Forward shield and immutable inventory snapshots without querying gameplay.
+//   - Forward shield, flashlight progress and inventory snapshots without querying gameplay.
 //   - Forward guidance/camera orientation and expose fallible phantom presentation.
 //
 // DEPENDENCIES:
@@ -58,6 +58,8 @@ namespace Worsen.Presentation.HUD
         public void SetGoldenCount(int count) { if (_driver != null) _driver.SetGoldenCount(count); }
         public void SetHeldItemCount(int count) { if (_driver != null) _driver.SetHeldItemCount(count); }
         public void SetConsumables(ConsumableInventorySnapshot snapshot) { if (_driver != null) _driver.SetConsumables(snapshot); }
+        public void SetFlashlightStatus(bool enabled, float charge, float aim)
+        { if (_driver != null) _driver.SetFlashlightStatus(enabled, charge, aim); }
         public void SetExitState(ExitState exitState) { if (_driver != null) _driver.SetExitState(exitState); }
         public void SetDirection(Vector3 worldDirection, bool visible) { if (_driver != null) _driver.SetDirection(worldDirection, visible); }
         public void SetHeading(float headingDegrees) { if (_driver != null) _driver.SetHeading(headingDegrees); }

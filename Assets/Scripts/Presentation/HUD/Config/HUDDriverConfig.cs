@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Distinguish the entity-keyed threat arrow from white and golden guidance.
 //   - Distinguish Golden Sense and Exit Sense arrows using designer-owned colors.
-//   - Expose restoration, display limits and the vector interface palette and geometry.
+//   - Expose restoration, inventory emphasis and the vector interface palette and geometry.
 //   - Keep shared asset values read-only at runtime.
 //   - Tune flat-arrow turning and number clearance independently of inventory slots.
 //
@@ -35,7 +35,26 @@ namespace Worsen.Presentation.HUD
         [SerializeField, Min(0f)] private float _restoreSeconds = 0.5f;
         [SerializeField, Min(10)] private int _fontSize = 18;
         [SerializeField, Min(18)] private int _smallFontSize = 21;
-        [SerializeField, Min(1)] private int _maximumDisplayedSlots = 8;
+        [SerializeField, Min(64f)] private float _inventorySlotWidth = 112f;
+        [SerializeField, Min(48f)] private float _inventorySlotHeight = 72f;
+        [SerializeField, Min(0f)] private float _inventorySlotGap = 14f;
+        [SerializeField, Range(1f, 1.2f)] private float _selectedSlotScale = 1.08f;
+        [SerializeField, Range(0f, 1f)] private float _unselectedSlotOpacity = 0.55f;
+        [SerializeField, Min(0f)] private float _flashlightSlotGap = 32f;
+        [SerializeField, Min(112f)] private float _flashlightSlotWidth = 168f;
+        [SerializeField, Min(0.1f)] private float _readyPulseSeconds = 1.2f;
+        [SerializeField] private Color _selectionColor = new Color(1f, 0.9f, 0.55f, 1f);
+        [SerializeField] private Color _flashlightColor = new Color(0.35f, 0.9f, 1f, 1f);
+        public float InventorySlotWidth => _inventorySlotWidth;
+        public float InventorySlotHeight => _inventorySlotHeight;
+        public float InventorySlotGap => _inventorySlotGap;
+        public float SelectedSlotScale => _selectedSlotScale;
+        public float UnselectedSlotOpacity => _unselectedSlotOpacity;
+        public float FlashlightSlotGap => _flashlightSlotGap;
+        public float FlashlightSlotWidth => _flashlightSlotWidth;
+        public float ReadyPulseSeconds => _readyPulseSeconds;
+        public Color SelectionColor => _selectionColor;
+        public Color FlashlightColor => _flashlightColor;
         [SerializeField] private Color _panelColor = new Color(0.035f, 0.031f, 0.033f, 0.92f);
         [SerializeField] private Color _textColor = new Color(0.86f, 0.82f, 0.72f, 1f);
         [SerializeField] private Color _mutedColor = new Color(0.57f, 0.54f, 0.49f, 1f);
@@ -71,6 +90,6 @@ namespace Worsen.Presentation.HUD
         public float RestoreSeconds => _restoreSeconds;
         public int FontSize => _fontSize;
         public int SmallFontSize => _smallFontSize;
-        public int MaximumDisplayedSlots => _maximumDisplayedSlots;
+        public int MaximumDisplayedSlots => 3; // Owner contract, not designer capacity.
     }
 }

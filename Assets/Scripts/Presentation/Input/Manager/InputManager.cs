@@ -12,12 +12,12 @@
 //   Owns PlayerInputDriver; publishes Core input facts for an Orchestrator.
 //
 // KEY RESPONSIBILITIES:
-//   - Forward runtime look overrides and recording-preserving pause gates to the Driver.
+//   - Forward settings/pause gates and publish pause and direct slot input facts.
 //   - Initialize one persistent service and discard duplicate service roots.
 //   - Pair Driver subscriptions with this component's enabled lifetime.
 //   - Command one frame publication per caller-controlled fixed tick.
 //   - Expose exact source selection and tick-aligned recording through the owned Driver.
-//   - Republish pause intent even while the gameplay frame gate is closed.
+
 //
 // DEPENDENCIES:
 //   - Core InputFrame; the Input system's own PlayerInputDriver only.
@@ -48,6 +48,7 @@ namespace Worsen.Presentation.Input
         public static InputManager Instance { get; private set; }
         public event Action<InputFrame> FramePublished;
         public event Action PausePressed;
+        public event Action<int> SlotSelected;
         public InputSource Source => _initialized ? _driver.Source : InputSource.Live;
         public InputProbeRecord CurrentPlaybackRecord => _initialized ? _driver.CurrentPlaybackRecord : default;
         public string LastRecordingPath => _initialized ? _driver.LastRecordingPath : "";
@@ -120,6 +121,7 @@ namespace Worsen.Presentation.Input
                 return;
             _driver.FrameCaptured += HandleFrameCaptured;
             _driver.PausePressed += HandlePause;
+            _driver.SlotSelected += HandleSlotSelected;
             _subscribed = true;
             _driver.SetOwnerEnabled(true);
         }
@@ -130,6 +132,7 @@ namespace Worsen.Presentation.Input
                 return;
             _driver.FrameCaptured -= HandleFrameCaptured;
             _driver.PausePressed -= HandlePause;
+            _driver.SlotSelected -= HandleSlotSelected;
             _subscribed = false;
             _driver.SetOwnerEnabled(false);
         }
@@ -143,9 +146,11 @@ namespace Worsen.Presentation.Input
                 Instance = null;
             FramePublished = null;
             PausePressed = null;
+            SlotSelected = null;
         }
 
         private void HandlePause() => PausePressed?.Invoke();
+        private void HandleSlotSelected(int index) => SlotSelected?.Invoke(index);
 
         private void HandleFrameCaptured(InputFrame frame)
         {
