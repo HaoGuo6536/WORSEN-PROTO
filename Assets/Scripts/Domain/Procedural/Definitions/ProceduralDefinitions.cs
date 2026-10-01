@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Describe one reproducible layout and its physical construction commands.
 //   - Carry geometry commands, effective spawn policy and world-object plans.
-//   - Record footprints, pocket anchors and identified shrine/Passage sites.
+//   - Record footprints, collision-checked cake lines and optional reward sites.
 //   - Retain storeys, directed routes and permissioned navigation links.
 //   - Keep template provenance, organic fallback and admitted capacity explicit.
 // DEPENDENCIES:
@@ -44,6 +44,7 @@ namespace Worsen.Domain.Procedural
 
     public sealed class ProceduralLayout
     {
+        public IReadOnlyList<ProceduralCakeLine> CakeLines { get; internal set; } = System.Array.Empty<ProceduralCakeLine>();
         public IReadOnlyList<ProceduralTemplateRoom> TemplateRooms { get; internal set; } = System.Array.Empty<ProceduralTemplateRoom>();
         public ProceduralTemplateCatalogue TemplateCatalogue { get; internal set; }
         public string TemplateFallbackReason { get; internal set; } = string.Empty;
@@ -83,6 +84,11 @@ namespace Worsen.Domain.Procedural
     }
 
     public enum ProceduralSurfaceKind { Floor, Wall, Ceiling }
+    public readonly struct ProceduralCakeLine
+    {
+        public ProceduralCakeLine(IReadOnlyList<LevelAnchor> anchors) { Anchors = anchors; }
+        public IReadOnlyList<LevelAnchor> Anchors { get; }
+    }
     public readonly struct ProceduralInteractablePlan
     {
         public ProceduralInteractablePlan(InteractableState state, Vector3 size, int surfaceId = 0)

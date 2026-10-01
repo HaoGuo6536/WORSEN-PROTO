@@ -21,6 +21,7 @@
 //   Config fixtures use an uninitialized managed object plus private field writes;
 //   only pure getters are read, and no ScriptableObject engine API is invoked.
 //   Randomness and elapsed seconds are supplied explicitly to every simulation.
+//   Owner playtest 2026-09-30 replaces optional normal cakes with all-remaining exit gating.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -52,7 +53,7 @@ namespace Worsen.Tests.Floor
                 Assert.That(controller.Collect(new EntityId(1), anchor.Id, PickupKind.Cake, 1, out _), Is.True);
             Assert.That(state.ExitState, Is.EqualTo(ExitState.Open));
             controller.Initialize(SingleRoom(7), Players());
-            Assert.That(state.ActiveCakeAnchors.Count, Is.EqualTo(2));
+            Assert.That(state.ActiveCakeAnchors.Count, Is.EqualTo(7), "Legacy quota cannot thin the physical line.");
         }
 
         [Test]
@@ -543,15 +544,15 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void CompletedRoomSnatchesGoldenAndOptionalRewardsOnceWithoutChangingExitRequirement()
+        public void CompletedRoomSnatchesGoldAndRemainingCakesOnceAndReducesExitRequirement()
         {
             var graph = Graph(new[] { 1, 2 }, new[] { new LevelEdge(1, 1, 2, true) },
                 new[] { Anchor(101, 1), Anchor(102, 1), Anchor(103, 1) }, 2);
             var fixture = Start(graph, Config(1));
-            int required = fixture.State.ActiveCakeAnchors.Single().Id;
+            int required = fixture.State.ActiveCakeAnchors[0].Id;
             Assert.That(fixture.Controller.Tick(1000f, 1), Is.Empty);
             Assert.That(fixture.Controller.DrainCakeLosses(), Is.Empty);
-            CollectAll(fixture);
+            fixture.Controller.Collect(new EntityId(1), required, PickupKind.Cake, 1, out _);
             fixture.Controller.Tick(13.9f, 2);
             Assert.That(fixture.Controller.DrainCakeLosses(), Is.Empty);
             fixture.Controller.Tick(0.2f, 3);
@@ -568,14 +569,14 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void CollectedOptionalCakeDoesNotUnlockExitAndIsNotLostAgain()
+        public void CollectedNonGoldCakeCountsButCannotUnlockUntilEveryCakeIsCollected()
         {
             var graph = Graph(new[] { 1, 2 }, new[] { new LevelEdge(1, 1, 2, true) },
                 new[] { Anchor(101, 1), Anchor(102, 1) }, 2);
             var fixture = Start(graph, Config(1));
             int optional = graph.Anchors.Single(value => value.Id != fixture.State.ActiveCakeAnchors[0].Id).Id;
             Assert.That(fixture.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 1, out _), Is.True);
-            Assert.That(fixture.State.CakeCount, Is.Zero);
+            Assert.That(fixture.State.CakeCount, Is.EqualTo(1));
             Assert.That(fixture.State.ExitState, Is.EqualTo(ExitState.Locked));
             CollectAll(fixture);
             fixture.Controller.Tick(14f, 2);
@@ -613,7 +614,7 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void DensityIsBoundedSeededAndIndependentOfRoomAndAnchorOrder()
+        public void GoldSelectionIsSeededButPhysicalLinesAreNotThinnedByDensity()
         {
             var anchors = Enumerable.Range(1, 4).SelectMany(room => Enumerable.Range(0, 5)
                 .Select(type => Anchor(room * 100 + type + 1, room, (CakeAnchorType)type))).ToArray();
@@ -621,7 +622,7 @@ namespace Worsen.Tests.Floor
             var graph = Graph(new[] { 1, 2, 3, 4 }, edges, anchors, 4);
             var reversed = Graph(new[] { 4, 3, 2, 1 }, edges.Reverse().ToArray(), anchors.Reverse().ToArray(), 4);
             var selections = new HashSet<string>();
-            bool emptyExit = false;
+
             for (int seed = 0; seed < 64; seed++)
             {
                 var first = Start(graph, DensityConfig(), seed);
@@ -629,16 +630,14 @@ namespace Worsen.Tests.Floor
                 var placed = Placed(first);
                 CollectionAssert.AreEqual(placed.Select(a => a.Id), Placed(second).Select(a => a.Id));
                 CollectionAssert.AreEqual(first.State.ActiveCakeAnchors, second.State.ActiveCakeAnchors);
-                foreach (int room in new[] { 1, 2, 3 }) Assert.That(placed.Count(a => a.RoomId == room), Is.InRange(1, 3));
-                Assert.That(placed.Count(a => a.RoomId == 4), Is.InRange(0, 3));
-                emptyExit |= placed.All(a => a.RoomId != 4);
-                Assert.That(first.State.RequiredCakeCount, Is.EqualTo(Math.Max(1, Mathf.CeilToInt(placed.Length * 0.6f))));
+                foreach (int room in new[] { 1, 2, 3, 4 }) Assert.That(placed.Count(a => a.RoomId == room), Is.EqualTo(5));
+                Assert.That(first.State.RequiredCakeCount, Is.EqualTo(placed.Length));
                 Assert.That(placed.Select(a => a.Id).Distinct().Count(), Is.EqualTo(placed.Length));
                 Assert.That(first.State.ActiveCakeAnchors.All(a => placed.Any(p => p.Id == a.Id)), Is.True);
                 selections.Add(string.Join(",", placed.Select(a => a.Id)));
             }
             Assert.That(selections.Count, Is.GreaterThan(1));
-            Assert.That(emptyExit, Is.True);
+
         }
 
         [Test]
@@ -661,29 +660,31 @@ namespace Worsen.Tests.Floor
             var state = new FloorBehaviorState(); var controller = new FloorController(state, config, new System.Random(7));
             controller.Initialize(SingleRoom(5), Players(), 5);
             int placed = Placed(new Fixture(state, controller)).Length;
-            Assert.That(placed, Is.InRange(1, 3));
-            Assert.That(state.RequiredCakeCount, Is.EqualTo(Math.Max(1, Mathf.CeilToInt(placed * fraction))));
+            Assert.That(placed, Is.EqualTo(5));
+            Assert.That(state.RequiredCakeCount, Is.EqualTo(placed));
         }
 
         [TestCase(false)] [TestCase(true)]
-        public void PlacedOptionalCakesScoreWithoutGatingAndUnusedSocketsCannotBeCollected(bool optionalFirst)
+        public void EveryPlacedCakeScoresAndGatesRegardlessOfGoldSelectionOrder(bool optionalFirst)
         {
             var config = DensityConfig(); Set(config, "_minimumCakesPerRoom", 3); Set(config, "_minimumExitRoomCakes", 3);
             var graph = SingleRoom(5); var fixture = Start(graph, config);
             var placed = Placed(fixture);
-            var required = fixture.State.ActiveCakeAnchors.ToArray();
-            int optional = placed.Single(a => required.All(r => r.Id != a.Id)).Id;
-            foreach (var unused in graph.Anchors.Where(a => placed.All(p => p.Id != a.Id)))
-                Assert.That(fixture.Controller.Collect(new EntityId(1), unused.Id, PickupKind.Cake, 1, out _), Is.False);
-            if (!optionalFirst) CollectAll(fixture);
+            var required = ((IEnumerable<LevelAnchor>)typeof(FloorBehaviorState).GetField("SelectedAnchors",
+                BindingFlags.Instance | BindingFlags.NonPublic).GetValue(fixture.State)).ToArray();
+            int optional = placed.First(a => required.All(r => r.Id != a.Id)).Id;
+            Assert.That(placed.Length, Is.EqualTo(graph.Anchors.Count));
+            if (!optionalFirst)
+                foreach (var a in fixture.State.ActiveCakeAnchors.Where(a => a.Id != optional).ToArray())
+                    fixture.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _);
             Assert.That(fixture.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 2, out var fact), Is.True);
-            Assert.That(fact.CakeCount, Is.EqualTo(optionalFirst ? 1 : 3));
-            Assert.That(fixture.Controller.Snapshot().Collected, Is.EqualTo(optionalFirst ? 1 : 3));
+            Assert.That(fact.CakeCount, Is.EqualTo(optionalFirst ? 1 : 5));
+            Assert.That(fixture.Controller.Snapshot().Collected, Is.EqualTo(optionalFirst ? 1 : 5));
             Assert.That(fixture.State.ExitState, Is.EqualTo(optionalFirst ? ExitState.Locked : ExitState.Open));
             if (optionalFirst) CollectAll(fixture);
             Assert.That(fixture.State.ExitState, Is.EqualTo(ExitState.Open));
             Assert.That(fixture.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 3, out fact), Is.True);
-            Assert.That(fact.CakeCount, Is.EqualTo(3), "Golden facts must not reset ordinary scoring to the required count.");
+            Assert.That(fact.CakeCount, Is.EqualTo(5), "Golden facts must not reset ordinary physical scoring.");
             Assert.That(fixture.Controller.Snapshot().Golden, Is.EqualTo(1));
             Assert.That(fixture.Controller.SelectCue(null).Golden, Is.EqualTo(1));
         }

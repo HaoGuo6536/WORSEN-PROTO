@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Scale collapse durations by a provisional 0.75 for Faster Collapse (not hand timers).
 //   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
-//   - Tune per-room placement, the required share and shared pickup loudness.
+//   - Tune the legacy gold/collapse subset and shared pickup loudness.
 //   - Tune the simulation-time delay before an explicitly activated pocket starts its warning.
 //   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
 // DEPENDENCIES:
@@ -18,7 +18,8 @@
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
 //   Mirrored asset: ScriptableObjects/Domain/Floor/FloorConfig. Runtime getters only.
-//   Room density supersedes legacy required-count overrides unless explicitly disabled.
+//   Owner playtest 2026-09-30: every surviving cake gates exit. Density and required-
+//   count fields now control gold reveal/collapse pacing only, never line thinning.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using UnityEngine;

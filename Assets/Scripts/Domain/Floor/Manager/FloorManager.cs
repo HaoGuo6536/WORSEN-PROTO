@@ -17,7 +17,7 @@
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
-//   Generated required-count overrides apply only when room density is disabled.
+//   Legacy count/density overrides tune gold/collapse only; every live cake gates exit.
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
 //   OnExitReached is the sole escape fact, admitted only after normal opening.
@@ -114,7 +114,9 @@ namespace Worsen.Domain.Floor
         public void ReceiveBlinderTrapPolicy(BlinderTrapPolicyFact fact)
         {
             if (_controller == null) return;
+            var before = _state.ExitState;
             var added = _controller.ReceiveBlinderTrapPolicy(fact);
+            if (before != _state.ExitState) { _driver.OpenExit(Array.Empty<LevelAnchor>()); OnExitOpened?.Invoke(_state.Tick); }
             if (added.Count > 0) { _driver.SpawnTraps(added); RefreshCue(); }
         }
         public void ReceiveMimic(MimicFact fact)
@@ -138,8 +140,10 @@ namespace Worsen.Domain.Floor
             if (_state.Ended) return;
             bool guidanceExpired = _guidance?.Tick(dt) ?? false;
             var before = _state.ExitState;
+            bool collapsing = _state.CollapseStarted;
             PublishRoomTransitions(_controller.Tick(dt, tick));
             if (!ReferenceEquals(owner, _controller)) return;
+            if (!collapsing && _state.CollapseStarted) _driver.SpawnGoldenCakes(_state.GoldenAnchors);
             if (before != _state.ExitState)
             {
                 _driver.OpenExit(Array.Empty<LevelAnchor>());
@@ -344,7 +348,7 @@ namespace Worsen.Domain.Floor
             var player = _controller.CuePlayer();
             if (player != null)
             {
-                if (_state.CollapseStarted) paths.Add(_driver.QueryPath(0, player.Position, _state.Graph.ExitPosition));
+                if (_state.ActiveCakeAnchors.Count == 0) paths.Add(_driver.QueryPath(0, player.Position, _state.Graph.ExitPosition));
                 else foreach (var anchor in _state.ActiveCakeAnchors) paths.Add(_driver.QueryPath(anchor.Id, player.Position, anchor.Position));
             }
             var display = owner.SelectCue(paths, _driver.OpeningProgress(_state.ExitState == ExitState.Open));

@@ -18,7 +18,8 @@
 // USAGE NOTES:
 //   Designer data only. The controller rejects invalid combinations rather
 //   than silently building an incomplete or unbounded map. Legacy cake-line fields
-//   remain serialized for compatibility; Floor owns actual cake selection.
+//   remain serialized for compatibility. RouteCakeSpacing controls final collision-
+//   checked walking lines; the earlier sockets only stage generation features.
 //   Room-count budgets govern the connected component. PocketRoomCount is a separate
 //   optional budget. The fixed four/six-room walking loop remains single-cell.
 // ============================================================================
@@ -137,6 +138,8 @@ namespace Worsen.Domain.Procedural
         public int CakesPerLine => _cakesPerLine;
         public float CakeSpacing => _cakeSpacing;
         public float CakeLineOffset => _cakeLineOffset;
+        [SerializeField, Min(0.5f)] private float _routeCakeSpacing = 1.5f;
+        public float RouteCakeSpacing => _routeCakeSpacing > 0f ? _routeCakeSpacing : 1.5f;
         public int MinimumCandidatesPerRoom => _minimumCandidatesPerRoom;
         public int MaximumCandidatesPerRoom => _maximumCandidatesPerRoom;
         public float FlowPreference => _flowPreference;

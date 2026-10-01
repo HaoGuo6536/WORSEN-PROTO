@@ -15,6 +15,7 @@
 // USAGE NOTES:
 //   No engine calls. Uninitialized configs are populated through reflection.
 //   These helpers also supply immutable graph/player inputs to engine integration tests.
+//   Owner playtest 2026-09-30: all live normal cakes gate exit; selection is gold/collapse only.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -62,10 +63,10 @@ namespace Worsen.Tests.Floor
             var f = Start(round: round);
             Assert.That(f.State.Traps.Count, Is.EqualTo(expected));
             Assert.That(f.State.Traps.All(t => f.State.ActiveCakeAnchors.All(a => a.Id != t.Anchor.Id)), Is.True);
-            Assert.That(f.State.RequiredCakeCount, Is.EqualTo(6));
+            Assert.That(f.State.RequiredCakeCount, Is.EqualTo(18 - expected));
             int accepted = f.Graph.Anchors.Count(a => f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _));
             Assert.That(accepted, Is.EqualTo(18 - expected));
-            Assert.That(f.State.CakeCount, Is.EqualTo(6));
+            Assert.That(f.State.CakeCount, Is.EqualTo(18 - expected));
             Assert.That(f.State.GoldenCakeCount, Is.Zero);
         }
 
@@ -77,7 +78,7 @@ namespace Worsen.Tests.Floor
             {
                 var a = Start(seed: seed); var b = Start(seed: seed); var earlier = Start(seed: seed, round: 2);
                 Assert.That(a.State.Traps, Is.EqualTo(b.State.Traps));
-                Assert.That(a.State.ActiveCakeAnchors, Is.EqualTo(earlier.State.ActiveCakeAnchors));
+                Assert.That(Selected(a), Is.EqualTo(Selected(earlier)), "Gold/collapse selection is unaffected by traps.");
                 Assert.That(a.State.Traps.Count, Is.LessThanOrEqualTo(3));
                 variants.Add(string.Join(",", a.State.Traps.Select(t => t.Anchor.Id + ":" + t.Kind)));
             }
@@ -125,7 +126,7 @@ namespace Worsen.Tests.Floor
             Assert.That(sweet.State.Traps.Count, Is.EqualTo(normal.State.Traps.Count - 1));
             int restored = normal.State.Traps[0].Anchor.Id;
             Assert.That(sweet.Controller.Collect(new EntityId(1), restored, PickupKind.Cake, 1, out _), Is.True);
-            Assert.That(sweet.State.CakeCount, Is.Zero);
+            Assert.That(sweet.State.CakeCount, Is.EqualTo(1), "Restored real cake contributes physical collection.");
             Assert.That(extra.State.Traps.Take(normal.State.Traps.Count), Is.EqualTo(normal.State.Traps));
             Assert.That(extra.State.Traps.Skip(normal.State.Traps.Count).Select(t => t.Kind), Is.EqualTo(new[] { FloorTrapKind.Blind, FloorTrapKind.Blind }));
             Assert.That(Start(round: 2, hooks: new FloorCakeHooks(moreTraps: true)).State.Traps, Is.Empty);
@@ -146,12 +147,14 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void BlindFaithDoublesOptionalCakeCreditAndSuppressesBothArrows()
+        public void BlindFaithDoublesCollapseCreditButAllCakesGateExitAndBothArrowsStaySuppressed()
         {
             var f = Start(round: 1, hooks: new FloorCakeHooks(blindFaith: true, goldenSense: true));
-            var optional = f.Graph.Anchors.Where(a => f.State.ActiveCakeAnchors.All(r => r.Id != a.Id)).Take(3).ToArray();
+            var optional = f.Graph.Anchors.Where(a => Selected(f).All(r => r.Id != a.Id)).Take(3).ToArray();
             foreach (var a in optional) Assert.That(f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _), Is.True);
-            Assert.That(f.State.CakeCount, Is.EqualTo(6)); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
+            Assert.That(f.State.CakeCount, Is.EqualTo(3)); Assert.That(f.State.CollapseStarted, Is.True);
+            Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
+            CollectRequired(f); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
             Assert.That(f.Controller.SelectCue(new[] { new FloorPathCandidate(0, 1f, Vector3.right) }).HasCue, Is.False);
             Assert.That(f.Controller.TryWhiteGuidance(false, out _), Is.False);
             Assert.That(f.Controller.TryGoldenTarget(Vector3.zero, out _), Is.False);
@@ -169,7 +172,7 @@ namespace Worsen.Tests.Floor
             CollectRequired(f); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
             Assert.That(f.Controller.TryGoldenTarget(Vector3.zero, out _), Is.False);
             var sense = Start(hooks: new FloorCakeHooks(goldenSense: true));
-            var required = sense.State.ActiveCakeAnchors.OrderBy(a => a.Position.sqrMagnitude).ThenBy(a => a.Id).ToArray();
+            var required = Selected(sense).OrderBy(a => a.Position.sqrMagnitude).ThenBy(a => a.Id).ToArray();
             Assert.That(sense.Controller.TryGoldenTarget(Vector3.zero, out _), Is.False);
             CollectRequired(sense);
             Assert.That(sense.Controller.TryGoldenTarget(Vector3.zero, out var nearest), Is.True);
@@ -230,7 +233,7 @@ namespace Worsen.Tests.Floor
         public void GreedyQuotaShrinksWithLostGoldAndResetClearsHooksAndTraps()
         {
             var f = Start(hooks: new FloorCakeHooks(greedyDoor: true, moreTraps: true, silentTraps: true));
-            var required = f.State.ActiveCakeAnchors.OrderByDescending(a => a.RoomId).ToArray(); CollectRequired(f);
+            var required = Selected(f).OrderByDescending(a => a.RoomId).ToArray(); CollectRequired(f);
             f.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 1, out _);
             Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
             for (int tick = 1; tick < 5; tick++)
@@ -252,10 +255,10 @@ namespace Worsen.Tests.Floor
             Assert.That(initial.TotalCakes, Is.EqualTo(18));
             Assert.That(initial.TotalGoldenCakes, Is.EqualTo(6));
             Assert.That(initial.HiddenCount, Is.EqualTo(hidden));
-            int optional = f.Graph.Anchors.First(a => f.State.ActiveCakeAnchors.All(r => r.Id != a.Id)).Id;
+            int optional = f.Graph.Anchors.First(a => Selected(f).All(r => r.Id != a.Id)).Id;
             f.Controller.Collect(new EntityId(1), optional, PickupKind.Cake, 1, out _);
-            var required = f.State.ActiveCakeAnchors.ToArray(); CollectRequired(f);
-            Assert.That(f.Controller.Snapshot().Collected, Is.EqualTo(7));
+            var required = Selected(f); CollectRequired(f);
+            Assert.That(f.Controller.Snapshot().Collected, Is.EqualTo(18));
             f.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 2, out _);
             Assert.That(f.Controller.Snapshot().Golden, Is.EqualTo(1));
             Assert.That(f.Controller.Collect(new EntityId(1), required[0].Id, PickupKind.GoldenCake, 2, out _), Is.False);
@@ -263,7 +266,7 @@ namespace Worsen.Tests.Floor
             var after = f.Controller.Snapshot();
             Assert.That(after.TotalCakes, Is.EqualTo(initial.TotalCakes));
             Assert.That(after.TotalGoldenCakes, Is.EqualTo(initial.TotalGoldenCakes));
-            Assert.That(after.Collected, Is.EqualTo(7)); Assert.That(after.Golden, Is.EqualTo(1));
+            Assert.That(after.Collected, Is.EqualTo(18)); Assert.That(after.Golden, Is.EqualTo(1));
             Assert.That(after.HiddenCount, Is.EqualTo(hidden));
         }
 
@@ -339,6 +342,8 @@ namespace Worsen.Tests.Floor
         }
         internal static void CollectRequired(Fixture f)
         { foreach (var a in f.State.ActiveCakeAnchors.ToArray()) Assert.That(f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _), Is.True); }
+        internal static LevelAnchor[] Selected(Fixture f) => ((IEnumerable<LevelAnchor>)typeof(FloorBehaviorState)
+            .GetField("SelectedAnchors", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(f.State)).ToArray();
         internal static FloorConfig Config()
         {
             var c = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));

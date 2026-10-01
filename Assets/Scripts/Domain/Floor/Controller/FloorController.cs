@@ -2,7 +2,7 @@
 // FloorController.cs
 // ============================================================================
 // PURPOSE:
-//   Selects placed cakes and a weighted required subset, then schedules deterministic collapse.
+//   Places every reachable cake and retains a weighted gold/collapse trigger subset.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
@@ -18,7 +18,8 @@
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
 //   Density mode ignores legacy requiredCakeCount overrides. Explicitly disabling
-//   density preserves authored count fixtures; only that mode spawns every eligible socket.
+//   density preserves authored gold/collapse quotas. Owner playtest 2026-09-30:
+//   all ordinary cakes gate escape, including those remaining after collapse starts.
 //   Reads injected Player views only. Managed bounds math establishes cell membership.
 //   Pocket phases follow schedule order, not legacy serialized enum ordinals.
 //   Rooms without an exit route and flagged pockets remain dormant until activation;
@@ -109,6 +110,7 @@ namespace Worsen.Domain.Floor
                 .OrderBy(anchor => anchor.Id).ToList();
             if (candidates.Count < required)
                 throw new InvalidOperationException("Floor requires " + required + " weighted reachable anchors; graph has " + candidates.Count + ".");
+            var allCandidates = candidates.ToArray();
             if (_config.UseRoomCakeDensity)
             {
                 foreach (var room in candidates.GroupBy(anchor => anchor.RoomId).OrderBy(group => group.Key))
@@ -135,8 +137,18 @@ namespace Worsen.Domain.Floor
             _state.OptionalGoldenCakeCount = optionalGoldenCakeCount;
             _state.TotalGoldenCakes = Math.Max(goldenAtGeneration, Mathf.CeilToInt(goldenAtGeneration * goldenMultiplier));
             PlanBonusGold(_state.TotalGoldenCakes - goldenAtGeneration, reachable, distances);
+            // Owner playtest 2026-09-30: density config now selects gold/collapse
+            // credit only; never thin the walking lines. Traps and reserved bonus
+            // gold are not ordinary cakes and cannot enter the exit requirement.
+            var occupied = new HashSet<int>(_state.SpawnedAnchors.Select(a => a.Id));
+            occupied.UnionWith(_state.MutableTraps.Select(t => t.Anchor.Id));
+            occupied.UnionWith(_state.BonusGoldenAnchors.Select(a => a.Id));
+            foreach (var anchor in allCandidates)
+                if (occupied.Add(anchor.Id)) _state.SpawnedAnchors.Add(anchor);
             _state.TotalCakes = _state.SpawnedAnchors.Count;
             _state.MutableActiveAnchors.AddRange(_state.SelectedAnchors);
+            var selectedIds = new HashSet<int>(_state.SelectedAnchors.Select(a => a.Id));
+            _state.MutableActiveAnchors.AddRange(_state.SpawnedAnchors.Where(a => !selectedIds.Contains(a.Id)));
             foreach (var anchor in _state.SpawnedAnchors) _state.RemainingRewards.Add(anchor.Id, PickupKind.Cake);
             foreach (var room in graph.Rooms)
             {
@@ -177,7 +189,8 @@ namespace Worsen.Domain.Floor
                 int phaseOrder = left.Phase.CompareTo(right.Phase);
                 return phaseOrder != 0 ? phaseOrder : left.RoomId.CompareTo(right.RoomId);
             });
-            _state.RequiredCakeCount = _state.SelectedAnchors.Count;
+            _state.CollapseCakeTarget = _state.SelectedAnchors.Count;
+            _state.RequiredCakeCount = _state.TotalCakes;
             _state.CueElapsed = _config.DirectionCueInterval;
             _state.IsReady = true;
         }
@@ -236,19 +249,20 @@ namespace Worsen.Domain.Floor
             {
                 if (!_state.CollectedCakes.Add(anchorId)) return false;
                 _state.RemainingRewards.Remove(anchorId);
+                _state.CakeCount = _state.CollectedCakes.Count;
                 bool required = _state.SelectedAnchors.Any(value => value.Id == anchorId);
                 if (!_state.CollapseStarted && (_state.CakeHooks.BlindFaith || required))
-                    _state.CakeCount = Math.Min(_state.RequiredCakeCount, _state.CakeCount + (_state.CakeHooks.BlindFaith ? 2 : 1));
+                    _state.CollapseCakeCredit = Math.Min(_state.CollapseCakeTarget, _state.CollapseCakeCredit + (_state.CakeHooks.BlindFaith ? 2 : 1));
                 _state.MutableActiveAnchors.RemoveAll(value => value.Id == anchorId);
-                if (!_state.CollapseStarted && _state.CakeCount == _state.RequiredCakeCount)
+                if (!_state.CollapseStarted && _state.CollapseCakeCredit == _state.CollapseCakeTarget)
                 {
                     _state.CollapseStarted = true;
-                    _state.MutableActiveAnchors.Clear();
                     _state.CollapseElapsed = 0d;
                     _state.CueElapsed = _config.DirectionCueInterval;
                     // Blind Faith may finish early: never overlap gold with an uncollected cake.
                     var goldSource = _state.CakeHooks.BlindFaith ? _state.SpawnedAnchors : _state.SelectedAnchors;
-                    foreach (var selected in goldSource.Where(value => _state.CollectedCakes.Contains(value.Id)))
+                    foreach (var selected in goldSource.Where(value => _state.CollectedCakes.Contains(value.Id) &&
+                        _state.MutableRoomPhases[value.RoomId] != RoomPhase.Closed))
                     { _state.GoldenAnchors.Add(selected); _state.RemainingRewards.Add(selected.Id, PickupKind.GoldenCake); }
                     foreach (var bonus in _state.BonusGoldenAnchors)
                     {
@@ -365,6 +379,12 @@ namespace Worsen.Domain.Floor
                     if (anchor.RoomId == roomId && _state.RemainingRewards.TryGetValue(anchor.Id, out var kind))
                     {
                         _state.RemainingRewards.Remove(anchor.Id);
+                        if (kind == PickupKind.Cake)
+                        {
+                            _state.MutableActiveAnchors.RemoveAll(a => a.Id == anchor.Id);
+                            _state.RequiredCakeCount--;
+                            _state.CueElapsed = _config.DirectionCueInterval;
+                        }
                         _state.CakeLosses.Add(new FloorCakeLoss(anchor.Id, anchor.RoomId, kind, tick));
                     }
             facts.Add(new RoomPhaseChangedFact(roomId, phase, tick));
@@ -394,7 +414,7 @@ namespace Worsen.Domain.Floor
             for (int p = 0; p < paths.Count; p++)
             {
                 var path = paths[p];
-                bool wanted = _state.CollapseStarted ? path.AnchorId == 0 : HasAnchor(_state.MutableActiveAnchors, path.AnchorId);
+                bool wanted = _state.MutableActiveAnchors.Count == 0 ? path.AnchorId == 0 : HasAnchor(_state.MutableActiveAnchors, path.AnchorId);
                 if (!wanted || !Finite(path.Length) || path.Length < 0f || !Finite(path.Direction.x) || !Finite(path.Direction.y) || !Finite(path.Direction.z)) continue;
                 if (path.Length > nearest || path.Length == nearest && path.AnchorId >= nearestId) continue;
                 nearest = path.Length; nearestId = path.AnchorId; available = true; direction = path.Direction;
@@ -480,6 +500,7 @@ namespace Worsen.Domain.Floor
             _escape.Distance.Clear(); _escape.Queue.Clear(); _escape.Occupied.Clear(); _escape.ProtectedRooms.Clear();
             _state.MutableTraps.Clear(); _state.SprungTraps.Clear(); _state.GoldenAnchors.Clear();
             _state.BonusGoldenAnchors.Clear(); _state.TotalCakes = 0; _state.TotalGoldenCakes = 0;
+            _state.CollapseCakeTarget = 0; _state.CollapseCakeCredit = 0;
             _state.PuzzleRewards.Clear(); _state.UnlockedPuzzleRewards.Clear(); _state.RouteSafeCollapse = false;
             _state.PassageRewards.Clear();
             _state.OptionalGoldenCakeCount = 0; _state.ActiveEffects = null;
@@ -579,8 +600,10 @@ namespace Worsen.Domain.Floor
                     _state.CollectedCakes.Contains(anchor.Id) || _state.MutableRoomPhases[anchor.RoomId] != RoomPhase.Open) continue;
                 var trap = new FloorTrapSpawn(anchor, FloorTrapKind.Blind);
                 _state.MutableTraps.Add(trap); added.Add(trap); _state.AddedBlinderTraps++;
-                _state.SpawnedAnchors.Remove(anchor); _state.RemainingRewards.Remove(anchor.Id); _state.TotalCakes--;
+                _state.SpawnedAnchors.Remove(anchor); _state.RemainingRewards.Remove(anchor.Id);
+                _state.MutableActiveAnchors.RemoveAll(a => a.Id == anchor.Id); _state.RequiredCakeCount--;
             }
+            UpdateExitLock();
             return added.AsReadOnly();
         }
         public bool TryBlinderHit(FloorTrapSprungFact trap, out BlinderHitFact hit)
@@ -629,7 +652,24 @@ namespace Worsen.Domain.Floor
 
         private void UpdateExitLock()
         {
-            if (!_state.CollapseStarted || _state.ExitState == ExitState.Open) return;
+            // Collapse losses remove collectability, not generation totals or
+            // earned pickups. A pocket may close before the gold trigger is met.
+            if (_state.MutableActiveAnchors.Count != 0 || _state.ExitState == ExitState.Open) return;
+            if (!_state.CollapseStarted)
+            {
+                _state.CollapseStarted = true;
+                _state.CollapseElapsed = 0d;
+                _state.CueElapsed = _config.DirectionCueInterval;
+                foreach (var selected in _state.SelectedAnchors.Where(a => _state.CollectedCakes.Contains(a.Id) &&
+                    _state.MutableRoomPhases[a.RoomId] != RoomPhase.Closed))
+                { _state.GoldenAnchors.Add(selected); _state.RemainingRewards.Add(selected.Id, PickupKind.GoldenCake); }
+                foreach (var bonus in _state.BonusGoldenAnchors)
+                {
+                    _state.SpawnedAnchors.Add(bonus); _state.GoldenAnchors.Add(bonus);
+                    if (_state.MutableRoomPhases[bonus.RoomId] != RoomPhase.Closed)
+                        _state.RemainingRewards.Add(bonus.Id, PickupKind.GoldenCake);
+                }
+            }
             int possible = 0;
             bool anyOriginal = false;
             foreach (var anchor in _state.GoldenAnchors)
