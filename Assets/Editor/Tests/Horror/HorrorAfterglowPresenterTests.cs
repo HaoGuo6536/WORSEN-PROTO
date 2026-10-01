@@ -24,7 +24,7 @@ namespace Worsen.Tests.Horror
     public sealed class HorrorAfterglowPresenterTests
     {
         private static ActiveEffects Effects(string id) => new ActiveEffects(new[] { new ActiveEffect(new EffectId(id), EffectKind.Upgrade, 1) });
-        private static InteractableState Light(int id, InteractableStateValue value = InteractableStateValue.Broken)
+        private static InteractableState Light(int id, InteractableStateValue value = InteractableStateValue.Inactive)
             => new InteractableState(id, InteractableKind.Light, 1, Vector3.zero, value);
         [TestCase("afterglow", true)] [TestCase("Afterglow", false)] [TestCase("glimpse", false)]
         public void OnlyExactUpgradeAdmitsBrokenLights(string id, bool expected)
@@ -32,6 +32,14 @@ namespace Worsen.Tests.Horror
             var state = new HorrorAfterglowDriverState();
             Assert.That(HorrorAfterglowPresenter.Observe(state, Effects(id), Light(1), 3f), Is.EqualTo(expected));
             Assert.That(state.Lights.Count, Is.EqualTo(expected ? 1 : 0));
+        }
+        [TestCase(InteractableStateValue.Lit)] [TestCase(InteractableStateValue.Broken)]
+        [TestCase(InteractableStateValue.Open)] [TestCase(InteractableStateValue.Marked)]
+        public void OnlyExtinguishedLevelLightsCanGlow(InteractableStateValue value)
+        {
+            var state = new HorrorAfterglowDriverState();
+            HorrorAfterglowPresenter.Observe(state, Effects("afterglow"), Light(1, value), 3f);
+            Assert.That(state.Lights, Is.Empty);
         }
         [TestCase(float.NaN)] [TestCase(float.PositiveInfinity)] [TestCase(-1f)] [TestCase(0f)]
         public void InvalidLifetimeNeverCreatesGlow(float seconds)
