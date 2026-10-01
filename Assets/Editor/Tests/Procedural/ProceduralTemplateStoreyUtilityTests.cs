@@ -14,8 +14,10 @@
 //   - NUnit, Core and Procedural pure layers; real manifest test helpers.
 // USAGE NOTES:
 //   Native bidirectional navigation and visual playtesting remain separate gates.
+//   Select the full fixture: teardown verifies complete theme samples and their totals.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -30,47 +32,56 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateStoreyUtilityTests
     {
-        [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
-        public void RealTemplatesHaveDeterministicRoundThreeUpperRoutes(string theme)
+        private readonly Dictionary<string, Dictionary<string, bool>> templateSamples = new Dictionary<string, Dictionary<string, bool>>();
+        private readonly Dictionary<string, Dictionary<int, int>> seedSamples = new Dictionary<string, Dictionary<int, int>>();
+        public static IEnumerable<TestCaseData> TemplateCases()
+        {
+            foreach (string theme in Themes)
+            foreach (var template in Read(theme).Templates)
+            for (int socket = 0; socket < template.Doors.Length; socket++)
+            for (int turn = 0; turn < 4; turn++) yield return new TestCaseData(theme, template.Id, socket, turn);
+        }
+        public static IEnumerable<TestCaseData> RoundThreeSeedCases()
+        {
+            foreach (string theme in Themes)
+            for (int seed = 0; seed < 8; seed++) yield return new TestCaseData(theme, seed);
+        }
+        [TestCaseSource(nameof(TemplateCases))]
+        public void RealTemplatesHaveDeterministicRoundThreeUpperRoutes(string theme, string templateId, int socket, int turn)
         {
             var c = Config(theme); Configure(c); var catalogue = c.RoomCatalogue.Catalogues[0];
-            int count = 0;
-            foreach (var template in catalogue.Templates)
-            foreach (int socket in Enumerable.Range(0, template.Doors.Length))
-            foreach (int turn in Enumerable.Range(0, 4))
+            var template = catalogue.Templates.Single(t => t.Id == templateId);
+            var a = Layout(catalogue, template, 3, socket, turn); var b = Layout(catalogue, template, 3, socket, turn);
+            ProceduralTemplateStoreyUtility.Apply(a, c, new System.Random(17));
+            ProceduralTemplateStoreyUtility.Apply(b, c, new System.Random(17));
+            Assert.That(ProceduralStoreyUtility.Manifest(a, c), Is.EqualTo(ProceduralStoreyUtility.Manifest(b, c)));
+            if (!templateSamples.TryGetValue(theme, out var samples))
+                templateSamples.Add(theme, samples = new Dictionary<string, bool>());
+            samples.Add(templateId + "-door" + socket + "-turn" + turn, a.Storeys.Count > 0);
+            if (a.Storeys.Count == 0) return;
+            var blocks = new ProceduralTemplateGeometryPresenter().Build(a, c, Driver());
+            new ProceduralStoreyPresenter().ValidateLandings(a, blocks);
+            new ProceduralCakeLinePresenter().Apply(a, c, blocks, .5f, 2f);
+            new ProceduralNavFallbackPresenter().ValidateTemplate(a, blocks, .5f, 2f);
+            Export(template.Id + "-door" + socket + "-turn" + turn, a, blocks);
+            Assert.That(a.Graph.Anchors.Any(p => p.RoomId == 2 && p.Position.y > 3f), Is.True, template.Id);
+            Assert.That(a.VerticalRoutes.Single(r => r.Kind == ProceduralVerticalKind.Ramp).Access, Is.EqualTo(TraversalAccess.All));
+            Assert.That(a.VerticalRoutes.Where(r => r.Kind != ProceduralVerticalKind.Ramp).All(r => r.Access == TraversalAccess.Player && !r.Bidirectional), Is.True);
+            Assert.That(blocks.Where(p => p.Role == ProceduralBlockRole.PlayerOnly).All(p => new ProceduralNavigationPresenter().Area(p) == 1), Is.True);
+            foreach (int round in new[] { 1, 2 })
             {
-                var a = Layout(catalogue, template, 3, socket, turn); var b = Layout(catalogue, template, 3, socket, turn);
-                ProceduralTemplateStoreyUtility.Apply(a, c, new System.Random(17));
-                ProceduralTemplateStoreyUtility.Apply(b, c, new System.Random(17));
-                Assert.That(ProceduralStoreyUtility.Manifest(a, c), Is.EqualTo(ProceduralStoreyUtility.Manifest(b, c)));
-                if (a.Storeys.Count == 0) continue;
-                count++;
-                var blocks = new ProceduralTemplateGeometryPresenter().Build(a, c, Driver());
-                new ProceduralStoreyPresenter().ValidateLandings(a, blocks);
-                new ProceduralCakeLinePresenter().Apply(a, c, blocks, .5f, 2f);
-                new ProceduralNavFallbackPresenter().ValidateTemplate(a, blocks, .5f, 2f);
-                Export(template.Id + "-door" + socket + "-turn" + turn, a, blocks);
-                Assert.That(a.Graph.Anchors.Any(p => p.RoomId == 2 && p.Position.y > 3f), Is.True, template.Id);
-                Assert.That(a.VerticalRoutes.Single(r => r.Kind == ProceduralVerticalKind.Ramp).Access, Is.EqualTo(TraversalAccess.All));
-                Assert.That(a.VerticalRoutes.Where(r => r.Kind != ProceduralVerticalKind.Ramp).All(r => r.Access == TraversalAccess.Player && !r.Bidirectional), Is.True);
-                Assert.That(blocks.Where(p => p.Role == ProceduralBlockRole.PlayerOnly).All(p => new ProceduralNavigationPresenter().Area(p) == 1), Is.True);
-                foreach (int round in new[] { 1, 2 })
-                {
-                    var early = Layout(catalogue, template, round); ProceduralTemplateStoreyUtility.Apply(early, c, new System.Random(17));
-                    Assert.That(early.Storeys, Is.Empty);
-                }
-                Field(c, "_storeyProbability", 0f);
-                var disabled = Layout(catalogue, template, 3); ProceduralTemplateStoreyUtility.Apply(disabled, c, new System.Random(17));
-                Assert.That(disabled.Storeys, Is.Empty); Field(c, "_storeyProbability", 1f);
-                TestContext.WriteLine("TEMPLATE_STOREY theme=" + theme + " room=" + template.Id + " origin=" + a.Storeys[0].Origin);
+                var early = Layout(catalogue, template, round); ProceduralTemplateStoreyUtility.Apply(early, c, new System.Random(17));
+                Assert.That(early.Storeys, Is.Empty);
             }
-            Assert.That(count, Is.GreaterThan(0), theme + " needs a fitting authored room, not a permanently dead round gate.");
+            Field(c, "_storeyProbability", 0f);
+            var disabled = Layout(catalogue, template, 3); ProceduralTemplateStoreyUtility.Apply(disabled, c, new System.Random(17));
+            Assert.That(disabled.Storeys, Is.Empty); Field(c, "_storeyProbability", 1f);
+            TestContext.WriteLine("TEMPLATE_STOREY theme=" + theme + " room=" + template.Id + " origin=" + a.Storeys[0].Origin);
         }
-        [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
-        public void RoundThreeSeedSampleAdmitsRealTemplateGalleries(string theme)
+        [TestCaseSource(nameof(RoundThreeSeedCases))]
+        public void RoundThreeSeedSampleAdmitsRealTemplateGalleries(string theme, int seed)
         {
             var c = Config(theme); Configure(c); int floors = 0, galleries = 0;
-            for (int seed = 0; seed < 8; seed++)
             for (int attempt = 0; attempt < 4; attempt++)
             {
                 int current = seed + attempt * ProceduralGenerationController.SeedStride;
@@ -92,8 +103,29 @@ namespace Worsen.Tests.Procedural
                 }
                 catch (InvalidOperationException error) { TestContext.WriteLine("STOREY_RETRY seed=" + current + " " + error.Message); }
             }
-            TestContext.WriteLine("STOREY_SWEEP theme=" + theme + " floors=" + floors + " galleries=" + galleries);
-            Assert.That(floors, Is.EqualTo(8)); Assert.That(galleries, Is.GreaterThan(0));
+            Assert.That(floors, Is.EqualTo(1), theme + " seed=" + seed);
+            if (!seedSamples.TryGetValue(theme, out var samples))
+                seedSamples.Add(theme, samples = new Dictionary<int, int>());
+            samples.Add(seed, galleries);
+        }
+        [OneTimeTearDown]
+        public void VerifyCompleteSamplesAdmitGalleries()
+        {
+            foreach (var sample in templateSamples)
+            {
+                var expected = Read(sample.Key).Templates.SelectMany(t => Enumerable.Range(0, t.Doors.Length)
+                    .SelectMany(socket => Enumerable.Range(0, 4).Select(turn => t.Id + "-door" + socket + "-turn" + turn)));
+                Assert.That(sample.Value.Keys.OrderBy(k => k), Is.EqualTo(expected.OrderBy(k => k)), sample.Key);
+                Assert.That(sample.Value.Values.Count(fitted => fitted), Is.GreaterThan(0),
+                    sample.Key + " needs a fitting authored room, not a permanently dead round gate.");
+            }
+            foreach (var sample in seedSamples)
+            {
+                Assert.That(sample.Value.Keys.OrderBy(s => s), Is.EqualTo(Enumerable.Range(0, 8)), sample.Key);
+                int galleries = sample.Value.Values.Sum();
+                TestContext.WriteLine("STOREY_SWEEP theme=" + sample.Key + " floors=" + sample.Value.Count + " galleries=" + galleries);
+                Assert.That(galleries, Is.GreaterThan(0), sample.Key);
+            }
         }
         private static void Export(string name, ProceduralLayout layout, System.Collections.Generic.IReadOnlyList<ProceduralBlock> blocks)
         {

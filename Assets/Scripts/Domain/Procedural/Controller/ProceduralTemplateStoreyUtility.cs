@@ -16,6 +16,8 @@
 // USAGE NOTES:
 //   The existing eight-metre storey module is fitted in world axes. Small rooms,
 //   refuges and pockets stay flat. Exit approach/swing stays clear on the ground.
+//   Hoist invariant footprint work only; candidate order, random draws and fit
+//   predicates stay identical so performance changes cannot choose another gallery.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -51,21 +53,28 @@ namespace Worsen.Domain.Procedural
                         (float)(Math.Abs(Math.Sin(angle)) * piece.Size.x + Math.Abs(Math.Cos(angle)) * piece.Size.z));
                     return new Bounds(ProceduralTemplateUtility.Point(room, p.Position, layout.Origin) + Vector3.up * (piece.Size.y * .5f), size);
                 }).ToArray();
+                IReadOnlyList<Vector2Int> groundNodes = null;
                 bool found = false;
                 int candidates = 0, collision = 0, sockets = 0, portals = 0, disconnected = 0, clearSockets = 0;
                 int firstDrop = random.Next(4);
+                bool Supported(float x, float z)
+                {
+                    // Footprint support depends on the origin, not the 64 orientation/
+                    // mirror/advance/drop variants. Keep their original nested order.
+                    bool supported = true;
+                    for (int dx = -4; dx <= 4; dx++) for (int dz = -4; dz <= 4; dz++)
+                        supported &= cells.Contains(new Vector2Int((int)Math.Floor(x - layout.Origin.x + dx), (int)Math.Floor(z - layout.Origin.y + dz)));
+                    return supported;
+                }
                 for (float x = bounds.min.x + 4.25f; x <= bounds.max.x - 4.25f && !found; x += .25f)
                 for (float z = bounds.min.z + 4.25f; z <= bounds.max.z - 4.25f && !found; z += .25f)
+                if (Supported(x, z))
                 for (int turn = 0; turn < 4 && !found; turn++)
                 for (int mirror = 0; mirror < 2 && !found; mirror++)
                 for (int advance = 0; advance <= 2 && !found; advance += 2)
                 for (int drop = 0; drop < 4 && !found; drop++)
                 {
                     var origin = new Vector3(x, 0f, z);
-                    bool supported = true;
-                    for (int dx = -4; dx <= 4; dx++) for (int dz = -4; dz <= 4; dz++)
-                        supported &= cells.Contains(new Vector2Int((int)Math.Floor(x - layout.Origin.x + dx), (int)Math.Floor(z - layout.Origin.y + dz)));
-                    if (!supported) continue;
                     candidates++;
                     var plan = new ProceduralStoreyPlan(room.RoomId, origin, rise,
                         (ProceduralVerticalKind)((int)ProceduralVerticalKind.FloorHole + (firstDrop + drop) % 4), turn, mirror == 1, advance);
@@ -106,6 +115,13 @@ namespace Worsen.Domain.Procedural
                     if (reserved.Any(r => obstacles.Any(o => o.Intersects(r)))) { collision++; continue; }
                     if (!UpperUsable(plan, routes, obstacles, config.RouteCakeSpacing)) { disconnected++; continue; }
                     var player = layout.PlayerSpawnPosition; var exit = selectedExit;
+                    bool Connected(Vector3 p, Vector3 e)
+                    {
+                        // Furniture and footprint are unchanged for every candidate in
+                        // this room. Filter only its physical reservations each time.
+                        if (groundNodes == null) groundNodes = GroundNodes(room, layout, obstacles);
+                        return GroundConnected(room, layout, groundNodes, physical, p, e);
+                    }
                     float Facing(Vector3 p, Vector3 e) => (ProceduralExitHubUtility.ApproachYaw(
                         ProceduralTemplateUtility.Rotate(p - e, (4 - room.Turns) % 4), Vector3.zero) + room.Turns * 90f) % 360f;
                     bool SocketClear(Vector3 p, Vector3 e) => !physical.Any(r =>
@@ -117,14 +133,14 @@ namespace Worsen.Domain.Procedural
                         if (!ProceduralExitHubUtility.TrySelect(layout.TemplateCatalogue, room.Template, config.TemplateExitClearance,
                             config.TemplateExitSpawnDistance, config.TemplateExitCakeClearance, config.DoorHeight, out var p, out var e,
                             (p0, e0) => { if (!SocketClear(World(p0), World(e0))) return false; clearSockets++;
-                                return GroundConnected(room, layout, obstacles, physical, World(p0), World(e0)); })) { sockets++; continue; }
+                                return Connected(World(p0), World(e0)); })) { sockets++; continue; }
                         player = World(p) + Vector3.up * config.SpawnHeight; exit = World(e);
                     }
                     if (layout.Doors.Where(d => d.FromRoomId == room.RoomId || d.ToRoomId == room.RoomId)
                         .Any(d => physical.Any(r => r.min.y < 2f &&
                             Math.Abs(r.center.x - d.Center.x) <= r.extents.x + (d.AlongX ? .502f : 1.502f) &&
                             Math.Abs(r.center.z - d.Center.z) <= r.extents.z + (d.AlongX ? 1.502f : .502f)))) { portals++; continue; }
-                    if (!GroundConnected(room, layout, obstacles, physical, player, exit)) { disconnected++; continue; }
+                    if (!Connected(player, exit)) { disconnected++; continue; }
                     if (room.RoomId == layout.Graph.ExitRoomId)
                     {
                         layout.PlayerSpawnPosition = player; selectedExit = exit;
@@ -169,11 +185,13 @@ namespace Worsen.Domain.Procedural
             var root = nodes.OrderBy(n => (World(n) - entry).sqrMagnitude).First();
             if ((World(root) - entry).sqrMagnitude > 1f) return false;
             var reached = new HashSet<Vector2Int> { root }; var queue = new Queue<Vector2Int>(); queue.Enqueue(root);
+            var directions = ProceduralTemplateUtility.Directions().ToArray();
             while (queue.Count != 0)
             {
                 var n = queue.Dequeue();
-                foreach (var d in ProceduralTemplateUtility.Directions()) if (nodes.Contains(n + d) && reached.Add(n + d)) queue.Enqueue(n + d);
+                foreach (var d in directions) if (nodes.Contains(n + d) && reached.Add(n + d)) queue.Enqueue(n + d);
             }
+            var routePoints = routes.SelectMany(r => r.Points).ToArray();
             foreach (bool horizontal in new[] { true, false })
             foreach (var row in reached.GroupBy(n => horizontal ? n.y : n.x))
             {
@@ -181,21 +199,25 @@ namespace Worsen.Domain.Procedural
                 foreach (var n in row.OrderBy(n => horizontal ? n.x : n.y))
                 {
                     int at = horizontal ? n.x : n.y;
-                    bool clear = !routes.SelectMany(r => r.Points).Any(p => (p - World(n)).sqrMagnitude < 1.01f);
+                    bool clear = !routePoints.Any(p => (p - World(n)).sqrMagnitude < 1.01f);
                     run = clear ? (at == last + 1 ? run + 1 : 1) : 0; last = at;
                     if ((run - 1) * .25f >= spacing) return true;
                 }
             }
             return false;
         }
-        private static bool GroundConnected(ProceduralTemplateRoom room, ProceduralLayout layout, Bounds[] furniture, List<Bounds> reserved, Vector3 player, Vector3 exit)
+        private static IReadOnlyList<Vector2Int> GroundNodes(ProceduralTemplateRoom room, ProceduralLayout layout, Bounds[] furniture)
         {
-            var obstacles = furniture.Concat(reserved).Where(b => b.min.y < 2f && b.max.y > .01f).ToArray();
+            var obstacles = furniture.Where(b => b.min.y < 2f && b.max.y > .01f).ToArray();
             var cells = new HashSet<Vector2Int>(ProceduralTemplateUtility.OccupiedCells(room));
-            var nodes = new HashSet<Vector2Int>();
+            var nodes = new List<Vector2Int>();
             Vector3 Point(Vector2Int key) => new Vector3(key.x * .25f + layout.Origin.x, 0f, key.y * .25f + layout.Origin.y);
-            for (int x = cells.Min(c => c.x) * 4; x <= (cells.Max(c => c.x) + 1) * 4; x++)
-            for (int z = cells.Min(c => c.y) * 4; z <= (cells.Max(c => c.y) + 1) * 4; z++)
+            // Recomputing Max across the footprint at every quarter-metre node
+            // made a failed ground fit quadratic before its flood fill even began.
+            int minX = cells.Min(c => c.x) * 4, maxX = (cells.Max(c => c.x) + 1) * 4;
+            int minZ = cells.Min(c => c.y) * 4, maxZ = (cells.Max(c => c.y) + 1) * 4;
+            for (int x = minX; x <= maxX; x++)
+            for (int z = minZ; z <= maxZ; z++)
             {
                 var key = new Vector2Int(x, z); var p = Point(key);
                 if (obstacles.Any(b => Math.Abs(p.x - b.center.x) < b.extents.x + .5f && Math.Abs(p.z - b.center.z) < b.extents.z + .5f)) continue;
@@ -203,6 +225,21 @@ namespace Worsen.Domain.Procedural
                 foreach (float dx in new[] { -.51f, .51f }) foreach (float dz in new[] { -.51f, .51f })
                     inside &= cells.Contains(new Vector2Int((int)Math.Floor(p.x - layout.Origin.x + dx), (int)Math.Floor(p.z - layout.Origin.y + dz)));
                 if (inside) nodes.Add(key);
+            }
+            return nodes;
+        }
+        private static bool GroundConnected(ProceduralTemplateRoom room, ProceduralLayout layout, IReadOnlyList<Vector2Int> groundNodes,
+            List<Bounds> reserved, Vector3 player, Vector3 exit)
+        {
+            var obstacles = reserved.Where(b => b.min.y < 2f && b.max.y > .01f).ToArray();
+            var nodes = new HashSet<Vector2Int>();
+            Vector3 Point(Vector2Int key) => new Vector3(key.x * .25f + layout.Origin.x, 0f, key.y * .25f + layout.Origin.y);
+            // Preserve x/z insertion order (and nearest-node tie breaking) while
+            // applying the exact same clearance predicate to candidate reservations.
+            foreach (var key in groundNodes)
+            {
+                var p = Point(key);
+                if (!obstacles.Any(b => Math.Abs(p.x - b.center.x) < b.extents.x + .5f && Math.Abs(p.z - b.center.z) < b.extents.z + .5f)) nodes.Add(key);
             }
             if (nodes.Count == 0) return false;
             var targets = room.OpenDoors.Select(i =>
@@ -215,10 +252,11 @@ namespace Worsen.Domain.Procedural
             var nearest = targets.Select(p => nodes.OrderBy(n => (Point(n) - p).sqrMagnitude).First()).ToArray();
             for (int i = 0; i < targets.Length; i++) if ((Point(nearest[i]) - targets[i]).sqrMagnitude > .26f) return false;
             var reached = new HashSet<Vector2Int> { nearest[0] }; var queue = new Queue<Vector2Int>(); queue.Enqueue(nearest[0]);
+            var directions = ProceduralTemplateUtility.Directions().ToArray();
             while (queue.Count != 0)
             {
                 var key = queue.Dequeue();
-                foreach (var d in ProceduralTemplateUtility.Directions()) if (nodes.Contains(key + d) && reached.Add(key + d)) queue.Enqueue(key + d);
+                foreach (var d in directions) if (nodes.Contains(key + d) && reached.Add(key + d)) queue.Enqueue(key + d);
             }
             return nearest.All(reached.Contains);
         }

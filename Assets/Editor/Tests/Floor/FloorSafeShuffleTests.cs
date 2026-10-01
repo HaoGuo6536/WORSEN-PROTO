@@ -98,16 +98,25 @@ namespace Worsen.Tests.Floor
             var c = Start(7, out var state, wax: true);
             var memory = (FloorHandBehaviorState)Get(state, "Hands"); var hands = new FloorHandController(memory, config);
             var probe = new FloorHandProbe(1, 0, Position(1), 0f, true, Vector3.right);
+            // Wax breaks release even while still at the front; ordinary escape requires
+            // leaving reach. A released contact still observes the repeat-hit cooldown,
+            // which can exceed HandCooldown after the front-relative cadence change.
+            float cooldown = Mathf.Max(config.HandCooldown,
+                FloorCollapseHazardConfig.DefaultDamageInterval - config.HandWarningDuration - config.HandEscapeGrace);
             hands.ArmWaxWard(player.Id);
             hands.Tick(player.Id, true, probe, 0f, 1, out _);
             hands.Tick(player.Id, true, probe, config.HandWarningDuration, 2, out var broken);
             Assert.That(broken.Kind, Is.EqualTo(CollapseHandEventKind.Escaped)); Assert.That(memory.WaxHeartAvailable, Is.False);
+            Assert.That(broken.SlowMultiplier, Is.EqualTo(1f)); Assert.That(broken.Damage, Is.Zero);
+            Assert.That(hands.Target(player.Id, out _, out _), Is.False, "Wax Heart releases the front contact, not just its damage.");
             Assert.That(memory.WaxWards.Contains(player.Id), Is.True);
-            hands.Tick(player.Id, true, probe, config.HandCooldown, 3, out _);
+            hands.Tick(player.Id, true, probe, cooldown, 3, out _);
             hands.Tick(player.Id, true, probe, 0f, 4, out _);
             hands.Tick(player.Id, true, probe, config.HandWarningDuration, 5, out broken);
             Assert.That(broken.Kind, Is.EqualTo(CollapseHandEventKind.Escaped)); Assert.That(memory.WaxWards, Is.Empty);
-            hands.Tick(player.Id, true, probe, config.HandCooldown, 6, out _);
+            Assert.That(broken.SlowMultiplier, Is.EqualTo(1f)); Assert.That(broken.Damage, Is.Zero);
+            Assert.That(hands.Target(player.Id, out _, out _), Is.False, "Wax Ward also releases without leaving reach.");
+            hands.Tick(player.Id, true, probe, cooldown, 6, out _);
             hands.Tick(player.Id, true, probe, 0f, 7, out _);
             hands.Tick(player.Id, true, probe, config.HandWarningDuration, 8, out var grab);
             Assert.That(grab.Kind, Is.EqualTo(CollapseHandEventKind.Grabbed));
