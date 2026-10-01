@@ -9,7 +9,7 @@
 //   Manager (§1), Entity system facet · Domain · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Retain injected controller, driver, read-only views and publication ports.
-//   - Supply neutral lifecycle hooks for modules with no specialised engine work.
+//   - Supply neutral lifecycle and animation hooks for modules without specialised work.
 // DEPENDENCIES:
 //   - Hunter stack, Core values and injected Player read-only state.
 // USAGE NOTES:
@@ -36,6 +36,7 @@ namespace Worsen.Domain.Hunter
         public virtual float ObservationHeight => 0f;
         public virtual bool Hold => false;
         public virtual bool OwnsDecisionMotion => false;
+        public virtual HunterAnimationPhase AnimationPhase => HunterAnimationPhase.None;
         public virtual bool HandlesContact => false;
         public void InitializeModule(IHunterArchetypeController rules, HunterProfile profile, HunterDriver driver,
             HunterController shared, IReadOnlyHunterState state, IReadOnlyPlayerState player, IHunterModuleEvents events)

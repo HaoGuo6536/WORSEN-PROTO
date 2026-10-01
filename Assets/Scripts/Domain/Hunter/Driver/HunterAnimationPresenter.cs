@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (section 7b) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Match clip stride rates to committed speed and blend hysteretic gait changes.
+//   - Resolve module phases and one-shot clocks separately from lunge recovery.
 //   - Quantise pose time only; compute humanoid gaze/catch and independent foot blends.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -61,15 +61,69 @@ namespace Worsen.Domain.Hunter
             return normal.sqrMagnitude > 0f && Vector3.Angle(normal, Vector3.up) <= slopeLimit &&
                 Mathf.Abs(position.y - animated.y) <= maximumOffset;
         }
-        public int Tick(HunterAnimationDriverState state, float dt, float speed, int phase, float runThreshold, float blendSeconds)
+        public float PlaybackRate(float speed, float authoredSpeed, float minimum, float maximum)
         {
-            int slot = phase >= 1 && phase <= 3 ? phase + 2 : speed < 0.1f ? 0 : speed < runThreshold ? 1 : 2;
+            if (!(speed > 0f) || float.IsInfinity(speed) || !(authoredSpeed > 0f) || float.IsInfinity(authoredSpeed)) return 0f;
+            float low = minimum >= 0f && !float.IsInfinity(minimum) ? minimum : 0f;
+            float high = maximum > 0f && !float.IsInfinity(maximum) ? Mathf.Max(low, maximum) : Mathf.Max(low, 1f);
+            return Mathf.Clamp(speed / authoredSpeed, low, high);
+        }
+        public static HunterAnimationPhase FromRamPhase(Worsen.Core.RamPhase phase)
+        {
+            switch (phase)
+            {
+                case Worsen.Core.RamPhase.Windup: return HunterAnimationPhase.Ready;
+                case Worsen.Core.RamPhase.Charge: return HunterAnimationPhase.Run;
+                case Worsen.Core.RamPhase.Stagger: return HunterAnimationPhase.Hit;
+                default: return HunterAnimationPhase.None;
+            }
+        }
+        public void Trigger(HunterAnimationDriverState state, HunterAnimationPhase phase)
+        {
+            if (phase != HunterAnimationPhase.Attack && phase != HunterAnimationPhase.Hit) return;
+            state.TriggeredPhase = phase; state.TriggerElapsed = 0f; state.RestartTriggeredPose = true;
+        }
+        public int ResolvePhase(HunterAnimationDriverState state, float dt, int sharedPhase, float sharedProgress,
+            HunterAnimationPhase module, float readyLength, float attackLength, float hitLength, out float progress)
+        {
+            float delta = dt > 0f && !float.IsInfinity(dt) ? dt : 0f;
+            if (state.LastModulePhase != module) state.ModuleElapsed = 0f;
+            state.LastModulePhase = module;
+            state.ModuleElapsed += delta;
+            progress = sharedProgress;
+            // A committed release lasts a clip, even when its rule fact lasted one tick.
+            if (state.TriggeredPhase != HunterAnimationPhase.None)
+            {
+                float length = state.TriggeredPhase == HunterAnimationPhase.Hit ? hitLength : attackLength;
+                if (state.TriggerElapsed < length || state.RestartTriggeredPose)
+                {
+                    progress = length > 0f ? Mathf.Clamp01(state.TriggerElapsed / length) : 1f;
+                    state.TriggerElapsed += delta; state.RestartTriggeredPose = false;
+                    return (int)state.TriggeredPhase;
+                }
+                state.TriggeredPhase = HunterAnimationPhase.None;
+            }
+            if (module == HunterAnimationPhase.None) return sharedPhase;
+            float duration = module == HunterAnimationPhase.Ready ? readyLength : module == HunterAnimationPhase.Hit ? hitLength : attackLength;
+            progress = duration > 0f ? Mathf.Clamp01(state.ModuleElapsed / duration) : 1f;
+            return (int)module;
+        }
+        public int Tick(HunterAnimationDriverState state, float dt, float speed, int phase, float runThreshold, float blendSeconds,
+            float runHysteresis = 0f)
+        {
+            float velocity = speed > 0f && !float.IsInfinity(speed) ? speed : 0f;
+            float band = Mathf.Max(0f, runHysteresis);
+            if (velocity < 0.1f) state.Running = false;
+            else if (state.Running) { if (velocity < Mathf.Max(0.1f, runThreshold - band)) state.Running = false; }
+            else if (velocity >= runThreshold + band) state.Running = true;
+            int slot = phase == (int)HunterAnimationPhase.Hit ? 6 : phase == (int)HunterAnimationPhase.Run ? 2 :
+                phase >= 1 && phase <= 3 ? phase + 2 : velocity < 0.1f ? 0 : state.Running ? 2 : 1;
             float step = blendSeconds <= 0f ? 1f : Mathf.Clamp01(Mathf.Max(0f, dt) / blendSeconds);
             float total = 0f;
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < state.Weights.Length; i++)
             { state.Weights[i] = Mathf.MoveTowards(state.Weights[i], i == slot ? 1f : 0f, step); total += state.Weights[i]; }
             if (total <= 0.0001f) { state.Weights[slot] = 1f; total = 1f; }
-            for (int i = 0; i < 6; i++) state.Weights[i] /= total;
+            for (int i = 0; i < state.Weights.Length; i++) state.Weights[i] /= total;
             return slot;
         }
     }

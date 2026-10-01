@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (section 7c) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Retain the owned graph, clip handles and normalized mixer weights.
+//   - Retain gait hysteresis, phase clocks and original Animator flags per life.
 //   - Retain injected sample-clock remainder, gaze commands and independent foot weights.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -27,8 +27,13 @@ namespace Worsen.Domain.Hunter
         public PlayableGraph Graph;
         public AnimationMixerPlayable Mixer;
         public AnimationClipPlayable[] Clips;
-        public readonly float[] Weights = new float[6];
+        public readonly float[] Weights = new float[7];
         public int ActiveClip = -1;
+        public bool Running;
+        public HunterAnimationPhase TriggeredPhase, LastModulePhase;
+        public float TriggerElapsed, ModuleElapsed;
+        public bool RestartTriggeredPose;
+        public AnimatorCullingMode OriginalCullingMode;
         public double PoseRemainder;
         public float SampleRate, PoseDeltaTime, LookWeight;
         public Vector3 LookTarget;

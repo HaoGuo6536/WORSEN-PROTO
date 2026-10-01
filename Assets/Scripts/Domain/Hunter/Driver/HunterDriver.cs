@@ -11,7 +11,7 @@
 //   - Apply swept navigation or explicit ghost replay poses with target-only contact queries.
 //   - Honor grace layer exclusions in motor queries; pass through other Hunters' bodies everywhere.
 //   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
-//   - Own animation/attack, shared sweep and injected placement sub-drivers.
+//   - Route shared/module animation and query contacts at the rendered ceiling body.
 //   - Apply charge, teleport and reaction motion; probe silent interception contacts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -253,8 +253,14 @@ namespace Worsen.Domain.Hunter
             return _routePresenter.Allowed(new[] { Position, end.position }, _state.UnavailableRooms) &&
                 ClearSegment(Position + Vector3.up * _config.EyeHeight, end.position + Vector3.up * _config.EyeHeight);
         }
-        public void Animate(float dt, int phase, float progress)
-        { if (_animation != null) _animation.Apply(dt, Velocity.magnitude, phase, progress); }
+        public void TriggerAnimation(HunterAnimationPhase phase)
+        { if (_animation != null) _animation.Trigger(phase); }
+        public void Animate(float dt, int phase, float progress, HunterAnimationPhase module = HunterAnimationPhase.None)
+        {
+            if (_animation != null) _animation.Apply(dt, Velocity.magnitude, phase, progress, module);
+            // Generic root curves must not undo the parent-owned ceiling transform.
+            if (_weaver != null && _weaver.BodyOffset > 0f) _weaver.ApplyBodyPose();
+        }
         public void ConfigureKinematicReplay()
         {
             if (_state == null || _state.KinematicReplay) return;
@@ -378,7 +384,9 @@ namespace Worsen.Domain.Hunter
         public void ProbeBodyContact()
         {
             if (_state == null || (_state.KinematicReplay && !_state.ReplayPresent)) return;
-            Capsule(Position, out Vector3 low, out Vector3 high);
+            // Navigation sweeps intentionally stay at floor level. Body contacts
+            // must instead follow the real capsule when Weaver hangs overhead.
+            Capsule(Position + Vector3.up * (_weaver != null ? _weaver.BodyOffset : 0f), out Vector3 low, out Vector3 high);
             int count = CapsuleOverlap(low, high, _config.Radius + _config.SkinWidth);
             for (int i = 0; i < count; i++)
             {

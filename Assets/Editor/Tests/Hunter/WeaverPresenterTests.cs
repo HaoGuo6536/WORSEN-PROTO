@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
-//   - Check room heights, floor drops, low ceilings and deterministic candidates.
+//   - Check heights, capsule-centered inversion/restoration and deterministic candidates.
 // DEPENDENCIES:
 //   - WeaverPresenter, UnityEngine values and NUnit only.
 // USAGE NOTES:
@@ -27,6 +27,17 @@ namespace Worsen.Tests.Hunter
         [TestCase(10f, 17f, true, 0f)]
         public void BodyFitsCurrentRoomAndDropsToFloor(float floor, float ceiling, bool drop, float expected)
             => Assert.That(new WeaverPresenter().CeilingOffset(floor, ceiling, 1.8f, .15f, drop), Is.EqualTo(expected).Within(.00001f));
+        [Test] public void CeilingInvertsAroundCapsuleCenterWithoutChangingHeadingOrEnvelope()
+        {
+            var presenter = new WeaverPresenter(); var pivot = new Vector3(0f, .9f, 0f);
+            var rotation = presenter.CeilingRotation(true); var offset = new Vector3(0f, 3.05f, 0f);
+            Assert.That(rotation * Vector3.up, Is.EqualTo(Vector3.down));
+            Assert.That(rotation * Vector3.forward, Is.EqualTo(Vector3.forward));
+            Assert.That(presenter.CeilingPosition(Vector3.zero, pivot, offset, rotation).y, Is.EqualTo(4.85f).Within(.00001f));
+            Assert.That(presenter.CeilingPosition(Vector3.up * 1.8f, pivot, offset, rotation).y, Is.EqualTo(3.05f).Within(.00001f));
+            Assert.That(presenter.CeilingPosition(pivot, pivot, offset, rotation), Is.EqualTo(pivot + offset));
+            Assert.That(presenter.CeilingPosition(Vector3.one, pivot, Vector3.zero, presenter.CeilingRotation(false)), Is.EqualTo(Vector3.one));
+        }
         [Test] public void CandidateRingIsStableAndKeepsTheFloorPlane()
         {
             var presenter = new WeaverPresenter(); var origin = new Vector3(4, 10, 6);

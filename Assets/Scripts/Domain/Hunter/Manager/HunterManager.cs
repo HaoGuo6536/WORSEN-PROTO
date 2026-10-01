@@ -9,7 +9,7 @@
 //   Manager (section 1), Entity system - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Own per-life controllers, factory-created module and paired driver subscriptions.
-//   - Sequence sensing/navigation or opt-in kinematic replay and presentation commands.
+//   - Sequence motion, shared lunges and module-owned animation phases/one-shots.
 //   - Gate shared and specialised contacts on Player revival protection before acceptance.
 //   - Route accepted catch/chase (including Mannequin snap), reactions, effects and world inputs.
 //   - Publish archetype, attack, habit, mutation and navigation evidence facts.
@@ -204,11 +204,12 @@ namespace Worsen.Domain.Hunter
             _driver.ObserveStall(dt, tick, Id, _state.CurrentAction, _state.LastRoom);
             if (!_driver.PathAvailable && !result.HoldPosition && result.Phase == HunterLungePhase.None) _controller.ReportPathFailure();
             if (!_state.CatchActive) _driver.SetLook(_controller.LookTarget, _controller.LookAtMemory, false);
-            _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
             while (_controller.TryTakeHabit(out HunterHabitFact habit)) OnHabit?.Invoke(habit);
             while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact fact)) OnArchetypeFact?.Invoke(fact);
             _module?.FinishTick();
+            HunterAttackSample animation = _controller.AttackSample();
+            _driver.Animate(dt, animation.Phase, animation.Progress, _module?.AnimationPhase ?? HunterAnimationPhase.None);
             if (_controller.TryTakeDeliberation(out Vector3 candidate)) OnDeliberation?.Invoke(Id, candidate, tick);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
@@ -273,7 +274,8 @@ namespace Worsen.Domain.Hunter
         {
             if (_controller == null || !_state.CatchActive) return;
             _driver.SetLook(playerPosition, true, true);
-            _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
+            HunterAttackSample animation = _controller.AttackSample();
+            _driver.Animate(dt, animation.Phase, animation.Progress, _module?.AnimationPhase ?? HunterAnimationPhase.None);
         }
         public void EndCatch()
         {

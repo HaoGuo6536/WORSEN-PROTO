@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Hunter shared swept-shot presentation stack.
 // KEY RESPONSIBILITIES:
-//   - Clamp the body below a ceiling and generate an ordered candidate ring.
+//   - Clamp/invert the body below a ceiling and generate an ordered candidate ring.
 // DEPENDENCIES:
 //   - UnityEngine value types only.
 // USAGE NOTES:
@@ -21,6 +21,9 @@ namespace Worsen.Domain.Hunter
     {
         public float CeilingOffset(float floor, float ceiling, float bodyTop, float clearance, bool drop)
             => drop ? 0f : Mathf.Max(0f, ceiling - floor - bodyTop - clearance);
+        public Quaternion CeilingRotation(bool ceiling) => ceiling ? new Quaternion(0f, 0f, 1f, 0f) : Quaternion.identity;
+        public Vector3 CeilingPosition(Vector3 original, Vector3 pivot, Vector3 offset, Quaternion rotation)
+            => pivot + offset + rotation * (original - pivot);
         public Vector3 Candidate(Vector3 origin, int index, int count, float distance)
         {
             float angle = index * Mathf.PI * 2f / count;
