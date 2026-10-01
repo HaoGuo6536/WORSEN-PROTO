@@ -20,14 +20,14 @@
     ],
     [
       -0.2759999930858612,
-      0.45249998569488525
+      0.4542500078678131
     ],
     [
       0.0,
       1.1999999284744263
     ]
   ],
-  "triangles": 936,
+  "triangles": 7836,
   "bones": [
     {
       "name": "Root",
@@ -553,25 +553,9 @@
     {
       "name": "M_HunterTicking_Wood",
       "base_color_srgb": [
-        0.24,
-        0.13,
-        0.075,
-        1
-      ],
-      "emission_color_srgb": [
-        1.0,
-        1.0,
-        1.0,
-        1
-      ],
-      "emission_strength": 0.0
-    },
-    {
-      "name": "M_HunterTicking_WoodEdge",
-      "base_color_srgb": [
         0.38,
-        0.22,
-        0.11,
+        0.25,
+        0.15,
         1
       ],
       "emission_color_srgb": [

@@ -27,7 +27,7 @@
       0.28909069299697876
     ]
   ],
-  "triangles": 2630,
+  "triangles": 6214,
   "bones": [
     {
       "name": "Root",
@@ -172,6 +172,22 @@
         "Emission Color": "CakeEmission.png",
         "Alpha": "CakePalette.png"
       }
+    },
+    {
+      "name": "M_HunterMimic_Frosting",
+      "base_color_srgb": [
+        0.87,
+        0.81,
+        0.67,
+        1
+      ],
+      "emission_color_srgb": [
+        1.0,
+        1.0,
+        1.0,
+        1
+      ],
+      "emission_strength": 0.0
     },
     {
       "name": "M_HunterMimic_Mouth",

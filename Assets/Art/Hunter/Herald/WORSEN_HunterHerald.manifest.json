@@ -3,8 +3,8 @@
   "hunter": "Herald",
   "fps": 30,
   "height_m": 2.5,
-  "width_m": 0.85,
-  "triangles": 1628,
+  "width_m": 0.864506,
+  "triangles": 6408,
   "bones": [
     {
       "name": "Root",
@@ -252,6 +252,22 @@
         1
       ],
       "emission_strength": 0.3
+    },
+    {
+      "name": "M_HunterHerald_Bone",
+      "base_color_srgb": [
+        0.76,
+        0.72,
+        0.59,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
     }
   ],
   "coordinate_system": "Blender Z-up, forward -Y, metres",

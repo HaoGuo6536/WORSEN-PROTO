@@ -4,13 +4,13 @@
 # PURPOSE:
 #   Turns the project's own cake pickup into a stationary hinged-jaw prototype.
 #   Original exterior vertices, faces and palette UVs are retained exactly in
-#   the closed pose; the bite reveals interior teeth rather than a warning face.
+#   the closed pose; added cream piping and a jam leak supply the requested tell.
 # ARCHITECTURAL ROLE:
 #   Offline art generator · no runtime layer · Hunter, SPEC-005 §2.7 / PLAN-015.
 # KEY RESPONSIBILITIES:
 #   - Append only the exported cake object and reuse its packed palette images.
 #   - Split existing cake layers into a rigid base and hinged Jaw without scaling.
-#   - Conceal teeth, author the bite actions and export the manifest/art contract.
+#   - Conceal teeth, add cream/jam detail and export the six-action art contract.
 #   - Render an exact-position closed cake overlay for disguise review.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/bmesh; hunter_creature_common; own WORSEN_CakePickup.blend.
@@ -31,6 +31,7 @@ import bpy
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_detail_geometry import SculptCreature, mimic_details
 
 CAKE = c.ROOT / "ArtSource/Horror/Cake/WORSEN_CakePickup.blend"
 HINGE = (0, .145, .136)
@@ -98,7 +99,7 @@ def interior(model, name, bone, z, downward=False):
 def build():
     original = append_cake()
     original.name = "CakeReference"
-    m = c.Creature("Mimic", PALETTE, [("Jaw", "Root", HINGE)])
+    m = SculptCreature("Mimic", PALETTE, [("Jaw", "Root", HINGE)])
     cake_mat = original.data.materials[0]
     cake_mat.name = "M_HunterMimic_Cake"
     textures = {}
@@ -134,6 +135,7 @@ def build():
                     (.012, .018, .024), "Teeth", "tooth", (math.pi, 0, 0))
             m.shape("LowerTooth%d_%d" % (j, sign), "Root", (x * .83, y + .01, .148),
                     (.010, .015, .024), "Teeth", "tooth")
+    mimic_details(m)
     original.hide_render = True
     original.hide_set(True)
     return m, original, textures

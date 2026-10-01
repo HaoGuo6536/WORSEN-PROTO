@@ -8,7 +8,7 @@
 # ARCHITECTURAL ROLE:
 #   Offline art generator · no runtime layer · Hunter, SPEC-005 §2.4 / PLAN-015.
 # KEY RESPONSIBILITIES:
-#   - Author original wooden case, brass clockwork and asymmetric rigid rig.
+#   - Author bevelled wooden case, open side gears, brass hardware and rigid rig.
 #   - Bake waddle, arm-swing attack and pendulum motion in every action.
 #   - Export the editable source, FBX, manifest and neutral preview evidence.
 # DEPENDENCIES:
@@ -24,9 +24,10 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_detail_geometry import SculptCreature, ticking_details
 
 
-PALETTE = {"Wood": (.24, .13, .075), "WoodEdge": (.38, .22, .11),
+PALETTE = {"Wood": (.38, .25, .15),
            "Brass": (.70, .51, .23), "Dial": (.88, .82, .64), "Dark": (.07, .055, .045)}
 
 
@@ -37,11 +38,11 @@ def build():
             ("LeftLeg", "Root", (-.19, 0, .44)), ("LeftShin", "LeftLeg", (-.26, .025, .22)),
             ("RightLeg", "Root", (.17, 0, .44)), ("RightShin", "RightLeg", (.24, -.045, .24)),
             ("Key", "Case", (.08, .24, .80))]
-    m = c.Creature("Ticking", PALETTE, defs)
+    m = SculptCreature("Ticking", PALETTE, defs)
     m.shape("WoodenCase", "Case", (0, .025, .76), (.60, .38, .70), "Wood")
-    m.shape("CrookedCrown", "Case", (-.065, .025, 1.15), (.62, .41, .10), "WoodEdge", "ico")
-    m.shape("LeftRail", "Case", (-.277, -.185, .74), (.075, .075, .69), "WoodEdge")
-    m.shape("RightRail", "Case", (.277, -.185, .78), (.075, .075, .65), "WoodEdge")
+    m.shape("CrookedCrown", "Case", (-.065, .025, 1.15), (.62, .41, .10), "Wood", "ico")
+    m.shape("LeftRail", "Case", (-.277, -.185, .74), (.075, .075, .69), "Wood")
+    m.shape("RightRail", "Case", (.277, -.185, .78), (.075, .075, .65), "Wood")
     m.shape("BaseTrim", "Case", (.025, -.015, .42), (.66, .45, .08), "Brass")
     m.shape("PendulumRecess", "Case", (-.055, -.172, .54), (.32, .032, .25), "Dark")
     m.shape("DialRim", "Case", (-.025, -.205, .90), (.51, .51, .045), "Brass", "cylinder", (math.pi / 2, 0, 0))
@@ -63,13 +64,13 @@ def build():
                               ("LeftShin", (-.26, .025, .22), (-.21, -.065, .07), .095),
                               ("RightLeg", (.17, 0, .44), (.24, -.045, .24), .115),
                               ("RightShin", (.24, -.045, .24), (.18, -.065, .07), .095)):
-        m.bar(name + "Wood", name, a, b, width, "WoodEdge")
+        m.bar(name + "Wood", name, a, b, width, "Wood")
         m.shape(name + "Hinge", name, a, (.12, .12, .12), "Brass", "ico")
     m.shape("LongHand", "LongForearm", (.62, -.10, .25), (.16, .16, .16), "Wood")
     m.shape("ShortHand", "ShortForearm", (-.40, -.12, .61), (.13, .14, .12), "Wood")
     for side, x in (("Left", -.21), ("Right", .18)):
         m.shape(side + "Shoe", side + "Shin", (x, -.09, .05), (.18, .28, .10), "Dark")
-    m.shape("RearPocket", "Case", (.08, .255, .70), (.31, .16, .20), "WoodEdge")
+    m.shape("RearPocket", "Case", (.08, .255, .70), (.31, .16, .20), "Wood")
     m.shape("RearPocketInset", "Case", (.08, .340, .76), (.245, .015, .065), "Dark")
     m.bar("KeyShaft", "Key", (.08, .245, .80), (.08, .44, .80), .04, "Brass")
     for sign in (-1, 1):
@@ -79,6 +80,7 @@ def build():
                                      ((x - .055, .44, .96), (x + .055, .44, .96)),
                                      ((x - .055, .44, .80), (x + .055, .44, .80)))):
             m.bar("KeyLoop%d_%d" % (sign, j), "Key", a, b, .025, "Brass")
+    ticking_details(m)
     return m
 
 

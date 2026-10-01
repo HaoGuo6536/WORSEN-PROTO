@@ -4,7 +4,8 @@
 # PURPOSE:
 #   Re-imports Mimic and independently appends the original cake for comparison.
 #   It proves the closed exterior and palette UVs survived export, checks that
-#   added mouth geometry stays inside the disguise, and samples the actual bite.
+#   mouth geometry stays inside the disguise, bounds the added piping/tell, and
+#   samples the actual bite without relaxing any motion threshold.
 # ARCHITECTURAL ROLE:
 #   Offline art validator · no runtime layer · Hunter / PLAN-015.
 # KEY RESPONSIBILITIES:
@@ -121,7 +122,23 @@ def main():
                 {"reference_pairs": len(cake_uv), "mimic_pairs": len(uv), "max_pair_error": correspondence_error})
         # Teeth and gum are tested against the closed original cake, not merely
         # against its axis-aligned box (which would accept protruding wedge teeth).
-        hidden = [o for o in v.meshes if o not in exterior]
+        detail = [o for o in v.meshes if o.name.startswith(('Frosting_', 'JamTell'))]
+        hidden = [o for o in v.meshes if o not in exterior and o not in detail]
+        detail_error = max(cake_tree.find_nearest(o.matrix_world @ p.co)[3] for o in detail for p in o.data.vertices)
+        v.check('piping_and_jam_tell', len(detail)==22 and detail_error<.025,
+                {'objects':len(detail),'max_surface_distance_m':detail_error})
+        tell_offsets = {}
+        for obj in detail:
+            if not obj.name.startswith('JamTell'):
+                continue
+            offsets = []
+            for vertex in obj.data.vertices:
+                point = obj.matrix_world @ vertex.co
+                nearest, normal, _, _ = cake_tree.find_nearest(point)
+                offsets.append((point-nearest).dot(normal))
+            tell_offsets[obj.name] = [min(offsets), max(offsets)]
+        v.check('jam_tell_exposed_not_buried', len(tell_offsets)==2 and
+                all(.001<high<.008 for low,high in tell_offsets.values()), tell_offsets)
         solids = component_trees(reference)
         outside = []
         for obj in hidden:

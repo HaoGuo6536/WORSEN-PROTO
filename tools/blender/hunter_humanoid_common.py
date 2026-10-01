@@ -10,7 +10,7 @@
 #   - Assemble primitive meshes with rigid bone assignments.
 #   - Bake six in-place actions and export manifest/source/FBX.
 #   - Render neutral, true-scale Workbench previews.
-#   - Independently inspect imported content and record reproducibility evidence.
+#   - Inspect imported motion, 3–8k triangle/2–4 material budgets and reproducibility.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils, Python standard library; model callbacks only.
 # USAGE NOTES:
@@ -413,7 +413,9 @@ def validate(name, expected_lengths, motion_minima):
         width = max(p.x for p in points)-min(p.x for p in points)
         check('height and ground', abs(height-HEIGHTS[name])<.002 and abs(min(p.z for p in points))<1e-4, height)
         check('manifest dimensions', abs(height-manifest['height_m'])<1e-4 and abs(width-manifest['width_m'])<1e-4, [height,width])
-        check('triangle budget and manifest', 0<triangles<=4000 and triangles==manifest['triangles'], triangles)
+        from validate_hunter_detail_contract import measure_budget
+        measure_budget(meshes, check)
+        check('triangle manifest', triangles==manifest['triangles'], triangles)
         check('rigid weights', not invalid, invalid)
         check('bind pose', bind_error<1e-4, bind_error)
         # The actual foot geometry is elongated towards -Y, independently of metadata.
@@ -461,6 +463,7 @@ def validate(name, expected_lengths, motion_minima):
             check('attack reaches forward at contact', reach<-.35, reach)
         material_signature = []
         actual_materials = {s.material.name:s.material for m in meshes for s in m.material_slots}
+
         check('material names', set(actual_materials)=={m['name'] for m in manifest['materials']} and all(n.startswith('M_Hunter'+name+'_') for n in actual_materials), list(actual_materials))
         for entry in manifest['materials']:
             m = actual_materials[entry['name']]
@@ -506,7 +509,7 @@ def validate(name, expected_lengths, motion_minima):
     target = previews/'validation.json'
     previews.mkdir(parents=True,exist_ok=True)
     # Preserve the first successful content measurement; compare on every rerun.
-    baseline = previews/'validation-run1.json'
+    baseline = previews/'validation-detail-run1.json'
     if report['passed'] and baseline.exists():
         first = json.loads(baseline.read_text(encoding='utf-8'))
         report['two_run_hash_match'] = first.get('signature_version')==report['signature_version'] and first['content_sha256']==report['content_sha256']
