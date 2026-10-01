@@ -311,7 +311,7 @@ namespace Worsen.Editor.Hunter
                 creature.transform.localScale *= scale; creature.transform.position -= (foot - origin) * scale;
                 ApplyMaterials(entry, creature);
                 if (Math.Abs(MeasureVisualBounds(creature).size.y / entry.Height - 1f) > 0.05f)
-                    throw new InvalidOperationException(entry.Name + " visual height is outside tolerance.");
+                    throw new InvalidOperationException(entry.Name + " visual height " + MeasureVisualBounds(creature).size.y.ToString("0.###") + " m is outside 5% of " + entry.Height.ToString("0.###") + " m.");
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
                 if (prefab == null) throw new InvalidOperationException("Could not save " + path);
                 var serialized = new SerializedObject(entry.Profile);
@@ -330,6 +330,9 @@ namespace Worsen.Editor.Hunter
                 try
                 {
                     if (renderer is SkinnedMeshRenderer skin)
+                    // BakeMesh(mesh) already yields world-scale offsets in the renderer's axes, so map them with
+                    // position and rotation only; TransformPoint applied the scale twice (batch 15: the Satyr,
+                    // lossy scale 0.394, measured 1.21 m instead of 3.06 m; verified against renderer bounds).
                     { mesh = new Mesh(); temporary = true; skin.BakeMesh(mesh); }
                     else if (renderer is MeshRenderer) mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
                     if (mesh == null) throw new InvalidOperationException("Visible renderer has no measurable mesh: " + renderer.name);
@@ -337,7 +340,10 @@ namespace Worsen.Editor.Hunter
                     Bounds local = mesh.bounds;
                     for (int i = 0; i < 8; i++)
                     {
-                        Vector3 point = renderer.transform.TransformPoint(local.center + Vector3.Scale(local.extents,
+                        Matrix4x4 toWorld = renderer is SkinnedMeshRenderer
+                            ? Matrix4x4.TRS(renderer.transform.position, renderer.transform.rotation, Vector3.one)
+                            : renderer.transform.localToWorldMatrix;
+                        Vector3 point = toWorld.MultiplyPoint3x4(local.center + Vector3.Scale(local.extents,
                             new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
                         if (!found) { bounds = new Bounds(point, Vector3.zero); found = true; } else bounds.Encapsulate(point);
                     }
