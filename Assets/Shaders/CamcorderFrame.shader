@@ -32,11 +32,12 @@ Shader "Worsen/CamcorderFrame"
                 float2 p = abs(uv * 2.0 - 1.0);
                 float radius = max(0.01, _CamcorderLens.y);
                 float2 q = p - (1.0 - radius);
-                float distance = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
-                float corner = smoothstep(-max(0.01, _CamcorderLens.z), 0.0, distance);
+                float cornerDistance = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+                float corner = smoothstep(-max(0.01, _CamcorderLens.z), 0.0, cornerDistance);
                 float edge = smoothstep(_CamcorderEdgeStart, 1.0, max(p.x, p.y));
-                float line = floor(uv.y * _CamcorderTape.w);
-                float jitter = sin(line + _CamcorderTape.z) * _CamcorderTape.x;
+                // `line` is a reserved HLSL word (geometry primitive); `distance` is an intrinsic.
+                float scanline = floor(uv.y * _CamcorderTape.w);
+                float jitter = sin(scanline + _CamcorderTape.z) * _CamcorderTape.x;
                 float2 pixel = _BlitTexture_TexelSize.xy;
                 float2 sampleUV = uv + float2(jitter * pixel.x, 0.0);
                 float2 blur = pixel * (_CamcorderLens.w * edge);
