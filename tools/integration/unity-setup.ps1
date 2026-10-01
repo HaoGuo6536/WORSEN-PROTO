@@ -42,14 +42,27 @@ try {
             try { $detail = Invoke-UnityCsharp $w.Code 300; $status = if ($detail -match '^OK') { 'ok' } else { 'fail' }; break }
             catch {
                 $detail = "no result: $($_.Exception.Message)"; $status = 'unknown'
-                if ($attempt -eq 1) {
-                    # A long step keeps running after the bridge gives up; its marker holds the real result.
-                    Wait-EditorIdle $Token 30 | Out-Null
-                    if ($w.Marker -and (Test-Path -LiteralPath $w.Marker)) {
-                        $detail = (Get-Content -LiteralPath $w.Marker -Raw).Trim() + ' (result read from step marker after the bridge timed out)'
-                        $status = if ($detail -match '^OK') { 'ok' } else { 'fail' }; break
+                # 500 = the bridge's 30 s reply limit (the step is still running); a fast 'no result' usually
+                # means it never ran, so that case only gets a short marker check before the normal retry.
+                $timedOut = $_.Exception.Message -match '\(500\)'
+                if ($w.Marker -and -not $timedOut) { Start-Sleep -Seconds 10 }
+                if ($w.Marker -and ($timedOut -or (Test-Path -LiteralPath $w.Marker))) {
+                    # A long step keeps running after the bridge gives up (30 s). Its asset refreshes can let
+                    # state polls answer mid-step, so an idle editor proves nothing: wait for the step's own
+                    # marker, and never re-run a step whose first execution may still be in progress.
+                    $deadline = (Get-Date).AddMinutes(30); $beat = Get-Date
+                    while (-not (Test-Path -LiteralPath $w.Marker) -and (Get-Date) -lt $deadline) {
+                        Start-Sleep -Seconds 5
+                        if (((Get-Date) - $beat).TotalSeconds -gt 50) { Invoke-LeaseCommand Heartbeat $Token | Out-Null; $beat = Get-Date }
                     }
+                    if (Test-Path -LiteralPath $w.Marker) {
+                        Wait-EditorIdle $Token 10 | Out-Null
+                        $detail = (Get-Content -LiteralPath $w.Marker -Raw).Trim() + ' (result read from step marker after the bridge timed out)'
+                        $status = if ($detail -match '^OK') { 'ok' } else { 'fail' }
+                    } else { $detail += ' (no step marker within 30 minutes)' }
+                    break
                 }
+                if ($attempt -eq 1) { Wait-EditorIdle $Token 10 | Out-Null }
             }
         }
         $results += [pscustomobject]@{ step = $w.Name; status = $status; detail = $detail }
