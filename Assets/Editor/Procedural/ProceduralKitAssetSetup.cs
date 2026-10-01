@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Editor · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Import FBX with axis conversion disabled and theme-local URP slot materials.
+//   - Adopt generated PBR sets on untouched flat slots, preserving artist overrides.
 //   - Reject over-budget meshes and publish reusable kit prefab bindings.
 //   - Assemble deterministic room prefabs from the runtime placement presenter.
 //   - Keep one kit visual separate from independently owned primitive collision.
@@ -17,7 +18,9 @@
 //   - UnityEditor asset APIs and Domain.Procedural definitions/presenters.
 // USAGE NOTES:
 //   Called only by the explicit content setup in an idle coordinated editor.
-//   Generated assets are never authored by a worker outside Unity.
+//   Material/prefab assets are written only in Unity. Generated PNGs and per-slot
+//   scale metadata come from tools/textures/generate_theme_textures.py. Texture
+//   adoption is one-time; subsequent runs preserve material edits, even removals.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -34,6 +37,7 @@ namespace Worsen.Editor.Procedural
         public static void Build(ProceduralRoomCatalogueData asset, ProceduralConfig config)
         {
             var bindings = new List<ProceduralRoomCatalogueData.KitAsset>();
+            var textured = new HashSet<string>(StringComparer.Ordinal);
             const string output = "Assets/Resources/ProceduralKits";
             Folder(output);
             foreach (var catalogue in asset.Catalogues)
@@ -71,6 +75,7 @@ namespace Worsen.Editor.Procedural
                                 mapped = new Material(shader) { name = material.name, color = material.color };
                                 mapped.SetFloat("_Smoothness", .15f); AssetDatabase.CreateAsset(mapped, materialPath);
                             }
+                            if (textured.Add(materialPath)) ApplySlotTextures(mapped, theme, material.name);
                             importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), material.name), mapped);
                         }
                         importer.SaveAndReimport();
@@ -142,6 +147,134 @@ namespace Worsen.Editor.Procedural
             item.GetComponent<Renderer>().enabled = block.HasRenderer && prefab == null;
             if (!block.HasCollision) UnityEngine.Object.DestroyImmediate(item.GetComponent<Collider>());
         }
+        private const string TextureTag = "WorsenGeneratedTextures";
+
+        [Serializable]
+        private sealed class TextureRecipe
+        {
+            public float metresPerTile = 0f;
+            public string paletteSrgb = "";
+        }
+
+        // SurfaceMetres UVs are metres, so a two-metre repeat needs scale 0.5.
+        public static float TextureScale(float metresPerTile)
+        {
+            if (float.IsNaN(metresPerTile) || float.IsInfinity(metresPerTile) || metresPerTile <= 0f)
+                throw new ArgumentOutOfRangeException(nameof(metresPerTile));
+            float scale = 1f / metresPerTile;
+            if (float.IsInfinity(scale)) throw new ArgumentOutOfRangeException(nameof(metresPerTile));
+            return scale;
+        }
+
+        public static string TexturePath(string theme, string slot, string suffix)
+        {
+            if (theme != "Castle" && theme != "Hospital" && theme != "School" && theme != "Basement")
+                throw new ArgumentException("Unknown texture theme.", nameof(theme));
+            if (string.IsNullOrEmpty(slot) || !slot.StartsWith(theme.ToLowerInvariant() + "_", StringComparison.Ordinal) ||
+                slot.Any(c => !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_'))
+                throw new ArgumentException("Invalid texture slot.", nameof(slot));
+            if (suffix != "Albedo" && suffix != "Normal" && suffix != "Smoothness")
+                throw new ArgumentException("Unknown texture map.", nameof(suffix));
+            return "Assets/Art/Textures/" + theme + "/" + slot + "_" + suffix + ".png";
+        }
+
+        public static bool ApplySlotTextures(Material material, string theme, string slot)
+        {
+            if (material == null) throw new ArgumentNullException(nameof(material));
+            string albedoPath = TexturePath(theme, slot, "Albedo");
+            string normalPath = TexturePath(theme, slot, "Normal");
+            string smoothnessPath = TexturePath(theme, slot, "Smoothness");
+            string recipePath = "Assets/Art/Textures/" + theme + "/" + slot + ".json";
+            // Validate the complete set before touching any material or importer.
+            foreach (string path in new[] { albedoPath, normalPath, smoothnessPath, recipePath })
+                if (!File.Exists(path))
+                {
+                    Debug.LogWarning("Missing kit texture; keeping existing material/flat colour: " + path);
+                    return false;
+                }
+            var recipe = JsonUtility.FromJson<TextureRecipe>(File.ReadAllText(recipePath));
+            if (recipe == null || !ColorUtility.TryParseHtmlString(recipe.paletteSrgb, out Color palette))
+                throw new InvalidOperationException("Invalid kit texture recipe: " + recipePath);
+            float scale = TextureScale(recipe.metresPerTile);
+            bool adopted = material.GetTag(TextureTag, false, "") == "1";
+            if (!adopted && !IsUntouchedFlatSlot(material, palette))
+            {
+                Debug.LogWarning("Preserving edited kit material; texture adoption not applied: " + slot);
+                return false;
+            }
+            var albedo = ImportTexture(albedoPath, false, true);
+            var normal = ImportTexture(normalPath, true, false);
+            var smoothness = ImportTexture(smoothnessPath, false, false);
+            if (adopted) return false; // Preserve artist edits to maps, tint, UVs and shader settings.
+            material.SetTexture("_BaseMap", albedo);
+            material.SetTexture("_BumpMap", normal);
+            material.SetTexture("_MetallicGlossMap", smoothness);
+            foreach (string property in new[] { "_BaseMap", "_BumpMap", "_MetallicGlossMap" })
+            {
+                material.SetTextureScale(property, new Vector2(scale, scale));
+                material.SetTextureOffset(property, Vector2.zero);
+            }
+            // Albedo already contains the palette. Multiplying by the old flat
+            // colour would darken it twice. Unrelated emission/culling edits stay.
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_WorkflowMode", 1f);
+            material.SetFloat("_Smoothness", 1f);
+            material.SetFloat("_SmoothnessTextureChannel", 0f);
+            material.EnableKeyword("_NORMALMAP");
+            material.EnableKeyword("_METALLICSPECGLOSSMAP");
+            material.DisableKeyword("_SPECULAR_SETUP");
+            material.DisableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
+            material.SetOverrideTag(TextureTag, "1");
+            EditorUtility.SetDirty(material);
+            if (AssetDatabase.Contains(material)) AssetDatabase.SaveAssetIfDirty(material);
+            return true;
+        }
+
+        private static bool IsUntouchedFlatSlot(Material material, Color palette)
+        {
+            if (material.shader == null || material.shader.name != "Universal Render Pipeline/Lit") return false;
+            if (!NearColor(material.color, palette) && !NearColor(material.color, palette.linear)) return false;
+            if (Math.Abs(material.GetFloat("_Smoothness") - .15f) > .0001f ||
+                material.GetFloat("_WorkflowMode") != 1f || material.GetFloat("_SmoothnessTextureChannel") != 0f ||
+                material.GetFloat("_Metallic") != 0f || material.GetFloat("_BumpScale") != 1f) return false;
+            foreach (string property in new[] { "_BaseMap", "_BumpMap", "_MetallicGlossMap" })
+                if (material.GetTexture(property) != null || material.GetTextureScale(property) != Vector2.one ||
+                    material.GetTextureOffset(property) != Vector2.zero) return false;
+            return true;
+        }
+
+        private static bool NearColor(Color a, Color b)
+            => Math.Abs(a.r - b.r) < .002f && Math.Abs(a.g - b.g) < .002f &&
+               Math.Abs(a.b - b.b) < .002f && Math.Abs(a.a - b.a) < .002f;
+
+        private static Texture2D ImportTexture(string path, bool normal, bool srgb)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            }
+            if (importer == null) throw new InvalidOperationException("Expected texture importer: " + path);
+            var type = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            bool changed = importer.textureType != type || importer.sRGBTexture != srgb ||
+                importer.wrapModeU != TextureWrapMode.Repeat || importer.wrapModeV != TextureWrapMode.Repeat ||
+                !importer.mipmapEnabled || importer.alphaSource != TextureImporterAlphaSource.FromInput ||
+                importer.alphaIsTransparency || importer.convertToNormalmap || importer.flipGreenChannel;
+            if (changed)
+            {
+                importer.textureType = type; importer.sRGBTexture = srgb;
+                importer.wrapModeU = TextureWrapMode.Repeat; importer.wrapModeV = TextureWrapMode.Repeat;
+                importer.mipmapEnabled = true;
+                importer.alphaSource = TextureImporterAlphaSource.FromInput;
+                importer.alphaIsTransparency = false; importer.convertToNormalmap = false; importer.flipGreenChannel = false;
+                importer.SaveAndReimport();
+            }
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (texture == null) throw new InvalidOperationException("Texture import failed: " + path);
+            return texture;
+        }
+
         private static void Folder(string path)
             => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
     }
