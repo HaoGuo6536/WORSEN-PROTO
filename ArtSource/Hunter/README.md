@@ -1,8 +1,9 @@
-# Hunter sources — detailed prototype pass 2 (PLAN-017)
+# Hunter sources — project roster and cake disguise (PLAN-017)
 
-Owner request: 2026-10-01. These are revisions of the seven already inventoried
-sources, not new source assets. No third-party geometry or downloads are used.
-The Mimic retains the project's own cake surface and packed palette images.
+Owner request: 2026-10-01. Ram, Skip and Blinder now join the seven earlier
+project bodies. No third-party geometry or downloads are used. Mimic retains
+the project's own cake surface and packed palette images; the latest request
+supersedes the earlier exposed jam/piping tell and breathing disguise.
 
 ## Inventory
 
@@ -13,9 +14,12 @@ Its runtime export and measured manifest are
 | Hunter | Triangles (FBX re-import) | Used materials | Pass-2 modelling |
 |---|---:|---:|---|
 | Echo | 4952 | 3 | Pleated blue-grey cover, irregular hem, hanging tatters, hood welt and staggered recording scars; joint volumes replace floating limb ends. |
+| Ram | 4112 | 4 | Low impact skull, broad shoulder shields, curved horn yoke, split hooves and hide folds; stamp, bounding charge and wall stagger. |
+| Skip | 4884 | 4 | 1.2m crooked hood, wiry wrapped limbs, stitched coat and fingers; doorway crouch and silent intercept. |
+| Blinder | 5368 | 4 | Stooped bound head, exposed throwing arm, powder-filled pouch, drawstring and dust-stained apron; draw-back and release. |
 | Herald | 6408 | 3 | Curved tapered rib doors, contrasting bone, vertebrae, throat cords, jaw frame and small teeth; original chest-opening bones retained. |
 | Mannequin | 7556 | 3 | Tapered shells, dark joint hardware, screw slots, segmented abdomen, fingers and draped dust sheet. |
-| Mimic | 6214 | 4 | Original layered cake and palette UVs, additional cream piping, exposed jam drips and finer concealed teeth. |
+| Mimic | 3462 | 3 | Original cake exterior, UVs and corner normals; no added exterior tells. Concealed teeth and palate unfold on the original jaw rig. |
 | Stare | 5592 | 4 | Tall asymmetric pleated cover, long pale face, recessed dark orbits, fixed tiny eyes, nose and fingers. |
 | Ticking | 7836 | 4 | Bevelled wooden case and dial, open toothed side gears, rivets, articulated brass fingers, pendulum and rear winding key. |
 | Weaver | 7432 | 4 | Shaped shell plates and flutes, tapered three-segment legs, joint spurs, curved mandibles and six eyes. |
@@ -25,19 +29,21 @@ Its runtime export and measured manifest are
 - Blender 5.2.1 LTS headless; metre-scale FBX, -Z forward, Y up,
   `bake_space_transform=True`, importer `bakeAxisConversion=false`.
 - Existing armature identities, bones/rest positions/hierarchy, sockets, six clip
-  names/ranges/loop flags and 30 fps are retained. Animation authoring functions
-  are unchanged from accepted pass 1. Source/FBX motion agreement is independently
-  measured by the original validators.
+  names/ranges/loop flags and 30 fps are retained for existing bodies. The three
+  new bodies share the humanoid bone hierarchy and six-role contract. Mimic's
+  idle/walk/run are exact closed holds; bite/recovery retain motion minima.
+  Source/FBX motion agreement is independently measured by the validators.
 - Each rigid mesh section has one normalized bone weight. Hardware, fingers,
   ribs, jaw and cloth sections use their original owning bones; no new rig or
   runtime animation controller is introduced. Cloth is segmented rigid prototype
   art, not simulated fabric.
 - Existing `.meta` files are untouched. Unity import, material creation/remapping,
   prefab rebuild and in-game lighting acceptance belong to the coordinator.
-- The owner-requested Stare face and Mimic tell supersede the older non-facial /
-  perfectly indistinguishable descriptions. Mimic's original CakeBase/CakeTop
-  geometry, UVs, textures and overall closed bounds remain exact; added decoration
-  is separately bounded and the jam drip must actually stand proud of the sponge.
+- The owner-requested Stare face remains. The latest Mimic request restores an
+  indistinguishable disguise: no jam tell or extra piping, no breathing. The cake
+  has a cherry, not a candle; adding a candle only to Mimic would break parity.
+  Imported split normals preserve the cream/cherry shading. Unity setup copies
+  the actual cake material, configured elevation and three native Lumen layers.
 
 ## Reproduction (isolated worktree only)
 
@@ -76,11 +82,12 @@ checks and motion metrics. Earlier failed geometry, buried-jam RED evidence and
 superseded lighting renders are retained separately in the pass folder.
 
 These are dim studio proxies, not a Unity scene, fog, occlusion or owner playtest.
-A cake-sized Mimic is necessarily small at 10m; its frosting/jam tell is close-range
-information, not a promised readable distant face. Tiny fasteners and eyes are
-secondary details; silhouette and motion must carry recognition.
+A cake-sized Mimic is necessarily small at 10m. Tiny fasteners and eyes are
+secondary details; silhouette and motion must carry recognition. The additional
+`Mimic/review_disguise.py` renders the unmodified source and re-imported Mimic at
+close, 3m and 6m distances into `HunterMimic/real-cake-vs-mimic.png`.
 
-### Observed visual review
+### Earlier pass-2 visual review (Mimic observations superseded below)
 
 All five final boards per hunter were opened with vision: both turntables, both
 six-clip boards and the warm/cold 10m attack board. Observations, not Unity claims:
@@ -137,3 +144,66 @@ Principal shared defaults are:
 
 Triangle/material thresholds are owner acceptance gates rather than gameplay
 balance values. No C# Config, package, scene or prefab was edited.
+
+## New-body / exact-disguise hand-off
+
+The new generators use `SculptCreature` and the shared motion/export/review
+pipeline. Run each new validator with `-- --render --detail` to regenerate the
+six-clip strips and warm/cold boards. All four validators pass: Ram 126 checks,
+Skip 153, Blinder 138, Mimic 103. Their measured heights are 1.62m, 1.20m, 1.50m
+and 0.289091m respectively. Mimic's exterior surface error is 0.283mm; closed
+bounds differ by under 0.00003mm, with matching UVs/textures and corner normals.
+
+New provisional art data lives in each generator's `PALETTE`, `build` and
+`motion` functions. No gameplay Config values were changed. The six take frame
+ranges remain idle 1–61, walk 1–31, run 1–21, ready/hit 1–25, attack 1–31;
+attack contact/release is frame 13. Ram's bounding run uses 0.18 stance duty,
+stride 0.46×hip height, crouch 0.20×hip height, bob 0.035×hip height and lift
+0.32×hip height. Measured walk/run speeds at 1× (m/s), also in manifests:
+
+| Body | Walk | Run |
+|---|---:|---:|
+| Ram | 1.143072 | 6.762004 |
+| Skip | 0.705600 | 1.517040 |
+| Blinder | 0.940800 | 2.022719 |
+
+The runtime owner must use these reference speeds: Ram at 18m/s requires about
+2.662× playback, not the old generic/vendor reference. Phase mapping remains
+ready=stamp/windup, run=charge, hit=wall stagger; Blinder attack=throw.
+
+The coordinator owns the base-prefab collision fix. The closed cake bounds in
+Unity axes are 0.266348 × 0.289091 × 0.352336m (width/height/depth). Use a matching
+box where the motor permits it. A retained upright capsule cannot fit this
+non-circular footprint exactly; radius 0.176168m and height 0.352336m remove the
+1.8m pillar but remain an approximation. Center it on the displayed cake bounds,
+including FloorDriverConfig.PickupHeight (currently 0.7m), not at 0.9m.
+
+Setup order: existing HorrorRun/cake/Lumen and roster-profile setup first,
+then `HunterRosterVisualSetup::Build`, then `HunterRosterVisualSetupUnityTests`,
+`HunterFactoryRosterTests`, `HunterRosterScopeTests` and native animation tests.
+Run visuals last after any full scene/base-body rebuild. RosterB profile setup
+itself preserves an already bound prefab. Verify native Lumen initialization,
+repeat-build stability, Mimic geometry and 18m/s playback.
+No Unity execution, .meta authoring, prefab editing, staging or commit occurred.
+
+Final boards were opened with vision. Ram's pale horn yoke and low skull remain
+broad; run has distinct alternating bounds and hit rocks the shoulders back.
+Skip's wrapped limbs, uneven hood and lowered posture read as a wiry ambusher,
+with a visible reaching intercept. Blinder's pouch and dust marks remain attached
+through the throw; the bare arm swings from behind the head to forward release.
+Mimic's first three rows stay completely closed; ready exposes teeth and attack
+unfolds the triangular lid before contact. The source/export pair now matches
+the frosting/cherry shading even close up after repairing FBX normal damage.
+These observations do not establish native Lumen parity or 18m/s timing.
+
+Final offline compile `hunter-bodies-cake-003` has zero errors in all seven
+assemblies and baseline-only warnings. `hunter-bodies-cake-pure-003` reports
+43 passed, 0 failed, 48 environment, 0 skipped; 34 passes are the visual setup's
+pure cases. Native-only fixtures have no pure coverage. `ast-grep scan` has
+zero findings. The generated cake prefab/material folder is not present in this
+isolated checkout; the comparison uses its unchanged authored source. The
+coordinator must ensure `HorrorArtSetup.EnsureCake` output is imported before
+native visual setup, not treat these offline results as a Unity pass.
+
+`ArtSource/README.md` is outside this worker's ownership: coordinator should add
+the three new source rows there; this owned inventory records them meanwhile.
