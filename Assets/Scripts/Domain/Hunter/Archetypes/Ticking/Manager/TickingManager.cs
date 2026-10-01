@@ -11,6 +11,7 @@
 //   - Register the clock module, resolve trigger identities and sequence bounded placement.
 //   - Inject verified rear-pocket targets before the shared movement decision.
 //   - Expose immutable Core facts with the owning hunter identity for duplicates.
+//   - Refresh complete key navigation every tick, including the first tick across a room boundary.
 // DEPENDENCIES:
 //   - Own controller/driver, shared HunterController and injected Player/Hunter views.
 // USAGE NOTES:
@@ -71,7 +72,12 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
                         _controller.PlaceKey(position, true);
                 if (!_controller.HasKey) _controller.DeferPlacement();
             }
-            if (_controller.HasKey) _driver.ShowKey(_controller.KeyPosition, _controller.KeySerial);
+            if (_controller.HasKey)
+            {
+                _driver.ShowKey(_controller.KeyPosition, _controller.KeySerial);
+                var corners = _driver.QueryGuidance(_player.Position, _controller.KeyPosition, out var direction);
+                _controller.SetGuidancePath(corners, direction);
+            }
             else _driver.ClearKey();
             PublishClockFacts();
         }
@@ -104,7 +110,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
                     Id, _config.DriverConfig.SoundIds[(int)fact.Sound]));
             }
             while (_controller.TakeNoise(out NoiseEvent noise)) OnNoise?.Invoke(new TickingNoiseFact(Id, noise));
-            OnGuidance?.Invoke(new TickingGuidanceFact(_controller.Guidance, _controller.HasKey, _hunter.Tick));
+            OnGuidance?.Invoke(new TickingGuidanceFact(_controller.Guidance, _controller.GuidanceValid, _hunter.Tick));
         }
         public void Teardown()
         {

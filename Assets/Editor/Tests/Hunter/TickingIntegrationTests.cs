@@ -78,6 +78,10 @@ namespace Worsen.Tests.Hunter
                 Assert.That(driver.TrySampleFollow(origin, origin + Vector3.forward * 4, out _), Is.True);
                 Assert.That(driver.TrySampleKey(origin, origin + Vector3.right * 16, null, out _), Is.False);
                 Assert.That(driver.TrySampleFollow(origin, origin + Vector3.right * 16, out _), Is.False);
+                Assert.That(driver.QueryGuidance(origin, origin + Vector3.forward * 4, out var direction), Is.Not.Null);
+                Assert.That(Vector3.Dot(direction, Vector3.forward), Is.GreaterThan(.99f));
+                Assert.That(driver.QueryGuidance(origin, origin + Vector3.right * 16, out direction), Is.Null);
+                Assert.That(direction, Is.EqualTo(Vector3.zero));
                 wall.transform.position = origin + Vector3.forward * 2 + Vector3.up;
                 wall.transform.localScale = new Vector3(4, 2, .4f); Physics.SyncTransforms();
                 Assert.That(driver.TrySampleKey(origin, origin + Vector3.forward * 4, null, out _), Is.False);
@@ -89,7 +93,7 @@ namespace Worsen.Tests.Hunter
         {
             var root = new GameObject("Ticking manager fixture"); var playerRoot = new GameObject("collector");
             var keyPrefab = new GameObject("key fixture"); var stranger = new GameObject("stranger");
-            IHunterTickingModule ticking = null; TickingDriver driver = null;
+            IHunterTickingModule ticking = null; TickingDriver driver = null; HunterManager manager = null;
             var config = ScriptableObject.CreateInstance<TickingConfig>(); var driverConfig = ScriptableObject.CreateInstance<TickingDriverConfig>();
             var profile = ScriptableObject.CreateInstance<HunterProfile>(); var motor = ScriptableObject.CreateInstance<HunterMotorDriverConfig>();
             try
@@ -98,7 +102,7 @@ namespace Worsen.Tests.Hunter
                 EchoControllerTests.Tune(profile, "_archetypeRules", config); EchoControllerTests.Tune(profile, "_motorOverride", motor);
                 EchoControllerTests.Tune(profile, "_archetypeKey", "ticking");
                 var player = new PlayerBehaviorState { Id = new EntityId(1), Health = 100, SprintSpeed = 8 };
-                var manager = root.AddComponent<HunterManager>(); manager.Initialize(profile, new EntityContext(new EntityId(-10), new System.Random(3)), player, new EchoControllerTests.World());
+                manager = root.AddComponent<HunterManager>(); manager.Initialize(profile, new EntityContext(new EntityId(-10), new System.Random(3)), player, new EchoControllerTests.World());
                 Assert.That(manager.Ticking, Is.Not.Null);
                 ticking = manager.Ticking; driver = root.GetComponent<TickingDriver>();
                 // Establish one subscription per owner even if Unity delivered no Edit Mode callbacks.
@@ -117,7 +121,8 @@ namespace Worsen.Tests.Hunter
                 clock.Tick(new HunterArchetypeContext(manager.ReadOnlyState, player, new EchoControllerTests.World(), null, null, null,
                     new ActiveEffects(new[] { new ActiveEffect(TickingController.LoudKeys, EffectKind.Curse, 1) }), 1f, 3, true, 1));
                 Assert.That(clock.PlaceKey(Vector3.right * 8, true), Is.True); manager.Ticking.PublishTick();
-                Assert.That(arrows.Count, Is.GreaterThan(0)); Assert.That(arrows[0].Kind, Is.EqualTo(GuidanceKind.ThreatArrow));
+                Assert.That(arrows, Is.Empty, "This fixture has no navigation: an existing key must not publish a through-wall arrow.");
+                Assert.That(clock.Guidance.Kind, Is.EqualTo(GuidanceKind.ThreatArrow)); Assert.That(clock.GuidanceValid, Is.False);
                 var driverState = (TickingDriverState)typeof(TickingDriver).GetField("_state", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(driver);
                 var spawned = driverState.Key; Assert.That(spawned, Is.Not.Null);
                 var contact = spawned.GetComponent<TickingKeyContact>();
@@ -133,6 +138,7 @@ namespace Worsen.Tests.Hunter
             }
             finally
             {
+                if (manager != null) manager.Teardown();
                 if (ticking != null) Call(ticking, "OnDisable");
                 if (driver != null) Call(driver, "OnDisable");
                 Object.DestroyImmediate(root); Object.DestroyImmediate(playerRoot); Object.DestroyImmediate(stranger); Object.DestroyImmediate(keyPrefab);

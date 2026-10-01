@@ -13,6 +13,7 @@
 //   - Pursue unseen prey without shared flashlight, retreat or Stalk reveal rules.
 //   - Apply capped peripheral-creep/longer-strides curses and publish silence facts.
 //   - Admit the distinct catch fact once per life for the Manager to publish.
+//   - Publish actual committed movement starts and immediate holds, not pursuit intent.
 // DEPENDENCIES:
 //   - Parent Hunter neutral rules, injected camera/occlusion, Core effects and facts.
 // USAGE NOTES:
@@ -46,6 +47,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         {
             _state.Hold = true; _state.Wick = false; _state.View = default; _state.Clear = false;
             _state.CatchPublished = false;
+            _state.Moving = false; _state.CommittedPosition = context.Hunter.Position; _state.MotionTick = -1;
             _state.LastTick = -1; _state.Speed = 1f; _state.Facts.Clear();
             _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.SilentSoundSet, context.Tick));
         }
@@ -60,6 +62,18 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
             _state.Hold = _state.Clear && HunterViewUtility.Contains(_state.View,
                 context.Hunter.Position + Vector3.up * _config.ObservationHeight,
                 Stacks(context, "mannequin-peripheral-creep", 1) > 0 ? _config.DirectLookHalfAngle : 0f);
+        }
+        public void CommitMovement(Worsen.Core.EntityId hunter, Vector3 position, long tick, bool active = true)
+        {
+            if (tick < _state.MotionTick) return;
+            var delta = position - _state.CommittedPosition; delta.y = 0f;
+            bool moving = active && !Hold && delta.sqrMagnitude > 0f &&
+                !float.IsNaN(delta.sqrMagnitude) && !float.IsInfinity(delta.sqrMagnitude);
+            _state.CommittedPosition = position; _state.MotionTick = tick;
+            if (moving == _state.Moving) return;
+            _state.Moving = moving;
+            _state.Facts.Enqueue(new MannequinFact(hunter,
+                moving ? MannequinFactKind.MovementStarted : MannequinFactKind.MovementHeld, tick, position: position));
         }
         public bool TryCatch()
         {

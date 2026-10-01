@@ -10,8 +10,10 @@
 // KEY RESPONSIBILITIES:
 //   - Sample reachable rear pockets and keys, instantiate one trigger and relay raw contacts.
 //   - Reuse complete pooled clearance queries until destruction.
+//   - Query complete player-to-key routes and reuse Floor's passed-corner bearing math.
 // DEPENDENCIES:
 //   - Unity navigation/physics, own DriverConfig/DriverState and key sub-driver.
+//   - FloorPresenter supplies pure path length and corner lookahead; no Floor Driver is commanded.
 // USAGE NOTES:
 //   Scene-owned, commanded only by TickingManager; no Update or global side effects.
 //   Direct-ground admission is deliberately conservative in narrow/bent corridors.
@@ -21,12 +23,14 @@ using System;
 using System.Buffers;
 using UnityEngine;
 using UnityEngine.AI;
+using Worsen.Domain.Floor;
 namespace Worsen.Domain.Hunter.Archetypes.Ticking
 {
     public sealed class TickingDriver : MonoBehaviour
     {
         private TickingDriverConfig _config;
         private readonly TickingDriverState _state = new TickingDriverState();
+        private readonly FloorPresenter _guidance = new FloorPresenter();
         public event Action<Collider, int> OnKeyContact;
         private void OnEnable() { TickingKeyContact.OnContact += HandleContact; }
         private void OnDisable() { TickingKeyContact.OnContact -= HandleContact; ClearKey(); }
@@ -75,6 +79,18 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
                 if (!hit.transform.IsChildOf(transform) && (isPlayer == null || !isPlayer(hit))) return false;
             }
             position = end.position; return true;
+        }
+        public Vector3[] QueryGuidance(Vector3 player, Vector3 key, out Vector3 direction)
+        {
+            direction = Vector3.zero;
+            if (_config == null || !NavMesh.SamplePosition(player, out var start, _config.SampleRadius, 1) ||
+                !NavMesh.SamplePosition(key, out var end, _config.SampleRadius, 1) ||
+                !NavMesh.CalculatePath(start.position, end.position, 1, _state.Path) ||
+                _state.Path.status != NavMeshPathStatus.PathComplete) return null;
+            var corners = _state.Path.corners;
+            if (float.IsInfinity(_guidance.PathLength(corners))) return null;
+            direction = _guidance.FirstDirection(start.position, corners, _config.DirectionCornerSkipDistance);
+            return corners;
         }
         public void ShowKey(Vector3 position, int serial)
         {

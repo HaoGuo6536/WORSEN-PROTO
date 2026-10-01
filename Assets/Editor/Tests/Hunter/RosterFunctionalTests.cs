@@ -80,7 +80,12 @@ namespace Worsen.Tests.Hunter
                 Assert.That(a.Metrics.BodyContacts, Is.GreaterThan(0));
                 Assert.That(a.Metrics.Hits[0].Damage, Is.EqualTo(a.Profile.LungeDamage));
                 Assert.That(a.Metrics.Mannequin.Any(f => f.Kind == MannequinFactKind.SilentSoundSet), Is.True);
-                Assert.That(a.Metrics.Mannequin.All(f => f.Kind == MannequinFactKind.SilentSoundSet), Is.True,
+                Assert.That(a.Metrics.Mannequin.Any(f => f.Kind == MannequinFactKind.MovementStarted), Is.True,
+                    "Actual unseen movement must publish a positioned start for creaks.");
+                Assert.That(a.Metrics.Mannequin.Any(f => f.Kind == MannequinFactKind.MovementHeld), Is.True,
+                    "Observation/Wick must stop movement audio on the hold tick.");
+                Assert.That(a.Metrics.Mannequin.All(f => f.Kind == MannequinFactKind.SilentSoundSet ||
+                    f.Kind == MannequinFactKind.MovementStarted || f.Kind == MannequinFactKind.MovementHeld), Is.True,
                     "Mannequin must never emit room-light overrides or lamp budgets.");
                 Assert.That(a.Metrics.Feedback, Is.Empty, "Ordinary Mannequin movement/attacks are silent.");
             });
