@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies the typed Herald route preserves the gameplay clue, not its sound origin.
-//   Receiver-spy coverage is deliberately separate from the missing Director ingress.
+//   Receiver-spy coverage complements the typed Director admission and fan-out tests.
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Director.
 // KEY RESPONSIBILITIES:
@@ -47,7 +47,7 @@ namespace Worsen.Tests.Director
                 Assert.That(received[0].ObservedTick, Is.EqualTo(9));
                 Assert.That(received[0].FloorWideHint.Origin, Is.EqualTo(NoiseOrigin.Unspecified));
                 Assert.That(HunterHearingUtility.Allows(received[0].FloorWideHint), Is.False,
-                    "Ordinary hearing must remain closed; Director needs its separate typed ingress.");
+                    "Ordinary hearing stays closed; broadcasts use the separate typed ingress.");
                 Call(route, "OnDisable"); Assert.That(Read(run), Is.Null);
                 route.Configure(run, null); Call(route, "OnEnable"); Assert.That(Read(run), Is.Null);
             }

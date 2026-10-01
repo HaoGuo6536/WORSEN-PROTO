@@ -77,6 +77,7 @@ namespace Worsen.Orchestrator
         [SerializeField] private HorrorManager _horror;
         [SerializeField] private HorrorDriverConfig _horrorConfig;
         [SerializeField] private HorrorOrchestrator _horrorRoute;
+        [SerializeField] private HeraldOrchestrator _heraldRoute = null;
         [SerializeField] private FogManager _fog = null;
         [SerializeField] private FogDriverConfig _fogConfig = null;
         [SerializeField] private FogOrchestrator _fogRoute = null;
@@ -134,7 +135,7 @@ namespace Worsen.Orchestrator
             _heldItemRoute.Configure(_progression, _run, _expedition, _heldItem, _camera);
             _environment.Initialize(_environmentConfig);
             _postFX.GetComponent<PostFXOrchestrator>().Configure(_run, _postFX, _camera, _horror,
-                progression: _progression, effects: _effects, environment: _environment);
+                progression: _progression, effects: _effects, environment: _environment, heartbeatEnvelope: () => _audio.HeartbeatEnvelope);
             _fog.Initialize(_fogConfig);
             _fogRoute.Configure(_expedition, _level, _floor, _fog);
             _run.ConfigureCapture(_sourceRevision, _configSnapshotHash);
@@ -142,9 +143,11 @@ namespace Worsen.Orchestrator
                 _level, _playerFactory, _playerProfile, _hunterFactory, _hunterProfile, _chase, _chaseConfig,
                 _floor, _floorConfig, _director, _directorConfig, SceneKey.HorrorRun, _hunterRoster, _effects);
             _progressionRoute.Configure(_progression, _progressionUI, _run, _camera,
-                _useFixedSeed ? null : (Func<int>)CreateRunSeed, terminalResults: true, hud: _hud);
+                _useFixedSeed ? null : (Func<int>)CreateRunSeed, terminalResults: true, hud: _hud, modalVisible: () => _progressionUI.IsModalVisible);
             _horrorRoute.Configure(_run, _progression, _input, _horror, _effects, _camera, _expedition, _level, _hud);
-            _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment, _level);
+            _horrorRoute.ConfigureProjectilePresentation(_horror.LaunchProjectile, _horror.HitProjectile, _horror.TickProjectiles, _horror.ClearProjectiles);
+            _heraldRoute.Configure(_run, _director.HearHeraldBroadcast);
+            _audio.GetComponent<AudioOrchestrator>().ConfigureExpansion(_progression, _effects, _expedition, _progressionUI, _environment, _level, _floor);
             SharedSceneRoot.ConfigureCatch(_audio, _camera, null, requireAudioRoute: true);
             // Exit rays need the level and the exit door visuals the FloorDriver uses.
             _environmentRoute.Configure(_run, _expedition, _effects, _environment, _level, _floorVisuals, _horror, _procedural);
@@ -184,6 +187,8 @@ namespace Worsen.Orchestrator
         private static int CreateRunSeed() => Guid.NewGuid().GetHashCode() & int.MaxValue;
         private void OnDestroy()
         {
+            if (_heraldRoute != null) _heraldRoute.Configure(null, null);
+            if (_horrorRoute != null) _horrorRoute.ConfigureProjectilePresentation(null, null, null, null);
             if (_heldItemRoute != null) _heldItemRoute.Configure(null, null, null, null, null);
             if (_heldItem != null) _heldItem.Teardown();
             if (_telemetry != null) _telemetry.GetComponent<TelemetryOrchestrator>()?.ConfigureHorror(null);

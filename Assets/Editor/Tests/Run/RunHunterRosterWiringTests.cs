@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
-//   - Check once-only relays, pause, lifecycle pairing and silent-to-hunters Loud Keys.
+//   - Check once-only relays, pause, lifecycle pairing and approved Loud Keys hearing.
 //   - Check world views, Echo door closure and silent mutation restoration on late hunters.
 // DEPENDENCIES:
 //   - Core, Domain managers and pure controllers, Expedition/Run/Progression, NUnit.
@@ -87,6 +87,9 @@ namespace Worsen.Tests.Run
             if (expedition != null) { Set(expedition, "_worldBound", false); expedition.ClearScene(); }
             Register(typeof(PlayerRegistry), "Unregister", player);
             foreach (var hunter in hunters) Register(typeof(HunterRegistry), "Unregister", hunter);
+            foreach (var hunter in hunters) if (hunter != null) hunter.Teardown();
+            if (floor != null) floor.Teardown();
+            if (player != null) player.Teardown();
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear(); hunters.Clear();
         }
@@ -120,18 +123,66 @@ namespace Worsen.Tests.Run
             foreach (string name in new[] { "OnSound", "OnGuidance", "OnNoise" })
                 Assert.That((Get(ticking, name) as Delegate)?.GetInvocationList().Length ?? 0, Is.Zero, name);
         }
-        [TestCase(false)] [TestCase(true)] public void LoudKeysNeverReachHuntersWithOrWithoutDirector(bool withDirector)
+        [TestCase(false)] [TestCase(true)] public void LoudKeysReachHuntersWithOrWithoutDirectorOnceAndRespectPauseAndLifetime(bool withDirector)
         {
             var a = Hunter(-1); var b = Hunter(-2); var ticking = a.gameObject.AddComponent<TickingManager>(); Set(a, "_module", ticking);
             var director = withDirector ? Component<DirectorManager>() : null; int deliveries = 0;
-            if (director != null) director.OnNoiseHintIssued += (_, __) => deliveries++;
+            if (director != null)
+            {
+                director.Initialize(Config<DirectorConfig>(), new System.Random(1), new Worsen.Domain.Chase.ChaseBehaviorState(), new FloorBehaviorState());
+                director.SetLevelView(level.ReadOnlyState); director.OnNoiseHintIssued += (_, __) => deliveries++;
+            }
             run.BindGameplay(null, null, director);
-            var noise = new NoiseEvent(player.Id, Vector3.one * 10000f, 1f, 5);
-            a.HearNoise(noise); Assert.That(((IList)Get(a.ReadOnlyState, "HeardNoises")).Count, Is.Zero);
-            Publish(ticking, "OnNoise", new TickingNoiseFact(a.Id, noise));
-            Publish(ticking, "OnNoise", new TickingNoiseFact(a.Id, noise));
-            foreach (var h in new[] { a, b }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")).Count, Is.Zero);
-            Assert.That(deliveries, Is.Zero);
+            var noise = new NoiseEvent(player.Id, Vector3.zero, 1f, 0, NoiseSourceKind.Other, NoiseOrigin.LoudKeys);
+            void Emit() => Publish(ticking, "OnNoise", new TickingNoiseFact(a.Id, noise));
+            run.SetPaused(true); Emit(); run.SetPaused(false);
+            Publish(ticking, "OnNoise", new TickingNoiseFact(new EntityId(-999), noise));
+            Publish(ticking, "OnNoise", new TickingNoiseFact(a.Id, new NoiseEvent(new EntityId(999), Vector3.zero, 1f, 0, origin: NoiseOrigin.LoudKeys)));
+            if (director != null) Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises, Is.Empty);
+            foreach (var h in new[] { a, b }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")), Is.Empty);
+            Emit(); Emit();
+            if (director != null)
+            {
+                Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises.Count, Is.EqualTo(1));
+                foreach (var h in new[] { a, b }) ((HunterController)Get(h, "_controller")).Tick(default, .02f, 1);
+                director.Tick(.02f, 1);
+            }
+            foreach (var h in new[] { a, b }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")).Count, Is.EqualTo(1));
+            Assert.That(deliveries, Is.EqualTo(withDirector ? 2 : 0));
+            run.gameObject.SetActive(false); Call(run, "OnDisable");
+            Assert.That(Get(run.HunterFacts, "TickingNoisePublished"), Is.Null);
+            Emit(); run.gameObject.SetActive(true); Call(run, "OnEnable"); Emit();
+            foreach (var h in new[] { a, b }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")).Count, Is.EqualTo(1));
+            run.DetachGameplay(); Assert.That(Get(ticking, "OnNoise"), Is.Null); Assert.That(Get(run.HunterFacts, "TickingNoisePublished"), Is.Null);
+            if (director != null) director.Teardown();
+        }
+        [Test] public void HeraldTypedRouteFansOutAgedClueOnceExcludesEmitterAndRejectsPausedAndDisabledDelivery()
+        {
+            var source = Hunter(-1); var target = Hunter(-2);
+            Set(Get(source, "_profile"), "_archetypeKey", "herald");
+            var director = Component<DirectorManager>(); director.gameObject.SetActive(true);
+            director.Initialize(Config<DirectorConfig>(), new System.Random(7), new Worsen.Domain.Chase.ChaseBehaviorState(), new FloorBehaviorState());
+            var route = Component<Worsen.Orchestrator.HeraldOrchestrator>();
+            var received = new List<HintPayload>(); director.OnHintIssued += received.Add;
+            var fact = new HeraldScreamFact(source.Id, HeraldSound.ChaseOne, "herald.chase", 1f,
+                new NoiseEvent(source.Id, Vector3.zero, 1f, 1, NoiseSourceKind.Scream),
+                new NoiseEvent(source.Id, Vector3.one * 12f, 1f, 1, NoiseSourceKind.Scream), 0, false);
+            try
+            {
+                foreach (var h in new[] { source, target }) ((HunterController)Get(h, "_controller")).Tick(default, .02f, 1);
+                route.Configure(run, director.HearHeraldBroadcast); Call(route, "OnEnable"); Call(route, "OnEnable");
+                run.SetPaused(true); Publish(run.HunterFacts, "HeraldScreamPublished", fact); run.SetPaused(false);
+                Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).HeraldBroadcasts, Is.Empty);
+                Publish(run.HunterFacts, "HeraldScreamPublished", fact); Publish(run.HunterFacts, "HeraldScreamPublished", fact);
+                director.Tick(.02f, 1);
+                Assert.That(received.Count, Is.EqualTo(1)); Assert.That(received[0].Hunter, Is.EqualTo(target.Id));
+                Assert.That(received[0].Position, Is.EqualTo(fact.FloorWideHint.Position));
+                Assert.That(received[0].ObservedTick, Is.Zero); Assert.That(received[0].AgeSeconds, Is.EqualTo(.02f));
+                foreach (var h in new[] { source, target }) Assert.That(((IList)Get(h.ReadOnlyState, "HeardNoises")), Is.Empty);
+                Call(route, "OnDisable"); Assert.That(Get(run.HunterFacts, "HeraldScreamPublished"), Is.Null);
+                Publish(run.HunterFacts, "HeraldScreamPublished", fact); Assert.That(received.Count, Is.EqualTo(1));
+            }
+            finally { Call(route, "OnDisable"); director.Teardown(); }
         }
         [Test] public void EveryHunterReceivesViewsEchoClosesDoorAndRespawnRestoresMutationSilently()
         {

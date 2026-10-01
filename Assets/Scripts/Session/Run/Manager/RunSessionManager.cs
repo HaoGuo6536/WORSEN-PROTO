@@ -37,7 +37,8 @@
 //   are committed after facts, then capture closes before input/results notification.
 //   Recovery uses the processing Run tick, not a queued hit's historical timestamp.
 //   Explicit gameplay origins gate hearing before Director or direct delivery.
-//   Pacification, pickups, hands and hunter sound facts are presentation-only.
+//   Loud Keys has its own approved hearing origin; other hunter sound facts are presentation-only.
+//   Boundary impulses are relayed to the Orchestrator, never integrated as acceleration here.
 //   Shield-only hits publish Damage=0 and telemetry health loss=0, still count as catches
 //   and keep Player's grace/boost. Other hit payloads retain their incoming damage metadata.
 //
@@ -279,6 +280,7 @@ namespace Worsen.Session.Run
         {
             UnsubscribeGameplay();
             if (shrines != null) shrines.Activated += HandleShrineActivated;
+            HunterFacts.TickingNoisePublished += HandleTickingNoise;
             if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted += WorldFacts.HandleShrineNoise;
             foreach (PlayerManager player in players)
             {
@@ -306,7 +308,7 @@ namespace Worsen.Session.Run
                 floor.OnTrapSprung += HandleTrapSprung;
                 floor.OnBlinderHit += HunterFacts.HandleBlinderHit;
                 floor.OnGuidanceChanged += FloorFacts.HandleGuidance;
-                floor.OnBoundaryContact += HandleBoundaryContact;
+                floor.OnBoundaryImpulse += HandleBoundaryImpulse;
                 floor.OnCakeLost += FloorFacts.HandleCakeLost;
                 floor.OnExitOpened += HandleExitOpened;
                 floor.OnRoomPhaseChanged += HandleRoomPhase;
@@ -325,6 +327,7 @@ namespace Worsen.Session.Run
 
         private void UnsubscribeGameplay()
         {
+            HunterFacts.TickingNoisePublished -= HandleTickingNoise;
             if (shrines != null) shrines.Activated -= HandleShrineActivated;
             if (shrineProgression != null) shrineProgression.ShrineNoiseEmitted -= WorldFacts.HandleShrineNoise;
             foreach (PlayerManager player in players)
@@ -354,7 +357,7 @@ namespace Worsen.Session.Run
                 floor.OnTrapSprung -= HandleTrapSprung;
                 floor.OnBlinderHit -= HunterFacts.HandleBlinderHit;
                 floor.OnGuidanceChanged -= FloorFacts.HandleGuidance;
-                floor.OnBoundaryContact -= HandleBoundaryContact;
+                floor.OnBoundaryImpulse -= HandleBoundaryImpulse;
                 floor.OnCakeLost -= FloorFacts.HandleCakeLost;
                 floor.OnExitOpened -= HandleExitOpened;
                 floor.OnRoomPhaseChanged -= HandleRoomPhase;
@@ -460,7 +463,7 @@ namespace Worsen.Session.Run
             players.Clear(); hunters.Clear(); pendingHits.Clear();
             chase = null; floor = null; director = null;
             BindShrines(null, null, 0, EntityId.None, null);
-            if (state != null) { state.FloorDeltaSeconds = 0f; state.PendingMimicBites.Clear(); }
+            if (state != null) { state.FloorDeltaSeconds = 0f; state.PendingMimicBites.Clear(); state.LoudKeyNoises.Clear(); }
         }
 
         private void FixedUpdate()
@@ -538,11 +541,22 @@ namespace Worsen.Session.Run
 
         private void HandleTrapSprung(FloorTrapSprungFact fact)
         { if (!IsPaused) TrapSprung?.Invoke(fact); }
-        private void HandleBoundaryContact(EntityId id, int room, Vector3 acceleration, Vector3 position, long tick)
+        private void HandleTickingNoise(TickingNoiseFact fact)
         {
-            if (IsPaused || state == null || state.FloorDeltaSeconds <= 0f) return;
-            PlayerManager player = players.Find(value => value != null && value.Id == id);
-            player?.ApplyExternalAcceleration(acceleration, state.FloorDeltaSeconds);
+            var noise = fact.Noise;
+            if (!isActiveAndEnabled || IsPaused || state == null || !state.SceneIsReady || state.Phase == RunPhase.Ended ||
+                noise.Origin != NoiseOrigin.LoudKeys || noise.Tick < 0 || noise.Tick > state.Tick ||
+                !hunters.Exists(h => h != null && h.Id == fact.Hunter && h.isActiveAndEnabled && h.Ticking != null) ||
+                !players.Exists(p => p != null && p.Id == noise.Source && p.ReadOnlyState?.IsAlive == true) ||
+                !state.LoudKeyNoises.Add((fact.Hunter, noise))) return;
+            ForwardGameplayNoise(noise);
+        }
+        private void HandleBoundaryImpulse(FloorBoundaryImpulseFact fact)
+        {
+            if (!isActiveAndEnabled || IsPaused || state == null || !state.SceneIsReady ||
+                state.Phase == RunPhase.Ended || state.FloorDeltaSeconds <= 0f || fact.Tick != state.Tick ||
+                !players.Exists(p => p != null && p.Id == fact.Player && p.ReadOnlyState?.IsAlive == true)) return;
+            FloorFacts.PublishBoundaryImpulse(fact);
         }
 
         private void HandleCollapseHand(CollapseHandFact fact)

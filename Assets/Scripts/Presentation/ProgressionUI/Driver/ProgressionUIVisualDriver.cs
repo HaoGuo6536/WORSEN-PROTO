@@ -138,6 +138,8 @@ namespace Worsen.Presentation.ProgressionUI
             _retainedRow.style.flexWrap = Wrap.Wrap;
         }
 
+        public bool IsModalVisible => isActiveAndEnabled && _root != null && _modal != null &&
+            _root.style.display.value != DisplayStyle.None && _modal.style.display.value != DisplayStyle.None;
         public void Apply(ProgressionUIDriverState state)
         {
             _state = state;

@@ -7,7 +7,7 @@
 //   Editor tool (§11 tests) · Core · hearing policy.
 // KEY RESPONSIBILITIES:
 //   - Reject world, Pacification, presentation, false-positive and unknown origins.
-//   - Admit movement, firecracker and player-triggered cake traps only.
+//   - Admit movement, firecracker, player-triggered cake traps and Loud Keys only.
 // DEPENDENCIES:
 //   - NUnit, Core values and Unity value types only.
 // USAGE NOTES:
@@ -26,6 +26,7 @@ namespace Worsen.Tests.Core
         [TestCase(NoiseOrigin.PlayerMovement, true)]
         [TestCase(NoiseOrigin.Firecracker, true)]
         [TestCase(NoiseOrigin.PlayerTriggeredCakeTrap, true)]
+        [TestCase(NoiseOrigin.LoudKeys, true)]
         [TestCase(NoiseOrigin.Pacification, false)]
         [TestCase(NoiseOrigin.World, false)]
         [TestCase(NoiseOrigin.Presentation, false)]

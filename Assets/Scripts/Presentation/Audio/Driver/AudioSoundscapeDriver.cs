@@ -12,7 +12,7 @@
 //   Sub-driver (§7e), owned by AudioDriver · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Apply roster cues, exact tells, zone filters and confirmed hand versus hunter death cues.
+//   - Apply roster cues and movement-only creak loops, stopping held or paused Mannequins immediately.
 //   - Enforce category budgets and spatial attenuation through the pure presentation stack.
 //   - Own pooled sources and scheduled adaptive music, releasing playback on reset/teardown.
 //   - Apply runtime gains, pause and living-state guards without altering configs.
@@ -198,7 +198,7 @@ namespace Worsen.Presentation.Audio
         public void ObserveStare(StareFact fact)
         { if (RosterReady && _rosterPresenter.Stare(_roster, fact, out var command)) PlayRoster(command); }
         public void ObserveMannequin(MannequinFact fact)
-        { if (RosterReady) _rosterPresenter.Mannequin(_roster, fact); }
+        { if (RosterReady && _rosterPresenter.Mannequin(_roster, fact, out var command)) PlayRoster(command); }
         public void ObserveHabit(HunterHabitFact fact)
         { if (RosterReady && _rosterPresenter.Habit(_roster, fact, out var command)) PlayRoster(command); }
         public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick)
@@ -263,7 +263,7 @@ namespace Worsen.Presentation.Audio
             bool protect = command.Slot == HunterCueSlot.Presence || command.Slot == HunterCueSlot.AttackTiming;
             var entry = new AudioCueCatalogueEntry(CueCategory.Hunter, (int)command.Slot,
                 local ? (NoiseSourceKind?)null : NoiseSourceKind.Other, protect, command.Exact);
-            bank.Loop = false; bank.Spatial = !local;
+            bank.Loop = command.Id == "mannequin.creak"; bank.Spatial = !local;
             if (command.Exact) { bank.PitchMinimum = bank.PitchMaximum = command.Pitch; bank.GainVariation = 0f; bank.Cooldown = 0f; }
             var durations = new float[bank.Clips != null ? bank.Clips.Length : 0];
             for (int i = 0; i < durations.Length; i++) durations[i] = bank.Clips[i] != null ? bank.Clips[i].length : 0f;
@@ -381,7 +381,15 @@ namespace Worsen.Presentation.Audio
             SetRuntimeGains(volume.Linear(designerMaster) * volume.SourceGain(settings.MasterVolume, master),
                 volume.SourceGain(settings.MusicVolume, music), volume.SourceGain(settings.EffectsVolume, effects));
         }
-        public void SetPaused(bool paused) { if (_state != null) _state.Paused = paused; }
+        public void SetPaused(bool paused)
+        {
+            if (_state == null) return;
+            _state.Paused = paused;
+            if (!paused) return;
+            for (int i = 0; i < _state.Voices.Length; i++)
+                if (_state.Voices[i].Loop && _roster.Archetypes.TryGetValue(new EntityId(_state.Voices[i].Emitter), out var key) &&
+                    key == "mannequin") StopVoice(i);
+        }
         public void SetRuntimeGains(float master, float music, float effects)
         {
             if (_state == null) return;

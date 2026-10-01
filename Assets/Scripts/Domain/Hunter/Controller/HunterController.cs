@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (section 2) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Maintain observable sight, hearing, light and imperfect pursuit memory.
+//   - Maintain sight, hearing and imperfect memory, including aged typed Herald clues.
 //   - Coordinate route commitments and retreat with attack and habit decisions.
 //   - Sequence archetypes, with an opt-in replay bypass of sensing/planning/reactions.
 //   - Route mutations and contact admission to their focused Controllers.
@@ -648,6 +648,17 @@ namespace Worsen.Domain.Hunter
             hit = new HunterHit(_state.Id, target, _profile.LungeDamage, _state.Tick, _state.Position,
                 ChaseEndReason.Unknown, HitSeverity.Heavy, HitSource.Other);
             return true;
+        }
+        public bool HearHeraldBroadcast(HeraldScreamFact fact, out HintPayload hint)
+        {
+            hint = default;
+            if (!_state.IsActive || !_player.IsAlive || KinematicReplay != null || fact.Hunter == _state.Id ||
+                !fact.Hunter.IsValid || fact.Noise.Source != fact.Hunter || fact.FloorWideHint.Source != fact.Hunter ||
+                fact.ObservedTick < 0 || fact.ObservedTick > fact.Noise.Tick || fact.Noise.Tick > _state.Tick ||
+                fact.Sound == HeraldSound.DrawnBreath || !Finite(_state.DeltaTime) || _state.DeltaTime <= 0f) return false;
+            hint = new HintPayload(_state.Id, _state.TargetId, fact.ObservedTick, _state.Tick,
+                fact.FloorWideHint.Position, (_state.Tick - fact.ObservedTick) * _state.DeltaTime, 0f);
+            return ReceiveHint(hint);
         }
         public bool ReceiveHint(HintPayload hint)
         {

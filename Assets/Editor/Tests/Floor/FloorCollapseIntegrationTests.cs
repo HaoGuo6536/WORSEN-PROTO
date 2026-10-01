@@ -46,7 +46,7 @@ namespace Worsen.Tests.Floor
                 fixture.Open();
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
                 int count = fixture.Root.GetComponentsInChildren<Transform>(true).Length;
-                var cues = new List<CueId>(); fixture.Driver.CollapseCue += (cue, position) => cues.Add(cue);
+                var cues = new List<CueId>(); fixture.Driver.CollapseCue += (cue, position, roomId) => cues.Add(cue);
                 fixture.Manager.Tick(4f, 1);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Tearing));
                 Assert.That(fixture.Player.Health, Is.EqualTo(100f));
@@ -95,7 +95,7 @@ namespace Worsen.Tests.Floor
                 Assert.That(room.GetComponent<BoxCollider>().enabled, Is.True);
                 fixture.Move(fixture.Origin + Vector3.right * 6.25f);
                 var facts = new List<CollapseHandEventKind>(); int deaths = 0;
-                var cues = new List<CueId>(); fixture.Driver.CollapseCue += (cue, point) => cues.Add(cue);
+                var cues = new List<CueId>(); fixture.Driver.CollapseCue += (cue, point, roomId) => cues.Add(cue);
                 int noises = 0;
                 fixture.Manager.OnHandNoise += noise => { noises++; Assert.That(noise.Loudness, Is.GreaterThan(0f)); };
                 fixture.Manager.OnCollapseHand += fact =>
@@ -150,23 +150,27 @@ namespace Worsen.Tests.Floor
             }
         }
         [Test]
-        public void BoundarySpringPublishesDuringCooldownAndDisabledActorReleasesGrab()
+        public void BoundaryImpulsePublishesOnlyOnEntryAndReentryAndDisabledActorReleasesGrab()
         {
             using (var fixture = new Fixture())
             {
                 fixture.Open(); fixture.Manager.Tick(14f, 1);
                 fixture.Move(fixture.Origin + Vector3.right * 5.8f);
-                var accelerations = new List<Vector3>();
+                var impulses = new List<FloorBoundaryImpulseFact>();
                 var facts = new List<CollapseHandEventKind>();
-                fixture.Manager.OnBoundaryContact += (id, room, acceleration, point, tick) => accelerations.Add(acceleration);
+                fixture.Manager.OnBoundaryImpulse += impulses.Add;
                 fixture.Manager.OnCollapseHand += fact => facts.Add(fact.Kind);
                 fixture.Manager.Tick(0f, 2);
-                fixture.Move(fixture.Origin + Vector3.right * 5f);
                 fixture.Manager.Tick(0.7f, 3);
-                Assert.That(accelerations[1].x, Is.GreaterThan(accelerations[0].x));
+                Assert.That(impulses.Count, Is.EqualTo(1), "Continued contact is not acceleration.");
+                Assert.That(impulses[0].Velocity.magnitude, Is.EqualTo(FloorCollapseHazardConfig.DefaultBounceSpeed));
                 fixture.Actor.GetComponent<Collider>().enabled = false;
                 fixture.Manager.Tick(0.1f, 4);
                 Assert.That(facts.Last(), Is.EqualTo(CollapseHandEventKind.Escaped));
+                fixture.Actor.GetComponent<Collider>().enabled = true;
+                fixture.Move(fixture.Origin + Vector3.right * 8f); fixture.Manager.Tick(0f, 5);
+                fixture.Move(fixture.Origin + Vector3.right * 5.8f); fixture.Manager.Tick(0f, 6);
+                Assert.That(impulses.Count, Is.EqualTo(2));
             }
         }
         [TestCase(false)] [TestCase(true)]

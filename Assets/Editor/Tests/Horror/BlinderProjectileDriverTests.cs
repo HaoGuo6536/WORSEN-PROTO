@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies native projectile rendering objects and symmetric cleanup.
-//   It exercises the sub-driver directly as a component test, not production routing.
+//   It exercises the component and the owning Manager/Driver command boundary.
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Horror.
 // KEY RESPONSIBILITIES:
@@ -53,5 +53,35 @@ namespace Worsen.Tests.Horror
             }
             finally { driver.Teardown(); Object.DestroyImmediate(owner); Object.DestroyImmediate(config); }
         }
+        [Test] public void HorrorOwnerForwardsLaunchHitTickClearAndReleasesItsProjectileChild()
+        {
+            var owner = new GameObject("Blinder owner routing fixture"); owner.SetActive(false);
+            var manager = owner.AddComponent<HorrorManager>(); var driver = owner.GetComponent<HorrorDriver>();
+            var child = new GameObject("Owned test Blinder"); child.transform.SetParent(owner.transform);
+            var projectile = child.AddComponent<BlinderProjectileDriver>();
+            var atmosphereObject = new GameObject("Uninitialized atmosphere boundary"); atmosphereObject.transform.SetParent(owner.transform);
+            var atmosphere = atmosphereObject.AddComponent<HorrorAtmosphereDriver>();
+            var config = ScriptableObject.CreateInstance<HorrorDriverConfig>();
+            try
+            {
+                Set(config, "_webShader", Shader.Find("Sprites/Default"));
+                projectile.Initialize(config);
+                owner.SetActive(true);
+                Set(manager, "_driver", driver); Set(driver, "_state", new HorrorDriverState { OwnerEnabled = true });
+                Set(driver, "_blinder", projectile); Set(driver, "_atmosphere", atmosphere);
+                Set(driver, "_config", config); Set(driver, "_presenter", new HorrorPresenter());
+                var shot = new BlinderThrowFact(new EntityId(7), 1, 2, Vector3.zero, Vector3.forward, .06f, 12f, 16f);
+                manager.LaunchProjectile(shot); Assert.That(projectile.VisualCount, Is.EqualTo(1));
+                manager.TickProjectiles(.1f); Assert.That(child.GetComponentInChildren<MeshRenderer>().transform.position.z, Is.EqualTo(1.2f).Within(.001f));
+                manager.HitProjectile(new BlinderHitFact(new EntityId(7), new EntityId(1), 2, 2, 3f, false));
+                Assert.That(projectile.VisualCount, Is.Zero);
+                manager.LaunchProjectile(shot); manager.ClearProjectiles(); Assert.That(projectile.VisualCount, Is.Zero);
+                manager.LaunchProjectile(shot); manager.enabled = false; Assert.That(projectile.VisualCount, Is.Zero);
+                manager.Teardown(); Assert.That(child == null, Is.True);
+            }
+            finally { manager.Teardown(); Object.DestroyImmediate(owner); Object.DestroyImmediate(config); }
+        }
+        private static void Set(object target, string name, object value) =>
+            target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
     }
 }

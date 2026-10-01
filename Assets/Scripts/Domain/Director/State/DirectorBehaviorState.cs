@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Store accumulated evaluation time and bounded per-player position buffers.
 //   - Keep pressure gaps separate from repeated hint and intrusion scheduling.
-//   - Retain independent continuous pursuit timers and deduplicate routed noises.
+//   - Retain pursuit timers, ordinary noise receipts and pending typed Herald broadcasts.
 // DEPENDENCIES:
 //   - Core identities and Director-local data definitions only.
 // USAGE NOTES:
@@ -33,6 +33,8 @@ namespace Worsen.Domain.Director
         public Dictionary<EntityId, DirectorPursuitBehaviorState> Pursuits { get; } = new Dictionary<EntityId, DirectorPursuitBehaviorState>();
         public List<NoiseEvent> Noises { get; } = new List<NoiseEvent>();
         public List<NoiseEvent> DeliveredNoises { get; } = new List<NoiseEvent>();
+        public List<HeraldScreamFact> HeraldBroadcasts { get; } = new List<HeraldScreamFact>();
+        public Dictionary<EntityId, long> HeraldTicks { get; } = new Dictionary<EntityId, long>();
     }
     public sealed class DirectorPursuitBehaviorState
     {

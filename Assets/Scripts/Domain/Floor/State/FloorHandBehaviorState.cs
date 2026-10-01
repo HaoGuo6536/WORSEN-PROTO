@@ -9,7 +9,7 @@
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Keep the floor's single Wax Heart charge separate from consumable Wax Wards.
-//   - Keep collapse presentation aligned with the staged gameplay hazard.
+//   - Retain independent player/room boundary contacts until exit or floor reset.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
@@ -28,6 +28,7 @@ namespace Worsen.Domain.Floor
     {
         public readonly Dictionary<EntityId, FloorHandContactBehaviorState> Contacts = new Dictionary<EntityId, FloorHandContactBehaviorState>();
         public readonly HashSet<EntityId> WaxWards = new HashSet<EntityId>();
+        public readonly HashSet<(EntityId Player, int Room)> BoundaryContacts = new HashSet<(EntityId, int)>();
         public bool WaxHeartAvailable;
     }
     public sealed class FloorHandContactBehaviorState

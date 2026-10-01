@@ -30,12 +30,12 @@
 //   the entire owning room conservatively until exact door bounds are published by Level.
 //   Run's typed HunterFacts channel supplies authoritative Afterglow windows.
 //   Safety is never inferred here; subscriptions use the same channel on teardown.
-//   Blinder commands are bound to HorrorManager by scene composition when that
-//   owner exposes them. Never bind the sub-driver directly across its owner boundary.
+//   Scene composition binds Blinder commands to HorrorManager, never to its sub-driver.
 // ============================================================================
 using UnityEngine;
 using System.Collections.Generic;
 using Worsen.Domain.Level;
+using Worsen.Domain.Player;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Horror;
@@ -91,6 +91,8 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            _run.FloorFacts.BoundaryImpulsePublished += OnBoundaryImpulse;
+            _run.PauseChanged += OnPause;
             PairAfterglow(true);
             _run.HunterFacts.WeaverFactPublished += OnWeaver;
             _run.HunterFacts.BlinderThrowPublished += OnBlinderThrow;
@@ -122,6 +124,7 @@ namespace Worsen.Orchestrator
             PairAfterglow(false);
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
+            if (_run != null) { _run.FloorFacts.BoundaryImpulsePublished -= OnBoundaryImpulse; _run.PauseChanged -= OnPause; }
             if (_run != null) _run.HunterFacts.WeaverFactPublished -= OnWeaver;
             if (_run != null) { _run.HunterFacts.BlinderThrowPublished -= OnBlinderThrow; _run.HunterFacts.BlinderHitPublished -= OnBlinderHit; }
             if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
@@ -186,8 +189,15 @@ namespace Worsen.Orchestrator
         }
         private void OnAttack(HunterAttackSample sample) => _horror.SetAttack(sample);
         private void OnWeaver(WeaverFact fact) => _horror.ObserveWeaver(fact);
-        private void OnBlinderThrow(BlinderThrowFact fact) => _blinderThrow?.Invoke(fact);
-        private void OnBlinderHit(BlinderHitFact fact) => _blinderHit?.Invoke(fact);
+        private void OnBlinderThrow(BlinderThrowFact fact) { if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && fact.Tick == _run.Tick) _blinderThrow?.Invoke(fact); }
+        private void OnBlinderHit(BlinderHitFact fact) { if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && fact.Tick == _run.Tick) _blinderHit?.Invoke(fact); }
+        private void OnPause(bool paused) { if (paused) _blinderClear?.Invoke(); }
+        private void OnBoundaryImpulse(FloorBoundaryImpulseFact fact)
+        {
+            if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && fact.Tick == _run.Tick &&
+                PlayerRegistry.TryGet(fact.Player, out var player) && player.isActiveAndEnabled && player.ReadOnlyState?.IsAlive == true)
+                player.ApplyExternalVelocity(fact.Velocity, ExternalMotionKind.Impulse);
+        }
         private void OnChaseStarted(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, true);
         private void OnChaseEnded(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, false);
         private void OnMicroEventProximity(ProximitySample sample) => _horror.ObserveMicroEventProximity(sample);
@@ -199,7 +209,10 @@ namespace Worsen.Orchestrator
             _horror.ReportMicroEvent(kind, target, position, seconds, applied);
         }
         private void OnTickAdvanced(InputFrame frame, float deltaSeconds, long tick)
-        { _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled); _horror.AdvanceRunClock(deltaSeconds); _blinderTick?.Invoke(deltaSeconds); }
+        {
+            if (_run == null || _run.IsPaused || _run.Phase == RunPhase.Ended || tick != _run.Tick) return;
+            _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled); _horror.AdvanceRunClock(deltaSeconds); _blinderTick?.Invoke(deltaSeconds);
+        }
         private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation, string choiceId)
         {
             if (operation != ProgressionOperation.StartRun) return;

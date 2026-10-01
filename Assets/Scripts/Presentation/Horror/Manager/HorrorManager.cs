@@ -11,7 +11,7 @@
 //   Manager (§1) · Presentation · Horror (Service system).
 //
 // KEY RESPONSIBILITIES:
-//   - Forward room collapse, Weaver warnings and authoritative Afterglow windows.
+//   - Forward room collapse, Blinder flights, Weaver warnings and Afterglow windows.
 //   - Forward injected candidates/effects and publish micro-event outcomes.
 //   - Forward authoritative aim and afterimages without taking gameplay ownership.
 //   - Forward resets, clock deltas, startle admission and lighting hooks.
@@ -100,6 +100,11 @@ namespace Worsen.Presentation.Horror
         public void ObserveWeaver(WeaverFact fact)
         { if (_driver != null && isActiveAndEnabled) _driver.ObserveWeaver(fact); }
         public void RemoveAttack(EntityId hunter) { if (_driver != null) _driver.RemoveAttack(hunter); }
+        public void LaunchProjectile(BlinderThrowFact fact) { if (_driver != null && isActiveAndEnabled) _driver.LaunchProjectile(fact); }
+        public void HitProjectile(BlinderHitFact fact) { if (_driver != null && isActiveAndEnabled) _driver.HitProjectile(fact); }
+        public void TickProjectiles(float delta) { if (_driver != null && isActiveAndEnabled) _driver.TickProjectiles(delta); }
+        public void ClearProjectiles() { if (_driver != null) _driver.ClearProjectiles(); }
+        public void Teardown() { OnDisable(); if (_driver != null) _driver.Teardown(); }
 
         private void OnEnable()
         {
@@ -120,6 +125,6 @@ namespace Worsen.Presentation.Horror
         private void OnMicroEventSelected(int kind, int target, Vector3 position, float seconds)
             => MicroEventSelected?.Invoke(kind, target, position, seconds);
         private void OnLightingHooksChanged(float torches, bool wick) => LightingHooksChanged?.Invoke(torches, wick);
-        private void OnDestroy() { if (_driver != null) _driver.Teardown(); }
+        private void OnDestroy() => Teardown();
     }
 }

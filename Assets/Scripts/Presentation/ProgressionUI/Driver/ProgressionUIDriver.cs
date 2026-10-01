@@ -50,6 +50,8 @@ namespace Worsen.Presentation.ProgressionUI
         private VisualElement _boundRoot;
         private IVisualElementScheduledItem _focusTask;
         private bool _ownsVisual;
+        public bool IsModalVisible => isActiveAndEnabled && _document != null && _document.isActiveAndEnabled &&
+            _boundRoot != null && ReferenceEquals(_boundRoot, _document.rootVisualElement) && _visual != null && _visual.IsModalVisible;
 
         public event Action<string, int> ThreatChosen;
         public event Action<string, int> CurseChosen;

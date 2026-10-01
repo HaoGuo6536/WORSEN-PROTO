@@ -71,6 +71,22 @@ namespace Worsen.Tests.Floor
             var config = (FloorConfig)FormatterServices.GetUninitializedObject(typeof(FloorConfig));
             _controller = new FloorHandController(new FloorHandBehaviorState(), config);
         }
+        [Test] public void BoundaryContactsAreIndependentPerPlayerAndRoomAndResetOnExitDeathAndFloorReset()
+        {
+            FloorHandProbe Probe(int room) => new FloorHandProbe(room, 0, Vector3.one, .2f, true, Vector3.right, closed: true);
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 3, Probe(3), 1, out var fact), Is.True);
+            Assert.That(fact.Velocity, Is.EqualTo(Vector3.right * FloorCollapseHazardConfig.DefaultBounceSpeed));
+            Assert.That(fact.Player, Is.EqualTo(_player)); Assert.That(fact.Room, Is.EqualTo(3)); Assert.That(fact.Tick, Is.EqualTo(1));
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 3, Probe(3), 2, out _), Is.False);
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 4, Probe(4), 2, out _), Is.True);
+            Assert.That(_controller.TryBoundaryEntry(new EntityId(2), true, 3, Probe(3), 2, out _), Is.True);
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 3, default, 3, out _), Is.False);
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 3, Probe(3), 4, out _), Is.True);
+            Assert.That(_controller.TryBoundaryEntry(_player, false, 3, Probe(3), 5, out _), Is.False);
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 3, Probe(3), 6, out _), Is.True);
+            _controller.Reset();
+            Assert.That(_controller.TryBoundaryEntry(_player, true, 3, Probe(3), 0, out _), Is.True);
+        }
         private CollapseHandFact Step(float dt, long tick, FloorHandProbe? probe = null, bool alive = true)
         { Assert.That(_controller.Tick(_player, alive, probe ?? Near, dt, tick, out var fact), Is.True); return fact; }
         [Test] public void LargeFirstObservationOnlyWarnsWithoutImmediateSlowOrDamage()

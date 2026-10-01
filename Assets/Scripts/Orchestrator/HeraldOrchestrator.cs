@@ -37,6 +37,7 @@ namespace Worsen.Orchestrator
         private void OnDisable()
         { if (_run != null) _run.HunterFacts.HeraldScreamPublished -= OnScream; }
         private void OnDestroy() => OnDisable();
-        private void OnScream(HeraldScreamFact fact) => _broadcast(fact);
+        private void OnScream(HeraldScreamFact fact)
+        { if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended) _broadcast?.Invoke(fact); }
     }
 }

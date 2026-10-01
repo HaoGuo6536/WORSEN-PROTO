@@ -35,6 +35,9 @@ namespace Worsen.Session.Run
         public event Action<IReadOnlyList<GuidanceTarget>> GuidanceChanged;
         public event Action<int, int, PickupKind, long> CakeLost;
         public event Action<RoomPhaseChangedFact> RoomPhaseChanged;
+        public event Action<FloorBoundaryImpulseFact> BoundaryImpulsePublished;
+        internal void PublishBoundaryImpulse(FloorBoundaryImpulseFact fact)
+        { if (!isPaused()) BoundaryImpulsePublished?.Invoke(fact); }
 
         internal void HandleRoomDestruction(RoomDestructionSample sample) { if (!isPaused()) RoomDestructionPublished?.Invoke(sample); }
         internal void HandleGuidance(IReadOnlyList<GuidanceTarget> targets) { if (!isPaused()) GuidanceChanged?.Invoke(targets); }
@@ -47,6 +50,7 @@ namespace Worsen.Session.Run
         {
             PickupCollected = null; RoomDestructionPublished = null;
             GuidanceChanged = null; CakeLost = null; RoomPhaseChanged = null;
+            BoundaryImpulsePublished = null;
         }
     }
 }

@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Smooth collapse facts into fog and torch-budget outputs.
-//   - Release floor-local Weaver, Afterglow and detached Lumen rigs on regeneration.
+//   - Own and release floor-local Blinder, Weaver, Afterglow and detached Lumen rigs.
 //   - Own micro-events and republish decisions and lighting changes.
 //   - Sequence atmosphere, ambience and attack-cue engine boundaries.
 //   - Advance presentation with injected time and preserve run-wide startle admission.
@@ -53,6 +53,7 @@ namespace Worsen.Presentation.Horror
         private HorrorAmbienceDriver _ambience;
         private HorrorMicroEventDriver _micro;
         private HorrorWebDriver _web;
+        private BlinderProjectileDriver _blinder;
         private HorrorAfterglowDriver _afterglow;
         // DriverState (§7c): retained diagnostic, separate from resettable atmosphere state.
         private sealed class ShaderReferenceDriverState { public bool Reported; }
@@ -97,6 +98,9 @@ namespace Worsen.Presentation.Horror
             var webObject = new GameObject("Owned Weaver visuals");
             webObject.transform.SetParent(transform, false);
             _web = webObject.AddComponent<HorrorWebDriver>(); _web.Initialize(_config);
+            var blinderObject = new GameObject("Owned Blinder visuals");
+            blinderObject.transform.SetParent(transform, false);
+            _blinder = blinderObject.AddComponent<BlinderProjectileDriver>(); _blinder.Initialize(_config);
             var microObject = new GameObject("Owned horror micro-events");
             microObject.transform.SetParent(transform, false);
             _micro = microObject.AddComponent<HorrorMicroEventDriver>();
@@ -127,6 +131,7 @@ namespace Worsen.Presentation.Horror
         {
             if (_state == null) return;
             _state.OwnerEnabled = value;
+            if (_blinder != null) { _blinder.enabled = value && isActiveAndEnabled; if (!value) _blinder.Reset(); }
             if (_web != null) _web.enabled = value && isActiveAndEnabled;
             if (_afterglow != null) _afterglow.enabled = value && isActiveAndEnabled;
             if (_micro != null) _micro.enabled = value && isActiveAndEnabled;
@@ -268,6 +273,7 @@ namespace Worsen.Presentation.Horror
 
         public void ResetRound()
         {
+            ClearProjectiles();
             if (_state == null) return;
             if (_web != null) _web.Reset();
             if (_afterglow != null) _afterglow.Clear();
@@ -284,6 +290,7 @@ namespace Worsen.Presentation.Horror
 
         public void Teardown()
         {
+            if (_blinder != null) { _blinder.Teardown(); DestroyOwned(_blinder.gameObject); _blinder = null; }
             if (_afterglow != null) { _afterglow.Clear(); DestroyOwned(_afterglow.gameObject); _afterglow = null; }
             if (_web != null) { _web.Teardown(); DestroyOwned(_web.gameObject); _web = null; }
             if (_micro != null)
@@ -324,6 +331,7 @@ namespace Worsen.Presentation.Horror
 
         private void OnEnable()
         {
+            if (_blinder != null) _blinder.enabled = _state != null && _state.OwnerEnabled;
             if (_afterglow != null) _afterglow.enabled = _state != null && _state.OwnerEnabled;
             if (_web != null) _web.enabled = _state != null && _state.OwnerEnabled;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.Selected += OnMicroEventSelected; }
@@ -337,6 +345,8 @@ namespace Worsen.Presentation.Horror
         }
         private void OnDisable()
         {
+            ClearProjectiles();
+            if (_blinder != null) _blinder.enabled = false;
             if (_afterglow != null) _afterglow.enabled = false;
             if (_web != null) _web.enabled = false;
             if (_micro != null) { _micro.Selected -= OnMicroEventSelected; _micro.enabled = false; }
@@ -345,6 +355,12 @@ namespace Worsen.Presentation.Horror
             if (_ambience != null) _ambience.SetOwnerEnabled(false);
             foreach (HorrorAttackCueDriver cue in _state.Cues.Values) if (cue != null) cue.Stop();
         }
+        public void LaunchProjectile(BlinderThrowFact fact)
+        { if (_state != null && _state.OwnerEnabled && isActiveAndEnabled && _blinder != null) _blinder.Observe(fact); }
+        public void HitProjectile(BlinderHitFact fact) { if (_blinder != null) _blinder.ObserveHit(fact); }
+        public void TickProjectiles(float delta)
+        { if (_state != null && _state.OwnerEnabled && isActiveAndEnabled && _blinder != null) _blinder.Tick(delta); }
+        public void ClearProjectiles() { if (_blinder != null) _blinder.Reset(); }
         private void OnDestroy() => Teardown();
         private static void DestroyOwned(Object target)
         {

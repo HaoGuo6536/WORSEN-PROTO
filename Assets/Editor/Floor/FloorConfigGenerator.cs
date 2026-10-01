@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Build Floor assets and serialize surface/mist shader references for player builds.
+//   - Build shared collapse hazard and Floor assets with player-build shader references.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Common SetupKit owns checked serialized wiring and asset-folder creation.
@@ -29,6 +29,7 @@ namespace Worsen.Editor.Floor
     {
         public const string ConfigPath = "Assets/Resources/ScriptableObjects/Domain/Floor/FloorConfig.asset";
         public const string DriverConfigPath = "Assets/Resources/ScriptableObjects/Domain/Floor/FloorDriverConfig.asset";
+        public const string HazardConfigPath = "Assets/Resources/ScriptableObjects/Domain/Floor/FloorCollapseHazardConfig.asset";
         public const string PrefabPath = "Assets/Prefabs/Floor/Floor.prefab";
         public const string GeneratedRootName = "Generated Floor System";
 
@@ -40,6 +41,7 @@ namespace Worsen.Editor.Floor
             RequireEditor();
             var config = EnsureAsset<FloorConfig>(ConfigPath);
             var driverConfig = EnsureAsset<FloorDriverConfig>(DriverConfigPath);
+            var hazard = EnsureAsset<FloorCollapseHazardConfig>(HazardConfigPath);
             ConfigureShaders(driverConfig);
             EnsureFolder("Assets/Prefabs/Floor");
             bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null;
@@ -51,8 +53,10 @@ namespace Worsen.Editor.Floor
                 var manager = root.GetComponent<FloorManager>();
                 if (manager == null) manager = root.AddComponent<FloorManager>();
                 Wire(driver, "_config", driverConfig); Wire(manager, "_driver", driver); Wire(manager, "_config", config);
+                Wire(manager, "_hazardConfig", hazard);
                 if (PrefabUtility.SaveAsPrefabAsset(root, PrefabPath) == null) throw new InvalidOperationException("Floor prefab save failed.");
                 AssetDatabase.SaveAssetIfDirty(config); AssetDatabase.SaveAssetIfDirty(driverConfig);
+                AssetDatabase.SaveAssetIfDirty(hazard);
             }
             finally
             {

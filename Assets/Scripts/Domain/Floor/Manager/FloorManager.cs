@@ -24,13 +24,14 @@
 //   OnExitReached is the sole escape fact, admitted only after normal opening.
 //   Session routes Mimic facts to ReceiveMimic and effect snapshots to SetActiveEffects;
 //   no Hunter dependency or cross-system subscription is introduced here.
-//   OnBoundaryContact carries player, room, outward acceleration (m/s squared),
-//   boundary point and tick. Player's motion owner must enforce the boundary; Floor
-//   never writes a foreign Transform or Rigidbody. Hit throw travels with OnCollapseHand.
+//   OnBoundaryImpulse carries entry/re-entry velocity, never continuous acceleration.
+//   One hazard config is injected into logic and visuals. Mixer wiring is injected
+//   as a Unity audio type; Floor never references the Presentation layer.
 // ============================================================================
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 using Worsen.Core;
 using Worsen.Domain.Level;
 using Worsen.Domain.Player;
@@ -43,6 +44,8 @@ namespace Worsen.Domain.Floor
     {
         [SerializeField] private FloorDriver _driver;
         [SerializeField] private FloorConfig _config;
+        [SerializeField] private FloorCollapseHazardConfig _hazardConfig = null;
+        private AudioMixerGroup _effectsGroup;
         private FloorBehaviorState _state;
         private FloorController _controller;
         private FloorHandController _hands;
@@ -65,7 +68,8 @@ namespace Worsen.Domain.Floor
         public event Action<NoiseEvent> OnTrapNoise;
         public event Action<IReadOnlyList<GuidanceTarget>> OnGuidanceChanged;
         public event Action<int, int, PickupKind, long> OnCakeLost;
-        public event Action<EntityId, int, Vector3, Vector3, long> OnBoundaryContact;
+        public event Action<FloorBoundaryImpulseFact> OnBoundaryImpulse;
+        public event Action<CueId, Vector3, int> CollapseCue;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<FloorDriver>(); }
         public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random,
@@ -77,6 +81,7 @@ namespace Worsen.Domain.Floor
             Teardown();
             if (config != null) _config = config;
             if (_config == null) throw new ArgumentNullException(nameof(config));
+
             if (_driver == null) _driver = GetComponent<FloorDriver>();
             _state = new FloorBehaviorState();
             try
@@ -84,9 +89,10 @@ namespace Worsen.Domain.Floor
                 _controller = new FloorController(_state, _config, random);
                 _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks, waxHeart,
                     preferredAnchors, earlyCollapseRooms, optionalGoldenCakeCount);
-                _hands = new FloorHandController(_state.Hands, _config);
+                _hands = new FloorHandController(_state.Hands, _config, _hazardConfig);
                 _guidance = new FloorGuidanceController(new FloorGuidanceBehaviorState());
-                _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps);
+                _driver.ConfigureTrapAudio(_effectsGroup);
+                _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps, _hazardConfig);
                 SetHandLook(handLook);
                 if (isActiveAndEnabled) OnEnable();
                 RefreshCue();
@@ -102,6 +108,8 @@ namespace Worsen.Domain.Floor
             return _controller != null && _controller.SolvePuzzle(puzzleId, roomId, anchorId, out _);
         }
         public void SetHandLook(string look) => _driver?.SetHandLook(look);
+        public void ConfigureTrapAudio(AudioMixerGroup effectsGroup)
+        { _effectsGroup = effectsGroup; if (_driver != null) _driver.ConfigureTrapAudio(effectsGroup); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
         {
             if (_guidance == null) return;
@@ -263,6 +271,7 @@ namespace Worsen.Domain.Floor
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup; _driver.PickupContact += HandlePickup;
             _driver.TrapContact -= HandleTrap; _driver.TrapContact += HandleTrap;
+            _driver.CollapseCue -= HandleCollapseCue; _driver.CollapseCue += HandleCollapseCue;
 
             _driver.ExitContact -= HandleExit; _driver.ExitContact += HandleExit;
 
@@ -273,6 +282,7 @@ namespace Worsen.Domain.Floor
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup;
             _driver.TrapContact -= HandleTrap;
+            _driver.CollapseCue -= HandleCollapseCue;
 
             _driver.ExitContact -= HandleExit;
 
@@ -280,6 +290,8 @@ namespace Worsen.Domain.Floor
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => Collect(Resolve(other), anchor, kind);
         private void HandleTrap(Collider other, int anchor) => SpringTrap(Resolve(other), anchor);
+        private void HandleCollapseCue(CueId cue, Vector3 position, int roomId)
+        { if (_controller != null && isActiveAndEnabled) CollapseCue?.Invoke(cue, position, roomId); }
 
         private void HandleExit(Collider other) => ContactExit(Resolve(other));
         private static EntityId Resolve(Collider other) => other != null ? other.GetComponentInParent<IEntityHandle>()?.Id ?? EntityId.None : EntityId.None;
@@ -330,11 +342,13 @@ namespace Worsen.Domain.Floor
                 }
                 if (!ReferenceEquals(owner, _controller)) return;
                 if (_state.Ended) return;
-                var boundary = _driver.QueryHand(player.Position, playerId: player.Id, closedOnly: true);
-                var acceleration = _hands.BoundaryAcceleration(boundary);
-                if (player.IsAlive && acceleration.sqrMagnitude > 0f)
-                    OnBoundaryContact?.Invoke(player.Id, boundary.RoomId, acceleration, boundary.Position, _state.Tick);
-                if (!ReferenceEquals(owner, _controller)) return;
+                foreach (var room in _state.Graph.Rooms)
+                {
+                    var boundary = _driver.QueryBoundary(player.Position, room.Id, player.Id);
+                    if (_hands.TryBoundaryEntry(player.Id, player.IsAlive, room.Id, boundary, _state.Tick, out var impulse))
+                        OnBoundaryImpulse?.Invoke(impulse);
+                    if (!ReferenceEquals(owner, _controller) || _state.Ended) return;
+                }
             }
         }
 

@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Director (Service system).
 // KEY RESPONSIBILITIES:
-//   - Gate ordinary and floor-wide hearing on explicit approved gameplay provenance.
+//   - Gate ordinary hearing on provenance; fan out typed Herald clues after all Hunter ticks.
 //   - Inject typed dependencies and snapshot registered entities for pure rules.
 //   - Deliver hints downward through HunterRegistry and publish Core facts upward.
 //   - Clear scene history, initialize atomically and stop stale publication after callbacks.
@@ -54,6 +54,12 @@ namespace Worsen.Domain.Director
         public void SetLevelView(IReadOnlyLevelState level) { _controller?.SetLevelView(level); }
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
         public void HearNoise(NoiseEvent noise) { if (HunterHearingUtility.Allows(noise)) _controller?.HearNoise(noise); }
+        public void HearHeraldBroadcast(HeraldScreamFact fact)
+        {
+            if (_controller != null && isActiveAndEnabled && HunterRegistry.TryGet(fact.Hunter, out var source) &&
+                source.isActiveAndEnabled && source.ReadOnlyState?.IsActive == true && source.ArchetypeKey == "herald")
+                _controller.HearHeraldBroadcast(fact);
+        }
         public void HearFloorWideNoise(NoiseEvent noise)
         {
             if (!HunterHearingUtility.Allows(noise)) return;
@@ -96,6 +102,16 @@ namespace Worsen.Domain.Director
                     manager.IsPursuing, manager.HearingModel));
             }
             var result = owner.Tick(tick, dt, players, hunters, _floor.ExitState == ExitState.Open);
+            foreach (var broadcast in owner.DrainHeraldBroadcasts(tick))
+            {
+                if (!ReferenceEquals(owner, _controller) || !isActiveAndEnabled) return;
+                if (!HunterRegistry.TryGet(broadcast.Hunter, out var source) || !source.isActiveAndEnabled) continue;
+                foreach (var target in HunterRegistry.Items)
+                {
+                    if (!ReferenceEquals(owner, _controller)) return;
+                    if (target != null && target.HearHeraldBroadcast(broadcast, out var delivered)) OnHintIssued?.Invoke(delivered);
+                }
+            }
             foreach (var hint in result.Hints)
             {
                 if (!ReferenceEquals(owner, _controller)) return;

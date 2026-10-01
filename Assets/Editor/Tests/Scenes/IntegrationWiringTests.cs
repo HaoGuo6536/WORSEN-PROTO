@@ -159,6 +159,7 @@ namespace Worsen.Tests.Scenes
             var run = Make<RunSessionManager>(); var expedition = Make<ExpeditionSessionManager>();
             var horror = Make<HorrorManager>(); var route = Make<HorrorOrchestrator>();
             int launches = 0, hits = 0, clears = 0; float seconds = 0f;
+            Set(run, "state", new RunSessionBehaviorState(7));
             try
             {
                 route.Configure(run, Make<ProgressionSessionManager>(), Make<InputManager>(), horror, expedition: expedition);
@@ -166,7 +167,7 @@ namespace Worsen.Tests.Scenes
                 Call(route, "OnEnable"); Call(route, "OnEnable");
                 Publish(run.HunterFacts, "BlinderThrowPublished", default(BlinderThrowFact));
                 Publish(run.HunterFacts, "BlinderHitPublished", default(BlinderHitFact));
-                Publish(run, "TickAdvanced", default(InputFrame), .25f, 1L);
+                Publish(run, "TickAdvanced", default(InputFrame), .25f, 0L);
                 Assert.That(launches, Is.EqualTo(1)); Assert.That(hits, Is.EqualTo(1)); Assert.That(seconds, Is.EqualTo(.25f));
                 int before = clears; Publish(expedition, "FloorReleased"); Assert.That(clears, Is.EqualTo(before + 1));
                 Call(route, "OnDisable"); Assert.That(Read(run.HunterFacts, "BlinderThrowPublished"), Is.Null);
