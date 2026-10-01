@@ -9,7 +9,7 @@
 //   Manager (§1), Entity system facet · Domain · Hunter Herald.
 // KEY RESPONSIBILITIES:
 //   - Register per-life rules and preserve duplicate-tick admission.
-//   - Sequence post-sense resolution, catch suspension and outward facts.
+//   - Sequence post-sense resolution, catch suspension, breath/scream poses and facts.
 // DEPENDENCIES:
 //   - Local Herald rules/config, parent Hunter contracts and Core facts.
 // USAGE NOTES:
@@ -27,13 +27,15 @@ namespace Worsen.Domain.Hunter.Archetypes.Herald
             => factory.Register<HeraldConfig, HeraldModuleManager>((config, profile, random) =>
                 new HeraldController(new HeraldBehaviorState(), config, random));
         public override bool Hold => Controller.Hold;
+        public override HunterAnimationPhase AnimationPhase => Controller.Hold ? HunterAnimationPhase.Ready : HunterAnimationPhase.None;
         public override bool PrepareTick(float dt, long tick) => tick > Controller.LastTick;
         public override void AfterSensing(HunterTickResult result) => Controller.ResolveAfterSensing();
         public override void BeginCatch() => Controller.SuspendAttack();
         public override void FinishTick() => PublishFacts();
         public override void PublishFacts()
         {
-            while (Controller.TakeScream(out HeraldScreamFact scream)) Events.Publish(scream);
+            while (Controller.TakeScream(out HeraldScreamFact scream))
+            { Driver.TriggerAnimation(HunterAnimationPhase.Attack); Events.Publish(scream); }
             while (Controller.TakeBreath(out HeraldBreathFact breath)) Events.Publish(breath);
             while (Controller.TakeHit(out HeraldDeafenFact hit)) Events.Publish(hit);
         }

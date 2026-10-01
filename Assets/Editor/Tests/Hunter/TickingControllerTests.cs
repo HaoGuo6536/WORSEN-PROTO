@@ -110,7 +110,8 @@ namespace Worsen.Tests.Hunter
             Assert.That(_clock.PlaceKey(Vector3.right * 11, true), Is.False);
             Place(); int serial = _clock.KeySerial;
             Assert.That(_clock.Guidance.Kind, Is.EqualTo(GuidanceKind.ThreatArrow));
-            Assert.That(_clock.Guidance.EntityId, Is.EqualTo(_hunter.Id)); Assert.That(_clock.Guidance.IsFallback, Is.True);
+            Assert.That(_clock.Guidance.EntityId, Is.EqualTo(_hunter.Id)); Assert.That(_clock.Guidance.IsFallback, Is.False);
+            Assert.That(_clock.GuidanceValid, Is.False, "Placement is not a current player-to-key route query.");
             Assert.That(_clock.Guidance.TargetPosition, Is.EqualTo(_clock.KeyPosition));
             Advance(60); Assert.That(_clock.KeyDue, Is.False); Assert.That(_clock.PlaceKey(Vector3.right * 8, true), Is.False);
             Assert.That(_clock.TakeKey(new EntityId(99), serial), Is.False); Assert.That(_clock.TakeKey(_player.Id, serial + 1), Is.False);

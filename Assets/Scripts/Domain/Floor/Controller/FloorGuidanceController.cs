@@ -12,6 +12,7 @@
 //   - Gate every instance by the same injected active-effect view.
 //   - Replace only an existing white arrow, preserving suppression and optional senses.
 //   - Resolve simultaneous windows deterministically without borrowing pickup identities.
+//   - Retain absolute population facts through spent poses for Session's nonrecursive spawns.
 // DEPENDENCIES:
 //   - Own BehaviorState; Core Mimic, guidance and read-only effect contracts.
 //   - UnityEngine value math only; no Hunter module or higher-layer dependency.
@@ -33,6 +34,15 @@ namespace Worsen.Domain.Floor
         public static readonly EffectId FaithlessArrow = new EffectId("mimic-faithless-arrow");
         private readonly FloorGuidanceBehaviorState _state;
         private bool Enabled => (_state.Effects?.Stacks(FaithlessArrow) ?? 0) > 0;
+        public int ExtraMimicCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (var pose in _state.Poses.Values) count = Math.Max(count, pose.ExtraCount);
+                return Math.Min(Mathf.Clamp(count, 0, 3), Mathf.Clamp(_state.Effects?.Stacks(new EffectId("mimic-more-mimics")) ?? 0, 0, 3));
+            }
+        }
 
         public FloorGuidanceController(FloorGuidanceBehaviorState state)
         { _state = state ?? throw new ArgumentNullException(nameof(state)); }
@@ -54,12 +64,18 @@ namespace Worsen.Domain.Floor
                     _state.Poses[fact.Hunter] = fact;
                     break;
                 case MimicFactKind.PoseRemoved:
-                    _state.Poses.Remove(fact.Hunter);
+                    // Keep a spent tombstone so biting cannot lose the population fact.
+                    _state.Poses[fact.Hunter] = fact;
                     _state.Windows.Remove(fact.Hunter); _state.Expiries.Remove(fact.Hunter);
+                    break;
+                case MimicFactKind.Population:
+                    if (!_state.Poses.TryGetValue(fact.Hunter, out var previous) || previous.Player != fact.Player) return false;
+                    _state.Poses[fact.Hunter] = new MimicFact(previous.Hunter, previous.Player, previous.Kind,
+                        fact.Tick, previous.Position, previous.Seconds, previous.Golden, Mathf.Clamp(fact.ExtraCount, 0, 3));
                     break;
                 case MimicFactKind.FaithlessWindow:
                     if (!Enabled || fact.Player == EntityId.None || !Finite(fact.Seconds) || fact.Seconds <= 0f ||
-                        !_state.Poses.TryGetValue(fact.Hunter, out var pose) || pose.Player != fact.Player ||
+                        !_state.Poses.TryGetValue(fact.Hunter, out var pose) || pose.Kind != MimicFactKind.Pose || pose.Player != fact.Player ||
                         _state.WindowTicks.TryGetValue(fact.Hunter, out var windowTick) && fact.Tick <= windowTick) return false;
                     _state.Windows[fact.Hunter] = fact;
                     _state.Expiries[fact.Hunter] = _state.Elapsed + fact.Seconds;
@@ -93,7 +109,7 @@ namespace Worsen.Domain.Floor
             float distance = float.PositiveInfinity;
             foreach (var pair in _state.Windows)
             {
-                if (pair.Value.Player != player || !_state.Poses.TryGetValue(pair.Key, out var pose) ||
+                if (pair.Value.Player != player || !_state.Poses.TryGetValue(pair.Key, out var pose) || pose.Kind != MimicFactKind.Pose ||
                     !_state.Expiries.TryGetValue(pair.Key, out var expiry) || expiry <= _state.Elapsed) continue;
                 var delta = pose.Position - position; delta.y = 0f;
                 float squared = delta.sqrMagnitude;

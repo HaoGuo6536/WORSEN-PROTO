@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (§7c) · Domain · Hunter shared swept-shot presentation stack.
 // KEY RESPONSIBILITIES:
-//   - Retain body/visual baselines and bounded projectile/nest records.
+//   - Retain body/visual position and rotation baselines and projectile/nest records.
 //   - Retain pooled physics buffers and the configured collision mask.
 // DEPENDENCIES:
 //   - UnityEngine passive references and parent-owned sweep values only.
@@ -27,6 +27,7 @@ namespace Worsen.Domain.Hunter
         public Vector3 CapsuleCenter;
         public readonly List<Transform> Children = new List<Transform>();
         public readonly List<Vector3> ChildPositions = new List<Vector3>();
+        public readonly List<Quaternion> ChildRotations = new List<Quaternion>();
         public float Offset;
         public readonly List<WeaverWebDriverState> Webs = new List<WeaverWebDriverState>();
     }

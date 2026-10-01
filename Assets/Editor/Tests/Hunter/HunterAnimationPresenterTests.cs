@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (section 10), test suite (section 11) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Verify speed ratios, gait hysteresis and module phase/one-shot mapping.
 //   - Keep per-life state separate from shared configuration and foreign systems.
 //   - Cover injected pose cadence, catch priority, rig fallback and independent foot weights.
 //   - Invoke the no-rig IK callback directly, without Edit Mode native message dispatch.
@@ -109,8 +109,77 @@ namespace Worsen.Tests.Hunter
         }
         [TestCase(0f, 0, 0)] [TestCase(2f, 0, 1)] [TestCase(8f, 0, 2)]
         [TestCase(0f, 1, 3)] [TestCase(18f, 2, 4)] [TestCase(0f, 3, 5)]
+        [TestCase(0f, 4, 6)] [TestCase(1f, 5, 2)]
         public void SelectsCorrectRole(float speed, int phase, int expected)
         { Assert.That(new HunterAnimationPresenter().Tick(new HunterAnimationDriverState(), 0.02f, speed, phase, 4f, 0.1f), Is.EqualTo(expected)); }
+        [TestCase(4f, 1.6f)] [TestCase(8f, 3f)] [TestCase(9f, 2.1f)]
+        [TestCase(9f, 2.8f)] [TestCase(9f, 1.3f)] [TestCase(18f, 3f)]
+        public void LocomotionMatchesAuthoredMetersPerSecond(float velocity, float stride)
+        {
+            float rate = new HunterAnimationPresenter().PlaybackRate(velocity, stride, .1f, 8f);
+            Assert.That(rate * stride, Is.EqualTo(velocity).Within(.00001f));
+        }
+        [TestCase(0f, 2f, 0f)] [TestCase(-1f, 2f, 0f)] [TestCase(float.NaN, 2f, 0f)]
+        [TestCase(float.PositiveInfinity, 2f, 0f)] [TestCase(2f, 0f, 0f)] [TestCase(2f, float.NaN, 0f)]
+        [TestCase(100f, 1f, 8f)] [TestCase(.01f, 1f, .1f)]
+        public void PlaybackRatesStayFiniteAndBounded(float velocity, float stride, float expected)
+            => Assert.That(new HunterAnimationPresenter().PlaybackRate(velocity, stride, .1f, 8f), Is.EqualTo(expected));
+        [Test] public void EchoAtPlayerWalkSpeedDoesNotFlickerAcrossFourMetersPerSecond()
+        {
+            var presenter = new HunterAnimationPresenter(); var state = new HunterAnimationDriverState();
+            int Step(float speed) => presenter.Tick(state, .02f, speed, 0, 4f, .1f, .5f);
+            foreach (float speed in new[] { 3.9f, 4.01f, 3.99f, 4.1f, 4.49f }) Assert.That(Step(speed), Is.EqualTo(1));
+            Assert.That(Step(4.5f), Is.EqualTo(2));
+            Assert.That(state.Weights[1], Is.GreaterThan(0f), "Walk/run crossfade, not a hard switch.");
+            Assert.That(state.Weights[2], Is.GreaterThan(0f));
+            foreach (float speed in new[] { 4.1f, 3.99f, 4.01f, 3.5f }) Assert.That(Step(speed), Is.EqualTo(2));
+            Assert.That(Step(3.49f), Is.EqualTo(1));
+            Assert.That(Step(0f), Is.Zero); Assert.That(state.Running, Is.False);
+        }
+        [TestCase(Worsen.Core.RamPhase.Ready, HunterAnimationPhase.None)]
+        [TestCase(Worsen.Core.RamPhase.Windup, HunterAnimationPhase.Ready)]
+        [TestCase(Worsen.Core.RamPhase.Charge, HunterAnimationPhase.Run)]
+        [TestCase(Worsen.Core.RamPhase.Stagger, HunterAnimationPhase.Hit)]
+        public void RamStampChargeAndWallStaggerUseDistinctPhases(Worsen.Core.RamPhase rule, HunterAnimationPhase expected)
+            => Assert.That(HunterAnimationPresenter.FromRamPhase(rule), Is.EqualTo(expected));
+        [TestCase(HunterAnimationPhase.Ready)] [TestCase(HunterAnimationPhase.Attack)]
+        [TestCase(HunterAnimationPhase.Hit)] [TestCase(HunterAnimationPhase.Run)]
+        public void SustainedModulePoseOverridesSharedPhaseAndResetsItsClock(HunterAnimationPhase phase)
+        {
+            var presenter = new HunterAnimationPresenter(); var state = new HunterAnimationDriverState();
+            Assert.That(presenter.ResolvePhase(state, .1f, 3, .9f, phase, 1f, 1f, 1f, out float progress), Is.EqualTo((int)phase));
+            Assert.That(progress, Is.EqualTo(.1f).Within(.000001f));
+            presenter.ResolvePhase(state, .2f, 0, 0, phase, 1f, 1f, 1f, out progress);
+            Assert.That(progress, Is.EqualTo(.3f).Within(.000001f));
+            presenter.ResolvePhase(state, .1f, 0, 0, HunterAnimationPhase.None, 1f, 1f, 1f, out _);
+            presenter.ResolvePhase(state, .1f, 0, 0, phase, 1f, 1f, 1f, out progress);
+            Assert.That(progress, Is.EqualTo(.1f).Within(.000001f));
+        }
+        [TestCase("Blinder throw")] [TestCase("Weaver release")] [TestCase("Herald scream")]
+        public void CommittedOneTickReleaseSurvivesUntilClipEndsAndCanRetrigger(string source)
+        {
+            var presenter = new HunterAnimationPresenter(); var state = new HunterAnimationDriverState();
+            presenter.Trigger(state, HunterAnimationPhase.Attack);
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.That(presenter.ResolvePhase(state, .25f, 0, 0, HunterAnimationPhase.None, 1, 1, 1, out float progress), Is.EqualTo(2), source);
+                Assert.That(progress, Is.EqualTo(i * .25f));
+            }
+            Assert.That(presenter.ResolvePhase(state, .1f, 3, .5f, HunterAnimationPhase.None, 1, 1, 1, out _), Is.EqualTo(3));
+            presenter.Trigger(state, HunterAnimationPhase.Attack);
+            presenter.ResolvePhase(state, .1f, 0, 0, HunterAnimationPhase.None, 1, 1, 1, out float reset);
+            Assert.That(reset, Is.Zero);
+            presenter.Trigger(state, HunterAnimationPhase.Hit);
+            Assert.That(presenter.ResolvePhase(state, .1f, 3, 0, HunterAnimationPhase.None, 1, 1, 1, out _), Is.EqualTo(4));
+        }
+        [Test] public void RecoveryNeverUsesTheHitMixerSlotAndEchoNeedsNoContactPhase()
+        {
+            var presenter = new HunterAnimationPresenter(); var state = new HunterAnimationDriverState();
+            int phase = presenter.ResolvePhase(state, .1f, 0, 0, HunterAnimationPhase.None, 1, 1, 1, out _);
+            Assert.That(presenter.Tick(state, .1f, 8f, phase, 4, .1f), Is.EqualTo(2));
+            Assert.That(presenter.Tick(state, .1f, 0, 3, 4, .1f), Is.EqualTo(5));
+            Assert.That(state.Weights[6], Is.Zero);
+        }
         [Test] public void RepeatedTransitionsKeepWeightsNormalizedAndSettle()
         {
             var presenter = new HunterAnimationPresenter(); var state = new HunterAnimationDriverState();

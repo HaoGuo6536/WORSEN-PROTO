@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Definitions (§5) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
-//   - Describe module lifecycle, movement and contact hooks.
+//   - Describe module lifecycle, movement, contact and sustained animation-phase hooks.
 //   - Expose optional external inputs and typed outward fact delivery.
 //   - Keep clock events and placement drivers behind shared contracts.
 // DEPENDENCIES:
@@ -48,6 +48,7 @@ namespace Worsen.Domain.Hunter
         float ObservationHeight { get; }
         bool Hold { get; }
         bool OwnsDecisionMotion { get; }
+        HunterAnimationPhase AnimationPhase { get; }
         void InitializeModule(IHunterArchetypeController rules, HunterProfile profile, HunterDriver driver,
             HunterController shared, IReadOnlyHunterState state, IReadOnlyPlayerState player, IHunterModuleEvents events);
         bool PrepareTick(float dt, long tick);

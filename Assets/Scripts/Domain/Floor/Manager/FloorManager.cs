@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own Floor logic/driver lifetimes and forward generation hooks and pocket activation.
 //   - Spawn ordinary cakes and Passage-only gold through the shared pickup lifecycle.
-//   - Publish counters and curse-gated Mimic guidance without granting fake pickup credit.
+//   - Route Mimic population, placement paths and curse-gated guidance without fake pickup credit.
 //   - Route staged collapse, traps, hands, hearing and boundary contacts upward.
 //   - Resolve open-exit contacts with paired subscriptions; locked doors never end a floor.
 // DEPENDENCIES:
@@ -122,6 +122,9 @@ namespace Worsen.Domain.Floor
             if (_state == null || _state.Ended || _guidance == null) return;
             if (_guidance.ReceiveMimic(fact)) RefreshCue();
         }
+        public int ExtraMimicCount => _guidance?.ExtraMimicCount ?? 0;
+        public float MimicPathLength(Vector3 from, Vector3 to)
+            => _state == null || _state.Ended || _driver == null ? float.PositiveInfinity : _driver.PathLength(from, to);
         public bool RegisterPassageReward(LevelAnchor anchor)
         {
             if (_controller == null || !_controller.RegisterPassageReward(anchor)) return false;

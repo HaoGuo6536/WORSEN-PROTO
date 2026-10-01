@@ -9,7 +9,7 @@
 //   Editor tool (§10), test suite (§11) · Editor · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Exercise real manifests, invalid inputs and managed sRGB conversion headlessly.
-//   - Verify ten saved rigs, six clip roles, project materials and visible dimensions.
+//   - Verify ten rigs, six authored roles plus neutral recovery, materials and dimensions.
 //   - Compare collision and protected gameplay/source assets against the base.
 //   - Prove first-import shader validation and repeated-build GUID/material stability.
 // DEPENDENCIES:
@@ -174,8 +174,10 @@ namespace Worsen.Tests.Hunter
                 var animation = visual.GetComponent<HunterAnimationDriver>(); Assert.That(animation, Is.Not.Null);
                 Assert.That(animation.Animator, Is.EqualTo(animator)); Assert.That(animation.Config, Is.Not.Null);
                 var config = animation.Config;
-                AnimationClip[] clips = { config.Idle, config.Walk, config.Run, config.Windup, config.Attack, config.Recovery };
+                AnimationClip[] clips = { config.Idle, config.Walk, config.Run, config.Windup, config.Attack, config.Hit };
                 Assert.That(clips.Distinct().Count(), Is.EqualTo(6));
+                Assert.That(config.Recovery, Is.Not.Null);
+                Assert.That(config.Recovery, Is.Not.SameAs(config.Hit), "Recovery is not a hit flinch.");
                 foreach (AnimationClip clip in clips)
                 { Assert.That(clip, Is.Not.Null); Assert.That(clip.length, Is.GreaterThan(0)); Assert.That(clip.legacy, Is.False); }
                 var driver = new SerializedObject(root.GetComponent<HunterDriver>());
