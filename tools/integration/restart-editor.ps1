@@ -36,7 +36,12 @@ try {
     "before: main=$(Test-EditorIsMain $s) idle=$(Test-EditorIdle $s) dirtyScene=$($s.Dirty) scene=$($s.Scene)"
     if (-not (Test-EditorIsMain $s) -or -not (Test-EditorIdle $s) -or $s.Dirty) { throw 'Editor busy, not main, or scene dirty; not restarting.' }
     # Shaders report dirty from compile state and never hold unsaved text edits; count everything else.
-    $dirty = Invoke-UnityCsharp 'int n = 0; int skipped = 0; var sb = new System.Text.StringBuilder(); foreach (var o in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Object>()) { try { if (o == null || !UnityEditor.EditorUtility.IsPersistent(o) || !UnityEditor.EditorUtility.IsDirty(o)) { continue; } var p = UnityEditor.AssetDatabase.GetAssetPath(o); if (!(p.StartsWith("Assets/") || p.StartsWith("ProjectSettings/"))) { continue; } if (o is UnityEngine.Shader || o is UnityEngine.ComputeShader) { continue; } n++; sb.Append(p + ";"); } catch (System.Exception) { skipped++; } } return n + "|" + sb + "|skipped=" + skipped;' 180
+    # The bridge occasionally answers resultSet:false at once (batch 26r); the same probe then succeeds in ~2 s, so retry.
+    $probe = 'int n = 0; int skipped = 0; var sb = new System.Text.StringBuilder(); foreach (var o in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Object>()) { try { if (o == null || !UnityEditor.EditorUtility.IsPersistent(o) || !UnityEditor.EditorUtility.IsDirty(o)) { continue; } var p = UnityEditor.AssetDatabase.GetAssetPath(o); if (!(p.StartsWith("Assets/") || p.StartsWith("ProjectSettings/"))) { continue; } if (o is UnityEngine.Shader || o is UnityEngine.ComputeShader) { continue; } n++; sb.Append(p + ";"); } catch (System.Exception) { skipped++; } } return n + "|" + sb + "|skipped=" + skipped;'
+    $dirty = $null
+    for ($attempt = 1; $attempt -le 3 -and $null -eq $dirty; $attempt++) {
+        try { $dirty = Invoke-UnityCsharp $probe 180 } catch { "dirty probe attempt ${attempt}: $($_.Exception.Message)"; if ($attempt -eq 3) { throw }; Start-Sleep -Seconds 5 }
+    }
     "dirty project assets (shaders excluded): $dirty"
     $paths = @(($dirty -split '\|')[1] -split ';' | Where-Object { $_ } | Select-Object -Unique)
     if ($paths.Count -gt 0) {
