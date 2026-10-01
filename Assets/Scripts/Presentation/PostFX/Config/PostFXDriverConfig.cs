@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Supply Blind trap, Mirror Skin and brief Glimpse outline tuning.
 //   - Configure red damage/low-health borders and exact catalogue ids for blindness.
-//   - Expose optional re-acquire blur and bounded effect strength.
+//   - Expose optional re-acquire blur and bounded, eased blindness with its own lens border.
 //   - Tune the text-free camcorder frame, constant degradation and timed intrusion/blindness.
 //   - Keep runtime envelopes out of shared assets.
 //
@@ -32,6 +32,8 @@ namespace Worsen.Presentation.PostFX
     public sealed class PostFXDriverConfig : ScriptableObject
     {
         public const float DefaultMirrorSkinDurationMultiplier = 0.5f;
+        // Safety ceiling, also enforced at evaluation for legacy serialized values of 1.
+        public const float MaximumBlindnessDarkness = 0.88f;
         [Header("Damage border (provisional)")]
         [SerializeField] private Color _damageVignetteColor = new Color(1f, 0.015f, 0.01f, 1f);
         [SerializeField, Range(0f, 1f)] private float _damageVignettePeak = 0.5f;
@@ -105,12 +107,29 @@ namespace Worsen.Presentation.PostFX
         [Tooltip("Legacy serialized tuning; the URP vignette is now damage-only. Camcorder framing is separate.")]
         [SerializeField, Range(0f, 1f)] private float _frameVignette = 0f;
         [SerializeField, Range(0f, 1f)] private float _subtleIntrusionMultiplier = 0.12f;
-        [SerializeField, Range(0f, 1f)] private float _blindnessDarkness = 1f;
+        [Header("Blindness (provisional; never full black)")]
+        [Tooltip("Fraction of linear scene light removed; the presenter encodes the retained light for URP's sRGB color filter.")]
+        [SerializeField, Range(0f, MaximumBlindnessDarkness)] private float _blindnessDarkness = 0.85f;
+        [SerializeField, Min(0.001f)] private float _blindnessOnsetSeconds = 0.08f;
+        [Tooltip("Recovery occupies the final part of the supplied duration; it does not extend the hit or trap.")]
+        [SerializeField, Min(0.001f)] private float _blindnessRecoverySeconds = 0.65f;
+        [SerializeField, Range(0f, MaximumBlindnessDarkness)] private float _blindnessVignette = 0.75f;
+        [SerializeField, Range(0.01f, 1f)] private float _blindnessVignetteRadius = 1f;
+        [SerializeField, Range(0.01f, 1f)] private float _blindnessVignetteSoftness = 0.6f;
+        [SerializeField, Range(0.5f, 1.5f)] private float _blindnessBlurRadius = 1.5f;
+        [SerializeField, Range(0f, 4f)] private float _blindnessEdgeBlurPixels = 4f;
         public float BaselineGrain => _baselineGrain;
         public float BaselineChromatic => _baselineChromatic;
         public float FrameVignette => _frameVignette;
         public float SubtleIntrusionMultiplier => _subtleIntrusionMultiplier;
         public float BlindnessDarkness => _blindnessDarkness;
+        public float BlindnessOnsetSeconds => _blindnessOnsetSeconds;
+        public float BlindnessRecoverySeconds => _blindnessRecoverySeconds;
+        public float BlindnessVignette => _blindnessVignette;
+        public float BlindnessVignetteRadius => _blindnessVignetteRadius;
+        public float BlindnessVignetteSoftness => _blindnessVignetteSoftness;
+        public float BlindnessBlurRadius => _blindnessBlurRadius;
+        public float BlindnessEdgeBlurPixels => _blindnessEdgeBlurPixels;
         [SerializeField, Range(0f, 1f)] private float _peripheralChromatic = 0.25f;
         [SerializeField, Range(0f, 0.3f)] private float _peripheralDistortion = 0.12f;
         [Tooltip("Legacy serialized tuning; replaced by the timed red damage border.")]

@@ -239,7 +239,8 @@ namespace Worsen.Tests.PostFX
             Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
             _presenter.SetBlindness(_state, 2f);
             _presenter.Tick(_state, _config, 1f);
-            Assert.That(_state.SceneTint, Is.EqualTo(Color.black));
+            Assert.That(_state.SceneTint.r, Is.EqualTo(Mathf.LinearToGammaSpace(1f - _config.BlindnessDarkness)).Within(.0001f));
+            Assert.That(_state.SceneTint.r, Is.GreaterThan(0f));
             _presenter.Tick(_state, _config, 1f);
             Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
             _presenter.SetBlindness(_state, 2f);

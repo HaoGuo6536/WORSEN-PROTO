@@ -45,6 +45,7 @@ namespace Worsen.Tests.PostFX
             Set("_frameVignette", .12f); Set("_injuryVignette", .45f); Set("_graceSaturation", -35f);
             Set("_graceEaseInSeconds", .12f); Set("_graceEaseOutSeconds", .25f);
             Set("_blindnessDarkness", 1f); Set("_intrusionDesaturation", 70f);
+            Set("_blindnessOnsetSeconds", .08f); Set("_blindnessRecoverySeconds", .65f);
             Set("_camcorderEnabled", true); Set("_camcorderCorners", .22f);
             Set("_camcorderCornerRadius", .25f); Set("_camcorderCornerSoftness", .2f);
             Set("_camcorderEdgeBlurPixels", 1.25f); Set("_tapeCriticalInjury", .75f);
@@ -153,9 +154,9 @@ namespace Worsen.Tests.PostFX
         {
             presenter.SetInjury(state, 75f, 100f); presenter.SetBlindness(state, 2f);
             presenter.PlayIntrusion(state, 2f); Tick(1.25f);
-            Assert.That(state.Vignette, Is.Zero); Assert.That(state.Blackout, Is.EqualTo(1f));
+            Assert.That(state.Vignette, Is.Zero); Assert.That(state.Blackout, Is.EqualTo(PostFXDriverConfig.MaximumBlindnessDarkness));
             Assert.That(state.Saturation, Is.EqualTo(-70f));
-            presenter.SetInjury(state, 100f, 100f); Tick(0f); Assert.That(state.Blackout, Is.EqualTo(1f));
+            presenter.SetInjury(state, 100f, 100f); Tick(0f); Assert.That(state.Blackout, Is.EqualTo(PostFXDriverConfig.MaximumBlindnessDarkness));
             Tick(.75f); Assert.That(state.Blackout, Is.Zero); Assert.That(state.Saturation, Is.Zero);
         }
 

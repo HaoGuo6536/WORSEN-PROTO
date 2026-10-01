@@ -10,7 +10,7 @@
 //   Driver (§7a) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Apply a red damage border from health/heartbeat inputs, separate from blindness.
+//   - Apply independent red damage and eased dark blindness borders with bounded color/blur.
 //   - Apply blur preferences immediately to runtime state and the owned volume.
 //   - Compose camcorder and Glimpse volumes with existing grain, distortion and color.
 //   - Destroy the runtime profile and all its components on teardown.
@@ -224,7 +224,7 @@ namespace Worsen.Presentation.PostFX
             }
             if (_frame != null)
             {
-                _frame.Enabled.Override(_config.CamcorderEnabled);
+                _frame.Enabled.Override(_config.CamcorderEnabled || _state.BlindnessWeight > 0f);
                 _frame.Lens.Override(_state.Frame.Lens);
                 _frame.Tape.Override(_state.Frame.Tape);
                 _frame.EdgeStart.Override(_state.Frame.EdgeStart);
