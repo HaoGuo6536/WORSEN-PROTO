@@ -23,7 +23,20 @@ try {
     $s = Wait-EditorIdle $token 10
     if (-not $s) { $s = Get-EditorState }
     if (-not (Test-EditorIsMain $s) -or -not (Test-EditorIdle $s) -or $s.Failed -or $s.Dirty) { throw "Editor not ready for a build: $($s | ConvertTo-Json -Compress)" }
-    $output = Invoke-UnityCsharp 'string r; try { var t = System.Type.GetType("Worsen.Editor.Horror.HorrorBuildValidation, Worsen.Editor"); r = (string)t.GetMethod("QueueBuild").Invoke(null, null); } catch (System.Exception e) { var x = e.InnerException ?? e; r = "EX " + x.GetType().Name + ": " + x.Message; } return r;'
+    # Batches 22 and 24: right after a promotion the first snippet returned no result although
+    # the same code worked minutes later. Retry only while latest-build.txt proves nothing queued.
+    $latest = Join-Path $script:Main 'Logs\Builds\HorrorExpansion\latest-build.txt'
+    $before = if (Test-Path -LiteralPath $latest) { (Get-Item -LiteralPath $latest).LastWriteTimeUtc } else { [datetime]::MinValue }
+    for ($attempt = 1; $attempt -le 4 -and -not $output; $attempt++) {
+        try { $output = Invoke-UnityCsharp 'string r; try { var t = System.Type.GetType("Worsen.Editor.Horror.HorrorBuildValidation, Worsen.Editor"); r = (string)t.GetMethod("QueueBuild").Invoke(null, null); } catch (System.Exception e) { var x = e.InnerException ?? e; r = "EX " + x.GetType().Name + ": " + x.Message; } return r;' }
+        catch {
+            $after = if (Test-Path -LiteralPath $latest) { (Get-Item -LiteralPath $latest).LastWriteTimeUtc } else { [datetime]::MinValue }
+            if ($after -ne $before) { $output = (Get-Content -LiteralPath $latest -Raw).Trim(); break }
+            "Queue attempt $attempt returned no result; nothing queued, retrying after the editor settles."
+            Start-Sleep -Seconds 20; Wait-EditorIdle $token 5 | Out-Null
+        }
+    }
+    if (-not $output) { $safe = $true; throw "Build queue returned no result after 4 attempts; nothing was queued." }
     # Nothing was queued and the editor was idle a moment ago: the lease can be released.
     if ($output -like 'EX *') { $safe = $true; throw "Build queue failed: $output" }
     "Build queued: $output"
