@@ -8,7 +8,8 @@
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
 //   - Include More Shrines in the exact approved upgrade inventory.
-//   - Require owner-approved inventory and exclude retired Thin Skin and Bail Bond.
+//   - Require owner-approved inventory; exclude retired Thin Skin, Bail Bond and
+//     the Mannequin light curses, and keep darkness out of Mannequin copy.
 //   - Fail malformed data/copy; warn without failing on hunter-number-only changes.
 // DEPENDENCIES:
 //   - Core, Session Progression, NUnit and UnityEditor asset access.
@@ -58,6 +59,10 @@ namespace Worsen.Tests.Progression
             Assert.That(EffectCatalogueUtility.Find(catalogue, "wagered-haul"), Is.Null);
             Assert.That(EffectCatalogueUtility.Find(catalogue, "thin-skin"), Is.Null);
             Assert.That(EffectCatalogueUtility.Find(catalogue, "bail-bond"), Is.Null);
+            foreach (string retired in new[] { "mannequin-fewer-lamps", "mannequin-broken-lights" })
+                Assert.That(EffectCatalogueUtility.Find(catalogue, retired), Is.Null, retired);
+            foreach (var entry in catalogue.Entries.Where(e => e.Id == "mannequin" || (e.Kind == EffectKind.Curse && e.RequiredHunterIds.Contains("mannequin"))))
+                Assert.That(entry.CardCopy + " " + entry.ChangeStatement, Does.Not.Contain("dark").IgnoreCase, entry.Id + ": the Mannequin ignores light.");
             Assert.That(EffectCatalogueUtility.Find(catalogue, "no-regen").AvailabilityRound, Is.EqualTo(12));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "hidden-count").CardCopy, Is.EqualTo("Hides the cake counter during a floor."));
             Assert.That(EffectCatalogueUtility.Find(catalogue, "extra-life").CardCopy, Is.EqualTo(
@@ -75,7 +80,7 @@ namespace Worsen.Tests.Progression
             foreach (var hunter in new[] { "mannequin", "stare", "ram", "mimic", "skip", "blinder", "herald" })
             {
                 var curses = catalogue.Entries.Where(e => e.Kind == EffectKind.Curse && e.RequiredHunterIds.Contains(hunter)).ToArray();
-                Assert.That(curses.Length, Is.EqualTo(hunter == "herald" ? 5 : 4), hunter);
+                Assert.That(curses.Length, Is.EqualTo(hunter == "herald" ? 5 : hunter == "mannequin" ? 2 : 4), hunter);
                 foreach (var curse in curses)
                 {
                     Assert.That(EffectCatalogueUtility.Eligible(curse, 100, default(ActiveEffects)), Is.False);

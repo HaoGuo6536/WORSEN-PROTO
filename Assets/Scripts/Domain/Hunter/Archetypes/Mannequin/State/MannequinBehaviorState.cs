@@ -2,12 +2,12 @@
 // MannequinBehaviorState.cs
 // ============================================================================
 // PURPOSE:
-//   Keeps one Mannequin's observation gate and temporary light failure clock.
-//   Broken-room memory is floor-local and never leaks into shared config assets.
+//   Keeps one Mannequin's camera gate, shrine override and catch admission.
+//   Per-life facts and curse scaling never leak into shared configuration assets.
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
-//   - Retain injected evidence, seeded-check timing, catch admission and light facts.
+//   - Retain injected observation, tick identity, catch admission and silence facts.
 // DEPENDENCIES:
 //   - Core observations and System collections only.
 // USAGE NOTES:
@@ -20,15 +20,10 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
     public sealed class MannequinBehaviorState
     {
         internal HunterPlayerView View;
-        internal IReadOnlyHunterWorldView World;
-        internal bool Clear, Illuminated, Wick, Hold = true;
+        internal bool Clear, Wick, Hold = true;
         internal bool CatchPublished;
-        internal float CheckRemaining, FailureRemaining, Speed = 1f;
-        internal int Room, FailureRoom, LampStacks = -1;
+        internal float Speed = 1f;
         internal long LastTick = -1;
-        internal readonly HashSet<int> BrokenRooms = new HashSet<int>();
-        internal IReadOnlyActiveEffects Effects;
-        internal readonly Dictionary<int, float> Afterglow = new Dictionary<int, float>();
         internal readonly Queue<MannequinFact> Facts = new Queue<MannequinFact>();
     }
 }
