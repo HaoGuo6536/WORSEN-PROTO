@@ -13,6 +13,9 @@ Shader "Worsen/CamcorderFrame"
             HLSLPROGRAM
             #pragma vertex Vert
             #pragma fragment Frag
+            // URP Core first: Blit.hlsl uses TEXTURE2D_X, which it does not define itself.
+            // Without it the editor shows the error only on the asset; player builds fail.
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
             float4 _CamcorderLens; // corner strength, radius, softness, blur pixels
             float4 _CamcorderTape; // jitter pixels, chroma pixels, phase, line count
