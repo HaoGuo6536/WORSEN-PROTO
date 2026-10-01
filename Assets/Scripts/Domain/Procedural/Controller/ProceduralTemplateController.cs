@@ -17,7 +17,8 @@
 //   - Own definitions, configuration and utilities; Core immutable graph contracts.
 // USAGE NOTES:
 //   System.Random is injected. Hall-size rooms never repeat, including in pockets.
-//   The exit is an ordinary medium-or-larger template, protected by graph identity.
+//   The exit is a clear ordinary template with at least two connected entrances,
+//   protected by graph identity; its bounding-box centre need not be floor.
 //   Candidate placement attempts, not wall-clock time, consume the search budget.
 // ============================================================================
 using System;
@@ -56,8 +57,10 @@ namespace Worsen.Domain.Procedural
                 int budget = refuge || _config.Challenges == null ? 0 : ProceduralGimmickUtility.Budget(_config.Challenges, round);
                 var eligible = catalogue.Templates.Where(t => t.MinRound <= round && (t.Gimmick == "none" || budget > 0))
                     .OrderBy(t => t.Id, StringComparer.Ordinal).ToArray();
-                var starts = eligible.Where(t => t.Kind == "room" && t.Gimmick == "none" && t.Footprint.Length >= 10 && t.SizeClass != "hall").ToArray();
-                if (starts.Length == 0) throw new InvalidOperationException("No ordinary exit template is available at this round.");
+                var starts = eligible.Where(t => ProceduralExitHubUtility.TrySelect(catalogue, t,
+                    _config.TemplateExitClearance, _config.TemplateExitSpawnDistance, _config.TemplateExitCakeClearance,
+                    _config.DoorHeight, out _, out _)).ToArray();
+                if (starts.Length == 0) throw new InvalidOperationException("No clear multi-entrance exit template is available at this round.");
                 var placed = new List<ProceduralTemplateRoom> { new ProceduralTemplateRoom
                     { RoomId = 1, Template = Pick(starts), Turns = _random.Next(4) } };
                 var doors = new List<ProceduralDoorPlan>(); var occupied = new HashSet<Vector2Int>(Cells(placed[0]));
@@ -112,22 +115,13 @@ namespace Worsen.Domain.Procedural
                     else hunters.AddRange(room.Template.HunterSpawn.Select(p => ProceduralTemplateUtility.Point(room, p, _config.Origin) + Vector3.up * _config.SpawnHeight));
                 }
                 var first = placed[0];
-                var spawnCandidates = first.Template.Footprint.Select(c => new Vector3(c.x * 2f + 1f, 0f, c.y * 2f + 1f))
-                    .Where(p => ProceduralTemplateUtility.Inside(first.Template, p, .6f))
-                    .Select(p => ProceduralTemplateUtility.Point(first, p, _config.Origin) + Vector3.up * _config.SpawnHeight)
-                    .OrderByDescending(p => anchors.Where(a => a.RoomId == 1).Min(a => (a.Position - p).sqrMagnitude)).ToArray();
-                if (spawnCandidates.Length == 0 || anchors.Any(a => (a.Position - spawnCandidates[0]).sqrMagnitude < 1f))
-                    throw new InvalidOperationException("Exit template has no cake-clear player socket.");
-                var spawn = spawnCandidates[0];
-                var exitCandidates = first.Template.Footprint.SelectMany(c => Enumerable.Range(1, 2).SelectMany(x => Enumerable.Range(1, 2)
-                    .Select(z => new Vector3(c.x * 2f + x, 0f, c.y * 2f + z))))
-                    .Where(p => ProceduralTemplateUtility.Inside(first.Template, p, _config.TemplateExitClearance))
-                    .Select(p => ProceduralTemplateUtility.Point(first, p, _config.Origin))
-                    .Where(p => (p - spawn).sqrMagnitude >= _config.TemplateExitSpawnDistance * _config.TemplateExitSpawnDistance &&
-                        anchors.All(a => (a.Position - p).sqrMagnitude >= _config.TemplateExitCakeClearance * _config.TemplateExitCakeClearance))
-                    .OrderBy(p => (p - rooms[0].Center).sqrMagnitude).ToArray();
-                if (exitCandidates.Length == 0) throw new InvalidOperationException("Exit template lacks a clear exit-door envelope separate from the player.");
-                var exitPosition = exitCandidates[0];
+                if (doors.Count(d => d.FromRoomId == first.RoomId || d.ToRoomId == first.RoomId) < ProceduralExitHubUtility.MinimumEntrances)
+                    throw new InvalidOperationException("Exit template lacks two connected walking entrances.");
+                if (!ProceduralExitHubUtility.TrySelect(catalogue, first.Template, _config.TemplateExitClearance,
+                    _config.TemplateExitSpawnDistance, _config.TemplateExitCakeClearance, _config.DoorHeight, out var localSpawn, out var localExit))
+                    throw new InvalidOperationException("Exit template lacks clear player and exit sockets.");
+                var spawn = ProceduralTemplateUtility.Point(first, localSpawn, _config.Origin) + Vector3.up * _config.SpawnHeight;
+                var exitPosition = ProceduralTemplateUtility.Point(first, localExit, _config.Origin);
                 var graph = LevelGraphUtility.Build(rooms, doors.Select((d, i) => new LevelEdge(1001 + i, d.FromRoomId, d.ToRoomId, true)).ToArray(), anchors, 1, exitPosition);
                 var candidate = new ProceduralLayout
                 {
@@ -150,7 +144,11 @@ namespace Worsen.Domain.Procedural
         private bool Attach(ProceduralRoomTemplate template, int pocket, int gap, List<ProceduralTemplateRoom> placed,
             HashSet<Vector2Int> occupied, HashSet<Vector2Int> gaps, List<ProceduralDoorPlan> doors, List<ProceduralGapSite> sites)
         {
-            var sockets = placed.Where(r => r.PocketId == 0).SelectMany(r => Enumerable.Range(0, r.Template.Doors.Length)
+            // Establish the starting hub before extending branches. A count check at
+            // the end alone would turn otherwise valid seeded floors into fallbacks.
+            bool needsHubEntrance = pocket == 0 && placed[0].OpenDoors.Length < ProceduralExitHubUtility.MinimumEntrances;
+            var sockets = placed.Where(r => r.PocketId == 0 && (!needsHubEntrance || r.RoomId == placed[0].RoomId))
+                .SelectMany(r => Enumerable.Range(0, r.Template.Doors.Length)
                 .Where(i => !r.OpenDoors.Contains(i)).Select(i => (room: r, index: i))).ToArray();
             if (sockets.Length == 0) return false;
             var from = sockets[_random.Next(sockets.Length)]; int to = _random.Next(template.Doors.Length), turns = _random.Next(4);

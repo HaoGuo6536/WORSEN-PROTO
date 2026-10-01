@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Verify template-only floors, socket connections, pacing and landmarks.
+//   - Verify template-only floors, multi-entrance exit hubs, pacing and landmarks.
 //   - Verify missing/invalid/exhausted catalogue fallback and capacity failure.
 // DEPENDENCIES:
 //   - NUnit, Domain.Procedural, Editor parser and temporary Unity configs.
@@ -51,6 +51,12 @@ namespace Worsen.Tests.Procedural
                 Assert.That(layout.UsesTemplates, Is.True, layout.TemplateFallbackReason);
                 Assert.That(layout.TemplateRooms.Count, Is.EqualTo(layout.Graph.Rooms.Count));
                 Assert.That(layout.OrganicRooms, Is.Empty);
+                var hub = layout.Graph.Rooms.Single(r => r.Id == layout.Graph.ExitRoomId);
+                Assert.That(hub.ContainsXZ(layout.PlayerSpawnPosition), Is.True);
+                Assert.That(hub.ContainsXZ(layout.Graph.ExitPosition), Is.True);
+                var entrances = layout.Graph.Edges.Where(e => e.FromRoomId == hub.Id || e.ToRoomId == hub.Id).ToArray();
+                Assert.That(entrances.Length, Is.GreaterThanOrEqualTo(2));
+                Assert.That(entrances.All(e => e.Bidirectional && e.Access == Worsen.Core.TraversalAccess.All), Is.True);
                 Assert.That(layout.TemplateRooms.Any(r => r.Template.Kind == "hallway"), Is.True);
                 Assert.That(layout.Manifest, Is.EqualTo(Generate(seed, 1).Manifest));
                 Assert.That(layout.TemplateRooms.Where(r => r.Template.SizeClass == "hall").Select(r => r.Template.Id).Distinct().Count(),
