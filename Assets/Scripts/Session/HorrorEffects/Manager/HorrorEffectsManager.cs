@@ -8,19 +8,15 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Session · HorrorEffects (Service system).
 // KEY RESPONSIBILITIES:
-//   Route committed jam flags into Level before publishing use; clear gates on world release.
-//   Sequence Progression-owned item uses, Player effects and pure consumable lifetimes.
-//   Publish stun/slip/cleanse/jam facts; retain death recovery until catch completion.
-//   Throw only surviving accepted hand hits and own trap slows independently of grab speed.
-//   Own the controller lifecycle and publish light, noise and spatial-effect facts.
-//   Sequence Domain Player/Floor hand outcomes and Progression ward consumption.
-//   Route light/hand damage at the Floor fact tick without rewinding Player recovery.
-//   Apply perk revisions once per registered player and light/noise facts to hunters.
-//   Route bound-floor noise only through Director; it relays each audible noise to hunters.
+//   - Sequence Progression item uses, Player effects and consumable lifetimes.
+//   - Complete in-place revival once after the catch without resetting collapse.
+//   - Route hand/ward/throw outcomes while rejecting revival-protected grabs.
+//   - Own effect lifecycle, actor refresh, trap slows and world jam bindings.
+//   - Publish sensory facts; only authorized item noise reaches hunter hearing.
 // DEPENDENCIES:
 //   Domain Level closes/breaks doors. Own Driver observes head bones and physics sweeps.
 //   Core contracts; Domain Player/Hunter registries and managers; Domain Floor manager.
-//   Domain Director receives environmental noise through the floor-scoped Session binding.
+//   Domain Director receives allowlisted gameplay noise through the floor-scoped binding.
 //   Session Progression consumes wards in the declared HorrorEffects -> Progression direction.
 // USAGE NOTES:
 //   Persistent service initialized explicitly by scene setup. The declared Session dependency
@@ -163,6 +159,17 @@ namespace Worsen.Session.HorrorEffects
         private void HandleCollapseHand(CollapseHandFact fact)
         {
             if (controller == null || !PlayerRegistry.TryGet(fact.PlayerId, out PlayerManager player)) return;
+            if (player.ReadOnlyState == null) return;
+            player.AdvanceRecovery(Math.Max(fact.Tick, player.ReadOnlyState.Tick));
+            if (player.RevivalDamageImmune)
+            {
+                controller.ReleaseGrab(fact.PlayerId);
+                player.SetGrabSpeedMultiplier(1f);
+                // Only initiating facts can cancel a grab; release callbacks must not recurse.
+                if (fact.Kind == CollapseHandEventKind.Warning || fact.Kind == CollapseHandEventKind.Grabbed)
+                    floor?.CancelCollapseGrab(fact.PlayerId);
+                return;
+            }
             HorrorHazardResolution result = controller.ResolveHand(fact, player.ReadOnlyState != null && player.ReadOnlyState.IsAlive);
             if (!result.Accepted) return;
             FloorManager eventFloor = floor;
@@ -175,7 +182,6 @@ namespace Worsen.Session.HorrorEffects
             }
             player.SetGrabSpeedMultiplier(result.SpeedMultiplier);
             if (result.Damage <= 0f) return;
-            player.AdvanceRecovery(Math.Max(fact.Tick, player.ReadOnlyState.Tick));
             bool accepted = player.ApplyHit(result.Damage, fact.Position, HitSeverity.Light, HitSource.Hand);
             if (player.ReadOnlyState != null && !player.ReadOnlyState.IsAlive)
                 eventFloor?.ConfirmCollapseDeath(fact.PlayerId, fact.RoomId);
@@ -212,8 +218,7 @@ namespace Worsen.Session.HorrorEffects
                         foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.SetAfterimage(fact.Light, fact.Value);
                         AfterimageChanged?.Invoke(fact.Light, fact.Value); break;
                     case HorrorEffectKind.Noise:
-                        if (director != null) director.HearNoise(fact.Noise);
-                        else foreach (HunterManager hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(fact.Noise);
+                        DeliverNoise(fact.Noise);
                         NoiseEmitted?.Invoke(fact.Noise); break;
                     case HorrorEffectKind.FlameDim: FlameDimChanged?.Invoke(fact.Position, fact.Radius, fact.Value); break;
                     case HorrorEffectKind.OptionalRoomCrack:
@@ -256,7 +261,7 @@ namespace Worsen.Session.HorrorEffects
             if (consumables == null || !consumables.RevivalPending || !PlayerRegistry.TryGet(id, out var player) ||
                 !consumables.CompleteRevival(id)) return false;
             controller.ClearTrapSlow(id); controller.ReleaseGrab(id); floor?.CancelCollapseGrab(id);
-            if (!player.RespawnAtFloorStart(consumables.RevivalHealthFraction)) return false;
+            if (!player.ReviveInPlace(consumables.RevivalHealthFraction)) return false;
             PlayerRevived?.Invoke(id);
             return true;
         }
@@ -325,12 +330,18 @@ namespace Worsen.Session.HorrorEffects
             foreach (var fact in consumables.DrainSlips()) HunterSlipped?.Invoke(fact);
             foreach (var fact in consumables.DrainDoors())
             { level?.SetDoorJammed(fact.DoorId, fact.Active); DoorJamChanged?.Invoke(fact); }
-            foreach (var noise in consumables.DrainNoises())
+            foreach (var fact in consumables.DrainNoiseFacts())
             {
-                if (director != null) director.HearNoise(noise);
-                else foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(noise);
+                var noise = fact.Noise;
+                DeliverNoise(noise);
                 NoiseEmitted?.Invoke(noise);
             }
+        }
+        private void DeliverNoise(NoiseEvent noise)
+        {
+            if (!HunterHearingUtility.Allows(noise)) return;
+            if (director != null) director.HearNoise(noise);
+            else foreach (var hunter in HunterRegistry.Items) if (hunter != null) hunter.HearNoise(noise);
         }
         private void OnEnable() { BindHazards(); BindWorld(); }
         private void OnDisable() { UnbindHazards(); UnbindWorld(); Suspend(); }

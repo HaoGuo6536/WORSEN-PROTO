@@ -10,6 +10,7 @@
 //   Sub-driver (§7e) · Presentation · Results, owned by ResultsDriver.
 //
 // KEY RESPONSIBILITIES:
+//   - Group gameplay metrics separately and build a no-floor-only title navigation button.
 //   - Build a centered, bounded summary and preserve the established element names.
 //   - Expose detailed outcomes, history and an editable next-run seed without rich-text interpretation.
 //   - Paint panel/button chrome and pair all paint/focus callbacks with release.
@@ -80,15 +81,17 @@ namespace Worsen.Presentation.Results
             var reason = AddLabel(body, "end-reason", "", config.FontSize, config.BoneColor);
             reason.style.unityTextAlign = TextAnchor.MiddleCenter;
             reason.style.marginBottom = config.RowGap;
-            AddRow(body, "TIME SURVIVED", "run-time", "CAKES FOUND", "cake-total");
-            AddRow(body, "GOLDEN CAKES", "golden-cake-total", "CHASES", "chase-count");
-            AddRow(body, "CHASES ESCAPED", "chase-escapes", "TIME IN CHASE", "chase-time");
-            AddRow(body, "CAUSE OF DEATH", "death-cause", "KILLER", "killer");
-            AddRow(body, "GRABS ESCAPED", "grabs-escaped", "EXIT OPEN TO ESCAPE", "exit-to-escape");
-            AddRow(body, "DEPTH REACHED", "depth-reached", "BEST DEPTH", "best-depth");
-            AddRow(body, "SEED", "run-seed", "", "seed-spacer");
-            body.Add(new TextField("Next run seed (blank = new)") { name = "next-run-seed" });
-            AddLabel(body, "seed-error", "", config.CaptionFontSize, config.BoneColor);
+            var metrics = new VisualElement { name = "results-metrics" };
+            body.Add(metrics);
+            AddRow(metrics, "TIME SURVIVED", "run-time", "CAKES FOUND", "cake-total");
+            AddRow(metrics, "GOLDEN CAKES", "golden-cake-total", "CHASES", "chase-count");
+            AddRow(metrics, "CHASES ESCAPED", "chase-escapes", "TIME IN CHASE", "chase-time");
+            AddRow(metrics, "CAUSE OF DEATH", "death-cause", "KILLER", "killer");
+            AddRow(metrics, "GRABS ESCAPED", "grabs-escaped", "EXIT OPEN TO ESCAPE", "exit-to-escape");
+            AddRow(metrics, "DEPTH REACHED", "depth-reached", "BEST DEPTH", "best-depth");
+            AddRow(metrics, "SEED", "run-seed", "", "seed-spacer");
+            metrics.Add(new TextField("Next run seed (blank = new)") { name = "next-run-seed" });
+            AddLabel(metrics, "seed-error", "", config.CaptionFontSize, config.BoneColor);
 
             _button = new Button { name = "restart-button", text = "", focusable = true, tabIndex = 0 };
             _button.style.height = config.ButtonHeight;
@@ -111,6 +114,15 @@ namespace Worsen.Presentation.Results
             var hint = AddLabel(_panel, "restart-hint", "ENTER / SPACE  ·  RUN AGAIN", config.CaptionFontSize, config.MutedColor);
             hint.style.unityTextAlign = TextAnchor.MiddleCenter;
             hint.style.marginTop = config.RowGap * 0.5f;
+            var titleButton = new Button { name = "return-title-button", text = "RETURN TO TITLE", focusable = true };
+            titleButton.style.height = config.ButtonHeight;
+            titleButton.style.minHeight = config.ButtonHeight;
+            titleButton.style.marginTop = config.RowGap;
+            titleButton.style.fontSize = config.FontSize;
+            titleButton.style.color = config.BoneColor;
+            titleButton.style.backgroundColor = config.PanelColor;
+            titleButton.style.display = DisplayStyle.None;
+            _panel.Add(titleButton);
         }
 
         internal void SetRestartLabel(string text)

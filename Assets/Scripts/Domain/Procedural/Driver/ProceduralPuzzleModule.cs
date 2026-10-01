@@ -16,6 +16,7 @@
 //   Scene-owned with the generated root. No Update or engine clock, no global
 //   effects or foreign subscriptions. Shared materials are not mutated. Moving-door
 //   cages open their rear escape panel after success so stopping cannot imprison a player.
+//   Missing serialized tile shader aborts configuration and logs once per module.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -33,6 +34,7 @@ namespace Worsen.Domain.Procedural
         private readonly Renderer[] _tiles = new Renderer[3];
         private MaterialPropertyBlock _color;
         private Material _tileMaterial;
+        private bool _missingShaderReported;
         private bool _contact;
         private int _vault = -1;
         public ProceduralPuzzlePlan Plan { get; private set; }
@@ -41,10 +43,15 @@ namespace Worsen.Domain.Procedural
         public void Configure(ProceduralPuzzlePlan plan, ProceduralChallengeConfig config, Material material,
             int layer, Func<Collider, bool> isPlayer)
         {
+            if (config == null || config.TileShader == null)
+            {
+                const string error = "ProceduralChallengeConfig requires TileShader. Rebuild Procedural assets.";
+                if (!_missingShaderReported) { _missingShaderReported = true; Debug.LogError(error, this); }
+                throw new InvalidOperationException(error);
+            }
             Plan = plan; _config = config; _isPlayer = isPlayer;
             _state = new ProceduralPuzzleDriverState(); _color = new MaterialPropertyBlock();
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            if (shader == null) throw new InvalidOperationException("Puzzle path requires an unlit shader.");
+            var shader = config.TileShader;
             _tileMaterial = new Material(shader);
             gameObject.layer = layer; transform.position = plan.Origin;
             var body = gameObject.AddComponent<Rigidbody>(); body.isKinematic = true; body.useGravity = false;

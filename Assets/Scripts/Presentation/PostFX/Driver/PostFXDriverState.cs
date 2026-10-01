@@ -12,9 +12,8 @@
 // KEY RESPONSIBILITIES:
 //   - Remember cleansed blindness identities until they disappear from the active view.
 //   - Retain an injected active-effects view and identity-matched grace envelope.
-//   - Preserve the runtime blur override independently of effect resets.
-//   - Retain proximity, injury and explicit effect countdowns.
-//   - Retain independent loud/subtle intrusion and default-off blindness countdowns.
+//   - Preserve runtime blur preferences and independent effect/Glimpse countdowns.
+//   - Retain proximity/injury inputs and the camcorder's independent tape envelope.
 //   - Carry primitive volume values without holding a live volume.
 //
 // DEPENDENCIES:
@@ -33,6 +32,7 @@ namespace Worsen.Presentation.PostFX
 {
     public sealed class PostFXDriverState
     {
+        public readonly CamcorderFrameDriverState Frame = new CamcorderFrameDriverState();
         public IReadOnlyActiveEffects ActiveEffects;
         public readonly HashSet<EffectId> CleansedBlindness = new HashSet<EffectId>();
         public GraceWindowFact Grace;
@@ -44,6 +44,8 @@ namespace Worsen.Presentation.PostFX
         public Color SceneTint = Color.white;
         public float Proximity;
         public bool LookBack;
+        public float GlimpseRemaining;
+        public float HunterRim;
         public float Injury;
         public float IntrusionRemaining;
         public float SubtleIntrusionRemaining;

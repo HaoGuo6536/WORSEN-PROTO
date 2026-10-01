@@ -4,7 +4,7 @@
 // PURPOSE:
 //   Verifies the serialized progression catalog that scene setup loads at runtime.
 //   Fresh Config defaults cannot catch stale asset descriptions, so this test
-//   checks the actual five-hunter roster, curse families, stock and shop cadence.
+//   checks the approved ten-hunter roster, retired flags, stock and shop cadence.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Progression.
 // KEY RESPONSIBILITIES:
@@ -17,40 +17,30 @@
 //   Read-only asset access; runtime state is local and no scene is assembled.
 // ============================================================================
 using NUnit.Framework;
+using System.Linq;
 using UnityEditor;
 using Worsen.Core;
 using Worsen.Session.Progression;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionConfiguredThreatTests
     {
         [Test]
-        public void RuntimeCatalogHasFiveHuntersTwentyTwoCursesAndEarlyShop()
+        public void RuntimeCatalogHasApprovedRosterAndEarlyShop()
         {
             var config = AssetDatabase.LoadAssetAtPath<ProgressionConfig>(
                 "Assets/Resources/ScriptableObjects/Session/Progression/ProgressionConfig.asset");
             Assert.That(config, Is.Not.Null);
-            Assert.That(config.MaximumActiveThreats, Is.EqualTo(5));
             Assert.That(config.ShopInterval, Is.EqualTo(2));
-            Assert.That(config.Threats.Count, Is.EqualTo(5));
-            Assert.That(config.Curses.Count, Is.EqualTo(22));
-
-            int general = 0;
-            foreach (var curse in config.Curses)
-            {
-                Assert.That(curse.Traits, Is.Not.EqualTo(ProgressionTraits.None), curse.Id);
-                if (string.IsNullOrEmpty(curse.RequiredThreatId)) general++;
-            }
-            Assert.That(general, Is.EqualTo(7));
-            foreach (var threat in config.Threats)
-            {
-                int count = 0;
-                foreach (var curse in config.Curses) if (curse.RequiredThreatId == threat.Id) count++;
-                Assert.That(count, Is.EqualTo(3), threat.Id);
-            }
+            Assert.That(config.Threats.Select(entry => entry.Id), Is.EquivalentTo(new[] {
+                "echo", "weaver", "ticking", "ram", "mannequin", "mimic", "blinder", "skip", "herald", "stare" }));
+            Assert.That(config.Curses.All(entry => !ProgressionRosterUtility.Retired(entry.Id) && entry.Traits == ProgressionTraits.None), Is.True);
+            Assert.That(config.EffectCatalogue, Is.Not.Null, "Run Ensure Effect Catalogue before integration tests.");
             var controller = new ProgressionSessionController(new ProgressionSessionBehaviorState(), config, new System.Random(731));
             controller.StartRun(731);
+            Assert.That(controller.Snapshot().Choices.Select(choice => choice.Id), Is.EquivalentTo(new[] { "echo", "weaver", "ticking" }));
             for (int combat = 0; combat < 2; combat++)
             {
                 if (combat == 0)

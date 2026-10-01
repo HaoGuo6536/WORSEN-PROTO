@@ -8,20 +8,12 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Retain the admitted traversal surface until its resolved outcome is published.
-//   - Retain floor spawn pose and independent web/consumable speed factors.
-//   - Keep the web timer and factor independent of grab and trap owners.
-//   - Retain an independent trap speed factor, composed with grabs by the Controller.
-//   - Accumulate external velocity deltas until one movement tick consumes them.
-//   - Store shield HP separately from regenerating and floor-reset health.
-//   - Store the pending effects view, tick snapshot, floor health baseline and one-use vault momentum.
-//   - Retain regeneration delay and neutral-by-default health effect hooks per life.
-//   - Store traversal progress/steering, regrab cooldown and one-tick stumble publication data.
-//   - Retain the tick-based grace interval, independent hit boost and snap-enable hook.
-//   - Store committed sprint status separately from input intent and commanded physical posture.
-//   - Store achieved slide turn and independent perk/grab effects, reset for each life.
-//   - Store per-life movement, health and aggregate run modifiers without changing shared assets.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Retain committed pose, movement/traversal timers and bounded noise history.
+//   - Store health, shield, regeneration and independent movement effects.
+//   - Retain hit recovery and independent end-exclusive revival protection intervals.
+//   - Expose read-only grab and revival protection without foreign state writes.
+//   - Store pending external motion and committed replay/publication facts.
+//   Chase/contact perk bookkeeping is isolated in PlayerPerkBehaviorState.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -37,8 +29,13 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Domain.Player
 {
-    public sealed class PlayerBehaviorState : IReadOnlyPlayerShieldState, IReadOnlyPlayerEffectState
+    public sealed class PlayerBehaviorState : IReadOnlyPlayerShieldState, IReadOnlyPlayerEffectState, IReadOnlyPlayerRevivalState
     {
+        internal PlayerPerkBehaviorState Perks { get; } = new PlayerPerkBehaviorState();
+        internal readonly Dictionary<EntityId, long> MimicHolds = new Dictionary<EntityId, long>();
+        internal readonly Dictionary<EntityId, long> MimicTicks = new Dictionary<EntityId, long>();
+        internal readonly Dictionary<EntityId, long> HeraldTicks = new Dictionary<EntityId, long>();
+        internal long PreventRunningEndTick;
         public IReadOnlyActiveEffects ActiveEffects { get; set; }
         public ActiveEffects AppliedEffects { get; set; }
         public float BaseMaximumHealth { get; set; }
@@ -47,7 +44,11 @@ namespace Worsen.Domain.Player
         public float StoredMomentumSpeed { get; set; }
         public float StoredMomentumRemaining { get; set; }
         public bool LowProfileEnabled { get; set; }
-        public bool IsUngrabbable => IsAlive && LowProfileEnabled && MovementState == MovementState.Slide;
+        public bool IsUngrabbable => RevivalDamageImmune || (IsAlive && LowProfileEnabled && MovementState == MovementState.Slide);
+        public bool RevivalCollisionGraceActive => IsAlive && Tick < RevivalCollisionEndTick;
+        public bool RevivalDamageImmune => IsAlive && Tick < RevivalImmunityWindow.EndTick;
+        internal long RevivalCollisionEndTick;
+        internal GraceWindowFact RevivalImmunityWindow;
         public EntityId Id { get; set; }
         public Vector3 Position { get; set; }
         internal Vector3 FloorStartPosition;

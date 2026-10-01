@@ -58,6 +58,7 @@ using CameraDriver = Worsen.Presentation.Camera.CameraDriver;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000), Category("RequiresFocus")]
     public sealed class PlayerTraversalIntegrationTests
     {
         private const string ArenaPath = "Assets/Scenes/TagArena.unity";

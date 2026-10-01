@@ -20,6 +20,7 @@
 //   Missing materials use declared dark, rough runtime materials owned by Driver.
 //   Partition links default on; ordinary admission still uses mask 1. Existing
 //   serialized assets need owner migration and area 3 needs its coordinator name.
+//   Surface and crack shaders are serialized build dependencies filled by editor setup.
 // ============================================================================
 using UnityEngine;
 
@@ -28,6 +29,10 @@ namespace Worsen.Domain.Procedural
     [CreateAssetMenu(menuName = "Worsen/Procedural/Driver Config")]
     public sealed class ProceduralDriverConfig : ScriptableObject
     {
+        [SerializeField] private Shader _surfaceShader = null;
+        [SerializeField] private Shader _crackShader = null;
+        public Shader SurfaceShader => _surfaceShader;
+        public Shader CrackShader => _crackShader;
         [SerializeField] private float _wallThickness = 0.3f;
         [SerializeField] private float _floorThickness = 0.3f;
         [SerializeField] private float _ceilingThickness = 0.3f;

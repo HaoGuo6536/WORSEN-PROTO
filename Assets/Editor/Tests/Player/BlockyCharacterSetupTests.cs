@@ -27,6 +27,7 @@ using Worsen.Editor.Player;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class BlockyCharacterSetupTests
     {
         [Test]

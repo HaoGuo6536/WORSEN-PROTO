@@ -10,11 +10,10 @@
 //   Presenter (§7b) · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Enforce one voice per budget slot (per hunter), protected from cross-category stealing.
-//   - Use Core variation metadata; timing tells never receive scheduling jitter.
-//   - Identify enemy-owned voices for death cleanup without muting player death/UI/world sounds.
-//   - Respect cue cooldowns and priorities without stealing equally important voices.
-//   - Refresh loop gain while retaining its initially chosen voice and random variation.
+//   - Admit named roster banks under hunter slots without charging replayed footsteps to the Player.
+//   - Enforce one voice per budget slot per hunter, cooldowns and priorities, without cross-category or equal-priority stealing.
+//   - Use Core variation metadata; timing tells never receive scheduling jitter; loops keep their chosen voice and variation.
+//   - Identify enemy-owned voices for death cleanup without muting player death, UI or world sounds.
 //   - Fade synchronized music layers after a short lost-contact hold.
 //
 // DEPENDENCIES:
@@ -66,12 +65,14 @@ namespace Worsen.Presentation.Audio
         }
 
         public bool TryPlay(AudioSoundscapeDriverState state, AudioSoundDefinition sound, int emitter,
-            float[] clipDurations, float requestedGain, out AudioPlaybackSample result, float timingJitter = 0f)
+            float[] clipDurations, float requestedGain, out AudioPlaybackSample result, float timingJitter = 0f,
+            AudioCueCatalogueEntry? rosterEntry = null, bool retrigger = false)
         {
             result = default;
             if (clipDurations == null || clipDurations.Length == 0 || state.Voices == null) return false;
             var catalogue = new AudioCueCataloguePresenter();
             if (!catalogue.Admits(sound.Cue, state.InRun) || !catalogue.TryGet(sound.Cue, out var entry)) return false;
+            if (rosterEntry.HasValue) entry = rosterEntry.Value;
             int cue = (int)sound.Cue;
             long key = ((long)cue << 32) | (uint)emitter;
             int sameSlot = -1;
@@ -84,10 +85,10 @@ namespace Worsen.Presentation.Audio
                     result = new AudioPlaybackSample { Voice = i, ReuseLoop = true, Gain = voice.BaseGain * Unit(requestedGain) };
                     return true;
                 }
-                if (voice.Priority > sound.Priority || voice.Priority == sound.Priority && voice.Cue == cue) return false;
+                if (!retrigger && (voice.Priority > sound.Priority || voice.Priority == sound.Priority && voice.Cue == cue)) return false;
                 sameSlot = i;
             }
-            if (state.Cooldowns.TryGetValue(key, out float until) && until > state.Time) return false;
+            if (!retrigger && state.Cooldowns.TryGetValue(key, out float until) && until > state.Time) return false;
             int index = sameSlot;
             for (int i = 0; sameSlot < 0 && i < state.Voices.Length; i++)
             {

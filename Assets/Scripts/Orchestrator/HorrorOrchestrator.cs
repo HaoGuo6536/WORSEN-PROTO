@@ -9,14 +9,11 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
-//   - Route pending revival into the existing catch camera and return its completion to Session.
-//   - Bind each assembled floor's world and player-open provenance; route phantom cakes to HUD.
-//   - Synchronize authoritative active effects on connect, generation and committed restart.
-//   - Route chase admission and apply micro-events through Level or Horror, reporting outcomes.
-//   - Forward committed attack samples and HorrorEffects' flashlight state; never consume UseItem.
-//   - Reset transient cues when a generated floor replaces the previous one.
-//   - Reset the run clock and budget once per committed StartRun, including same-seed restarts.
-//   - Forward completed Run tick durations with paired subscriptions.
+//   - Route collapse, Weaver, attack, flashlight and authoritative Afterglow facts.
+//   - Pair revival catches and return their completion to Session.
+//   - Bind world/HUD micro-events and report their presentation outcomes.
+//   - Synchronize effects and clear floor-local visuals at lifecycle boundaries.
+//   - Advance the whole-run clock and reset its budget only on committed StartRun.
 // DEPENDENCIES:
 //   - Domain Level commits reopenable door closure; Core views describe injected safe candidates.
 //   - Session Run/Progression/HorrorEffects/Expedition, Presentation Horror/Input/Camera/HUD and Core.
@@ -31,6 +28,8 @@
 //   TickAdvanced is emitted only for accepted gameplay ticks; suspended or ended runs emit none.
 //   No certified unreachable anchors exist yet; silhouettes fail closed. Door visibility uses
 //   the entire owning room conservatively until exact door bounds are published by Level.
+//   Run's typed HunterFacts channel supplies authoritative Afterglow windows.
+//   Safety is never inferred here; subscriptions use the same channel on teardown.
 // ============================================================================
 using UnityEngine;
 using System.Collections.Generic;
@@ -79,35 +78,41 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            PairAfterglow(true);
+            _run.HunterFacts.WeaverFactPublished += OnWeaver;
             _run.PlayerDeathPending += OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
             _run.TickAdvanced += OnTickAdvanced;
+            _run.FloorFacts.RoomDestructionPublished += OnRoomDestruction;
             _run.ChaseStarted += OnChaseStarted;
             _run.ChaseEnded += OnChaseEnded;
-            _run.ProximityPublished += OnMicroEventProximity;
+            _run.HunterFacts.ProximityPublished += OnMicroEventProximity;
             _horror.MicroEventSelected += OnMicroEventSelected;
             if (_effects != null) { _effects.FlashlightChanged += OnLight; _effects.AfterimageChanged += OnAfterimage; _run.PlayerMovementPublished += OnMovement; }
             _progression.GenerationRequested += OnGeneration;
             _progression.SnapshotChanged += OnSnapshot;
             _progression.TransactionCommitted += OnTransaction;
             _progression.EffectsSnapshotChanged += OnEffectsSnapshot;
-            if (_expedition != null) { _expedition.AssemblyReady += OnAssemblyReady; _expedition.FloorReleased += OnFloorReleased; }
-            if (_level != null) _level.DoorOpened += OnDoorOpened;
+            if (_expedition != null) { _expedition.AssemblyReady += OnAssemblyReady; _expedition.FloorReleased += OnFloorReleased; _expedition.RoomsReady += OnCollapseRooms; }
+            if (_level != null) { _level.DoorOpened += OnDoorOpened; _level.InteractableChanged += OnLightChanged; }
             _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled);
             OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects);
             if (_level != null && _level.ReadOnlyState.IsReady) ConfigureMicroEvents(_level, System.Array.Empty<Vector3>());
         }
         private void OnDisable()
         {
-            if (_expedition != null) { _expedition.AssemblyReady -= OnAssemblyReady; _expedition.FloorReleased -= OnFloorReleased; }
-            if (_level != null) _level.DoorOpened -= OnDoorOpened;
+            if (_expedition != null) { _expedition.AssemblyReady -= OnAssemblyReady; _expedition.FloorReleased -= OnFloorReleased; _expedition.RoomsReady -= OnCollapseRooms; }
+            if (_level != null) { _level.DoorOpened -= OnDoorOpened; _level.InteractableChanged -= OnLightChanged; }
+            PairAfterglow(false);
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
+            if (_run != null) _run.HunterFacts.WeaverFactPublished -= OnWeaver;
             if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded -= OnRevivalCatchEnded;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
+            if (_run != null) _run.FloorFacts.RoomDestructionPublished -= OnRoomDestruction;
             if (_run != null) { _run.ChaseStarted -= OnChaseStarted; _run.ChaseEnded -= OnChaseEnded; }
-            if (_run != null) _run.ProximityPublished -= OnMicroEventProximity;
+            if (_run != null) _run.HunterFacts.ProximityPublished -= OnMicroEventProximity;
             if (_horror != null) _horror.InvalidateMicroEventChase();
             if (_horror != null) _horror.MicroEventSelected -= OnMicroEventSelected;
             if (_run != null) _run.PlayerMovementPublished -= OnMovement;
@@ -120,6 +125,9 @@ namespace Worsen.Orchestrator
         private void OnAssemblyReady(ProgressionGenerationRequest request, Vector3 position, Quaternion rotation)
             => ConfigureMicroEvents(_level, System.Array.Empty<Vector3>());
         private void OnFloorReleased() => _horror.ResetRound();
+        private void OnCollapseRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _horror.SetCollapseRooms(rooms,
+            _level != null && _level.ReadOnlyState.IsReady ? _level.ReadOnlyState.Graph.ExitRoomId : (int?)null);
+        private void OnRoomDestruction(RoomDestructionSample sample) => _horror.ObserveCollapse(sample);
         private void OnDoorOpened(InteractableState door, bool openedByPlayer)
         {
             if (!openedByPlayer || _level == null || !_level.ReadOnlyState.IsReady) return;
@@ -127,6 +135,24 @@ namespace Worsen.Orchestrator
                 if (room.Id == door.RoomId) { OnPlayerOpenedDoor(door.Id, room.Bounds); return; }
         }
         private void OnLight(FlashlightSample sample) => _horror.SetFlashlight(sample);
+        private void PairAfterglow(bool subscribe)
+        {
+            if (_run == null) return;
+            if (subscribe) _run.HunterFacts.AfterglowWindowPublished += OnAfterglowWindow;
+            else _run.HunterFacts.AfterglowWindowPublished -= OnAfterglowWindow;
+        }
+        private void OnAfterglowWindow(int roomId, float seconds)
+        {
+            if (_level == null || _horror == null) return;
+            foreach (var light in _level.Interactables.InRoom(roomId))
+                if (light.Kind == InteractableKind.Light && light.Value == InteractableStateValue.Broken)
+                    _horror.SetAfterglow(light, seconds);
+        }
+        private void OnLightChanged(InteractableState before, InteractableState after)
+        {
+            if (before.Kind == InteractableKind.Light && (after.Kind != InteractableKind.Light || after.Value != InteractableStateValue.Broken))
+                _horror.SetAfterglow(before, 0f);
+        }
         private void OnDeathPending(EntityId player, Vector3 killer)
         {
             if (_camera == null || !_camera.IsReady || _effects == null || !_effects.TryBeginRevival(player)) return;
@@ -142,6 +168,7 @@ namespace Worsen.Orchestrator
                 _camera.AimPosition, _camera.AimRotation * Vector3.forward, 18f, 52f));
         }
         private void OnAttack(HunterAttackSample sample) => _horror.SetAttack(sample);
+        private void OnWeaver(WeaverFact fact) => _horror.ObserveWeaver(fact);
         private void OnChaseStarted(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, true);
         private void OnChaseEnded(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, false);
         private void OnMicroEventProximity(ProximitySample sample) => _horror.ObserveMicroEventProximity(sample);
@@ -154,9 +181,9 @@ namespace Worsen.Orchestrator
         }
         private void OnTickAdvanced(InputFrame frame, float deltaSeconds, long tick)
         { _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled); _horror.AdvanceRunClock(deltaSeconds); }
-        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
+        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation, string choiceId)
         {
-            if (operation != nameof(ProgressionSessionManager.StartRun)) return;
+            if (operation != ProgressionOperation.StartRun) return;
             _horror.ResetRun(current.Seed);
             _effects?.ResetRun();
             OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects);

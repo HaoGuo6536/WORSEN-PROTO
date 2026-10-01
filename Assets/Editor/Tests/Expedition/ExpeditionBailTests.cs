@@ -3,12 +3,12 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises the completed-run boundary against real Expedition and Progression
-//   managers. Wallet and revision changes prove that bail delivery remains gated
+//   managers. Wallet and revision changes prove that normal completion remains gated
 //   by the current scene and resolves an admitted generation only once.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Session · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Distinguish penalized bails from ordinary escapes at the wallet boundary.
+//   - Complete only through the normal escape boundary with no bail metadata.
 //   - Reject wrong-scene and repeated summaries without duplicate completion.
 // DEPENDENCIES:
 //   - Core contracts, Session Expedition/Progression, NUnit and Unity Test Framework.
@@ -29,15 +29,15 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class ExpeditionBailTests
     {
         [UnityTest]
-        public IEnumerator SummaryDeliversBailPenaltyOrNormalEscapeExactlyOnce()
+        public IEnumerator SummaryCompletesNormallyExactlyOnce()
         {
             yield return new EnterPlayMode();
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
             Assert.That(ExpeditionSessionManager.Instance, Is.Null);
-            foreach (bool bailed in new[] { false, true })
             {
                 var progressionRoot = new GameObject("Bail progression");
                 var expeditionRoot = new GameObject("Bail expedition");
@@ -68,13 +68,12 @@ namespace Worsen.Tests.Expedition
                     var handler = typeof(ExpeditionSessionManager).GetMethod("HandleRunEnded", BindingFlags.NonPublic | BindingFlags.Instance);
                     int revision = progression.Snapshot.Revision;
                     handler.Invoke(expedition, new object[] { new RunSummary(1, 0, 0, 0, 0, 0,
-                        RunEndReason.Escaped, scene: SceneKey.FloorLoop, bailed: bailed) });
+                        RunEndReason.Escaped, scene: SceneKey.FloorLoop) });
                     Assert.That(progression.Snapshot.Revision, Is.EqualTo(revision));
                     var summary = new RunSummary(1, 0, 0, 0, 0, 0, RunEndReason.Escaped,
-                        scene: SceneKey.HorrorRun, bailed: bailed);
+                        scene: SceneKey.HorrorRun);
                     handler.Invoke(expedition, new object[] { summary });
-                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(bailed
-                        ? wallet - Mathf.FloorToInt(wallet * config.EarlyBailWalletFraction) : wallet));
+                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(wallet));
                     Assert.That(progression.Snapshot.Revision, Is.EqualTo(revision + 1));
                     Assert.That(expedition.AssemblyPhase, Is.EqualTo(ExpeditionAssemblyPhase.Resolved));
                     handler.Invoke(expedition, new object[] { summary });

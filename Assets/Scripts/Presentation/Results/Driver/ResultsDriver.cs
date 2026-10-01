@@ -11,6 +11,7 @@
 //   Driver (§7a) · Presentation · Results.
 //
 // KEY RESPONSIBILITIES:
+//   - Render no-floor failures without gameplay metrics; pair Retry/title callbacks and latch both.
 //   - Apply catch completion as a hard cut and warn once on unscaled fallback expiry.
 //   - Resolve the existing PanelSettings and own the procedural ResultsSurfaceDriver.
 //   - Bind, render, unbind and rebind the current document; report UI interactions as facts.
@@ -48,11 +49,14 @@ namespace Worsen.Presentation.Results
         private VisualElement _boundRoot;
         private VisualElement _overlay;
         private Label _title, _runTime, _cakes, _goldenCakes, _chases, _escapes, _chaseTime, _endReason;
-        private Button _restart;
+        private Button _restart, _returnTitle;
+        private VisualElement _metrics;
+        private Label _kicker, _hint;
         private TextField _seedInput;
         private Label _cause, _killer, _grabs, _exitTime, _depth, _seed, _best, _seedError;
 
         public event Action RestartClicked;
+        public event Action ReturnToTitleClicked;
         public event Action<bool, int> RestartWithSeedClicked;
 
         public void Initialize(ResultsDriverConfig config)
@@ -82,6 +86,13 @@ namespace Worsen.Presentation.Results
             _presenter.Show(_state, summary, _config != null ? _config.CatchTimeoutSeconds : ResultsDriverConfig.DefaultCatchTimeoutSeconds);
             Apply();
         }
+
+        public void ShowNoFloor(int seed)
+        {
+            if (_state == null) return;
+            _presenter.ShowNoFloor(_state, seed); Apply();
+        }
+        public void SetGenerationSeed(int seed) { if (_state != null) _state.GenerationSeed = seed; }
 
         public void SetBestDepth(int depth)
         {
@@ -154,6 +165,9 @@ namespace Worsen.Presentation.Results
             _chaseTime = root.Q<Label>("chase-time");
             _endReason = root.Q<Label>("end-reason");
             _restart = root.Q<Button>("restart-button");
+            _returnTitle = root.Q<Button>("return-title-button");
+            _metrics = root.Q<VisualElement>("results-metrics");
+            _kicker = root.Q<Label>("results-kicker"); _hint = root.Q<Label>("restart-hint");
             _cause = root.Q<Label>("death-cause"); _killer = root.Q<Label>("killer");
             _grabs = root.Q<Label>("grabs-escaped"); _exitTime = root.Q<Label>("exit-to-escape");
             _depth = root.Q<Label>("depth-reached"); _seed = root.Q<Label>("run-seed"); _best = root.Q<Label>("best-depth");
@@ -169,6 +183,7 @@ namespace Worsen.Presentation.Results
             root.pickingMode = PickingMode.Ignore;
             root.style.display = DisplayStyle.Flex;
             _restart.clicked += OnRestartClicked;
+            _returnTitle.clicked += OnReturnTitleClicked;
             _seedInput.RegisterValueChangedCallback(OnSeedChanged);
             _overlay.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             _overlay.RegisterCallback<GeometryChangedEvent>(OnOverlayGeometryChanged);
@@ -183,6 +198,11 @@ namespace Worsen.Presentation.Results
             bool opening = _state.Visible && _overlay.style.display.value == DisplayStyle.None;
             _overlay.style.display = _state.Visible ? DisplayStyle.Flex : DisplayStyle.None;
             _title.text = _state.Title;
+            _metrics.style.display = _state.NoFloor ? DisplayStyle.None : DisplayStyle.Flex;
+            _returnTitle.style.display = _state.NoFloor ? DisplayStyle.Flex : DisplayStyle.None;
+            _returnTitle.SetEnabled(_state.Visible && !_state.RestartIssued);
+            _kicker.text = _state.NoFloor ? "THE NIGHT NEVER BEGAN" : "AFTER THE NIGHT";
+            _hint.text = _state.NoFloor ? "RETRY WITH A NEW SEED OR RETURN TO TITLE" : "ENTER / SPACE  ·  RUN AGAIN";
             _runTime.text = _state.RunTime;
             _cakes.text = _state.Cakes;
             _goldenCakes.text = _state.GoldenCakes;
@@ -195,7 +215,7 @@ namespace Worsen.Presentation.Results
             _seedError.text = _state.SeedError; _seedInput.SetValueWithoutNotify(_state.NextSeedText);
             _seedInput.SetEnabled(!_state.RestartIssued);
             _restart.SetEnabled(_state.Visible && !_state.RestartIssued && _state.SeedValid);
-            _surface.SetRestartLabel(_state.RestartIssued ? "RESTARTING…" : "RUN AGAIN");
+            _surface.SetRestartLabel(_state.RestartIssued ? "PLEASE WAIT…" : _state.NoFloor ? "RETRY (NEW SEED)" : "RUN AGAIN");
             if (opening && !_state.RestartIssued) _restart.Focus();
         }
 
@@ -207,6 +227,7 @@ namespace Worsen.Presentation.Results
 
         private void OnKeyDown(KeyDownEvent evt)
         {
+            if (_returnTitle != null && ReferenceEquals(evt.target, _returnTitle)) return;
             if (_seedInput != null && (ReferenceEquals(evt.target, _seedInput) || _seedInput.Contains(evt.target as VisualElement))) return;
             if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.KeypadEnter && evt.keyCode != KeyCode.Space) return;
             OnRestartClicked();
@@ -225,13 +246,22 @@ namespace Worsen.Presentation.Results
                 !ReferenceEquals(_boundRoot, _document.rootVisualElement) || _overlay == null ||
                 _state == null || !_presenter.TryRestart(_state)) return;
             Apply();
-            RestartWithSeedClicked?.Invoke(_state.UseFixedSeed, _state.NextSeed);
+            RestartWithSeedClicked?.Invoke(!_state.NoFloor && _state.UseFixedSeed, _state.NoFloor ? 0 : _state.NextSeed);
             RestartClicked?.Invoke();
+        }
+
+        private void OnReturnTitleClicked()
+        {
+            if (!isActiveAndEnabled || _document == null || !_document.isActiveAndEnabled ||
+                !ReferenceEquals(_boundRoot, _document.rootVisualElement) || _overlay == null ||
+                _state == null || !_presenter.TryReturnToTitle(_state)) return;
+            Apply(); ReturnToTitleClicked?.Invoke();
         }
 
         private void HideAndUnbind()
         {
             if (_restart != null) _restart.clicked -= OnRestartClicked;
+            if (_returnTitle != null) _returnTitle.clicked -= OnReturnTitleClicked;
             if (_seedInput != null) _seedInput.UnregisterValueChangedCallback(OnSeedChanged);
             if (_overlay != null)
             {
@@ -243,6 +273,7 @@ namespace Worsen.Presentation.Results
             _boundRoot = null;
             _overlay = null;
             _restart = null;
+            _returnTitle = null; _metrics = null; _kicker = _hint = null;
             _seedInput = null;
             _cause = _killer = _grabs = _exitTime = _depth = _seed = _best = _seedError = null;
             _title = _runTime = _cakes = _goldenCakes = _chases = _escapes = _chaseTime = _endReason = null;

@@ -10,6 +10,7 @@
 //   - Install one fog feature without removing or replacing other renderer features.
 //   - Reuse config identities and create only the dedicated additive spike scene.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Core graph data, Presentation Fog, UnityEditor and URP renderer assets.
 // USAGE NOTES:
 //   Refuses Play Mode, duplicate fog features, dirty renderer assets and a loaded
@@ -175,7 +176,7 @@ namespace Worsen.Editor.Fog
         private static void EnsureAsset<T>(string name) where T : ScriptableObject
         { string path = ConfigRoot + "/" + name + ".asset"; if (AssetDatabase.LoadAssetAtPath<T>(path) == null) AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<T>(), path); }
         private static void EnsureFolder(string path)
-        { if (AssetDatabase.IsValidFolder(path)) return; string parent = Path.GetDirectoryName(path).Replace('\\', '/'); EnsureFolder(parent); AssetDatabase.CreateFolder(parent, Path.GetFileName(path)); }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
         private static void RequireEditMode()
         { if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Fog setup requires Edit Mode."); }
     }

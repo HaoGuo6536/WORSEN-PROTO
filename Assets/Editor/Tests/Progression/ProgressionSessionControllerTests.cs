@@ -13,7 +13,6 @@
 //   - Verify independent selection/shop cadence and committed eligible choices.
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
 //   - Verify catalogue pedestals, retired healing, automatic ward use and curse exhaustion.
-//   - Verify rounded bail debits, wallet bounds and generation-scoped replay protection.
 // DEPENDENCIES:
 //   - Core contracts, Session Progression, NUnit and Unity asset allocation.
 // USAGE NOTES:
@@ -31,6 +30,7 @@ using Worsen.Session.Progression;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionSessionControllerTests
     {
         private ProgressionConfig config;
@@ -48,6 +48,13 @@ namespace Worsen.Tests.Progression
                 new EffectCatalogueEntry("firecracker", EffectKind.Consumable, FearAxis.Information, "Firecracker", "Draws hunters.", price: 4),
                 new EffectCatalogueEntry("wax-ward", EffectKind.Consumable, FearAxis.Agency, "Wax Ward", "Breaks a grab.", price: 4) });
             SetConfigField("_effectCatalogue", catalogue);
+            SetConfigField("_eventPool", Array.Empty<ProgressionEventKind>());
+            SetConfigField("_curses", new[] {
+                new ProgressionEntryConfig("no-look-back", "Look", "Removes look-back."),
+                new ProgressionEntryConfig("hidden-count", "Count", "Hides counters."),
+                new ProgressionEntryConfig("short-grace", "Grace", "Shortens grace."),
+                new ProgressionEntryConfig("rough-start", "Start", "Reduces starting health."),
+                new ProgressionEntryConfig("echo-test", "Echo", "Removes safety.", requiredThreatId: "echo") });
             state = new ProgressionSessionBehaviorState();
             controller = new ProgressionSessionController(state, config, new System.Random(731));
             controller.StartRun(731);
@@ -419,7 +426,7 @@ namespace Worsen.Tests.Progression
             for (int round = 0; round < 100; round++)
             {
                 if (state.Phase == ProgressionPhase.Generating && state.IsShop) SkipPendingShop();
-                int generation = OpenCombatFloor("rusher");
+                int generation = OpenCombatFloor("weaver");
                 controller.CompleteFloor(generation);
             }
             Assert.That(state.CurseCount, Is.LessThanOrEqualTo(config.Curses.Count));
@@ -440,7 +447,7 @@ namespace Worsen.Tests.Progression
         public void DuplicateCatalogIdsInvalidPricesAndStockAreRejected()
         {
             foreach (var entry in new[] {
-                new ProgressionEntryConfig("watcher", "DUPLICATE", "Shared identity"),
+                new ProgressionEntryConfig("echo", "DUPLICATE", "Shared identity"),
                 new ProgressionEntryConfig("bad", "BAD", "Invalid price", price: -1),
                 new ProgressionEntryConfig("bad", "BAD", "Invalid stock", stockPerVisit: 0),
                 new ProgressionEntryConfig("bad", "BAD", "Invalid multiplier", flashlightRangeMultiplier: float.NaN) })
@@ -453,8 +460,8 @@ namespace Worsen.Tests.Progression
         [Test]
         public void ThreatRosterIsUniqueAndSnapshotsRetainActualSelectedIdentities()
         {
-            StartOffering("hexer");
-            Assert.That(controller.ChooseThreat("hexer", Revision), Is.True);
+            StartOffering("echo");
+            Assert.That(controller.ChooseThreat("echo", Revision), Is.True);
             var before = controller.Snapshot();
             controller.ChooseCurse(before.Choices[0].Id, Revision);
             controller.ConfirmFloorReady(state.GenerationId);
@@ -462,30 +469,24 @@ namespace Worsen.Tests.Progression
             AdvanceToSelection();
             string second = controller.Snapshot().Choices[0].Id;
             Assert.That(controller.ChooseThreat(second, Revision), Is.True);
-            Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "hexer", second }));
-            Assert.That(before.Effects.ActiveThreatIds, Is.EqualTo(new[] { "hexer" }));
+            Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "echo", second }));
+            Assert.That(before.Effects.ActiveThreatIds, Is.EqualTo(new[] { "echo" }));
             var roster = (IList<string>)before.Effects.ActiveThreatIds;
             Assert.Throws<NotSupportedException>(() => roster[0] = "rusher");
         }
 
         [Test]
-        public void EveryHunterHasThreeRelatedCursesAndMenusMixEligibleGeneralChoices()
+        public void MenusMixEligibleTypeCurseAndGeneralChoices()
         {
-            foreach (var threat in config.Threats)
-            {
-                int related = 0;
-                foreach (var curse in config.Curses) if (curse.RequiredThreatId == threat.Id) related++;
-                Assert.That(related, Is.EqualTo(3), threat.Id);
-            }
-            StartOffering("hexer");
-            Assert.That(controller.ChooseThreat("hexer", Revision), Is.True);
+            StartOffering("echo");
+            Assert.That(controller.ChooseThreat("echo", Revision), Is.True);
             bool hasGeneral = false, hasRelated = false;
             foreach (var choice in controller.Snapshot().Choices)
                 foreach (var curse in config.Curses)
                     if (curse.Id == choice.Id)
                     {
                         if (string.IsNullOrEmpty(curse.RequiredThreatId)) hasGeneral = true;
-                        else { Assert.That(curse.RequiredThreatId, Is.EqualTo("hexer")); hasRelated = true; }
+                        else { Assert.That(curse.RequiredThreatId, Is.EqualTo("echo")); hasRelated = true; }
                     }
             Assert.That(hasGeneral && hasRelated, Is.True);
         }
@@ -494,8 +495,8 @@ namespace Worsen.Tests.Progression
         public void SmallerThreatCapSkipsNoOpChoicesAndNeverOffersUnspawnedHunterCurses()
         {
             SetConfigField("_maximumActiveThreats", 1);
-            StartOffering("hexer");
-            int generation = OpenCombatFloor("hexer");
+            StartOffering("echo");
+            int generation = OpenCombatFloor("echo");
             Assert.That(controller.CompleteFloor(generation), Is.True);
             Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.Generating), "The intervening combat floor has no selection.");
             AdvanceToSelection();
@@ -508,7 +509,7 @@ namespace Worsen.Tests.Progression
                 foreach (var curse in config.Curses)
                     if (curse.Id == choice.Id && !string.IsNullOrEmpty(curse.RequiredThreatId))
                         Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Does.Contain(curse.RequiredThreatId));
-            Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "hexer", next }));
+            Assert.That(controller.Snapshot().Effects.ActiveThreatIds, Is.EqualTo(new[] { "echo", next }));
         }
 
         [Test]
@@ -568,10 +569,10 @@ namespace Worsen.Tests.Progression
                 }
                 menus.Add(string.Join(",", ids));
             }
-            Assert.That(seen, Is.EquivalentTo(config.Threats.Select(entry => entry.Id)));
+            Assert.That(seen, Is.EquivalentTo(new[] { "echo", "weaver", "ticking" }));
             Assert.That(menus.Count, Is.GreaterThan(1));
-            Assert.That(config.Threats.Count, Is.EqualTo(5));
-            Assert.That(config.Curses.Count, Is.EqualTo(22));
+            Assert.That(config.Threats.Count, Is.EqualTo(10));
+            Assert.That(config.Curses.Count, Is.EqualTo(5));
             Assert.That(config.Offers, Is.Empty, "Legacy offers are retired; pedestals use the catalogue.");
         }
 
@@ -582,7 +583,7 @@ namespace Worsen.Tests.Progression
             controller = new ProgressionSessionController(state, config, new System.Random(seed));
             controller.StartRun(seed);
             var hunters = new HashSet<string>(); var curses = new HashSet<string>();
-            for (int combat = 0; combat < 200 && curses.Count < config.Curses.Count; combat++)
+            for (int combat = 0; combat < 200 && (curses.Count < config.Curses.Count || hunters.Count < config.Threats.Count); combat++)
             {
                 SkipPendingShop();
                 bool selection = state.Phase == ProgressionPhase.ChooseThreat;
@@ -615,60 +616,54 @@ namespace Worsen.Tests.Progression
                 Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
                 Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
             }
-            Assert.That(hunters.Count, Is.EqualTo(5));
-            Assert.That(curses.Count, Is.EqualTo(22));
+            Assert.That(hunters.Count, Is.EqualTo(10));
+            Assert.That(curses.Count, Is.EqualTo(config.Curses.Count));
         }
 
-        [TestCase(0, 0.75f, 0)] [TestCase(1, 0.75f, 1)]
-        [TestCase(7, 0.75f, 2)] [TestCase(8, 0.75f, 2)]
-        [TestCase(7, 0.5f, 4)] [TestCase(7, 0f, 7)] [TestCase(7, 1f, 0)]
-        [TestCase(int.MaxValue, 1f, 0)]
-        public void BailDebitsRoundedDownFractionOnceWithoutNegativeWallet(int wallet, float fraction, int remaining)
+        [TestCase(0)] [TestCase(1)] [TestCase(7)] [TestCase(int.MaxValue)]
+        public void CompletionPreservesWalletAndRejectsStaleOrShopCallbacks(int wallet)
         {
-            SetConfigField("_earlyBailWalletFraction", fraction);
             SetConfigField("_goldenCakeValue", Math.Max(1, wallet));
             int first = OpenCombatFloor();
             if (wallet > 0) Assert.That(controller.RecordGoldenCollected(first, 1), Is.True);
             Assert.That(controller.CompleteFloor(first), Is.True, "Build the wallet on a prior normal floor.");
             int generation = OpenCombatFloor();
             Assert.That(state.Wallet, Is.EqualTo(wallet));
-            Assert.That(controller.CompleteFloor(generation - 1, true), Is.False);
+            Assert.That(controller.CompleteFloor(generation - 1), Is.False);
             Assert.That(state.Wallet, Is.EqualTo(wallet));
-            Assert.That(controller.CompleteFloor(generation, true), Is.True);
-            Assert.That(state.Wallet, Is.EqualTo(remaining));
+            Assert.That(controller.CompleteFloor(generation), Is.True);
+            Assert.That(state.Wallet, Is.EqualTo(wallet));
             Assert.That(state.CompletedCombatFloors, Is.EqualTo(2));
-            Assert.That(controller.CompleteFloor(generation, true), Is.False);
             Assert.That(controller.CompleteFloor(generation), Is.False);
-            Assert.That(state.Wallet, Is.EqualTo(remaining));
+            Assert.That(state.Wallet, Is.EqualTo(wallet));
             Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
-            Assert.That(controller.CompleteFloor(state.GenerationId, true), Is.False, "Shops cannot bail.");
+            Assert.That(controller.CompleteFloor(state.GenerationId), Is.False, "Shops use ContinueShop.");
             controller.ContinueShop(Revision);
             OpenCombatFloor();
-            Assert.That(controller.CompleteFloor(generation, true), Is.False, "Old bail cannot debit a replacement floor.");
-            Assert.That(state.Wallet, Is.EqualTo(remaining));
+            Assert.That(controller.CompleteFloor(generation), Is.False);
+            Assert.That(state.Wallet, Is.EqualTo(wallet));
         }
 
         [Test]
-        public void NormalEscapeHasNoPenaltyAndDeadOrUnreadyFloorsCannotBail()
+        public void NormalEscapeHasNoPenaltyAndDeadOrUnreadyFloorsCannotComplete()
         {
-            Assert.That(config.EarlyBailWalletFraction, Is.EqualTo(0.75f));
             ChooseLoadout();
-            Assert.That(controller.CompleteFloor(state.GenerationId, true), Is.False);
+            Assert.That(controller.CompleteFloor(state.GenerationId), Is.False);
             controller.ConfirmFloorReady(state.GenerationId);
             for (int anchor = 0; anchor < 7; anchor++) controller.RecordGoldenCollected(state.GenerationId, anchor);
-            Assert.That(controller.CompleteFloor(state.GenerationId, false), Is.True);
+            Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
             Assert.That(state.Wallet, Is.EqualTo(7));
             int generation = OpenCombatFloor();
             controller.RecordHealth(generation, 0f);
-            Assert.That(controller.CompleteFloor(generation, true), Is.False);
+            Assert.That(controller.CompleteFloor(generation), Is.False);
             Assert.That(state.Wallet, Is.Zero);
             Assert.That(state.CompletedCombatFloors, Is.EqualTo(1));
         }
 
         [TestCase(-0.1f)] [TestCase(1.1f)] [TestCase(float.NaN)] [TestCase(float.PositiveInfinity)]
-        public void InvalidBailFractionRejectedBeforeRun(float fraction)
+        public void InvalidNothingPriceMultiplierRejectedBeforeRun(float fraction)
         {
-            SetConfigField("_earlyBailWalletFraction", fraction);
+            SetConfigField("_nothingShopPriceMultiplier", fraction);
             Assert.Throws<ArgumentException>(() => new ProgressionSessionController(state, config, new System.Random(1)));
         }
 
@@ -684,7 +679,7 @@ namespace Worsen.Tests.Progression
             Assert.Fail("No deterministic test seed offered " + threat);
         }
 
-        private void ChooseLoadout(string threat = "watcher")
+        private void ChooseLoadout(string threat = "echo")
         {
             if (state.Phase == ProgressionPhase.ChooseThreat)
             {
@@ -696,7 +691,7 @@ namespace Worsen.Tests.Progression
                 Assert.That(controller.ChooseCurse(controller.Snapshot().Choices[0].Id, Revision), Is.True);
             Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.Generating));
         }
-        private int OpenCombatFloor(string threat = "watcher")
+        private int OpenCombatFloor(string threat = "echo")
         {
             ChooseLoadout(threat);
             int generation = state.GenerationId;

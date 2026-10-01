@@ -20,6 +20,7 @@ using Worsen.Presentation.Horror;
 
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorMicroEventPresenterTests
     {
         private HorrorDriverConfig _config;

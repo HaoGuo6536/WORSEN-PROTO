@@ -1,0 +1,26 @@
+id: no-runtime-shader-find
+snapshots:
+  class Driver { void Build() { var shader = Shader.Find("Universal Render Pipeline/Lit"); } }:
+    labels:
+    - source: Shader.Find("Universal Render Pipeline/Lit")
+      style: primary
+      start: 43
+      end: 87
+  class Driver { void Build() { var shader = Shader.Find(first) ?? Shader.Find(second); } }:
+    labels:
+    - source: Shader.Find(first)
+      style: primary
+      start: 43
+      end: 61
+  class Driver { void Build() { var shader = UnityEngine.Shader.Find(name); } }:
+    labels:
+    - source: UnityEngine.Shader.Find(name)
+      style: primary
+      start: 43
+      end: 72
+  class Driver { void Build() { var shader = global::UnityEngine.Shader.Find(name); } }:
+    labels:
+    - source: global::UnityEngine.Shader.Find(name)
+      style: primary
+      start: 43
+      end: 80

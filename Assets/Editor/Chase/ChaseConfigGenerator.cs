@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Create the ChaseConfig asset required by scene assembly.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Chase config schema and UnityEditor asset APIs only.
 // USAGE NOTES:
 //   Run in an idle editor under the coordinator's Unity lease; no scene mutations.
@@ -30,13 +31,7 @@ namespace Worsen.Editor.Chase
                 throw new InvalidOperationException("Chase config setup requires an idle Edit Mode editor.");
             ChaseConfig config = AssetDatabase.LoadAssetAtPath<ChaseConfig>(ConfigPath);
             if (config != null) return config;
-            string parent = "Assets";
-            foreach (string part in new[] { "Resources", "ScriptableObjects", "Domain", "Chase" })
-            {
-                string next = parent + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(parent, part);
-                parent = next;
-            }
+            Worsen.Editor.Common.SetupKit.EnsureParent(ConfigPath);
             config = ScriptableObject.CreateInstance<ChaseConfig>();
             AssetDatabase.CreateAsset(config, ConfigPath);
             AssetDatabase.SaveAssetIfDirty(config); return config;

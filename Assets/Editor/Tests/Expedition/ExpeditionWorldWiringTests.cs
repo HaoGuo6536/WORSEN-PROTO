@@ -44,6 +44,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionWorldWiringTests
     {
         private readonly List<Object> _owned = new List<Object>();
@@ -145,6 +146,19 @@ namespace Worsen.Tests.Expedition
                 new[] { new LevelEdge(11, 1, 2, true, TraversalAccess.All) }, Array.Empty<LevelAnchor>(), 1, Vector3.zero), new[] { _closed });
             Assert.That(_level.OpenDoor(101), Is.True);
             Assert.That(_door.enabled, Is.True, "Released geometry must no longer receive Level facts.");
+        }
+
+        [Test]
+        public void SpawnCapacityFailureKeepsActionableReasonAfterCleanup()
+        {
+            const string reason = "hunter-spawn-capacity-shortfall: required=7, admitted=3, shortfall=4, nothingExtras=2";
+            LogAssert.Expect(LogType.Error, new Regex(Regex.Escape(reason)));
+            Call(_expedition, "FailAssembly", 1, new InvalidOperationException(reason));
+            Assert.That(_expedition.AssemblyPhase, Is.EqualTo(ExpeditionAssemblyPhase.Failed));
+            Assert.That(_expedition.LastError, Does.Contain(reason));
+            string source = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts/Session/Expedition/Manager/ExpeditionSessionManager.cs"));
+            Assert.That(source, Does.Contain("hunter-spawn-capacity-shortfall: required="));
+            Assert.That(source, Does.Contain("_progression.FailGeneration(generationId, _state.Failure)"));
         }
 
         [Test]

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Create missing folders and the default PlayerEffectConfig asset idempotently.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Player config and UnityEditor asset operations.
 // USAGE NOTES:
 //   Coordinator only, in an idle editor under its Unity lease. The Player Driver
@@ -34,14 +35,7 @@ namespace Worsen.Editor.Player
             if (AssetDatabase.LoadAssetAtPath<PlayerEffectConfig>(AssetPath) != null) return;
             if (AssetDatabase.LoadMainAssetAtPath(AssetPath) != null)
                 throw new InvalidOperationException("Player effect config path contains a different asset type.");
-            string[] parts = AssetPath.Split('/');
-            string parent = parts[0];
-            for (int i = 1; i < parts.Length - 1; i++)
-            {
-                string next = parent + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(parent, parts[i]);
-                parent = next;
-            }
+            Worsen.Editor.Common.SetupKit.EnsureParent(AssetPath);
             var config = ScriptableObject.CreateInstance<PlayerEffectConfig>();
             AssetDatabase.CreateAsset(config, AssetPath);
             AssetDatabase.SaveAssetIfDirty(config);

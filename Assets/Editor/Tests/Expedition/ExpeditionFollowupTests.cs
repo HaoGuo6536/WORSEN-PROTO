@@ -36,13 +36,14 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionFollowupTests
     {
         private readonly List<Object> owned = new List<Object>();
         [TearDown] public void Cleanup()
         { for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]); owned.Clear(); }
         private T Config<T>() where T : ScriptableObject
-        { var value = ScriptableObject.CreateInstance<T>(); owned.Add(value); return value; }
+        { var value = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<T>(); owned.Add(value); return value; }
         private T Component<T>() where T : Component
         { var go = new GameObject(typeof(T).Name); go.SetActive(false); owned.Add(go); return go.AddComponent<T>(); }
         private static object Get(object target, string name) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);

@@ -23,7 +23,7 @@ namespace Worsen.Core
     public enum NoiseSourceKind
     {
         Footstep, Landing, Slide, Vault, Rebound, Door, KnockedProp, CakePickup,
-        Scream, Firecracker, Trap, Shrine, Other
+        Scream, Firecracker, Trap, Shrine, Other, Heartbeat
     }
 
     /// <summary>Parameters for distance falloff, portal loss and the shared audible threshold.</summary>

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Reuse complete physics query buffers and diagnose missing fallback shader wiring once.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -17,6 +18,7 @@
 //   Scene-owned, no independent simulation loop. Teardown destroys only owned transient effects.
 // ============================================================================
 using System;
+using System.Buffers;
 using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
@@ -30,7 +32,14 @@ namespace Worsen.Domain.Hunter
         public event Action<Collider, int> OnContact;
         public event Action<int> OnMiss;
         public event Action<HunterFeedbackEvent> OnFeedback;
-        public void Initialize() { Teardown(); _state = new HunterAttackDriverState(); }
+        public void Initialize()
+        {
+            Teardown();
+            _state = new HunterAttackDriverState {
+                QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64),
+                QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64),
+                CollisionMask = _config != null ? _config.CollisionMask : ~0 };
+        }
         public void ConfigureFeedback(EntityId hunter, string archetypeKey)
         { if (_state != null) { _state.Hunter = hunter; _state.ArchetypeKey = archetypeKey; } }
         private void Feedback(HunterFeedbackKind kind, Vector3 position, int serial, int emitterId = 0)
@@ -92,11 +101,14 @@ namespace Worsen.Domain.Hunter
                     // Recheck the room still exists; collapsed floors cannot host a floating hit.
                     if (!GroundPoint(point, out Vector3 ground) || Mathf.Abs(point.y - ground.y) > 0.2f) continue;
                     Feedback(HunterFeedbackKind.SpikeErupt, ground, _state.Serial, _state.Serial * 16 + _state.GroundPoints.IndexOf(point) + 1);
-                    foreach (Collider collider in Physics.OverlapCapsule(ground + Vector3.up * 0.2f, ground + Vector3.up * 1.2f,
-                        _state.Radius, Mask, QueryTriggerInteraction.Ignore))
+                    int count = CapsuleOverlap(ground + Vector3.up * 0.2f, ground + Vector3.up * 1.2f, _state.Radius);
+                    for (int i = 0; i < count; i++)
+                    {
+                        Collider collider = _state.QueryOverlaps[i];
                         if (!Own(collider) && Mathf.Abs(collider.bounds.min.y - ground.y) < 1.5f &&
                             Clear(ground + Vector3.up * 0.3f, collider.ClosestPoint(ground + Vector3.up * 0.7f), collider))
                         { OnContact?.Invoke(collider, _state.Serial); }
+                    }
                     _state.Spikes.Add(Visual(_config != null ? _config.SpikePrefab : null, PrimitiveType.Cylinder,
                         ground + Vector3.up * 0.65f, new Vector3(_state.Radius * 0.4f, 0.65f, _state.Radius * 0.4f),
                         _config != null ? _config.SpikeMaterial : null));
@@ -130,31 +142,39 @@ namespace Worsen.Domain.Hunter
             if (_state.SpikeSeconds <= 0f && _state.Spikes.Count > 0)
             { foreach (GameObject spike in _state.Spikes) if (spike != null) Release(spike); _state.Spikes.Clear(); }
         }
-        private int Mask => _config != null ? _config.CollisionMask : ~0;
+        private int Mask => _state.CollisionMask;
         private bool Own(Collider collider) => collider.transform.IsChildOf(transform);
         private bool FirstHit(Vector3 origin, Vector3 direction, float distance, float radius, out RaycastHit closest)
         {
-            RaycastHit[] hits = radius > 0f ? Physics.SphereCastAll(origin, radius, direction, distance, Mask, QueryTriggerInteraction.Ignore) :
-                Physics.RaycastAll(origin, direction, distance, Mask, QueryTriggerInteraction.Ignore);
-            Array.Sort(hits, (a,b) => a.distance.CompareTo(b.distance));
-            foreach (RaycastHit hit in hits) if (!Own(hit.collider)) { closest = hit; return true; }
+            int count = CastQuery(origin, direction, distance, radius);
+            SortHits(count);
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i];
+                if (!Own(hit.collider)) { closest = hit; return true; }
+            }
             closest = default; return false;
         }
         private bool Clear(Vector3 origin, Vector3 target, Collider permitted = null)
         {
             Vector3 delta = target - origin;
-            foreach (RaycastHit hit in Physics.RaycastAll(origin, delta.normalized, Mathf.Max(0f, delta.magnitude - 0.05f), Mask, QueryTriggerInteraction.Ignore))
+            int count = CastQuery(origin, delta.normalized, Mathf.Max(0f, delta.magnitude - 0.05f), 0f);
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i];
                 if (!Own(hit.collider) && hit.collider != permitted && (_state.IsTarget == null || !_state.IsTarget(hit.collider))) return false;
+            }
             return true;
         }
         private bool GroundPoint(Vector3 point, out Vector3 ground)
         {
             ground = default;
             if (Vector3.Distance(_state.Origin, point) > _state.Range + 2f || Mathf.Abs(point.y - transform.position.y) > 1.2f) return false;
-            RaycastHit[] hits = Physics.RaycastAll(point + Vector3.up * 0.6f, Vector3.down, 1.5f, Mask, QueryTriggerInteraction.Ignore);
-            Array.Sort(hits, (a,b) => a.distance.CompareTo(b.distance));
-            foreach (RaycastHit hit in hits)
+            int count = CastQuery(point + Vector3.up * 0.6f, Vector3.down, 1.5f, 0f);
+            SortHits(count);
+            for (int i = 0; i < count; i++)
             {
+                RaycastHit hit = _state.QueryHits[i];
                 if (Own(hit.collider) || (_state.IsTarget != null && _state.IsTarget(hit.collider))) continue;
                 if (hit.normal.y < 0.7f || !Clear(_state.Origin, hit.point + Vector3.up * 0.2f)) return false;
                 ground = hit.point; return true;
@@ -173,11 +193,17 @@ namespace Worsen.Domain.Hunter
         }
         private Material Fallback()
         {
-            if (_state.FallbackMaterial == null)
+            if (_state.FallbackMaterial != null) return _state.FallbackMaterial;
+            if (_config == null || _config.FallbackShader == null)
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
-                if (shader != null) _state.FallbackMaterial = new Material(shader) { color = Color.magenta };
+                if (!_state.MissingFallbackShaderReported)
+                {
+                    _state.MissingFallbackShaderReported = true;
+                    Debug.LogError("HunterAttackDriver requires a serialized fallback shader on HunterAttackDriverConfig; run the Hunter horror roster setup.", this);
+                }
+                return null;
             }
+            _state.FallbackMaterial = new Material(_config.FallbackShader) { color = Color.magenta };
             return _state.FallbackMaterial;
         }
         private GameObject Visual(GameObject prefab, PrimitiveType fallback, Vector3 point, Vector3 scale, Material material)
@@ -191,6 +217,40 @@ namespace Worsen.Domain.Hunter
         }
         private void ClearWarnings()
         { foreach (LineRenderer line in _state.Warnings) if (line != null) Release(line.gameObject); _state.Warnings.Clear(); }
+        private int CastQuery(Vector3 origin, Vector3 direction, float distance, float radius)
+        {
+            int count;
+            while ((count = radius > 0f
+                ? Physics.SphereCastNonAlloc(origin, radius, direction, _state.QueryHits, distance, Mask, QueryTriggerInteraction.Ignore)
+                : Physics.RaycastNonAlloc(origin, direction, _state.QueryHits, distance, Mask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            return count;
+        }
+        private int CapsuleOverlap(Vector3 low, Vector3 high, float radius)
+        {
+            int count;
+            while ((count = Physics.OverlapCapsuleNonAlloc(low, high, radius, _state.QueryOverlaps, Mask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
+        }
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            T[] larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true); buffer = larger;
+            Debug.LogWarning($"Hunter attack physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
+        }
+        private void SortHits(int count)
+        {
+            for (int i = 1; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i]; int j = i - 1;
+                while (j >= 0 && (hit.distance < _state.QueryHits[j].distance ||
+                    (hit.distance == _state.QueryHits[j].distance && hit.collider.GetInstanceID() < _state.QueryHits[j].collider.GetInstanceID())))
+                { _state.QueryHits[j + 1] = _state.QueryHits[j]; j--; }
+                _state.QueryHits[j + 1] = hit;
+            }
+        }
         public void Teardown()
         {
             if (_state == null) return;
@@ -202,6 +262,9 @@ namespace Worsen.Domain.Hunter
             }
             foreach (GameObject spike in _state.Spikes) if (spike != null) Release(spike);
             if (_state.FallbackMaterial != null) Release(_state.FallbackMaterial);
+            ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+            ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+            _state.QueryHits = null; _state.QueryOverlaps = null;
             _state = null;
         }
         private static void Release(UnityEngine.Object value)

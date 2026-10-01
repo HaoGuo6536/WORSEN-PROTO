@@ -13,6 +13,7 @@
 //   - Hunter runtime/setup, Core/Player, Unity navigation, UnityEditor and NUnit.
 // USAGE NOTES:
 //   Coordinator-only Edit Mode execution. Trigger callbacks are dispatched explicitly;
+//   OnEnable/OnDisable are paired explicitly because these are not ExecuteAlways components.
 //   an actual moving-player physics pass remains a live integration check.
 // ============================================================================
 using System;
@@ -31,6 +32,7 @@ using Object = UnityEngine.Object;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class TickingIntegrationTests
     {
         [Test] public void SetupReusesAssetsPreservesTuningAndRepairsReferences()
@@ -87,6 +89,7 @@ namespace Worsen.Tests.Hunter
         {
             var root = new GameObject("Ticking manager fixture"); var playerRoot = new GameObject("collector");
             var keyPrefab = new GameObject("key fixture"); var stranger = new GameObject("stranger");
+            IHunterTickingModule ticking = null; TickingDriver driver = null;
             var config = ScriptableObject.CreateInstance<TickingConfig>(); var driverConfig = ScriptableObject.CreateInstance<TickingDriverConfig>();
             var profile = ScriptableObject.CreateInstance<HunterProfile>(); var motor = ScriptableObject.CreateInstance<HunterMotorDriverConfig>();
             try
@@ -97,6 +100,11 @@ namespace Worsen.Tests.Hunter
                 var player = new PlayerBehaviorState { Id = new EntityId(1), Health = 100, SprintSpeed = 8 };
                 var manager = root.AddComponent<HunterManager>(); manager.Initialize(profile, new EntityContext(new EntityId(-10), new System.Random(3)), player, new EchoControllerTests.World());
                 Assert.That(manager.Ticking, Is.Not.Null);
+                ticking = manager.Ticking; driver = root.GetComponent<TickingDriver>();
+                // Establish one subscription per owner even if Unity delivered no Edit Mode callbacks.
+                Call(ticking, "OnDisable"); Call(driver, "OnDisable");
+                Call(driver, "OnEnable"); Call(ticking, "OnEnable");
+                manager.Initialize(profile, new EntityContext(new EntityId(-10), new System.Random(3)), player, new EchoControllerTests.World());
                 var sounds = new List<string>(); var noises = new List<NoiseEvent>(); var arrows = new List<GuidanceTarget>();
                 manager.Ticking.OnSound += fact => { Assert.That(fact.Hunter, Is.EqualTo(manager.Id)); sounds.Add(fact.SoundId); };
                 manager.Ticking.OnNoise += fact => { Assert.That(fact.Hunter, Is.EqualTo(manager.Id)); noises.Add(fact.Noise); };
@@ -110,22 +118,29 @@ namespace Worsen.Tests.Hunter
                     new ActiveEffects(new[] { new ActiveEffect(TickingController.LoudKeys, EffectKind.Curse, 1) }), 1f, 3, true, 1));
                 Assert.That(clock.PlaceKey(Vector3.right * 8, true), Is.True); manager.Ticking.PublishTick();
                 Assert.That(arrows.Count, Is.GreaterThan(0)); Assert.That(arrows[0].Kind, Is.EqualTo(GuidanceKind.ThreatArrow));
-                var driver = root.GetComponent<TickingDriver>();
                 var driverState = (TickingDriverState)typeof(TickingDriver).GetField("_state", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(driver);
                 var spawned = driverState.Key; Assert.That(spawned, Is.Not.Null);
-                spawned.SendMessage("OnTriggerEnter", stranger.AddComponent<BoxCollider>()); Assert.That(clock.HasKey, Is.True);
+                var contact = spawned.GetComponent<TickingKeyContact>();
+                Call(contact, "OnTriggerEnter", stranger.AddComponent<BoxCollider>()); Assert.That(clock.HasKey, Is.True);
                 var handle = playerRoot.AddComponent<TickingTestEntityHandle>(); handle.Value = player.Id;
-                spawned.SendMessage("OnTriggerEnter", playerRoot.AddComponent<BoxCollider>());
+                Call(contact, "OnTriggerEnter", playerRoot.AddComponent<BoxCollider>());
                 Assert.That(clock.HasKey, Is.False); Assert.That(driverState.Key, Is.Null);
                 Assert.That(sounds, Does.Contain("ticking.winding")); Assert.That(noises.Count, Is.EqualTo(1));
                 manager.Teardown(); Assert.That(driverState.Key, Is.Null);
+                Call(ticking, "OnDisable"); Call(driver, "OnDisable");
+                var relay = (Delegate)typeof(TickingDriver).GetField("OnKeyContact", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(driver);
+                Assert.That(relay, Is.Null);
             }
             finally
             {
+                if (ticking != null) Call(ticking, "OnDisable");
+                if (driver != null) Call(driver, "OnDisable");
                 Object.DestroyImmediate(root); Object.DestroyImmediate(playerRoot); Object.DestroyImmediate(stranger); Object.DestroyImmediate(keyPrefab);
                 Object.DestroyImmediate(config); Object.DestroyImmediate(driverConfig); Object.DestroyImmediate(profile); Object.DestroyImmediate(motor);
             }
         }
+        private static void Call(object target, string method, params object[] args) =>
+            target.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
     }
     public sealed class TickingTestEntityHandle : MonoBehaviour, IEntityHandle
     {

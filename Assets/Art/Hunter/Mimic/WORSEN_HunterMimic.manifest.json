@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "hunter": "Mimic",
+  "fps": 30,
+  "coordinates": {
+    "source_up": "+Z",
+    "source_forward": "-Y",
+    "fbx_up": "+Y",
+    "fbx_forward": "-Z",
+    "bake_space_transform": true,
+    "unity_bakeAxisConversion": false,
+    "socket_space": "Blender bone-local metres"
+  },
+  "height_m": 0.28909069299697876,
+  "width_m": 0.2663476765155792,
+  "bounds_m": [
+    [
+      -0.1331738382577896,
+      0.1331738382577896
+    ],
+    [
+      -0.1723356693983078,
+      0.18000000715255737
+    ],
+    [
+      0.0,
+      0.28909069299697876
+    ]
+  ],
+  "triangles": 2630,
+  "bones": [
+    {
+      "name": "Root",
+      "parent": null,
+      "head_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rest_matrix": [
+        [
+          -1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "Jaw",
+      "parent": "Root",
+      "head_m": [
+        0.0,
+        0.14499999582767487,
+        0.13600000739097595
+      ],
+      "rest_matrix": [
+        [
+          1.0,
+          0.0,
+          -8.742277657347586e-08,
+          0.0
+        ],
+        [
+          -8.742277657347586e-08,
+          0.0,
+          -1.0,
+          0.14499999582767487
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.13600000739097595
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "idle",
+      "frames": [
+        1,
+        61
+      ],
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "frames": [
+        1,
+        31
+      ],
+      "loop": true
+    },
+    {
+      "name": "run",
+      "frames": [
+        1,
+        21
+      ],
+      "loop": true
+    },
+    {
+      "name": "ready",
+      "frames": [
+        1,
+        25
+      ],
+      "loop": false
+    },
+    {
+      "name": "attack",
+      "frames": [
+        1,
+        31
+      ],
+      "loop": false,
+      "contact_frame": 13
+    },
+    {
+      "name": "hit",
+      "frames": [
+        1,
+        25
+      ],
+      "loop": false
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_HunterMimic_Cake",
+      "base_color_srgb": [
+        0.906332,
+        0.906332,
+        0.906332,
+        1
+      ],
+      "emission_color_srgb": [
+        1.0,
+        1.0,
+        1.0,
+        1
+      ],
+      "emission_strength": 0.35,
+      "textures": {
+        "Base Color": "CakePalette.png",
+        "Emission Color": "CakeEmission.png",
+        "Alpha": "CakePalette.png"
+      }
+    },
+    {
+      "name": "M_HunterMimic_Mouth",
+      "base_color_srgb": [
+        0.24,
+        0.035,
+        0.045,
+        1
+      ],
+      "emission_color_srgb": [
+        1.0,
+        1.0,
+        1.0,
+        1
+      ],
+      "emission_strength": 0.0
+    },
+    {
+      "name": "M_HunterMimic_Teeth",
+      "base_color_srgb": [
+        0.89,
+        0.84,
+        0.68,
+        1
+      ],
+      "emission_color_srgb": [
+        1.0,
+        1.0,
+        1.0,
+        1
+      ],
+      "emission_strength": 0.0
+    }
+  ],
+  "sockets": {
+    "attack_origin": {
+      "bone": "Jaw",
+      "local_offset": [
+        2.4041263202434493e-08,
+        0.0,
+        0.2749999761581421
+      ]
+    },
+    "head_or_top": {
+      "bone": "Jaw",
+      "local_offset": [
+        8.65485461076787e-09,
+        0.1530906856060028,
+        0.0989999920129776
+      ]
+    }
+  },
+  "disguise": {
+    "source": "ArtSource/Horror/Cake/WORSEN_CakePickup.blend",
+    "source_sha256": "7fce8d9bb5408103b4b7ce6f65a9aa9dd60aa9056088987653554dec838cb1d7",
+    "object": "WORSEN_CakePickup",
+    "closed_tolerance_m": 0.005,
+    "cake_bounds_m": [
+      [
+        -0.1331738382577896,
+        0.1331738382577896
+      ],
+      [
+        -0.1723356693983078,
+        0.18000000715255737
+      ],
+      [
+        0.0,
+        0.28909069299697876
+      ]
+    ],
+    "packed_textures_sha256": {
+      "CakePalette.png": "c0b3ca9b5b3614ed1450e9e396258faac0341d6916e189d8cc7090693c1b2f7c",
+      "CakeEmission.png": "b60a337162d599eedb222246910a809ee782ac0d7e9313be02538a8a25e21104"
+    }
+  }
+}

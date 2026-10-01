@@ -17,6 +17,7 @@
 //   - Reload only clean targets and preserve unrelated scene instances and edits.
 //
 // DEPENDENCIES:
+//   - Common SceneFingerprint supplies the same stamps as scene builders/play gates.
 //   - UnityEditor scene/asset APIs and read-only reflection of TestRunnerApi.IsRunActive.
 //   - Existing scene-root field/type contracts; no dependency on optional Horror types.
 //
@@ -186,16 +187,9 @@ namespace Worsen.Editor.Scenes
             Debug.Log("Capture provenance refreshed without scene reserialization. Scene bytes match exact root-stamp-only candidates. Evidence: " + output);
         }
 
-        // Deliberately identical to TagArenaSceneSetup.HashFiles and FloorLoopSceneSetup.HashFiles.
-        // Sort raw paths before slash normalization; retain File.ReadAllText and platform newlines.
+        // Builders, play-entry gates and byte-only refresh share one fingerprint contract.
         private static string HashFiles(string directory, string pattern)
-        {
-            var text = new StringBuilder();
-            foreach (string path in Directory.GetFiles(directory, pattern, SearchOption.AllDirectories).OrderBy(p => p, StringComparer.Ordinal))
-                text.Append(path.Replace('\\', '/')).Append(Environment.NewLine).Append(File.ReadAllText(path)).Append(Environment.NewLine);
-            using (var hash = SHA256.Create())
-                return "sha256:" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", string.Empty);
-        }
+            => Worsen.Editor.Common.SceneFingerprint.HashFiles(directory, pattern);
 
         private static byte[] PatchRootStamps(byte[] original, ulong rootFileId, string source, string config)
         {

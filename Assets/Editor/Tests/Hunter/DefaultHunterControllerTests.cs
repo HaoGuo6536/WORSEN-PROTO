@@ -23,6 +23,7 @@ using Worsen.Domain.Player;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class DefaultHunterControllerTests
     {
         private sealed class FixtureController : DefaultHunterController

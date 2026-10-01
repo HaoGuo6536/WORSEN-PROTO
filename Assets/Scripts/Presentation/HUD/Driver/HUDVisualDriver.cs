@@ -11,11 +11,11 @@
 //   Sub-driver (§7e), owned by HUDDriver · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Draw the selected item caption even during a chase; highlight its occupied slot.
-//   - Build quiet cake and golden counts without panel chrome, title or controls hints.
-//   - Pair all vector callbacks when binding, unbinding or replacing a document.
-//   - Paint separate white and golden arrows, each independent of chase chrome.
-//   - Apply chrome visibility and restoration without suppressing the independent compass.
+//   - Build quiet cake/golden counters and honor floor hiding independently of other HUD.
+//   - Render occupied inventory within chase-hidden chrome and independent Exit Sense/guidance.
+//   - Keep numerical shield/health information off the in-run surface.
+//   - Pair vector callbacks across document binding, replacement and teardown.
+//   - Apply chrome visibility and restoration without suppressing guidance.
 //
 // DEPENDENCIES:
 //   Own HUDDriverConfig, HUDDriverState and HUDGeometryPresenter only.
@@ -29,6 +29,8 @@
 
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Presentation.HUD
 {
@@ -39,7 +41,11 @@ namespace Worsen.Presentation.HUD
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
         private VisualElement _goldenDirectionGroup, _goldenArrow;
+        private VisualElement _exitDirectionGroup, _exitArrow;
         private Label _count, _golden, _overflow, _selected;
+
+        private VisualElement _threatGroup;
+        private readonly Dictionary<EntityId, Label> _threatArrows = new Dictionary<EntityId, Label>();
 
         public void Bind(VisualElement root, HUDDriverConfig config)
         {
@@ -67,6 +73,12 @@ namespace Worsen.Presentation.HUD
             _golden.style.fontSize = config.FontSize;
             _golden.style.color = config.MutedColor;
 
+            _threatGroup = Element("threat-directions", root);
+            _threatGroup.style.position = Position.Absolute;
+            _threatGroup.style.left = Length.Percent(50);
+            _threatGroup.style.bottom = config.ScreenMargin * 3 + config.CompassSize;
+            _threatGroup.style.flexDirection = FlexDirection.Row;
+
 
             _extra = Element("hud-extra", root);
             _extra.style.position = Position.Absolute;
@@ -89,6 +101,14 @@ namespace Worsen.Presentation.HUD
             _goldenArrow = Element("golden-direction-cue", _goldenDirectionGroup);
             _goldenArrow.style.width = _goldenArrow.style.height = config.CompassSize;
             _goldenArrow.generateVisualContent += PaintGoldenArrow;
+            _exitDirectionGroup = Element("exit-sense-group", root);
+            _exitDirectionGroup.style.position = Position.Absolute;
+            _exitDirectionGroup.style.left = Length.Percent(50);
+            _exitDirectionGroup.style.marginLeft = -config.CompassSize * 2f;
+            _exitDirectionGroup.style.bottom = config.ScreenMargin * 3;
+            _exitArrow = Element("exit-sense-cue", _exitDirectionGroup);
+            _exitArrow.style.width = _exitArrow.style.height = config.CompassSize;
+            _exitArrow.generateVisualContent += PaintExitArrow;
 
             var inventory = Element("inventory-panel", _extra);
             inventory.style.position = Position.Absolute;
@@ -100,7 +120,7 @@ namespace Worsen.Presentation.HUD
             _overflow = Text("slot-overflow", "", inventory);
             _overflow.style.color = config.MutedColor;
             _overflow.style.fontSize = config.SmallFontSize;
-            _selected = Text("selected-consumable", "", root);
+            _selected = Text("selected-consumable", "", _extra);
             _selected.style.position = Position.Absolute;
             _selected.style.left = config.ScreenMargin;
             _selected.style.bottom = config.ScreenMargin;
@@ -114,7 +134,24 @@ namespace Worsen.Presentation.HUD
             _state = state;
             _count.text = state.CountText;
             _golden.text = state.GoldenText;
-            _panel.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
+
+            foreach (var id in new List<EntityId>(_threatArrows.Keys))
+                if (!state.Threats.ContainsKey(id)) { _threatArrows[id].RemoveFromHierarchy(); _threatArrows.Remove(id); }
+            foreach (var pair in state.Threats)
+            {
+                if (!_threatArrows.TryGetValue(pair.Key, out var arrow))
+                {
+                    arrow = Text("threat-" + pair.Key.Value, "▲", _threatGroup);
+                    arrow.style.fontSize = _config.CompassSize * .5f;
+                    arrow.style.width = arrow.style.height = _config.CompassSize;
+                    arrow.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    arrow.style.color = _config.ThreatArrowColor;
+                    _threatArrows.Add(pair.Key, arrow);
+                }
+                arrow.style.display = pair.Value.Visible ? DisplayStyle.Flex : DisplayStyle.None;
+                arrow.style.rotate = new Rotate(new Angle(pair.Value.ArrowDegrees, AngleUnit.Degree));
+            }
+            _panel.style.display = state.ChromeVisible && !state.HiddenCount ? DisplayStyle.Flex : DisplayStyle.None;
             _panel.style.opacity = state.ExtraOpacity;
             _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _extra.style.opacity = state.ExtraOpacity;
@@ -122,8 +159,12 @@ namespace Worsen.Presentation.HUD
             _goldenDirectionGroup.style.display = state.GoldenSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _goldenArrow.style.rotate = new Rotate(new Angle(state.GoldenSenseArrowDegrees, AngleUnit.Degree));
             _goldenArrow.MarkDirtyRepaint();
+            _exitDirectionGroup.style.display = state.ExitSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            _exitArrow.style.rotate = new Rotate(new Angle(state.ExitSenseArrowDegrees, AngleUnit.Degree));
+            _exitArrow.MarkDirtyRepaint();
             _overflow.text = state.SlotOverflowText;
             _selected.text = state.SelectedSlotText;
+            _selected.style.display = string.IsNullOrEmpty(state.SelectedSlotText) ? DisplayStyle.None : DisplayStyle.Flex;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
             _slots.style.display = state.DisplayedSlots > 0 ? DisplayStyle.Flex : DisplayStyle.None;
             _arrow.style.rotate = new Rotate(new Angle(state.ArrowDegrees, AngleUnit.Degree));
@@ -133,10 +174,13 @@ namespace Worsen.Presentation.HUD
 
         public void Unbind()
         {
+            _threatArrows.Clear(); _threatGroup = null;
 
             if (_arrow != null) _arrow.generateVisualContent -= PaintArrow;
             if (_goldenArrow != null) _goldenArrow.generateVisualContent -= PaintGoldenArrow;
             _goldenArrow = _goldenDirectionGroup = null;
+            if (_exitArrow != null) _exitArrow.generateVisualContent -= PaintExitArrow;
+            _exitArrow = _exitDirectionGroup = null;
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _extra = _directionGroup = _arrow = _slots = null;
@@ -163,6 +207,14 @@ namespace Worsen.Presentation.HUD
             var painter = context.painter2D;
             painter.fillColor = _config.GoldenSenseColor;
             Path(painter, _geometry.Arrow(_goldenArrow.contentRect)); painter.Fill();
+        }
+
+        private void PaintExitArrow(MeshGenerationContext context)
+        {
+            if (_state == null || !_state.ExitSenseVisible) return;
+            var painter = context.painter2D;
+            painter.fillColor = _config.ExitSenseColor;
+            Path(painter, _geometry.Arrow(_exitArrow.contentRect)); painter.Fill();
         }
 
         private void PaintSlots(MeshGenerationContext context)

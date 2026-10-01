@@ -23,6 +23,7 @@ using Worsen.Session.Progression.Shop;
 
 namespace Worsen.Tests.Progression
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ConsumableInventoryTests
     {
         private ProgressionConfig config;
@@ -95,8 +96,11 @@ namespace Worsen.Tests.Progression
         public void ExtraLifeCanOnlyBeSpentOnceAcrossFloorsAndNeverWithoutTheActiveEffect()
         {
             var session = Stock("extra-life", EffectKind.Upgrade);
+            var frozen = session.EffectsSnapshot().ActiveEffects;
             Assert.That(session.TryConsumeExtraLife(session.Snapshot().GenerationId - 1), Is.False);
             Assert.That(session.TryConsumeExtraLife(session.Snapshot().GenerationId), Is.True);
+            Assert.That(session.EffectsSnapshot().ActiveEffects.Has(new EffectId("extra-life")), Is.False);
+            Assert.That(frozen.Has(new EffectId("extra-life")), Is.True);
             Assert.That(session.TryConsumeExtraLife(session.Snapshot().GenerationId), Is.False);
             session.CompleteFloor(session.Snapshot().GenerationId); Open(session);
             Assert.That(session.TryConsumeExtraLife(session.Snapshot().GenerationId), Is.False);

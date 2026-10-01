@@ -8,19 +8,12 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Player (Entity system).
 // KEY RESPONSIBILITIES:
-//   - Route Session-timed consumable healing/speed, cleansing and floor-spawn revival.
-//   - Forward Core web contacts to the sole timed slow path; cleanse cancels its timer.
-//   - Route the independent trap speed factor; its lifetime belongs to Session.
-//   - Queue external impulses and explicitly timed acceleration without publishing new facts.
-//   - Expose read-only shield HP, grants and explicit floor-replacement restoration.
-//   - Route active-effect views to the Controller and publish effect/regen health changes.
-//   - Expose read-only Low Profile protection; Floor owns consulting it before grabs.
-//   - Publish normalized traversal progress and stumble starts using Core/primitive event payloads.
-//   - Pass profile ledge limits, slide contact retention and steering to the physical mover.
-//   - Publish Core grace start/end and absorption facts, and push pass-through before physics queries.
-//   - Route independent walking-noise, rebound-recovery and grab-speed effects.
-//   - Apply aggregate run health/movement modifiers through the Controller and publish health changes.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Sequence Player input, probes, resolved movement and committed facts.
+//   - Route health, shield, consumables, active effects and external motion.
+//   Contact/chase perk APIs admit facts only; Session owns foreign-system routing.
+//   - Preserve the caught pose and revive there without restarting the floor.
+//   - Push independent hunter pass-through and publish immunity through grace facts.
+//   - Own initialization, read-only state access and symmetric recovery cleanup.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -57,6 +50,8 @@ namespace Worsen.Domain.Player
         public float ShieldCapacity => _controller?.ShieldCapacity ?? 0f;
         public event Action<EntityId, float> OnShieldChanged;
         public bool IsUngrabbable => _state?.IsUngrabbable ?? false;
+        public bool RevivalDamageImmune => _state?.RevivalDamageImmune ?? false;
+        public bool RevivalCollisionGraceActive => _state?.RevivalCollisionGraceActive ?? false;
         public PlayerMovementSample LastMovementSample => _state?.LastMovementSample ?? default;
         public InputProbeRecord LastProbeRecord => _state?.LastProbeRecord ?? default;
         public IReadOnlyList<PlayerTraversalFact> LastTraversalFacts => _state?.LastTraversalFacts ?? Array.Empty<PlayerTraversalFact>();
@@ -73,6 +68,8 @@ namespace Worsen.Domain.Player
         public event Action<GraceWindowFact> OnGraceStarted;
         public event Action<GraceWindowFact> OnGraceEnded;
         public event Action<EntityId, HitSeverity, HitSource> OnHitAbsorbedByGrace;
+        public event Action<NoiseEvent> OnHeartbeat;
+        public event Action<EntityId, int, int, long> OnDoorLatched;
 
         private void Awake() { if (_driver == null) _driver = GetComponent<PlayerDriver>(); }
         public void Initialize(PlayerProfile profile, EntityContext context)
@@ -100,7 +97,10 @@ namespace Worsen.Domain.Player
             MovementProbe probe = _driver.Probe(_profile.LedgeReach, _profile.LedgeMinimumHeight,
                 _profile.LedgeMaximumHeight, _profile.LedgeChestHeight);
             PlayerTickResult result = _controller.Tick(frame, probe, dt, tick);
-            PlayerMoveResult movement = result.Traversing
+            if (_controller.TakeHeartbeat(out NoiseEvent heartbeat)) OnHeartbeat?.Invoke(heartbeat);
+            PlayerMoveResult movement = !_state.IsAlive
+                ? new PlayerMoveResult(_state.Position, Vector3.zero, _state.Grounded, false)
+                : result.Traversing
                 ? _driver.MoveTraversal(result.TraversalStart, result.TraversalTarget, result.TraversalProgress,
                     result.TraversalHeight, _state.Velocity, _state.HeadingDegrees, dt, _controller.MaximumMovementSpeed, result.TraversalOffset)
                 : _driver.Move(result.Displacement, _state.Velocity, result.Crouched, _state.HeadingDegrees, dt,
@@ -125,10 +125,11 @@ namespace Worsen.Domain.Player
         public bool ApplyHit(float damage, Vector3 killerPosition, HitSeverity severity = HitSeverity.Heavy, HitSource source = HitSource.Lunge)
         {
             if (_controller == null) return false;
+            if (source == HitSource.Lunge && _state.RevivalCollisionGraceActive) return false;
             float previousShield = _state.Shield;
             PlayerHitResult result = _controller.ApplyHit(damage, severity);
             if (previousShield != _state.Shield) OnShieldChanged?.Invoke(Id, _state.Shield);
-            _driver.SetGraceActive(_state.GraceActive);
+            _driver.SetGraceActive(_state.GraceActive || _state.RevivalCollisionGraceActive);
             if (result.GraceStarted.HasValue)
             {
                 OnGraceStarted?.Invoke(result.GraceStarted.Value);
@@ -148,6 +149,39 @@ namespace Worsen.Domain.Player
         public void SetConsumableSpeedMultiplier(float multiplier) => _controller?.SetConsumableSpeedMultiplier(multiplier);
 
         public void ClearSlows() => _controller?.ClearSlows();
+        public void ReceiveChase(ChaseFact fact) => _controller?.ReceiveChase(fact);
+        public void ReceiveMimic(MimicFact fact) => _controller?.ReceiveMimic(fact);
+        public void ReceiveHeraldDeafen(HeraldDeafenFact fact) => _controller?.ReceiveHeraldDeafen(fact);
+        public bool TryReboundFromHunter(EntityId hunter, Vector3 contactNormal)
+        {
+            if (_controller == null || !_controller.TryReboundFromHunter(hunter, contactNormal, out var fact)) return false;
+            OnTraversal?.Invoke(fact);
+            return true;
+        }
+        public bool TryLatchDoor(int roomId, int doorId)
+        {
+            if (_controller == null || !_controller.TryLatchDoor(roomId, doorId)) return false;
+            OnDoorLatched?.Invoke(Id, roomId, doorId, _state.Tick);
+            return true;
+        }
+        public bool ApplyRamHit(float damage, Vector3 killerPosition, Vector3 knockback, bool glancing)
+        {
+            if (_controller == null) return false;
+            if (_controller.TryDeflectGlancingRam(glancing, knockback)) return false;
+            bool changed = ApplyHit(damage, killerPosition);
+            if (changed) _controller.ApplyExternalVelocity(knockback, ExternalMotionKind.Impulse);
+            return changed;
+        }
+        public bool ReviveInPlace(float healthFraction)
+        {
+            if (_controller == null || !_controller.ReviveInPlace(healthFraction)) return false;
+            _driver.Teleport(_state.Position, _state.HeadingDegrees, _state.Crouched);
+            _driver.SetGraceActive(_state.RevivalCollisionGraceActive);
+            if (_state.RevivalDamageImmune) OnGraceStarted?.Invoke(_state.RevivalImmunityWindow);
+            OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
+            return true;
+        }
+
         public bool RespawnAtFloorStart(float healthFraction)
         {
             if (_controller == null || !_controller.RespawnAtFloorStart(healthFraction)) return false;
@@ -174,7 +208,7 @@ namespace Worsen.Domain.Player
         {
             if (_controller == null) return;
             GraceWindowFact? ended = _controller.AdvanceRecovery(tick);
-            _driver.SetGraceActive(_state.GraceActive);
+            _driver.SetGraceActive(_state.GraceActive || _state.RevivalCollisionGraceActive);
             if (ended.HasValue) OnGraceEnded?.Invoke(ended.Value);
         }
 
@@ -196,8 +230,8 @@ namespace Worsen.Domain.Player
         public void BeginFloorHealth(float maximumHealth, float movementMultiplier)
         {
             if (_controller == null) return;
-            _controller.BeginFloorHealth(maximumHealth, movementMultiplier);
             EndRecovery();
+            _controller.BeginFloorHealth(maximumHealth, movementMultiplier);
             OnHealthChanged?.Invoke(Id, _state.Health, _state.MaxHealth);
         }
         public void ApplyRunModifiers(float health, float maximumHealth, float movementMultiplier)

@@ -24,6 +24,7 @@ using UnityEngine.AI;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterCornerClearanceTests
     {
         private static readonly Vector3 Start = new Vector3(-0.3860035f, 0f, -0.2013558f);

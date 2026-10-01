@@ -26,6 +26,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioMixerSetupTests
     {
         [Test] public void SetupIsIdempotentAndPreferencesUseAssignedMixerWithoutDoubleAttenuation()

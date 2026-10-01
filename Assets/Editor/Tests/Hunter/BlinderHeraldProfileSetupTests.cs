@@ -25,6 +25,7 @@ using Worsen.Editor.Hunter;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class BlinderHeraldProfileSetupTests
     {
         [TestCase(false)] [TestCase(true)]

@@ -8,20 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Capture authored Vault surface identity independently of rebound wall identity.
-//   - Apply explicit revival teleports without interpolation from the death position.
-//   - Keep snap support across rounded drop edges independently of sweep-contact separation.
-//   - Resolve the Player-owned effect config through its mirrored Resources path.
-//   - Resolve initial penetrations without interpreting synthetic cast normals as blocking planes.
-//   - Maintain walkable uphill support while allowing real jumps to leave the surface.
-//   - Query untagged chest/upper/top ledge geometry and sweep late traversal steering.
-//   - Filter hunter bodies from all capsule/ground queries and this capsule's contacts during grace.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
-//   - Resolve walkable step support within the capsule footprint without adding horizontal travel.
-//   - Bound each step raise by actual overhead clearance before checking forward travel and support.
-//   - Resolve optional authored traversal endpoint pairs through pure geometry before clearance casts.
-//   - Enable first-person hands at initialization and movement; hide limbs at teardown.
+//   - Probe world support, traversal endpoints, ledges and capsule clearance.
+//   - Resolve swept movement, steps, penetrations and visual interpolation.
+//   - Filter hunter bodies from all queries and capsule contacts during collision grace.
+//   - Restore an explicit pose and capsule posture without interpolation on revival.
+//   - Resolve configuration and own first-person limb lifecycle.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -30,8 +21,11 @@
 //   Unity 6 per-collider exclusions avoid a global IgnoreLayerCollision change and restore on end/disable/teardown.
 //   Both current actor bodies are kinematic; their transforms are moved explicitly, not by contact impulses.
 //   No other Domain system or Presentation system is referenced.
+//   Query buffers are pooled until teardown; saturation grows and retries before
+//   consuming any contacts. Equal-distance hits retain the query's encounter order.
 // ============================================================================
 using System;
+using System.Buffers;
 using UnityEngine;
 using Worsen.Core;
 
@@ -65,6 +59,8 @@ namespace Worsen.Domain.Player
             if (_capsule == null) _capsule = GetComponent<CapsuleCollider>();
             if (_body == null) _body = GetComponent<Rigidbody>();
             _state.HunterBodyLayer = LayerMask.NameToLayer(_config.HunterBodyLayer);
+            if (_state.QueryHits == null) _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
+            if (_state.QueryOverlaps == null) _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _body.isKinematic = true;
             _body.useGravity = false;
             _body.interpolation = RigidbodyInterpolation.None;
@@ -80,14 +76,14 @@ namespace Worsen.Domain.Player
             ShowMovement(MovementState.Ground);
         }
 
-        public void Teleport(Vector3 position, float heading)
+        public void Teleport(Vector3 position, float heading, bool crouched = false)
         {
             _state.Position = _state.PreviousPosition = position;
             _state.Heading = _state.PreviousHeading = heading;
             _state.Velocity = Vector3.zero;
             _state.LastStepDuration = 0f;
             _state.Grounded = false;
-            SetCapsule(false);
+            SetCapsule(crouched);
             _body.position = position;
             _body.rotation = Quaternion.Euler(0f, heading, 0f);
             transform.SetPositionAndRotation(position, _body.rotation);
@@ -211,6 +207,26 @@ namespace Worsen.Domain.Player
             _state.Velocity = Vector3.zero;
             if (_capsule != null) _capsule.enabled = false;
             if (_limbs != null) _limbs.Apply(MovementState.Ground, 0f, Vector3.zero, Vector3.zero);
+            ReleaseQueries();
+        }
+
+        private void OnDestroy() { ReleaseQueries(); }
+
+        private void ReleaseQueries()
+        {
+            if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+            if (_state.QueryOverlaps != null) ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+            _state.QueryHits = null;
+            _state.QueryOverlaps = null;
+        }
+
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            var larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true);
+            buffer = larger;
+            Debug.LogWarning($"Player physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
         }
 
         public void SetGraceActive(bool active)
@@ -253,12 +269,15 @@ namespace Worsen.Domain.Player
         private bool Cast(Vector3 feet, float height, Vector3 direction, float distance, out RaycastHit closest)
         {
             _presenter.Capsule(feet, height, _config.Radius, out Vector3 bottom, out Vector3 top);
-            RaycastHit[] hits = Physics.CapsuleCastAll(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                direction, Mathf.Max(0f, distance), MovementMask, QueryTriggerInteraction.Ignore);
+            int count;
+            while ((count = Physics.CapsuleCastNonAlloc(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
+                direction, _state.QueryHits, Mathf.Max(0f, distance), MovementMask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
             closest = default;
             float nearest = float.PositiveInfinity;
-            foreach (RaycastHit hit in hits)
+            for (int i = 0; i < count; i++)
             {
+                RaycastHit hit = _state.QueryHits[i];
                 if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
                 closest = hit;
                 nearest = hit.distance;
@@ -269,11 +288,19 @@ namespace Worsen.Domain.Player
         private bool IsBlocked(Vector3 feet, float height)
         {
             _presenter.Capsule(feet, height, _config.Radius, out Vector3 bottom, out Vector3 top);
-            Collider[] overlaps = Physics.OverlapCapsule(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                MovementMask, QueryTriggerInteraction.Ignore);
-            foreach (Collider overlap in overlaps)
-                if (!overlap.transform.IsChildOf(transform)) return true;
+            int count = OverlapCapsule(bottom, top);
+            for (int i = 0; i < count; i++)
+                if (!_state.QueryOverlaps[i].transform.IsChildOf(transform)) return true;
             return false;
+        }
+
+        private int OverlapCapsule(Vector3 bottom, Vector3 top)
+        {
+            int count;
+            while ((count = Physics.OverlapCapsuleNonAlloc(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
+                _state.QueryOverlaps, MovementMask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
         }
 
         private bool TryLedge(Vector3 feet, Vector3 forward, float reach, float minimumHeight,
@@ -297,8 +324,13 @@ namespace Worsen.Domain.Player
         {
             closest = default;
             float nearest = float.PositiveInfinity;
-            foreach (RaycastHit hit in Physics.RaycastAll(origin, direction, Mathf.Max(0f, distance), MovementMask, QueryTriggerInteraction.Ignore))
+            int count;
+            while ((count = Physics.RaycastNonAlloc(origin, direction, _state.QueryHits, Mathf.Max(0f, distance),
+                MovementMask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            for (int i = 0; i < count; i++)
             {
+                RaycastHit hit = _state.QueryHits[i];
                 if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
                 closest = hit; nearest = hit.distance;
             }
@@ -318,11 +350,13 @@ namespace Worsen.Domain.Player
             for (int pass = 0; pass < Mathf.Max(1, _config.CastIterations); pass++)
             {
                 _presenter.Capsule(position, _state.Height, _config.Radius, out Vector3 bottom, out Vector3 top);
-                Collider[] overlaps = Physics.OverlapCapsule(bottom, top, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                    MovementMask, QueryTriggerInteraction.Ignore);
+                int count = OverlapCapsule(bottom, top);
                 bool moved = false;
-                foreach (Collider obstacle in overlaps)
+                for (int i = 0; i < count; i++)
+                {
+                    Collider obstacle = _state.QueryOverlaps[i];
                     if (!obstacle.transform.IsChildOf(transform)) moved |= Depenetrate(ref position, obstacle);
+                }
                 if (!moved) break;
             }
         }
@@ -370,15 +404,8 @@ namespace Worsen.Domain.Player
             {
                 Vector3 offset = sample < 0 ? forward : Quaternion.Euler(0f, sample * 45f, 0f) * Vector3.forward;
                 Vector3 origin = feet + Vector3.up * _config.SkinWidth + offset * radius;
-                RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, distance,
-                    MovementMask, QueryTriggerInteraction.Ignore);
-                RaycastHit first = default;
-                float firstDistance = float.PositiveInfinity;
-                foreach (RaycastHit hit in hits)
-                {
-                    if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= firstDistance) continue;
-                    first = hit; firstDistance = hit.distance;
-                }
+                bool rayHit = Ray(origin, Vector3.down, distance, out RaycastHit first);
+                float firstDistance = rayHit ? first.distance : float.PositiveInfinity;
                 // A non-walkable first hit occludes any lower surface on this ray.
                 if (firstDistance >= nearest || !_presenter.IsWalkable(first.normal, _config.SlopeLimitDegrees)) continue;
                 closest = first; nearest = firstDistance; found = true;

@@ -12,7 +12,7 @@
 //   - Retain the room-owned native Lumen warning effect.
 //   - Retain cell-local triggers and hand bounds without filling the room's bounding rectangle.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
-//   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Hold pooled query buffers until the owning volume is destroyed.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
@@ -31,6 +31,8 @@ namespace Worsen.Domain.Floor
     {
         public Bounds Bounds;
         public LevelRoom Room;
+        public RaycastHit[] QueryHits;
+        public Collider[] QueryOverlaps;
         public readonly List<BoxCollider> Boundaries = new List<BoxCollider>();
         public readonly List<Bounds> HandBounds = new List<Bounds>();
         public int RoomId;

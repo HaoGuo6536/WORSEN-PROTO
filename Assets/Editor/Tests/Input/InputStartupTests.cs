@@ -21,6 +21,7 @@ using Worsen.Presentation.Input;
 
 namespace Worsen.Tests.Input
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class InputStartupTests
     {
         [Test]

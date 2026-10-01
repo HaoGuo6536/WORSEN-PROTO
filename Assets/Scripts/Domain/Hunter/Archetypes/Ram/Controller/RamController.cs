@@ -10,7 +10,7 @@
 //   - Lock heading before warning, account swept motion and emit breakable impacts.
 //   - Apply capped neutral curse hooks and admit one normal HunterHit per charge.
 // DEPENDENCIES:
-//   - Own state/config, Default Hunter seam, HunterProfile and injected Core views.
+//   - Own state/config, parent Hunter neutral rules, HunterProfile and injected Core views.
 // USAGE NOTES:
 //   Time is injected; this deterministic rule consumes no random numbers.
 //   Wall hits always stagger, including Partition Breaker. Second Charge winds up
@@ -19,11 +19,11 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
+
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Ram
 {
-    public sealed class RamController : DefaultHunterController, IHunterAttackRules
+    public sealed class RamController : HunterArchetypeController, IHunterAttackRules
     {
         public static readonly EffectId LongerCharge = new EffectId("ram-longer-charge");
         public static readonly EffectId ShorterWindup = new EffectId("ram-shorter-windup");
@@ -108,12 +108,18 @@ namespace Worsen.Domain.Hunter.Archetypes.Ram
             _state.Motion = Vector3.zero;
         }
         public bool TryHit(EntityId target, out HunterHit hit)
+            => TryHit(target, Direction, out hit);
+        public bool TryHit(EntityId target, Vector3 contactNormal, out HunterHit hit)
         {
             hit = default;
             if (Phase != RamPhase.Charge || _state.Hit || !_state.Context.CanReplay ||
                 !_state.Context.Player.IsAlive || target != _state.Context.Player.Id) return false;
             _state.Hit = true;
-            hit = new HunterHit(_state.Context.Hunter.Id, target, _profile.LungeDamage, _state.Context.Tick, _state.Context.Hunter.Position);
+            Vector3 normal = Vector3.ProjectOnPlane(contactNormal, Vector3.up).normalized;
+            bool glancing = normal.sqrMagnitude > 0f && Mathf.Abs(Vector3.Dot(Direction, normal)) < _config.GlancingDotThreshold;
+            hit = new HunterHit(_state.Context.Hunter.Id, target, _profile.LungeDamage, _state.Context.Tick,
+                _state.Context.Hunter.Position, contactNormal: contactNormal, ram: true, glancing: glancing,
+                knockback: (glancing ? normal : Direction) * _config.KnockbackSpeed);
             return true;
         }
         public override bool TryMovement(out Vector3 target, out float speed)

@@ -8,23 +8,20 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
-//   - Swap torch art for cold hospital panels before construction, without moving or renumbering sockets.
-//   - Apply a density budget to eligible torches only; moon/exit lights keep the shared cap.
-//   - Apply safe wall slots, remove decorative collision and own every spawned object.
-//   - Replace imported real lights with configured Lumen fake-light strengths without exposing vendor commands to gameplay systems.
-//   - Fade destruction and localized cursed flames while preserving route readability.
-//   - Own small chalk threshold crosses and clear them on room/floor teardown.
-//   - Own runtime Lumen grammar sub-drivers; budget exit fans alongside local lamps.
-//   - Bind Core light facts by exact generated socket position; unlit torches consume no budget.
-//   - Build dressing and open-sky light pools per footprint cell, retaining one room owner.
+//   - Protect exit lights while budgeting eligible lamps under destruction and curse hooks.
+//   - Build torch, school/hospital fluorescent and basement cage art at exact sockets.
+//   - Admit footprint/curved dressing without decorative collision or real lights.
+//   - Own budgeted Lumen grammar and bind Core light facts by exact socket position.
+//   - Own room objects and threshold chalk with symmetric floor teardown.
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
 //   - Core interactable snapshots are pushed by the owning Manager, never pulled from Level.
-//   - HorrorLumenPresenter pure light math only (acyclic Environment to Horror dependency).
+//   - Core LumenMathUtility supplies shared light math without a Presentation sibling edge.
 // USAGE NOTES:
 //   Scene-owned. No RenderSettings writes; Horror owns global fog and daylight.
 //   SetObserver is pushed from the owner. Floor replacement disables old roots immediately.
 //   Lumen owns its internal vendor manager; this Driver never accesses its singleton.
+//   Missing serialized shaders disable dressing and report once per owner, not per frame.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
@@ -37,7 +34,10 @@ namespace Worsen.Presentation.Environment
     {
         private EnvironmentDriverConfig _config;
         private readonly EnvironmentDriverState _state = new EnvironmentDriverState();
-        private readonly Worsen.Presentation.Horror.HorrorLumenPresenter _lumen = new Worsen.Presentation.Horror.HorrorLumenPresenter();
+        // DriverState (§7c): diagnostics survive floor teardown and retries.
+        private sealed class ShaderReferenceDriverState { public bool Reported; }
+        private readonly ShaderReferenceDriverState _shaderState = new ShaderReferenceDriverState();
+
         public bool IsReady => _config != null;
         public int RoomCount => _state.Rooms.Count;
         public int ActiveLumenCount => _state.ActiveLumenCount;
@@ -47,6 +47,16 @@ namespace Worsen.Presentation.Environment
         public void Initialize(EnvironmentDriverConfig config)
         {
             _config = config != null ? config : Resources.Load<EnvironmentDriverConfig>("ScriptableObjects/Presentation/Environment/EnvironmentDriverConfig");
+            if (_config != null && (_config.ChalkShader == null || _config.PanelShader == null))
+            {
+                if (!_shaderState.Reported)
+                {
+                    _shaderState.Reported = true;
+                    Debug.LogError("EnvironmentDriverConfig requires ChalkShader and PanelShader. Rebuild Environment assets.", this);
+                }
+                BeginFloor(); _config = null;
+                return;
+            }
             if (_config == null) Debug.LogWarning("Environment dressing needs its EnvironmentDriverConfig asset.", this);
             else if (_config.LumenLanternPrefab == null || _config.LumenMoonPrefab == null) Debug.LogWarning("Environment requires the project-owned Lumen torch and moon profiles. Rebuild HorrorRun assets.", this);
         }
@@ -74,26 +84,27 @@ namespace Worsen.Presentation.Environment
         }
 
         public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
-            IReadOnlyList<Bounds> cells = null)
+            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
         {
             if (_config == null || _state.Rooms.ContainsKey(id)) return;
             bool fluorescent = EnvironmentThemePresenter.IsFluorescent(_state, id);
+            bool cage = EnvironmentThemePresenter.IsCageLamp(_state, id);
             string family = _state.RoomThemes.TryGetValue(id, out var roomTheme) ? roomTheme.Family : string.Empty;
             var root = new GameObject("Room " + id + (fluorescent ? " Hospital " : " Castle ") + family + " Dressing");
             root.transform.SetParent(transform, false); root.SetActive(false);
             _state.Rooms.Add(id, root);
             _state.RoomBounds.Add(id, bounds);
-            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved, cells);
+            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved, cells, boundary, lightSockets);
             for (int i = 0; i < slots.Length; i++)
             {
                 EnvironmentSlot slot = slots[i];
                 if (slot.Torch)
                 {
-                    if (!fluorescent) SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
+                    if (!fluorescent && !cage) SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
                     AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false,
-                        slot.Position, fluorescent, slot.Yaw, slot.Envelope);
+                        slot.Position, fluorescent, slot.Yaw, slot.Envelope, cage);
                 }
-                else if (!fluorescent)
+                else if (!fluorescent && !cage)
                 {
                     bool groundProp = slot.Kind == EnvironmentDecorationKind.FloorProp || slot.Kind == EnvironmentDecorationKind.MerchantDisplay;
                     if (groundProp && Physics.CheckBox(slot.Position, slot.Envelope * .5f - Vector3.one * .025f,
@@ -152,7 +163,7 @@ namespace Worsen.Presentation.Environment
         }
 
         private void AddFlame(int roomId, int identity, Transform parent, Vector3 position, bool refuge, bool moon,
-            Vector3 socketPosition = default, bool fluorescent = false, float yaw = 0f, Vector3 envelope = default)
+            Vector3 socketPosition = default, bool fluorescent = false, float yaw = 0f, Vector3 envelope = default, bool cage = false)
         {
             var holder = new GameObject(moon ? "Lumen 2 Moon Pool" : fluorescent ? "Lumen 2 Fluorescent Pool" : "Lumen 2 Torch Pool");
             holder.transform.SetParent(parent, false); holder.transform.position = position;
@@ -163,13 +174,13 @@ namespace Worsen.Presentation.Environment
             var grammar = effectRoot.AddComponent<EnvironmentLumenDriver>();
             LumenEffectPlayer lumen = grammar.CreateLamp(_config, moon, fluorescent);
             EnvironmentFluorescentFixture panel = null;
-            if (fluorescent)
+            if (fluorescent || cage)
             {
                 var panelRoot = new GameObject("Cold fluorescent panel"); panelRoot.transform.SetParent(holder.transform, false);
                 panel = panelRoot.AddComponent<EnvironmentFluorescentFixture>();
-                panel.Configure(socketPosition, yaw, envelope, _config);
+                panel.Configure(socketPosition, yaw, envelope, _config, cage);
             }
-            if (!moon && !fluorescent && _config.FirePrefab != null)
+            if (!moon && !fluorescent && !cage && _config.FirePrefab != null)
             {
                 GameObject fire = Instantiate(_config.FirePrefab, effectRoot.transform);
                 fire.transform.localPosition = Vector3.zero; fire.transform.localScale *= 0.35f;
@@ -223,6 +234,11 @@ namespace Worsen.Presentation.Environment
             exit.EffectRoot.transform.SetParent(room.transform, true);
             exit.EffectRoot.transform.SetPositionAndRotation(position, rotation);
             exit.RoomId = roomId;
+            _state.ConsumedRooms.Remove(roomId);
+            room.SetActive(_state.OwnerEnabled);
+            for (int i = 0; i < _state.Flames.Count; i++)
+                if (_state.Flames[i].RoomId == roomId)
+                { _state.Flames[i].Lit = true; _state.Flames[i].Destruction = 0f; _state.Available[i] = true; }
             _state.Positions[_state.ExitLightIndex] = position;
             _state.UntilRefresh = 0f;
         }
@@ -235,10 +251,10 @@ namespace Worsen.Presentation.Environment
         }
 
         public float FogBoundaryGlow(float density) => _config == null ? 0f :
-            _lumen.FogBoundaryGlow(density, _config.ThinFogLimit, _config.FogBoundaryStrength);
+            LumenMathUtility.FogBoundaryGlow(density, _config.ThinFogLimit, _config.FogBoundaryStrength);
         public Color FogBoundaryColor => _config != null ? _config.MoonColor : Color.black;
         public float HunterRim(bool lookBack) => _config == null ? 0f :
-            _lumen.HunterRim(_config.HunterRimEnabled, lookBack, _config.HunterRimStrength);
+            LumenMathUtility.HunterRim(_config.HunterRimEnabled, lookBack, _config.HunterRimStrength);
 
         public void SetObserver(Vector3 position) { _state.Observer = position; }
         public void SetFlameGutter(float amount) { _state.Gutter = Mathf.Clamp01(amount); }
@@ -252,13 +268,12 @@ namespace Worsen.Presentation.Environment
         }
         public void MarkDoor(int doorId, Vector3 position)
         {
-            if (!_state.OwnerEnabled || _state.DoorMarks.ContainsKey(doorId) || _state.DoorMarks.Count >= 128) return;
+            if (_config == null || !_state.OwnerEnabled || _state.DoorMarks.ContainsKey(doorId) || _state.DoorMarks.Count >= 128) return;
             int[] rooms = EnvironmentPresenter.ChalkRooms(position, _state.RoomBounds);
             foreach (int room in rooms) if (_state.ConsumedRooms.Contains(room)) return;
             if (_state.ChalkMaterial == null)
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-                if (shader == null) { Debug.LogWarning("Threshold chalk needs the project URP particle unlit shader.", this); return; }
+                Shader shader = _config.ChalkShader;
                 _state.ChalkMaterial = new Material(shader) { name = "Owned threshold chalk" };
                 _state.ChalkMaterial.SetColor("_BaseColor", Color.white);
             }
@@ -280,6 +295,7 @@ namespace Worsen.Presentation.Environment
         public void SetRoomConsumed(int id) { SetRoomDestruction(id, 1f); }
         public void SetRoomDestruction(int id, float severity)
         {
+            if (_state.ExitLightIndex >= 0 && _state.Flames[_state.ExitLightIndex].RoomId == id) return;
             if (severity >= 1f)
             {
                 _state.ConsumedRooms.Add(id);
@@ -308,16 +324,18 @@ namespace Worsen.Presentation.Environment
             for (int i = 0; i < _state.Flames.Count; i++)
             {
                 EnvironmentFlameDriverState flame = _state.Flames[i];
+                bool protectedExit = EnvironmentPresenter.IsExitRoomLight(_state, flame);
                 int rank = System.Array.IndexOf(visible, i);
                 bool effectActive = rank >= 0 && rank < _config.MaximumLumenEffects;
                 float gutter = EnvironmentPresenter.CombinedFlameGutter(_state.Gutter, _state.Positions[i],
                     _state.FlameDimPosition, _state.FlameDimRadius, _state.FlameDimMultiplier);
-                float intensity = flame.Exit ? _lumen.ExitRayIntensity(flame.OpeningProgress,
+                if (protectedExit) gutter = 0f;
+                float intensity = flame.Exit ? LumenMathUtility.ExitRayIntensity(flame.OpeningProgress,
                     _config.ExitRayClosedIntensity, _config.ExitRayOpenIntensity) * (1f - flame.Destruction) :
                     flame.Moon ? 1f - flame.Destruction :
                     EnvironmentThemePresenter.LampBrightness(flame.Fluorescent, _state.Elapsed, flame.Identity, gutter,
                         flame.Destruction, _state.Wick, _config.FluorescentFlickerDepth, _config.FluorescentFlickerRate);
-                if (_state.DarkerFloors) intensity *= Mathf.Clamp01(_config.DarkerLightMultiplier);
+                if (_state.DarkerFloors && !protectedExit) intensity *= Mathf.Clamp01(_config.DarkerLightMultiplier);
                 if (flame.Panel != null) flame.Panel.SetBrightness(effectActive ? intensity : 0f);
                 if (flame.EffectRoot.activeSelf != effectActive) flame.EffectRoot.SetActive(effectActive);
                 if (effectActive && flame.Lumen != null)

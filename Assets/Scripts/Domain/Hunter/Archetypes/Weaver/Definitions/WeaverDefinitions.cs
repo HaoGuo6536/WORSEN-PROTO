@@ -2,7 +2,8 @@
 // WeaverDefinitions.cs
 // ============================================================================
 // PURPOSE:
-//   Carries Weaver-local observations and commands for its pure decision module.
+//   Names Weaver-local shot decisions for its pure decision module. Shared sweep
+//   observations live in parent Hunter Definitions so siblings stay independent.
 //   Outward web hits and cue facts live in Core so their consumers need no
 //   dependency on Hunter implementation types.
 // ARCHITECTURAL ROLE:
@@ -23,26 +24,6 @@ namespace Worsen.Domain.Hunter.Archetypes.Weaver
 {
     public enum WeaverAction { None, Reposition, Shoot }
 
-    public readonly struct WeaverShotSpot
-    {
-        public WeaverShotSpot(Vector3 position, bool reachable, bool clear)
-        { Position = position; Reachable = reachable; Clear = clear; }
-        public Vector3 Position { get; }
-        public bool Reachable { get; }
-        public bool Clear { get; }
-    }
-    public readonly struct WeaverObservation
-    {
-        public WeaverObservation(long tick, Vector3 origin, Vector3 target, float radius, bool clear,
-            bool grounded, IReadOnlyList<WeaverShotSpot> spots)
-        { Tick = tick; Origin = origin; Target = target; Radius = radius; Clear = clear; Grounded = grounded; Spots = spots; }
-        public long Tick { get; }
-        public Vector3 Origin { get; }
-        public Vector3 Target { get; }
-        public float Radius { get; }
-        public bool Clear { get; }
-        public bool Grounded { get; }
-        public IReadOnlyList<WeaverShotSpot> Spots { get; }
-    }
+
 
 }
