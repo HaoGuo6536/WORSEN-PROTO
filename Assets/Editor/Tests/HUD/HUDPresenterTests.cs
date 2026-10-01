@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Verify half-second restore timing and immediate chase interruption.
-//   - Keep formatting stable and invalid samples from becoming visible direction arrows.
+//   - Verify remaining-only counts and keep invalid samples from becoming direction arrows.
 //   - Keep guidance visible through chases and keep all formatted text chase-neutral.
 //
 // DEPENDENCIES:
@@ -63,7 +63,7 @@ namespace Worsen.Tests.HUD
             presenter.SetDirection(state, Vector3.forward, true);
             presenter.SetChaseMode(state, true);
             presenter.Tick(state, 1f, 0.5f);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 3 / 7"));
+            Assert.That(state.CountText, Is.EqualTo("4"));
             Assert.That(state.DisplayedSlots, Is.Zero);
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ExtraOpacity, Is.Zero);
@@ -145,9 +145,9 @@ namespace Worsen.Tests.HUD
             var state = new HUDDriverState();
             var presenter = new HUDPresenter();
             presenter.SetCount(state, 0, 0);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 0 / 0"));
+            Assert.That(state.CountText, Is.EqualTo("0"));
             presenter.SetCount(state, -1, 4);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: —"));
+            Assert.That(state.CountText, Is.EqualTo("—"));
             presenter.SetItemSlots(state, 11, 8);
             Assert.That(state.DisplayedSlots, Is.Zero);
             Assert.That(state.SlotOverflowText, Is.Empty);
@@ -165,11 +165,11 @@ namespace Worsen.Tests.HUD
             var state = new HUDDriverState();
             var presenter = new HUDPresenter();
             presenter.SetCount(state, 7, 4);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 7 / 4"));
+            Assert.That(state.CountText, Is.EqualTo("0"));
             Assert.That(state.CountKnown, Is.True);
             Assert.That(state.CountFraction, Is.EqualTo(1f));
             presenter.SetCount(state, 0, 0);
-            Assert.That(state.CountKnown, Is.False);
+            Assert.That(state.CountKnown, Is.True);
             Assert.That(state.CountFraction, Is.Zero);
             presenter.SetCount(state, -1, 4);
             Assert.That(state.CountFraction, Is.Zero);
@@ -190,7 +190,7 @@ namespace Worsen.Tests.HUD
             Assert.That(state.ExtraOpacity, Is.EqualTo(1f));
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ChromeVisible, Is.True);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 2 / 6"));
+            Assert.That(state.CountText, Is.EqualTo("4"));
             Assert.That(state.ExitText, Is.EqualTo("Exit: LOCKED"));
 
             presenter.SetChaseMode(state, true);

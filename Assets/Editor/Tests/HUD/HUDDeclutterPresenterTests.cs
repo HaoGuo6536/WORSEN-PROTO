@@ -2,7 +2,7 @@
 // HUDDeclutterPresenterTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies flat-arrow orientation and quiet golden count through chase suppression.
+//   Verifies flat-arrow orientation and remaining-count facts through chase suppression.
 //   Empty capacity never creates a consumable outline before items exist.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · HUD.
@@ -34,12 +34,12 @@ namespace Worsen.Tests.HUD
         public void GoldenFigureIsIndependentAndEmptyCapacityNeverDraws()
         {
             var state = new HUDDriverState(); var p = new HUDPresenter();
-            p.SetCount(state, 3, 8); p.SetGoldenCount(state, 4); p.SetItemSlots(state, 2, 8);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 3 / 8")); Assert.That(state.GoldenText, Is.EqualTo("Golden: 4"));
+            p.SetCount(state, 3, 8); p.SetGoldenCount(state, 4, 4); p.SetItemSlots(state, 2, 8);
+            Assert.That(state.CountText, Is.EqualTo("5")); Assert.That(state.GoldenText, Is.EqualTo("0"));
             Assert.That(state.DisplayedSlots, Is.Zero);
             p.SetHeldItemCount(state, 1, 8); Assert.That(state.DisplayedSlots, Is.EqualTo(1));
             p.SetHeldItemCount(state, 0, 8); Assert.That(state.DisplayedSlots, Is.Zero);
-            p.SetGoldenCount(state, -1); Assert.That(state.GoldenText, Is.EqualTo("Golden: —"));
+            p.SetGoldenCount(state, -1); Assert.That(state.GoldenText, Is.EqualTo("—"));
         }
     }
 }
