@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Rebuilds one prototype body for each selectable hunter without retuning its
-//   motor or rules. Project manifests drive import and materials; the legacy
+//   rules. Project manifests drive import, stride references and materials; the legacy
 //   HorrorHunterSetup owns the shared creature-child and animation wiring.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Hunter.
@@ -11,7 +11,7 @@
 //   - Validate manifests with a managed parser and convert authored sRGB colours.
 //   - Import project rigs and resolve six clips without editing vendor sources.
 //   - Finalize imported project materials and fit/ground visible geometry.
-//   - Reuse legacy wiring and bind ten distinct, stable-identity prefabs.
+//   - Bind ten stable-identity prefabs, measured strides and Mimic-only cake collision.
 //   - Fail the setup gate on missing content, invalid wiring or logged errors.
 // DEPENDENCIES:
 //   - Hunter configs and HorrorHunterSetup; Floor cake config; native Lumen player.
@@ -44,7 +44,7 @@ namespace Worsen.Editor.Hunter
 {
     public static class HunterRosterVisualSetup
     {
-        public const string Summary = "Hunter roster visuals: 10 distinct prefabs; 10 project Generic imports; 0 pack bodies; 60 clips resolved; Mimic cake surface and glow matched; motor collision and gameplay tuning unchanged.";
+        public const string Summary = "Hunter roster visuals: 10 distinct prefabs; 10 project Generic imports; 0 pack bodies; 60 clips resolved; measured strides persisted; Mimic cake surface, glow and collision matched; other motor collision and gameplay tuning unchanged.";
         public const float PackDarkening = 0.55f;
         public const float PrototypeSmoothness = 0.25f;
         public const float VisualHeightRelativeTolerance = 0.005f;
@@ -64,6 +64,14 @@ namespace Worsen.Editor.Hunter
             [DataMember(Name = "height_m", IsRequired = true)] public float Height;
             [DataMember(Name = "actions", IsRequired = true)] public ActionSpec[] Actions;
             [DataMember(Name = "materials", IsRequired = true)] public MaterialSpec[] Materials;
+            [DataMember(Name = "motion_contract", IsRequired = true)] public MotionSpec Motion;
+        }
+        [DataContract]
+        public sealed class MotionSpec
+        {
+            [DataMember(Name = "authored_walk_speed_mps", IsRequired = true)] public float WalkSpeed;
+            [DataMember(Name = "authored_run_speed_mps", IsRequired = true)] public float RunSpeed;
+            [DataMember(Name = "stride_default_reason")] public string DefaultReason;
         }
         [DataContract]
         public sealed class ActionSpec
@@ -120,6 +128,11 @@ namespace Worsen.Editor.Hunter
             catch (SerializationException error) { throw new FormatException("Invalid hunter manifest JSON.", error); }
             if (result == null || result.Version != 1 || result.Hunter != expectedHunter || result.Fps <= 0 ||
                 !Finite(result.Height) || result.Height <= 0f) throw new FormatException("Invalid manifest identity, version, fps or height.");
+            if (result.Motion == null || !Finite(result.Motion.WalkSpeed) || result.Motion.WalkSpeed <= 0f ||
+                !Finite(result.Motion.RunSpeed) || result.Motion.RunSpeed <= 0f)
+                throw new FormatException("Positive finite measured walk/run references are required.");
+            if (expectedHunter == "Mimic" && string.IsNullOrWhiteSpace(result.Motion.DefaultReason))
+                throw new FormatException("Stationary Mimic references require a default reason.");
             if (result.Actions == null || result.Actions.Length != Roles.Length || result.Actions.Any(action => action == null) ||
                 !result.Actions.Select(action => action.Name).OrderBy(value => value, StringComparer.Ordinal)
                     .SequenceEqual(Roles.OrderBy(value => value, StringComparer.Ordinal)))
@@ -197,6 +210,8 @@ namespace Worsen.Editor.Hunter
         {
             var entry = new Entry { Name = name, Profile = Require<HunterProfile>(ProfilePath(name)) };
             if (entry.Profile.ArchetypeKey != name.ToLowerInvariant()) throw new InvalidOperationException("Profile key mismatch: " + name);
+            if (name == "Mimic" && entry.Profile.MotorOverride == null)
+                throw new InvalidOperationException("Run RosterBProfileSetup::BuildMimic before rebuilding Mimic visuals.");
             RequireMotor(Require<GameObject>(BasePrefabPath(name)));
             switch (name)
             {
@@ -290,6 +305,11 @@ namespace Worsen.Editor.Hunter
                 config = Object.Instantiate(template); config.name = entry.Name + "AnimationDriverConfig";
                 AssetDatabase.CreateAsset(config, AnimationPath(entry.Name));
             }
+            // Repair old generic references on every build while retaining asset identity.
+            var stride = new SerializedObject(config);
+            stride.FindProperty("_walkStrideSpeed").floatValue = entry.Manifest.Motion.WalkSpeed;
+            stride.FindProperty("_runStrideSpeed").floatValue = entry.Manifest.Motion.RunSpeed;
+            stride.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(config);
             bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(path) != null;
             if (!exists) RequireVacant(path);
             GameObject root = PrefabUtility.LoadPrefabContents(exists ? path : BasePrefabPath(entry.Name));
@@ -297,6 +317,12 @@ namespace Worsen.Editor.Hunter
             {
                 RequireMotor(root); root.name = entry.Profile.ArchetypeKey;
                 GameObject creature = HorrorHunterSetup.ReplaceRosterVisual(root, entry.Source, entry.Avatar, entry.Height, config, entry.Clips, attacks);
+                // Keep the two merge intents explicit even when an old config has
+                // stale serialized fields: authored flinch is not attack recovery.
+                var roles = new SerializedObject(config);
+                roles.FindProperty("_hit").objectReferenceValue = entry.Clips[5];
+                roles.FindProperty("_attackRecovery").objectReferenceValue = entry.Clips[0];
+                roles.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(config);
                 // Renderer bounds may contain the whole animation envelope. Fit actual rest-pose
                 // geometry after the legacy helper, so a long attack never shrinks the idle body.
                 Bounds bounds = MeasureVisualBounds(creature);
@@ -308,7 +334,15 @@ namespace Worsen.Editor.Hunter
                 // Measure after scaling and translate the actual feet to the root instead.
                 creature.transform.position += root.transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
                 ApplyMaterials(entry, creature);
-                if (entry.Name == "Mimic") MatchCakePresentation(root, creature);
+                if (entry.Name == "Mimic")
+                {
+                    MatchCakePresentation(root, creature);
+                    var floor = Require<FloorDriverConfig>(CakeConfigPath);
+                    RosterBProfileSetup.ConfigureMimicCollision(root, Vector3.up * floor.PickupHeight + MeasureVisualBounds(floor.CakePrefab).center);
+                    var motor = new SerializedObject(root.GetComponent<HunterDriver>());
+                    motor.FindProperty("_config").objectReferenceValue = entry.Profile.MotorOverride;
+                    motor.ApplyModifiedPropertiesWithoutUndo();
+                }
                 ValidateVisualFit(entry, root);
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
                 if (prefab == null) throw new InvalidOperationException("Could not save " + path);

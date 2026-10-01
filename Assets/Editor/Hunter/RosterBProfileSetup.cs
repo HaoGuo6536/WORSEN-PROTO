@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Editor · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Author four-part briefs, provisional depth gates and mirrored rule assets.
+//   - Supply a Mimic-only cake motor and configure its saved body collision.
 // DEPENDENCIES:
 //   - Hunter configs, Core habit kinds and UnityEditor asset APIs only.
 // USAGE NOTES:
@@ -16,6 +17,7 @@
 //   catalogue or roster selections are modified; registration is a separate hand-off.
 //   Ram waits at thresholds and stamps before rushing; Skip marks reused routes;
 //   Mimic stays perfectly still as a cake and remains spent after one bite.
+//   Visual setup applies the cake box to its own loaded prefab, never the placeholder.
 //   Win presentation uses the normal accepted-catch path and archetype Won facts.
 // ============================================================================
 using System;
@@ -31,6 +33,7 @@ namespace Worsen.Editor.Hunter
     public static class RosterBProfileSetup
     {
         public const string Root = "Assets/Resources/ScriptableObjects/Domain/Hunter/Archetypes/";
+        public static Vector3 MimicCollisionSize => new Vector3(.266f, .289f, .352f);
         [MenuItem("Worsen/Hunter/Build Ram Profile")] public static void BuildRam() { BuildAssets("Ram", Placeholder()); }
         [MenuItem("Worsen/Hunter/Build Skip Profile")] public static void BuildSkip() { BuildAssets("Skip", Placeholder()); }
         [MenuItem("Worsen/Hunter/Build Mimic Profile")] public static void BuildMimic() { BuildAssets("Mimic", Placeholder()); }
@@ -50,6 +53,26 @@ namespace Worsen.Editor.Hunter
             so.FindProperty("_archetypeKey").stringValue = name.ToLowerInvariant();
             if (profile.Prefab == null) so.FindProperty("_prefab").objectReferenceValue = placeholder;
             so.FindProperty("_archetypeRules").objectReferenceValue = rules;
+            if (name == "Mimic")
+            {
+                string motorPath = directory + "/MimicMotorDriverConfig.asset";
+                bool newMotor = AssetDatabase.LoadAssetAtPath<HunterMotorDriverConfig>(motorPath) == null;
+                var motor = Ensure<HunterMotorDriverConfig>(motorPath);
+                var data = new SerializedObject(motor);
+                // The motor still sweeps a capsule. Keep that unused stationary probe
+                // inside the cake's height/width; the physical solid is the exact box.
+                data.FindProperty("_radius").floatValue = MimicCollisionSize.x * .5f;
+                data.FindProperty("_height").floatValue = MimicCollisionSize.y;
+                if (newMotor)
+                {
+                    data.FindProperty("_skinWidth").floatValue = .005f;
+                    data.FindProperty("_eyeHeight").floatValue = MimicCollisionSize.y * .5f;
+                    data.FindProperty("_gravity").floatValue = 0f;
+                    data.FindProperty("_stepHeight").floatValue = 0f;
+                }
+                data.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(motor);
+                so.FindProperty("_motorOverride").objectReferenceValue = motor;
+            }
             if (fresh)
             {
                 bool ram = name == "Ram", skip = name == "Skip";
@@ -84,6 +107,21 @@ namespace Worsen.Editor.Hunter
             RequireIdle(); var profile = AssetDatabase.LoadAssetAtPath<HunterProfile>(EchoProfileSetup.PlaceholderProfilePath);
             if (profile == null || profile.Prefab == null) throw new InvalidOperationException("Build the existing horror roster first.");
             return profile.Prefab;
+        }
+        public static void ConfigureMimicCollision(GameObject root, Vector3 center)
+        {
+            if (root == null || EditorUtility.IsPersistent(root))
+                throw new ArgumentException("Mimic collision requires isolated loaded prefab contents.", nameof(root));
+            var capsule = root.GetComponent<CapsuleCollider>();
+            if (capsule == null) throw new InvalidOperationException("Mimic motor requires its capsule component.");
+            var box = root.GetComponent<BoxCollider>() ?? root.AddComponent<BoxCollider>();
+            box.size = MimicCollisionSize; box.center = center; box.enabled = true; box.isTrigger = false;
+            box.sharedMaterial = capsule.sharedMaterial; box.contactOffset = capsule.contactOffset;
+            box.includeLayers = capsule.includeLayers; box.excludeLayers = capsule.excludeLayers;
+            box.layerOverridePriority = capsule.layerOverridePriority;
+            // HunterDriver requires this component, but it must never remain a solid pillar.
+            capsule.radius = MimicCollisionSize.x * .5f; capsule.height = MimicCollisionSize.y;
+            capsule.direction = 1; capsule.center = center; capsule.enabled = false;
         }
         private static void RequireIdle()
         {

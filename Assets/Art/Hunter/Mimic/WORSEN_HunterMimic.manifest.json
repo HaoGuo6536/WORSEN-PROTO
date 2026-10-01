@@ -247,5 +247,14 @@
       "CakePalette.png": "c0b3ca9b5b3614ed1450e9e396258faac0341d6916e189d8cc7090693c1b2f7c",
       "CakeEmission.png": "b60a337162d599eedb222246910a809ee782ac0d7e9313be02538a8a25e21104"
     }
+  },
+  "motion_contract": {
+    "authored_walk_speed_mps": 1.6,
+    "authored_run_speed_mps": 3.0,
+    "stride_default_reason": "Stationary cake disguise: walk/run are exact closed holds; no stance travel. Positive unused playback defaults prevent division by zero.",
+    "stride_measurement": {
+      "method": "stationary hold verified over both complete cycles",
+      "samples_per_cycle": 240
+    }
   }
 }

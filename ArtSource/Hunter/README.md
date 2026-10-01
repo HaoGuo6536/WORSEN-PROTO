@@ -171,7 +171,7 @@ The runtime owner must use these reference speeds: Ram at 18m/s requires about
 2.662× playback, not the old generic/vendor reference. Phase mapping remains
 ready=stamp/windup, run=charge, hit=wall stagger; Blinder attack=throw.
 
-The coordinator owns the base-prefab collision fix. The closed cake bounds in
+The stride/collision hand-off below now owns the Mimic-only collision fix. The closed cake bounds in
 Unity axes are 0.266348 × 0.289091 × 0.352336m (width/height/depth). Use a matching
 box where the motor permits it. A retained upright capsule cannot fit this
 non-circular footprint exactly; radius 0.176168m and height 0.352336m remove the
@@ -207,3 +207,76 @@ native visual setup, not treat these offline results as a Unity pass.
 
 `ArtSource/README.md` is outside this worker's ownership: coordinator should add
 the three new source rows there; this owned inventory records them meanwhile.
+
+## Measured-stride / cake-collision hand-off (PLAN-017)
+
+`hunter_stride_measurement.py` imports the shipped FBX without exporting or
+saving any source. It measures signed foot travel divided by elapsed planted
+time, pooling both feet (all eight for Weaver) over one cycle. Holds and Echo's
+reverse hitches remain in the net travel. Contact height ranges, stance phase
+intervals, durations and per-foot speeds are recorded in each motion contract.
+Ram's bounding run uses the independently audited 0–15% planted window per foot,
+excluding the 15–18% baked swing blend. Ticking's existing waddle rolls its
+planted shoes forwards: its positive speed is the magnitude, and signed travel
+is retained as evidence. A playback rate cannot repair that directional slip.
+The 15mm sole-variation audit accommodates bevel/IK roll; it does not replace or
+weaken the existing full-motion floor and amplitude gates.
+
+| Body | Walk m/s at 1x | Run m/s at 1x |
+|---|---:|---:|
+| Echo | 1.058401 | 2.275560 |
+| Weaver | 0.840000 | 1.860000 |
+| Ticking | 0.659781 | 1.557523 |
+| Ram | 1.143072 | 6.762004 |
+| Skip | 0.705600 | 1.517040 |
+| Mimic | 1.600000 (unused default) | 3.000000 (unused default) |
+| Blinder | 0.940800 | 2.022720 |
+| Herald | 1.102500 | 2.633751 |
+| Mannequin | 0.906500 | 1.948975 |
+| Stare | 0.676200 | 2.423050 |
+
+These shipped-art measurements supersede the older Echo 1.6/3.0, Weaver run
+1.3, Herald run 2.8 and Mannequin run 2.1 estimates. Mimic's complete walk/run
+cycles are verified stationary: no measured gait exists, so its manifest gives
+the explicit unused-default reason rather than pretending those are measurements.
+
+Run the measurement script with `-- --write-manifests --self-test` to refresh
+metadata, test corrupt references/evidence and fence source/FBX byte hashes.
+Normal invocation validates only. `-- --render-previews` recreates ignored source
+review PNGs required by the full validators without invoking generators. Run all
+ten existing validators; `-- --render` also regenerates six-pose strips per clip.
+Do not run the generators for this metadata-only task. After any future art
+regeneration, rerun the stride writer before validating/importing.
+
+Coordinator setup order: existing HorrorRun/cake/Lumen and profile setup, then
+`RosterBProfileSetup::BuildMimic` (or `BuildAssets("Mimic", ...)`), then
+`HunterRosterVisualSetup::Build`. Profile setup creates a private Mimic motor
+(radius .133m, height .289m, fresh skin .005m, eye .1445m, gravity/step zero)
+without modifying the shared placeholder. Visual setup persists every manifest's
+stride references and explicitly binds authored hit separately from neutral idle
+recovery. It applies Roster B's .266 x .289 x .352m solid box only to the isolated
+Mimic prefab, centered on the configured cake elevation plus cake bounds center.
+The mandatory motor capsule stays present, cake-sized and disabled; HunterDriver
+still requires it. Its stationary sweep footprint is an approximation, not a new
+box-based locomotion implementation. The bite radius remains .65m.
+
+Native coverage requested:
+
+- `Worsen.Tests.Hunter.HunterRosterVisualSetupUnityTests`
+- `Worsen.Tests.Hunter.RosterBIntegrationTests`
+- `Worsen.Tests.Hunter.HunterAnimationPlaybackTests`
+- `Worsen.Tests.Hunter.HorrorHunterContentIntegrationTests`
+- `Worsen.Tests.Hunter.HunterFactoryRosterTests`
+- `Worsen.Tests.Hunter.HunterRosterScopeTests`
+- `Worsen.Tests.Scenes.ExpansionSetupTests`
+
+The existing out-of-scope `HunterAnimationPlaybackTests` still demands ten-degree
+Jaw motion for Mimic walk/run. Its owner must replace those two expectations with
+closed-hold assertions while retaining attack articulation coverage.
+
+This worker viewed ten six-clip boards under `Logs/AgentValidation/Art/HunterStrides/`:
+humanoid gaits alternate, Ram bounds, Ticking waddles, Weaver's legs articulate,
+Blinder throws and Herald opens its ribs. Hit poses differ from neutral holds;
+Mimic remains closed in all three locomotion slots and opens for bite/flinch.
+Those static Blender samples prove neither Unity playback rates nor physical box
+contacts; the coordinator must run the native fixtures after setup.

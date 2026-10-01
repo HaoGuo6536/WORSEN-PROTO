@@ -1074,5 +1074,297 @@
         -0.10000000149011612
       ]
     }
+  },
+  "motion_contract": {
+    "authored_walk_speed_mps": 0.84,
+    "authored_run_speed_mps": 1.86,
+    "stride_measurement": {
+      "method": "net foot travel / elapsed validated stance time, pooled over all feet and one full cycle; Ticking uses magnitude of its forward-rolling waddle",
+      "source": "shipped FBX; Blender Z-up, forward -Y; world metres",
+      "samples_per_cycle": 240,
+      "sole_contact_tolerance_m": 0.015,
+      "walk": {
+        "cycle_seconds": 1.0,
+        "feet": [
+          {
+            "bone": "L0Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005217,
+              0.008389
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "L1Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005844,
+              0.008472
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "L2Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005549,
+              0.008471
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "L3Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005605,
+              0.008389
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "R0Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005217,
+              0.008389
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "R1Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005844,
+              0.008472
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "R2Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005549,
+              0.008471
+            ],
+            "speed_mps": 0.84
+          },
+          {
+            "bone": "R3Segment2",
+            "travel_m": 0.42,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.42,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.005605,
+              0.008389
+            ],
+            "speed_mps": 0.84
+          }
+        ]
+      },
+      "run": {
+        "cycle_seconds": 0.666667,
+        "feet": [
+          {
+            "bone": "L0Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004607,
+              0.008815
+            ],
+            "speed_mps": 1.860001
+          },
+          {
+            "bone": "L1Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004743,
+              0.008871
+            ],
+            "speed_mps": 1.859999
+          },
+          {
+            "bone": "L2Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004148,
+              0.008548
+            ],
+            "speed_mps": 1.86
+          },
+          {
+            "bone": "L3Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004023,
+              0.00797
+            ],
+            "speed_mps": 1.859999
+          },
+          {
+            "bone": "R0Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004606,
+              0.008815
+            ],
+            "speed_mps": 1.86
+          },
+          {
+            "bone": "R1Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004743,
+              0.008871
+            ],
+            "speed_mps": 1.859999
+          },
+          {
+            "bone": "R2Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004148,
+              0.008548
+            ],
+            "speed_mps": 1.86
+          },
+          {
+            "bone": "R3Segment2",
+            "travel_m": 0.62,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.62,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              0.004023,
+              0.00797
+            ],
+            "speed_mps": 1.859999
+          }
+        ]
+      }
+    }
   }
 }
