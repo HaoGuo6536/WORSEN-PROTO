@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverState (section 7c) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
+//   - Preserve sensing/attacks and the original component flags of an opt-in replay body.
 //   - Retain pooled physics buffers and configured masks separately from foreign systems.
 //   - Cache a bounded, physically verified corner-arc prediction until the next path refresh.
 //   - Retain independent observation-only stall history for this life.
@@ -49,5 +49,12 @@ namespace Worsen.Domain.Hunter
         public Vector3 EmergenceObserver;
         public System.Func<Collider, bool> TargetFilter;
         public HunterAnimatorIKDriver IKDriver;
+        public bool KinematicReplay, ReplayPresent;
+        public Renderer[] ReplayRenderers;
+        public bool[] ReplayRenderingOff;
+        public Collider[] ReplayColliders;
+        public bool[] ReplayColliderEnabled;
+        public NavMeshAgent[] ReplayAgents;
+        public bool[] ReplayAgentEnabled;
     }
 }

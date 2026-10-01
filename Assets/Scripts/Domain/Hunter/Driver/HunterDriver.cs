@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (section 7a) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Apply swept movement, stair support, corner prediction and ordered recording segments.
+//   - Apply swept navigation or explicit ghost replay poses with target-only contact queries.
 //   - Honor collider layer exclusions in motor queries without weakening world or sight probes.
 //   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
 //   - Own animation/attack, shared sweep and injected placement sub-drivers.
@@ -20,6 +20,8 @@
 //   Scene-owned, no independent simulation loop. Teardown destroys only owned transient effects.
 //   Stall observation uses the default navigation query agent (type 0), matching
 //   configured-area path queries. It does not measure avoidance or change paths.
+//   Replay disables this body's colliders/agents, not global collision rules. It
+//   restores original component flags on teardown; queries still admit target contacts.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -246,6 +248,79 @@ namespace Worsen.Domain.Hunter
         }
         public void Animate(float dt, int phase, float progress)
         { if (_animation != null) _animation.Apply(dt, Velocity.magnitude, phase, progress); }
+        public void ConfigureKinematicReplay()
+        {
+            if (_state == null || _state.KinematicReplay) return;
+            _state.KinematicReplay = true;
+            _state.ReplayRenderers = GetComponentsInChildren<Renderer>(true);
+            _state.ReplayRenderingOff = new bool[_state.ReplayRenderers.Length];
+            for (int i = 0; i < _state.ReplayRenderers.Length; i++)
+            {
+                _state.ReplayRenderingOff[i] = _state.ReplayRenderers[i].forceRenderingOff;
+                _state.ReplayRenderers[i].forceRenderingOff = true;
+            }
+            _state.ReplayColliders = GetComponentsInChildren<Collider>(true);
+            _state.ReplayColliderEnabled = new bool[_state.ReplayColliders.Length];
+            for (int i = 0; i < _state.ReplayColliders.Length; i++)
+            {
+                _state.ReplayColliderEnabled[i] = _state.ReplayColliders[i].enabled;
+                _state.ReplayColliders[i].enabled = false;
+            }
+            _state.ReplayAgents = GetComponentsInChildren<NavMeshAgent>(true);
+            _state.ReplayAgentEnabled = new bool[_state.ReplayAgents.Length];
+            for (int i = 0; i < _state.ReplayAgents.Length; i++)
+            {
+                _state.ReplayAgentEnabled[i] = _state.ReplayAgents[i].enabled;
+                _state.ReplayAgents[i].enabled = false;
+            }
+            RemoveMomentum();
+        }
+        public void MoveKinematicReplay(bool present, HunterReplayPose pose,
+            System.Collections.Generic.IReadOnlyList<HunterReplayPose> points, float dt)
+        {
+            if (_state == null || !_state.KinematicReplay) return;
+            bool wasPresent = _state.ReplayPresent;
+            _state.ReplayPresent = present;
+            for (int i = 0; i < _state.ReplayRenderers.Length; i++)
+                if (_state.ReplayRenderers[i] != null)
+                    _state.ReplayRenderers[i].forceRenderingOff = !present || _state.ReplayRenderingOff[i];
+            RemoveMomentum();
+            if (!present) return;
+            Vector3 start = Position;
+            // First appearance is placement, not a sweep from the arbitrary spawn.
+            if (!wasPresent) PlaceReplay(points.Count > 0 ? points[0] : pose);
+            foreach (HunterReplayPose point in points)
+            {
+                Vector3 previous = Position;
+                PlaceReplay(point);
+                ProbeReplaySegment(previous, point.Position);
+                ProbeBodyContact();
+            }
+            PlaceReplay(pose);
+            _state.Steering.Velocity = wasPresent && dt > 0f ? (Position - start) / dt : Vector3.zero;
+            ProbeBodyContact();
+        }
+        private void PlaceReplay(HunterReplayPose pose)
+        {
+            Quaternion rotation = Quaternion.Euler(0f, pose.HeadingDegrees, 0f);
+            transform.SetPositionAndRotation(pose.Position, rotation);
+            _body.position = pose.Position; _body.rotation = rotation;
+            _state.Steering.Position = pose.Position; _state.Steering.Forward = transform.forward;
+            Physics.SyncTransforms();
+        }
+        private void ProbeReplaySegment(Vector3 from, Vector3 to)
+        {
+            Vector3 delta = to - from;
+            if (delta.sqrMagnitude <= 0f) return;
+            Capsule(from, out Vector3 low, out Vector3 high);
+            int count = CapsuleQuery(low, high, _config.Radius, delta.normalized, delta.magnitude);
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = _state.QueryHits[i].collider;
+                // Walls never stop the replay or occlude its target-only contacts.
+                if (!IgnoreMotorCollider(other) && (_state.TargetFilter?.Invoke(other) ?? false)) OnLungeContact?.Invoke(other);
+            }
+        }
         public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt)
             => MoveRecording(points, dt, out _);
         public bool MoveCharge(Vector3 displacement, Vector3 direction, float dt, out Collider blocker)
@@ -295,7 +370,7 @@ namespace Worsen.Domain.Hunter
         }
         public void ProbeBodyContact()
         {
-            if (_state == null) return;
+            if (_state == null || (_state.KinematicReplay && !_state.ReplayPresent)) return;
             Capsule(Position, out Vector3 low, out Vector3 high);
             int count = CapsuleOverlap(low, high, _config.Radius + _config.SkinWidth);
             for (int i = 0; i < count; i++)
@@ -666,6 +741,15 @@ namespace Worsen.Domain.Hunter
         private void OnDestroy() { Teardown(); }
         public void Teardown()
         {
+            if (_state != null && _state.KinematicReplay)
+            {
+                for (int i = 0; i < _state.ReplayRenderers.Length; i++)
+                    if (_state.ReplayRenderers[i] != null) _state.ReplayRenderers[i].forceRenderingOff = _state.ReplayRenderingOff[i];
+                for (int i = 0; i < _state.ReplayColliders.Length; i++)
+                    if (_state.ReplayColliders[i] != null) _state.ReplayColliders[i].enabled = _state.ReplayColliderEnabled[i];
+                for (int i = 0; i < _state.ReplayAgents.Length; i++)
+                    if (_state.ReplayAgents[i] != null) _state.ReplayAgents[i].enabled = _state.ReplayAgentEnabled[i];
+            }
             if (_stare != null) _stare.Teardown();
             if (_weaver != null) _weaver.Teardown();
             if (_state != null && _state.IKDriver != null)
