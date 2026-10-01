@@ -4,7 +4,8 @@
 // PURPOSE:
 //   Calculates clipped fog advance, five-finger reveal, and deterministic surface fissures.
 //   Boundary planes and cake reach are independent of visual hand activation.
-//   Collapsing rooms use a boundary shell; only consumed rooms include their full interior.
+//   The live front uses FloorCollapseFrontUtility; these perimeter probes remain
+//   the Closed-room fallback for callers without published doorway geometry.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
@@ -12,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Probe exposed cell edges only; exclude notches and internal cell seams.
-//   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Spread pooled hand roots along the moving front without stacking grid rows.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
@@ -114,12 +115,7 @@ namespace Worsen.Domain.Floor
             return 0f;
         }
         public float MistProgress(RoomPhase phase, float progress)
-        {
-            if (phase == RoomPhase.Closed) return 1f;
-            if (phase == RoomPhase.Encroaching) return Mathf.Lerp(0.12f, 1f, Mathf.Clamp01(progress));
-            if (phase == RoomPhase.Tearing) return 0.12f * Mathf.Clamp01(progress);
-            return 0f;
-        }
+            => FloorCollapseFrontUtility.Consumption(phase, progress);
         public bool Contains(Bounds bounds, Vector3 feet, float inset)
         {
             return feet.x >= bounds.min.x + inset && feet.x <= bounds.max.x - inset &&
@@ -144,6 +140,16 @@ namespace Worsen.Domain.Floor
         {
             if (mist <= 0f) return 0f;
             return Mathf.Clamp01((mist - InwardFraction(bounds, hand) + 0.2f) * 5f);
+        }
+        public Vector3 FrontHandRoot(Bounds cell, Vector3 original, Vector3 direction, float plane, int width)
+        {
+            int axis = direction.x != 0f ? 0 : 2, across = 2 - axis;
+            // Preserve the old row spacing, then interleave its columns into the gaps.
+            float fraction = Mathf.InverseLerp(cell.min[axis], cell.max[axis], original[axis]);
+            original[across] += (fraction - .5f) * cell.size[across] / Mathf.Max(1, width);
+            original[axis] = plane;
+            return new Vector3(Mathf.Clamp(original.x, cell.min.x, cell.max.x),
+                Mathf.Clamp(original.y, cell.min.y, cell.max.y), Mathf.Clamp(original.z, cell.min.z, cell.max.z));
         }
         public Vector3 HandScale(float reveal, float elapsed, int index, float scale)
         {

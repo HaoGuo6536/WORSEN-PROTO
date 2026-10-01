@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Apply deterministic hand flailing/player strain and native Lumen warning pulses.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
-//   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Align consuming geometry and reaching hands to the same room-wide front.
 //   - Reconcile overlap contacts before each Floor tick, including stationary actors on activation.
 //   - Build cell-local pools and triggers; never probe or reach across a missing notch.
 // DEPENDENCIES:
@@ -18,7 +18,8 @@
 // USAGE NOTES:
 //   Scene-owned through FloorManager/FloorDriver. Time is supplied by the owner.
 //   No persistent singleton, global settings, or independent update loop.
-//   Visual colliders stay disabled. The dedicated trigger includes the room interior
+//   Visual colliders stay disabled; separate inward-only perimeter seals enable at Closed.
+//   The dedicated trigger includes the room interior
 //   so penetrating or spawning inside a consumed room cannot evade its boundary.
 //   Pooled query buffers grow on saturation, retry without truncation and return on destroy.
 //   Doorway mist is owned by Presentation/Fog from published portal geometry, not hand cells.
@@ -45,7 +46,8 @@ namespace Worsen.Domain.Floor
         public bool ContainsXZ(Vector3 position) => _state.Room.ContainsXZ(position);
 
         public void Configure(LevelRoom room, FloorDriverConfig config, Material darkMaterial, FloorLumenGlow warning,
-            Func<Collider, EntityId> resolveIdentity = null, float boundaryReach = 0f, int minimumHands = 0)
+            Func<Collider, EntityId> resolveIdentity = null, float boundaryReach = 0f, int minimumHands = 0,
+            Vector3? towardExit = null, FloorCollapseHazardConfig hazard = null)
         {
             if (config == null || (config.MistMaterial == null && config.MistShader == null))
             {
@@ -58,6 +60,17 @@ namespace Worsen.Domain.Floor
             if (_state.QueryOverlaps == null) _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.ResolveIdentity = resolveIdentity; _state.BoundaryReach = boundaryReach;
             _state.Phase = RoomPhase.Open; warning.SetVisible(false);
+            _state.FrontDirection = FloorCollapseFrontUtility.Direction(towardExit ?? Vector3.right);
+            _state.FrontExponent = hazard != null ? hazard.FrontExponent : FloorCollapseHazardConfig.DefaultFrontExponent;
+            _state.FogMaterial = MakeFogMaterial();
+            foreach (var wall in FloorCollapseFrontUtility.ClosedWalls(room,
+                hazard != null ? hazard.WallThickness : FloorCollapseHazardConfig.DefaultWallThickness))
+            {
+                var root = new GameObject("Closed fog seal"); root.transform.SetParent(transform, false);
+                root.transform.position = wall.center;
+                var collider = root.AddComponent<BoxCollider>(); collider.size = wall.size; collider.enabled = false;
+                _state.ClosedWalls.Add(collider);
+            }
             int width = config.HandGridWidth;
 
             foreach (var cell in room.Cells)
@@ -67,6 +80,12 @@ namespace Worsen.Domain.Floor
                 boundary.center = transform.InverseTransformPoint(cell.center);
                 boundary.size = cell.size + (room.Cells.Count == 1 ? new Vector3(boundaryReach * 2f, 0f, boundaryReach * 2f) : Vector3.zero);
                 _state.Boundaries.Add(boundary);
+                var fog = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                fog.name = "Advancing consuming fog"; fog.transform.SetParent(transform, false);
+                fog.GetComponent<Collider>().enabled = false;
+                var renderer = fog.GetComponent<Renderer>(); renderer.sharedMaterial = _state.FogMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; renderer.receiveShadows = false;
+                fog.SetActive(false); _state.FogCells.Add(fog.transform);
                 for (int i = 0; i < width * width; i++)
                 {
                     Vector3 point = _presenter.GridPoint(cell, i, width, config.PortalInset);
@@ -111,6 +130,9 @@ namespace Worsen.Domain.Floor
         public void ApplyPhase(RoomPhase phase, Color warningColor, Color closedColor)
         {
             _state.Phase = phase;
+            if (phase == RoomPhase.Open) _state.Consumption = 0f;
+            if (phase == RoomPhase.Closed) _state.Consumption = 1f;
+            foreach (var wall in _state.ClosedWalls) wall.enabled = phase == RoomPhase.Closed;
             bool active = phase == RoomPhase.Tearing || phase == RoomPhase.Encroaching || phase == RoomPhase.Closed;
             foreach (var boundary in _state.Boundaries) boundary.enabled = active;
             if (!active) _state.Contacts.Clear();
@@ -127,6 +149,18 @@ namespace Worsen.Domain.Floor
             float pulse = _presenter.Pulse(sample);
             SetWarningIntensity(_config.WarningIntensity * pulse);
             float mist = _presenter.MistProgress(sample.Phase, sample.Progress);
+            _state.Consumption = Mathf.Max(_state.Consumption, mist);
+            mist = _state.Consumption;
+            float plane = FloorCollapseFrontUtility.Plane(_state.Bounds, _state.FrontDirection, mist, _state.FrontExponent);
+            int axis = _state.FrontDirection.x != 0f ? 0 : 2;
+            for (int i = 0; i < _state.FogCells.Count; i++)
+            {
+                bool visible = mist > 0f && FloorCollapseFrontUtility.Clip(_state.Room.Cells[i], _state.FrontDirection, plane, out _);
+                var fog = _state.FogCells[i]; fog.gameObject.SetActive(visible);
+                if (!visible) continue;
+                FloorCollapseFrontUtility.Clip(_state.Room.Cells[i], _state.FrontDirection, plane, out var consumed);
+                fog.position = consumed.center; fog.localScale = consumed.size;
+            }
             float cracks = sample.Phase == RoomPhase.Open ? (_state.OptionalCracks ? 0.18f : 0f) :
                 sample.Phase == RoomPhase.Telegraph ? Mathf.Lerp(0.08f, 1f, sample.Progress) : 1f;
             foreach (var crack in _state.Cracks)
@@ -138,13 +172,15 @@ namespace Worsen.Domain.Floor
             for (int i = 0; i < _state.Hands.Count; i++)
             {
                 var cell = _state.HandBounds[i];
-                float reveal = _presenter.HandReveal(cell, _state.HandPositions[i], mist);
-                bool reaching = cakes != null && i < cakes.Count && mist > 0f;
-                if (reaching && _state.Room.Cells.Count > 1)
-                    reaching = cakes[i].x >= cell.min.x && cakes[i].x <= cell.max.x && cakes[i].z >= cell.min.z && cakes[i].z <= cell.max.z;
-                if (reaching) reveal = Mathf.Max(reveal, mist);
+                // Move a row of pooled hands with the plane instead of revealing the
+                // entire grid. Closed hands line the perimeter nearest their old root.
+                float reveal = mist > 0f && (sample.Phase == RoomPhase.Closed ||
+                    plane >= cell.min[axis] && plane <= cell.max[axis]) ? 1f : 0f;
                 var hand = _state.Hands[i]; hand.gameObject.SetActive(reveal > 0.01f);
-                Vector3 origin = reaching ? _presenter.CakeReach(_state.HandPositions[i], cakes[i], sample.Phase, sample.Progress) : _state.HandPositions[i];
+                Vector3 origin = _state.HandPositions[i];
+                if (sample.Phase == RoomPhase.Closed)
+                    origin = _presenter.BoundaryProbe(_state.Room, RoomPhase.Closed, origin, 0f).Position;
+                else origin = _presenter.FrontHandRoot(cell, origin, _state.FrontDirection, plane, _config.HandGridWidth);
                 var pose = FloorHandPresenter.Pose(origin, _state.PlayerTarget, elapsed, i,
                     _config.HandFlailAmplitude, _config.HandFlailRate, _config.HandVisualReachRange, _config.HandVisualReachDistance);
                 // Root motion stays within its footprint cell, including at cake targets near notches.
@@ -166,7 +202,7 @@ namespace Worsen.Domain.Floor
         {
             // Cosmetic reach does not require a gameplay-trigger contact. Sample at the
             // visual range while retaining footprint/height rejection and wall occlusion.
-            var probe = _presenter.BoundaryProbe(_state.Room, _state.Phase, position, _config.HandVisualReachRange);
+            var probe = FrontProbe(position, _config.HandVisualReachRange);
             if (!probe.Available) return;
             if (probe.Distance > 0f)
             {
@@ -188,8 +224,7 @@ namespace Worsen.Domain.Floor
         public FloorHandProbe Probe(Vector3 playerPosition, int preferredHand = -1, EntityId playerId = default)
         {
             if (playerId.IsValid && !_state.Contacts.ContainsValue(playerId)) return default;
-            var probe = _presenter.BoundaryProbe(_state.Room, _state.Phase,
-                playerPosition, _state.BoundaryReach, preferredHand);
+            var probe = FrontProbe(playerPosition, _state.BoundaryReach);
             // Only exterior reaches cross a portal. Do not raycast at the visual
             // hands or let scenery inside a consumed room suppress its spring.
             if (probe.Available && probe.Distance > 0f)
@@ -206,6 +241,11 @@ namespace Worsen.Domain.Floor
             }
             return probe;
         }
+        private FloorHandProbe FrontProbe(Vector3 position, float reach)
+            => _state.Phase == RoomPhase.Closed
+                ? _presenter.BoundaryProbe(_state.Room, _state.Phase, position, reach)
+                : FloorCollapseFrontUtility.Probe(_state.Room, _state.FrontDirection, _state.Consumption,
+                    _state.FrontExponent, position, reach);
         public bool PickupOvertaken(Vector3 position) => _state.Room.ContainsXZ(position) && _state.Phase == RoomPhase.Closed;
 
         public void RefreshContacts()
@@ -237,11 +277,19 @@ namespace Worsen.Domain.Floor
         private float SurfaceHeight(Vector3 point, Bounds bounds)
         {
             float floor = bounds.min.y;
-            int count = RayHits(new Vector3(point.x, bounds.max.y - 0.05f, point.z), Vector3.down, bounds.size.y);
+            // Height only needs the nearest supporting surface, not every triangle
+            // under every grid point. Collider.Raycast avoids saturation by dense meshes.
+            var ray = new Ray(new Vector3(point.x, bounds.max.y - .05f, point.z), Vector3.down);
+            int count;
+            while ((count = Physics.OverlapBoxNonAlloc(new Vector3(point.x, bounds.center.y, point.z),
+                new Vector3(.01f, bounds.extents.y, .01f), _state.QueryOverlaps,
+                Quaternion.identity, ~0, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
             for (int i = 0; i < count; i++)
             {
-                var hit = _state.QueryHits[i];
-                if (hit.normal.y > 0.65f && hit.collider.attachedRigidbody == null && !hit.collider.transform.IsChildOf(transform))
+                var collider = _state.QueryOverlaps[i];
+                if (collider.attachedRigidbody != null || collider.transform.IsChildOf(transform)) continue;
+                if (collider.Raycast(ray, out var hit, bounds.size.y) && hit.normal.y > .65f)
                     floor = Mathf.Max(floor, hit.point.y);
             }
             return floor + 0.015f;
@@ -279,6 +327,19 @@ namespace Worsen.Domain.Floor
             }
             return root;
         }
+        private Material MakeFogMaterial()
+        {
+            var material = _config.MistMaterial != null ? new Material(_config.MistMaterial) : new Material(_config.MistShader);
+            material.name = "Owned consuming fog";
+            foreach (string property in new[] { "_BaseColor", "_Color", "_HazeColor" })
+                if (material.HasProperty(property)) material.SetColor(property, _config.ConsumingFogColor);
+            material.SetFloat("_Surface", 1f); material.SetFloat("_ZWrite", 0f);
+            material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); material.renderQueue = 3000;
+            return material;
+        }
         private static void Part(Transform parent, Vector3 position, Vector3 scale, Quaternion rotation, Material material)
         {
             var part = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -307,6 +368,10 @@ namespace Worsen.Domain.Floor
         }
         public void Teardown()
         {
+            foreach (var wall in _state.ClosedWalls) if (wall != null) wall.enabled = false;
+            if (_state.FogMaterial != null)
+            { if (Application.isPlaying) Destroy(_state.FogMaterial); else DestroyImmediate(_state.FogMaterial); }
+            _state.FogMaterial = null;
             if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
             if (_state.QueryOverlaps != null) ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
             _state.QueryHits = null; _state.QueryOverlaps = null;

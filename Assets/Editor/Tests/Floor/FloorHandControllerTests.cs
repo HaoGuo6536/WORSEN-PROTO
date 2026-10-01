@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
-//   - Verify normal Player damage, outward throws, depth-scaled springs and one-shot wards.
+//   - Verify front-relative escape, repeat hit spacing, outward impulses and one-shot wards.
 //   - Verify Low Profile rejects new warnings and releases active contacts without consuming a ward.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
@@ -105,17 +105,18 @@ namespace Worsen.Tests.Floor
             Step(0f, 1); Step(0.7f, 2);
             Assert.That(Step(0.1f, 3, default(FloorHandProbe)).Kind, Is.EqualTo(CollapseHandEventKind.Escaped));
         }
-        [Test] public void TargetHandCannotJumpToAnotherNearbyHandDuringGrace()
+        [Test] public void FrontCanChangeFaceWithoutGrantingAnotherEscapeOpportunity()
         {
             Step(0f, 1); Step(0.7f, 2);
             Assert.That(_controller.Target(_player, out var room, out var hand), Is.True);
             Assert.That(room, Is.EqualTo(3)); Assert.That(hand, Is.EqualTo(7));
-            Assert.That(Step(0.1f, 3, new FloorHandProbe(3, 8, Vector3.zero, 0.1f, true)).Kind, Is.EqualTo(CollapseHandEventKind.Escaped));
+            Assert.That(_controller.Tick(_player, true, new FloorHandProbe(3, 8, Vector3.zero, .1f, true), .1f, 3, out _), Is.False);
+            Assert.That(_controller.Target(_player, out _, out hand), Is.True); Assert.That(hand, Is.EqualTo(8));
         }
         [Test] public void HitHasCooldownAndMustWarnAgainBeforeAnotherHit()
         {
             Step(0f, 1); Step(0.7f, 2); Step(1.4f, 3);
-            Assert.That(_controller.Tick(_player, true, Near, 2f, 4, out _), Is.False);
+            Assert.That(_controller.Tick(_player, true, Near, 2.4f, 4, out _), Is.False);
             Assert.That(Step(0f, 5).Kind, Is.EqualTo(CollapseHandEventKind.Warning));
         }
         [Test] public void OnlySameTickLethalHitCanBeConfirmedAndOnlyOnce()
@@ -160,7 +161,7 @@ namespace Worsen.Tests.Floor
             var escaped = Step(0.7f, 2);
             Assert.That(escaped.Kind, Is.EqualTo(CollapseHandEventKind.Escaped));
             Assert.That(escaped.Damage, Is.Zero); Assert.That(escaped.ThrowVelocity, Is.EqualTo(Vector3.zero));
-            Assert.That(_controller.Tick(_player, true, Near, 2f, 3, out _), Is.False);
+            Assert.That(_controller.Tick(_player, true, Near, 2.4f, 3, out _), Is.False);
             Step(0f, 4);
             Assert.That(Step(0.7f, 5).Kind, Is.EqualTo(CollapseHandEventKind.Grabbed));
             Assert.That(Step(1.4f, 6).Kind, Is.EqualTo(CollapseHandEventKind.Hit));
@@ -176,13 +177,45 @@ namespace Worsen.Tests.Floor
             Assert.That(Step(0f, 1, shallow).Kind, Is.EqualTo(CollapseHandEventKind.Warning));
         }
         [Test]
-        public void MovingAlongBoundaryEscapesTheOriginalGrabRadius()
+        public void MovingAlongFrontDoesNotEscapeAndSlowRemainsUntilTheHit()
         {
             var contact = new FloorHandProbe(3, 1, Vector3.zero, 0f, true, Vector3.right, playerPosition: Vector3.zero);
             Step(0f, 1, contact); Step(0.7f, 2, contact);
             var moved = new FloorHandProbe(3, 1, Vector3.forward * 3f, 0f, true, Vector3.right,
                 playerPosition: Vector3.forward * 3f);
-            Assert.That(Step(0.1f, 3, moved).Kind, Is.EqualTo(CollapseHandEventKind.Escaped));
+            Assert.That(_controller.Tick(_player, true, moved, .1f, 3, out _), Is.False);
+            Assert.That(_controller.Target(_player, out _, out _), Is.True);
+            var hit = Step(1.31f, 4, moved);
+            Assert.That(hit.Kind, Is.EqualTo(CollapseHandEventKind.Hit));
+            Assert.That(hit.Position, Is.EqualTo(moved.Position));
+        }
+        [Test]
+        public void MovingTangentiallyDuringWarningStillCommitsHalfSpeedGrabAtFront()
+        {
+            var room = new LevelRoom(3, new Vector3(0f, 2f, 0f), new Vector3(12f, 4f, 12f));
+            var initial = FloorCollapseFrontUtility.Probe(room, Vector3.right, .5f, 1f, new Vector3(1f, 0f, -3f), 2.1f);
+            var moved = FloorCollapseFrontUtility.Probe(room, Vector3.right, .5f, 1f, new Vector3(1f, 0f, 3f), 2.1f);
+            Step(0f, 1, initial);
+            Assert.That(Step(.7f, 2, moved).SlowMultiplier, Is.EqualTo(.5f));
+            Assert.That(Step(.2f, 3, new FloorHandProbe(3, 0, Vector3.zero, 2.2f, true)).Kind,
+                Is.EqualTo(CollapseHandEventKind.Escaped));
+        }
+        [Test]
+        public void SustainedClosedContactHasOneHitPerGrabAndAtLeastConfiguredRepeatInterval()
+        {
+            var probe = new FloorHandProbe(3, 0, Vector3.zero, .5f, true, Vector3.right, closed: true);
+            var hitTimes = new System.Collections.Generic.List<float>(); int grabs = 0;
+            for (int i = 0; i < 1200; i++)
+                if (_controller.Tick(_player, true, probe, .02f, i, out var fact))
+                {
+                    if (fact.Kind == CollapseHandEventKind.Grabbed) { grabs++; Assert.That(fact.SlowMultiplier, Is.EqualTo(.5f)); }
+                    if (fact.Kind == CollapseHandEventKind.Hit) { hitTimes.Add(i * .02f); Assert.That(fact.Damage, Is.EqualTo(25f)); }
+                }
+            Assert.That(hitTimes.Count, Is.GreaterThanOrEqualTo(4));
+            Assert.That(grabs - hitTimes.Count, Is.InRange(0, 1));
+            for (int i = 1; i < hitTimes.Count; i++)
+                Assert.That(hitTimes[i] - hitTimes[i - 1], Is.GreaterThanOrEqualTo(4.5f - .0001f));
+            Assert.That(_controller.BoundaryImpulse(probe), Is.EqualTo(Vector3.right * 6f));
         }
         [TestCase(26f, false)] [TestCase(25f, true)] [TestCase(10f, true)]
         public void HandKillsOnlyThroughOrdinaryDamage(float health, bool dies)
