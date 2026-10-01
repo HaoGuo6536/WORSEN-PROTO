@@ -18,6 +18,7 @@
 //   depth epsilon is numerical clearance, not a gameplay or art tuning value.
 //   A zero swing target settles the existing envelope over the configured ease
 //   time, then remains exactly zero. Eight degrees is the owner's hard limit.
+//   Owner playtest 2026-09-30 removed crouching; MovementState alone gates swing.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -64,9 +65,9 @@ namespace Worsen.Domain.Player
             return Vector3.Dot(centerFromEye, bottomNormal) + ProjectedExtent(worldExtents, bottomNormal) < 0f;
         }
 
-        public float SwingTarget(MovementState movement, bool crouched, float horizontalSpeed,
+        public float SwingTarget(MovementState movement, float horizontalSpeed,
             float maximumDegrees, float referenceSpeed)
-            => movement == MovementState.Ground && !crouched && referenceSpeed > 0f
+            => movement == MovementState.Ground && referenceSpeed > 0f
                 ? Mathf.Clamp(maximumDegrees, 0f, 8f) * Mathf.Clamp01(horizontalSpeed / referenceSpeed) : 0f;
 
         public void StepSwing(float phase, float envelope, float target, float maximumDegrees,

@@ -12,14 +12,11 @@
 //   Owned only by InputManager; calculation and buffering use InputFramePresenter.
 //
 // KEY RESPONSIBILITIES:
-//   - Capture consumable edges independently of flashlight and look-back controls.
-//   - Apply runtime look preferences and pause without interrupting the recording lifetime.
-//   - Create and dispose the gameplay map without editing the Unity template asset.
-//   - Capture device facts and ask the Presenter to buffer or publish one frame.
-//   - Own InputRecorder; select one source and clear stale live input on every switch.
-//   - Pair Input System subscriptions and clear pending input on disable or focus loss.
-//   - Capture the cursor only for ready, focused live gameplay; release it for UI.
-//   - Publish Escape/gamepad Start independently of the gameplay input gate.
+//   - Own gameplay and independent pause actions, pairing all device subscriptions.
+//   - Buffer device facts with configured look preferences and press-to-slide bindings.
+//   - Own InputRecorder and select one source without stale input across switches.
+//   - Clear pending gameplay input on disable, readiness loss or focus loss.
+//   - Capture the cursor only for ready, focused live gameplay and restore it at teardown.
 //
 // DEPENDENCIES:
 //   - Core InputFrame/InputButtons; Unity Input System; the Input presentation stack.
@@ -32,7 +29,7 @@
 //     returning to ready live input locks/hides it. UI action maps remain independent.
 //   - Changes no global Input System settings; an uninitialized duplicate owns no cursor.
 //   - Bindings: WASD/arrows or left stick move; mouse/right stick look; left Shift/left
-//   - stick press hold to sprint; Space/south jump or cancel slide; C/east crouch/slide;
+//   - stick press hold to sprint; Space/south jump or cancel slide; C/east press to slide;
 //   - Tab/right stick press look back; E/west interact; F/left shoulder flashlight;
 //   - Q/right shoulder consume; wheel or D-pad left/right cycle. Template asset untouched.
 //   - Serialized _config wins; Resources fallback warns and uses ephemeral defaults if absent.
@@ -332,7 +329,8 @@ namespace Worsen.Presentation.Input
             {
                 case "Sprint": button = InputButtons.Sprint; break;
                 case "Jump": button = InputButtons.Jump; break;
-                case "Crouch": button = InputButtons.Crouch; break;
+                // Preserve the Core/replay bit; holding it no longer requests a posture.
+                case "Slide": button = InputButtons.Crouch; break;
                 case "LookBack": button = InputButtons.LookBack; break;
                 case "Interact": button = InputButtons.Interact; break;
                 case "UseItem": button = InputButtons.UseItem; break;
@@ -368,7 +366,7 @@ namespace Worsen.Presentation.Input
             _look.AddBinding("<Gamepad>/rightStick");
             AddButton("Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftStickPress");
             AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
-            AddButton("Crouch", "<Keyboard>/c", "<Gamepad>/buttonEast");
+            AddButton("Slide", "<Keyboard>/c", "<Gamepad>/buttonEast");
             AddButton("LookBack", "<Keyboard>/tab", "<Gamepad>/rightStickPress");
             AddButton("Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             AddButton("UseItem", "<Keyboard>/f", "<Gamepad>/leftShoulder");
