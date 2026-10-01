@@ -14,8 +14,10 @@
 //   - NUnit, Core, Procedural and the production manifest parser.
 // USAGE NOTES:
 //   Managed collision evidence is not a native NavMesh bake or an art render.
+//   Select the full fixture: teardown requires all 64 seeds for each sampled theme.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -30,33 +32,54 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateSeamPresenterTests
     {
-        [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
-        public void SeedSweepKeepsTemplateFallbackBelowTwoPercent(string theme)
+        internal static readonly string[] Themes = { "Castle", "Hospital", "School", "Basement" };
+        private readonly Dictionary<string, Dictionary<int, (bool accepted, bool retried)>> sweep =
+            new Dictionary<string, Dictionary<int, (bool accepted, bool retried)>>();
+        public static IEnumerable<TestCaseData> SeedCases()
+        {
+            foreach (string theme in Themes)
+            for (int seed = 0; seed < 64; seed++) yield return new TestCaseData(theme, seed);
+        }
+
+        [TestCaseSource(nameof(SeedCases))]
+        public void SeedSweepKeepsTemplateFallbackBelowTwoPercent(string theme, int seed)
         {
             var config = Config(theme); var driver = Driver();
-            int fallback = 0, retried = 0;
-            for (int seed = 0; seed < 64; seed++)
+            bool accepted = false, retried = false; string reason = "";
+            for (int attempt = 0; attempt < 4; attempt++)
             {
-                bool accepted = false; string reason = "";
-                for (int attempt = 0; attempt < 4; attempt++)
+                int current = seed + attempt * ProceduralGenerationController.SeedStride;
+                var data = new ProceduralThemeData(theme.ToLowerInvariant(), true, Array.Empty<string>(), "", "", "", "", "", default, default, default, 0f);
+                if (!new ProceduralTemplateController(config, new System.Random(ProceduralController.LayoutSeed(current, 1)))
+                    .TryGenerate(current, 1, data, false, 1, out var layout, out reason)) continue;
+                try
                 {
-                    int current = seed + attempt * ProceduralGenerationController.SeedStride;
-                    var data = new ProceduralThemeData(theme.ToLowerInvariant(), true, Array.Empty<string>(), "", "", "", "", "", default, default, default, 0f);
-                    if (!new ProceduralTemplateController(config, new System.Random(ProceduralController.LayoutSeed(current, 1)))
-                        .TryGenerate(current, 1, data, false, 1, out var layout, out reason)) continue;
-                    try
-                    {
-                        var blocks = new ProceduralTemplateGeometryPresenter().Build(layout, config, driver);
-                        new ProceduralCakeLinePresenter().Apply(layout, config, blocks, .5f, 2f);
-                        new ProceduralNavFallbackPresenter().ValidateTemplate(layout, blocks, .5f, 2f);
-                        accepted = true; if (attempt > 0) retried++; break;
-                    }
-                    catch (InvalidOperationException error) { reason = error.Message; }
+                    var blocks = new ProceduralTemplateGeometryPresenter().Build(layout, config, driver);
+                    new ProceduralCakeLinePresenter().Apply(layout, config, blocks, .5f, 2f);
+                    new ProceduralNavFallbackPresenter().ValidateTemplate(layout, blocks, .5f, 2f);
+                    accepted = true; retried = attempt > 0; break;
                 }
-                if (!accepted) { fallback++; TestContext.WriteLine("FALLBACK seed=" + seed + " reason=" + reason); }
+                catch (InvalidOperationException error) { reason = error.Message; }
             }
-            TestContext.WriteLine("TEMPLATE_SWEEP theme=" + theme + " seeds=64 rooms=15 fallback=" + fallback + " retried=" + retried);
-            Assert.That(fallback / 64d, Is.LessThan(.02d));
+            if (!accepted) TestContext.WriteLine("FALLBACK seed=" + seed + " reason=" + reason);
+            if (!sweep.TryGetValue(theme, out var results))
+                sweep.Add(theme, results = new Dictionary<int, (bool accepted, bool retried)>());
+            results.Add(seed, (accepted, retried));
+        }
+
+        [OneTimeTearDown]
+        public void VerifyFullSweepFallbackRates()
+        {
+            // A per-batch 2% assertion would tighten the rule to zero fallbacks.
+            // Aggregate the original denominator, and fail closed on omitted seeds.
+            foreach (var sample in sweep)
+            {
+                Assert.That(sample.Value.Keys.OrderBy(s => s), Is.EqualTo(Enumerable.Range(0, 64)), sample.Key);
+                int fallback = sample.Value.Values.Count(r => !r.accepted);
+                int retried = sample.Value.Values.Count(r => r.retried);
+                TestContext.WriteLine("TEMPLATE_SWEEP theme=" + sample.Key + " seeds=64 rooms=15 fallback=" + fallback + " retried=" + retried);
+                Assert.That(fallback / 64d, Is.LessThan(.02d), sample.Key);
+            }
         }
 
         [Test]
