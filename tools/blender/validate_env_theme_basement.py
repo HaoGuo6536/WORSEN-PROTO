@@ -558,6 +558,8 @@ def main():
     placement_regressions(rooms['templates'],lookup,{k:v['points'] for k,v in records.items()})
     from validate_env_theme_vaults import validate_vaults
     validate_vaults(rooms['templates'], lookup, {k:v['points'] for k,v in records.items()})
+    from validate_env_theme_furnished import validate_expansion
+    validate_expansion('basement', lookup, {k:v['points'] for k,v in records.items()}, not args.skip_previews)
     if not args.skip_previews:
         check_door_previews('basement', REVIEW)
     templates = room_validation(rooms,lookup)

@@ -1,5 +1,7 @@
 # Basement industrial kit and room catalogue
 
+2026-10-01 expansion: [Furnished rooms](../FurnishedRooms.md) inventories ten additional assembled rooms and eight new furniture meshes in these same Kit/Rooms sources. The expansion manifest is intentionally pending coordinator activation; the thirteen active templates below are preserved.
+
 Original procedural geometry, authored for PLAN-026's 2026-09-30 industrial-boiler direction. No downloaded assets, textures, school-generator imports, Unity calls or manually authored metadata.
 
 ## Sources and exports

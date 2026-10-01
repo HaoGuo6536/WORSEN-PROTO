@@ -733,6 +733,142 @@
       "geometrySha256": "5a552c4ff29804fe7024119781eb2b55b439e015003c8d2e76da4ed9396f9134"
     },
     {
+      "id": "prop_room_bookcase",
+      "file": "Castle_prop_room_bookcase.fbx",
+      "kind": "prop",
+      "size": [
+        1.8,
+        2.2,
+        0.48
+      ],
+      "triangles": 516,
+      "materials": [
+        "castle_mortar",
+        "castle_soot",
+        "castle_stone_dark",
+        "castle_wood"
+      ],
+      "geometrySha256": "285c79985c0e6463fd0554f719c69c2b92242f3811402c4194441fc65a1752c6"
+    },
+    {
+      "id": "prop_room_pew",
+      "file": "Castle_prop_room_pew.fbx",
+      "kind": "prop",
+      "size": [
+        1.92,
+        1.185,
+        0.62
+      ],
+      "triangles": 132,
+      "materials": [
+        "castle_wood"
+      ],
+      "geometrySha256": "a4240eff39bebc25f9d30b13a76ff34a77a2cfcf3e32bd556b7b70215768ef6f"
+    },
+    {
+      "id": "prop_room_hearth",
+      "file": "Castle_prop_room_hearth.fbx",
+      "kind": "prop",
+      "size": [
+        1.86,
+        1.87,
+        0.82
+      ],
+      "triangles": 168,
+      "materials": [
+        "castle_metal",
+        "castle_soot",
+        "castle_stone",
+        "castle_stone_dark",
+        "castle_wood"
+      ],
+      "geometrySha256": "973858250cc624ae2f06591518eece6f2f9477dee7b8034636455e5288d366af"
+    },
+    {
+      "id": "prop_room_kitchen_dresser",
+      "file": "Castle_prop_room_kitchen_dresser.fbx",
+      "kind": "prop",
+      "size": [
+        1.94,
+        1.975,
+        0.76
+      ],
+      "triangles": 264,
+      "materials": [
+        "castle_metal",
+        "castle_stone_dark",
+        "castle_wood"
+      ],
+      "geometrySha256": "17e145a579e27e8cd007b4efa0c16838ede9001ab08f1112c232d65624eb0399"
+    },
+    {
+      "id": "prop_room_sleeping_cot",
+      "file": "Castle_prop_room_sleeping_cot.fbx",
+      "kind": "prop",
+      "size": [
+        0.98,
+        1.14,
+        2.0
+      ],
+      "triangles": 108,
+      "materials": [
+        "castle_mortar",
+        "castle_stone_dark",
+        "castle_wood"
+      ],
+      "geometrySha256": "1b509ab5fa5ad92cb83af05b1b4d561917250ab1f0e8a227707e24a0ae3083d5"
+    },
+    {
+      "id": "prop_room_lectern",
+      "file": "Castle_prop_room_lectern.fbx",
+      "kind": "prop",
+      "size": [
+        0.78,
+        1.35,
+        0.56
+      ],
+      "triangles": 60,
+      "materials": [
+        "castle_metal",
+        "castle_mortar",
+        "castle_wood"
+      ],
+      "geometrySha256": "ebe2f124cdddd984940688ad6d01811030ea50b6e8b14bf40b8d375300ef7502"
+    },
+    {
+      "id": "prop_room_sideboard",
+      "file": "Castle_prop_room_sideboard.fbx",
+      "kind": "prop",
+      "size": [
+        1.94,
+        0.96,
+        0.76
+      ],
+      "triangles": 104,
+      "materials": [
+        "castle_metal",
+        "castle_wood"
+      ],
+      "geometrySha256": "fc36e645f35efdda11f95236c3e61dac3aa0af49d81254b10f9380d81443128d"
+    },
+    {
+      "id": "prop_room_niche_panel",
+      "file": "Castle_prop_room_niche_panel.fbx",
+      "kind": "prop",
+      "size": [
+        1.92,
+        2.92,
+        0.18
+      ],
+      "triangles": 96,
+      "materials": [
+        "castle_metal",
+        "castle_stone",
+        "castle_stone_dark"
+      ],
+      "geometrySha256": "243fffdc6f7b03448fd28ee7a1dab9a37c6909ea1142947504b7fdb1dd807a15"
+    },
+    {
       "id": "prop_vault_low_wall",
       "file": "Castle_prop_vault_low_wall.fbx",
       "kind": "prop",

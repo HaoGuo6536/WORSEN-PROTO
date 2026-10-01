@@ -1,0 +1,9074 @@
+{
+  "theme": "basement",
+  "module": 2.0,
+  "schemaVersion": 2,
+  "activation": "coordinator-required: merge templates after kind/socket admission and count-test update",
+  "templates": [
+    {
+      "id": "basement_twin_boilers",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "large",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            5,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                12,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                12,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ],
+          [
+            11,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            2
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            9
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            11,
+            0,
+            9
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            9,
+            2.455,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            11.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            12,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            12,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            11.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            12,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            11,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            9,
+            2.555,
+            7
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_boiler",
+          "pos": [
+            2.1,
+            0,
+            9.161
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_pump",
+          "pos": [
+            2.1,
+            0,
+            6.4
+          ],
+          "rotY": 0,
+          "support": "floor"
+        },
+        {
+          "id": "prop_boiler",
+          "pos": [
+            5.4,
+            0,
+            9.161
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_pump",
+          "pos": [
+            5.4,
+            0,
+            6.4
+          ],
+          "rotY": 0,
+          "support": "floor"
+        },
+        {
+          "id": "prop_boiler",
+          "pos": [
+            8.7,
+            0,
+            9.161
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_pump",
+          "pos": [
+            8.7,
+            0,
+            6.4
+          ],
+          "rotY": 0,
+          "support": "floor"
+        },
+        {
+          "id": "prop_electrical_cabinet",
+          "pos": [
+            0.2765,
+            0,
+            5
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            11.776,
+            0,
+            7.5
+          ],
+          "rotY": 90,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "E",
+            "line": 12
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [
+        {
+          "kind": "boiler-train",
+          "members": [
+            84,
+            85
+          ],
+          "facing": [
+            0,
+            0,
+            -1
+          ]
+        },
+        {
+          "kind": "boiler-train",
+          "members": [
+            86,
+            87
+          ],
+          "facing": [
+            0,
+            0,
+            -1
+          ]
+        },
+        {
+          "kind": "boiler-train",
+          "members": [
+            88,
+            89
+          ],
+          "facing": [
+            0,
+            0,
+            -1
+          ]
+        }
+      ],
+      "reservedAreas": [],
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_pump_gallery",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "medium",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "hunterSpawn": [
+          [
+            8,
+            0,
+            6
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            7,
+            2.455,
+            5
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            7,
+            2.555,
+            5
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_pump",
+          "pos": [
+            2,
+            0,
+            7.4485
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_gauge_panel",
+          "pos": [
+            2,
+            1.3,
+            7.911
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_pump",
+          "pos": [
+            4.5,
+            0,
+            7.4485
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_gauge_panel",
+          "pos": [
+            4.5,
+            1.3,
+            7.911
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_pump",
+          "pos": [
+            7,
+            0,
+            7.4485
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_gauge_panel",
+          "pos": [
+            7,
+            1.3,
+            7.911
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            2.2
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            5
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            9.7135,
+            0,
+            6
+          ],
+          "rotY": 90,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "E",
+            "line": 10
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [],
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_caged_stores",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "large",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            2,
+            0,
+            1
+          ],
+          [
+            4,
+            0,
+            1
+          ],
+          [
+            6,
+            0,
+            1
+          ],
+          [
+            8,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            2
+          ],
+          [
+            5,
+            0,
+            2
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            8
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            8
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            7,
+            2.455,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            7,
+            2.555,
+            7
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_storage_cage",
+          "pos": [
+            0.539,
+            0,
+            2
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_storage_cage",
+          "pos": [
+            0.539,
+            0,
+            4.5
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_storage_cage",
+          "pos": [
+            0.539,
+            0,
+            7
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_stores_shelf",
+          "pos": [
+            2.2,
+            0,
+            9.636
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_stores_shelf",
+          "pos": [
+            4.6,
+            0,
+            9.636
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_stores_shelf",
+          "pos": [
+            7,
+            0,
+            9.636
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            9.7135,
+            0,
+            6.5
+          ],
+          "rotY": 90,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "E",
+            "line": 10
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [],
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_laundry",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "medium",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "hunterSpawn": [
+          [
+            6,
+            0,
+            6
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            7,
+            2.455,
+            5
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            7,
+            2.555,
+            5
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_room_washer",
+          "pos": [
+            1.1,
+            0,
+            7.5575
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_washer",
+          "pos": [
+            2.4,
+            0,
+            7.5575
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_washer",
+          "pos": [
+            3.7,
+            0,
+            7.5575
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_washer",
+          "pos": [
+            5,
+            0,
+            7.5575
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_stores_shelf",
+          "pos": [
+            7.8,
+            0,
+            7.636
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_laundry_cart",
+          "pos": [
+            7.8,
+            0,
+            5.5
+          ],
+          "rotY": 0,
+          "support": "floor"
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            0.414,
+            0,
+            4.6
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [],
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_coal_store",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "medium",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "hunterSpawn": [
+          [
+            6,
+            0,
+            6
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            5,
+            2.455,
+            5
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            8,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            8,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            5,
+            2.555,
+            5
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_fuel_bunker",
+          "pos": [
+            1.3,
+            0,
+            7.333637
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_fuel_bunker",
+          "pos": [
+            3.6,
+            0,
+            7.333637
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_fuel_bunker",
+          "pos": [
+            5.9,
+            0,
+            7.333637
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            2
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            4.7
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            7.7135,
+            0,
+            6.4
+          ],
+          "rotY": 90,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "E",
+            "line": 8
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [],
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_repair_workshop",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "large",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            2
+          ]
+        ],
+        "goldenCake": [
+          [
+            8,
+            0,
+            8
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            9
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            7,
+            2.455,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            7,
+            2.555,
+            7
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            2,
+            0,
+            9.586
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_toolboard",
+          "pos": [
+            2,
+            1.3,
+            9.8685
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            4.5,
+            0,
+            9.586
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_toolboard",
+          "pos": [
+            4.5,
+            1.3,
+            9.8685
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            7,
+            0,
+            9.586
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_toolboard",
+          "pos": [
+            7,
+            1.3,
+            9.8685
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_stores_shelf",
+          "pos": [
+            0.364,
+            0,
+            2.5
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_stores_shelf",
+          "pos": [
+            0.364,
+            0,
+            5.2
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            9.7135,
+            0,
+            7
+          ],
+          "rotY": 90,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "E",
+            "line": 10
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [
+        {
+          "kind": "workbench-tools",
+          "members": [
+            72,
+            73
+          ]
+        },
+        {
+          "kind": "workbench-tools",
+          "members": [
+            74,
+            75
+          ]
+        },
+        {
+          "kind": "workbench-tools",
+          "members": [
+            76,
+            77
+          ]
+        }
+      ],
+      "reservedAreas": [],
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_utility_lobby",
+      "kind": "room",
+      "shape": "rect",
+      "sizeClass": "medium",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                8,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            5,
+            2.455,
+            3
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            8,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            8,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            5,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            2,
+            0,
+            5.7135
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 6
+          }
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            5.3,
+            0,
+            5.586
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 6
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [],
+      "transition": {
+        "purpose": "service-to-public threshold",
+        "compatibleThemes": [
+          "castle",
+          "hospital",
+          "school"
+        ],
+        "doors": [
+          {
+            "index": 0,
+            "clearWidth": 3.2,
+            "clearHeight": 2.8,
+            "floorY": 0,
+            "seam": "retain own jamb; neighbour owns its shell height"
+          },
+          {
+            "index": 1,
+            "clearWidth": 3.2,
+            "clearHeight": 2.8,
+            "floorY": 0,
+            "seam": "retain own jamb; neighbour owns its shell height"
+          }
+        ]
+      },
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_loading_bend",
+      "kind": "room",
+      "shape": "L",
+      "sizeClass": "medium",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            0,
+            2
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                0,
+                0,
+                4
+              ],
+              "rotY": 270
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                0,
+                0,
+                6
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            2
+          ]
+        ],
+        "goldenCake": [],
+        "hunterSpawn": [
+          [
+            2,
+            0,
+            6
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0,
+            0,
+            2.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0,
+            0,
+            7.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_miter_right_2m",
+          "pos": [
+            4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_miter_left_2m",
+          "pos": [
+            5.0,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            0,
+            0,
+            5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            2,
+            0,
+            7.7135
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 8
+          }
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            6.3,
+            0,
+            0.414
+          ],
+          "rotY": 180,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "S",
+            "line": 0
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [],
+      "transition": {
+        "purpose": "older wing / plant annex",
+        "compatibleThemes": [
+          "castle",
+          "hospital",
+          "school"
+        ],
+        "doors": [
+          {
+            "index": 0,
+            "clearWidth": 3.2,
+            "clearHeight": 2.8,
+            "floorY": 0,
+            "seam": "retain own jamb; neighbour owns its shell height"
+          },
+          {
+            "index": 1,
+            "clearWidth": 3.2,
+            "clearHeight": 2.8,
+            "floorY": 0,
+            "seam": "retain own jamb; neighbour owns its shell height"
+          }
+        ]
+      },
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_boiler_shrine_nook",
+      "kind": "shrine",
+      "shape": "rect",
+      "sizeClass": "large",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                2
+              ],
+              "rotY": 90
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                10,
+                0,
+                4
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            2
+          ]
+        ],
+        "goldenCake": [
+          [
+            6,
+            0,
+            9
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            9
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            7,
+            2.455,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            10,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            7,
+            2.555,
+            7
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_room_niche_panel",
+          "pos": [
+            0.104,
+            0,
+            7
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_boiler",
+          "pos": [
+            7.5,
+            0,
+            9.161
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_service_locker",
+          "pos": [
+            4.5,
+            0,
+            9.7135
+          ],
+          "rotY": 0,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "N",
+            "line": 10
+          }
+        },
+        {
+          "id": "prop_room_workbench",
+          "pos": [
+            0.414,
+            0,
+            3
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [
+        {
+          "id": "shrine-model",
+          "center": [
+            1.8,
+            1.2,
+            7
+          ],
+          "size": [
+            1.2,
+            2.4,
+            1.2
+          ]
+        },
+        {
+          "id": "shrine-interaction",
+          "center": [
+            3.6,
+            1.2,
+            7
+          ],
+          "size": [
+            2,
+            2.4,
+            2
+          ]
+        },
+        {
+          "id": "passage-approach",
+          "center": [
+            6.5,
+            1,
+            7
+          ],
+          "size": [
+            7,
+            2,
+            2.4
+          ]
+        }
+      ],
+      "shrineSockets": [
+        {
+          "id": "shrine",
+          "position": [
+            1.8,
+            0,
+            7
+          ],
+          "facing": [
+            1,
+            0,
+            0
+          ],
+          "modelEnvelope": [
+            1.2,
+            2.4,
+            1.2
+          ],
+          "interactionCenter": [
+            3.6,
+            0,
+            7
+          ],
+          "interactionSize": [
+            2,
+            2.4,
+            2
+          ],
+          "modelOwner": "Assets/Art/Shrine/<Kind>/"
+        }
+      ],
+      "passageGap": {
+        "side": "E",
+        "edgeCell": [
+          4,
+          3
+        ],
+        "edge": [
+          10,
+          0,
+          7
+        ],
+        "landing": [
+          14,
+          0,
+          7
+        ],
+        "width": 2.4,
+        "gapLength": 4,
+        "sealedUntilActivated": true,
+        "pocketTemplateId": "basement_utility_lobby",
+        "pocketOffset": [
+          7,
+          2
+        ],
+        "pocketTurns": 0,
+        "optionalOnly": true
+      },
+      "minimumWalkingWidth": 1.2
+    },
+    {
+      "id": "basement_pressure_lane",
+      "kind": "puzzle",
+      "shape": "rect",
+      "sizeClass": "large",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ]
+      ],
+      "height": 3.2,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            6
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_2m",
+              "pos": [
+                2,
+                0,
+                14
+              ],
+              "rotY": 0
+            },
+            {
+              "id": "wall_2m",
+              "pos": [
+                4,
+                0,
+                14
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            2
+          ],
+          [
+            4,
+            0,
+            2
+          ],
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            10
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            8,
+            0,
+            13
+          ]
+        ],
+        "light": [
+          [
+            3,
+            2.455,
+            3
+          ],
+          [
+            3,
+            2.455,
+            11
+          ]
+        ]
+      },
+      "gimmick": "puzzle",
+      "minRound": 3,
+      "weight": 0.65,
+      "pieces": [
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            0.5,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            13.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_concrete_1m",
+          "pos": [
+            5.5,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.1001,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            1,
+            2.86,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.1001,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            3,
+            2.86,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.1001,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            5,
+            2.86,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.1001,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            7,
+            2.86,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.1001,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_2x2",
+          "pos": [
+            9,
+            2.86,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            3
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "cage_lamp",
+          "pos": [
+            3,
+            2.555,
+            11
+          ],
+          "rotY": 0,
+          "support": "ceiling"
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            3
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            6
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            9
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_room_pipe_riser",
+          "pos": [
+            0.224,
+            0,
+            12
+          ],
+          "rotY": 270,
+          "support": "floor-wall",
+          "backWall": {
+            "side": "W",
+            "line": 0
+          }
+        },
+        {
+          "id": "prop_gauge_panel",
+          "pos": [
+            7,
+            1.4,
+            13.911
+          ],
+          "rotY": 0,
+          "support": "wall",
+          "backWall": {
+            "side": "N",
+            "line": 14
+          }
+        }
+      ],
+      "furnishingVersion": 1,
+      "groups": [],
+      "reservedAreas": [
+        {
+          "id": "puzzle-envelope",
+          "center": [
+            7,
+            1.35,
+            7
+          ],
+          "size": [
+            3.2,
+            2.5,
+            9.6
+          ]
+        }
+      ],
+      "puzzleSockets": {
+        "origin": [
+          7,
+          0,
+          7
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "laneLength": 8,
+        "laneWidth": 1.6,
+        "cageHeight": 2.5,
+        "panelThickness": 0.1,
+        "clearance": 0.8,
+        "steps": [
+          [
+            7,
+            0,
+            4
+          ],
+          [
+            7,
+            0,
+            6
+          ],
+          [
+            7,
+            0,
+            8
+          ]
+        ],
+        "reward": [
+          7,
+          0,
+          10
+        ],
+        "supportedKinds": [
+          "OrderedPlates",
+          "DimmingPath",
+          "MovingDoor",
+          "TimedVaults"
+        ]
+      },
+      "minimumWalkingWidth": 1.2
+    }
+  ]
+}

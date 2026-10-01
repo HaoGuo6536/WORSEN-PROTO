@@ -453,6 +453,86 @@
       "kind": "floor"
     },
     {
+      "id": "prop_room_washer",
+      "file": "Basement_prop_room_washer.fbx",
+      "size": [
+        0.88,
+        1.05,
+        0.857
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_workbench",
+      "file": "Basement_prop_room_workbench.fbx",
+      "size": [
+        1.9,
+        1.08,
+        0.8
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_stores_shelf",
+      "file": "Basement_prop_room_stores_shelf.fbx",
+      "size": [
+        1.8,
+        2.2,
+        0.7
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_toolboard",
+      "file": "Basement_prop_room_toolboard.fbx",
+      "size": [
+        1.8,
+        1.1,
+        0.235
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_pipe_riser",
+      "file": "Basement_prop_room_pipe_riser.fbx",
+      "size": [
+        0.61,
+        2.85,
+        0.42
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_service_locker",
+      "file": "Basement_prop_room_service_locker.fbx",
+      "size": [
+        1.35,
+        2.0,
+        0.545
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_laundry_cart",
+      "file": "Basement_prop_room_laundry_cart.fbx",
+      "size": [
+        0.92,
+        1.153,
+        0.74
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_niche_panel",
+      "file": "Basement_prop_room_niche_panel.fbx",
+      "size": [
+        1.92,
+        2.92,
+        0.18
+      ],
+      "kind": "prop"
+    },
+    {
       "id": "prop_vault_low_duct",
       "file": "Basement_prop_vault_low_duct.fbx",
       "size": [

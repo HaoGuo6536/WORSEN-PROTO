@@ -1,5 +1,7 @@
 # Hospital — 1970s institutional ward (PLAN-026)
 
+2026-10-01 expansion: [Furnished rooms](../FurnishedRooms.md) inventories ten additional assembled rooms and eight new furniture meshes in these same Kit/Rooms sources. The expansion manifest is intentionally pending coordinator activation; the fourteen active templates below are preserved.
+
 This is original procedural art, authored entirely in Blender 5.2 without downloaded assets. The restyle is self-contained: `tools/blender/env_theme_hospital.py` does not import or modify the Castle/Hospital v1 generator. It writes only Hospital art and ignored validation output in the `theme-hospital` worktree. No Unity process, import, scene, prefab, script, metadata or shared Library is changed.
 
 ## Sources and delivered content

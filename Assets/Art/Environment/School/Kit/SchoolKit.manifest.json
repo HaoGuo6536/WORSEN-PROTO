@@ -443,6 +443,86 @@
       "kind": "prop"
     },
     {
+      "id": "prop_room_radiator",
+      "file": "School_prop_room_radiator.fbx",
+      "size": [
+        1.74,
+        0.89,
+        0.22
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_staff_table",
+      "file": "School_prop_room_staff_table.fbx",
+      "size": [
+        1.8,
+        0.76,
+        0.9
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_coat_rack",
+      "file": "School_prop_room_coat_rack.fbx",
+      "size": [
+        1.98,
+        1.98,
+        0.44
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_cloak_bench",
+      "file": "School_prop_room_cloak_bench.fbx",
+      "size": [
+        1.8,
+        0.51,
+        0.48
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_piano",
+      "file": "School_prop_room_piano.fbx",
+      "size": [
+        1.7,
+        1.175,
+        0.765
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_mat_stack",
+      "file": "School_prop_room_mat_stack.fbx",
+      "size": [
+        1.92,
+        0.675,
+        1.1815
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_lectern",
+      "file": "School_prop_room_lectern.fbx",
+      "size": [
+        0.78,
+        1.35,
+        0.56
+      ],
+      "kind": "prop"
+    },
+    {
+      "id": "prop_room_niche_panel",
+      "file": "School_prop_room_niche_panel.fbx",
+      "size": [
+        1.92,
+        2.92,
+        0.18
+      ],
+      "kind": "prop"
+    },
+    {
       "id": "prop_vault_low_locker",
       "file": "School_prop_vault_low_locker.fbx",
       "size": [

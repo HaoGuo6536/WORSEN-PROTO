@@ -883,11 +883,16 @@ def main():
     materials()
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from env_theme_vaults import PIECES, build_vault, add_vaults
+    from env_kit_furnishings import ids, build_furnishing
+    from env_theme_furnished import publish_expansion
+    KINDS.update({pid: 'prop' for pid in ids('basement')})
     KINDS[PIECES['basement']] = 'prop'
     pieces,rows = {},[]
     for name,kind in KINDS.items():
         builder = BasementMesh(name)
-        if name == PIECES['basement']:
+        if name in ids('basement'):
+            build_furnishing('basement', builder, name)
+        elif name == PIECES['basement']:
             build_vault('basement', builder)
         else:
             build(builder)
@@ -910,6 +915,7 @@ def main():
     sheet(pieces,not args.skip_previews)
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/"Kit/BasementKit.blend"))
     rooms_source(pieces,rooms,not args.skip_previews)
+    publish_expansion('basement', globals(), pieces, rows, args.skip_previews)
     print(f"GENERATED Basement: {len(pieces)} pieces, {len(rooms['templates'])} room templates")
 
 
