@@ -9,7 +9,7 @@
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
 //   - Build the ten-profile expansion roster while preserving matching authored tuning.
-//   - Restore fog, Results, title/preferences and presentation routes idempotently.
+//   - Restore held-item, Herald, Blinder and shared hazard wiring on existing scenes idempotently.
 //   - Wire world services, diagnostics, spatial sound, Lumen and physical exit/collapse.
 //   - Promote the title-capable scene while retaining explicit test-scene order and flags.
 //   - Preserve unrelated loaded scenes and deterministic asset identities.
@@ -42,6 +42,7 @@ using Worsen.Domain.Director;
 using Worsen.Presentation.Input;
 using Worsen.Presentation.DebugOverlay;
 using Worsen.Presentation.Horror;
+using Worsen.Presentation.HeldItem;
 using Worsen.Presentation.Fog;
 using Worsen.Editor.Fog;
 using Worsen.Presentation.ProgressionUI;
@@ -99,6 +100,7 @@ namespace Worsen.Editor.Scenes
                 BuildOverlay(root, run);
                 BuildPresentation(root, run);
                 BuildWorldServices(root, cake);
+                RestoreIntegrationRoutes(root);
                 RestoreFog(root);
                 RestoreEnvironmentVisuals(root);
                 var ui = Add<ProgressionUIManager>("Progression UI");
@@ -127,6 +129,43 @@ namespace Worsen.Editor.Scenes
                 if (scene.IsValid() && scene.isLoaded && SceneManager.GetActiveScene() != scene) EditorSceneManager.CloseScene(scene, true);
                 if (!saved) Debug.LogError("HorrorRun setup did not complete; inspect the preceding error.");
             }
+        }
+
+        [MenuItem("Worsen/Scenes/Restore HorrorRun Integration Wiring")]
+        public static void RestoreIntegrationWiring()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+                throw new InvalidOperationException("Integration restore requires an idle Editor.");
+            var previous = SceneManager.GetActiveScene();
+            var scene = SceneManager.GetSceneByPath(ScenePath);
+            bool opened = !scene.IsValid() || !scene.isLoaded;
+            if (!opened && scene.isDirty) throw new InvalidOperationException("Save HorrorRun edits before restoring wiring.");
+            if (opened) scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                SceneManager.SetActiveScene(scene);
+                var root = scene.GetRootGameObjects().SelectMany(value => value.GetComponentsInChildren<HorrorRunSceneRoot>(true)).Single();
+                RestoreIntegrationRoutes(root);
+                if (!EditorSceneManager.SaveScene(scene, ScenePath)) throw new InvalidOperationException("HorrorRun wiring save failed.");
+            }
+            finally
+            {
+                if (previous.IsValid() && previous.isLoaded) SceneManager.SetActiveScene(previous);
+                if (opened && scene.IsValid() && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+        public static void RestoreIntegrationRoutes(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            Worsen.Editor.Floor.FloorConfigGenerator.BuildFloorAssets();
+            RestoreHeldItem(root);
+            var floor = Referenced<FloorManager>(root, "_floor") ?? throw new InvalidOperationException("HorrorRun requires Floor.");
+            WireMissing(floor, "_hazardConfig", Require<FloorCollapseHazardConfig>(Worsen.Editor.Floor.FloorConfigGenerator.HazardConfigPath));
+            var horror = Referenced<HorrorManager>(root, "_horror") ?? throw new InvalidOperationException("HorrorRun requires Horror.");
+            WireMissing(horror, "_driver", horror.GetComponent<HorrorDriver>());
+            WireMissing(root, "_horrorRoute", horror.GetComponent<HorrorOrchestrator>() ?? horror.gameObject.AddComponent<HorrorOrchestrator>());
+            WireMissing(root, "_heraldRoute", root.GetComponent<HeraldOrchestrator>() ?? root.gameObject.AddComponent<HeraldOrchestrator>());
         }
 
         public static void RestoreFog(HorrorRunSceneRoot root)
@@ -225,6 +264,29 @@ namespace Worsen.Editor.Scenes
         private static void WireMissing(UnityEngine.Object owner, string field, UnityEngine.Object value)
         { if (Referenced<UnityEngine.Object>(owner, field) == null) Wire(owner, field, value); }
 
+        public static void RestoreHeldItem(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            var config = Referenced<HeldItemDriverConfig>(root, "_heldItemConfig") ??
+                Ensure<HeldItemDriverConfig>(ConfigRoot + "Presentation/HeldItem/HeldItemDriverConfig.asset");
+            if (config.Shader == null)
+                Wire(config, "_shader", Shader.Find("Universal Render Pipeline/Unlit") ??
+                    throw new InvalidOperationException("Held item setup requires URP Unlit."));
+            AssetDatabase.SaveAssetIfDirty(config);
+            var heldItem = Referenced<HeldItemManager>(root, "_heldItem");
+            if (heldItem == null)
+            {
+                heldItem = Add<HeldItemManager>("Held Item Service");
+                heldItem.transform.SetParent(root.transform, false);
+            }
+            WireMissing(heldItem, "_config", config);
+            WireMissing(root, "_heldItem", heldItem);
+            WireMissing(root, "_heldItemConfig", config);
+            WireMissing(root, "_heldItemRoute", heldItem.GetComponent<HeldItemOrchestrator>() ??
+                heldItem.gameObject.AddComponent<HeldItemOrchestrator>());
+        }
+
         public static void RestoreHunterRoster(HorrorRunSceneRoot root)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
@@ -292,6 +354,7 @@ namespace Worsen.Editor.Scenes
             camera.gameObject.AddComponent<AudioListener>();
             var data = camera.gameObject.AddComponent<UniversalAdditionalCameraData>(); data.renderPostProcessing = true;
             var cameraManager = Worsen.Editor.Camera.CameraRigSetup.Create(root.transform, camera);
+            RestoreHeldItem(root);
             var postFX = Worsen.Editor.PostFX.PostFXSetup.Create(root.transform);
             Wire(root, "_camera", cameraManager); Wire(root, "_postFX", postFX);
             Route<CameraOrchestrator>(cameraManager.gameObject, run, "_camera", cameraManager);

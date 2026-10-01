@@ -60,6 +60,7 @@ namespace Worsen.Orchestrator
         private EnvironmentManager _environment;
         private CameraManager _camera;
         private LevelManager _level;
+        private FloorManager _floor;
         private readonly List<HunterManager> _deliberationPublishers = new List<HunterManager>();
 
         public void ConfigureCatch(CameraManager camera)
@@ -70,18 +71,18 @@ namespace Worsen.Orchestrator
         public void ClearCatch() => ConfigureCatch(null);
 
         public void ConfigureExpansion(ProgressionSessionManager progression, HorrorEffectsManager effects,
-            ExpeditionSessionManager expedition, ProgressionUIManager ui, EnvironmentManager environment = null, LevelManager level = null)
+            ExpeditionSessionManager expedition, ProgressionUIManager ui, EnvironmentManager environment = null, LevelManager level = null, FloorManager floor = null)
         {
             OnDisable();
             _progression = progression; _effects = effects; _expedition = expedition; _ui = ui; _environment = environment;
-            _level = level;
+            _level = level; _floor = floor;
             if (isActiveAndEnabled) OnEnable();
         }
         public void ClearExpansion()
         {
             OnDisable();
             _progression = null; _effects = null; _expedition = null; _ui = null; _environment = null;
-            _level = null;
+            _level = null; _floor = null;
             if (_audio != null) { _audio.SetWorld(null, null); _audio.SetActiveEffects(null); _audio.SetTheme(null); }
             if (isActiveAndEnabled) OnEnable();
         }
@@ -94,6 +95,7 @@ namespace Worsen.Orchestrator
             _run.CaptureStarted += OnCapture;
             _run.PauseChanged += OnPause;
             _audio.SetPaused(_run.IsPaused);
+            if (_floor != null) { _floor.ConfigureTrapAudio(_audio.EffectsGroup); _floor.CollapseCue += OnCollapseCue; }
             _run.ChaseStarted += OnChase;
             _run.ChaseEnded += OnChaseEnd;
             _run.HunterFacts.ProximityPublished += OnProximity;
@@ -144,6 +146,7 @@ namespace Worsen.Orchestrator
         private void OnDisable()
         {
             ClearHunters();
+            if (_floor != null) { _floor.CollapseCue -= OnCollapseCue; _floor.ConfigureTrapAudio(null); }
             if (_run != null)
             {
                 _run.CaptureStarted -= OnCapture;
@@ -270,6 +273,8 @@ namespace Worsen.Orchestrator
         }
         private void OnPickup(PickupCollectedFact fact, Vector3 position) { if (_expedition != null) _audio.ObservePickup(fact, position); }
         private void OnHand(CollapseHandFact fact) { if (_expedition != null) _audio.ObserveHand(fact); }
+        private void OnCollapseCue(CueId cue, Vector3 position, int roomId)
+        { if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && _audio != null) _audio.PlayCueAt(cue, position, 1f, roomId); }
         private void OnDestruction(RoomDestructionSample sample) { if (_expedition != null) _audio.ObserveRoom(sample); }
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _audio.SetRooms(rooms);
         private void OnSnapshot(ProgressionSnapshot snapshot) { _audio.ObserveProgression(snapshot); RefreshViews(); }

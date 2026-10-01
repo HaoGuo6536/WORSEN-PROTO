@@ -11,7 +11,7 @@
 //   BehaviorState (§3) · Session · Run.
 //
 // KEY RESPONSIBILITIES:
-//   - Retain the exact in-flight Floor tick delta for synchronous boundary acceleration.
+//   - Retain in-flight Floor admission and floor-local Loud Keys duplicate identities.
 //   - Retain pause admission and detailed outcome bookkeeping without engine clocks.
 //   - Retain the seed, phase, readiness, scene key, tick, and elapsed time.
 //   - Hold pending input and same-tick Mimic facts awaiting damage admission.
@@ -53,6 +53,8 @@ namespace Worsen.Session.Run
         public int SummarySeed { get; internal set; }
         public long Tick { get; internal set; }
         internal float FloorDeltaSeconds;
+        internal readonly System.Collections.Generic.HashSet<(EntityId Hunter, NoiseEvent Noise)> LoudKeyNoises =
+            new System.Collections.Generic.HashSet<(EntityId, NoiseEvent)>();
         internal readonly System.Collections.Generic.List<MimicFact> PendingMimicBites = new System.Collections.Generic.List<MimicFact>();
         public double ElapsedSeconds { get; internal set; }
         public InputFrame PendingInput { get; internal set; }

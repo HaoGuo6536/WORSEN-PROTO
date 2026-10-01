@@ -71,6 +71,7 @@ namespace Worsen.Domain.Director
         {
             _state.Players.Clear();
             _state.Pursuits.Clear(); _state.Noises.Clear(); _state.DeliveredNoises.Clear();
+            _state.HeraldBroadcasts.Clear(); _state.HeraldTicks.Clear();
             _state.ElapsedSeconds = 0d;
             _state.EvaluationAccumulatorSeconds = 0d;
             _state.EvaluationCount = 0;
@@ -139,6 +140,22 @@ namespace Worsen.Domain.Director
             if (!HunterHearingUtility.Allows(noise) || !Finite(noise.Position) || float.IsNaN(noise.Loudness) || float.IsInfinity(noise.Loudness) ||
                 _state.Noises.Contains(noise) || _state.DeliveredNoises.Contains(noise)) return;
             _state.Noises.Add(noise);
+        }
+        public bool HearHeraldBroadcast(HeraldScreamFact fact)
+        {
+            if (!fact.Hunter.IsValid || fact.Noise.Source != fact.Hunter || fact.FloorWideHint.Source != fact.Hunter ||
+                fact.Sound == HeraldSound.DrawnBreath || fact.ObservedTick < 0 || fact.ObservedTick > fact.Noise.Tick ||
+                fact.FloorWideHint.Tick != fact.Noise.Tick || !Finite(fact.FloorWideHint.Position) ||
+                _state.HeraldTicks.TryGetValue(fact.Hunter, out long prior) && fact.Noise.Tick <= prior) return false;
+            _state.HeraldTicks[fact.Hunter] = fact.Noise.Tick;
+            _state.HeraldBroadcasts.Add(fact);
+            return true;
+        }
+        public HeraldScreamFact[] DrainHeraldBroadcasts(long tick)
+        {
+            var result = _state.HeraldBroadcasts.FindAll(fact => fact.Noise.Tick <= tick).ToArray();
+            _state.HeraldBroadcasts.RemoveAll(fact => fact.Noise.Tick <= tick);
+            return result;
         }
         private List<EntityId> Retreats(IReadOnlyList<DirectorHunterSample> hunters, float dt, double now)
         {

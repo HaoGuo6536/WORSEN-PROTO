@@ -9,7 +9,7 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Horror presentation target.
 // KEY RESPONSIBILITIES:
-//   - Route collapse, Weaver, attack, flashlight and authoritative Afterglow facts.
+//   - Route collapse, Weaver/Blinder, attack, flashlight and authoritative Afterglow facts.
 //   - Pair revival catches and return their completion to Session.
 //   - Bind world/HUD micro-events and report their presentation outcomes.
 //   - Synchronize effects and clear floor-local visuals at lifecycle boundaries.
@@ -30,10 +30,12 @@
 //   the entire owning room conservatively until exact door bounds are published by Level.
 //   Run's typed HunterFacts channel supplies authoritative Afterglow windows.
 //   Safety is never inferred here; subscriptions use the same channel on teardown.
+//   Scene composition binds Blinder commands to HorrorManager, never to its sub-driver.
 // ============================================================================
 using UnityEngine;
 using System.Collections.Generic;
 using Worsen.Domain.Level;
+using Worsen.Domain.Player;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 using Worsen.Presentation.Horror;
@@ -57,6 +59,17 @@ namespace Worsen.Orchestrator
         private LevelManager _level;
         private ExpeditionSessionManager _expedition;
         private HUDManager _hud;
+        private System.Action<BlinderThrowFact> _blinderThrow;
+        private System.Action<BlinderHitFact> _blinderHit;
+        private System.Action<float> _blinderTick;
+        private System.Action _blinderClear;
+        public void ConfigureProjectilePresentation(System.Action<BlinderThrowFact> launch,
+            System.Action<BlinderHitFact> hit, System.Action<float> tick, System.Action clear)
+        {
+            OnDisable();
+            _blinderThrow = launch; _blinderHit = hit; _blinderTick = tick; _blinderClear = clear;
+            if (isActiveAndEnabled) OnEnable();
+        }
         public void ConfigureMicroEvents(LevelManager level, IReadOnlyList<Vector3> unreachableAnchors)
         {
             if (_level != level)
@@ -78,8 +91,12 @@ namespace Worsen.Orchestrator
             OnDisable();
             if (_run == null || _progression == null || _input == null || _horror == null) return;
             _run.HunterAttackPublished += OnAttack;
+            _run.FloorFacts.BoundaryImpulsePublished += OnBoundaryImpulse;
+            _run.PauseChanged += OnPause;
             PairAfterglow(true);
             _run.HunterFacts.WeaverFactPublished += OnWeaver;
+            _run.HunterFacts.BlinderThrowPublished += OnBlinderThrow;
+            _run.HunterFacts.BlinderHitPublished += OnBlinderHit;
             _run.PlayerDeathPending += OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded += OnRevivalCatchEnded;
             _run.TickAdvanced += OnTickAdvanced;
@@ -101,12 +118,15 @@ namespace Worsen.Orchestrator
         }
         private void OnDisable()
         {
+            _blinderClear?.Invoke();
             if (_expedition != null) { _expedition.AssemblyReady -= OnAssemblyReady; _expedition.FloorReleased -= OnFloorReleased; _expedition.RoomsReady -= OnCollapseRooms; }
             if (_level != null) { _level.DoorOpened -= OnDoorOpened; _level.InteractableChanged -= OnLightChanged; }
             PairAfterglow(false);
             if (_horror != null) { _horror.SetCounterAvailable(false); _horror.ResetRound(); }
             if (_run != null) _run.HunterAttackPublished -= OnAttack;
+            if (_run != null) { _run.FloorFacts.BoundaryImpulsePublished -= OnBoundaryImpulse; _run.PauseChanged -= OnPause; }
             if (_run != null) _run.HunterFacts.WeaverFactPublished -= OnWeaver;
+            if (_run != null) { _run.HunterFacts.BlinderThrowPublished -= OnBlinderThrow; _run.HunterFacts.BlinderHitPublished -= OnBlinderHit; }
             if (_run != null) _run.PlayerDeathPending -= OnDeathPending;
             if (_camera != null) _camera.CatchHoldEnded -= OnRevivalCatchEnded;
             if (_run != null) _run.TickAdvanced -= OnTickAdvanced;
@@ -124,7 +144,7 @@ namespace Worsen.Orchestrator
         private void OnEffectsSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects effects) => OnActiveEffectsChanged(effects);
         private void OnAssemblyReady(ProgressionGenerationRequest request, Vector3 position, Quaternion rotation)
             => ConfigureMicroEvents(_level, System.Array.Empty<Vector3>());
-        private void OnFloorReleased() => _horror.ResetRound();
+        private void OnFloorReleased() { _horror.ResetRound(); _blinderClear?.Invoke(); }
         private void OnCollapseRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _horror.SetCollapseRooms(rooms,
             _level != null && _level.ReadOnlyState.IsReady ? _level.ReadOnlyState.Graph.ExitRoomId : (int?)null);
         private void OnRoomDestruction(RoomDestructionSample sample) => _horror.ObserveCollapse(sample);
@@ -169,6 +189,15 @@ namespace Worsen.Orchestrator
         }
         private void OnAttack(HunterAttackSample sample) => _horror.SetAttack(sample);
         private void OnWeaver(WeaverFact fact) => _horror.ObserveWeaver(fact);
+        private void OnBlinderThrow(BlinderThrowFact fact) { if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && fact.Tick == _run.Tick) _blinderThrow?.Invoke(fact); }
+        private void OnBlinderHit(BlinderHitFact fact) { if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && fact.Tick == _run.Tick) _blinderHit?.Invoke(fact); }
+        private void OnPause(bool paused) { if (paused) _blinderClear?.Invoke(); }
+        private void OnBoundaryImpulse(FloorBoundaryImpulseFact fact)
+        {
+            if (_run != null && !_run.IsPaused && _run.Phase != RunPhase.Ended && fact.Tick == _run.Tick &&
+                PlayerRegistry.TryGet(fact.Player, out var player) && player.isActiveAndEnabled && player.ReadOnlyState?.IsAlive == true)
+                player.ApplyExternalVelocity(fact.Velocity, ExternalMotionKind.Impulse);
+        }
         private void OnChaseStarted(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, true);
         private void OnChaseEnded(ChaseFact fact) => _horror.SetMicroEventChase(fact.ChaseId, false);
         private void OnMicroEventProximity(ProximitySample sample) => _horror.ObserveMicroEventProximity(sample);
@@ -180,16 +209,20 @@ namespace Worsen.Orchestrator
             _horror.ReportMicroEvent(kind, target, position, seconds, applied);
         }
         private void OnTickAdvanced(InputFrame frame, float deltaSeconds, long tick)
-        { _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled); _horror.AdvanceRunClock(deltaSeconds); }
+        {
+            if (_run == null || _run.IsPaused || _run.Phase == RunPhase.Ended || tick != _run.Tick) return;
+            _horror.SetCounterAvailable(_hud != null && _hud.isActiveAndEnabled); _horror.AdvanceRunClock(deltaSeconds); _blinderTick?.Invoke(deltaSeconds);
+        }
         private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation, string choiceId)
         {
             if (operation != ProgressionOperation.StartRun) return;
             _horror.ResetRun(current.Seed);
+            _blinderClear?.Invoke();
             _effects?.ResetRun();
             OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects);
         }
         private void OnGeneration(ProgressionGenerationRequest request)
-        { _horror.ResetRound(); _horror.SetEffects(request.Effects.FogDensityMultiplier, request.Effects.FlashlightRangeMultiplier); OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects); }
+        { _horror.ResetRound(); _blinderClear?.Invoke(); _horror.SetEffects(request.Effects.FogDensityMultiplier, request.Effects.FlashlightRangeMultiplier); OnActiveEffectsChanged(_progression.EffectsSnapshot.ActiveEffects); }
         private void OnSnapshot(ProgressionSnapshot snapshot) => _horror.SetEffects(snapshot.Effects.FogDensityMultiplier, snapshot.Effects.FlashlightRangeMultiplier);
     }
 }

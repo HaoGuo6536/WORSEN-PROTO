@@ -9,7 +9,7 @@
 //   Driver (§7a) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Sample Walkable guidance paths and report target-local fallback/held flags.
-//   - Own cake/trap visuals, materials, lights and duplicate-safe optional rewards.
+//   - Own cake/trap visuals and mixer-routed ticking, including late-spawned traps.
 //   - Relay pickup/trap contacts and emit collapse presentation cue facts to its Manager.
 //   - Apply staged destruction and supply player observations/time to cosmetic hands.
 //   - Operate normal exit opening, crossing contacts and continuous progress.
@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Audio;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 
@@ -37,6 +38,7 @@ namespace Worsen.Domain.Floor
     public sealed class FloorDriver : MonoBehaviour
     {
         [SerializeField] private FloorDriverConfig _config;
+        private AudioMixerGroup _effectsGroup;
         private readonly FloorDriverState _state = new FloorDriverState();
         private readonly FloorPresenter _presenter = new FloorPresenter();
         // DriverState (§7c): diagnostics survive teardown/reinitialization, not asset mutation.
@@ -46,7 +48,7 @@ namespace Worsen.Domain.Floor
         public event Action<Collider, int> TrapContact;
 
         public event Action<Collider> ExitContact;
-        public event Action<CueId, Vector3> CollapseCue;
+        public event Action<CueId, Vector3, int> CollapseCue;
 
         public int OwnedPickupCount => _state.Pickups.Count;
         public int OwnedRoomCount => _state.Rooms.Count;
@@ -140,6 +142,11 @@ namespace Worsen.Domain.Floor
             if (isActiveAndEnabled) OnEnable();
         }
         public void PlayTrapTick(int id, float volume) { if (_state.Traps.TryGetValue(id, out var trap)) trap.PlayTick(volume); }
+        public void ConfigureTrapAudio(AudioMixerGroup effectsGroup)
+        {
+            _effectsGroup = effectsGroup;
+            foreach (var trap in _state.Traps.Values) if (trap != null) trap.SetMixerGroup(effectsGroup);
+        }
         public void TickCakeVisuals(float elapsed)
         { foreach (var visual in _state.CakeVisuals) if (visual != null && visual.gameObject.activeInHierarchy) visual.Tick(elapsed); }
 
@@ -157,9 +164,9 @@ namespace Worsen.Domain.Floor
             bool changed = room.Phase != phase;
             room.ApplyPhase(phase, _config.WarningColor, _config.ClosedColor);
             if (!changed) return;
-            if (phase == RoomPhase.Tearing) CollapseCue?.Invoke(CueId.RoomTear, room.RoomBounds.center);
-            if (phase == RoomPhase.Encroaching) CollapseCue?.Invoke(CueId.MistAdvance, room.RoomBounds.center);
-            if (phase == RoomPhase.Closed) CollapseCue?.Invoke(CueId.RoomConsumed, room.RoomBounds.center);
+            if (phase == RoomPhase.Tearing) CollapseCue?.Invoke(CueId.RoomTear, room.RoomBounds.center, roomId);
+            if (phase == RoomPhase.Encroaching) CollapseCue?.Invoke(CueId.MistAdvance, room.RoomBounds.center, roomId);
+            if (phase == RoomPhase.Closed) CollapseCue?.Invoke(CueId.RoomConsumed, room.RoomBounds.center, roomId);
         }
 
         public void TickWarnings(float elapsed)
@@ -181,10 +188,10 @@ namespace Worsen.Domain.Floor
         public void ApplyHandFact(CollapseHandFact fact)
         {
             if (_state.Rooms.TryGetValue(fact.RoomId, out var room)) room.ApplyHandFact(fact);
-            if (fact.Kind == CollapseHandEventKind.Warning) CollapseCue?.Invoke(CueId.GrabWarning, fact.Position);
-            if (fact.Kind == CollapseHandEventKind.Grabbed) CollapseCue?.Invoke(CueId.GrabStart, fact.Position);
-            if (fact.Kind == CollapseHandEventKind.Hit) CollapseCue?.Invoke(CueId.GrabHit, fact.Position);
-            if (fact.Kind == CollapseHandEventKind.Escaped) CollapseCue?.Invoke(CueId.GrabEscape, fact.Position);
+            if (fact.Kind == CollapseHandEventKind.Warning) CollapseCue?.Invoke(CueId.GrabWarning, fact.Position, fact.RoomId);
+            if (fact.Kind == CollapseHandEventKind.Grabbed) CollapseCue?.Invoke(CueId.GrabStart, fact.Position, fact.RoomId);
+            if (fact.Kind == CollapseHandEventKind.Hit) CollapseCue?.Invoke(CueId.GrabHit, fact.Position, fact.RoomId);
+            if (fact.Kind == CollapseHandEventKind.Escaped) CollapseCue?.Invoke(CueId.GrabEscape, fact.Position, fact.RoomId);
         }
         public void PreviewCracks(int roomId)
         { if (_state.Rooms.TryGetValue(roomId, out var room)) room.PreviewCracks(); }
@@ -193,6 +200,9 @@ namespace Worsen.Domain.Floor
             return _state.Anchors.TryGetValue(anchorId, out var anchor) &&
                 _state.Rooms.TryGetValue(anchor.RoomId, out var room) && !room.PickupOvertaken(anchor.Position);
         }
+        public FloorHandProbe QueryBoundary(Vector3 playerPosition, int roomId, EntityId playerId)
+            => _state.Rooms.TryGetValue(roomId, out var room) && room.Phase == RoomPhase.Closed
+                ? room.Probe(playerPosition, -1, playerId) : default;
         public FloorHandProbe QueryHand(Vector3 playerPosition, int preferredRoom = 0, int preferredHand = -1,
             EntityId playerId = default, bool closedOnly = false)
         {
@@ -338,7 +348,7 @@ namespace Worsen.Domain.Floor
             {
                 item.name = "Cake Trap " + anchor.Id;
                 var contact = item.AddComponent<FloorCakeTrap>();
-                contact.Configure(anchor.Id, ticks ? _state.TrapTickClip : null); _state.Traps.Add(anchor.Id, contact);
+                contact.Configure(anchor.Id, ticks ? _state.TrapTickClip : null, _effectsGroup); _state.Traps.Add(anchor.Id, contact);
             }
             else
             { var pickup = item.AddComponent<CakePickup>(); pickup.Configure(anchor.Id, kind); _state.Pickups.Add(pickup); }

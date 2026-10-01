@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Consume the floor's Wax Heart before any per-player Wax Ward, never both.
 //   - Measure escape from the live fog front, never from the warning's start point.
-//   - Preserve one escape opportunity and exactly one hit per committed grab.
+//   - Preserve one hit per grab and one boundary impulse per player/room entry.
 //   - Break one grab per armed Wax Ward and publish room phases without mutating Player.
 //   - Reject protected contacts and release warnings/grabs from the Player read-only effect view.
 // DEPENDENCIES:
@@ -124,11 +124,23 @@ namespace Worsen.Domain.Floor
             return probe.Outward.normalized * (_config.BoundaryContactAcceleration +
                 _config.BoundarySpringAcceleration * Mathf.Max(0f, probe.Penetration));
         }
-        // Velocity, not acceleration: the Manager must publish this on contact entry
-        // (and re-entry), separately from the legacy continuous boundary spring.
+        // Velocity, not acceleration. The legacy spring calculator is not routed.
         public Vector3 BoundaryImpulse(FloorHandProbe probe) => FloorCollapseFrontUtility.Bounce(probe,
             ReferenceEquals(_hazard, null) ? FloorCollapseHazardConfig.DefaultContactDistance : _hazard.ContactDistance,
             ReferenceEquals(_hazard, null) ? FloorCollapseHazardConfig.DefaultBounceSpeed : _hazard.BounceSpeed);
+        public bool TryBoundaryEntry(EntityId player, bool alive, int room, FloorHandProbe probe, long tick,
+            out FloorBoundaryImpulseFact fact)
+        {
+            fact = default;
+            var key = (player, room);
+            var velocity = BoundaryImpulse(probe);
+            if (!player.IsValid || !alive || probe.RoomId != room || tick < 0 ||
+                float.IsNaN(velocity.sqrMagnitude) || float.IsInfinity(velocity.sqrMagnitude) || velocity.sqrMagnitude <= 0f)
+            { _state.BoundaryContacts.Remove(key); return false; }
+            if (!_state.BoundaryContacts.Add(key)) return false;
+            fact = new FloorBoundaryImpulseFact(player, room, velocity, probe.Position, tick);
+            return true;
+        }
         public void CopyRoomPhases(IDictionary<int, FloorHandPhase> rooms)
         {
             foreach (int room in rooms.Keys.ToArray()) rooms[room] = FloorHandPhase.Idle;
@@ -140,7 +152,7 @@ namespace Worsen.Domain.Floor
                 rooms[contact.RoomId] = contact.Phase;
             }
         }
-        public void Reset() { _state.Contacts.Clear(); _state.WaxWards.Clear(); _state.WaxHeartAvailable = false; }
+        public void Reset() { _state.Contacts.Clear(); _state.BoundaryContacts.Clear(); _state.WaxWards.Clear(); _state.WaxHeartAvailable = false; }
         private bool Release(FloorHandContactBehaviorState contact, EntityId player, long tick, CollapseHandEventKind kind, out CollapseHandFact fact)
         {
             fact = default;

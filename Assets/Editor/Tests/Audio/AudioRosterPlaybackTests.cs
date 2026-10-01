@@ -99,6 +99,24 @@ namespace Worsen.Tests.Audio
             LogAssert.Expect(LogType.Warning, "Roster cue 'mannequin.death' has no clip; silent placeholder.");
             Assert.That(driver.PlayDeath(), Is.False); Assert.That(driver.PlayDeath(), Is.False);
         }
+        [Test] public void MannequinCreakLoopsStopImmediatelyOnHoldPauseDisableAndFloorReset()
+        {
+            Set(config, "_rosterBindings", new[] { new AudioRosterBinding("mannequin.creak", CueId.Presence) { Clip = first } });
+            void Start(int id, long tick) => driver.ObserveMannequin(new MannequinFact(new EntityId(id), MannequinFactKind.MovementStarted, tick, position: Vector3.right * id));
+            Start(7, 1); Start(8, 1);
+            Assert.That(Pool.Voices.Count(v => v.Remaining > 0f && v.Loop), Is.EqualTo(2));
+            int voice = Array.FindIndex(Pool.Voices, v => v.Remaining > 0f && v.Emitter == 7);
+            Assert.That(Sources[voice].loop, Is.True); Assert.That(Sources[voice].transform.position, Is.EqualTo(Vector3.right * 7));
+            driver.ObserveMannequin(new MannequinFact(new EntityId(7), MannequinFactKind.MovementHeld, 2));
+            Assert.That(Pool.Voices.Count(v => v.Remaining > 0f), Is.EqualTo(1));
+            Assert.That(Sources[voice].isPlaying, Is.False);
+            driver.SetPaused(true); Assert.That(Pool.Voices.Count(v => v.Remaining > 0f), Is.Zero);
+            Start(7, 3); Assert.That(Pool.Voices.Count(v => v.Remaining > 0f), Is.Zero);
+            driver.SetPaused(false); Start(7, 4); driver.ResetRun();
+            Assert.That(Pool.Voices.Count(v => v.Remaining > 0f), Is.Zero);
+            Start(7, 0); driver.SetOwnerEnabled(false);
+            Assert.That(Pool.Voices.Count(v => v.Remaining > 0f), Is.Zero);
+        }
         [Test] public void RawHunterEffectsApplyUpgradesOncePreserveProtectionAndClear()
         {
             var hunter = new EntityId(7); var player = new EntityId(1);

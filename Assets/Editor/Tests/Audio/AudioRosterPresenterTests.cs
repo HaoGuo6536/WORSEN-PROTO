@@ -107,6 +107,21 @@ namespace Worsen.Tests.Audio
             Assert.That(state.Archetypes[hunter], Is.EqualTo("mannequin"));
             Assert.That(presenter.Habit(state, new HunterHabitFact(hunter, HunterHabitKind.TurnToFace, default, 2), out _), Is.False);
         }
+        [Test] public void MannequinMovementAndHoldAreHunterKeyedOrderedEdges()
+        {
+            var start = new MannequinFact(hunter, MannequinFactKind.MovementStarted, 10, position: Vector3.one);
+            Assert.That(presenter.Mannequin(state, start, out var command), Is.True);
+            Assert.That(command.Id, Is.EqualTo("mannequin.creak")); Assert.That(command.Hunter, Is.EqualTo(hunter));
+            Assert.That(command.Position, Is.EqualTo(Vector3.one)); Assert.That(command.Stop, Is.False);
+            Assert.That(presenter.Mannequin(state, start, out _), Is.False);
+            Assert.That(presenter.Mannequin(state, new MannequinFact(hunter, MannequinFactKind.MovementHeld, 10), out command), Is.True);
+            Assert.That(command.Stop, Is.True);
+            Assert.That(presenter.Mannequin(state, start, out _), Is.False, "Same-tick stop wins.");
+            Assert.That(presenter.Mannequin(state, new MannequinFact(new EntityId(8), MannequinFactKind.MovementStarted, 10), out command), Is.True);
+            Assert.That(command.Hunter, Is.EqualTo(new EntityId(8)));
+            presenter.Reset(state, true);
+            Assert.That(presenter.Mannequin(state, new MannequinFact(hunter, MannequinFactKind.MovementStarted, 0), out _), Is.True);
+        }
         [TestCase("echo.quickened-recording")][TestCase("weaver-quickened-skitter")]
         [TestCase("blinder-quickened-approach")][TestCase("herald-quickened-approach")]
         [TestCase("mannequin.long-step")][TestCase("stare.quickened-gaze")]

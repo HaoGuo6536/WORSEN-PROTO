@@ -1,5 +1,5 @@
 .hud { position: absolute; left: 0; top: 0; right: 0; bottom: 0; color: rgb(245, 240, 225); }
-.hud-essential { position: absolute; top: 24px; right: 28px; min-width: 190px; padding: 14px 20px; background-color: rgba(15, 19, 19, 0.85); border-left-width: 3px; border-left-color: rgb(219, 174, 99); }
+
 .count { -unity-font-style: bold; margin-bottom: 5px; }
 .exit { color: rgb(201, 201, 185); font-size: 15px; }
 .hud-extra { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }

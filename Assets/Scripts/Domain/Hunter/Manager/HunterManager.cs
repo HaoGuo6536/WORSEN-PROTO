@@ -284,6 +284,8 @@ namespace Worsen.Domain.Hunter
         }
         public void SetAfterimage(FlashlightSample sample, float lifetime) { _controller?.SetAfterimage(sample, lifetime); }
         public void HearNoise(NoiseEvent noise) { if (HunterHearingUtility.Allows(noise)) _controller?.HearNoise(noise, 1f); }
+        public bool HearHeraldBroadcast(HeraldScreamFact fact, out HintPayload hint)
+        { hint = default; return isActiveAndEnabled && _controller != null && _controller.HearHeraldBroadcast(fact, out hint); }
         public bool HearFloorWideNoise(NoiseEvent noise) => HunterHearingUtility.Allows(noise) &&
             (_controller?.HearNoise(noise, 1f, floorWide: true) ?? false);
         public void ClearBelief() { _controller?.ClearBelief(); }

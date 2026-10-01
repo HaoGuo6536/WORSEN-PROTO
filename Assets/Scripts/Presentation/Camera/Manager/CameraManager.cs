@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Forward traversal, comfort, lens and shake inputs without inferring gameplay.
 //   - Initialize the serialized Driver and mirrored config fallback.
-//   - Expose unshaken aim for routed flashlight sensing.
+//   - Expose unshaken aim, output camera and catch status for scene-owned presentation routing.
 //   - Forward hunter/hand catches and republish the shared sting/completion facts.
 //   - Pair Driver subscriptions on initialize, disable and explicit teardown.
 //
@@ -45,6 +45,8 @@ namespace Worsen.Presentation.Camera
         public event Action<EntityId> CatchHoldEnded;
 
         public Quaternion AimRotation => _driver != null ? _driver.AimRotation : Quaternion.identity;
+        public UnityEngine.Camera OutputCamera => _driver != null ? _driver.OutputCamera : null;
+        public bool IsDeathPresentationActive => _driver != null && _driver.IsDeathPresentationActive;
         public float ConsumptionSeconds => _driver != null ? _driver.ConsumptionSeconds : 0f;
         public Vector3 AimPosition => _driver != null ? _driver.AimPosition : Vector3.zero;
 

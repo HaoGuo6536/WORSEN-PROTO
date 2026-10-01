@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Map accepted cues to Core owner slots and explicit environmental noise kinds.
 //   - Collapse aliases and keep interface feedback outside active floors.
+//   - Admit injury and collapse transitions within existing contact/hazard slots, per room.
 // DEPENDENCIES:
 //   - Core budget/hearing contracts and Audio catalogue data only.
 // USAGE NOTES:
@@ -38,6 +39,7 @@ namespace Worsen.Presentation.Audio
             {
                 case CueId.Footstep: entry = Player(PlayerCueSlot.Footstep, NoiseSourceKind.Footstep); break;
                 case CueId.PlayerCritical: entry = Player(PlayerCueSlot.Breathing); break;
+                case CueId.PlayerHit: entry = Player(PlayerCueSlot.TraversalContact); break;
                 case CueId.Land: case CueId.SlideEnd: entry = Player(PlayerCueSlot.TraversalContact, NoiseSourceKind.Landing); break;
                 case CueId.SlideLoop: entry = Player(PlayerCueSlot.TraversalContact, NoiseSourceKind.Slide); break;
                 case CueId.Vault: entry = Player(PlayerCueSlot.TraversalContact, NoiseSourceKind.Vault); break;
@@ -51,6 +53,10 @@ namespace Worsen.Presentation.Audio
                 case CueId.CakeCollect: case CueId.GoldenCakeCollect: entry = World(WorldCueSlot.CakePickup, NoiseSourceKind.CakePickup); break;
                 case CueId.DoorOpen: entry = World(WorldCueSlot.ExitDoor, NoiseSourceKind.Door); break;
                 case CueId.RoomTelegraph: entry = World(WorldCueSlot.RoomTelegraph, NoiseSourceKind.Other); break;
+                case CueId.RoomTear: case CueId.MistAdvance: case CueId.RoomConsumed:
+                    entry = new AudioCueCatalogueEntry(CueCategory.World, (int)WorldCueSlot.RoomTelegraph, NoiseSourceKind.Other, false, true); break;
+                case CueId.GrabWarning: case CueId.GrabStart: case CueId.GrabHit: case CueId.GrabEscape:
+                    entry = new AudioCueCatalogueEntry(CueCategory.World, (int)WorldCueSlot.TrapTrigger, NoiseSourceKind.Trap, false, true); break;
                 case CueId.TorchLoop: entry = World(WorldCueSlot.TorchGutter, NoiseSourceKind.Other); break;
                 case CueId.ChainCreak: entry = World(WorldCueSlot.HunterClosedDoor, NoiseSourceKind.Door); break;
                 case CueId.SpikeErupt: entry = World(WorldCueSlot.TrapTrigger, NoiseSourceKind.Trap); break;
@@ -65,7 +71,9 @@ namespace Worsen.Presentation.Audio
         public bool Admits(CueId cue, bool inRun) => TryGet(cue, out var entry) && (!inRun || entry.Category != CueCategory.Interface);
         public bool FalsePositiveExempt(CueId cue) => cue == CueId.Footstep || cue == CueId.ChainCreak;
         public bool SameVoice(AudioCueCatalogueEntry a, int ownerA, AudioCueCatalogueEntry b, int ownerB) =>
-            a.Category == b.Category && a.Slot == b.Slot && (a.Category != CueCategory.Hunter || ownerA == ownerB);
+            a.Category == b.Category && a.Slot == b.Slot &&
+            (!(a.Category == CueCategory.Hunter || a.Category == CueCategory.World &&
+                (a.Slot == (int)WorldCueSlot.RoomTelegraph || a.Slot == (int)WorldCueSlot.TrapTrigger)) || ownerA == ownerB);
         private AudioCueCatalogueEntry Player(PlayerCueSlot slot, NoiseSourceKind? noise = null) => new AudioCueCatalogueEntry(CueCategory.Player, (int)slot, noise);
         private AudioCueCatalogueEntry Hunter(HunterCueSlot slot, NoiseSourceKind? noise = null, bool protect = false, bool tell = false) =>
             new AudioCueCatalogueEntry(CueCategory.Hunter, (int)slot, noise, protect, tell);

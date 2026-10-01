@@ -1,5 +1,7 @@
 # Hunter roster selection — PLAN-021 MOSS review, 2026-10-01
 
+Pass 3 supersedes the conflicted tick/hiss/snap/crunch bindings below. See PASS3.md for fresh descriptions, prompts and decisions. Historical catalogues/reviews remain evidence, not approval of obsolete picks. Human listening remains false. The goose is no longer bound; mechanical03/04 replace conflicted mechanical01/02, and a model-consistent dry snap replaces the old snap. The unverified wet Mimic bite is explicitly missing, not plastic presented as flesh. Stare catch/death aliases resolve to the same physical snap; no unverified vocal is substituted.
+
 Path-only manifest consumed by `Worsen/Audio/Assign Hunter Roster Selection` after `Build Horror Soundscape`. No audio is copied, embedded, downloaded or redistributed. Paths resolve in the licensed main checkout; public clones fail explicitly until the packs are installed. Existing asset GUIDs/import settings are untouched.
 
 The previous selection did NOT use MOSS: it used filenames and PCM measurements. This revision ran the installed MOSS-Audio 4B-Instruct locally on whole files, with names hidden, preserving raw descriptions and the pig/orc/goblin/human/size/material questionnaire. Human listening is **pending owner for EVERY clip**, including retained clips. These are provisional selections, not a claim of audible acceptance or deployed asset wiring.
@@ -48,6 +50,10 @@ Each clip key resolves to exactly this case-preserved vendor path. MonstersSFX a
 | clip:wood2 | Assets/External/RegularImpactsSFX/ImpactWoodRaw01/SFX_impactwoodraw02.wav | 0.731 | -7.2 | -28.7 | Lower-average solid contact for Ram presence/stride variation. |
 | clip:wind-up | Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/antiques_camera_super-8_bauer-88b_wind-up_10.wav | 2.644 | -5.0 | -37.2 | New whole-file mechanical winding candidate. |
 | clip:wood-creak | Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/ucns_woodenbed_creaks_04.wav | 6.620 | -4.5 | -34.4 | Audition candidate only: no movement-gated consumer exists. |
+| clip:p3-tick1 | Assets/External/RegularImpactsSFX/ImpactMechanical01/SFX_impactmechanical03.wav | 0.125 | -15.7 | -43.3 | Pass-3 description and fit agree: mechanical click. |
+| clip:p3-tick2 | Assets/External/RegularImpactsSFX/ImpactMechanical01/SFX_impactmechanical04.wav | 0.125 | -15.8 | -42.1 | Pass-3 description and fit agree: mechanical switch click. |
+| clip:p3-hiss | Assets/External/Audio/Horror Elements/Misc/Misc_Shh.wav | 4.125 | -12.1 | -33.4 | Non-animal steam-like hiss; whole one-shot, not a loop. |
+| clip:p3-snap | Assets/External/MonstersSFX/MonstersUpdateOne/Combat/SFX_Punch_Designed_Gore_01.wav | 0.640 | -4.9 | -22.4 | Both prompts describe a dry snap/thud, NOT certified flesh or bone. |
 
 ## MOSS description for every selected clip
 
@@ -94,10 +100,10 @@ This executable table is the per-hunter cue → clip table; join each selected k
 | cue:weaver.chase | Chase | 0.55 | skitter2 | skitter1 | Denser movement punctuation without adding an ambience source. |
 | cue:weaver.attack | EnemyWindup | 0.50 | wet1 | - | Single 0.594 s web-release articulation at fixed pitch. |
 | cue:weaver.death | Death | 0.45 | wet2 | - | Compact spider attack, avoids a long generic scream. |
-| cue:ticking.presence | Presence | 0.90 | tick1 | tick2 | Very quiet 0.125 s mechanical impulse needs higher source gain. |
+| cue:ticking.presence | Presence | 0.90 | p3-tick1 | p3-tick2 | Fresh mechanical candidates; 0.125 s each. |
 | cue:ticking.detection | Detection | 0.55 | bell | - | 1.890 s metallic wake contrasts with the dry ticking. |
 | cue:ticking.chase | Chase | 0.45 | wind-up | - | Manipulated hard mechanism texture; no creature or second tick timer. |
-| cue:ticking.attack | EnemyWindup | 0.65 | tick2 | - | Fixed mechanical contact at attack onset. |
+| cue:ticking.attack | EnemyWindup | 0.65 | p3-tick2 | - | Fixed mechanical contact at attack onset. |
 | cue:ticking.death | Death | 0.45 | bell | - | Metallic catch rather than a huge monster/explosion. |
 | cue:ram.presence | Presence | 0.55 | wood2 | wood1 | Solid sub-second footfall rather than ambient rumble. |
 | cue:ram.detection | Detection | 0.35 | roar1 | - | Large-creature bellow fits this hunter only. |
@@ -112,13 +118,13 @@ This executable table is the per-hunter cue → clip table; join each selected k
 | cue:mimic.presence | Presence | 0 | silence | - | Stationary disguise remains silent. |
 | cue:mimic.detection | Detection | 0 | silence | - | Bait discovery remains silent. |
 | cue:mimic.chase | Chase | 0 | silence | - | No pursuit voice. |
-| cue:mimic.attack | EnemyWindup | 0.30 | crunch | - | Dry rip/crunch replaces the large guttural Monster Bite. |
-| cue:mimic.death | Death | 0.35 | crunch | - | Same wrong-bite texture for accepted catch only. |
-| cue:blinder.presence | Presence | 0.20 | hiss | - | Restrained noisy hiss rather than monster breathing. |
-| cue:blinder.detection | Detection | 0.50 | hiss | - | Distinct 1.502 s noise gesture, not a broad scream. |
-| cue:blinder.chase | Chase | 0.25 | hiss | - | Own noisy warning texture instead of low monster breaths. |
-| cue:blinder.attack | EnemyWindup | 0.60 | hiss | - | Fixed hiss onset retains projectile timing. |
-| cue:blinder.death | Death | 0.40 | hiss | - | Own hiss identity, never the low shared roar. |
+| cue:mimic.attack | EnemyWindup | 0.30 | missing | - | No consistent wet bite; reject plastic crunch rather than mislabel it. |
+| cue:mimic.death | Death | 0.35 | missing | - | Wet bodily catch still needs owner-supplied content. |
+| cue:blinder.presence | Presence | 0.20 | p3-hiss | - | Non-animal airy hiss replaces goose. |
+| cue:blinder.detection | Detection | 0.30 | p3-hiss | - | Steam-like noise, not a scream; whole 4.125 s tail. |
+| cue:blinder.chase | Chase | 0.25 | p3-hiss | - | Own hiss rather than monster breathing. |
+| cue:blinder.attack | EnemyWindup | 0.35 | p3-hiss | - | Fixed onset; no timing jitter. |
+| cue:blinder.death | Death | 0.30 | p3-hiss | - | Own non-animal hiss, no shared roar. |
 | cue:herald.presence | Presence | 0 | silence | - | No dedicated presence loop in the brief. |
 | cue:herald.detection | Detection | 0.50 | herald-discovery | - | Exact 1.755 s discovery scream, -18.0 dBFS RMS before gain. |
 | cue:herald.chase | Chase | 0.50 | herald-chase1 | herald-chase2 | 2–3 s specified chase voices; dedicated facts select each identity. |
@@ -128,16 +134,17 @@ This executable table is the per-hunter cue → clip table; join each selected k
 | cue:mannequin.detection | Detection | 0 | silence | - | No audible discovery. |
 | cue:mannequin.chase | Chase | 0 | silence | - | No chase bed while frozen. |
 | cue:mannequin.attack | EnemyWindup | 0 | silence | - | No pre-catch sting. |
-| cue:mannequin.death | Death | 0.30 | snap | - | Short snap catch, no loud shared sting; human approval pending. |
+| cue:mannequin.death | Death | 0.30 | p3-snap | - | Model-consistent dry physical snap; no loud shared sting. |
 | cue:stare.presence | Presence | 0.25 | missing | - | Exact spoken identity required; no monster substitute. |
 | cue:stare.detection | Detection | 0.30 | missing | - | No unrelated abstract roar in place of speech. |
 | cue:stare.chase | Chase | 0.35 | missing | - | Previous abstract scream reads as engine/monster; withheld. |
-| cue:stare.attack | EnemyWindup | 0.35 | snap | - | Brief physical catch articulation, not a spider/orc voice. |
-| cue:stare.death | Death | 0.35 | snap | - | Physical snap instead of low roar on accepted catch. |
+| cue:stare.attack | EnemyWindup | 0.35 | p3-snap | - | Dry physical articulation, not a voice. |
+| cue:stare.death | Death | 0.35 | p3-snap | - | Physical snap on accepted catch only. |
+| cue:stare.catch | Death | 0.35 | p3-snap | - | Compatibility alias for StareConfig death id; does not add another playback route. |
 | cue:echo.footstep | Footstep | 0.50 | step1 | step2 | Sub-half-second replay contacts retain supplied gain/pitch/cadence. |
 | cue:weaver.skitter | Presence | 0.50 | skitter1 | skitter2 | Actual Weaver presence alias uses the overhead movement bank. |
 | cue:weaver.wet-click | EnemyWindup | 0.50 | wet1 | - | Actual web warning alias uses the fixed 0.594 s clip. |
-| cue:ticking.tick | Presence | 0.90 | tick1 | - | Fixed 0.125 s impulse, playback capped by the supplied interval. |
+| cue:ticking.tick | Presence | 0.90 | p3-tick1 | - | Fixed 0.125 s impulse, playback capped by the supplied interval. |
 | cue:ticking.winding | Presence | 0.45 | wind-up | - | Whole mechanical winding texture distinct from the single tick. |
 | cue:ticking.key-appeared | Presence | 0.45 | bell | - | Restrained metallic ring advertises the physical key. |
 | cue:ticking.wake | Detection | 0.55 | bell | - | Metallic wake, not another timer-generated tick. |
@@ -145,9 +152,9 @@ This executable table is the per-hunter cue → clip table; join each selected k
 | cue:ram-bellow | EnemyWindup | 0.45 | roar1 | - | Fixed charge bellow, admitted in the same attack slot. |
 | cue:ram-stride | Presence | 0.55 | wood2 | wood1 | Short body contacts alternate within the hunter presence slot. |
 | cue:ram-impact | Presence | 0.50 | heavy2 | - | Large resonant impact, not heavy1's model-described firearm. |
-| cue:mimic-wrong-bite | EnemyWindup | 0.30 | crunch | - | Dry material bite instead of large orc vocal; no pose sound. |
-| cue:blinder.throw-hiss | EnemyWindup | 0.60 | hiss | - | Fixed projectile warning, never random delay. |
-| cue:blinder.trap-tick | EnemyWindup | 0.85 | tick2 | - | Short weak tick only when gameplay publishes an audible trap fact. |
+| cue:mimic-wrong-bite | EnemyWindup | 0.30 | missing | - | Wet bite still unresolved; no plastic or orc substitute. |
+| cue:blinder.throw-hiss | EnemyWindup | 0.35 | p3-hiss | - | Fixed non-animal hiss, never random delay. |
+| cue:blinder.trap-tick | EnemyWindup | 0.85 | p3-tick2 | - | Fresh mechanical click only on an audible trap fact. |
 | cue:ms_mangled_scream_03 | Detection | 0.50 | herald-discovery | - | Exact discovery sound id from HeraldController, spatial at Herald. |
 | cue:sb_mangled_scream_01 | Chase | 0.50 | herald-chase1 | - | Exact first chase id; preserve gameplay-supplied pitch. |
 | cue:sb_mangled_scream_03 | Chase | 0.50 | herald-chase2 | - | Exact second chase id; no extra Audio alternation. |
@@ -155,7 +162,7 @@ This executable table is the per-hunter cue → clip table; join each selected k
 | cue:herald.breath | EnemyWindup | 0.30 | missing | - | Human warning breath pending; generic monster breath rejected. |
 | cue:echo.quickened-recording | Presence | 0.55 | step2 | - | Short displaced contact flags recording mutation without text. |
 | cue:weaver-quickened-skitter | Presence | 0.55 | skitter2 | - | Longer denser skitter flags changed Weaver behavior. |
-| cue:blinder-quickened-approach | Presence | 0.45 | hiss | - | Recognizable 1.502 s hiss identifies Blinder mutation. |
+| cue:blinder-quickened-approach | Presence | 0.25 | p3-hiss | - | Restrained whole non-animal hiss identifies Blinder mutation. |
 | cue:herald-quickened-approach | Presence | 0.35 | herald-chase2 | - | Restrained second scream identifies the Herald mutation, not a gameplay attack. |
 | cue:mannequin.long-step | Presence | 0 | silence | - | Anonymous mutation lacks hold state: cannot safely emit creak while frozen. |
 | cue:stare.quickened-gaze | Presence | 0.25 | missing | - | Do not recycle the rejected engine/monster roar. |

@@ -1,0 +1,11 @@
+{
+  "gore1": "Assets/External/MonstersSFX/MonstersUpdateOne/Combat/SFX_Punch_Designed_Gore_01.wav",
+  "gore2": "Assets/External/MonstersSFX/MonstersUpdateOne/Combat/SFX_Punch_Designed_Gore_02.wav",
+  "squeeze": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/jg_squeeze_spurt_13.wav",
+  "stab": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/jg_stab_punch_hack_51.wav",
+  "wood-crash": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/cs-d_wood_crash_designed_037.wav",
+  "stone-crash": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/cs-d_stone_crash_designed_031.wav",
+  "whisper-die": "Assets/External/MonstersSFX/PackGhostsAndZombies/Ghost_Whisper_Die_v1/Ghost_Whispers_Die_v1_wav.wav",
+  "whisper-kill": "Assets/External/MonstersSFX/PackGhostsAndZombies/Ghost_Whisper_Kill_v1/Ghost_Whisper_Kill_v1_wav.wav",
+  "crystal": "Assets/External/Vefects/Stylized AoE VFX/Audio/WAV/Sergi/SFX_Vefects_Stylized_AoE_Crystal_Area_End_01.wav"
+}

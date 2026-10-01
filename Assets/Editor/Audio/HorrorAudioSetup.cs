@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Wire all cue banks, Deep Impacts and its stress version, and Claustrophobia danger.
 //   - Wire Run 1, Run 2 and Run End for the confirmed pursuit sequence.
-//   - Reserve enemy scream clips for enemy feedback; player death uses one subdued body impact.
+//   - Apply the MOSS-reviewed feedback/collapse table and retire shared growl banks.
 //   - Keep posture cloth quiet and exertion below critical breathing using dedicated reusable banks.
 //   - Preserve config identities and deterministically bind the runtime mixer buses.
 //
@@ -26,6 +26,8 @@
 // ============================================================================
 
 using System;
+using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using Worsen.Core;
@@ -37,6 +39,7 @@ namespace Worsen.Editor.Audio
     public static class HorrorAudioSetup
     {
         public const string ConfigPath = "Assets/Resources/ScriptableObjects/Presentation/Audio/AudioSoundscapeDriverConfig.asset";
+        public const string Pass3SelectionPath = "Assets/Audio/HunterRoster/PASS3-BANKS.md";
         [MenuItem("Worsen/Audio/Build Horror Soundscape")]
         public static void BuildMenu() => Configure(AudioConfigGenerator.LoadOrCreateConfig());
         public static AudioSoundscapeDriverConfig Configure(AudioDriverConfig owner)
@@ -44,7 +47,7 @@ namespace Worsen.Editor.Audio
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
                 throw new InvalidOperationException("Soundscape setup requires an idle Editor under the Unity lease.");
             if (owner == null) throw new ArgumentNullException(nameof(owner));
-            AudioSoundDefinition[] banks = Banks();
+            AudioSoundDefinition[] banks = ReviewBanks(Banks(), File.ReadAllText(Pass3SelectionPath), Clip);
             // Resolve every required clip before modifying any asset.
             const string ambient = "Assets/External/Audio/Horror Elements/Ambient/";
             AudioClip tension = Clip(ambient + "Amb_Deep_impacts.wav");
@@ -81,6 +84,8 @@ namespace Worsen.Editor.Audio
             serialized.FindProperty("_interiorAmbience").objectReferenceValue = interior;
             serialized.FindProperty("_exteriorAmbience").objectReferenceValue = exterior;
             serialized.FindProperty("_ambienceGain").floatValue = 0.01f;
+            // No verified lub-dub in the installed packs; never retain an old unrelated tone.
+            serialized.FindProperty("_heartbeatClip").objectReferenceValue = null;
             serialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(config); AssetDatabase.SaveAssetIfDirty(config);
             var ownerSerialized = new SerializedObject(owner);
             ownerSerialized.FindProperty("_soundscape").objectReferenceValue = config;
@@ -88,6 +93,29 @@ namespace Worsen.Editor.Audio
             ownerSerialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(owner); AssetDatabase.SaveAssetIfDirty(owner);
             AudioMixerSetup.Configure(AudioMixerSetup.MixerPath, config);
             return config;
+        }
+        public static AudioSoundDefinition[] ReviewBanks(AudioSoundDefinition[] banks, string selectionText, Func<string, AudioClip> load)
+        {
+            if (banks == null || load == null) throw new ArgumentNullException();
+            var result = (AudioSoundDefinition[])banks.Clone();
+            var selections = HunterRosterAudioSetup.Parse(selectionText);
+            if (selections.Select(row => row.Bank).Distinct().Count() != selections.Length)
+                throw new FormatException("Pass-3 banks must be unique.");
+            foreach (var row in selections)
+            {
+                int index = Array.FindIndex(result, bank => bank.Cue == row.Bank);
+                if (index < 0) throw new FormatException("Missing base bank: " + row.Bank);
+                var bank = result[index];
+                bank.Clips = row.Paths.Select(path => load(path) ?? throw new FileNotFoundException("Required pass-3 clip missing: " + path, path)).ToArray();
+                bank.Gain = row.Gain; bank.GainVariation = 0f;
+                bank.PitchMinimum = bank.PitchMaximum = 1f;
+                bank.Cooldown = 0f; bank.MaxConcurrent = 1;
+                bank.Loop = bank.Ambience = false;
+                bank.MinimumDistance = 1.8f; bank.MaximumDistance = 16f;
+                bank.Priority = row.Bank == CueId.Death ? 90 : 55;
+                result[index] = bank;
+            }
+            return result;
         }
         private static AudioClip Clip(string path)
         {

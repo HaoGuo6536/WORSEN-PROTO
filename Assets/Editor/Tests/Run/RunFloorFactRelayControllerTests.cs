@@ -24,6 +24,7 @@ namespace Worsen.Tests.Run
     {
         [TestCase("HandleRoomDestruction", "RoomDestructionPublished", true)]
         [TestCase("HandleGuidance", "GuidanceChanged", true)]
+        [TestCase("PublishBoundaryImpulse", "BoundaryImpulsePublished", true)]
         [TestCase("HandleCakeLost", "CakeLost", true)]
         [TestCase("PublishPickup", "PickupCollected", false)]
         [TestCase("PublishRoomPhase", "RoomPhaseChanged", false)]

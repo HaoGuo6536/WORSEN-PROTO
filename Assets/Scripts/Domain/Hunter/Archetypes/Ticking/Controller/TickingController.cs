@@ -149,7 +149,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             _state.NextTickAt = _state.Now + TickInterval;
             Emit(TickingSound.Winding, position);
             if (Stacks(LoudKeys, 1) > 0) _state.Noises.Enqueue(new NoiseEvent(collector, position, _config.LoudKeyLoudness,
-                _state.Context.Tick, NoiseSourceKind.Other));
+                _state.Context.Tick, NoiseSourceKind.Other, NoiseOrigin.LoudKeys));
             return true;
         }
         public bool GuidanceValid => HasKey && _state.GuidanceTick == _state.Context.Tick &&

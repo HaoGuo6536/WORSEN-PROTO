@@ -39,6 +39,7 @@ namespace Worsen.Presentation.ProgressionUI
         [SerializeField] private ProgressionUIDriverConfig _config;
         [SerializeField] private ProgressionUIDriver _driver;
         private bool _initialized;
+        public bool IsModalVisible => isActiveAndEnabled && _initialized && _driver != null && _driver.IsModalVisible;
 
         public event Action<string, int> ChooseThreatRequested;
         public event Action<string, int> ChooseCurseRequested;

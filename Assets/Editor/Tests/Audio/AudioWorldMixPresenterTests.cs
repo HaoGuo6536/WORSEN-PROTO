@@ -42,9 +42,9 @@ namespace Worsen.Tests.Audio
         [Test] public void EveryCueIsExplicitlyBudgetedOrExplicitlyRemovedAndWorldCuesHaveNoiseKinds()
         {
             var removed = new HashSet<CueId> { CueId.Lose, CueId.Jump, CueId.SlideStart, CueId.FlashlightOn, CueId.FlashlightOff,
-                CueId.PlayerHit, CueId.GrabWarning, CueId.GrabStart, CueId.GrabEscape, CueId.GrabHit, CueId.Consumed,
+                CueId.Consumed,
                 CueId.CakeChain, CueId.EnemyAttack, CueId.EnemyMiss, CueId.EnemyHit, CueId.EnemyRecovery, CueId.EnemyLost,
-                CueId.RoomTear, CueId.MistAdvance, CueId.RoomConsumed, CueId.WindLoop, CueId.Drip, CueId.Heal,
+                CueId.WindLoop, CueId.Drip, CueId.Heal,
                 CueId.RoundStart, CueId.ProjectileLaunch, CueId.ProjectileTravel, CueId.ProjectileImpact,
                 CueId.TraversalMiss, CueId.PostureRustle, CueId.SprintExertion };
             foreach (CueId cue in Enum.GetValues(typeof(CueId)))

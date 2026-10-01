@@ -31,7 +31,7 @@ using UnityEngine;
 
 namespace Worsen.Core
 {
-    public enum NoiseOrigin { Unspecified, PlayerMovement, Firecracker, PlayerTriggeredCakeTrap, Pacification, World, Presentation, FalsePositive }
+    public enum NoiseOrigin { Unspecified, PlayerMovement, Firecracker, PlayerTriggeredCakeTrap, Pacification, World, Presentation, FalsePositive, LoudKeys }
 
     /// <summary>An environmental sound fact shared by hearing and presentation.</summary>
     public readonly struct NoiseEvent

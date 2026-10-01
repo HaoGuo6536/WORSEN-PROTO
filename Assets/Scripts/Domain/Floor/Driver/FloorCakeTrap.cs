@@ -8,7 +8,7 @@
 //   Sub-driver (§7e), owned by FloorDriver · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Report enter/stay contacts using the same spherical trigger semantics as cakes.
-//   - Play an injected placeholder clip only when commanded by the Floor tick.
+//   - Play the injected tick clip through the injected effects mixer group.
 // DEPENDENCIES:
 //   UnityEngine physics/audio and System events only.
 // USAGE NOTES:
@@ -17,6 +17,7 @@
 // ============================================================================
 using System;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace Worsen.Domain.Floor
 {
@@ -26,15 +27,19 @@ namespace Worsen.Domain.Floor
         private AudioSource _audio;
         public int TrapId { get; private set; }
         public event Action<Collider, int> Contact;
-        public void Configure(int id, AudioClip clip)
+        public void Configure(int id, AudioClip clip, AudioMixerGroup effectsGroup = null)
         {
             TrapId = id;
+            if (_audio != null) { _audio.Stop(); _audio.clip = clip; _audio.outputAudioMixerGroup = effectsGroup; }
             if (clip == null) return;
-            _audio = gameObject.AddComponent<AudioSource>();
+            if (_audio == null) _audio = gameObject.AddComponent<AudioSource>();
             _audio.playOnAwake = false; _audio.loop = false; _audio.spatialBlend = 1f;
             _audio.dopplerLevel = 0f; _audio.rolloffMode = AudioRolloffMode.Logarithmic;
             _audio.clip = clip;
+            _audio.outputAudioMixerGroup = effectsGroup;
         }
+        public void SetMixerGroup(AudioMixerGroup effectsGroup)
+        { if (_audio != null) _audio.outputAudioMixerGroup = effectsGroup; }
         public void PlayTick(float volume)
         { if (_audio != null && gameObject.activeInHierarchy) _audio.PlayOneShot(_audio.clip, volume); }
         private void OnTriggerEnter(Collider other) => Contact?.Invoke(other, TrapId);

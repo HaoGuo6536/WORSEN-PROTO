@@ -12,7 +12,7 @@
 //   - Deduplicate hunter facts and the shared TurnToFace/deliberation beat.
 //   - Queue hidden-mutation tells by committed event identity, never display text.
 //   - Resolve config-driven floor/room sound zones without scene queries.
-//   - Map expansion hunter tells without replaying discovery or unconfirmed death.
+//   - Map expansion tells and movement-only Mannequin creak edges without generic feedback.
 //   - Fail closed on missing roster identities instead of borrowing monster banks.
 // DEPENDENCIES:
 //   - Core fact payloads and own Audio config/state/commands only.
@@ -160,6 +160,20 @@ namespace Worsen.Presentation.Audio
             command = Command(fact.Hunter, fact.SoundId, fact.Slot, fact.Position, true); command.Gain = fact.Volume; return true;
         }
         public void Mannequin(AudioRosterDriverState state, MannequinFact fact) => state.Archetypes[fact.Hunter] = "mannequin";
+        public bool Mannequin(AudioRosterDriverState state, MannequinFact fact, out AudioRosterCommand command)
+        {
+            command = default;
+            Mannequin(state, fact);
+            bool held = fact.Kind == MannequinFactKind.MovementHeld;
+            if (!held && fact.Kind != MannequinFactKind.MovementStarted || fact.Tick < 0) return false;
+            if (state.Ticks.TryGetValue((fact.Hunter, "mannequin:movement"), out long previous) && fact.Tick < previous ||
+                !held && state.Ticks.TryGetValue((fact.Hunter, "mannequin:held"), out long stop) && fact.Tick <= stop ||
+                !Fresh(state, fact.Hunter, held ? "mannequin:held" : "mannequin:start", fact.Tick)) return false;
+            state.Ticks[(fact.Hunter, "mannequin:movement")] = fact.Tick;
+            command = Command(fact.Hunter, "mannequin.creak", HunterCueSlot.Presence, fact.Position, true);
+            command.Stop = held;
+            return true;
+        }
         public bool AcceptHeraldDeafen(AudioRosterDriverState state, HeraldDeafenFact fact) =>
             fact.Player.IsValid && Fresh(state, fact.Hunter, "herald:deafen:" + fact.Player.Value, fact.Tick);
         public bool AcceptBlinderHit(AudioRosterDriverState state, BlinderHitFact fact) =>

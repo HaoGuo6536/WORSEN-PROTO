@@ -39,7 +39,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Stare
         [SerializeField] private string _hiddenCallId = "stare.find-me";
         [SerializeField] private string _chaseId = "stare.chase";
         [SerializeField] private string _attackId = "stare.attack";
-        [SerializeField] private string _deathId = "stare.catch";
+        [SerializeField] private string _deathId = "stare.death";
         public float WindowSeconds => Mathf.Max(.1f, _windowSeconds);
         public float HoldSeconds => Mathf.Max(.1f, _holdSeconds);
         public float ReturnSeconds => Mathf.Max(.1f, _returnSeconds);

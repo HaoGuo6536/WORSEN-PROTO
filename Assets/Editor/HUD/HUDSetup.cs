@@ -12,6 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Create missing mirrored config and panel assets; require versioned UI sources.
+//   - Keep the HUD panel in Expand mode without replacing authored asset identities.
 //   - Reuse one named service child and serialize its owned component references.
 //
 // DEPENDENCIES:
@@ -95,6 +96,11 @@ namespace Worsen.Editor.HUD
                 EditorUtility.SetDirty(panel);
             }
             var theme = RequireAsset<ThemeStyleSheet>(UiRoot + "HUDTheme.tss");
+            if (panel.screenMatchMode != PanelScreenMatchMode.Expand)
+            {
+                panel.screenMatchMode = PanelScreenMatchMode.Expand;
+                EditorUtility.SetDirty(panel);
+            }
             if (panel.themeStyleSheet != theme)
             {
                 panel.themeStyleSheet = theme;

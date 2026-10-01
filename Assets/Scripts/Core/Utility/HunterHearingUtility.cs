@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Utility (§2b) · Core · shared hearing policy.
 // KEY RESPONSIBILITIES:
-//   - Admit only the three owner-approved gameplay origins, failing closed otherwise.
+//   - Admit only approved gameplay origins, including Loud Keys, failing closed otherwise.
 // DEPENDENCIES:
 //   - Core noise definitions only.
 // USAGE NOTES:
@@ -19,6 +19,7 @@ namespace Worsen.Core
     public static class HunterHearingUtility
     {
         public static bool Allows(NoiseEvent noise) => noise.Origin == NoiseOrigin.PlayerMovement ||
-            noise.Origin == NoiseOrigin.Firecracker || noise.Origin == NoiseOrigin.PlayerTriggeredCakeTrap;
+            noise.Origin == NoiseOrigin.Firecracker || noise.Origin == NoiseOrigin.PlayerTriggeredCakeTrap ||
+            noise.Origin == NoiseOrigin.LoudKeys;
     }
 }

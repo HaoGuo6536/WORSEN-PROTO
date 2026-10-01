@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Run.
 // KEY RESPONSIBILITIES:
-//   - Verify in-flight Floor delta during grace, typed relays and active hunter fan-out.
+//   - Verify entry impulses during grace, typed relays and active hunter fan-out.
 //   - Verify player-trap Director routing, world-noise rejection and subscription pairing.
 // DEPENDENCIES:
 //   Core, Domain Player/Floor/Hunter/Director/Chase/Level, Run, NUnit and Unity.
@@ -48,7 +48,7 @@ namespace Worsen.Tests.Run
         private PlayerManager player;
         private PlayerBehaviorState motion;
         private LevelView level;
-        private static readonly string[] Events = { "OnBoundaryContact", "OnHandNoise", "OnTrapNoise", "OnTrapSprung", "OnGuidanceChanged" };
+        private static readonly string[] Events = { "OnBoundaryImpulse", "OnHandNoise", "OnTrapNoise", "OnTrapSprung", "OnGuidanceChanged" };
         [SetUp]
         public void Setup()
         {
@@ -82,6 +82,9 @@ namespace Worsen.Tests.Run
                 typeof(RunSessionManager).GetProperty("Instance").SetValue(null, null);
             if (player != null) Register(typeof(PlayerRegistry), "Unregister", player);
             foreach (var h in hunters) Register(typeof(HunterRegistry), "Unregister", h);
+            foreach (var h in hunters) if (h != null) h.Teardown();
+            if (floor != null) floor.Teardown();
+            if (player != null) player.Teardown();
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear(); hunters.Clear();
             ResetRegistries();
@@ -106,22 +109,33 @@ namespace Worsen.Tests.Run
         }
 
         [TestCase(false)] [TestCase(true)]
-        public void BoundaryUsesExactlyTheFloorTickDeltaEvenDuringGrace(bool grace)
+        public void BoundaryRoutesOneImpulseWithoutDeltaScalingEvenDuringGrace(bool grace)
         {
             if (grace) Assert.That(player.ApplyHit(1f, Vector3.back), Is.True);
+            var route = Component<Worsen.Orchestrator.HorrorOrchestrator>();
+            var horror = Component<Worsen.Presentation.Horror.HorrorManager>();
+            route.Configure(run, Component<Worsen.Session.Progression.ProgressionSessionManager>(), Component<Worsen.Presentation.Input.InputManager>(), horror); Call(route, "OnEnable");
             int contacts = 0;
             floor.OnRoomDestruction += sample => {
-                if (sample.RoomId == 1) { contacts++; Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick); }
+                if (sample.RoomId == 1) { contacts++; Publish(floor, "OnBoundaryImpulse", new FloorBoundaryImpulseFact(player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick)); }
             };
-            float floorDelta = Time.fixedDeltaTime;
             long previousTick = run.Tick;
+            try
+            {
             Call(run, "FixedUpdate");
             Assert.That(run.Tick, Is.EqualTo(previousTick + 1), "The canonical Run must execute its tick.");
             Assert.That(contacts, Is.EqualTo(1));
             Assert.That(motion.GraceActive, Is.EqualTo(grace));
-            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * floorDelta).Within(.00001f));
-            Publish(floor, "OnBoundaryContact", player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick);
-            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f * floorDelta).Within(.00001f), "No stale delta outside the Floor tick.");
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f).Within(.00001f));
+            var fact = new FloorBoundaryImpulseFact(player.Id, 1, Vector3.right * 4f, Vector3.zero, run.Tick);
+            Publish(floor, "OnBoundaryImpulse", fact);
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f), "No stale delivery outside the Floor tick.");
+            run.SetPaused(true); Publish(run.FloorFacts, "BoundaryImpulsePublished", fact); run.SetPaused(false);
+            Publish(run.FloorFacts, "BoundaryImpulsePublished", new FloorBoundaryImpulseFact(player.Id, 1, Vector3.one, Vector3.zero, run.Tick - 1));
+            Assert.That(motion.PendingExternalVelocity.x, Is.EqualTo(4f));
+            Call(route, "OnDisable"); Assert.That(Get(run.FloorFacts, "BoundaryImpulsePublished"), Is.Null);
+            }
+            finally { Call(route, "OnDisable"); horror.GetComponent<Worsen.Presentation.Horror.HorrorDriver>().Teardown(); }
         }
         [Test]
         public void TypedRelaysAndSubscriptionsPairAcrossRebindDisableAndTeardown()
