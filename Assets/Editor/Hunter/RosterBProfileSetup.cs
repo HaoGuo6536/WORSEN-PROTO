@@ -2,8 +2,9 @@
 // RosterBProfileSetup.cs
 // ============================================================================
 // PURPOSE:
-//   Builds Ram, Skip and Mimic profiles using the existing Hunter placeholder prefab.
-//   Repeated setup repairs owned references without overwriting designer tuning.
+//   Builds Ram, Skip and Mimic profiles using a persistent Hunter placeholder prefab.
+//   Repeated setup repairs missing references without overwriting designer tuning
+//   or replacing a body already bound by the roster visual setup.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Hunter.
 // KEY RESPONSIBILITIES:
@@ -37,7 +38,8 @@ namespace Worsen.Editor.Hunter
         {
             RequireIdle();
             if (name != "Ram" && name != "Skip" && name != "Mimic") throw new ArgumentException("Unknown roster B archetype.");
-            if (placeholder == null || placeholder.GetComponent<HunterManager>() == null) throw new ArgumentException("Placeholder requires HunterManager.");
+            if (placeholder == null || !EditorUtility.IsPersistent(placeholder) || !PrefabUtility.IsPartOfPrefabAsset(placeholder) ||
+                placeholder.GetComponent<HunterManager>() == null) throw new ArgumentException("Placeholder requires a persistent prefab asset with HunterManager.", nameof(placeholder));
             string directory = root.TrimEnd('/') + "/" + name; EnsureFolder(directory);
             string path = directory + "/" + name + "Profile.asset";
             bool fresh = AssetDatabase.LoadAssetAtPath<HunterProfile>(path) == null;
@@ -46,7 +48,7 @@ namespace Worsen.Editor.Hunter
                 name == "Skip" ? (HunterArchetypeConfig)Ensure<SkipConfig>(directory + "/SkipConfig.asset") : Ensure<MimicConfig>(directory + "/MimicConfig.asset");
             var so = new SerializedObject(profile);
             so.FindProperty("_archetypeKey").stringValue = name.ToLowerInvariant();
-            so.FindProperty("_prefab").objectReferenceValue = placeholder;
+            if (profile.Prefab == null) so.FindProperty("_prefab").objectReferenceValue = placeholder;
             so.FindProperty("_archetypeRules").objectReferenceValue = rules;
             if (fresh)
             {

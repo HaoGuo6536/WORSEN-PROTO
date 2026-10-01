@@ -2,18 +2,21 @@
 // MimicControllerTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies false-cake facts, one-shot hit routing and the owner-gated arrow hook.
+//   Verifies false-cake facts, one-shot hit routing and curse-driven arrow betrayal.
 //   Seeded disguise rolls and explicit tick deltas make the rule reproducible.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Hunter.
 // KEY RESPONSIBILITIES:
-//   - Cover arrow exclusion, damage metadata, hold lifetime, curse caps and teardown.
+//   - Cover arrow exclusion, dormant shared-rule touch, damage, holds, curses and teardown.
 // DEPENDENCIES:
 //   - Hunter rules, Core facts, existing world fixture and NUnit.
 // USAGE NOTES:
 //   Player grace acceptance and Floor rendering remain coordinator integration gates.
+//   Managed config shells use explicit inputs, not native asset creation/defaults.
+//   RosterBIntegrationTests separately checks the native default damage and hold relay.
 // ============================================================================
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
@@ -37,13 +40,18 @@ namespace Worsen.Tests.Hunter
             _world.Doors, _world, _effects, dt, _tick, true, 1f);
         [SetUp] public void SetUp()
         {
-            _config = ScriptableObject.CreateInstance<MimicConfig>();
+            _config = (MimicConfig)FormatterServices.GetUninitializedObject(typeof(MimicConfig));
+            EchoControllerTests.Tune(_config, "_biteSeconds", 1.2f); EchoControllerTests.Tune(_config, "_biteDamage", 25);
+            EchoControllerTests.Tune(_config, "_touchRadius", .65f); EchoControllerTests.Tune(_config, "_longerBiteMultiplier", 1.25f);
+            EchoControllerTests.Tune(_config, "_goldenChance", .25f); EchoControllerTests.Tune(_config, "_faithlessInterval", 20f);
+            EchoControllerTests.Tune(_config, "_faithlessSeconds", 2f); EchoControllerTests.Tune(_config, "_biteSound", "mimic-wrong-bite");
+            EchoControllerTests.Tune(_config, "_winSound", "mimic-win");
             _hunter = new RosterBTestHunter { Id = new EntityId(-1), IsActive = true, Position = Vector3.right * 5 };
             _player = new PlayerBehaviorState { Id = new EntityId(1), Health = 100 };
             _world = new EchoControllerTests.World(); _effects = default(ActiveEffects); _tick = 0;
             _mimic = new MimicController(_config, new System.Random(19)); _mimic.Reset(Context(0));
         }
-        [TearDown] public void TearDown() { Object.DestroyImmediate(_config); }
+
         private void Advance(float dt) { _tick++; _mimic.Tick(Context(dt)); }
         private List<MimicFact> Facts() { var facts = new List<MimicFact>(); while (_mimic.TakeFact(out var fact)) facts.Add(fact); return facts; }
         [Test] public void PoseUsesSpawnPositionIsSilentAndNeverWhiteArrowEligible()
@@ -66,6 +74,21 @@ namespace Worsen.Tests.Hunter
             Assert.That(_mimic.Touch(_player.Id, out _), Is.False); Advance(.6f); Assert.That(_mimic.Holding, Is.True);
             Advance(.6f); Assert.That(_mimic.Holding, Is.False); Assert.That(Facts()[0].Kind, Is.EqualTo(MimicFactKind.BiteEnded));
             Advance(10); Assert.That(_mimic.Touch(_player.Id, out _), Is.False);
+        }
+        [Test] public void InterruptedTouchDoesNotSpendTheOneShotBite()
+        {
+            _tick++;
+            _mimic.Tick(new HunterArchetypeContext(_hunter, _player, _world, _world,
+                _world.Doors, _world, _effects, .1f, _tick, false, 1f));
+            Assert.That(_mimic.Posed, Is.True); Facts();
+            Assert.That(_mimic.Touch(_player.Id, out _), Is.False);
+            Assert.That(_mimic.Holding, Is.False); Assert.That(Facts(), Is.Empty);
+            Advance(.1f);
+            Assert.That(_mimic.Touch(_player.Id, out HunterHit hit), Is.True);
+            Assert.That(hit.Damage, Is.EqualTo(25)); Assert.That(hit.Tick, Is.EqualTo(_tick));
+            Assert.That(_mimic.Touch(_player.Id, out _), Is.False);
+            Assert.That(Facts().FindAll(f => f.Kind == MimicFactKind.BiteStarted).Count, Is.EqualTo(1));
+            Assert.That(_player.Health, Is.EqualTo(100));
         }
         [Test] public void FaithlessCurseEnablesWindowsWithoutOwnerOptIn()
         {
@@ -98,16 +121,22 @@ namespace Worsen.Tests.Hunter
         }
         [Test] public void SharedRulesCannotRevealOrLungeAtThePlayer()
         {
-            var profile = ScriptableObject.CreateInstance<HunterProfile>();
-            try
-            {
-                var shared = new HunterController(new HunterBehaviorState(), profile, new System.Random(8), _player, _world, _mimic);
-                shared.Reset(new EntityId(-1), Vector3.zero, Vector3.forward);
-                var result = shared.Tick(new SightProbe(true, true, true), .1f, 1);
-                Assert.That(result.Speed, Is.Zero); Assert.That(result.Phase, Is.EqualTo(HunterLungePhase.None));
-                Assert.That(shared.TryDequeueFeedback(out _), Is.False); Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
-            }
-            finally { Object.DestroyImmediate(profile); }
+            var profile = HunterAttackControllerTests.Profile();
+            EchoControllerTests.Tune(profile, "_sightRange", 30f);
+            EchoControllerTests.Tune(profile, "_sightConeDegrees", 110f);
+            EchoControllerTests.Tune(profile, "_sensorIntervalTicks", 4);
+            var shared = new HunterController(new HunterBehaviorState(), profile, new System.Random(8), _player, _world, _mimic);
+            shared.Reset(new EntityId(-1), Vector3.zero, Vector3.forward);
+            var result = shared.Tick(new SightProbe(true, true, true), .1f, 1);
+            Assert.That(result.Speed, Is.Zero); Assert.That(result.Phase, Is.EqualTo(HunterLungePhase.None));
+            Assert.That(shared.TryDequeueFeedback(out _), Is.False); Assert.That(shared.TryAcceptContact(_player.Id, out _), Is.False);
+            Assert.That(shared.Dormant, Is.True); Assert.That(_mimic.Posed, Is.True);
+            Assert.That(_mimic.Touch(_player.Id, out HunterHit hit), Is.True, "Pursuit suppression must not suppress Mimic touch.");
+            Assert.That(hit.Damage, Is.EqualTo(_config.BiteDamage)); Assert.That(hit.Source, Is.EqualTo(HitSource.Trap));
+            Assert.That(hit.Severity, Is.EqualTo(HitSeverity.Light)); Assert.That(hit.Tick, Is.EqualTo(1));
+            Assert.That(_player.Health, Is.EqualTo(100));
+            shared.Tick(default, .1f, 2);
+            Assert.That(_mimic.Touch(_player.Id, out _), Is.False, "Repeated contact must not spend a second bite.");
         }
     }
 }
