@@ -1,8 +1,10 @@
 # ============================================================================
 # blocky_character.py
 # PURPOSE: Rebuild original, rigid-skinned box characters, actions and previews.
+#   First-person arms hang relaxed; existing full-body FBX bytes are preserved.
 # ARCHITECTURAL ROLE: Offline art generator; no Unity or downloaded asset inputs.
-# KEY RESPONSIBILITIES: Metre-scale geometry, deform-only FBX, editable IK source.
+# KEY RESPONSIBILITIES: Metre-scale geometry, deform-only FBX, editable IK source,
+#   and runtime-equivalent shoulder anchoring in the first-person previews.
 # DEPENDENCIES: Blender 5.2 bpy and mathutils only.
 # USAGE NOTES: Run from the worktree root; overwrites only the named art outputs.
 #   FBXs go to Assets/Art; the authoring .blend goes to ArtSource (outside Assets).
@@ -10,10 +12,13 @@
 # "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --factory-startup --python-exit-code 1 --python tools/blender/blocky_character.py
 # ============================================================================
 import math
+import json
+import re
 from pathlib import Path
 
 import bpy
 from mathutils import Matrix, Vector
+from bpy_extras.object_utils import world_to_camera_view
 
 ROOT = Path(__file__).resolve().parents[2]
 ART = ROOT / "Assets/Art/Player/BlockyCharacter"
@@ -144,21 +149,49 @@ def full_character():
     return character, [body, arms]
 
 
-def first_person():
+def shoulder_default():
+    # Read the same provisional default that the deterministic Unity setup writes.
+    text = (ROOT / "Assets/Scripts/Domain/Player/Config/PlayerMoverDriverConfig.cs").read_text()
+    match = re.search(r"DefaultShoulderOffset = new Vector3\(([^)]+)\)", text)
+    return tuple(float(value.strip().removesuffix("f")) for value in match.group(1).split(","))
+
+
+def first_person(relaxed=True):
     definitions = [("Root", None, (0, 0, 0), (0, 0, .10))]
     for side, sign in (("Left", 1), ("Right", -1)):
-        directions = [Vector((-sign * .10, -.30, .95)).normalized(),
-                      Vector((-sign * .22, -.75, .624)).normalized(),
-                      Vector((-sign * .12, -.98, .12)).normalized()]
-        wrist = Vector((sign * .32, -.52, -.25)) - directions[2] * .08
-        elbow = wrist - directions[1] * .26
-        shoulder = elbow - directions[0] * .28
+        if relaxed:
+            x, y, z = shoulder_default()
+            shoulder = Vector((sign * x, -z, y))
+            upper = Vector((sign * math.sin(math.radians(12)), 0, -math.cos(math.radians(12))))
+            lower = upper * math.cos(math.radians(20)) + Vector((0, -math.sin(math.radians(20)), 0))
+            directions = [upper, lower, lower]
+            elbow = shoulder + upper * .28
+            wrist = elbow + lower * .26
+            stub = shoulder + Vector((sign * .04, 0, 0))
+            definitions.append((side + "Shoulder", "Root", shoulder, stub))
+        else:
+            # Frozen previous Hold pose, retained only for the comparison preview.
+            directions = [Vector((-sign * .10, -.30, .95)).normalized(),
+                          Vector((-sign * .22, -.75, .624)).normalized(),
+                          Vector((-sign * .12, -.98, .12)).normalized()]
+            wrist = Vector((sign * .32, -.52, -.25)) - directions[2] * .08
+            elbow = wrist - directions[1] * .26
+            shoulder = elbow - directions[0] * .28
+            definitions.append((side + "Shoulder", "Root", shoulder + Vector((sign * .1, 0, -.04)), shoulder))
         points = [shoulder, elbow, wrist, wrist + directions[2] * .16]
-        definitions.append((side + "Shoulder", "Root", shoulder + Vector((sign * .1, 0, -.04)), shoulder))
         for i, (suffix, _, _, _, _) in enumerate(ARM_PARTS):
             parent = "Shoulder" if i == 0 else ARM_PARTS[i - 1][0]
             definitions.append((side + suffix, side + parent, points[i], points[i + 1]))
     arms = rig("BlockyArmsFP", definitions)
+    if relaxed:
+        bpy.context.view_layer.objects.active = arms
+        arms.select_set(True)
+        bpy.ops.object.mode_set(mode="EDIT")
+        for side, sign in (("Left", 1), ("Right", -1)):
+            # Palm thickness normal points sideways, rather than facing the floor.
+            arms.data.edit_bones[side + "Hand"].align_roll(Vector((sign, 0, 0)))
+        bpy.ops.object.mode_set(mode="OBJECT")
+        arms.select_set(False)
     return arms, [mesh(side + "Arm", arms, arm_boxes(arms, side)) for side in ("Left", "Right")]
 
 
@@ -266,12 +299,18 @@ def render(name, position, target, orthographic=True):
     camera_data.type = "ORTHO" if orthographic else "PERSP"
     camera_data.ortho_scale = 2.35
     camera_data.sensor_fit = "VERTICAL"
-    camera_data.angle = math.radians(75)
+    camera_data.sensor_height = 32
+    camera_data.lens = camera_data.sensor_height / (2 * math.tan(math.radians(75) / 2))
     camera_data.clip_start = .05
     scene.camera = camera
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.render.resolution_x, scene.render.resolution_y = (900, 900) if orthographic else (1280, 720)
     scene.render.resolution_percentage = 100
+    if not orthographic:
+        bpy.context.view_layer.update()
+        top = world_to_camera_view(scene, camera, camera.matrix_world @ Vector((0, math.tan(math.radians(37.5)), -1)))
+        right = world_to_camera_view(scene, camera, camera.matrix_world @ Vector((math.tan(math.radians(37.5)) * 16 / 9, 0, -1)))
+        assert abs(top.y - 1) < 1e-5 and abs(right.x - 1) < 1e-5, "Preview must use 75-degree VERTICAL FOV"
     # PNG metadata otherwise includes wall-clock and render duration on every run.
     for prop in scene.render.bl_rna.properties:
         if prop.identifier.startswith("use_stamp") and prop.type == "BOOLEAN":
@@ -292,6 +331,65 @@ def render(name, position, target, orthographic=True):
     bpy.data.cameras.remove(camera_data)
 
 
+def relaxed_previews(fp, fp_meshes, body_meshes):
+    # Static preview copies reproduce the split Unity rig: shoulder anchor in yaw
+    # space, world AABB projection, then near-plane correction (horizontal when up).
+    geometry = {"shoulder_offset": shoulder_default(), "arms": {}}
+    for obj in fp_meshes:
+        side = obj.name.removesuffix("Arm")
+        shoulder = fp.data.bones[side + "Shoulder"].head_local
+        geometry["arms"][side] = [{"position": [-float(p.x), float(p.z), -float(p.y)],
+                                  "bone": obj.vertex_groups[v.groups[0].group].name}
+                                 for v in obj.data.vertices for p in [v.co - shoulder]]
+    (SOURCE / "RelaxedArms.geometry.json").write_text(json.dumps(geometry, indent=2) + "\n")
+    metrics = []
+    for name, pitch in (("fp-relaxed-pitch0", 0), ("fp-relaxed-pitch-down45", 45), ("fp-relaxed-pitch-up30", -30)):
+        angle = math.radians(pitch)
+        forward, up = Vector((0, -math.cos(angle), -math.sin(angle))), Vector((0, -math.sin(angle), math.cos(angle)))
+        clearance_direction = Vector((0, -1, 0)) if pitch < 0 else forward
+        bottom = up + forward * math.tan(math.radians(37.5))
+        copies = []
+        row = {"name": name, "pitch": pitch, "vertical_fov": 75, "near": .05, "arms": []}
+        for obj in fp_meshes:
+            points = [v.co for v in obj.data.vertices]
+            minimum = Vector(tuple(min(p[i] for p in points) for i in range(3)))
+            maximum = Vector(tuple(max(p[i] for p in points) for i in range(3)))
+            center, extents = (minimum + maximum) / 2, (maximum - minimum) / 2
+            below = center.dot(bottom) + sum(abs(bottom[i]) * extents[i] for i in range(3)) < 0
+            shift = max(0, .0501 - center.dot(forward) + sum(abs(forward[i]) * extents[i] for i in range(3)))
+            copy = bpy.data.objects.new(obj.name + "Preview", obj.data.copy())
+            bpy.context.collection.objects.link(copy)
+            copy.location = clearance_direction * (shift / clearance_direction.dot(forward))
+            copy.hide_render = below
+            copies.append(copy)
+            row["arms"].append({"name": obj.name, "below_view": below, "clearance_shift": shift,
+                                "minimum_depth": min((p + copy.location).dot(forward) for p in points)})
+            obj.hide_render = True
+        render(name, (0, 0, 0), forward, False)
+        metrics.append(row)
+        for copy in copies:
+            data = copy.data
+            bpy.data.objects.remove(copy, do_unlink=True)
+            bpy.data.meshes.remove(data)
+    (PREVIEWS / "relaxed-preview-math.json").write_text(json.dumps(metrics, indent=2) + "\n")
+    # At the body's actual 1.6m eye height; omit its T-pose arms for comparison.
+    for obj in body_meshes:
+        obj.hide_render = obj.name != "Body"
+    fp.location.z = 1.6
+    for obj in fp_meshes:
+        obj.hide_render = False
+    render("fp-relaxed-side", (4, -.4, .95), (0, 0, .9))
+    fp.location.z = 0
+    for obj in body_meshes:
+        obj.hide_render = True
+    for obj in fp_meshes:
+        obj.hide_render = True
+    old, old_meshes = first_person(False)
+    render("fp-old-hold", (0, 0, 0), (0, -1, 0), False)
+    for obj in old_meshes + [old]:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+
 def main():
     ART.mkdir(parents=True, exist_ok=True)
     SOURCE.mkdir(parents=True, exist_ok=True)
@@ -299,7 +397,10 @@ def main():
     reset()
     character, body_meshes = full_character()
     idle, walk = action(character, "Idle", 2), action(character, "Walk", 1)
-    export(character, body_meshes, [idle, walk])
+    # Do not rewrite the shipped full-body FBX (including its binary timestamps).
+    # A fresh output directory can still regenerate it from unchanged body code.
+    if not (ART / "BlockyCharacter.fbx").exists():
+        export(character, body_meshes, [idle, walk])
     fp, fp_meshes = first_person()
     hold, sway = action(fp, "Hold", 1), action(fp, "Sway", 2)
     export(fp, fp_meshes, [hold, sway])
@@ -317,6 +418,7 @@ def main():
     for obj in fp_meshes:
         obj.hide_render = False
     render("first-person", (0, 0, 0), (0, -1, 0), False)
+    relaxed_previews(fp, fp_meshes, body_meshes)
     for obj in body_meshes:
         obj.hide_render = False
     for obj in fp_meshes + [fp]:

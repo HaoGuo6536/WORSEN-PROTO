@@ -10,7 +10,7 @@
 //   Presenter (Â§7b) Â· Presentation Â· Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Compose progress-driven traversal, speed and bounded comfort-gated feedback.
+//   - Compose interpolated committed position/traversal, speed and comfort-gated feedback.
 //   - Apply runtime lens/comfort overrides without mutating configuration.
 //   - Snap rear-view edges while retaining unshaken gameplay aim.
 //   - Preserve hunter holds and delegate fixed-camera hand emergence/grab timing.
@@ -22,6 +22,7 @@
 // USAGE NOTES:
 //   - Stateless calculator; CameraDriver owns the supplied state.
 //   - Head-look is degrees per committed tick; positive vertical input looks upward.
+//   - Fixed/render clocks are injected; position lags at most one step, look never waits for it.
 //   - SetProximity stores a routed primitive; peripheral rendering belongs to PostFX.
 //   - Catch hold time begins on the first presented endpoint; approach overshoot is discarded.
 //   - Hunter input is a root plus focus height; hand grab points set facing only.
@@ -52,7 +53,8 @@ namespace Worsen.Presentation.Camera
             state.MovementTick = -1;
             state.TraversalTick = -1;
             CameraTraversalPresenter.Reset(state);
-            state.EyePosition = Vector3.zero;
+            state.PreviousEyePosition = state.EyePosition = Vector3.zero;
+            state.MovementStepTime = state.MovementStepDuration = 0f;
             state.Velocity = Vector3.zero;
             state.HeadingDegrees = 0f;
             state.Movement = MovementState.Ground;
@@ -76,15 +78,20 @@ namespace Worsen.Presentation.Camera
             state.HorizontalFieldOfView = state.VerticalFieldOfView = state.Roll = 0f;
         }
 
-        public void SetMovement(CameraDriverState state, CameraDriverConfig config, PlayerMovementSample sample)
+        public void SetMovement(CameraDriverState state, CameraDriverConfig config, PlayerMovementSample sample,
+            float fixedTime = 0f, float stepDuration = 0f)
         {
             if (state.DeathSnapped) return;
             if (state.HasMovement && state.PlayerId.Equals(sample.Id) && sample.Tick <= state.MovementTick) return;
             if (state.HasMovement && !state.PlayerId.Equals(sample.Id)) Reset(state);
+            if (CameraInterpolationPresenter.SetPosition(state,
+                Finite(sample.EyePosition) ? sample.EyePosition : state.EyePosition,
+                fixedTime, stepDuration, config.PositionSnapDistance))
+                CameraTraversalPresenter.Reset(state);
             state.HasMovement = true;
             state.PlayerId = sample.Id;
             state.MovementTick = sample.Tick;
-            state.EyePosition = Finite(sample.EyePosition) ? sample.EyePosition : state.EyePosition;
+
             state.Velocity = Finite(sample.Velocity) ? sample.Velocity : Vector3.zero;
             state.HeadingDegrees = Finite(sample.HeadingDegrees);
             state.Movement = sample.MovementState;
@@ -166,6 +173,9 @@ namespace Worsen.Presentation.Camera
                 Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > 0.999f ? Vector3.forward : Vector3.up);
             state.Consumed = consumed;
             state.DeathSnapped = true;
+            state.PreviousEyePosition = state.EyePosition;
+            state.MovementStepDuration = 0f;
+            CameraTraversalPresenter.Reset(state);
             state.CatchElapsed = state.CatchHoldElapsed = 0f;
             state.CatchApproachDuration = Mathf.Max(0f, Finite(config.CatchApproachSeconds));
             state.CatchHoldDuration = Mathf.Max(0f, Finite(config.CatchHoldSeconds));
@@ -195,7 +205,8 @@ namespace Worsen.Presentation.Camera
             state.VerticalFieldOfView = HorizontalToVerticalFieldOfView(state.HorizontalFieldOfView, aspectRatio);
         }
 
-        public void Tick(CameraDriverState state, CameraDriverConfig config, float dt, float aspectRatio)
+        public void Tick(CameraDriverState state, CameraDriverConfig config, float dt, float aspectRatio,
+            float renderTime = float.NaN)
         {
             dt = Mathf.Max(0f, Finite(dt));
             if (state.DeathSnapped)
@@ -241,10 +252,11 @@ namespace Worsen.Presentation.Camera
             float amount = envelope * state.ShakeStrength * Mathf.Clamp01(config.ShakeIntensity);
             if (envelope <= 0f) state.ShakeStrength = 0f;
             var wave = new Vector3(Mathf.Sin(state.ShakeElapsed * 93f), Mathf.Sin(state.ShakeElapsed * 117f), Mathf.Sin(state.ShakeElapsed * 71f));
-            state.Position = state.EyePosition + state.AimRotation * (Vector3.ClampMagnitude(wave, 1f) * config.MaximumShakeDisplacement * amount);
+            state.Position = CameraInterpolationPresenter.Position(state, renderTime)
+                + state.AimRotation * (Vector3.ClampMagnitude(wave, 1f) * config.MaximumShakeDisplacement * amount);
             state.Rotation = state.AimRotation * Quaternion.Euler(wave.x * config.MaximumShakeDegrees * amount,
                     wave.y * config.MaximumShakeDegrees * amount, state.Roll + wave.z * config.MaximumShakeDegrees * amount);
-            CameraTraversalPresenter.Tick(state, config, dt);
+            CameraTraversalPresenter.Tick(state, config, dt, renderTime);
         }
 
         public Quaternion AimRotation(CameraDriverState state)
