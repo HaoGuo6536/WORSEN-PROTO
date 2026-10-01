@@ -103,8 +103,51 @@ class ThemeTextureTests(unittest.TestCase):
             np.testing.assert_array_equal(left, right)
         for path in g.REVIEW.glob('*-contact.png'):
             with Image.open(path) as image:
-                self.assertEqual(image.width, 1260)
+                self.assertEqual(image.width, 1572)  # Added cold-light fifth column.
                 self.assertGreater(image.height, 1000)
+
+    def test_herringbone_geometry_and_board_colors_are_periodic(self):
+        from material_fields import timber
+        y, x = (np.mgrid[0:128, 0:128] + .5) / 128
+        zero = np.zeros_like(x)
+        reference = timber(x, y, zero, zero, np.random.default_rng(81), True)
+        for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+            shifted = timber(x + dx, y + dy, zero, zero, np.random.default_rng(81), True)
+            for actual, expected in zip(shifted, reference):
+                np.testing.assert_allclose(actual, expected, atol=1e-10)
+
+    def test_structural_normals_survive_material_scale_minification(self):
+        # 2 m surface at 4 m, 60 degree vertical FOV, 512 px viewport: 222 px.
+        # Reject the old flat maps without demanding roughness from glass/water.
+        for theme, surface, minimum in (
+                ('Castle', 'stone', .045), ('Castle', 'wood', .025),
+                ('Castle', 'metal', .012), ('Hospital', 'tile', .012),
+                ('Hospital', 'paint', .020), ('Hospital', 'curtain', .045),
+                ('School', 'parquet', .020), ('School', 'teal', .012),
+                ('Basement', 'concrete', .050), ('Basement', 'brick', .030)):
+            with self.subTest(theme=theme, surface=surface):
+                path = g.TEXTURES / theme / f'{theme.lower()}_{surface}_Normal.png'
+                image = Image.open(path).resize((222, 222), Image.Resampling.BOX)
+                xy = np.asarray(image, dtype=float)[..., :2] / 127.5 - 1
+                self.assertGreater(float(np.sqrt(np.mean(xy * xy))), minimum)
+
+    def test_warm_and_cold_previews_use_relief_and_fixed_exposure(self):
+        a, n, p = g.generate_surface('Castle', 'stone', '#4a4f55', 512)
+        flat = np.zeros_like(n)
+        flat[..., 2] = 1
+        for temperature in ('warm', 'cold'):
+            lit = g.lit_wall(a, n, p, temperature)
+            unbumped = g.lit_wall(a, flat, p, temperature)
+            self.assertGreater(float(np.abs(lit.astype(float) - unbumped).mean()), 1)
+            self.assertLess(float(lit.mean()), 80)  # No bright studio substitution.
+        self.assertFalse(np.array_equal(g.lit_wall(a, n, p, 'warm'), g.lit_wall(a, n, p, 'cold')))
+
+    def test_all_material_review_rows_exist(self):
+        for theme, surfaces in g.palettes().items():
+            for surface in surfaces:
+                path = g.REVIEW / 'materials' / f'{theme.lower()}_{surface}.png'
+                with Image.open(path) as image:
+                    self.assertEqual(image.size, (1572, 336))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,521 @@
+{
+  "viewport": 384,
+  "verticalFov": 60,
+  "wallMetres": 2.0,
+  "distancesMetres": [
+    2,
+    4
+  ],
+  "materials": {
+    "castle_ember": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.002308351919054985
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0018810820765793324
+      }
+    },
+    "castle_metal": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.05364944413304329
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.045335885137319565
+      }
+    },
+    "castle_mortar": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.022069435566663742
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.015198743902146816
+      }
+    },
+    "castle_soot": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.009431751444935799
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.007693747524172068
+      }
+    },
+    "castle_stone": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.2204200029373169
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.2042124718427658
+      }
+    },
+    "castle_stone_dark": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.219620481133461
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.20415741205215454
+      }
+    },
+    "castle_wood": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.1309950053691864
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.10345497727394104
+      }
+    },
+    "hospital_acoustic": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.10438929498195648
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.07236865162849426
+      }
+    },
+    "hospital_curtain": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.11335832625627518
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.1064257100224495
+      }
+    },
+    "hospital_door_enamel": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.03866305947303772
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.03379378095269203
+      }
+    },
+    "hospital_glass": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.0023077467922121286
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0018812428461387753
+      }
+    },
+    "hospital_grout": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.021788092330098152
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.015070568770170212
+      }
+    },
+    "hospital_light": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.0023098222445696592
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.00188121956307441
+      }
+    },
+    "hospital_linen": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.11335832625627518
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.1064257100224495
+      }
+    },
+    "hospital_paint": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.08122147619724274
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.05653340369462967
+      }
+    },
+    "hospital_rubber": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.018039602786302567
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.016187451779842377
+      }
+    },
+    "hospital_rust": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.05569079518318176
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.04386221617460251
+      }
+    },
+    "hospital_stainless": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.03817180171608925
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.03452381119132042
+      }
+    },
+    "hospital_terrazzo": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.026443662121891975
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.018158821389079094
+      }
+    },
+    "hospital_tile": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.07159536331892014
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.05063128471374512
+      }
+    },
+    "hospital_vinyl": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.022118709981441498
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.015034406445920467
+      }
+    },
+    "school_chalk_green": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.0071459077298641205
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.006172856315970421
+      }
+    },
+    "school_cream": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.075857013463974
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.053464148193597794
+      }
+    },
+    "school_dead_tube": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.002312147058546543
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0018857010873034596
+      }
+    },
+    "school_door_laminate": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.13103175163269043
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.10343694686889648
+      }
+    },
+    "school_fire_red": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.039357129484415054
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.034928105771541595
+      }
+    },
+    "school_glass": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.002312831347808242
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0018869929481297731
+      }
+    },
+    "school_lino": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.02211029641330242
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.015031642280519009
+      }
+    },
+    "school_mortar_lower": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.022151265293359756
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0152622414752841
+      }
+    },
+    "school_mortar_upper": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.02132020704448223
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.01486735325306654
+      }
+    },
+    "school_mustard": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.0783064067363739
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.05508775636553764
+      }
+    },
+    "school_paper": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.01084719505161047
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0025358814746141434
+      }
+    },
+    "school_parquet": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.08030063658952713
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.051871344447135925
+      }
+    },
+    "school_rubber": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.018033474683761597
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.016181860119104385
+      }
+    },
+    "school_scuff": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.010235538706183434
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.008066531270742416
+      }
+    },
+    "school_stain": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.009267277084290981
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.007119090761989355
+      }
+    },
+    "school_steel": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.035631176084280014
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.03197447583079338
+      }
+    },
+    "school_teal": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.03741169720888138
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.03283390775322914
+      }
+    },
+    "school_tube": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.0023123384453356266
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.001885112258605659
+      }
+    },
+    "school_wood": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.13102474808692932
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.10341546684503555
+      }
+    },
+    "basement_brick": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.2207244336605072
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.20234927535057068
+      }
+    },
+    "basement_concrete": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.10589753836393356
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0720035657286644
+      }
+    },
+    "basement_damp": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.010155167430639267
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.007984794676303864
+      }
+    },
+    "basement_door_steel": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.051769256591796875
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.04448271915316582
+      }
+    },
+    "basement_galvanised": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.03629573434591293
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.03280569612979889
+      }
+    },
+    "basement_hazard": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.036606620997190475
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.03257269039750099
+      }
+    },
+    "basement_insulation": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.11335832625627518
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.1064257100224495
+      }
+    },
+    "basement_rust": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.05482788756489754
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.04303047060966492
+      }
+    },
+    "basement_sodium": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.0023045081179589033
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.0018777468940243125
+      }
+    },
+    "basement_steel": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.053638093173503876
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.04545778036117554
+      }
+    },
+    "basement_water": {
+      "2": {
+        "wallPixels": 333,
+        "normalXyRms": 0.007700447924435139
+      },
+      "4": {
+        "wallPixels": 166,
+        "normalXyRms": 0.007633431348949671
+      }
+    }
+  }
+}

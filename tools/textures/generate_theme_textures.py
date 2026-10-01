@@ -9,8 +9,8 @@
 #   - Read current kit palette declarations without executing Blender scripts.
 #   - Generate albedo, tangent normals and URP metallic/smoothness textures.
 #   - Publish per-slot scale/palette metadata and reproducibility hashes.
-#   - Render tiled contact sheets and a lit material wall for visual inspection.
-# DEPENDENCIES: Python standard library, NumPy and Pillow; no downloads.
+#   - Render tiled contact sheets and dim warm/cold walls for visual inspection.
+# DEPENDENCIES: Standard library, NumPy, Pillow, material_fields; no downloads.
 # USAGE NOTES:
 #   python tools/textures/generate_theme_textures.py [--size 512|1024]
 #   All output stays inside this worktree. No Unity, Library or meta operations.
@@ -24,24 +24,28 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+from material_fields import recipe_fields
+
 ROOT = Path(__file__).resolve().parents[2]
 TEXTURES = ROOT / 'Assets/Art/Textures'
-REVIEW = ROOT / 'Logs/AgentValidation/Art/Textures'
+REVIEW = ROOT / 'tools/textures/review'
 THEMES = ('Castle', 'Hospital', 'School', 'Basement')
 SEED = 261001
 METRES = 2.0
 
-# Recipe, smoothness, peak relief in metres, bare-metal fraction. Artistic,
-# provisional values, not runtime tunings. The palette remains the kit's own.
+# Recipe, smoothness, construction relief in metres, bare-metal fraction.
+# Provisional art values; material_fields adds dimensional damage. Metadata
+# retains the source kit palette for adoption, while surfaces include local
+# pigments (ivory glaze, rust, exposed plaster and mineral aggregate).
 PROFILES = {
-    'stone': (.12, .008, 0), 'mortar': (.08, .002, 0),
-    'plaster': (.17, .0018, 0), 'concrete': (.14, .004, 0),
-    'wood': (.23, .002, 0), 'parquet': (.35, .002, 0),
-    'tile': (.55, .002, 0), 'vinyl': (.32, .0005, 0),
-    'terrazzo': (.42, .001, 0), 'brick': (.1, .009, 0),
-    'iron': (.32, .002, .72), 'steel': (.52, .0005, .85),
-    'painted_metal': (.38, .001, .05), 'rust': (.08, .003, .03),
-    'fabric': (.12, .0005, 0), 'rubber': (.16, .0004, 0),
+    'stone': (.12, .030, 0), 'mortar': (.08, .004, 0),
+    'plaster': (.17, .003, 0), 'concrete': (.14, .008, 0),
+    'wood': (.23, .006, 0), 'parquet': (.35, .003, 0),
+    'tile': (.55, .004, 0), 'vinyl': (.32, .001, 0),
+    'terrazzo': (.42, .0012, 0), 'brick': (.1, .018, 0),
+    'iron': (.32, .005, .72), 'steel': (.52, .001, .85),
+    'painted_metal': (.38, .002, .05), 'rust': (.08, .006, .03),
+    'fabric': (.12, .007, 0), 'rubber': (.16, .0005, 0),
     'glass': (.86, .00008, 0), 'chalkboard': (.12, .0003, 0),
     'grime': (.06, .001, 0), 'paper': (.12, .0002, 0),
     'acoustic': (.08, .0015, 0), 'light': (.55, .00015, 0),
@@ -145,107 +149,19 @@ def generate_surface(theme, surface, hex_color, size):
     seed = int.from_bytes(hashlib.sha256(f'{SEED}:{slot}'.encode()).digest()[:8], 'little')
     rng = np.random.default_rng(seed)
     recipe = RECIPES[theme][surface]
-    gloss, relief, metal = PROFILES[recipe]
+
     y, x = (np.mgrid[0:size, 0:size] + .5) / size
     broad = .55 * noise(size, 4, rng) + .45 * noise(size, 8, rng)
     medium = .65 * noise(size, 16, rng) + .35 * noise(size, 32, rng)
     fine = .6 * noise(size, 64, rng) + .4 * noise(size, 128, rng)
     micro = rng.uniform(-1, 1, (size, size))
-    dirt = np.clip((broad + .18) * 1.1, 0, .75)
-    value = .97 + .17 * medium + .045 * fine - .27 * dirt
-    height = .2 * medium + .20 * fine + .06 * micro
-    smooth = gloss + .08 * medium - .15 * dirt
-    metallic = np.full((size, size), metal)
-    tint = np.ones((size, size, 3))
-    if recipe in ('stone', 'concrete', 'mortar', 'plaster', 'grime', 'rust', 'acoustic'):
-        pits = flecks(size, rng, 2200 if recipe == 'acoustic' else 950, .0025)
-        value -= pits * (.45 if recipe == 'acoustic' else .20)
-        height -= pits * .4
-        # Fractured mineral contours / worn plaster boundaries, all periodic.
-        if recipe in ('stone', 'concrete'):
-            cracks = np.exp(-np.abs(medium + .25 * broad) * 150) * np.clip(-broad * 2, 0, 1)
-            value -= cracks * .25
-            height -= cracks * .35
-        if recipe == 'rust':
-            value += .3 * fine
-            tint[..., 1] *= .82 + .25 * medium
-        if recipe == 'plaster':
-            exposed = np.clip((medium + broad + .4 * fine - .50) * 4, 0, 1)
-            height -= exposed * .3
-            value -= exposed * .18
-    elif recipe in ('wood', 'parquet'):
-        # Integer-frequency growth rings with periodic wandering grain.
-        if recipe == 'parquet':
-            bx, by = np.floor(x * 4), np.floor(y * 4)
-            alternate = (bx + by) % 2 == 0
-            u, v = np.where(alternate, x, y), np.where(alternate, y, x)
-            joint = (np.minimum((u * 16) % 1, 1 - (u * 16) % 1) < .025) | (np.minimum((v * 4) % 1, 1 - (v * 4) % 1) < .012)
-            value += .12 * np.sin(bx * 2.1 + by * 4.2)
-        else:
-            u, v = x, y
-            joint = np.minimum((u * 8) % 1, 1 - (u * 8) % 1) < .016
-        grain = np.sin(2 * np.pi * (u * 42 + 1.8 * np.sin(v * 2 * np.pi) + 1.4 * medium))
-        grain += .45 * np.sin(2 * np.pi * (u * 117 + .7 * np.sin(v * 4 * np.pi) + medium))
-        value = np.where(joint, .42 + .05 * fine, value + .16 * grain)
-        height = np.where(joint, -.6, height + .15 * grain)
-        smooth = np.where(joint, .10, smooth + .06 * grain)
-    elif recipe in ('tile', 'brick', 'vinyl', 'terrazzo'):
-        rows = 8 if recipe == 'brick' else 4
-        columns = 4
-        row = np.floor(y * rows)
-        u = (x * columns + (row % 2) * (.5 if recipe == 'brick' else 0)) % 1
-        v = (y * rows) % 1
-        distance = np.minimum(np.minimum(u, 1 - u), np.minimum(v, 1 - v))
-        width = .045 if recipe == 'brick' else .020
-        # Flat-bottomed grout rather than a sub-texel V groove: the latter
-        # creates a sharp opposing-normal line at the repeat boundary.
-        joint = np.clip((width - distance) / (width * .25), 0, 1)
-        joint = joint * joint * (3 - 2 * joint)
-        aggregate = flecks(size, rng, 3000 if recipe == 'terrazzo' else 1600, .0035)
-        value += aggregate * (.7 if recipe == 'terrazzo' else .15) - joint * .43
-        height -= joint * .65
-        smooth -= joint * .3
-        chips = np.clip((medium - .1) * 3, 0, 1) * (distance < .065)
-        if recipe in ('brick', 'tile'):
-            value -= chips * .25
-            height -= chips * .4
-        if recipe == 'brick':
-            value += .25 * fine
-            tint[..., 1] *= .88
-    elif recipe in ('iron', 'steel', 'painted_metal', 'hazard'):
-        rust = np.clip((medium + .6 * broad + .35 * fine - .28) * 3, 0, 1)
-        if recipe == 'steel':
-            rust *= .2
-        # Grain stays periodic and never creates a border-specific stripe.
-        brush = np.sin(2 * np.pi * (y * 190 + .1 * np.sin(x * 2 * np.pi)))
-        value += .035 * brush - .2 * rust
-        height += .07 * brush + .4 * rust
-        smooth -= .30 * rust
-        metallic *= 1 - .95 * rust
-        tint[..., 0] += rust * .7
-        tint[..., 1] *= 1 - rust * .24
-        tint[..., 2] *= 1 - rust * .55
-        if recipe == 'hazard':
-            stripes = ((x + y) * 4) % 1 < .5
-            value *= np.where(stripes, .12, 1)
-    elif recipe == 'fabric':
-        weave = np.sin(x * 2 * np.pi * 160) * np.sin(y * 2 * np.pi * 160)
-        value += .08 * weave
-        height += .18 * weave
-    elif recipe == 'chalkboard':
-        wiped = np.maximum(0, noise(size, 8, rng)) * (.7 + .3 * np.sin(y * 2 * np.pi * 16))
-        value += .7 * wiped
-        smooth -= .08 * wiped
-    elif recipe in ('glass', 'water', 'light', 'rubber', 'paper'):
-        value = 1 + .09 * medium - .16 * dirt
-        height *= .15
-        if recipe == 'light':
-            value += .06 * np.cos(x * 2 * np.pi * 64)
-        if recipe == 'water':
-            height = np.sin(2 * np.pi * (x * 5 + .2 * np.sin(y * 4 * np.pi))) * .4
+    aggregate = flecks(size, rng, 2400 if recipe == 'terrazzo' else 1200,
+                       .005 if recipe == 'terrazzo' else .0025)
     base = linear([int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5)])
-    albedo = srgb(base * np.maximum(value[..., None], .08) * tint)
-    normal = normal_from_height(height * relief)
+    color, height, smooth, metallic = recipe_fields(
+        theme, recipe, base, x, y, broad, medium, fine, micro, aggregate, rng, PROFILES[recipe])
+    albedo = srgb(color)
+    normal = normal_from_height(height)
     packed = np.stack((np.clip(metallic, 0, 1), np.zeros_like(x), np.zeros_like(x), np.clip(smooth, .02, .96)), axis=-1)
     return albedo, normal, packed
 
@@ -254,11 +170,11 @@ def bytes_image(values):
     return np.rint(np.clip(values, 0, 1) * 255).astype(np.uint8)
 
 
-def lit_wall(albedo, normal, packed):
-    """Offline GGX wall swatch, not a claim about Unity/game lighting."""
+def lit_wall(albedo, normal, packed, temperature='warm'):
+    """Dim CPU GGX wall at fixed exposure; no tone-map or per-material gain."""
     size = albedo.shape[0]
     y, x = np.mgrid[0:size, 0:size] / size
-    light = np.stack((.4 - x, .6 + y, np.full_like(x, .75)), axis=-1)
+    light = np.stack((.9 - x, .3 + y, np.full_like(x, .38)), axis=-1)
     light /= np.linalg.norm(light, axis=-1, keepdims=True)
     half = light + np.array([0, 0, 1])
     half /= np.linalg.norm(half, axis=-1, keepdims=True)
@@ -276,7 +192,8 @@ def lit_wall(albedo, normal, packed):
     f0 = .04 * (1 - metal) + color * metal
     f = f0 + (1 - f0) * (1 - vh[..., None]) ** 5
     specular = d[..., None] * g[..., None] * f / np.maximum(4 * nl * nv, .001)[..., None]
-    result = color * .24 + ((1 - f) * (1 - metal) * color / np.pi + specular) * nl[..., None] * 2.4
+    illuminant = np.array([1, .57, .28] if temperature == 'warm' else [.38, .62, 1])
+    result = color * .035 + ((1 - f) * (1 - metal) * color / np.pi + specular) * nl[..., None] * 1.1 * illuminant
     return bytes_image(srgb(result))
 
 
@@ -294,12 +211,12 @@ def png_bytes(array):
 
 
 def contact_sheet(theme, samples):
-    # Every map shown tiled 3x3; fourth column is a normal/smoothness-lit wall.
+    # Three 3x3 map columns plus warm/cold walls. Save row crops for inspection.
     thumb = 100
     panel = thumb * 3
-    sheet = Image.new('RGB', (4 * (panel + 12) + 12, len(samples) * (panel + 40) + 60), '#181b20')
+    sheet = Image.new('RGB', (5 * (panel + 12) + 12, len(samples) * (panel + 40) + 60), '#181b20')
     draw = ImageDraw.Draw(sheet)
-    draw.text((12, 10), f'{theme} | {METRES:g} metres/tile | Albedo 3x3 / Normal 3x3 / Smoothness 3x3 / GGX lit wall', fill='white')
+    draw.text((12, 10), f'{theme} | {METRES:g} m/tile | Albedo 3x3 / Normal 3x3 / Smoothness 3x3 / Dim warm / Dim cold', fill='white')
     for row, (slot, albedo, normal, packed) in enumerate(samples):
         py = 60 + row * (panel + 40)
         draw.text((12, py - 20), slot, fill='white')
@@ -309,8 +226,11 @@ def contact_sheet(theme, samples):
             for iy in range(3):
                 for ix in range(3):
                     sheet.paste(tile, (12 + col * (panel + 12) + ix * thumb, py + iy * thumb))
-        wall = Image.fromarray(lit_wall(albedo, normal, packed)).resize((panel, panel), Image.Resampling.LANCZOS)
-        sheet.paste(wall, (12 + 3 * (panel + 12), py))
+        for col, temperature in enumerate(('warm', 'cold'), 3):
+            wall = Image.fromarray(lit_wall(albedo, normal, packed, temperature)).resize((panel, panel), Image.Resampling.LANCZOS)
+            sheet.paste(wall, (12 + col * (panel + 12), py))
+        save_if_changed(REVIEW / 'materials' / f'{slot}.png',
+                        png_bytes(np.asarray(sheet.crop((0, py - 24, sheet.width, py + panel + 12)))))
     path = REVIEW / f'{theme}-contact.png'
     save_if_changed(path, png_bytes(np.asarray(sheet)))
     return str(path)
@@ -318,7 +238,7 @@ def contact_sheet(theme, samples):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--size', type=int, choices=(512, 1024), default=512)
+    parser.add_argument('--size', type=int, choices=(512, 1024), default=1024)
     args = parser.parse_args()
     report = {'seed': SEED, 'resolution': args.size, 'metresPerTile': METRES, 'files': {}, 'contactSheets': []}
     for theme, palette in palettes().items():
@@ -336,7 +256,9 @@ def main():
                         'resolution': args.size, 'seed': SEED, 'normalConvention': 'OpenGL +Y',
                         'packing': 'Albedo=sRGB RGB; Normal=linear RGB; Smoothness=linear R:metallic A:smoothness GB:0'}
             save_if_changed(TEXTURES / theme / f'{slot}.json', (json.dumps(metadata, indent=2) + '\n').encode())
-            samples.append((slot, albedo, normal, packed))
+            # Reviews use the exact quantized delivered maps, not float sources.
+            samples.append((slot, maps['Albedo'] / 255., maps['Normal'] / 127.5 - 1,
+                            maps['Smoothness'] / 255.))
         report['contactSheets'].append(contact_sheet(theme, samples))
         print(f'GENERATED {theme}: {len(samples)} slots, {args.size}px, {METRES:g} metres/tile', flush=True)
     save_if_changed(REVIEW / 'generation.json', (json.dumps(report, indent=2) + '\n').encode())
