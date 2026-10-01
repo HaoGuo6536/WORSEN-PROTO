@@ -52,7 +52,7 @@ namespace Worsen.Editor.Procedural
                     Footprint = Array(t["footprint"]).Select(Cell).ToArray(),
                     Doors = Array(t["doors"]).Select(d => new ProceduralTemplateDoor
                     {
-                        Cell = Cell(d["cell"]), Side = Text(d, "side"),
+                        Cell = Cell(d["cell"]), Side = Text(d, "side"), Span = d["span"] == null ? 1 : Integer(d["span"]),
                         ClosedWith = d["closedWith"] == null ? System.Array.Empty<ProceduralTemplatePiece>() :
                             d["closedWith"].Members != null ? new[] { Placement(d["closedWith"]) } : Array(d["closedWith"]).Select(Placement).ToArray()
                     }).ToArray(),

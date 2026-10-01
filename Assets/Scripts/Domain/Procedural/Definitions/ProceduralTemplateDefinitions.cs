@@ -15,6 +15,8 @@
 // USAGE NOTES:
 //   Public fields are import DTOs, not tunables or runtime ScriptableObject setters.
 //   Coordinates use south-west cell corners; Module is the fixed two-metre contract.
+//   Span counts boundary cells, not the frame aperture. SubcellOffset is in metres
+//   so odd-centred room sockets can mate with even-centred hallway sockets.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -56,6 +58,7 @@ namespace Worsen.Domain.Procedural
     {
         public Vector2Int Cell;
         public string Side;
+        public int Span = 1;
         public ProceduralTemplatePiece[] ClosedWith = Array.Empty<ProceduralTemplatePiece>();
     }
 
@@ -73,6 +76,7 @@ namespace Worsen.Domain.Procedural
         public int PocketId;
         public ProceduralRoomTemplate Template;
         public Vector2Int Offset;
+        public Vector2Int SubcellOffset;
         public int Turns;
         public int[] OpenDoors = Array.Empty<int>();
     }

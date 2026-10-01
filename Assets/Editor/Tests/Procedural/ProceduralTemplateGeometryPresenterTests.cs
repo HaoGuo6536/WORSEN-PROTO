@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Check authored wall/arc identities, tiled support and unused socket closure.
 //   - Check missing art stays primitive and available art retains metre transforms.
+//   - Check compound pieces instantiate once and zero-height decals remain finite.
 // DEPENDENCIES:
 //   - NUnit, Core, Domain.Procedural and temporary Unity objects.
 // USAGE NOTES:
@@ -88,6 +89,69 @@ namespace Worsen.Tests.Procedural
                     Assert.That(Vector3.Distance(visual.lossyScale, Vector3.one), Is.LessThan(.001f));
                     Assert.That(visual.GetComponent<Collider>().enabled, Is.False);
                 }
+            }
+            finally { driver.Teardown(); Object.DestroyImmediate(root); Object.DestroyImmediate(prefab); Object.DestroyImmediate(catalogue); }
+        }
+        [TestCase(false)] [TestCase(true)]
+        public void CompoundKitUsesOneVisualAndOnlyItsPartsCollide(bool available)
+        {
+            var root = new GameObject("Compound fixture"); var catalogue = ScriptableObject.CreateInstance<ProceduralRoomCatalogueData>();
+            var prefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var driver = root.AddComponent<ProceduralDriver>();
+            var state = (ProceduralDriverState)Field(driver, "_state").GetValue(driver);
+            state.Root = new GameObject("Generated compound"); state.Root.transform.SetParent(root.transform);
+            state.Catalogue = catalogue; state.ThemeId = "castle";
+            Field(catalogue, "_pieces").SetValue(catalogue, new[] { new ProceduralRoomCatalogueData.KitAsset {
+                Theme = "castle", Id = "wall_round_tangent_r4", Prefab = available ? prefab : null } });
+            var commands = new[] {
+                new ProceduralBlock(1, ProceduralSurfaceKind.Wall, Vector3.up * 3.5f, new Vector3(4.4f, 7f, 1.7f),
+                    role: ProceduralBlockRole.KitVisual, pieceId: "wall_round_tangent_r4", piecePosition: Vector3.zero),
+                new ProceduralBlock(1, ProceduralSurfaceKind.Wall, new Vector3(-2f, 3.5f, -.4f), new Vector3(.4f, 7f, 1.7f),
+                    role: ProceduralBlockRole.KitCollision, pieceId: "wall_round_tangent_r4"),
+                new ProceduralBlock(1, ProceduralSurfaceKind.Wall, new Vector3(2f, 3.5f, -.4f), new Vector3(.4f, 7f, 1.7f),
+                    role: ProceduralBlockRole.KitCollision, pieceId: "wall_round_tangent_r4") };
+            try
+            {
+                foreach (var block in commands)
+                    typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0 });
+                var parts = state.Fragments[1];
+                Assert.That(parts.Sum(p => p.transform.childCount), Is.EqualTo(available ? 1 : 0));
+                Assert.That(parts[0].GetComponent<Renderer>().enabled, Is.False);
+                Assert.That(parts[0].GetComponent<Collider>(), Is.Null);
+                foreach (var part in parts.Skip(1))
+                {
+                    Assert.That(part.GetComponent<Collider>().enabled, Is.True);
+                    Assert.That(part.GetComponent<Renderer>().enabled, Is.EqualTo(!available));
+                }
+                if (available)
+                {
+                    var visual = parts[0].transform.GetChild(0);
+                    Assert.That(visual.position, Is.EqualTo(Vector3.zero));
+                    Assert.That((visual.lossyScale - Vector3.one).magnitude, Is.LessThan(.001f));
+                    Assert.That(visual.GetComponent<Collider>().enabled, Is.False);
+                }
+            }
+            finally { driver.Teardown(); Object.DestroyImmediate(root); Object.DestroyImmediate(prefab); Object.DestroyImmediate(catalogue); }
+        }
+        [Test]
+        public void ZeroHeightDecalKeepsFiniteUnitArtScaleAndNoCollider()
+        {
+            var root = new GameObject("Decal fixture"); var catalogue = ScriptableObject.CreateInstance<ProceduralRoomCatalogueData>();
+            var prefab = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var driver = root.AddComponent<ProceduralDriver>();
+            var state = (ProceduralDriverState)Field(driver, "_state").GetValue(driver);
+            state.Root = new GameObject("Generated decal"); state.Root.transform.SetParent(root.transform);
+            state.Catalogue = catalogue; state.ThemeId = "school";
+            Field(catalogue, "_pieces").SetValue(catalogue, new[] { new ProceduralRoomCatalogueData.KitAsset { Theme = "school", Id = "decal", Prefab = prefab } });
+            try
+            {
+                var block = new ProceduralBlock(1, ProceduralSurfaceKind.Wall, Vector3.up * .01f, new Vector3(2f, 0f, 2f),
+                    role: ProceduralBlockRole.VisualOnly, pieceId: "decal");
+                typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0 });
+                var item = state.Fragments[1].Single(); var visual = item.transform.GetChild(0);
+                Assert.That(item.GetComponent<Collider>(), Is.Null);
+                Assert.That((visual.lossyScale - Vector3.one).magnitude, Is.LessThan(.001f));
+                Assert.That(visual.position, Is.EqualTo(block.PiecePosition));
             }
             finally { driver.Teardown(); Object.DestroyImmediate(root); Object.DestroyImmediate(prefab); Object.DestroyImmediate(catalogue); }
         }

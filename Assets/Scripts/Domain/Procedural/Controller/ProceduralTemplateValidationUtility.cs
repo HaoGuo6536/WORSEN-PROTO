@@ -95,8 +95,14 @@ namespace Worsen.Domain.Procedural
                 room.Doors.Any(d => d == null) || room.Doors.Select(d => (d.Cell, d.Side)).Distinct().Count() != room.Doors.Length)
                 Fail(room.Id + ": missing or duplicate door sockets.");
             foreach (var door in room.Doors)
-                if (!cells.Contains(door.Cell) || cells.Contains(door.Cell + ProceduralTemplateUtility.Direction(door.Side)))
-                    Fail(room.Id + ": door is not on a boundary edge.");
+            {
+                ProceduralTemplateUtility.SocketWidth(door); // Validate the complete authored span, not only its first cell.
+                var normal = ProceduralTemplateUtility.Direction(door.Side);
+                var tangent = normal.x == 0 ? Vector2Int.right : Vector2Int.up;
+                for (int i = 0; i < door.Span; i++)
+                    if (!cells.Contains(door.Cell + tangent * i) || cells.Contains(door.Cell + tangent * i + normal))
+                        Fail(room.Id + ": door span is not on a boundary edge.");
+            }
             if (room.Kind == "hallway" && room.Doors.Select(d => ProceduralTemplateUtility.Door(d)).Distinct().Count() < 2)
                 Fail(room.Id + ": hallway needs distinct ends.");
             if (room.Cake == null || room.GoldenCake == null || room.Light == null || room.HunterSpawn == null ||

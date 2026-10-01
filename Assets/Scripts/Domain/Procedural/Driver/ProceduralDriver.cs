@@ -20,6 +20,8 @@
 //   lighting/fog or remove another owner's navigation data. Missing materials use
 //   dark rough generated surfaces; no authored-map fallback is silently loaded.
 //   Missing serialized shaders abort before generation and log once per owner.
+//   Compound kit commands instantiate one mesh and share collision with the bake;
+//   missing compound art displays its collision parts, never its overall bounds.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -227,11 +229,15 @@ namespace Worsen.Domain.Procedural
             item.layer = layer;
             item.transform.SetParent(_state.Root.transform, false);
             item.transform.SetPositionAndRotation(block.Center, block.Rotation);
-            item.transform.localScale = block.Size;
+            // A zero-height decal must not become a singular parent transform for
+            // its metre-scale mesh. This carrier thickness never creates collision.
+            item.transform.localScale = new Vector3(block.Size.x, block.Size.y == 0f && !block.HasCollision ? .001f : block.Size.y, block.Size.z);
             var renderer = item.GetComponent<Renderer>();
             renderer.sharedMaterial = material; renderer.enabled = block.HasRenderer;
             var prefab = block.PieceId == null ? null : _state.Catalogue?.Piece(_state.ThemeId, block.PieceId);
-            if (prefab != null && block.HasRenderer)
+            if (block.Role == ProceduralBlockRole.KitVisual) renderer.enabled = false;
+            if (block.Role == ProceduralBlockRole.KitCollision) renderer.enabled = prefab == null;
+            if (prefab != null && block.HasRenderer && block.Role != ProceduralBlockRole.KitCollision)
             {
                 var visual = Instantiate(prefab);
                 visual.name = "Kit " + block.PieceId;

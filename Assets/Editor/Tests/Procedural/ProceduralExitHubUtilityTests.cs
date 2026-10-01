@@ -85,7 +85,7 @@ namespace Worsen.Tests.Procedural
                 var controller = new ProceduralTemplateController(config, random);
                 var hub = new ProceduralTemplateRoom { RoomId = 1, Template = starts[seed % starts.Length], Turns = seed % 4 };
                 var placed = new List<ProceduralTemplateRoom> { hub };
-                var occupied = new HashSet<Vector2Int>(hub.Template.Footprint.Select(c => ProceduralTemplateUtility.Cell(c, hub.Turns)));
+                var occupied = new HashSet<Vector2Int>(ProceduralTemplateUtility.OccupiedCells(hub));
                 var doors = new List<ProceduralDoorPlan>(); var gaps = new HashSet<Vector2Int>(); var sites = new List<ProceduralGapSite>();
                 for (int attempt = 0; attempt < 2048 && placed.Count < 3; attempt++)
                     attach.Invoke(controller, new object[] { catalogue.Templates[random.Next(catalogue.Templates.Length)],
@@ -94,6 +94,15 @@ namespace Worsen.Tests.Procedural
                 Assert.That(hub.OpenDoors.Length, Is.GreaterThanOrEqualTo(2));
                 Assert.That(doors.Count(d => d.FromRoomId == hub.RoomId || d.ToRoomId == hub.RoomId), Is.GreaterThanOrEqualTo(2));
                 Assert.That(doors.All(d => !d.IsOptional), Is.True);
+                var allCells = placed.SelectMany(ProceduralTemplateUtility.OccupiedCells).ToArray();
+                Assert.That(allCells.Distinct().Count(), Is.EqualTo(allCells.Length));
+                foreach (var door in doors)
+                foreach (int id in new[] { door.FromRoomId, door.ToRoomId })
+                {
+                    var room = placed.Single(r => r.RoomId == id);
+                    Assert.That(room.OpenDoors.Any(i => ProceduralTemplateUtility.Point(room,
+                        ProceduralTemplateUtility.Door(room.Template.Doors[i]), Vector2.zero) == door.Center), Is.True);
+                }
             }
         }
 
@@ -159,7 +168,8 @@ namespace Worsen.Tests.Procedural
                     Id = t["id"].Text, Kind = t["kind"].Text, Gimmick = t["gimmick"].Text,
                     SizeClass = t["sizeClass"].Text, Shape = t["shape"].Text, Height = Number(t["height"]),
                     Footprint = t["footprint"].Items.Select(c => new Vector2Int(Integer(c[0]), Integer(c[1]))).ToArray(),
-                    Doors = t["doors"].Items.Select(d => new ProceduralTemplateDoor { Cell = new Vector2Int(Integer(d["cell"][0]), Integer(d["cell"][1])), Side = d["side"].Text }).ToArray(),
+                    Doors = t["doors"].Items.Select(d => new ProceduralTemplateDoor { Cell = new Vector2Int(Integer(d["cell"][0]), Integer(d["cell"][1])),
+                        Side = d["side"].Text, Span = d["span"] == null ? 1 : Integer(d["span"]) }).ToArray(),
                     Cake = t["anchors"]["cake"].Items.Select(Point).ToArray(),
                     Pieces = t["pieces"].Items.Select(p => new ProceduralTemplatePiece { Id = p["id"].Text, Position = Point(p["pos"]), RotY = Number(p["rotY"]) }).ToArray()
                 }).ToArray()
