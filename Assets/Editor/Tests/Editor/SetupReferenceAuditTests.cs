@@ -43,6 +43,7 @@ namespace Worsen.Tests.Editor
             { "AudioSoundscapeDriverConfig.Clip", "AudioSoundscapeDriver roster lookup falls back to the binding's canonical bank" },
             { "AudioSoundscapeDriverConfig._heartbeatClip", "AudioSoundscapeDriver.HeartbeatClip falls back to the generated heartbeat" },
             { "CameraDriverConfig._handMesh", "CameraHandCatchDriver builds the primitive hand when no mesh is set" },
+            { "HorrorDriverConfig._webMaterial", "HorrorWebDriver builds the web material from WebShader (HorrorShaderSetup); it errors only when both are missing" },
             { "EnvironmentDriverConfig._lightTemplate", "no runtime consumer yet; the HorrorEnvironmentLightSetup template is not wired (tracked gap)" },
             { "FloorDriverConfig._cakePrefab", "FloorDriver keeps the primitive cake when no visual prefab is set" },
             { "FloorDriverConfig._crackMaterial", "RoomCollapseVolume uses its dark material" },
