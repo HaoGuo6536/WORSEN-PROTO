@@ -148,18 +148,25 @@ try {
     foreach ($f in $changed) { $wanted["$f.meta"] = $true; $d = Split-Path -Parent $f; while ($d) { $wanted[($d.Replace('\', '/')) + '.meta'] = $true; $d = Split-Path -Parent $d } }
     $untracked = @((Invoke-Git $main -c core.quotepath=off status --porcelain --untracked-files=all) | Where-Object { $_ -match '^\?\? (.+\.meta)$' } | ForEach-Object { ($_ -replace '^\?\? ', '').Trim('"') })
     $metas = @($untracked | Where-Object { $wanted.ContainsKey($_) })
-    if ($metas.Count -gt 0) { Invoke-Native git.exe -C $main add -- @metas | Out-Null }
-    if ($CommitPaths.Count -gt 0) { Invoke-Native git.exe -C $main add -- @CommitPaths | Out-Null }
+    # Checked and lock-tolerant: batch 14's adds silently failed on a stale index.lock, so the
+    # candidate was tested without its meta files ever being committed.
+    if ($metas.Count -gt 0) { Invoke-Git $main add -- @metas | Out-Null }
+    if ($CommitPaths.Count -gt 0) { Invoke-Git $main add -- @CommitPaths | Out-Null }
     Invoke-Native git.exe -C $main diff --cached --quiet | Out-Null
     if ($script:NativeExit -ne 0) {
-        Invoke-Native git.exe -C $main commit -q -m "Gate $Label`: Unity meta files and setup outputs`n`n$script:Attribution" | Out-Null
-        if ($script:NativeExit -ne 0) { throw 'Gate commit failed (pre-commit hook or git).' }
+        Invoke-Git $main commit -q -m "Gate $Label`: Unity meta files and setup outputs`n`n$script:Attribution" | Out-Null
         $candidate = (Invoke-Git $main rev-parse HEAD) | Select-Object -Last 1
         Log "Gate commit $candidate ($($metas.Count) meta file(s), setup paths: $($CommitPaths -join ', '))"
     }
     $entry.candidate_final = $candidate
 
     Assert-UnityLease $token
+    # Unity's SceneView repaint throws NullReferenceException during Play Mode tests in a fresh
+    # editor (batch 14: 7 tests failed on that engine-only log). Close Scene views for the
+    # suite and reopen one beside the Game view afterwards.
+    $sceneViews = Invoke-UnityCsharp 'int n = 0; foreach (UnityEditor.SceneView sv in new System.Collections.ArrayList(UnityEditor.SceneView.sceneViews)) { if (sv != null) { sv.Close(); n++; } } return "closed=" + n;'
+    $entry.scene_views_closed = [int]($sceneViews -replace '^closed=', '')
+    Log "Scene views closed for the suite: $sceneViews"
     Log 'Running full Edit Mode suite'
     $since = Get-Date
     $start = Invoke-UnityCsharp 'return SynapticPro.TestRunner.NexusTestRunnerService.Execute("run", "editmode", "");'
@@ -177,6 +184,9 @@ try {
     }
     $s = Wait-EditorIdle $token 10
     if ($s -and $s.TimeScale -ne 1) { Log "WARNING: Time.timeScale is $($s.TimeScale) after the suite (a test leaked it)" }
+    if ($entry.scene_views_closed -gt 0) {
+        try { Log ("Scene view restored: " + (Invoke-UnityCsharp 'var gv = typeof(UnityEditor.EditorWindow).Assembly.GetType("UnityEditor.GameView"); var w = gv != null ? UnityEditor.EditorWindow.GetWindow<UnityEditor.SceneView>(new System.Type[] { gv }) : UnityEditor.EditorWindow.GetWindow<UnityEditor.SceneView>(); return "opened=" + (w != null);')) } catch { Log "WARNING: could not reopen the Scene view: $($_.Exception.Message)" }
+    }
     # Nobody may commit in the open checkout while it is detached for the gate; a moved HEAD
     # means the tested tree is not the candidate, so keep that work on a rescue branch and stop.
     $headNow = (Invoke-Git $main rev-parse HEAD) | Select-Object -Last 1

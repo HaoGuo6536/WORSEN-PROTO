@@ -15,7 +15,14 @@ function Invoke-Native([string]$exe) {
     return $o
 }
 function Invoke-Git([string]$dir) {
-    $a = $args; $o = Invoke-Native git.exe -C $dir @a
+    # Another client (an IDE's background `git status`) can hold index.lock briefly; wait it out.
+    # A lock that outlives the retries is reported, never deleted here (README: lock recovery).
+    $a = $args
+    for ($attempt = 1; $attempt -le 7; $attempt++) {
+        $o = Invoke-Native git.exe -C $dir @a
+        if ($script:NativeExit -eq 0 -or ($o -join ' ') -notmatch 'index\.lock') { break }
+        Start-Sleep -Seconds 5
+    }
     if ($script:NativeExit -ne 0) { throw "git $($a -join ' ') failed ($($script:NativeExit)): $($o -join ' | ')" }
     $o
 }
