@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Expedition.
 // KEY RESPONSIBILITIES:
 //   - Verify Passage, Pacification and one-shot Purgatory spawn/mutation routing.
+//   - Build a real admitted Passage before testing its Expedition activation route.
 // DEPENDENCIES:
 //   - Expedition, Domain services, Core, NUnit, Unity navigation and test reflection.
 // USAGE NOTES:
@@ -18,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -123,10 +125,50 @@ namespace Worsen.Tests.Expedition
         [Test]
         public void ProducerSitesAssemblePassageActivatesPocketAndReleaseRemovesShrines()
         {
-            var shrines = (ShrineManager)Get(expedition, "_shrines"); Assert.That(shrines, Is.Not.Null);
-            Call(expedition, "HandleShrineResolved", Fact(ShrineKind.Passage));
-            Assert.That(((IDictionary)Get(floorState, "PocketStarts")).Contains(3), Is.True);
-            Call(expedition, "ReleaseFloor"); Assert.That(shrines == null, Is.True);
+            // PLAN-025 §3 C7 / §8 requires a real bridge to an identified pocket.
+            // The shared synthetic setup has neither a destination nor built geometry;
+            // setting IsReady alone is not admission and cannot exercise this route.
+            var config = Config<ProceduralConfig>();
+            var visual = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<ProceduralDriverConfig>(); owned.Add(visual);
+            Set(config, "_origin", new Vector2(30000f, 30000f));
+            Set(config, "_castleModules", false); Set(config, "_storeyProbability", 0f);
+            Set(config, "_gapProbability", 1f); Set(config, "_pocketProbability", 1f); Set(config, "_ordinaryDoorFraction", 1f);
+            var unresolved = new List<string>();
+            Action<ShrineResolvedFact, string> onUnresolved = (_, reason) => unresolved.Add(reason);
+            ShrineManager shrines = null;
+            Action<ShrineActivatedFact> onActivated = activation => Call(expedition, "HandleShrineResolved",
+                new ShrineResolvedFact(1, activation, ShrineKind.Passage, false));
+            expedition.ShrineWorldEffectUnresolved += onUnresolved;
+            try
+            {
+                procedural.gameObject.SetActive(true);
+                procedural.Initialize(config, visual, 19, 12);
+                Assert.That(procedural.IsReady, Is.True);
+                var site = procedural.ShrineSites.First(s => s.GapEdge);
+                Property(player.ReadOnlyState, "Position", procedural.PlayerSpawnPosition);
+                ((LevelManager)Get(expedition, "_level")).InitializeGenerated(procedural.Graph, procedural.Interactables);
+                ((FloorController)Get(floor, "_controller")).Initialize(procedural.Graph, new[] { player.ReadOnlyState }, requiredCakeCount: 1);
+                var previous = (ShrineManager)Get(expedition, "_shrines");
+                previous.Teardown(); Object.DestroyImmediate(previous.gameObject); Set(expedition, "_shrines", null);
+                Object.DestroyImmediate((ExpeditionSpawnDriver)Get(expedition, "_spawnDriver")); Set(expedition, "_spawnDriver", null);
+                Set(Get(expedition, "_shrineConfig"), "_availability", new[] { new ShrineAvailability(ShrineKind.Passage, 8, FearAxis.Time) });
+                Call(expedition, "AssembleShrines");
+                shrines = (ShrineManager)Get(expedition, "_shrines"); Assert.That(shrines, Is.Not.Null);
+                shrines.Activated += onActivated;
+                Assert.That(shrines.Sample(site.Position, Vector3.forward, InputButtons.Interact, 1), Is.True);
+                Assert.That(unresolved, Is.Empty);
+                Assert.That(procedural.LinedPocketAnchors, Is.Not.Empty);
+                Assert.That(((IDictionary)Get(floorState, "PocketStarts")).Contains(site.DestinationPocketRoomId), Is.True);
+                Assert.That(shrines.Sample(site.Position, Vector3.forward, InputButtons.Interact, 2), Is.False);
+                shrines.Activated -= onActivated;
+                Call(expedition, "ReleaseFloor"); Assert.That(shrines == null, Is.True);
+            }
+            finally
+            {
+                expedition.ShrineWorldEffectUnresolved -= onUnresolved;
+                if (shrines != null) { shrines.Activated -= onActivated; shrines.Teardown(); Object.DestroyImmediate(shrines.gameObject); }
+                procedural.Teardown(); // This test owns the additional bake, including assertion-failure paths.
+            }
         }
         [TestCase(false)] [TestCase(true)]
         public void PurgatorySpawnsOnceAndAppliesOrPublishesMutation(bool pool)

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Check deterministic contiguous tiles and both collision/visual apertures.
 //   - Check pocket anchor lining, invalid destinations and ordered collapse deadlines.
+//   - Distinguish optional socket admission from the existence of a gap and pocket.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit and temporary Unity configuration instances.
 // USAGE NOTES:
@@ -62,13 +63,19 @@ namespace Worsen.Tests.Procedural
         public void EveryGapCrossingHasDeterministicContiguousTilesAndTwoOpenApertures(bool castle)
         {
             Set(_config, "_castleModules", castle);
+            int crossings = 0;
+            var directions = new System.Collections.Generic.HashSet<Vector3>();
             for (int seed = 0; seed < 8; seed++)
             {
                 var layout = Layout(seed, out var blocks);
-                Assert.That(layout.ShrineSites.Any(s => s.GapEdge), Is.True);
+                // PLAN-026 §3 C7: pockets are optional. PLAN-025 §5 requires valid
+                // placement, not a Passage on every seed. Clearance may reject all
+                // sockets (Castle seed 2); still exercise real crossings below.
+                Assert.That(layout.GapSites, Is.Not.Empty, "seed " + seed);
                 for (int index = 0; index < layout.ShrineSites.Count; index++)
                 {
                     var site = layout.ShrineSites[index]; if (!site.GapEdge) continue;
+                    crossings++; directions.Add(site.Facing);
                     var plan = _presenter.Build(layout, index, _config, _driver, blocks);
                     var again = _presenter.Build(layout, index, _config, _driver, blocks);
                     Assert.That(plan.PocketRoomId, Is.EqualTo(site.DestinationPocketRoomId));
@@ -103,6 +110,30 @@ namespace Worsen.Tests.Procedural
                     }
                 }
             }
+            Assert.That(crossings, Is.GreaterThan(0), "The sample must exercise admitted Passages.");
+            Assert.That(directions, Is.EquivalentTo(new[] { Vector3.right, Vector3.forward, Vector3.left, Vector3.back }));
+        }
+
+        [Test]
+        public void CastleSeedTwoRejectsAllGapSocketsForRaisedAnchorClearance()
+        {
+            Set(_config, "_castleModules", true);
+            var layout = Layout(2, out _);
+            var gap = layout.GapSites.Single();
+            Assert.That(gap.RoomId, Is.EqualTo(4));
+            Assert.That(layout.Modules.Single(m => m.RoomId == gap.RoomId).Kind, Is.EqualTo(ProceduralModuleKind.SplitLevelLibrary));
+            var facing = gap.Landing - gap.Edge; facing.y = 0f; facing.Normalize();
+            var tangent = new Vector3(facing.z, 0f, -facing.x);
+            foreach (float offset in new[] { 0f, -_config.RoomSize * _config.ShrineSiteLateralFraction, _config.RoomSize * _config.ShrineSiteLateralFraction })
+            {
+                var position = gap.Edge - facing * _config.ShrineSiteInset + tangent * offset;
+                int destination = _presenter.Destination(layout, gap.RoomId, position, facing);
+                Assert.That(destination, Is.GreaterThan(0));
+                Assert.That(layout.Graph.Rooms.Single(r => r.Id == destination).Pocket, Is.True);
+                Assert.That(layout.Graph.Anchors.Any(a => a.RoomId == gap.RoomId && a.Position.y > _config.AnchorHeight &&
+                    new Vector2(a.Position.x - position.x, a.Position.z - position.z).magnitude < _config.ShrineSiteClearance), Is.True);
+            }
+            Assert.That(layout.ShrineSites.Any(s => s.GapEdge), Is.False);
         }
 
         [Test]

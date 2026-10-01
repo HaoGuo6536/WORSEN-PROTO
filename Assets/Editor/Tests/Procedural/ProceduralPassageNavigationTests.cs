@@ -9,12 +9,15 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Verify tiles, both wall apertures, path opening/closure, facts and teardown.
+//   - Probe tile support inside the void, away from intentionally overlapping room seams.
 //   - Require mask-9 connectivity and mask-1 isolation for each generated link family.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit, UnityEngine physics and native navigation.
 // USAGE NOTES:
 //   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Coordinator-only EditMode execution. Removes only owned objects and navigation.
+//   Explicitly pairs Driver/Manager enable and disable callbacks for collapse relays;
+//   runtime MonoBehaviour lifecycle callbacks do not run automatically in Edit Mode.
 //   Link-family tests isolate the generated endpoint plan; full-floor detour and
 //   Driver-owned link teardown remain covered by ProceduralStoreyNavigationTests.
 // ============================================================================
@@ -83,13 +86,36 @@ namespace Worsen.Tests.Procedural
             _manager.PassageOpened += onOpened; _manager.PassageTileCollapsed += onCollapsed;
             try
             {
+                // Activation publishes directly, but collapse travels Bridge -> Driver
+                // -> Manager through subscriptions established only by OnEnable.
+                typeof(ProceduralDriver).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(driver, null);
+                typeof(ProceduralManager).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_manager, null);
                 Assert.That(_manager.ActivatePassage(-1), Is.False);
                 Assert.That(_manager.ActivatePassage(index), Is.True);
                 Assert.That(openedSite, Is.EqualTo(index)); Assert.That(openedPocket, Is.EqualTo(pocket.Id));
                 Assert.That(opened, Is.Not.Empty); Assert.That(_manager.LinedPocketAnchors, Is.Not.Empty);
                 Assert.That(_manager.ActivatePassage(index), Is.False, "A paid crossing cannot reset its timer.");
                 Assert.That(Connected(site.Position, target, 1), Is.True);
-                foreach (var point in opened)
+                var state = (ProceduralDriverState)typeof(ProceduralDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(driver);
+                var passage = state.Passages.Single(p => p.Plan.SiteIndex == index);
+                var plan = passage.Plan;
+                Assert.That(state.Config, Is.SameAs(_driverConfig));
+                Assert.That(_driverConfig.PassageFirstTileDelay, Is.EqualTo(4f));
+                Assert.That(_driverConfig.PassageTileInterval, Is.EqualTo(.4f));
+                Assert.That(passage.Elapsed, Is.Zero, "The collapse clock starts at activation, without a tile contact.");
+                var source = _manager.Graph.Rooms.Single(r => r.Id == site.RoomId);
+                var sourceCell = source.Cells.Single(c => c.min.x <= site.Position.x && c.max.x >= site.Position.x &&
+                    c.min.z <= site.Position.z && c.max.z >= site.Position.z);
+                var pocketCell = pocket.Cells.Single(c => c.min.x <= plan.End.x && c.max.x >= plan.End.x &&
+                    c.min.z <= plan.End.z && c.max.z >= plan.End.z);
+                // PLAN-025 §3 C7 / §8: support must span a real gap and then vanish.
+                // Endpoint centres may coincide with room floors at y=0; neither
+                // collider tie ordering nor removal of permanent room floor is a contract.
+                var probes = plan.Tiles.Select(tile => ProceduralPassageContractTests.GapProbe(tile, site.Facing,
+                    new LevelRoom(source.Id, sourceCell.center, sourceCell.size),
+                    new LevelRoom(pocket.Id, pocketCell.center, pocketCell.size, pocket: true))).ToArray();
+                Assert.That(probes.Length, Is.EqualTo(opened.Count));
+                foreach (var point in probes)
                 {
                     Assert.That(Physics.Raycast(point + Vector3.up, Vector3.down, out var hit, 2f), Is.True);
                     Assert.That(hit.collider.gameObject.name, Does.StartWith("Passage "));
@@ -97,12 +123,17 @@ namespace Worsen.Tests.Procedural
                     Assert.That(Physics.CheckCapsule(point + Vector3.up * .31f, point + Vector3.up * 1.49f, .3f,
                         ~0, QueryTriggerInteraction.Ignore), Is.False, "Both former sealed wall faces must admit a standing actor.");
                 }
-                driver.TickPassages(3.99f); Assert.That(collapsed, Is.Empty);
-                driver.TickPassages(.01f); Assert.That(collapsed, Is.EqualTo(new[] { 0 }));
+                driver.TickPassages(3.99f);
+                Assert.That(passage.CollapsedCount, Is.Zero); Assert.That(collapsed, Is.Empty);
+                Assert.That(passage.Tiles[0].GetComponent<Collider>().enabled, Is.True);
+                driver.TickPassages(.01f);
+                Assert.That(passage.CollapsedCount, Is.EqualTo(1), "The timer must commit tile zero at its deadline.");
+                Assert.That(passage.Tiles[0].GetComponent<Collider>().enabled, Is.False);
+                Assert.That(collapsed, Is.EqualTo(new[] { 0 }), "The committed collapse must reach the Manager subscriber once.");
                 Assert.That(Connected(site.Position, target, 1), Is.False);
                 driver.TickPassages(.4f); Assert.That(collapsed, Is.EqualTo(new[] { 0, 1 }));
                 driver.TickPassages(100f); Assert.That(collapsed, Is.EqualTo(Enumerable.Range(0, opened.Count)));
-                foreach (var point in opened)
+                foreach (var point in probes)
                     Assert.That(Physics.Raycast(point + Vector3.up * .5f, Vector3.down, 1f), Is.False);
                 var positions = opened.ToArray(); var anchors = _manager.LinedPocketAnchors.ToArray();
                 var oldLinks = ((ProceduralDriverState)typeof(ProceduralDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -119,7 +150,13 @@ namespace Worsen.Tests.Procedural
                 Assert.That(_manager.LinedPocketAnchors, Is.Empty);
                 Assert.That(NavMesh.SamplePosition(positions[0], out _, .2f, Filter(1)), Is.False);
             }
-            finally { _manager.PassageOpened -= onOpened; _manager.PassageTileCollapsed -= onCollapsed; }
+            finally
+            {
+                _manager.PassageOpened -= onOpened; _manager.PassageTileCollapsed -= onCollapsed;
+                typeof(ProceduralManager).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_manager, null);
+                typeof(ProceduralDriver).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(driver, null);
+                _manager.Teardown();
+            }
         }
 
         [TestCase("optional-door")] [TestCase("vault-window")] [TestCase("thin-partition")]
