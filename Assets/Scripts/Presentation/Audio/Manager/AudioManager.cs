@@ -14,7 +14,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Forward roster/tell, acoustic, movement, progression and sensory facts to AudioDriver.
-//   - Forward settings, pause, injury and aggregate proximity without gameplay rules.
+//   - Forward settings, pause, injury and proximity; expose heartbeat envelope and Effects routing to the owner.
 //   - Forward confirmed catch identity to guarded per-run sting admission.
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
 //   - Pair owner lifecycle and floor/run resets with the owned Driver lifetime.
@@ -46,6 +46,8 @@ namespace Worsen.Presentation.Audio
         private bool _initialized;
         public static AudioManager Instance { get; private set; }
         public float BreathGain => _driver != null ? _driver.BreathGain : 0f;
+        public float HeartbeatEnvelope => _initialized && isActiveAndEnabled ? _driver.HeartbeatEnvelope : 0f;
+        public UnityEngine.Audio.AudioMixerGroup EffectsGroup => _initialized ? _driver.EffectsGroup : null;
         public float HunterGain => _driver != null ? _driver.HunterGain : 0f;
 
         public AudioManager Initialize()

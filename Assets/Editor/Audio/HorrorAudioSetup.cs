@@ -80,6 +80,7 @@ namespace Worsen.Editor.Audio
             serialized.FindProperty("_runEnd").objectReferenceValue = ending;
             serialized.FindProperty("_interiorAmbience").objectReferenceValue = interior;
             serialized.FindProperty("_exteriorAmbience").objectReferenceValue = exterior;
+            serialized.FindProperty("_ambienceGain").floatValue = 0.01f;
             serialized.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(config); AssetDatabase.SaveAssetIfDirty(config);
             var ownerSerialized = new SerializedObject(owner);
             ownerSerialized.FindProperty("_soundscape").objectReferenceValue = config;

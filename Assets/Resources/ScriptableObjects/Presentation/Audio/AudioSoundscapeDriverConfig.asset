@@ -1181,7 +1181,7 @@ MonoBehaviour:
   _voiceCount: 24
   _effectsGain: 0.8
   _musicGain: 0.52
-  _ambienceGain: 0.25
+  _ambienceGain: 0.01
   _attackSeconds: 0.65
   _releaseSeconds: 3.5
   _chaseHoldSeconds: 2.5
