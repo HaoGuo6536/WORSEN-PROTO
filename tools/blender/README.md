@@ -101,19 +101,17 @@ and tuning are retained on repeat setup. No textures are needed. The authoring
 .blend lives in `ArtSource/`, so Unity does not import it through its installed
 Blender association (which may point to Blender 4.5); only the FBXs are imported.
 
-The Player builder creates separate Left Hand/Right Hand roots at the imported
-wrist pivots. It reparents each shoulder chain and its skinned mesh intact, strips
-colliders/Animator, and sets `_showHands` true. This uses the authored Hold rest
-pose; it does NOT automatically play Sway. The source FBX retains both original
-animation clips and paths. Moving them onto the split runtime rig would require
-a separately designed Player animation path, not reattaching an Animator with
-broken paths. Missing FBX means hidden capsules and `_showHands` false; a present
-but invalid FBX is an error, not a silent capsule fallback.
-
-The existing PlayerMoverDriverConfig.HandOffset is reused unchanged. The limb
-presenter projects every descendant renderer bound relative to its wrist root,
-so off-centre arms, camera pitch/roll and look-back respect the current near plane.
-No new runtime tunables or assembly dependencies are introduced.
+The Player builder creates separate Left Hand/Right Hand roots at the **shoulder**
+pivots of the relaxed first-person rest pose (arms hanging at the sides, elbows
+slightly bent). It reparents each shoulder chain and its skinned mesh intact,
+strips colliders and the Animator, and sets `_showHands` true. The runtime anchors
+those pivots below and beside the eye in a yaw-only frame (body heading, not head
+pitch), applies a gentle speed-driven swing, and keeps near-plane clearance. Hold
+and Sway remain on the FBX as unused compatibility takes. The pose, the anchoring
+contract and the provisional `PlayerMoverDriverConfig` values (`_handOffset` is now
+the shoulder offset) are documented in
+[ArtSource/Player/BlockyCharacter/README.md](../../ArtSource/Player/BlockyCharacter/README.md),
+which supersedes the earlier Hold/wrist-pivot description.
 
 Run PlayerLimbPresenterTests, PlayerDriverTests, BlockyCharacterSetupTests and
 ArchitectureConformanceTests in Unity, then the full suite. The new fixture
