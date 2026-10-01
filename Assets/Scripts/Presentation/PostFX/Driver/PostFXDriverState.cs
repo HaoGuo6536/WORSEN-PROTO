@@ -13,7 +13,7 @@
 //   - Remember cleansed blindness identities until they disappear from the active view.
 //   - Retain an injected active-effects view and identity-matched grace envelope.
 //   - Preserve runtime blur preferences and independent effect/Glimpse countdowns.
-//   - Retain proximity/injury inputs and the camcorder's independent tape envelope.
+//   - Retain health, red hit/heartbeat envelopes and the independent camcorder tape.
 //   - Carry primitive volume values without holding a live volume.
 //
 // DEPENDENCIES:
@@ -47,6 +47,11 @@ namespace Worsen.Presentation.PostFX
         public float GlimpseRemaining;
         public float HunterRim;
         public float Injury;
+        public bool HasHealthSample;
+        public float Health;
+        public float DamageSeverity, DamageElapsed, PendingDamageSeverity, HeartbeatEnvelope;
+        public Color VignetteColor = Color.red;
+        public float VignetteSmoothness;
         public float IntrusionRemaining;
         public float SubtleIntrusionRemaining;
         public float BlindnessRemaining;

@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Verify hunter and hand death paths remain visible with no terminal fade.
-//   - Cover bounded proximity, fractional injury and independent intrusion/blur expiry.
+//   - Cover bounded proximity, fractional red damage and independent intrusion/blur expiry.
 //   - Verify look-back release edges, comfort toggles and reset isolation.
 //   - Assert constant degradation, budget-denied subtle intrusion and timed blindness.
 //   - Verify transient hits and critical health feed tape without replacing existing effects.
@@ -45,6 +45,7 @@ namespace Worsen.Tests.PostFX
             _config = ScriptableObject.CreateInstance<PostFXDriverConfig>();
             _state = new PostFXDriverState();
             _presenter = new PostFXPresenter();
+            _presenter.SetInjury(_state, 100f, 100f);
         }
 
         [TearDown]
@@ -73,7 +74,8 @@ namespace Worsen.Tests.PostFX
             _presenter.SetInjury(_state, health, maximum);
             _presenter.Tick(_state, _config, 0f);
             Assert.That(_state.Injury, Is.EqualTo(injury).Within(0.00001f));
-            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + injury * 0.45f).Within(0.00001f));
+            Assert.That(_state.Vignette, Is.EqualTo(Mathf.Clamp01(injury / _config.DamageFullStrengthHealthFraction)
+                * _config.DamageVignettePeak).Within(0.00001f));
         }
 
         [Test]
@@ -89,7 +91,7 @@ namespace Worsen.Tests.PostFX
             _presenter.Tick(_state, _config, 0.05f);
             Assert.That(_state.Blur, Is.Zero);
             Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic + 0.25f));
-            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + 0.225f).Within(0.00001f));
+            Assert.That(_state.Vignette, Is.EqualTo(_config.DamageVignettePeak * (1f - .1f / _config.DamageFadeSeconds)).Within(0.00001f));
             Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain + 0.5f));
         }
 
@@ -143,7 +145,7 @@ namespace Worsen.Tests.PostFX
             _presenter.SetLookBack(_state, _config, false);
             _presenter.Tick(_state, _config, 0f);
             Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic));
-            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette));
+            Assert.That(_state.Vignette, Is.Zero);
             Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain));
             Assert.That(_state.Blur, Is.Zero);
             Assert.That(_state.LookBack, Is.False);
@@ -202,7 +204,8 @@ namespace Worsen.Tests.PostFX
                 Assert.That(_state.Blackout, Is.Zero);
                 Assert.That(_state.Exposure, Is.Zero);
                 Assert.That(_state.SceneTint, Is.EqualTo(Color.white));
-                Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + _config.InjuryVignette));
+                float hit = _config.DamageVignettePeak * Mathf.Clamp01(1f - (step + 1f) / 60f / _config.DamageFadeSeconds);
+                Assert.That(_state.Vignette, Is.EqualTo(Mathf.Max(hit, _config.LowHealthVignette)).Within(.00001f));
             }
         }
 
@@ -212,7 +215,7 @@ namespace Worsen.Tests.PostFX
             _presenter.Tick(_state, _config, 10f);
             Assert.That(_state.Grain, Is.EqualTo(_config.BaselineGrain).And.GreaterThan(0f));
             Assert.That(_state.Chromatic, Is.EqualTo(_config.BaselineChromatic).And.GreaterThan(0f));
-            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette).And.GreaterThan(0f));
+            Assert.That(_state.Vignette, Is.Zero, "Healthy framing belongs only to the unchanged camcorder lens.");
             Assert.That(_state.Blackout, Is.Zero);
         }
 
@@ -264,7 +267,8 @@ namespace Worsen.Tests.PostFX
             _presenter.Tick(_state, _config, _config.TapeHitSeconds);
             _presenter.Tick(_state, _config, _config.TapeRelaxSeconds);
             Assert.That(_state.Frame.Tape.x, Is.Zero);
-            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + .5f * _config.InjuryVignette));
+            float elapsed = _config.TapeRiseSeconds + _config.TapeHitSeconds + _config.TapeRelaxSeconds;
+            Assert.That(_state.Vignette, Is.EqualTo(_config.DamageVignettePeak * Mathf.Clamp01(1f - elapsed / _config.DamageFadeSeconds)).Within(.00001f));
             _presenter.SetInjury(_state, 25f, 100f);
             _presenter.Tick(_state, _config, 5f);
             _presenter.Tick(_state, _config, 5f);
