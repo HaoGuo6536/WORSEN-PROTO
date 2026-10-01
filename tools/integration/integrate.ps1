@@ -163,7 +163,8 @@ try {
     Assert-UnityLease $token
     # Unity's SceneView repaint throws NullReferenceException during Play Mode tests in a fresh
     # editor (batch 14: 7 tests failed on that engine-only log). Close Scene views for the
-    # suite and reopen one beside the Game view afterwards.
+    # suite and reopen one afterwards through Window/General/Scene (GetWindow cannot create a window
+    # from Synaptic's execution context; verified 2026-09-30).
     $sceneViews = Invoke-UnityCsharp 'int n = 0; foreach (UnityEditor.SceneView sv in new System.Collections.ArrayList(UnityEditor.SceneView.sceneViews)) { if (sv != null) { sv.Close(); n++; } } return "closed=" + n;'
     $entry.scene_views_closed = [int]($sceneViews -replace '^closed=', '')
     Log "Scene views closed for the suite: $sceneViews"
@@ -185,7 +186,7 @@ try {
     $s = Wait-EditorIdle $token 10
     if ($s -and $s.TimeScale -ne 1) { Log "WARNING: Time.timeScale is $($s.TimeScale) after the suite (a test leaked it)" }
     if ($entry.scene_views_closed -gt 0) {
-        try { Log ("Scene view restored: " + (Invoke-UnityCsharp 'var gv = typeof(UnityEditor.EditorWindow).Assembly.GetType("UnityEditor.GameView"); var w = gv != null ? UnityEditor.EditorWindow.GetWindow<UnityEditor.SceneView>(new System.Type[] { gv }) : UnityEditor.EditorWindow.GetWindow<UnityEditor.SceneView>(); return "opened=" + (w != null);')) } catch { Log "WARNING: could not reopen the Scene view: $($_.Exception.Message)" }
+        try { Log ("Scene view restored: " + (Invoke-UnityCsharp 'bool ok = UnityEditor.EditorApplication.ExecuteMenuItem("Window/General/Scene"); return "menu=" + ok + " sceneViews=" + UnityEditor.SceneView.sceneViews.Count;')) } catch { Log "WARNING: could not reopen the Scene view: $($_.Exception.Message)" }
     }
     # Nobody may commit in the open checkout while it is detached for the gate; a moved HEAD
     # means the tested tree is not the candidate, so keep that work on a rescue branch and stop.
