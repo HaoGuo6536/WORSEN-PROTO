@@ -11,7 +11,7 @@
 //   - Exercise real manifests, invalid inputs and managed sRGB conversion headlessly.
 //   - Verify ten rigs, six authored roles plus neutral recovery, materials and dimensions.
 //   - Compare collision and protected gameplay/source assets against the base.
-//   - Prove first-import shader validation and repeated-build GUID/material stability.
+//   - Prove asset-safe measurement, staged failure safety and GUID/material stability.
 //   - Verify saved Mimic glow/elevation and native animation bone evaluation.
 // DEPENDENCIES:
 //   - HunterRosterVisualSetup, Hunter configs, NUnit and UnityEditor test APIs.
@@ -22,6 +22,8 @@
 //   not disposable fixtures; all loaded prefab contents are released in finally.
 //   The fresh pack-import regression alone owns a temporary material folder and
 //   deletes it in finally, without replacing any roster or vendor assets.
+//   Geometry regressions run independently of BuildRoster and own disposable
+//   prefabs only; failed stages must preserve target bytes and clean staging.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -158,6 +160,160 @@ namespace Worsen.Tests.Hunter
         {
             Assert.Throws<FormatException>(() => Setup.ToLinearColor(null));
             Assert.Throws<FormatException>(() => Setup.ToLinearColor(new[] { 1f, 1f, 1f }));
+        }
+        [TestCase("Echo")] [TestCase("Weaver")] [TestCase("Ticking")] [TestCase("Ram")] [TestCase("Skip")]
+        [TestCase("Mimic")] [TestCase("Blinder")] [TestCase("Herald")] [TestCase("Mannequin")] [TestCase("Stare")]
+        public void BodyFailureIncludesHunterStageAndOriginalCause(string name)
+        {
+            var method = typeof(Setup).GetMethod("BodyStep", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            var cause = new InvalidOperationException("Degenerate visual geometry.");
+            Action action = () => throw cause;
+            var invocation = Assert.Throws<System.Reflection.TargetInvocationException>(() => method.Invoke(null, new object[] { name, "build", action }));
+            Assert.That(invocation.InnerException, Is.TypeOf<InvalidOperationException>());
+            Assert.That(invocation.InnerException.Message, Does.Contain(name + " visual build failed"));
+            Assert.That(invocation.InnerException.Message, Does.Contain(cause.Message));
+            Assert.That(invocation.InnerException.InnerException, Is.SameAs(cause));
+        }
+    }
+
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
+    public sealed class HunterRosterVisualGeometryUnityTests
+    {
+        [Test]
+        public void PersistentCakeAssetMatchesLoadedContents()
+        {
+            var floor = AssetDatabase.LoadAssetAtPath<FloorDriverConfig>(Setup.CakeConfigPath);
+            Assert.That(floor, Is.Not.Null); Assert.That(floor.CakePrefab, Is.Not.Null);
+            AssertAssetBounds(floor.CakePrefab);
+        }
+        [TestCase("Echo")] [TestCase("Weaver")] [TestCase("Ticking")] [TestCase("Ram")] [TestCase("Skip")]
+        [TestCase("Mimic")] [TestCase("Blinder")] [TestCase("Herald")] [TestCase("Mannequin")] [TestCase("Stare")]
+        public void PersistentSkinnedModelMatchesLoadedContents(string name)
+        {
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(Setup.ArtPath(name) + "/WORSEN_Hunter" + name + ".fbx");
+            Assert.That(model, Is.Not.Null, name); AssertAssetBounds(model);
+        }
+        private static void AssertAssetBounds(GameObject asset)
+        {
+            Assert.That(EditorUtility.IsPersistent(asset), Is.True);
+            string path = AssetDatabase.GetAssetPath(asset), before = File.ReadAllText(path + ".meta");
+            bool active = asset.activeSelf;
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Bounds expected = Setup.MeasureVisualBounds(contents), actual = Setup.MeasureVisualBounds(asset);
+                Assert.That(expected.size.y, Is.GreaterThan(.001f));
+                Assert.That(Vector3.Distance(actual.center, expected.center), Is.LessThan(.00001f));
+                Assert.That(Vector3.Distance(actual.size, expected.size), Is.LessThan(.00001f));
+                Assert.That(asset.activeSelf, Is.EqualTo(active));
+                Assert.That(File.ReadAllText(path + ".meta"), Is.EqualTo(before), "Measurement must not reimport the asset.");
+            }
+            finally { PrefabUtility.UnloadPrefabContents(contents); }
+        }
+        [Test]
+        public void MeasurementExcludesDisabledRenderersAndInactiveSubtrees()
+        {
+            GameObject root = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            root.name = "Mimic geometry regression";
+            try
+            {
+                root.transform.position = new Vector3(3, 4, 5); root.transform.localScale = new Vector3(2, 3, 4);
+                Bounds expected = root.GetComponent<Renderer>().bounds;
+                var hidden = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                hidden.transform.SetParent(root.transform, false); hidden.transform.localPosition = Vector3.up * 50f;
+                hidden.GetComponent<Renderer>().enabled = false;
+                var inactive = new GameObject("inactive parent"); inactive.transform.SetParent(root.transform, false);
+                var child = GameObject.CreatePrimitive(PrimitiveType.Cube); child.transform.SetParent(inactive.transform, false);
+                child.transform.localPosition = Vector3.down * 50f; inactive.SetActive(false);
+                Bounds actual = Setup.MeasureVisualBounds(root);
+                Assert.That(actual.center, Is.EqualTo(expected.center)); Assert.That(actual.size, Is.EqualTo(expected.size));
+                Assert.That(hidden.GetComponent<Renderer>().enabled, Is.False); Assert.That(inactive.activeSelf, Is.False);
+                root.GetComponent<Renderer>().enabled = false;
+                Assert.That(Assert.Throws<InvalidOperationException>(() => Setup.MeasureVisualBounds(root)).Message, Does.Contain(root.name));
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+        [TestCase(true)] [TestCase(false)]
+        public void MissingSkinCannotBePublishedEvenWhenHidden(bool enabled)
+        {
+            string directory = TemporaryDirectory();
+            GameObject root = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                var broken = new GameObject("Frosting_missing"); broken.transform.SetParent(root.transform, false);
+                var skin = broken.AddComponent<SkinnedMeshRenderer>(); skin.enabled = enabled; broken.SetActive(enabled);
+                if (enabled)
+                    Assert.That(Assert.Throws<InvalidOperationException>(() => Setup.MeasureVisualBounds(root)).Message, Does.Contain("Frosting_missing"));
+                var error = Assert.Throws<InvalidOperationException>(() => Save(root, directory + "/Target.prefab", _ => { }));
+                Assert.That(error.Message, Does.Contain("Frosting_missing"));
+                Assert.That(AssetDatabase.FindAssets("t:Prefab", new[] { directory }), Is.Empty);
+            }
+            finally { Object.DestroyImmediate(root); AssetDatabase.DeleteAsset(directory); }
+        }
+        [TestCase(false, false)] [TestCase(false, true)] [TestCase(true, false)] [TestCase(true, true)]
+        public void FailedValidationPreservesTargetAndRemovesStaging(bool existing, bool afterSerialization)
+        {
+            string directory = TemporaryDirectory(), path = directory + "/Target.prefab";
+            GameObject root = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                string before = null, meta = null, guid = null;
+                if (existing)
+                {
+                    Assert.That(PrefabUtility.SaveAsPrefabAsset(root, path), Is.Not.Null);
+                    before = File.ReadAllText(path); meta = File.ReadAllText(path + ".meta"); guid = AssetDatabase.AssetPathToGUID(path);
+                }
+                root.transform.localScale = Vector3.one * 2f;
+                int calls = 0;
+                var error = Assert.Throws<InvalidOperationException>(() => Save(root, path, candidate =>
+                {
+                    calls++;
+                    Assert.That(Setup.MeasureVisualBounds(candidate).size.y, Is.EqualTo(2f).Within(.00001f));
+                    if (!afterSerialization || calls == 2) throw new InvalidOperationException("Injected geometry failure");
+                }));
+                Assert.That(error.Message, Does.Contain("Injected geometry failure"));
+                Assert.That(calls, Is.EqualTo(afterSerialization ? 2 : 1));
+                if (existing)
+                {
+                    Assert.That(File.ReadAllText(path), Is.EqualTo(before)); Assert.That(File.ReadAllText(path + ".meta"), Is.EqualTo(meta));
+                    Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(guid));
+                }
+                else Assert.That(File.Exists(path) || File.Exists(path + ".meta"), Is.False);
+                Assert.That(AssetDatabase.FindAssets("t:Prefab", new[] { directory }).Length, Is.EqualTo(existing ? 1 : 0));
+            }
+            finally { Object.DestroyImmediate(root); AssetDatabase.DeleteAsset(directory); }
+        }
+        [Test]
+        public void SuccessfulStagedReplacementRetainsGuidAndSavedGeometry()
+        {
+            string directory = TemporaryDirectory(), path = directory + "/Target.prefab";
+            GameObject root = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                Assert.That(PrefabUtility.SaveAsPrefabAsset(root, path), Is.Not.Null);
+                string guid = AssetDatabase.AssetPathToGUID(path);
+                root.transform.localScale = Vector3.one * 2f;
+                var saved = Save(root, path, candidate => Assert.That(Setup.MeasureVisualBounds(candidate).size.y, Is.EqualTo(2f).Within(.00001f)));
+                Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(guid));
+                Assert.That(Setup.MeasureVisualBounds(saved).size.y, Is.EqualTo(2f).Within(.00001f));
+                Assert.That(AssetDatabase.FindAssets("t:Prefab", new[] { directory }).Length, Is.EqualTo(1));
+            }
+            finally { Object.DestroyImmediate(root); AssetDatabase.DeleteAsset(directory); }
+        }
+        private static string TemporaryDirectory()
+        {
+            string name = "VisualGeometry_" + Guid.NewGuid().ToString("N");
+            AssetDatabase.CreateFolder("Assets/Editor/Tests/Hunter", name);
+            return "Assets/Editor/Tests/Hunter/" + name;
+        }
+        private static GameObject Save(GameObject root, string path, Action<GameObject> validate)
+        {
+            var method = typeof(Setup).GetMethod("SaveValidatedPrefab", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            try { return (GameObject)method.Invoke(null, new object[] { root, path, validate }); }
+            catch (System.Reflection.TargetInvocationException error)
+            { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
         }
     }
 

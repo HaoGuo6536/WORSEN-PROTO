@@ -7,7 +7,7 @@
 #   Offline art generator · no runtime layer · Hunter / PLAN-017.
 # KEY RESPONSIBILITIES:
 #   - Author the project-made rigid skin and six compatible Generic takes.
-#   - Bake grounded strides, a planted stamp and a recoiling wall stagger.
+#   - Bake grounded strides, planted stamps, a driving attack and wall stagger.
 # DEPENDENCIES:
 #   Blender 5.2; shared creature, humanoid, motion and detail geometry tools.
 # USAGE NOTES:
@@ -83,6 +83,9 @@ def motion(rig, role, t):
         pose_delta(rig,'Chest',(12*t,0,0))
         pose_delta(rig,'Head',(-6*t,0,0))
     elif role == 'attack':
+        # The explicit attack take must articulate too, not just nod its torso.
+        # Reuse the charge bound; runtime charge still selects the run slot.
+        charge_gait(rig,t)
         a=c.envelope(t,[(0,0),(.4,1),(.65,.6),(1,0)])
         pose_delta(rig,'Chest',(12+18*a,0,0))
         pose_delta(rig,'Head',(-6-12*a,0,0))

@@ -12,7 +12,7 @@
 //   - Import project rigs and resolve six clips without editing vendor sources.
 //   - Finalize imported project materials and fit/ground visible geometry.
 //   - Bind ten stable-identity prefabs, measured strides and Mimic-only cake collision.
-//   - Fail the setup gate on missing content, invalid wiring or logged errors.
+//   - Validate staged prefabs before publication and report body-specific failures.
 // DEPENDENCIES:
 //   - Hunter configs and HorrorHunterSetup; Floor cake config; native Lumen player.
 //   - UnityEditor asset APIs; all cross-system wiring is editor-only.
@@ -24,6 +24,8 @@
 //   existing stationary touch path; Floor receives guidance facts, not a new body.
 //   Cake surface properties override manifest tint to match the real pickup exactly.
 //   Mimic also copies the configured cake elevation and native Lumen glow layers.
+//   Persistent prefab geometry is measured in isolated loaded contents, not by
+//   asset activeInHierarchy. Failed validation never replaces the target prefab.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -184,7 +186,12 @@ namespace Worsen.Editor.Hunter
             Application.logMessageReceived += Capture;
             try
             {
-                Entry[] entries = Names.Select(Prepare).ToArray();
+                Entry[] entries = Names.Select(name =>
+                {
+                    Entry entry = null;
+                    BodyStep(name, "prepare", () => entry = Prepare(name));
+                    return entry;
+                }).ToArray();
                 var attack = Require<HunterAttackDriverConfig>(HorrorHunterSetup.ProfileDirectory + "/rusher_Attack.asset");
                 var attackData = new SerializedObject(attack);
                 foreach (string field in new[] { "_warningMaterial", "_fallbackShader", "_projectileMaterial", "_spikeMaterial", "_projectilePrefab", "_spikePrefab" })
@@ -194,8 +201,10 @@ namespace Worsen.Editor.Hunter
                 Require<Material>(CakeMaterialPath);
                 if (Shader.Find("Universal Render Pipeline/Lit") == null) throw new InvalidOperationException("URP Lit shader missing.");
                 // Every selectable body is now project-made; vendor importers stay untouched.
-                foreach (Entry entry in entries) { ImportProject(entry); Resolve(entry); }
-                foreach (Entry entry in entries) BuildEntry(entry, attack, animation);
+                foreach (Entry entry in entries)
+                    BodyStep(entry.Name, "import/resolve", () => { ImportProject(entry); Resolve(entry); });
+                foreach (Entry entry in entries)
+                    BodyStep(entry.Name, "build", () => BuildEntry(entry, attack, animation, errors));
                 var prefabs = new HashSet<GameObject>();
                 foreach (Entry entry in entries)
                     if (entry.Profile.Prefab == null || !prefabs.Add(entry.Profile.Prefab) || AssetDatabase.GetAssetPath(entry.Profile.Prefab) != PrefabPath(entry.Name))
@@ -275,6 +284,12 @@ namespace Worsen.Editor.Hunter
             importer.SaveAndReimport();
         }
         private static string ClipRole(string name) => (name ?? "").Split('|').Last();
+        private static void BodyStep(string name, string stage, Action action)
+        {
+            try { action(); }
+            catch (Exception error)
+            { throw new InvalidOperationException(name + " visual " + stage + " failed: " + error.Message, error); }
+        }
         private static void Resolve(Entry entry)
         {
             entry.Source = Require<GameObject>(entry.SourcePath);
@@ -290,11 +305,12 @@ namespace Worsen.Editor.Hunter
                 if (matches.Length != 1) throw new InvalidOperationException(entry.Name + " needs one nonempty clip: " + name);
                 return matches[0];
             }).ToArray();
+            ValidateMeshes(entry.Source);
             foreach (Renderer renderer in entry.Source.GetComponentsInChildren<Renderer>(true))
                 if (renderer.sharedMaterials.Length == 0 || renderer.sharedMaterials.Any(material => material == null))
                     throw new InvalidOperationException(entry.Name + " has unresolved source material slots.");
         }
-        private static void BuildEntry(Entry entry, HunterAttackDriverConfig attacks, HunterAnimationDriverConfig template)
+        private static void BuildEntry(Entry entry, HunterAttackDriverConfig attacks, HunterAnimationDriverConfig template, List<string> errors)
         {
             string path = PrefabPath(entry.Name);
             EnsureFolder(HorrorHunterSetup.PrefabDirectory); EnsureFolder(ArtPath(entry.Name) + "/Materials");
@@ -323,6 +339,8 @@ namespace Worsen.Editor.Hunter
                 roles.FindProperty("_hit").objectReferenceValue = entry.Clips[5];
                 roles.FindProperty("_attackRecovery").objectReferenceValue = entry.Clips[0];
                 roles.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(config);
+                // Fit the closed disguise, never an importer's cached bite pose/envelope.
+                if (entry.Name == "Mimic") entry.Clips[0].SampleAnimation(creature.GetComponentInChildren<Animator>(true).gameObject, 0f);
                 // Renderer bounds may contain the whole animation envelope. Fit actual rest-pose
                 // geometry after the legacy helper, so a long attack never shrinks the idle body.
                 Bounds bounds = MeasureVisualBounds(creature);
@@ -343,18 +361,65 @@ namespace Worsen.Editor.Hunter
                     motor.FindProperty("_config").objectReferenceValue = entry.Profile.MotorOverride;
                     motor.ApplyModifiedPropertiesWithoutUndo();
                 }
-                ValidateVisualFit(entry, root);
-                var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
-                if (prefab == null) throw new InvalidOperationException("Could not save " + path);
+                var prefab = SaveValidatedPrefab(root, path, candidate =>
+                {
+                    ValidateVisualFit(entry, candidate);
+                    if (errors.Count != 0) throw new InvalidOperationException("Roster setup logged errors: " + string.Join(" | ", errors));
+                });
                 var serialized = new SerializedObject(entry.Profile);
                 serialized.FindProperty("_prefab").objectReferenceValue = prefab;
                 serialized.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(entry.Profile);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
-            // Acceptance is about saved content, not just the transient fitting instance.
-            root = PrefabUtility.LoadPrefabContents(path);
-            try { ValidateVisualFit(entry, root); }
-            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+        private static GameObject SaveValidatedPrefab(GameObject root, string path, Action<GameObject> validate)
+        {
+            ValidatePrefabReferences(root); validate(root);
+            // Exercise serialization/import before touching the stable target GUID or
+            // its profile binding. A failing saved-content check deletes only staging.
+            string staging = AssetDatabase.GenerateUniqueAssetPath(Path.GetDirectoryName(path).Replace('\\', '/') + "/RosterVisualStaging.prefab");
+            try
+            {
+                if (PrefabUtility.SaveAsPrefabAsset(root, staging) == null)
+                    throw new InvalidOperationException("Could not stage " + path);
+                GameObject saved = PrefabUtility.LoadPrefabContents(staging);
+                try { ValidatePrefabReferences(saved); validate(saved); }
+                finally { PrefabUtility.UnloadPrefabContents(saved); }
+                var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+                if (prefab == null) throw new InvalidOperationException("Could not save " + path);
+                return prefab;
+            }
+            finally
+            {
+                if (AssetDatabase.LoadMainAssetAtPath(staging) != null && !AssetDatabase.DeleteAsset(staging))
+                    throw new InvalidOperationException("Could not remove staging prefab: " + staging);
+            }
+        }
+        private static void ValidatePrefabReferences(GameObject root)
+        {
+            ValidateMeshes(root);
+            foreach (Component component in root.GetComponentsInChildren<Component>(true))
+            {
+                if (component == null) throw new InvalidOperationException(root.name + " contains a missing script.");
+                using var serialized = new SerializedObject(component);
+                var property = serialized.GetIterator();
+                while (property.Next(true))
+                    if (property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue == null &&
+                        property.objectReferenceInstanceIDValue != 0)
+                        throw new InvalidOperationException(root.name + "/" + component.name + " / " + component.GetType().Name +
+                            "." + property.propertyPath + ": unresolved serialized reference.");
+            }
+        }
+        private static void ValidateMeshes(GameObject root)
+        {
+            // Disabled/inactive old frosting must not evade the saved-reference gate.
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!(renderer is SkinnedMeshRenderer) && !(renderer is MeshRenderer)) continue;
+                Mesh mesh = renderer is SkinnedMeshRenderer skin ? skin.sharedMesh : renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                if (mesh == null || mesh.vertexCount == 0 || !EditorUtility.IsPersistent(mesh))
+                    throw new InvalidOperationException(root.name + "/" + renderer.name + ": missing, empty or nonpersistent source mesh.");
+            }
         }
         private static void ValidateVisualFit(Entry entry, GameObject root)
         {
@@ -374,6 +439,24 @@ namespace Worsen.Editor.Hunter
         }
         public static Bounds MeasureVisualBounds(GameObject visual)
         {
+            if (visual == null) throw new ArgumentNullException(nameof(visual));
+            // Prefab assets are not scene instances: activeInHierarchy can be false
+            // for every renderer (batch 27's real cake at Mimic matching). Loading
+            // contents preserves intentional inactive children/disabled renderers
+            // and supplies a real skeleton for BakeMesh without activating assets.
+            if (EditorUtility.IsPersistent(visual))
+            {
+                string path = AssetDatabase.GetAssetPath(visual);
+                string child = AnimationUtility.CalculateTransformPath(visual.transform, visual.transform.root);
+                GameObject contents = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    GameObject target = string.IsNullOrEmpty(child) ? contents : contents.transform.Find(child)?.gameObject;
+                    if (target == null) throw new InvalidOperationException("Missing visual in loaded asset: " + path + "/" + child);
+                    return MeasureVisualBounds(target);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(contents); }
+            }
             bool found = false; Bounds bounds = default;
             foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>(true))
             {
@@ -385,9 +468,15 @@ namespace Worsen.Editor.Hunter
                     // BakeMesh(mesh) already yields world-scale offsets in the renderer's axes, so map them with
                     // position and rotation only; TransformPoint applied the scale twice (batch 15: the Satyr,
                     // lossy scale 0.394, measured 1.21 m instead of 3.06 m; verified against renderer bounds).
-                    { mesh = new Mesh(); temporary = true; skin.BakeMesh(mesh); }
+                    {
+                        if (skin.sharedMesh == null || skin.sharedMesh.vertexCount == 0)
+                            throw new InvalidOperationException(visual.name + "/" + renderer.name + ": unresolved or empty skinned mesh.");
+                        mesh = new Mesh(); temporary = true; skin.BakeMesh(mesh);
+                    }
                     else if (renderer is MeshRenderer) mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
-                    if (mesh == null) throw new InvalidOperationException("Visible renderer has no measurable mesh: " + renderer.name);
+                    else continue;
+                    if (mesh == null || mesh.vertexCount == 0)
+                        throw new InvalidOperationException(visual.name + "/" + renderer.name + ": visible renderer has no measurable mesh.");
                     // Mesh.bounds is readable even when vendor vertex buffers are not CPU-readable.
                     Bounds local = mesh.bounds;
                     for (int i = 0; i < 8; i++)
@@ -402,7 +491,8 @@ namespace Worsen.Editor.Hunter
                 }
                 finally { if (temporary) Object.DestroyImmediate(mesh); }
             }
-            if (!found || !Finite(bounds.size.y) || bounds.size.y <= 0.001f) throw new InvalidOperationException("Degenerate visual geometry.");
+            if (!found || !Finite(bounds.size.y) || bounds.size.y <= 0.001f)
+                throw new InvalidOperationException(visual.name + ": degenerate visual geometry (no enabled active mesh with measurable height).");
             return bounds;
         }
         private static void MatchCakePresentation(GameObject root, GameObject creature)
