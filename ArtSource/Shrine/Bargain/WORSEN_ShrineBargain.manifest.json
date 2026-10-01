@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "Bargain",
+  "source": "ArtSource/Shrine/Bargain/WORSEN_ShrineBargain.blend",
+  "export": "Assets/Art/Shrine/Bargain/WORSEN_ShrineBargain.fbx",
+  "units": "metres",
+  "authoring_axes": "Z up, -Y front",
+  "unity_axes": "Y up, -Z front",
+  "bakeAxisConversion": false,
+  "height": 1.48,
+  "footprint": [
+    1.1,
+    0.83
+  ],
+  "bounds_blender": {
+    "min": [
+      -0.550000011920929,
+      -0.45000001788139343,
+      0.0
+    ],
+    "max": [
+      0.550000011920929,
+      0.3799999952316284,
+      1.4800000190734863
+    ]
+  },
+  "interaction_blender": [
+    0,
+    -0.405,
+    0.3
+  ],
+  "interaction_unity": [
+    0,
+    0.3,
+    -0.405
+  ],
+  "triangles": 686,
+  "materials": [
+    {
+      "name": "M_ShrineBody",
+      "color_srgb": [
+        0.24,
+        0.27,
+        0.29
+      ],
+      "emission": 0,
+      "roughness": 0.82
+    },
+    {
+      "name": "M_ShrineAccent",
+      "color_srgb": [
+        1,
+        0.65,
+        0.25
+      ],
+      "emission": 0.65,
+      "roughness": 0.82
+    }
+  ],
+  "runtime_contract": "Static mesh only; two named material slots; no colliders or scripts. Authored scale, not fallback Size."
+}
