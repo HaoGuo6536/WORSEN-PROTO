@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Verify seam coverage and gap-interior probes in all cardinal directions.
 //   - Verify clearance rejection, explicit destination identity and tile collapse.
+//   - Verify exact configured collapse deadlines without native lifecycle callbacks.
 // DEPENDENCIES:
 //   - NUnit, Core and Domain.Procedural; reflection for managed config fields.
 // USAGE NOTES:
@@ -61,6 +62,32 @@ namespace Worsen.Tests.Procedural
             Assert.That(presenter.Advance(state, .01f, driver), Is.EqualTo(new[] { 0 }));
             Assert.That(presenter.Advance(state, 100f, driver), Is.EqualTo(Enumerable.Range(1, plan.Tiles.Count - 1)));
             Assert.That(presenter.Advance(state, 100f, driver), Is.Empty);
+        }
+
+        [TestCase(4f, .4f)] [TestCase(2f, .5f)] [TestCase(0f, .25f)]
+        public void ExactConfiguredDeadlinesCollapseOnceForSingleAndSplitTicks(float delay, float interval)
+        {
+            var layout = Layout(Vector3.right, 1, Vector3.zero, out var blocks);
+            var driver = DriverConfig();
+            Set(driver, "_passageFirstTileDelay", delay); Set(driver, "_passageTileInterval", interval);
+            var presenter = new ProceduralPassagePresenter();
+            var plan = presenter.Build(layout, 0, Config(), driver, blocks);
+            var single = new ProceduralPassageDriverState { Plan = plan };
+            var split = new ProceduralPassageDriverState { Plan = plan };
+            // Binary-exact split reaches the deadline exactly, not just within the
+            // tolerance exercised by the separate 3.99f + .01f regression above.
+            if (delay > 0f) Assert.That(presenter.Advance(split, delay - .125f, driver), Is.Empty);
+            Assert.That(presenter.Advance(single, delay, driver), Is.EqualTo(new[] { 0 }));
+            Assert.That(presenter.Advance(split, delay > 0f ? .125f : 0f, driver), Is.EqualTo(new[] { 0 }));
+            foreach (var state in new[] { single, split })
+            {
+                Assert.That(state.Elapsed, Is.EqualTo((double)delay));
+                Assert.That(state.CollapsedCount, Is.EqualTo(1));
+                Assert.That(presenter.Advance(state, 0f, driver), Is.Empty);
+                Assert.That(presenter.Advance(state, interval, driver), Is.EqualTo(new[] { 1 }));
+                Assert.That(state.Elapsed, Is.EqualTo((double)delay + interval));
+                Assert.That(presenter.Advance(state, 0f, driver), Is.Empty);
+            }
         }
 
         [Test]
