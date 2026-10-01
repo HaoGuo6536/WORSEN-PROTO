@@ -11,7 +11,7 @@
 //   - Admit dressing on occupied geometry, including supplied curved shell boundaries.
 //   - Preserve exact authored lights and mirrored low-ceiling corridor sockets.
 //   - Compute bounded flicker, curse falloff and room-owned chalk placement.
-//   - Fit imported decoration without blocking running lanes or door apertures.
+//   - Admit wall-side furniture without fake structural arches or corner clutter.
 // DEPENDENCIES:
 //   - Its own definitions/state, Core interactable snapshots and Unity value math.
 // USAGE NOTES:
@@ -87,12 +87,25 @@ namespace Worsen.Presentation.Environment
 
         public static EnvironmentSlot[] BuildDressing(int roomId, Bounds bounds, bool openSky, bool refuge,
             Vector3[] portals, Bounds[] reserved = null, IReadOnlyList<Bounds> cells = null,
-            IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
+            IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null,
+            bool authoredFurniture = false, Vector3 floorEnvelope = default, Vector3 wallEnvelope = default)
         {
+            if (authoredFurniture)
+            {
+                var lights = new List<EnvironmentSlot>();
+                if (lightSockets != null)
+                    foreach (var point in lightSockets) lights.Add(new EnvironmentSlot(point, 0f, true));
+                else
+                    foreach (var slot in BuildSlots(roomId, bounds, portals, cells)) if (slot.Torch) lights.Add(slot);
+                return lights.ToArray();
+            }
+            if (floorEnvelope.Equals(default(Vector3))) floorEnvelope = EnvironmentDriverConfig.DefaultFloorEnvelope;
+            if (wallEnvelope.Equals(default(Vector3))) wallEnvelope = EnvironmentDriverConfig.DefaultWallEnvelope;
             if (boundary != null || lightSockets != null)
             {
                 var admitted = new List<EnvironmentSlot>();
-                foreach (var slot in BuildDressing(roomId, bounds, openSky, refuge, portals, reserved, cells))
+                foreach (var slot in BuildDressing(roomId, bounds, openSky, refuge, portals, reserved, cells,
+                    floorEnvelope: floorEnvelope, wallEnvelope: wallEnvelope))
                     if ((!slot.Torch || lightSockets == null) && FitsBoundary(slot, boundary)) admitted.Add(slot);
                 if (lightSockets != null)
                     foreach (var point in lightSockets) admitted.Add(new EnvironmentSlot(point, 0f, true));
@@ -102,76 +115,55 @@ namespace Worsen.Presentation.Environment
             {
                 var dressing = new List<EnvironmentSlot>();
                 foreach (var cell in cells)
-                    foreach (var slot in BuildDressing(roomId, cell, openSky, refuge, portals, reserved))
+                    foreach (var slot in BuildDressing(roomId, cell, openSky, refuge, portals, reserved,
+                        floorEnvelope: floorEnvelope, wallEnvelope: wallEnvelope))
                         if (FitsCell(slot, cell, cells)) dressing.Add(slot);
                 return dressing.ToArray();
             }
             if (cells != null && cells.Count == 1) bounds = cells[0];
-            var result = new List<EnvironmentSlot>(6);
+            var result = new List<EnvironmentSlot>(4);
             EnvironmentSlot[] walls = BuildSlots(roomId, bounds, portals);
             foreach (EnvironmentSlot slot in walls) if (slot.Torch) result.Add(slot);
-            if (bounds.size.x < 10f || bounds.size.z < 10f || bounds.size.y < 5.5f)
-            { foreach (EnvironmentSlot slot in walls) if (!slot.Torch) result.Add(slot); return result.ToArray(); }
-            // Decorative arch stays fully above a standing doorway. Its curved timber
-            // and side braces read as a wall-backed facade, never a lower fake doorway.
-            if (portals != null && portals.Length > 0)
+            // One useful wall-side furnishing, not a random corner pot. Never add
+            // structural arches or columns: those belong to the authored shell.
+            EnvironmentSlot? furniture = null;
+            foreach (var wall in walls)
             {
-                Vector3 portal = portals[(roomId & int.MaxValue) % portals.Length];
-                Vector3 delta = portal - bounds.center;
-                bool xWall = Mathf.Abs(delta.x) > Mathf.Abs(delta.z);
-                float yaw = xWall ? (delta.x > 0f ? 270f : 90f) : (delta.z > 0f ? 180f : 0f);
-                Vector3 position = portal;
-                position.y = Mathf.Min(bounds.max.y - 1.15f, bounds.min.y + 4.1f);
-                position += xWall ? Vector3.right * (delta.x > 0 ? -.12f : .12f) : Vector3.forward * (delta.z > 0 ? -.12f : .12f);
-                result.Add(new EnvironmentSlot(position, yaw, EnvironmentDecorationKind.Arch, new Vector3(4.6f, 2.2f, .42f)));
+                if (wall.Torch || floorEnvelope.y > bounds.size.y) continue;
+                var inward = EnvironmentPlacementPresenter.RotateYaw(Vector3.forward, wall.Yaw);
+                Vector3 position = wall.Position + inward * (floorEnvelope.z * .5f - .3f);
+                position.y = bounds.min.y + floorEnvelope.y * .5f;
+                Vector3 worldSize = EnvironmentPlacementPresenter.RotateBounds(new Bounds(Vector3.zero, floorEnvelope), wall.Yaw).size;
+                if (!ClearsFloorRoutes(position, worldSize, bounds, portals, reserved)) continue;
+                furniture = new EnvironmentSlot(position, wall.Yaw,
+                    refuge ? EnvironmentDecorationKind.MerchantDisplay : EnvironmentDecorationKind.FloorProp, floorEnvelope);
+                result.Add(furniture.Value); break;
             }
-            // Corner-only columns leave the central/stair spaces and two-metre door
-            // approaches untouched. Different corner choices give stable room identity.
-            int start = (roomId & int.MaxValue) % 4;
-            for (int i = 0; i < 4 && result.Count < (openSky ? 5 : 4); i++)
-            {
-                int corner = (start + i) % 4;
-                Vector3 position = Corner(bounds, corner, .34f);
-                position.y = bounds.min.y + 2f;
-                if (!ClearsPortals(position, portals, 2.1f)) continue;
-                var envelope = new Vector3(.42f, 4f, .42f);
-                if (IntersectsReserved(new Bounds(position, envelope), reserved)) continue;
-                result.Add(new EnvironmentSlot(position, 0f, EnvironmentDecorationKind.Column, envelope));
-            }
-            if (!openSky)
-                foreach (EnvironmentSlot slot in walls)
-                    if (!slot.Torch && result.Count < 5) { result.Add(slot); break; }
-            for (int i = 0; i < 4 && result.Count < 6; i++)
-            {
-                Vector3 position = Corner(bounds, (start + i + 2) % 4, .75f);
-                var envelope = new Vector3(.65f, refuge ? 1.1f : 1.5f, .65f);
-                position.y = bounds.min.y + envelope.y * .5f;
-                if (!ClearsFloorRoutes(position, envelope, bounds, portals, reserved)) continue;
-                bool overlaps = false;
-                foreach (EnvironmentSlot placed in result)
-                    if (placed.Kind == EnvironmentDecorationKind.Column &&
-                        IntersectsReserved(new Bounds(position, envelope), new[] { new Bounds(placed.Position, placed.Envelope) })) overlaps = true;
-                if (overlaps) continue;
-                result.Add(new EnvironmentSlot(position, (roomId % 4) * 90f,
-                    refuge ? EnvironmentDecorationKind.MerchantDisplay : EnvironmentDecorationKind.FloorProp, envelope));
-                break;
-            }
+            if (!openSky && wallEnvelope.y <= bounds.size.y)
+                foreach (var wall in walls)
+                {
+                    if (wall.Torch || (furniture.HasValue && furniture.Value.Yaw == wall.Yaw)) continue;
+                    var inward = EnvironmentPlacementPresenter.RotateYaw(Vector3.forward, wall.Yaw);
+                    Vector3 position = wall.Position + inward * (wallEnvelope.z * .5f - .3f);
+                    position.y = Mathf.Clamp(position.y, bounds.min.y + wallEnvelope.y * .5f, bounds.max.y - wallEnvelope.y * .5f);
+                    var slot = new EnvironmentSlot(position, wall.Yaw, EnvironmentDecorationKind.Banner, wallEnvelope);
+                    Vector3 worldSize = EnvironmentPlacementPresenter.RotateBounds(new Bounds(Vector3.zero, wallEnvelope), wall.Yaw).size;
+                    if (!IntersectsReserved(new Bounds(position, worldSize), reserved)) { result.Add(slot); break; }
+                }
             return result.ToArray();
         }
-
-        private static Vector3 Corner(Bounds bounds, int corner, float inset)
-        { return new Vector3(corner % 2 == 0 ? bounds.min.x + inset : bounds.max.x - inset,
-            bounds.min.y, corner < 2 ? bounds.min.z + inset : bounds.max.z - inset); }
 
         public static bool ClearsFloorRoutes(Vector3 position, Vector3 envelope, Bounds room, Vector3[] portals, Bounds[] reserved)
         {
             if (!ClearsPortals(position, portals, 2.4f)) return false;
-            // Keep all possible rotated stairs, upper landing approaches and center
-            // circulation clear. Only the outermost corner pockets are eligible.
+            // The complete world-axis footprint stays inside a perimeter band;
+            // either wall suffices, rather than forcing both axes into a corner.
             Vector3 delta = position - room.center;
-            float requiredX = room.extents.x - 1.12f + envelope.x * .5f;
-            float requiredZ = room.extents.z - 1.12f + envelope.z * .5f;
-            if (Mathf.Abs(delta.x) < requiredX || Mathf.Abs(delta.z) < requiredZ) return false;
+            if (Mathf.Abs(delta.x) + envelope.x * .5f > room.extents.x + .001f ||
+                Mathf.Abs(delta.z) + envelope.z * .5f > room.extents.z + .001f) return false;
+            float requiredX = room.extents.x - envelope.x * .5f;
+            float requiredZ = room.extents.z - envelope.z * .5f;
+            if (Mathf.Abs(delta.x) < requiredX - .001f && Mathf.Abs(delta.z) < requiredZ - .001f) return false;
             return !IntersectsReserved(new Bounds(position, envelope + Vector3.one * .12f), reserved);
         }
 
@@ -234,14 +226,25 @@ namespace Worsen.Presentation.Environment
         {
             if (polygon == null) return true;
             if (polygon.Count < 3) return false;
-            var rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
             for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++)
             {
-                var point = slot.Position + rotation * new Vector3(x * slot.Envelope.x * .5f, 0f, z * slot.Envelope.z * .5f);
+                var point = slot.Position + EnvironmentPlacementPresenter.RotateYaw(
+                    new Vector3(x * slot.Envelope.x * .5f, 0f, z * slot.Envelope.z * .5f), slot.Yaw);
                 bool inside = false;
                 for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+                {
+                    // Contact with the shell is valid: wall-backed envelopes have
+                    // rear corners exactly on the boundary, not strictly inside it.
+                    Vector3 edge = polygon[i] - polygon[j]; edge.y = 0f;
+                    Vector3 delta = point - polygon[j]; delta.y = 0f;
+                    if (edge.sqrMagnitude > .000001f)
+                    {
+                        float along = Mathf.Clamp01(Vector3.Dot(delta, edge) / edge.sqrMagnitude);
+                        if ((delta - edge * along).sqrMagnitude < .00000001f) { inside = true; break; }
+                    }
                     if ((polygon[i].z > point.z) != (polygon[j].z > point.z) && point.x <
                         (polygon[j].x - polygon[i].x) * (point.z - polygon[i].z) / (polygon[j].z - polygon[i].z) + polygon[i].x) inside = !inside;
+                }
                 if (!inside) return false;
             }
             return true;
@@ -253,11 +256,6 @@ namespace Worsen.Presentation.Environment
             Vector3 half = (rotated ? new Vector3(slot.Envelope.z, slot.Envelope.y, slot.Envelope.x) : slot.Envelope) * .5f;
             Vector3 min = slot.Position - half, max = slot.Position + half;
             if (min.x < cell.min.x || max.x > cell.max.x || min.z < cell.min.z || max.z > cell.max.z) return false;
-            bool corner = slot.Kind == EnvironmentDecorationKind.Column || slot.Kind == EnvironmentDecorationKind.FloorProp ||
-                slot.Kind == EnvironmentDecorationKind.MerchantDisplay;
-            if (corner)
-                return ExposedWall(cell, cells, slot.Position.x < cell.center.x ? 3 : 1, min, max) &&
-                    ExposedWall(cell, cells, slot.Position.z < cell.center.z ? 0 : 2, min, max);
             int wall = slot.Yaw == 0f ? 0 : slot.Yaw == 270f ? 1 : slot.Yaw == 180f ? 2 : 3;
             return ExposedWall(cell, cells, wall, min, max);
         }
@@ -341,11 +339,8 @@ namespace Worsen.Presentation.Environment
         {
             if (Mathf.Abs(Mathf.Sin(yaw * Mathf.Deg2Rad)) > 0.5f)
                 maximumSize = new Vector3(maximumSize.z, maximumSize.y, maximumSize.x);
-            float scale = 1f;
-            if (currentSize.x > 0.001f) scale = Mathf.Min(scale, maximumSize.x / currentSize.x);
-            if (currentSize.y > 0.001f) scale = Mathf.Min(scale, maximumSize.y / currentSize.y);
-            if (currentSize.z > 0.001f) scale = Mathf.Min(scale, maximumSize.z / currentSize.z);
-            return Mathf.Max(0.001f, scale);
+            return EnvironmentPlacementPresenter.FitScale(currentSize, maximumSize,
+                EnvironmentDriverConfig.DefaultMinimumPropScale, EnvironmentDriverConfig.DefaultMaximumPropScale);
         }
     }
 }

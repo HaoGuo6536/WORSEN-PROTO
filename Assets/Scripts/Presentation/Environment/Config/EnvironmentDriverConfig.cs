@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
-//   - Tune cold flat fluorescent panels and their slight deterministic flicker.
+//   - Tune mesh-based placement and kit fixtures with restrained fluorescent flicker.
 //   - Hold imported visual assets, palettes, fake-light strengths and strict effect budgets.
 //   - Reference project-owned fake torch and moon profiles; no runtime real lights.
 //   - Tune restrained lantern halos, ground pools, exit fans, thin fog and optional hunter rim.
@@ -25,6 +25,38 @@ namespace Worsen.Presentation.Environment
     [CreateAssetMenu(fileName = "EnvironmentDriverConfig", menuName = "Worsen/Environment/Driver Config")]
     public sealed class EnvironmentDriverConfig : ScriptableObject
     {
+        public const float DefaultMinimumPropScale = .75f;
+        public const float DefaultMaximumPropScale = 1.25f;
+        public static readonly Vector3 DefaultFloorEnvelope = new Vector3(2.5f, 2.4f, 1.1f);
+        public static readonly Vector3 DefaultWallEnvelope = new Vector3(2f, 2.8f, .6f);
+        [SerializeField] private float _minimumPropScale = DefaultMinimumPropScale;
+        [SerializeField] private float _maximumPropScale = DefaultMaximumPropScale;
+        [SerializeField] private Vector3 _floorEnvelope = DefaultFloorEnvelope;
+        [SerializeField] private Vector3 _wallEnvelope = DefaultWallEnvelope;
+        [SerializeField] private Vector3 _fixtureEnvelope = new Vector3(2f, 1.2f, 1.2f);
+        [SerializeField] private string _castleFurniture = "ProceduralKits/Castle/prop_bench";
+        [SerializeField] private string _castleWallDecoration = "ProceduralKits/Castle/prop_banner";
+        [SerializeField] private string _hospitalFurniture = "ProceduralKits/Hospital/prop_waiting_bench";
+        [SerializeField] private string _schoolFurniture = "ProceduralKits/School/prop_bookcase";
+        [SerializeField] private string _basementFurniture = "ProceduralKits/Basement/prop_electrical_cabinet";
+        [SerializeField] private string _hospitalFixture = "ProceduralKits/Hospital/light_fluorescent_panel";
+        [SerializeField] private string _schoolFixture = "ProceduralKits/School/prop_fluorescent";
+        [SerializeField] private string _basementFixture = "ProceduralKits/Basement/cage_lamp";
+        [SerializeField, Min(0f)] private float _fixtureEmission = 1.5f;
+        public float MinimumPropScale => _minimumPropScale;
+        public float MaximumPropScale => _maximumPropScale;
+        public Vector3 FloorEnvelope => _floorEnvelope;
+        public Vector3 WallEnvelope => _wallEnvelope;
+        public Vector3 FixtureEnvelope => _fixtureEnvelope;
+        public string CastleFurniture => _castleFurniture;
+        public string CastleWallDecoration => _castleWallDecoration;
+        public string HospitalFurniture => _hospitalFurniture;
+        public string SchoolFurniture => _schoolFurniture;
+        public string BasementFurniture => _basementFurniture;
+        public string HospitalFixture => _hospitalFixture;
+        public string SchoolFixture => _schoolFixture;
+        public string BasementFixture => _basementFixture;
+        public float FixtureEmission => _fixtureEmission;
         [SerializeField] private Shader _chalkShader = null;
         [SerializeField] private Shader _panelShader = null;
         public Shader ChalkShader => _chalkShader;
