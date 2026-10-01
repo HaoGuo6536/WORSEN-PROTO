@@ -36,7 +36,8 @@ namespace Worsen.Presentation.Results
         public float CatchTimeoutSeconds => float.IsNaN(_catchTimeoutSeconds) || float.IsInfinity(_catchTimeoutSeconds)
             || _catchTimeoutSeconds <= 0f ? DefaultCatchTimeoutSeconds : _catchTimeoutSeconds;
         [SerializeField, Min(10)] private int _fontSize = 20;
-        [SerializeField, Min(240f)] private float _panelWidth = 460f;
+        [Tooltip("Wide enough for the three-column metric grid at the 1920x1080 reference.")]
+        [SerializeField, Min(240f)] private float _panelWidth = 600f;
         [SerializeField, Min(0f)] private float _screenMargin = 24f;
         [SerializeField, Min(0f)] private float _panelPadding = 28f;
         [SerializeField, Min(0f)] private float _rowGap = 14f;

@@ -5,12 +5,14 @@
 // PURPOSE:
 //   Builds the run-results surface with native text and a keyboard-focusable button.
 //   Vector chrome gives the summary a restrained horror treatment without bitmap assets.
+//   The surface carries no flavour copy: a title, the outcome line, the metrics and
+//   the actions, laid out in a three-column grid so it fits short and wide screens.
 //
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e) · Presentation · Results, owned by ResultsDriver.
 //
 // KEY RESPONSIBILITIES:
-//   - Group gameplay metrics separately and build a no-floor-only title navigation button.
+//   - Grid gameplay metrics separately and build a no-floor-only title navigation button.
 //   - Build a centered, bounded summary and preserve the established element names.
 //   - Expose detailed outcomes, history and an editable next-run seed without rich-text interpretation.
 //   - Paint panel/button chrome and pair all paint/focus callbacks with release.
@@ -72,26 +74,36 @@ namespace Worsen.Presentation.Results
             body.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             body.verticalScrollerVisibility = ScrollerVisibility.Auto;
             _panel.Add(body);
-            var kicker = AddLabel(body, "results-kicker", "AFTER THE NIGHT", config.CaptionFontSize, config.MutedColor);
-            kicker.style.unityTextAlign = TextAnchor.MiddleCenter;
-            kicker.style.marginTop = config.RowGap;
             var title = AddLabel(body, "results-title", "", config.TitleFontSize, config.BoneColor);
             title.style.unityTextAlign = TextAnchor.MiddleCenter;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.style.marginTop = config.RowGap * 0.5f;
             var reason = AddLabel(body, "end-reason", "", config.FontSize, config.BoneColor);
             reason.style.unityTextAlign = TextAnchor.MiddleCenter;
-            reason.style.marginBottom = config.RowGap;
+            reason.style.marginBottom = config.RowGap * 0.5f;
+            // Thirteen metrics flow into three columns (five short rows) instead of seven tall ones.
             var metrics = new VisualElement { name = "results-metrics" };
+            metrics.style.flexDirection = FlexDirection.Row;
+            metrics.style.flexWrap = Wrap.Wrap;
             body.Add(metrics);
-            AddRow(metrics, "TIME SURVIVED", "run-time", "CAKES FOUND", "cake-total");
-            AddRow(metrics, "GOLDEN CAKES", "golden-cake-total", "CHASES", "chase-count");
-            AddRow(metrics, "CHASES ESCAPED", "chase-escapes", "TIME IN CHASE", "chase-time");
-            AddRow(metrics, "CAUSE OF DEATH", "death-cause", "KILLER", "killer");
-            AddRow(metrics, "GRABS ESCAPED", "grabs-escaped", "EXIT OPEN TO ESCAPE", "exit-to-escape");
-            AddRow(metrics, "DEPTH REACHED", "depth-reached", "BEST DEPTH", "best-depth");
-            AddRow(metrics, "SEED", "run-seed", "", "seed-spacer");
-            metrics.Add(new TextField("Next run seed (blank = new)") { name = "next-run-seed" });
-            AddLabel(metrics, "seed-error", "", config.CaptionFontSize, config.BoneColor);
+            AddMetric(metrics, "TIME SURVIVED", "run-time");
+            AddMetric(metrics, "CAKES FOUND", "cake-total");
+            AddMetric(metrics, "GOLDEN CAKES", "golden-cake-total");
+            AddMetric(metrics, "CHASES", "chase-count");
+            AddMetric(metrics, "CHASES ESCAPED", "chase-escapes");
+            AddMetric(metrics, "TIME IN CHASE", "chase-time");
+            AddMetric(metrics, "CAUSE OF DEATH", "death-cause");
+            AddMetric(metrics, "KILLER", "killer");
+            AddMetric(metrics, "GRABS ESCAPED", "grabs-escaped");
+            AddMetric(metrics, "EXIT TO ESCAPE", "exit-to-escape");
+            AddMetric(metrics, "DEPTH REACHED", "depth-reached");
+            AddMetric(metrics, "BEST DEPTH", "best-depth");
+            AddMetric(metrics, "SEED", "run-seed");
+            var seedField = new TextField("Next seed (blank = random)") { name = "next-run-seed" };
+            seedField.style.width = Length.Percent(100f);
+            seedField.style.marginTop = config.RowGap;
+            metrics.Add(seedField);
+            AddLabel(metrics, "seed-error", "", config.CaptionFontSize, config.BoneColor).style.width = Length.Percent(100f);
 
             _button = new Button { name = "restart-button", text = "", focusable = true, tabIndex = 0 };
             _button.style.height = config.ButtonHeight;
@@ -111,7 +123,7 @@ namespace Worsen.Presentation.Results
             _restartLabel = AddLabel(_button, "restart-label", "", config.FontSize, config.BoneColor);
             _restartLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             _restartLabel.style.flexGrow = 1f;
-            var hint = AddLabel(_panel, "restart-hint", "ENTER / SPACE  ·  RUN AGAIN", config.CaptionFontSize, config.MutedColor);
+            var hint = AddLabel(_panel, "restart-hint", "ENTER / SPACE  RUN AGAIN", config.CaptionFontSize, config.MutedColor);
             hint.style.unityTextAlign = TextAnchor.MiddleCenter;
             hint.style.marginTop = config.RowGap * 0.5f;
             var titleButton = new Button { name = "return-title-button", text = "RETURN TO TITLE", focusable = true };
@@ -149,22 +161,13 @@ namespace Worsen.Presentation.Results
         private void OnFocusIn(FocusInEvent evt) => _button?.MarkDirtyRepaint();
         private void OnFocusOut(FocusOutEvent evt) => _button?.MarkDirtyRepaint();
 
-        private void AddRow(VisualElement parent, string leftCaption, string leftName, string rightCaption, string rightName)
-        {
-            var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.marginTop = _config.RowGap;
-            parent.Add(row);
-            AddMetric(row, leftCaption, leftName);
-            AddMetric(row, rightCaption, rightName);
-        }
-
-        private void AddMetric(VisualElement row, string caption, string name)
+        private void AddMetric(VisualElement grid, string caption, string name)
         {
             var cell = new VisualElement();
-            cell.style.width = Length.Percent(50f);
+            cell.style.width = Length.Percent(100f / 3f);
             cell.style.paddingRight = _config.RowGap * 0.5f;
-            row.Add(cell);
+            cell.style.marginTop = _config.RowGap * 0.75f;
+            grid.Add(cell);
             AddLabel(cell, name + "-caption", caption, _config.CaptionFontSize, _config.MutedColor);
             AddLabel(cell, name, "", _config.FontSize, _config.BoneColor);
         }

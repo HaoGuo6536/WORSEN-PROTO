@@ -62,7 +62,7 @@ namespace Worsen.Presentation.Results
             state.RestartIssued = issued;
             state.Title = "NO FLOOR";
             state.Seed = (state.GenerationSeed ?? seed).ToString(CultureInfo.InvariantCulture);
-            state.EndReason = "The castle would not form. Seed " + state.Seed + ".";
+            state.EndReason = "Floor generation failed. Seed " + state.Seed + ".";
         }
 
         public bool TryReturnToTitle(ResultsDriverState state)
@@ -131,7 +131,7 @@ namespace Worsen.Presentation.Results
                 if (!(i == 0 && state.NextSeedText[i] == '-') && (state.NextSeedText[i] < '0' || state.NextSeedText[i] > '9')) digits = false;
             state.SeedValid = !state.UseFixedSeed || (digits && int.TryParse(state.NextSeedText,
                 NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out state.NextSeed));
-            state.SeedError = state.SeedValid ? "" : "Enter a signed 32-bit decimal seed, or leave blank for a new seed.";
+            state.SeedError = state.SeedValid ? "" : "Seed must be a 32-bit whole number, or blank.";
             return state.SeedValid;
         }
 
