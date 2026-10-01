@@ -6,7 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Require a physical template rejection to recover into an admitted organic map.
+//   - Require preflight and later native path failures to recover into an organic map.
 //   - Verify seed/round provenance, failure reasons and no stale template geometry.
 // DEPENDENCIES:
 //   - NUnit, Domain.Procedural, synthetic manifest fixture and Unity objects.
@@ -19,6 +19,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.AI;
 using Worsen.Domain.Procedural;
 
 namespace Worsen.Tests.Procedural
@@ -51,8 +52,8 @@ namespace Worsen.Tests.Procedural
             }
         }
 
-        [Test, Timeout(300000)]
-        public void ForcedTemplateNavigationFailureProducesAdmittedOrganicFloorNotNoFloor()
+        [TestCase(false), TestCase(true), Timeout(300000)]
+        public void ForcedTemplateNavigationFailureProducesAdmittedOrganicFloorNotNoFloor(bool nativeFailure)
         {
             var config = ScriptableObject.CreateInstance<ProceduralConfig>();
             var organic = ScriptableObject.CreateInstance<ProceduralOrganicConfig>();
@@ -64,12 +65,17 @@ namespace Worsen.Tests.Procedural
             {
                 var catalogue = ProceduralTemplateTestData.Catalogue();
                 catalogue.Kit = catalogue.Kit.Concat(new[] { new ProceduralKitPiece {
-                    Id = "test_obstruction", File = "Castle_test_obstruction.fbx", Kind = "prop", Size = Vector3.one } }).ToArray();
+                    Id = "test_obstruction", File = "Castle_test_obstruction.fbx", Kind = "prop",
+                    Size = nativeFailure ? new Vector3(2.1f, 3f, .1f) : Vector3.one } }).ToArray();
                 // Room hubs remain clear. Every attached hallway contains an authored
                 // prop at its required cake socket: graph connectivity alone cannot admit it.
                 foreach (var room in catalogue.Templates.Where(t => t.Kind == "hallway"))
-                    room.Pieces = room.Pieces.Concat(new[] { new ProceduralTemplatePiece {
-                        Id = "test_obstruction", Position = room.Cake[0] } }).ToArray();
+                    room.Pieces = room.Pieces.Concat(nativeFailure ? new[] {
+                        // Seal the corner containing cake[0] without touching any
+                        // required point or doorway sweep. Only native paths fail.
+                        new ProceduralTemplatePiece { Id = "test_obstruction", Position = new Vector3(1f, 0f, 2f) },
+                        new ProceduralTemplatePiece { Id = "test_obstruction", Position = new Vector3(2f, 0f, 1f), RotY = 90f }
+                    } : new[] { new ProceduralTemplatePiece { Id = "test_obstruction", Position = room.Cake[0] } }).ToArray();
                 Set(data, "_catalogues", new[] { catalogue }); Set(config, "_roomCatalogue", data);
                 Set(config, "_organic", organic); Set(config, "_challenges", challenges);
                 Set(config, "_gapProbability", 0f); Set(config, "_origin", new Vector2(10000f, 10000f));
@@ -81,8 +87,18 @@ namespace Worsen.Tests.Procedural
                         new System.Random(ProceduralController.LayoutSeed(next, round))).Generate(next, round);
                     Assert.That(candidate.UsesTemplates, Is.True, candidate.TemplateFallbackReason);
                     var blocks = new ProceduralGeometryPresenter().Build(candidate, config, driver);
-                    Assert.That(Assert.Throws<InvalidOperationException>(() => new ProceduralNavFallbackPresenter()
-                        .ValidateTemplate(candidate, blocks, .3f, 1.8f)).Message, Does.Contain("cake anchor="));
+                    var settings = NavMesh.GetSettingsByID(driver.NavMeshAgentTypeId);
+                    if (nativeFailure)
+                    {
+                        Assert.DoesNotThrow(() => new ProceduralNavFallbackPresenter()
+                            .ValidateTemplate(candidate, blocks, settings.agentRadius, settings.agentHeight));
+                        var boundary = owner.GetComponent<ProceduralDriver>() ?? owner.AddComponent<ProceduralDriver>();
+                        var failure = Assert.Throws<InvalidOperationException>(() => boundary.Build(candidate, config, driver));
+                        Assert.That(failure.Message, Does.Contain("Generated navigation cannot reach required"));
+                        Assert.That(boundary.IsReady, Is.False); Assert.That(boundary.OwnedBlockCount, Is.Zero);
+                    }
+                    else Assert.That(Assert.Throws<InvalidOperationException>(() => new ProceduralNavFallbackPresenter()
+                        .ValidateTemplate(candidate, blocks, settings.agentRadius, settings.agentHeight)).Message, Does.Contain("cake anchor="));
                 }
                 var manager = owner.AddComponent<ProceduralManager>();
                 manager.Initialize(config, driver, seed, round);
@@ -91,6 +107,7 @@ namespace Worsen.Tests.Procedural
                 Assert.That(manager.Graph, Is.Not.Null); Assert.That(manager.ValidatedHunterSpawnCapacity, Is.GreaterThanOrEqualTo(1));
                 Assert.That(manager.LayoutManifest, Does.Contain("stage=organic"));
                 Assert.That(manager.LayoutManifest, Does.Contain("template-attempts-exhausted"));
+                if (nativeFailure) Assert.That(Uri.UnescapeDataString(manager.LayoutManifest), Does.Contain("Generated navigation cannot reach required"));
                 Assert.That(manager.LayoutManifest, Does.Contain("fallback=Organic|generationSucceeded=true"));
                 Assert.That(manager.LayoutManifest, Does.Not.Contain("NoFloor"));
                 Assert.That(manager.LayoutManifest, Does.Contain("Organic"));

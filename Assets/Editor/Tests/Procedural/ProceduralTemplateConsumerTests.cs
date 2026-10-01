@@ -246,8 +246,15 @@ namespace Worsen.Tests.Procedural
             Property(layout, "Doors", new[] { new ProceduralDoorPlan(1, 2, pivot, template.Doors[1].Side == "N") });
             var blocks = Build(catalogue, room);
             Assert.That(blocks.Any(b => b.PieceId == obstacle && b.HasCollision), Is.True);
+            Assert.DoesNotThrow(() => new ProceduralNavFallbackPresenter().ValidateTemplate(layout, blocks, .5f, 2f),
+                "The corrected source now leaves this doorway clear.");
+            // Preserve the negative control explicitly instead of requiring the
+            // shipped catalogue to retain its old obstructed furniture placement.
+            var moved = template.Pieces.First(p => p.Id == obstacle);
+            moved.Position = pivot; moved.RotY = 0f;
+            blocks = Build(catalogue, room);
             Assert.That(Assert.Throws<InvalidOperationException>(() => new ProceduralNavFallbackPresenter()
-                .ValidateTemplate(layout, blocks, .3f, 1.8f)).Message, Does.Contain("piece=" + obstacle));
+                .ValidateTemplate(layout, blocks, .5f, 2f)).Message, Does.Contain("piece=" + obstacle));
         }
 
         [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]

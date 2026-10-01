@@ -11,6 +11,7 @@
 //   - Import FBX with axis conversion disabled and theme-local URP slot materials.
 //   - Reject over-budget meshes and publish reusable kit prefab bindings.
 //   - Assemble deterministic room prefabs from the runtime placement presenter.
+//   - Keep one kit visual separate from independently owned primitive collision.
 // DEPENDENCIES:
 //   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor asset APIs and Domain.Procedural definitions/presenters.
@@ -101,20 +102,7 @@ namespace Worsen.Editor.Procedural
                             foreach (var block in blocks)
                             {
                                 var binding = bindings.FirstOrDefault(b => b.Theme == catalogue.Theme && b.Id == block.PieceId);
-                                GameObject item;
-                                if (binding?.Prefab != null)
-                                {
-                                    item = UnityEngine.Object.Instantiate(binding.Prefab);
-                                    item.transform.SetPositionAndRotation(block.PiecePosition, block.Rotation);
-                                }
-                                else
-                                {
-                                    item = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                                    item.name = "Primitive " + block.Kind;
-                                    item.transform.SetPositionAndRotation(block.Center, block.Rotation); item.transform.localScale = block.Size;
-                                    if (!block.HasCollision) UnityEngine.Object.DestroyImmediate(item.GetComponent<Collider>());
-                                }
-                                item.transform.SetParent(root.transform, true);
+                                CreateBlock(block, binding?.Prefab, root.transform);
                             }
                             PrefabUtility.SaveAsPrefabAsset(root, folder + "/Rooms/" + room.Id + ".prefab");
                         }
@@ -132,6 +120,27 @@ namespace Worsen.Editor.Procedural
                 Worsen.Editor.Common.SetupKit.RequireRelative(item, nameof(ProceduralRoomCatalogueData.KitAsset.Prefab)).objectReferenceValue = bindings[i].Prefab;
             }
             serialized.ApplyModifiedProperties(); AssetDatabase.SaveAssetIfDirty(asset);
+        }
+        public static void CreateBlock(ProceduralBlock block, GameObject prefab, Transform parent)
+        {
+            // Compound KitCollision commands repeat the piece id, not its art.
+            // Ordinary solids still need collision when their prefab has no collider.
+            if (prefab != null && block.HasRenderer && block.Role != ProceduralBlockRole.KitCollision)
+            {
+                var visual = UnityEngine.Object.Instantiate(prefab);
+                visual.name = "Kit " + block.PieceId;
+                visual.transform.SetPositionAndRotation(block.PiecePosition, block.Rotation);
+                visual.transform.SetParent(parent, true);
+                foreach (var collider in visual.GetComponentsInChildren<Collider>(true)) UnityEngine.Object.DestroyImmediate(collider);
+            }
+            if (block.Role == ProceduralBlockRole.KitVisual) return; // Its parts supply missing-art fallback.
+            var item = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            item.name = "Primitive " + block.Kind;
+            item.transform.SetPositionAndRotation(block.Center, block.Rotation);
+            item.transform.localScale = block.Size;
+            item.transform.SetParent(parent, true);
+            item.GetComponent<Renderer>().enabled = block.HasRenderer && prefab == null;
+            if (!block.HasCollision) UnityEngine.Object.DestroyImmediate(item.GetComponent<Collider>());
         }
         private static void Folder(string path)
             => Worsen.Editor.Common.SetupKit.EnsureFolder(path);

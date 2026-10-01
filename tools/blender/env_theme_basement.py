@@ -614,7 +614,9 @@ def catalogue():
                 cx,cz = math.floor((x-.1*math.sin(a))/2),math.floor((z-.1*math.cos(a))/2)
                 if any((cx+sign*tangent[0],cz+sign*tangent[1]) not in cells for sign in (-1,1)):
                     continue
-                pieces.append(placement("pipe_run_wall_2m",x-.28*math.sin(a),.7,z-.28*math.cos(a),yaw))
+                # The one-cell-deep bunker has no standing clearance beneath
+                # waist-height services opposite its door. Keep those overhead.
+                pieces.append(placement("pipe_run_wall_2m",x-.28*math.sin(a),2.1 if name=='fuel_bunker' else .7,z-.28*math.cos(a),yaw))
         # Reserve central cell centres for gameplay. Props occupy selected edge cells.
         blocked = set()
         def prop(piece,x,z,y=0,yaw=0):
@@ -698,6 +700,18 @@ def catalogue():
                           "footprint":[list(c) for c in sorted(cells)],"height":HEIGHT,"doors":doors,
                           "anchors":anchors,"gimmick":gimmick,"minRound":3 if gimmick != "none" else 1,
                           "weight":.6 if gimmick != "none" else 1.0,"pieces":pieces})
+    corrections = {
+        'boiler_room': {'cake': [[1,0,1],[5,0,1],[13,0,1],[5,0,3],[11,0,3],
+                               [5,0,5],[11,0,7],[9,0,7],[5,0,9],[3,0,9]]},
+        'pump_room': {'cake': [[1,0,1],[7,0,1],[3,0,5],[5,0,5]]},
+        'pipe_tunnel': {'cake': [[1,0,1],[2,0,4],[2,0,8]]},
+        'service_bend': {'cake': [[1,0,1],[5,0,3],[3,0,3],[9,0,3]]},
+        'duct_junction': {'cake': [[1,0,1],[9,0,3],[7,0,3],[7,0,5]]},
+        'catwalk_hall': {'cake': [[1,0,1],[9,0,3],[7,0,3],[3,0,5],[9,0,5],[7,0,7],[5,0,7]]},
+        'flooding_pit_freeze': {'cake': [[1,0,1],[7,0,1],[5,0,3],[5,0,5]]},
+    }
+    for t in templates:
+        t['anchors'].update(corrections.get(t['id'].removeprefix('basement_'), {}))
     return {"theme":"basement","module":2.0,"templates":templates}
 
 

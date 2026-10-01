@@ -609,10 +609,10 @@ def catalogue():
     standard = [((1, 0), 'S'), ((1, 3), 'N')]
     specs = []
     specs.append(('ward_bed_bays', rect(4, 4), 'room', 'rect', standard,
-                  bed_bay(1.8, 5.8)+bed_bay(6.2, 5.8)+[p('prop_cabinet', 7.1, 1.0, 90)], 'none'))
+                  bed_bay(1.8, 4.5)+bed_bay(6.2, 4.5)+[p('prop_cabinet', 7.1, 1.0, 90)], 'none'))
     lcells = rect(4, 3) | {(x, 3) for x in range(2)}
     specs.append(('nurse_station', lcells, 'room', 'L', [((1, 0), 'S'), ((3, 1), 'E'), ((0, 2), 'W')],
-                  [p('prop_nurse_counter', 3.0, 2.9), p('prop_cabinet', 1, 6.8, 180), p('prop_wheelchair', 1.1, 4.4, 90)], 'none'))
+                  [p('prop_nurse_counter', 3.0, 2.9), p('prop_cabinet', 1, 6.8, 180), p('prop_wheelchair', 6.8, 4.6, 90)], 'none'))
     specs.append(('operating_theatre', rect(4, 3), 'room', 'rect', [((1, 0), 'S'), ((2, 2), 'N')],
                   [p('prop_gurney', 4.5, 3.1), p('prop_operating_lamp', 4.6, 3.2,
                     y=HEIGHT-bpy.data.objects['Hospital_prop_operating_lamp'].dimensions.z),
@@ -635,7 +635,7 @@ def catalogue():
     specs.append(('corridor_bend', bend, 'hallway', 'L', [((0, 0), 'S'), ((4, 3), 'E')],
                   [p('prop_gurney', .8, 6.2), p('corner_guard', 3.75, 6.25, y=0)], 'none'))
     specs.append(('day_room', rect(6, 4), 'room', 'rect', [((1, 0), 'S'), ((4, 3), 'N')],
-                  [p('prop_waiting_bench', x, z, a) for x, z, a in ((1, 4, 270), (11, 4, 90), (5, 6.8, 0), (8, 6.8, 0))]
+                  [p('prop_waiting_bench', x, z, a) for x, z, a in ((1, 4, 270), (11, 4, 90), (5, 6.8, 0), (7, 6.8, 0))]
                   +[p('prop_nurse_counter', 8.2, 1.1, 180), p('prop_wheelchair', 5.8, 4.3, 25)], 'none'))
     specs.append(('nightingale_landmark', rect(7, 6), 'room', 'rect', [((2, 0), 'S'), ((4, 5), 'N'), ((6, 2), 'E')],
                   sum([bed_bay(x, z, a) for x, z, a in ((2, 3, 0), (2, 7, 0), (11.8, 3, 0), (11.8, 7, 0))], [])
@@ -643,12 +643,18 @@ def catalogue():
     specs.append(('isolation_door_freeze', rect(3, 3), 'room', 'rect', [((1, 0), 'S'), ((1, 2), 'N')],
                   [p('prop_bed', 4.7, 3.5), p('prop_xray_screen', 1.1, 4, 90), p('prop_iv_stand', 4.0, 3.4)], 'freeze'))
     specs.append(('gurney_maze', rect(5, 4), 'room', 'rect', [((1, 0), 'S'), ((3, 3), 'N')],
-                  [p('prop_gurney', x, z, 90) for x, z in ((2, 2.5), (5, 4.0), (8, 5.6))]
+                  [p('prop_gurney', x, z, 90) for x, z in ((2, 2.5), (5, 5.5), (8, 5.6))]
                   +[p('prop_xray_screen', 8.7, 2.6, 90), p('prop_cabinet', 1, 6.8)], 'traversal'))
     result = [assemble_template(*spec) for spec in specs]
+    corrections = {
+        'ward_bed_bays': {'cake': [[1,0,1],[3,0,1],[5,0,1],[7,0,7]]},
+        'operating_theatre': {'cake': [[1,0,1],[3,0,5],[5,0,5]], 'hunterSpawn': [[5,0,5]]},
+        'isolation_door_freeze': {'cake': [[1,0,1],[3,0,5]]},
+    }
     sys.path.insert(0,str(Path(__file__).resolve().parent))
     from env_theme_castle import seat_wall_props
     for t in result:
+        t['anchors'].update(corrections.get(t['id'].removeprefix('hospital_'), {}))
         seat_wall_props(t['pieces'],'Hospital',KINDS,{'prop_signage_frame',
             'light_fluorescent_panel','light_fluorescent_dead','prop_operating_lamp'})
         t['anchors']['light'] = []

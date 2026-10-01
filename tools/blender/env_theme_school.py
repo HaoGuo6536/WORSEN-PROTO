@@ -607,7 +607,9 @@ def furnish(t):
         on_wall('chalk_rail_board_2m',1.3,0)
         put('prop_teacher_desk',1.4,d-1.3)
         # Tabletop-only globes remain in the kit, not unsupported placements.
-        desks = ((2,6),(5,6),(6,2)) if name=='science_lab' else tuple((x,z) for x in (2,4,6) for z in (2,4))
+        # A central 2m aisle connects the south and east sockets. The previous
+        # three-column row left sub-agent gaps and isolated the entrance pocket.
+        desks = ((2,6),(5,6),(6,2)) if name=='science_lab' else tuple((x,z) for x in (1.6,5.8) for z in (2.5,4.5))
         for x,z in desks:
             if (int(x/2),int(z/2)) in cells:
                 put('prop_lab_bench' if name=='science_lab' else 'prop_desk',x,z)
@@ -761,9 +763,20 @@ def templates(pieces):
         ('locked_classroom',rect(4,4),[((1,0),'S'),((3,1),'E')],{'gimmick':'freeze'}),
     ]
     result=[]
+    corrections = {
+        'science_lab': {'cake': [[7,0,3],[7,0,5],[5,0,3]]},
+        'library': {'cake': [[1,0,9],[3,0,1],[5,0,1],[7,0,1],[3,0,7],[7,0,3],[3,0,9],[5,0,5]]},
+        'gymnasium': {'goldenCake': [[13,0,9]], 'hunterSpawn': [[1,0,9]]},
+        'bleacher_traversal': {'goldenCake': [[11,0,5]], 'hunterSpawn': [[1,0,5]]},
+        'cafeteria': {'goldenCake': [[9,0,7]]},
+        'washroom': {'cake': [[5,0,1],[3,0,1]]},
+        'locker_hallway': {'hunterSpawn': [[3,0,15]]},
+        'stairwell_bend': {'cake': [[1,0,3],[3,0,1],[5,0,1],[7,0,1],[9,0,1]]},
+    }
     for name,cells,doors,opts in definitions:
         t=furnish(make_room(name,cells,doors,**opts))
         safe_anchors(t,pieces)
+        t['anchors'].update(corrections.get(name, {}))
         result.append(t)
     return {'theme':'school','module':2.0,'templates':result}
 

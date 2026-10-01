@@ -126,7 +126,7 @@ namespace Worsen.Tests.Procedural
                 if (available)
                 {
                     var visual = parts[0].transform.GetChild(0);
-                    Assert.That(visual.position, Is.EqualTo(Vector3.zero));
+                    Assert.That(Vector3.Distance(visual.position, Vector3.zero), Is.LessThan(1e-4f), "Visual sits at the kit origin (float tolerance).");
                     Assert.That((visual.lossyScale - Vector3.one).magnitude, Is.LessThan(.001f));
                     Assert.That(visual.GetComponent<Collider>().enabled, Is.False);
                 }

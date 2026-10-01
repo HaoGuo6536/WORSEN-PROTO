@@ -22,6 +22,7 @@
 //   Missing serialized shaders abort before generation and log once per owner.
 //   Compound kit commands instantiate one mesh and share collision with the bake;
 //   missing compound art displays its collision parts, never its overall bounds.
+//   Shrine candidates reserve the configured native agent envelope before baking.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -155,7 +156,8 @@ namespace Worsen.Domain.Procedural
                     navigationBlocks.AddRange(puzzles.Blocks(plan, config.Challenges).Where((b, index) => index != 4));
                 }
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(navigationBlocks);
-                layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks);
+                var agent = NavMesh.GetSettingsByID(driverConfig.NavMeshAgentTypeId);
+                layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks, agent.agentRadius, agent.agentHeight);
                 BuildNavigation(layout, navigationBlocks, driverConfig);
                 layout.FuturePassageGoldenAnchorCount = new ProceduralPassagePresenter().FutureGoldenAnchorCount(layout, config, driverConfig, navigationBlocks);
                 layout.InteractableManifest += "|FuturePassageGold:" + layout.FuturePassageGoldenAnchorCount;

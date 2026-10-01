@@ -11,7 +11,7 @@
 // DEPENDENCIES:
 //   - NUnit and Domain.Procedural only.
 // USAGE NOTES:
-//   Fail inputs model physical rejection; this fixture does not run a native bake.
+//   Fail inputs model preflight/native rejection; this fixture does not run a bake.
 // ============================================================================
 using System;
 using NUnit.Framework;
@@ -65,6 +65,26 @@ namespace Worsen.Tests.Procedural
             Assert.That(state.GenerationManifest, Does.Contain("fallback=NoFloorAwaitingSession|generationSucceeded=false"));
             Assert.Throws<InvalidOperationException>(() => generation.Fail("unbounded", null, true));
             Assert.Throws<InvalidOperationException>(() => generation.Succeed("unadmitted"));
+        }
+
+        [Test]
+        public void NativeValidationReasonRetainsTemplateIdentityAndEntersTheSameRecoveryStage()
+        {
+            const string reason = "InvalidOperationException: Generated navigation cannot reach required cake anchor=10201 room=2 position (10007.30, 0.05, 10004.70).";
+            var state = new ProceduralBehaviorState(); var generation = new ProceduralGenerationController(state);
+            generation.Begin(19, 3, 0);
+            var template = new ProceduralLayout();
+            typeof(ProceduralLayout).GetProperty(nameof(template.TemplateRooms)).SetValue(template,
+                new[] { new ProceduralTemplateRoom() });
+            Assert.That(generation.Fail(reason, "castle-rooms-v6|19|3|1", template.UsesTemplates), Is.True);
+            Assert.That(state.OrganicFallbackReason, Is.EqualTo("template-attempts-exhausted:" + reason));
+            Assert.That(state.UsedFallback, Is.False); Assert.That(state.AttemptSeed, Is.EqualTo(19));
+            generation.Succeed("organic-admitted");
+            Assert.That(state.GenerationSucceeded, Is.True); Assert.That(state.UsedFallback, Is.False);
+            Assert.That(Uri.UnescapeDataString(state.GenerationManifest), Does.Contain(reason));
+            Assert.That(state.GenerationManifest, Does.Contain("stage=organic"));
+            Assert.That(state.GenerationManifest, Does.Contain("fallback=Organic|generationSucceeded=true"));
+            Assert.That(state.GenerationManifest, Does.Not.Contain("NoFloor"));
         }
     }
 }
