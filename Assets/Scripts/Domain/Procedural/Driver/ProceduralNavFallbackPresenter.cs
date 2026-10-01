@@ -9,7 +9,7 @@
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Label required navigation targets so failures identify the offending socket.
-//   - Check template objectives, spawns and walking doorways against built collision.
+//   - Check every template cake, objectives, spawns and walking doors against collision.
 // DEPENDENCIES:
 //   - Own layout/block definitions and Core graph data; Unity value types only.
 // USAGE NOTES:
@@ -27,10 +27,12 @@ namespace Worsen.Domain.Procedural
 {
     public sealed class ProceduralNavFallbackPresenter
     {
-        public IEnumerable<(string label, Vector3 position)> RequiredPositions(ProceduralLayout layout)
+        public IEnumerable<(string label, Vector3 position)> RequiredPositions(ProceduralLayout layout, bool everyCake = false)
         {
             yield return ("exit room=" + layout.Graph.ExitRoomId, layout.Graph.ExitPosition);
-            foreach (var anchor in layout.Graph.Anchors)
+            var cakes = everyCake || layout.CakeLines.Count == 0 ? layout.Graph.Anchors :
+                layout.CakeLines.Select(line => line.Anchors[0]).ToArray();
+            foreach (var anchor in cakes)
                 yield return ("cake anchor=" + anchor.Id + " room=" + anchor.RoomId, anchor.Position);
             for (int i = 0; i < layout.HunterSpawnPositions.Count; i++)
                 yield return ("hunter spawn=" + i, layout.HunterSpawnPositions[i]);
@@ -48,7 +50,7 @@ namespace Worsen.Domain.Procedural
                 throw new ArgumentException("Template preflight requires finite positive agent dimensions.");
             var obstacles = blocks.Where(b => b.HasCollision && b.Kind != ProceduralSurfaceKind.Floor).ToArray();
             Check("player spawn", layout.PlayerSpawnPosition, layout.PlayerSpawnPosition);
-            foreach (var target in RequiredPositions(layout)) Check(target.label, target.position, target.position);
+            foreach (var target in RequiredPositions(layout, everyCake: true)) Check(target.label, target.position, target.position);
             foreach (var door in layout.Doors.Where(d => !d.IsOptional))
             {
                 var across = door.AlongX ? Vector3.forward : Vector3.right;
@@ -67,7 +69,7 @@ namespace Worsen.Domain.Procedural
             }
         }
 
-        private static bool Blocked(ProceduralBlock block, Vector3 from, Vector3 to, float radius, float height)
+        internal static bool Blocked(ProceduralBlock block, Vector3 from, Vector3 to, float radius, float height)
         {
             // Unit block rotations come from geometry commands. Conjugation and the
             // vector operator keep this calculation managed (Quaternion.Inverse is native).

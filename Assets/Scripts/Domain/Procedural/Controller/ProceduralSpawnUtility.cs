@@ -77,7 +77,7 @@ namespace Worsen.Domain.Procedural
             int limit = layout.Cells?.Count ?? layout.Graph.Rooms.Count;
             for (int step = 0; step < limit; step++)
             {
-                if (current.Id == target && current.Bounds.Contains(end)) return true;
+                if (current.Id == target && ProceduralFootprintUtility.Contains(current, end)) return true;
                 var bounds = current.Bounds;
                 float tx = delta.x == 0f ? float.PositiveInfinity :
                     ((delta.x > 0f ? bounds.max.x : bounds.min.x) - start.x) / delta.x;

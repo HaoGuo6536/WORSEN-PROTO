@@ -14,6 +14,8 @@
 //   Coordinator-only native Edit Mode test; the offline runner reports environment.
 //   No assets, scenes, agent settings or catalogue files are changed. Owners are
 //   torn down explicitly; Edit Mode does not call OnDestroy on runtime components.
+//   Owner playtest 2026-09-30: lines avoid obsolete cake markers. Failure injection
+//   therefore obstructs required hunter sockets, which must not move with the cakes.
 // ============================================================================
 using System;
 using System.Linq;
@@ -68,18 +70,22 @@ namespace Worsen.Tests.Procedural
                 catalogue.Kit = catalogue.Kit.Concat(new[] { new ProceduralKitPiece {
                     Id = "test_obstruction", File = "Castle_test_obstruction.fbx", Kind = "prop",
                     Size = nativeFailure ? new Vector3(2.1f, 3f, .1f) : Vector3.one } }).ToArray();
-                // Room hubs remain clear. Every attached hallway contains an authored
-                // prop at its required cake socket: graph connectivity alone cannot admit it.
-                foreach (var room in catalogue.Templates.Where(t => t.Kind == "hallway"))
+                // Every retained hunter socket is blocked or isolated; the hub
+                // selector remains free to choose clear player/exit positions.
+                foreach (var room in catalogue.Templates)
+                {
+                    room.HunterSpawn = new[] { room.HunterSpawn[0] };
                     room.Pieces = room.Pieces.Concat(nativeFailure ? new[] {
-                        // Seal the corner containing cake[0] without touching any
-                        // required point or doorway sweep. Only native paths fail.
+                        // Seal the hunter corner without touching its standing
+                        // envelope or doorway sweeps. Only native paths fail.
                         new ProceduralTemplatePiece { Id = "test_obstruction", Position = new Vector3(1f, 0f, 2f) },
                         new ProceduralTemplatePiece { Id = "test_obstruction", Position = new Vector3(2f, 0f, 1f), RotY = 90f }
-                    } : new[] { new ProceduralTemplatePiece { Id = "test_obstruction", Position = room.Cake[0] } }).ToArray();
+                    } : new[] { new ProceduralTemplatePiece { Id = "test_obstruction", Position = room.HunterSpawn[0] } }).ToArray();
+                }
                 Set(data, "_catalogues", new[] { catalogue }); Set(config, "_roomCatalogue", data);
                 Set(config, "_organic", organic); Set(config, "_challenges", challenges);
                 Set(config, "_gapProbability", 0f); Set(config, "_origin", new Vector2(10000f, 10000f));
+                Set(config, "_knockablePropsPerRoom", 0);
                 const int seed = 7, round = 1;
                 for (int attempt = 0; attempt <= config.GenerationRetries; attempt++)
                 {
@@ -89,6 +95,7 @@ namespace Worsen.Tests.Procedural
                     Assert.That(candidate.UsesTemplates, Is.True, candidate.TemplateFallbackReason);
                     var blocks = new ProceduralGeometryPresenter().Build(candidate, config, driver);
                     var settings = NavMesh.GetSettingsByID(driver.NavMeshAgentTypeId);
+                    new ProceduralCakeLinePresenter().Apply(candidate, config, blocks, settings.agentRadius, settings.agentHeight);
                     if (nativeFailure)
                     {
                         Assert.DoesNotThrow(() => new ProceduralNavFallbackPresenter()
@@ -99,7 +106,7 @@ namespace Worsen.Tests.Procedural
                         Assert.That(boundary.IsReady, Is.False); Assert.That(boundary.OwnedBlockCount, Is.Zero);
                     }
                     else Assert.That(Assert.Throws<InvalidOperationException>(() => new ProceduralNavFallbackPresenter()
-                        .ValidateTemplate(candidate, blocks, settings.agentRadius, settings.agentHeight)).Message, Does.Contain("cake anchor="));
+                        .ValidateTemplate(candidate, blocks, settings.agentRadius, settings.agentHeight)).Message, Does.Contain("hunter spawn="));
                 }
                 var manager = owner.AddComponent<ProceduralManager>();
                 manager.Initialize(config, driver, seed, round);
