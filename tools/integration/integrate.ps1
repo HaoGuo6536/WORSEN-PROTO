@@ -117,6 +117,33 @@ try {
     if ($s.Dirty) { throw 'Active scene has unsaved changes (possibly the owner''s); refusing to switch the checkout.' }
     $branch = (Invoke-Git $main rev-parse --abbrev-ref HEAD) | Select-Object -Last 1
     if ($branch -ne 'main') { throw "Open checkout is on '$branch', expected main." }
+    # Clear only what the checkout would refuse but cannot lose information (batch 17 stopped here):
+    #  - untracked files the candidate adds with identical bytes, or a .meta with the same GUID
+    #    (Unity generated them locally; an earlier gate commit tracks them);
+    #  - filter artifacts (raw blob under an LFS rule, raw bytes == HEAD blob) that the candidate
+    #    changes or deletes. Anything else still aborts the checkout.
+    $touched = @{}
+    foreach ($p in @(Invoke-Git $main -c core.quotepath=off diff --name-only $mainHead $candidate)) { $touched[$p] = $true }
+    $added = @(Invoke-Git $main -c core.quotepath=off diff --name-only --diff-filter=A $mainHead $candidate)
+    foreach ($p in $added) {
+        $local = Join-Path $main $p
+        if (-not (Test-Path -LiteralPath $local -PathType Leaf)) { continue }
+        $same = ((Invoke-Git $main hash-object --no-filters -- $p) | Select-Object -Last 1) -eq ((Invoke-Git $main rev-parse "${candidate}:$p") | Select-Object -Last 1)
+        if (-not $same -and $p.EndsWith('.meta')) {
+            $theirs = @(Invoke-Git $main show "${candidate}:$p") | Where-Object { $_ -match '^guid:' } | Select-Object -First 1
+            $mine = Get-Content -LiteralPath $local | Where-Object { $_ -match '^guid:' } | Select-Object -First 1
+            $same = $theirs -and $theirs -eq $mine
+        }
+        if ($same) { Remove-Item -LiteralPath $local -Force; Log "Untracked local copy matches the candidate, removed before checkout: $p" }
+    }
+    foreach ($line in @(Invoke-Git $main -c core.quotepath=off status --porcelain --untracked-files=no)) {
+        if ($line -notmatch '^ M (.+)$') { continue }
+        $f = $Matches[1].Trim('"')
+        if (-not $touched.ContainsKey($f)) { continue }
+        $raw = (Invoke-Git $main hash-object --no-filters -- $f) | Select-Object -Last 1
+        $blob = (Invoke-Git $main rev-parse "HEAD:$f") | Select-Object -Last 1
+        if ($raw -eq $blob) { Remove-Item -LiteralPath (Join-Path $main $f) -Force; Log "Filter artifact the candidate replaces, removed before checkout: $f" }
+    }
     Invoke-Git $main checkout -q --detach $candidate | Out-Null
     $onCandidate = $true
     Log "Open checkout detached at candidate; main unchanged at $mainHead"
