@@ -4,13 +4,14 @@
 // PURPOSE:
 //   Verifies the saved HorrorRun scene through generated combat floors, its first
 //   safe shop, death and restart using the actual Session and Domain managers.
+//   Wallet credit comes from spawned Passage pickups, never reused ordinary anchors.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Expedition scene integration.
 // KEY RESPONSIBILITIES:
 //   - Wait for the title and activate its Start interaction before expecting choices.
 //   - Reject inter-floor health carry-over, including shop entry and return to combat.
 //   - Verify native geometry/navigation admission, growing floors and canonical input/HUD reset.
-//   - Exercise independent cadence, catalogue pedestals and held inventory across floors.
+//   - Exercise actual Passage gold, independent cadence, shop purchases and held inventory.
 //   - Verify a central four-route exit hub and distinct ready animated hunter models.
 // DEPENDENCIES:
 //   - Core; Domain Procedural/Level/Floor/Player/Hunter; Session Run/Progression/
@@ -112,6 +113,7 @@ namespace Worsen.Tests.Expedition
             run.RunEnded += summaries.Add;
             string firstManifest = null;
             int previousRooms = 0;
+            int earnedGold = 0;
             try
             {
                 for (int round = 1; round <= 2; round++)
@@ -136,12 +138,44 @@ namespace Worsen.Tests.Expedition
 
                     int beforeWallet = progression.Snapshot.Wallet;
                     var anchors = floor.ReadOnlyState.ActiveCakeAnchors.ToArray();
+                    Assert.That(floor.Snapshot().TotalGoldenCakes, Is.Zero, "Unopened Passage reservations cannot mint gold.");
+                    for (int siteIndex = 0; siteIndex < procedural.ShrineSites.Count; siteIndex++)
+                    {
+                        var site = procedural.ShrineSites[siteIndex];
+                        if (!site.GapEdge || !procedural.ActivatePassage(siteIndex)) continue;
+                        Assert.That(floor.ActivatePocket(site.DestinationPocketRoomId), Is.True);
+                        Assert.That(procedural.ActivatePassage(siteIndex), Is.False, "A Passage cannot open twice.");
+                    }
+                    var rewards = procedural.LinedPocketAnchors.ToArray();
+                    Assert.That(rewards.Select(a => a.Id).Distinct().Count(), Is.EqualTo(rewards.Length));
+                    Assert.That(rewards.All(a => procedural.Graph.Rooms.Single(r => r.Id == a.RoomId).Pocket), Is.True);
+                    Assert.That(floor.Snapshot().TotalGoldenCakes, Is.EqualTo(rewards.Length));
+                    foreach (var reward in rewards)
+                    {
+                        Assert.That(anchors.Any(a => a.Id == reward.Id), Is.False);
+                        var pickup = floor.GetComponentsInChildren<CakePickup>().Single(p => p.AnchorId == reward.Id);
+                        Assert.That(pickup.Kind, Is.EqualTo(PickupKind.GoldenCake));
+                        Assert.That(pickup.GetComponent<Collider>().enabled, Is.True);
+                        Assert.That(floor.RegisterPassageReward(reward), Is.False);
+                    }
                     foreach (var anchor in anchors) floor.Collect(player.Id, anchor.Id, PickupKind.Cake);
                     Assert.That(floor.ReadOnlyState.CakeCount, Is.EqualTo(anchors.Length));
-                    Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                     foreach (var anchor in anchors.Take(3)) floor.Collect(player.Id, anchor.Id, PickupKind.GoldenCake);
-                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(beforeWallet + 3));
-                    Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.EqualTo(3));
+                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(beforeWallet), "Ordinary anchors cannot become gold after collection.");
+                    Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.Zero);
+                    foreach (var reward in rewards)
+                    {
+                        Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
+                        Assert.That(((FloorBehaviorState)floor.ReadOnlyState).CollapseStarted, Is.False);
+                        floor.Collect(player.Id, reward.Id, PickupKind.GoldenCake);
+                        floor.Collect(player.Id, reward.Id, PickupKind.GoldenCake);
+                    }
+                    earnedGold += rewards.Length;
+                    Assert.That(progression.Snapshot.Wallet, Is.EqualTo(beforeWallet + rewards.Length));
+                    Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.EqualTo(rewards.Length));
+                    Assert.That(floor.ReadOnlyState.ActiveCakeAnchors, Is.Empty);
+                    Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
+                    Assert.That(((FloorBehaviorState)floor.ReadOnlyState).CollapseStarted, Is.True);
                     hud.SetChaseMode(true); // Also covers automatic generation of the shop after two combat floors.
                     floor.ContactExit(player.Id);
                     yield return Until(() => progression.Snapshot.Round == round + 1,
@@ -158,18 +192,19 @@ namespace Worsen.Tests.Expedition
                     "Shop round 3 grows the connected budget even when round 2 had optional pockets.");
                 previousRooms = procedural.Graph.Rooms.Count(room => !room.Pocket);
                 Assert.That(progression.Snapshot.Round, Is.EqualTo(3));
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
+                Assert.That(earnedGold, Is.GreaterThan(0), "This route must collect an actual Passage reward before the shop.");
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(earnedGold));
                 var shopPlayer = One<PlayerManager>();
                 int shopGeneration = expedition.GenerationId;
                 Assert.That(progression.Snapshot.Offers.Count, Is.EqualTo(4));
                 Assert.That(progression.Snapshot.Offers.Select(offer => offer.Id), Does.Not.Contain("field-dressing"));
                 Assert.That(progression.Purchase("field-dressing", progression.Snapshot.Revision), Is.False);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(earnedGold));
                 Assert.That(progression.Snapshot.Health, Is.EqualTo(progression.Snapshot.MaxHealth));
                 Assert.That(shopPlayer.ReadOnlyState.Health, Is.EqualTo(shopPlayer.ReadOnlyState.MaxHealth));
                 var bought = progression.Snapshot.Offers.First(offer => offer.CanAfford && offer.Kind == EffectKind.Consumable);
                 Assert.That(progression.Purchase(bought.Id, progression.Snapshot.Revision), Is.True);
-                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6 - bought.Price));
+                Assert.That(progression.Snapshot.Wallet, Is.EqualTo(earnedGold - bought.Price));
                 Assert.That(progression.Purchase(bought.Id, progression.Snapshot.Revision), Is.False);
                 Assert.That(expedition.GenerationId, Is.EqualTo(shopGeneration), "Purchasing must not regenerate the shop.");
                 Assert.That(progression.Snapshot.Inventory.Count, Is.EqualTo(3));
@@ -323,9 +358,9 @@ namespace Worsen.Tests.Expedition
                 Assert.That(HunterRegistry.Items.Count, Is.GreaterThan(0));
                 AssertActiveRoster(progression.Snapshot.Effects);
                 Assert.That(floor.ReadOnlyState.IsReady, Is.True);
-                // Room density places a subset of the typed candidates; a required subset gates the exit.
+                // Every physically placed ordinary cake gates the exit, not a density-selected quota.
                 int placed = floor.GetComponentsInChildren<CakePickup>().Length;
-                Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.GreaterThanOrEqualTo(1).And.LessThanOrEqualTo(placed));
+                Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.EqualTo(placed).And.GreaterThanOrEqualTo(1));
                 Assert.That(placed, Is.LessThanOrEqualTo(procedural.Graph.Anchors.Count));
                 Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
                 Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));

@@ -3,10 +3,11 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies Passage rewards, archetype spawn admission and identified Vault routing.
+//   Explicit callbacks prove bridge admission precedes rewards and complete collection precedes collapse.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Exercise actual bridge success/failure before Floor collapse and optional gold.
+//   - Exercise bridge success/failure, one-shot Passage gold and collection-gated collapse.
 //   - Isolate navigation area admission and preserve resolved Vault identity.
 // DEPENDENCIES:
 //   Core, Domain Floor/Level/Player/Procedural, Session Expedition/Run/Progression,
@@ -75,7 +76,7 @@ namespace Worsen.Tests.Expedition
             Set(floorConfig, "_useRoomCakeDensity", false); Set(floorConfig, "_requiredCakeCount", 1);
             Set(floor.GetComponent<FloorDriver>(), "_config", Config<FloorDriverConfig>());
             var player = new PlayerBehaviorState { Id = new EntityId(1), Health = 100, Position = procedural.PlayerSpawnPosition };
-            floor.Initialize(floorConfig, level.ReadOnlyState, new[] { player }, new System.Random(19), cakeHooks: new FloorCakeHooks(greedyDoor: true));
+            floor.Initialize(floorConfig, level.ReadOnlyState, new[] { player }, new System.Random(19));
             var route = Route(procedural, floor);
             Call(route, "OnEnable");
             Assert.That(((Delegate)Get(procedural, "PassageOpened")).GetInvocationList().Length, Is.EqualTo(1));
@@ -93,8 +94,10 @@ namespace Worsen.Tests.Expedition
                 Assert.That(procedural.LinedPocketAnchors, Is.Empty);
                 driverState.Ready = true;
                 Call(route, "HandleShrineResolved", Fact(2)); Call(route, "HandleShrineResolved", Fact(2));
-                ((FloorController)Get(floor, "_controller")).Tick(floorConfig.PocketCollapseDelay, 3);
-                Assert.That(floor.ReadOnlyState.RoomPhases[site.DestinationPocketRoomId], Is.EqualTo(RoomPhase.Telegraph));
+                var controller = (FloorController)Get(floor, "_controller");
+                Assert.That(controller.Tick(10000f, 3), Is.Empty, "Passage activation cannot bypass complete collection.");
+                Assert.That(((FloorBehaviorState)floor.ReadOnlyState).CollapseStarted, Is.False);
+                Assert.That(floor.ReadOnlyState.RoomPhases[site.DestinationPocketRoomId], Is.EqualTo(RoomPhase.Open));
                 foreach (var room in procedural.Graph.Rooms.Where(r => r.Pocket && r.Id != site.DestinationPocketRoomId))
                     Assert.That(floor.ReadOnlyState.RoomPhases[room.Id], Is.EqualTo(RoomPhase.Open));
                 Assert.That(procedural.LinedPocketAnchors, Is.Not.Empty);
@@ -109,9 +112,17 @@ namespace Worsen.Tests.Expedition
                     Assert.That(floor.ReadOnlyState.GoldenCakeCount, Is.EqualTo(before + 1));
                     Assert.That(floor.RegisterPassageReward(anchor), Is.False);
                 }
-                Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero); Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.EqualTo(1));
+                Assert.That(floor.ReadOnlyState.CakeCount, Is.Zero);
+                var ordinary = floor.ReadOnlyState.ActiveCakeAnchors.ToArray();
+                Assert.That(floor.ReadOnlyState.RequiredCakeCount, Is.EqualTo(ordinary.Length).And.GreaterThan(0));
+                Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
                 foreach (var anchor in floor.ReadOnlyState.ActiveCakeAnchors.ToArray()) floor.Collect(player.Id, anchor.Id, PickupKind.Cake);
-                Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked), "Passage gold cannot pay Greedy Door.");
+                Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open), "Every ordinary and Passage cake has been collected.");
+                Assert.That(((FloorBehaviorState)floor.ReadOnlyState).CollapseStarted, Is.True);
+                controller.Tick(10000f, 4);
+                Assert.That(floor.ReadOnlyState.RoomPhases[site.DestinationPocketRoomId], Is.EqualTo(RoomPhase.Closed));
+                Assert.That(floor.ReadOnlyState.RoomPhases[procedural.Graph.ExitRoomId], Is.EqualTo(RoomPhase.Open));
+                Assert.That(controller.DrainCakeLosses(), Is.Empty);
                 StringAssert.Contains("_procedural.ActivatePassage(siteIndex) && _floor.ActivatePocket(site.DestinationPocketRoomId)",
                     Source("Session/Expedition/Manager/ExpeditionSessionManager.cs"));
             }
