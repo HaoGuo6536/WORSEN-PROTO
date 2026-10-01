@@ -19,6 +19,8 @@
 //   Slide steering is limited by lateral acceleration and angular rate; legacy LookBackSteerAuthority is unused.
 //   ReboundAngle is retained for existing authored-route tooling, not wall-jump admission.
 //   WallJumpOutwardRatio is provisional; the combined tangent/normal is rescaled to entry speed.
+//   Owner 2026-10-01: traversal presses buffer until safe completion. Momentum
+//   decays over grounded time, not on the first landing frame; defaults are provisional.
 //   Designer data only. The factory resolves ArchetypeKey; runtime code never edits this asset.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
@@ -57,11 +59,15 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _mantleDuration = 0.35f;
         [SerializeField] private float _vaultCompletionTolerance = 0.05f;
         [SerializeField, Min(0f)] private float _traversalSteeringSpeed = 2f;
-        [SerializeField, Min(0f)] private float _traversalBoostWindow = 0.12f;
-        [SerializeField, Min(0f)] private float _traversalBoostSpeed = 3f;
+        [Tooltip("Seconds to press Jump after resolved traversal completion; presses during the arc buffer into this window.")]
+        [SerializeField, Min(0f)] private float _traversalBoostWindow = 0.22f;
+        [SerializeField, Min(0f)] private float _traversalBoostSpeed = 6f;
+        [SerializeField, Min(0f)] private float _traversalBoostUpwardSpeed = 3f;
+
+        [SerializeField, Min(0f)] private float _traversalMomentumDuration = 0.5f;
         [SerializeField, Min(0f)] private float _ledgeReach = 1.2f;
         [SerializeField, Min(0f)] private float _ledgeMinimumHeight = 0.5f;
-        [SerializeField, Min(0f)] private float _ledgeMaximumHeight = 1.8f;
+        [SerializeField, Min(0f)] private float _ledgeMaximumHeight = 2.2f;
         [SerializeField, Min(0f)] private float _ledgeChestHeight = 0.8f;
         [SerializeField, Min(0f)] private float _ledgeRegrabDelay = 0.2f;
         [SerializeField, Min(0f)] private float _failedVaultStumbleDuration = 0.3f;
@@ -129,6 +135,9 @@ namespace Worsen.Domain.Player
         public float TraversalSteeringSpeed => _traversalSteeringSpeed;
         public float TraversalBoostWindow => _traversalBoostWindow;
         public float TraversalBoostSpeed => _traversalBoostSpeed;
+        public float TraversalBoostUpwardSpeed => _traversalBoostUpwardSpeed;
+
+        public float TraversalMomentumDuration => _traversalMomentumDuration;
         public float LedgeReach => _ledgeReach;
         public float LedgeMinimumHeight => _ledgeMinimumHeight;
         public float LedgeMaximumHeight => _ledgeMaximumHeight;

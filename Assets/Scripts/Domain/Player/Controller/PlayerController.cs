@@ -35,6 +35,9 @@
 //   Slide until standing is safe; wall jumps are requested, never impact bounces.
 //   Reset clears shield for a new life; assembly must restore the previous floor's
 //   captured Shield after replacing a living Player, never after starting a new run.
+//   Owner 2026-10-01: checked knee edges vault without tags; airborne edges grab.
+//   A second press buffers through the arc, launches only after resolved success,
+//   and coasts in air with a half-second grounded decay. It never cancels a vault.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -126,6 +129,9 @@ namespace Worsen.Domain.Player
             _state.CompletedTraversal = null;
             _state.VaultAttemptResolvedForPress = false;
             _state.NoiseRing = new NoiseEvent[Math.Max(1, _profile.NoiseCapacity)];
+            ClearTraversalLaunch();
+            _state.TraversalMomentumRemaining = 0f;
+            _state.VaultIsLedge = false;
             _state.RecentNoises = Array.Empty<NoiseEvent>();
             _state.Inventory = new InventorySnapshot(string.Empty, string.Empty);
             _state.LastMovementSample = default;
@@ -154,6 +160,8 @@ namespace Worsen.Domain.Player
             _state.TraversalSampleActive = false;
             if (!_state.IsAlive)
             {
+                ClearTraversalLaunch();
+                _state.TraversalMomentumRemaining = 0f;
                 _state.PendingExternalVelocity = Vector3.zero;
                 _state.Velocity = Vector3.zero;
                 _state.HeadLookDelta = Vector2.zero;
@@ -169,9 +177,12 @@ namespace Worsen.Domain.Player
                     _state.MovementState = _state.Crouched && probe.StandingBlocked ? MovementState.Slide
                         : probe.Grounded ? MovementState.Ground : MovementState.Air;
                     _state.VaultRemaining = 0f;
+                    ClearTraversalLaunch();
+                    _state.TraversalMomentumRemaining = 0f;
                     return new PlayerTickResult(_state.Velocity * deltaTime, _state.Crouched, facts.ToArray());
                 }
             bool externalMotion = _state.PendingExternalVelocity.sqrMagnitude > 0f;
+            if (externalMotion) { ClearTraversalLaunch(); _state.TraversalMomentumRemaining = 0f; }
             if (externalMotion && _state.MovementState == MovementState.Vault)
             {
                 _state.TraversalSampleActive = true;
@@ -189,6 +200,13 @@ namespace Worsen.Domain.Player
             if (_state.MovementState == MovementState.Vault)
                 return ContinueVault(frame, probe, deltaTime, facts, true);
             _state.VaultProgress = 0f;
+
+            if (!externalMotion && _state.TraversalLaunchReady
+                && (_state.TraversalLaunchBuffered || ((frame.Pressed & InputButtons.Jump) != 0
+                    && _state.TraversalLaunchGrace > 0f)) && !probe.StandingBlocked)
+                return LaunchTraversal(deltaTime, facts);
+            _state.TraversalLaunchGrace = Mathf.Max(0f, _state.TraversalLaunchGrace - deltaTime);
+            if (_state.TraversalLaunchGrace <= 0f || probe.StandingBlocked) ClearTraversalLaunch();
 
             // A slope can project a landing velocity upward without starting a jump.
             // The last resolved contact distinguishes that support from a rising jump.
@@ -220,6 +238,13 @@ namespace Worsen.Domain.Player
             }
 
             bool jump = _state.JumpBufferRemaining > 0f;
+            bool knee = !probe.VaultCandidate && grounded && jump && probe.VaultClearance > 0f
+                && probe.VaultHeight <= _profile.VaultMaximumHeight;
+            if (!externalMotion && knee && CanVault(probe))
+            {
+                BeginVault(probe, false);
+                return ContinueVault(frame, probe, deltaTime, facts, false);
+            }
             // Untagged edges use checked clearance/target without claiming an authored
             // VaultCandidate. All decision inputs still fit the recorded MovementProbe.
             bool ledge = !probe.VaultCandidate && probe.VaultClearance > 0f
@@ -361,7 +386,19 @@ namespace Worsen.Domain.Player
                 bool succeeded = Vector3.Distance(_state.Position, _state.VaultTarget + _state.VaultSteeringOffset) <= _profile.VaultCompletionTolerance;
                 _state.CompletedTraversal = Fact(_state.VaultKind, succeeded,
                     (_state.VaultTarget - _state.VaultStart).normalized, _state.VaultDuration, _state.VaultSurfaceId);
-                if (!succeeded) StartStumble(_profile.FailedVaultStumbleDuration, _profile.StumbleSpeedMultiplier);
+                if (succeeded)
+                {
+                    _state.TraversalLaunchReady = _profile.TraversalBoostWindow > 0f;
+                    _state.TraversalLaunchGrace = _profile.TraversalBoostWindow;
+                    _state.TraversalMomentumRemaining = _profile.TraversalMomentumDuration;
+                }
+                else
+                {
+                    ClearTraversalLaunch();
+                    // Automatic missed grabs fail forward. Authored vault failures
+                    // retain their existing stumble contract; neither grants a launch.
+                    if (!_state.VaultIsLedge) StartStumble(_profile.FailedVaultStumbleDuration, _profile.StumbleSpeedMultiplier);
+                }
                 _state.VaultCompletionPending = false;
             }
         }
@@ -819,7 +856,19 @@ namespace Worsen.Domain.Player
                     bool landed = _state.LandingImpactSpeed < 0f;
                     float acceleration = _effectConfig is not null && horizontal.magnitude <= _effectConfig.StandstillSpeed
                         ? Effect(PlayerEffectStat.GroundAcceleration, _profile.GroundAcceleration) : _profile.GroundAcceleration;
-                    if (!landed) horizontal = Vector3.MoveTowards(horizontal, direction * speed,
+                    if (_state.TraversalMomentumRemaining > 0f)
+                    {
+                        // Decay actual excess speed; never restore a saved speed after a wall.
+                        float remaining = _state.TraversalMomentumRemaining;
+                        float desiredSpeed = direction.magnitude * speed;
+                        float retained = Mathf.Lerp(horizontal.magnitude, Mathf.Min(horizontal.magnitude, desiredSpeed),
+                            Mathf.Clamp01(dt / remaining));
+                        Vector3 steered = Vector3.MoveTowards(horizontal, direction * speed, acceleration * dt);
+                        horizontal = steered.sqrMagnitude > 0f ? steered.normalized * Mathf.Max(steered.magnitude, retained)
+                            : horizontal.normalized * retained;
+                        _state.TraversalMomentumRemaining = Mathf.Max(0f, remaining - dt);
+                    }
+                    else if (!landed) horizontal = Vector3.MoveTowards(horizontal, direction * speed,
                         (direction.sqrMagnitude > 0f ? acceleration : _profile.GroundFriction) * dt);
                     if (_state.MovementState == MovementState.Stumble && _state.StumbleRemaining <= 0f)
                         _state.MovementState = MovementState.Ground;
@@ -860,7 +909,8 @@ namespace Worsen.Domain.Player
         private bool CanVault(MovementProbe probe, bool ledge = false)
         {
             if (!Finite(probe.VaultHeight) || !Finite(probe.VaultClearance) || !Finite(probe.VaultTarget)
-                || !(probe.VaultHeight >= _profile.VaultMinimumHeight && probe.VaultHeight <= _profile.MantleMaximumHeight)
+                || !(probe.VaultHeight >= (ledge ? _profile.LedgeMinimumHeight : _profile.VaultMinimumHeight)
+                    && probe.VaultHeight <= (ledge ? _profile.LedgeMaximumHeight : _profile.MantleMaximumHeight))
                 || probe.VaultClearance <= 0f || probe.StandingBlocked) return false;
             if (ledge && (!(probe.VaultHeight >= _profile.LedgeMinimumHeight && probe.VaultHeight <= _profile.LedgeMaximumHeight)
                 || Horizontal(probe.VaultTarget - _state.Position).magnitude > _profile.LedgeReach)) return false;
@@ -893,6 +943,9 @@ namespace Worsen.Domain.Player
             _state.VaultSteeringOffset = Vector3.zero;
             _state.VaultProgress = 0f;
             _state.MovementState = MovementState.Vault;
+            ClearTraversalLaunch();
+            _state.TraversalMomentumRemaining = 0f;
+            _state.VaultIsLedge = ledge;
 
             // Look stays live; the base path is captured once and steering is a separate swept offset.
             _state.Grounded = false;
@@ -900,26 +953,17 @@ namespace Worsen.Domain.Player
             AddNoise(_profile.TraversalLoudness, NoiseSourceKind.Vault);
         }
 
-        private PlayerTickResult ContinueVault(InputFrame frame, MovementProbe probe, float dt, List<PlayerTraversalFact> facts, bool canCancel)
+        private PlayerTickResult ContinueVault(InputFrame frame, MovementProbe probe, float dt, List<PlayerTraversalFact> facts, bool acceptPress)
         {
             float remaining = _state.VaultRemaining;
             _state.TraversalSampleActive = true;
-            if (canCancel && (frame.Pressed & InputButtons.Jump) != 0 && !probe.StandingBlocked)
+            if (acceptPress && (frame.Pressed & InputButtons.Jump) != 0)
             {
-                bool boost = remaining > 0f && remaining <= _profile.TraversalBoostWindow + 0.000001f;
-                _state.Velocity = ClampHorizontal(_state.VaultExitVelocity
-                    + (boost ? _state.Forward * _profile.TraversalBoostSpeed : Vector3.zero), EffectiveMaximumSpeed());
-                _state.Velocity += Vector3.up * (JumpSpeed() - _profile.Gravity * dt);
-                ReleaseStoredMomentum();
-                _state.MovementState = MovementState.Air;
-                _state.Grounded = false;
-                _state.VaultRemaining = _state.CoyoteRemaining = 0f;
-                _state.LedgeRegrabRemaining = _profile.LedgeRegrabDelay;
+                // Early presses wait through the near-top window and the swept
+                // completion. The admission press itself can never double-trigger.
+                _state.TraversalLaunchBuffered = !probe.StandingBlocked;
                 ConsumeJump();
-                facts.Add(Fact(TraversalKind.Jump, true, _state.Velocity.normalized, 0f));
-                return new PlayerTickResult(_state.Velocity * dt, false, facts.ToArray());
             }
-            if (canCancel && (frame.Pressed & InputButtons.Jump) != 0) ConsumeJump();
             _state.VaultRemaining = Mathf.Max(0f, remaining - dt);
             if (_state.VaultRemaining < 0.000001f) _state.VaultRemaining = 0f;
             float elapsed = _state.VaultDuration - remaining;
@@ -939,6 +983,7 @@ namespace Worsen.Domain.Player
             _state.PreserveVelocityOnCommit = false;
             if (_state.VaultRemaining <= 0f)
             {
+                _state.InputLockSeconds = 0f;
                 _state.MovementState = MovementState.Air;
                 _state.Velocity = _state.VaultExitVelocity;
                 _state.VaultCompletionPending = true;
@@ -949,6 +994,31 @@ namespace Worsen.Domain.Player
             _state.VaultProgress = progress;
             return new PlayerTickResult(Vector3.zero, false, facts.ToArray(), true,
                 _state.VaultStart, _state.VaultTarget, progress, _state.VaultHeight, _state.VaultSteeringOffset);
+        }
+
+        private void ClearTraversalLaunch()
+        {
+            _state.TraversalLaunchBuffered = _state.TraversalLaunchReady = false;
+            _state.TraversalLaunchGrace = 0f;
+        }
+
+        private PlayerTickResult LaunchTraversal(float dt, List<PlayerTraversalFact> facts)
+        {
+            ClearTraversalLaunch();
+            Vector3 horizontal = Horizontal(_state.Velocity);
+            // Follow retained late-steered momentum, not a backwards mouse flick.
+            Vector3 direction = horizontal.sqrMagnitude > 0f ? horizontal.normalized : _state.Forward;
+            _state.Velocity = ClampHorizontal(horizontal + direction * _profile.TraversalBoostSpeed, EffectiveMaximumSpeed())
+                + Vector3.up * (_profile.TraversalBoostUpwardSpeed - _profile.Gravity * dt);
+            ReleaseStoredMomentum();
+            _state.TraversalMomentumRemaining = _profile.TraversalMomentumDuration;
+            _state.MovementState = MovementState.Air;
+            _state.Grounded = false;
+            _state.CoyoteRemaining = _state.LandingImpactSpeed = 0f;
+            _state.LedgeRegrabRemaining = _profile.LedgeRegrabDelay;
+            ConsumeJump();
+            facts.Add(Fact(TraversalKind.Jump, true, _state.Velocity.normalized, _profile.TraversalMomentumDuration, _state.VaultSurfaceId));
+            return new PlayerTickResult(_state.Velocity * dt, false, facts.ToArray());
         }
 
         private bool CanRebound(MovementProbe probe)

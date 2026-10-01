@@ -19,6 +19,8 @@
 // USAGE NOTES:
 //   Pure NUnit tests without scene objects or physics queries; Driver integration remains a separate live gate.
 //   No other Domain system or Presentation system is referenced.
+//   Owner 2026-10-01: low edge rays and a distinct grab/pull-up envelope replace
+//   chest-only probing and the generic hop envelope for automatic airborne climbs.
 // ============================================================================
 using NUnit.Framework;
 using UnityEngine;
@@ -30,6 +32,33 @@ namespace Worsen.Tests.Player
     public sealed class PlayerMoverPresenterTests
     {
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();
+
+        [TestCase(.35f)] [TestCase(.5f)]
+        public void EdgeProbeStartsBelowTheLowestPermittedTop(float minimum)
+        {
+            Assert.That(_presenter.EdgeProbeHeight(minimum, .8f, .02f), Is.EqualTo(minimum - .02f).Within(.00001f));
+        }
+
+        [TestCase(.5f)] [TestCase(1.4f)] [TestCase(2.2f)]
+        public void LedgeEnvelopeGrabsPullsAboveTheLipThenCrossesWithoutOvershoot(float height)
+        {
+            Vector3 to = new Vector3(0f, height, 1.2f), previous = Vector3.zero;
+            for (int i = 0; i <= 210; i++)
+            {
+                float p = i / 210f;
+                Vector3 position = _presenter.LedgePosition(Vector3.zero, to, p, .08f, .55f);
+                Assert.That(position.y, Is.InRange(0f, height + .08f));
+                Assert.That(position.z, Is.InRange(0f, 1.2f));
+                if (p <= .55f) Assert.That(position.z, Is.Zero);
+                else Assert.That(position.y, Is.GreaterThanOrEqualTo(height));
+                Assert.That(position.z, Is.GreaterThanOrEqualTo(previous.z));
+                Assert.That((position.z - previous.z) / (.35f / 210f), Is.LessThanOrEqualTo(14f));
+                if (i % 21 == 0)
+                    TestContext.WriteLine($"LEDGE_FRAME height={height:R} p={p:R} z={position.z:R} y={position.y:R}");
+                previous = position;
+            }
+            Assert.That(previous, Is.EqualTo(to));
+        }
 
         [TestCase(.25f, .95f)]
         [TestCase(.4f, .9f)]

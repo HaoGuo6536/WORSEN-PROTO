@@ -20,6 +20,8 @@
 // USAGE NOTES:
 //   Passive per-entity data. PlayerController.Reset replaces every value when a pooled life begins.
 //   Crouched is a legacy read-only name for Slide's reduced capsule, never a held posture.
+//   Traversal launch input is separate from the ordinary jump buffer. Momentum
+//   protection stores a decay clock, never velocity to reapply after collisions.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using System;
@@ -121,6 +123,11 @@ namespace Worsen.Domain.Player
         public bool VaultCompletionPending { get; set; }
         public PlayerTraversalFact? CompletedTraversal { get; set; }
         public Vector3 VaultExitVelocity { get; set; }
+        public bool TraversalLaunchBuffered { get; set; }
+        public bool TraversalLaunchReady { get; set; }
+        public float TraversalLaunchGrace { get; set; }
+        public float TraversalMomentumRemaining { get; set; }
+        public bool VaultIsLedge { get; set; }
         public float InputLockSeconds { get; set; }
         public float LandingImpactSpeed { get; set; }
         public float FootstepRemaining { get; set; }
