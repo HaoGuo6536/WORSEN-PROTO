@@ -9,14 +9,14 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve asset/group identity and exposed parameters on repeated setup.
 //   - Verify mixer gains replace, rather than multiply, source preference fallbacks.
-//   - Diagnose direct native Edit Mode readback independently of preference routing.
+//   - Check rejected writes use each source preference once, including repeat requests.
 // DEPENDENCIES:
 //   - Audio editor setup, Presentation Audio, NUnit and Unity asset/audio APIs.
 // USAGE NOTES:
 //   Coordinator holds the Unity lease. Cleanup deletes only the unique fixture asset.
-//   Unity's AudioMixer API documents exposed values and snapshot ownership, not an
-//   Edit Mode readback guarantee. Request assertions verify calls and acceptance;
-//   the direct native probe reports readback without claiming audible runtime gain.
+//   Edit Mode may reject exposed parameter writes. Assertions inspect requests and
+//   select fallback expectations from each native result, not mixer readback.
+//   AudioMixerPlayModeTests separately requires accepted writes and native readback.
 // ============================================================================
 using System;
 using System.Linq;
@@ -39,6 +39,7 @@ namespace Worsen.Tests.Audio
             var config = ScriptableObject.CreateInstance<AudioSoundscapeDriverConfig>();
             var ownerConfig = ScriptableObject.CreateInstance<AudioDriverConfig>();
             var owner = new GameObject("Mixer preference fixture");
+            var clip = AudioClip.Create("Mixer routing fixture", 480, 1, 48000, false);
             AudioDriver driver = null;
             try
             {
@@ -49,6 +50,9 @@ namespace Worsen.Tests.Audio
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
                 Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(identity));
                 CollectionAssert.AreEqual(groups, mixer.FindMatchingGroups("").Select(g => g.GetInstanceID()).OrderBy(id => id).ToArray());
+                var soundscapeConfig = new SerializedObject(config);
+                soundscapeConfig.FindProperty("_runIntro").objectReferenceValue = clip;
+                soundscapeConfig.ApplyModifiedPropertiesWithoutUndo();
                 var serialized = new SerializedObject(ownerConfig); serialized.FindProperty("_soundscape").objectReferenceValue = config; serialized.ApplyModifiedPropertiesWithoutUndo();
                 driver = owner.AddComponent<AudioDriver>(); driver.Initialize(ownerConfig); driver.SetOwnerEnabled(true);
                 var settings = new PlayerSettingsRecord(1, 1f, false, 90f, true, true, true, .5f, .25f, .75f);
@@ -64,33 +68,27 @@ namespace Worsen.Tests.Audio
                 Assert.That(request.Master, Is.EqualTo(volume.Decibels(.5f)).Within(.001f));
                 Assert.That(request.Music, Is.EqualTo(volume.Decibels(.25f)).Within(.001f));
                 Assert.That(request.Effects, Is.EqualTo(volume.Decibels(.75f)).Within(.001f));
-                Assert.That(request.MasterAccepted && request.MusicAccepted && request.EffectsAccepted, Is.True);
-                Assert.That(soundscape.EffectsSourceGain, Is.EqualTo(ownerConfig.MasterGain));
                 foreach (var source in owner.GetComponentsInChildren<AudioSource>())
                 {
                     Assert.That(source.outputAudioMixerGroup, Is.Not.Null);
                     Assert.That(source.outputAudioMixerGroup.audioMixer, Is.SameAs(mixer));
                 }
-                // An independent SetFloat call distinguishes native readback from a missing driver call.
-                Assert.That(mixer.GetFloat("MasterVolume", out float before), Is.True);
-                float probe = volume.Decibels(.25f);
-                Assert.That(mixer.SetFloat("MasterVolume", probe), Is.True);
-                Assert.That(mixer.GetFloat("MasterVolume", out float after), Is.True);
-                TestContext.WriteLine("Edit Mode direct MasterVolume probe: requested={0}, before={1}, after={2}, reflected={3}",
-                    probe, before, after, Mathf.Abs(after - probe) <= .001f);
-                driver.ApplySettings(settings);
-                Assert.That(soundscape.EffectsSourceGain, Is.EqualTo(ownerConfig.MasterGain), "Repeated preferences must not compound source gain.");
-                Assert.That(mixer.GetFloat("MusicVolume", out float music), Is.True);
-                Assert.That(mixer.GetFloat("EffectsVolume", out float effects), Is.True);
-                if (Mathf.Abs(after - probe) <= .001f)
+                var musicSource = owner.GetComponentsInChildren<AudioSource>().Single(s => s.name == "Run Intro");
+                Assert.That(musicSource.outputAudioMixerGroup, Is.SameAs(config.MusicGroup));
+                for (int repeat = 0; repeat < 2; repeat++)
                 {
-                    Assert.That(mixer.GetFloat("MasterVolume", out float master), Is.True);
-                    Assert.That(master, Is.EqualTo(request.Master).Within(.001f));
-                    Assert.That(music, Is.EqualTo(request.Music).Within(.001f));
-                    Assert.That(effects, Is.EqualTo(request.Effects).Within(.001f));
+                    request = soundscape.MixerVolumeRequest.Value;
+                    float masterGain = ownerConfig.MasterGain * (request.MasterAccepted ? 1f : settings.MasterVolume);
+                    float effectsGain = masterGain * (request.EffectsAccepted ? 1f : settings.EffectsVolume);
+                    float musicGain = masterGain * (request.MusicAccepted ? 1f : settings.MusicVolume);
+                    Assert.That(soundscape.EffectsSourceGain, Is.EqualTo(effectsGain).Within(.000001f),
+                        "Rejected preferences apply once at the source; accepted preferences do not apply there.");
+                    Assert.That(musicSource.volume, Is.EqualTo(musicGain * config.MusicGain * config.RunGain).Within(.000001f),
+                        "Repeated preferences must replace, not compound, music fallback.");
+                    if (repeat == 0) driver.ApplySettings(settings);
                 }
             }
-            finally { if (driver != null) driver.Teardown(); Object.DestroyImmediate(owner); Object.DestroyImmediate(ownerConfig); Object.DestroyImmediate(config); AssetDatabase.DeleteAsset(path); }
+            finally { if (driver != null) driver.Teardown(); Object.DestroyImmediate(owner); Object.DestroyImmediate(ownerConfig); Object.DestroyImmediate(config); Object.DestroyImmediate(clip); AssetDatabase.DeleteAsset(path); }
         }
         [Test] public void MissingMixerKeepsSourceFallbackAndZeroIsSilence()
         {
