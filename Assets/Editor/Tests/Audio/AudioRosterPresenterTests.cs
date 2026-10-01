@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies expansion cue mapping with value facts only, without native sources.
+//   Shared legacy banks cannot leak through missing bindings or anonymous facts.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
 // KEY RESPONSIBILITIES:
@@ -54,7 +55,7 @@ namespace Worsen.Tests.Audio
             Assert.That(command.Interval, Is.EqualTo(.8f)); Assert.That(command.Exact, Is.True);
             Assert.That(presenter.HeraldBreath(state, fact, out _), Is.False);
         }
-        [TestCase("mannequin")][TestCase("mimic")][TestCase("herald")][TestCase("blinder")][TestCase("stare")]
+        [TestCase("mannequin")][TestCase("mimic")][TestCase("skip")][TestCase("herald")][TestCase("blinder")][TestCase("stare")]
         public void GenericFeedbackCannotDuplicateDedicatedSoundsOrBreakSilence(string key)
         {
             foreach (HunterFeedbackKind kind in System.Enum.GetValues(typeof(HunterFeedbackKind)))
@@ -139,6 +140,73 @@ namespace Worsen.Tests.Audio
             mix.BlinderHit(world, new BlinderHitFact(hunter, player, 2, 2, 6, false), .5f);
             Assert.That(world.MuffledRemaining, Is.Zero);
         }
+        [TestCase("echo")][TestCase("weaver")][TestCase("ticking")][TestCase("ram")][TestCase("skip")]
+        [TestCase("mimic")][TestCase("blinder")][TestCase("herald")][TestCase("mannequin")][TestCase("stare")]
+        public void EveryRosterSlotRequiresExactBindingAndRejectsSharedEmitter(string key)
+        {
+            state.Archetypes[hunter] = key; state.LastAttacker = hunter;
+            foreach (string suffix in new[] { "presence", "detection", "chase", "attack", "death", "turn", "cake-reaction" })
+            {
+                string id = key + "." + suffix;
+                var generic = new AudioRosterBinding("hunter." + suffix, CueId.Presence);
+                Assert.That(presenter.ResolveBinding(new[] { generic }, id), Is.Null, id);
+                var own = new AudioRosterBinding(id, CueId.Presence);
+                Assert.That(presenter.ResolveBinding(new[] { generic, own }, id)?.Id, Is.EqualTo(id));
+                Assert.That(presenter.AllowsSharedBank(id), Is.False, "Even an exact binding with a null clip must not borrow a bank.");
+                Assert.That(presenter.IsRosterCue(id), Is.True);
+                Assert.That(presenter.OwnsCommand(state, new AudioRosterCommand { Hunter = hunter, Id = id }), Is.True);
+                Assert.That(presenter.OwnsCommand(state, new AudioRosterCommand { Hunter = hunter, Id = "hunter." + suffix }), Is.False);
+                Assert.That(presenter.OwnsCommand(state, new AudioRosterCommand { Hunter = hunter, Id = "rusher." + suffix }), Is.False);
+                string other = key == "ram" ? "echo" : "ram";
+                Assert.That(presenter.OwnsCommand(state, new AudioRosterCommand { Hunter = hunter, Id = other + "." + suffix }), Is.False);
+            }
+            Assert.That(presenter.AllowsSharedEmitter(state, hunter.Value), Is.False);
+            Assert.That(presenter.DeathId(state), Is.EqualTo(key + ".death"));
+            bool habit = presenter.Habit(state, new HunterHabitFact(hunter, HunterHabitKind.TurnToFace, default, 1), out var command);
+            Assert.That(habit, Is.EqualTo(key != "mannequin" && key != "mimic" && key != "skip"));
+            if (habit) Assert.That(command.Id, Is.EqualTo(key + ".turn"));
+        }
+        [TestCase("rusher")][TestCase("hexer")][TestCase("lurker")][TestCase("thorncaller")][TestCase("watcher")]
+        public void ExplicitLegacyIdentitiesRetainCompatibilityBanks(string key)
+        {
+            state.Archetypes[hunter] = key;
+            Assert.That(presenter.AllowsSharedEmitter(state, hunter.Value), Is.True);
+            Assert.That(presenter.IsRosterCue(key + ".attack"), Is.False);
+            foreach (string suffix in new[] { "presence", "detection", "chase", "attack", "death" })
+            {
+                string shared = "hunter." + suffix;
+                Assert.That(presenter.ResolveBinding(new[] { new AudioRosterBinding(shared, CueId.Presence) }, key + "." + suffix)?.Id, Is.EqualTo(shared));
+                Assert.That(presenter.AllowsSharedBank(key + "." + suffix), Is.True);
+            }
+        }
+        [TestCase("echo.footstep")][TestCase("weaver.wet-click")][TestCase("ticking.wake")]
+        [TestCase("ram-bellow")][TestCase("mimic-wrong-bite")][TestCase("blinder.throw-hiss")]
+        [TestCase("ms_mangled_scream_03")][TestCase("sb_mangled_scream_01")][TestCase("sb_mangled_scream_02")][TestCase("sb_mangled_scream_03")]
+        [TestCase("herald.breath")][TestCase("mannequin.long-step")][TestCase("stare.find-me")]
+        public void DedicatedAndMutationIdsCannotBorrowSharedBanks(string id)
+        {
+            Assert.That(presenter.IsRosterCue(id), Is.True);
+            Assert.That(presenter.AllowsSharedBank(id), Is.False);
+            Assert.That(presenter.ResolveBinding(new[] { new AudioRosterBinding("hunter.attack", CueId.EnemyWindup) }, id), Is.Null);
+        }
+        [Test] public void MissingIdentityCannotSelectGenericDeathOrHabitAndBlankFeedbackCannotEraseKnownIdentity()
+        {
+            Assert.That(presenter.AllowsSharedEmitter(state, 0), Is.False, "Local/default emitter must not bypass roster isolation.");
+            Assert.That(presenter.DeathId(state), Is.EqualTo("unknown.death"));
+            state.LastAttacker = hunter;
+            Assert.That(presenter.DeathId(state), Is.EqualTo("unknown.death"));
+            Assert.That(presenter.AllowsSharedEmitter(state, hunter.Value), Is.False);
+            Assert.That(presenter.Deliberation(state, hunter, default, 1, out var habit), Is.True);
+            Assert.That(habit.Id, Is.EqualTo("unknown.turn"));
+            Assert.That(presenter.Feedback(state, new HunterFeedbackEvent(hunter, null, HunterFeedbackKind.AttackWindup, default, 1), out var unknown), Is.True);
+            Assert.That(unknown.Id, Is.EqualTo("unknown.attack"));
+            state.Archetypes[hunter] = "echo";
+            Assert.That(presenter.Feedback(state, new HunterFeedbackEvent(hunter, "", HunterFeedbackKind.AttackWindup, default, 2), out var known), Is.True);
+            Assert.That(known.Id, Is.EqualTo("echo.attack"));
+            presenter.Reset(state, true);
+            Assert.That(presenter.DeathId(state), Is.EqualTo("unknown.death"));
+            Assert.That(presenter.AllowsSharedEmitter(state, hunter.Value), Is.False);
+        }
         [TestCase(float.NaN)][TestCase(float.PositiveInfinity)][TestCase(-1f)][TestCase(0f)]
         public void InvalidSensoryDurationsDoNotActivate(float seconds)
         {
@@ -146,6 +214,21 @@ namespace Worsen.Tests.Audio
             mix.HeraldDeafen(world, new HeraldDeafenFact(hunter, new EntityId(2), 1, default, 5, 1, seconds, false), .5f);
             mix.BlinderHit(world, new BlinderHitFact(hunter, new EntityId(2), 1, 1, seconds, true), .5f);
             Assert.That(world.DeafenedRemaining + world.MuffledRemaining, Is.Zero);
+        }
+        [TestCase("ram", "ram-bellow")][TestCase("mimic", "mimic-wrong-bite")]
+        [TestCase("herald", "sb_mangled_scream_02")][TestCase("herald", "ms_mangled_scream_03")]
+        public void AliasOwnershipIsExplicitAndAnonymousMutationCannotAddressLegacy(string key, string id)
+        {
+            var command = new AudioRosterCommand { Hunter = hunter, Id = id };
+            Assert.That(presenter.OwnsCommand(state, command), Is.False);
+            state.Archetypes[hunter] = key;
+            Assert.That(presenter.OwnsCommand(state, command), Is.True);
+            state.Archetypes[hunter] = "echo";
+            Assert.That(presenter.OwnsCommand(state, command), Is.False);
+            command.Hunter = EntityId.None;
+            Assert.That(presenter.OwnsCommand(state, command), Is.True);
+            command.Id = "hunter.attack";
+            Assert.That(presenter.OwnsCommand(state, command), Is.False);
         }
     }
 }

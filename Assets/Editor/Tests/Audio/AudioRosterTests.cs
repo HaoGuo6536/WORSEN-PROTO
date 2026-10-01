@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies roster admission and routing with transient clips, not scene assets.
+//   Fixtures supply exact new-roster clips; shared banks are not valid substitutes.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
 // KEY RESPONSIBILITIES:
@@ -46,7 +47,11 @@ namespace Worsen.Tests.Audio
             var cues = new[] { CueId.Footstep, CueId.Presence, CueId.Detection, CueId.Chase, CueId.EnemyWindup, CueId.Death };
             Set(_config, "_sounds", cues.Select(c => new AudioSoundDefinition { Cue = c, Clips = new[] { clip }, Gain = 1f,
                 PitchMinimum = .8f, PitchMaximum = 1.2f, Priority = 60 }).ToArray());
-            Set(_config, "_rosterBindings", _config.RosterBindings.Select(b => { b.Clip = clip; return b; }).ToArray());
+            var bindings = _config.RosterBindings.Select(b => { b.Clip = clip; return b; }).ToList();
+            foreach (string key in new[] { "echo", "weaver", "ticking" })
+            foreach (var slot in new[] { ("presence", CueId.Presence), ("detection", CueId.Detection), ("chase", CueId.Chase), ("attack", CueId.EnemyWindup), ("death", CueId.Death) })
+                bindings.Add(new AudioRosterBinding(key + "." + slot.Item1, slot.Item2) { Clip = clip });
+            Set(_config, "_rosterBindings", bindings.ToArray());
             Set(_config, "_timingJitterSeconds", .1f);
             _driver = Component<AudioSoundscapeDriver>(); _driver.gameObject.SetActive(true);
             _driver.Initialize(_config); _driver.SetOwnerEnabled(true); _driver.SetInRun(true);
@@ -69,7 +74,7 @@ namespace Worsen.Tests.Audio
                 _driver.ObserveHunter(fact);
                 Assert.That(Pool.Voices.Count(v => v.Remaining > 0 && v.Catalogue.Slot == (int)command.Slot), Is.EqualTo(1));
             }
-            _driver.ObserveHit(new HunterHit()); // No valid attacker uses the existing player catch bank.
+            _driver.ObserveHit(new HunterHit(new EntityId(4), new EntityId(7), 100, 11, Vector3.one));
             Assert.That(_driver.PlayDeath(), Is.True);
             Assert.That(Pool.Voices.Count(v => v.Remaining > 0), Is.EqualTo(5));
         }
@@ -77,6 +82,7 @@ namespace Worsen.Tests.Audio
         public void TurnAndDeliberationDeduplicateInEitherOrderPerHunter(bool habitFirst)
         {
             var hunter = new EntityId(4); var habit = new HunterHabitFact(hunter, HunterHabitKind.TurnToFace, Vector3.zero, 10);
+            _roster.Archetypes[hunter] = "echo"; _roster.Archetypes[new EntityId(5)] = "echo";
             bool first = habitFirst ? _presenter.Habit(_roster, habit, out _) : _presenter.Deliberation(_roster, hunter, Vector3.zero, 10, out _);
             bool second = habitFirst ? _presenter.Deliberation(_roster, hunter, Vector3.zero, 10, out _) : _presenter.Habit(_roster, habit, out _);
             Assert.That(first, Is.True); Assert.That(second, Is.False);
@@ -84,7 +90,7 @@ namespace Worsen.Tests.Audio
             Assert.That(_presenter.Deliberation(_roster, hunter, Vector3.zero, 11, out _), Is.True);
             var cake = new HunterHabitFact(hunter, HunterHabitKind.CakeReaction, Vector3.zero, 11);
             Assert.That(_presenter.Habit(_roster, cake, out var command), Is.True);
-            Assert.That(command.Id, Is.EqualTo("hunter.cake-reaction"));
+            Assert.That(command.Id, Is.EqualTo("echo.cake-reaction"));
             Assert.That(_presenter.Habit(_roster, cake, out _), Is.False);
         }
         [TestCase(false)] [TestCase(true)]
