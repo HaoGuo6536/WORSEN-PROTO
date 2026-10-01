@@ -3,7 +3,12 @@ guid: 30d9050399ee1d14d97922134f6f6197
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_concrete
+    second: {fileID: 2100000, guid: f64747341c764c045b83dd0ea68da375, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

@@ -10,8 +10,8 @@
 // KEY RESPONSIBILITIES:
 //   - Tune nameless cakes, candle flicker, layered glow and placeholder trap ticks.
 //   - Reference cake, exit and native Lumen art without a real-light fallback.
-//   - Tune gloved hands independently of gameplay timings and reach.
-//   - Tune cracks, mist and warning-pulse visuals for staged collapse.
+//   - Tune bounded hand flailing and player-directed strain independently of gameplay.
+//   - Tune cracks and warning pulses; retain legacy mist references for setup compatibility.
 //   - Expose the horizontal guidance corner skip distance for designer tuning.
 // DEPENDENCIES:
 //   - UnityEngine serialized values and prefab/material references only.
@@ -21,7 +21,8 @@
 //   Physical exit is opt-in so authored legacy floor fixtures retain their trigger behavior.
 //   Guidance skip distance is provisional and measured horizontally in metres.
 //   No persistent singleton or competing simulation tick is created.
-//   Serialized shaders are required for generated surfaces and fallback mist; editor setup fills them.
+//   Legacy mist references remain validated for existing setup contracts; Presentation/Fog
+//   now draws doorway haze. ClosedColor and WarningMistPulseFloor no longer colour fog.
 // ============================================================================
 using UnityEngine;
 
@@ -85,6 +86,16 @@ namespace Worsen.Domain.Floor
         [SerializeField, Range(3, 6)] private int _handGridWidth = 5;
         [SerializeField, Range(0.05f, 0.8f)] private float _portalInset = 0.25f;
         [SerializeField, Range(0.1f, 3f)] private float _handVisualScale = 1f;
+        [SerializeField, Min(0f)] private float _handFlailAmplitude = 0.28f;
+        [SerializeField, Min(0f)] private float _handFlailRate = 2.4f;
+        [SerializeField, Min(0f)] private float _handVisualReachRange = 4f;
+        [SerializeField, Min(0f)] private float _handVisualReachDistance = 0.8f;
+        [SerializeField, Min(0f)] private float _handTargetHeight = 0.9f;
+        public float HandFlailAmplitude => Mathf.Max(0f, _handFlailAmplitude);
+        public float HandFlailRate => Mathf.Max(0f, _handFlailRate);
+        public float HandVisualReachRange => Mathf.Max(0f, _handVisualReachRange);
+        public float HandVisualReachDistance => Mathf.Max(0f, _handVisualReachDistance);
+        public float HandTargetHeight => Mathf.Max(0f, _handTargetHeight);
         [SerializeField, Range(0.1f, 3f)] private float _glovedHandScaleMultiplier = 1.15f;
         public float GlovedHandScaleMultiplier => Mathf.Clamp(_glovedHandScaleMultiplier, 0.1f, 3f);
         [SerializeField] private bool _usePhysicalExitDoor;

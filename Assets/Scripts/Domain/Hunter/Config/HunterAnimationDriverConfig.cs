@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   DriverConfig (section 7d) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Supply distinct recovery/hit clips and authored locomotion stride speeds.
+//   - Tune bounded playback rates and gait transition hysteresis.
 //   - Tune per-archetype pose sampling, humanoid gaze and bounded foot grounding.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -28,7 +28,16 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private AnimationClip _run;
         [SerializeField] private AnimationClip _windup;
         [SerializeField] private AnimationClip _attack;
-        [SerializeField] private AnimationClip _recovery;
+        // Legacy setup writes the imported hit clip here. Keep that serialized
+        // identity readable, but never use the flinch as ordinary lunge recovery.
+        [SerializeField, HideInInspector] private AnimationClip _recovery;
+        [SerializeField] private AnimationClip _hit = null;
+        [SerializeField] private AnimationClip _attackRecovery = null;
+        [SerializeField, Min(0.01f)] private float _walkStrideSpeed = 1.6f;
+        [SerializeField, Min(0.01f)] private float _runStrideSpeed = 3f;
+        [SerializeField, Min(0f)] private float _minimumLocomotionRate = 0.1f;
+        [SerializeField, Min(0.01f)] private float _maximumLocomotionRate = 8f;
+        [SerializeField, Min(0f)] private float _runHysteresis = 0.5f;
         [SerializeField] private float _runThreshold = 4f;
         [SerializeField] private float _blendSeconds = 0.1f;
         [SerializeField, Min(0f)] private float _sampleRate = 0f;
@@ -68,7 +77,13 @@ namespace Worsen.Domain.Hunter
         public AnimationClip Run => _run;
         public AnimationClip Windup => _windup;
         public AnimationClip Attack => _attack;
-        public AnimationClip Recovery => _recovery;
+        public AnimationClip Recovery => _attackRecovery != null ? _attackRecovery : _idle;
+        public AnimationClip Hit => _hit != null ? _hit : _recovery;
+        public float WalkStrideSpeed => _walkStrideSpeed;
+        public float RunStrideSpeed => _runStrideSpeed;
+        public float MinimumLocomotionRate => _minimumLocomotionRate;
+        public float MaximumLocomotionRate => _maximumLocomotionRate;
+        public float RunHysteresis => _runHysteresis;
         public float RunThreshold => _runThreshold;
         public float BlendSeconds => _blendSeconds;
     }

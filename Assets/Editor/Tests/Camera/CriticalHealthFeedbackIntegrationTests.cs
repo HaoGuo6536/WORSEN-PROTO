@@ -13,7 +13,7 @@
 //   - Wait for the published end-exclusive grace tick before each intended accepted hit.
 //   - Distinguish critical breathing from proximity and inspect real AudioSources.
 //   - Verify death fades and canonical persistent Audio reset on one fresh scene.
-//   - Measure injury above the constant frame vignette and restore that baseline on fresh life.
+//   - Measure the fading red hit border and faint low-health floor; clear on fresh life.
 // DEPENDENCIES:
 //   Core; Domain Player/Hunter/Chase; Session Run/SceneFlow; Audio/PostFX/Input;
 //   TagArena SceneRoot; existing CaptureGateTrace focus admission; NUnit and Unity
@@ -147,6 +147,7 @@ namespace Worsen.Tests.Camera
             private Life current;
             private bool ready, awaitingDamage, sawCriticalMidpoint;
             private float health = 100f, elapsed, maxFrame, lastBreath, peakBreath;
+            private float damageFraction;
             private float proximity;
             private long nextDamageTick;
             private int stageFrames, firstAudioId, firstRunId, firstInputId, firstPostId, firstPlayerObjectId;
@@ -204,6 +205,7 @@ namespace Worsen.Tests.Camera
                 else Assert.That(awaitingDamage, Is.True, "Health changed outside the disclosed public damage command.");
                 Assert.That(id, Is.EqualTo(current.PlayerId));
                 current.RunHealth.Add(value);
+                damageFraction = Mathf.Max(0f, health - value) / maximum;
                 health = value; elapsed = maxFrame = 0f; stageFrames = 0; Settled = false;
                 lastBreath = breath == null ? 0f : breath.volume;
                 events.Add("Run.HealthChanged=" + value + " entity=" + id + " tick=" + run.Tick +
@@ -243,7 +245,7 @@ namespace Worsen.Tests.Camera
                     Assert.That(audioConfig.MixSettings.CriticalHealthFraction, Is.EqualTo(0.25f));
                     Assert.That(audioConfig.MixSettings.CriticalBreathGain, Is.EqualTo(0.55f));
                     Assert.That(audioConfig.MixSettings.LayerFadeSeconds, Is.EqualTo(0.3f));
-                    Assert.That(postConfig.InjuryVignette, Is.EqualTo(0.45f));
+                    Assert.That(postConfig.DamageFadeSeconds, Is.EqualTo(1.25f));
                     breath = (AudioSource)Read(audio, "_breath"); hunterLayer = (AudioSource)Read(audio, "_hunter");
                     Assert.That(breath.clip, Is.SameAs(audioConfig.BreathLoop));
                     Assert.That(breath.clip != null && breath.clip.samples > 0, Is.True);
@@ -355,7 +357,12 @@ namespace Worsen.Tests.Camera
                     current.Unique = true; current.SettledFrame = Time.frameCount;
                 }
                 Assert.That(proximity, Is.Zero, "Critical breathing must not be supplied by Hunter proximity.");
-                Assert.That(Vignette(), Is.EqualTo(Mathf.Clamp01(postConfig.FrameVignette + (1f - health / 100f) * postConfig.InjuryVignette)).Within(0.0001f));
+                float hit = Mathf.Clamp01(damageFraction / postConfig.DamageFullStrengthHealthFraction)
+                    * postConfig.DamageVignettePeak * Mathf.Clamp01(1f - (elapsed + dt) / postConfig.DamageFadeSeconds);
+                float low = Mathf.Sqrt(Mathf.Clamp01((postConfig.LowHealthFraction - health / 100f) / postConfig.LowHealthFraction))
+                    * postConfig.LowHealthVignette * (1f + postConfig.LowHealthPulseMultiplier * ((PostFXDriverState)Read(post, "_state")).HeartbeatEnvelope);
+                Assert.That(Vignette(), Is.EqualTo(Mathf.Max(hit, low)).Within(0.0001f));
+                Assert.That(Read(Read(Read(post, "_vignette"), "color"), "value"), Is.EqualTo(postConfig.DamageVignetteColor));
                 Assert.That(hunterLayer.volume, Is.Zero.Within(0.0001f));
                 Assert.That(dt > 0f && !float.IsNaN(dt) && !float.IsInfinity(dt), Is.True);
                 Assert.That(gain, Is.InRange(0f, 0.4401f));
@@ -410,7 +417,7 @@ namespace Worsen.Tests.Camera
                 Assert.That(sawCriticalMidpoint, Is.True, "Observe a real source fade, not only its eventual property value.");
                 Assert.That(peakBreath, Is.EqualTo(0.44f).Within(0.0001f));
                 Assert.That(player.ReadOnlyState.IsAlive, Is.True);
-                Assert.That(Vignette(), Is.EqualTo(Mathf.Clamp01(postConfig.FrameVignette + 0.3375f)).Within(0.0001f));
+                Assert.That(Vignette(), Is.GreaterThan(0f).And.LessThanOrEqualTo(postConfig.DamageVignettePeak));
             }
             public void AssertFirstLife()
             {
@@ -436,7 +443,7 @@ namespace Worsen.Tests.Camera
                 Assert.That(run.Phase, Is.EqualTo(RunPhase.FirstSweep));
                 Assert.That(breath.isPlaying && breath.clip == audioConfig.BreathLoop, Is.True);
                 Assert.That(breath.volume == 0f && hunterLayer.volume == 0f, Is.True);
-                Assert.That(Vignette(), Is.EqualTo(postConfig.FrameVignette).Within(0.0001f));
+                Assert.That(Vignette(), Is.Zero);
             }
             private void Snapshot(ScriptableObject config)
             {

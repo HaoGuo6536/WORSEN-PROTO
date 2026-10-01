@@ -79,7 +79,7 @@ namespace Worsen.Tests.Results
                 new ProgressionGenerationRequest(18, -731, 4, false, default));
             ((Action<ProgressionSnapshot>)Get(_progression, "SnapshotChanged"))(Snapshot(ProgressionPhase.GenerationFailed));
             Assert.That(_view.Visible && _view.NoFloor, Is.True); Assert.That(_view.HasPendingSummary, Is.False);
-            Assert.That(_view.EndReason, Is.EqualTo("The castle would not form. Seed -731."));
+            Assert.That(_view.EndReason, Is.EqualTo("Floor generation failed. Seed -731."));
             Assert.That(_presenter.SetNextSeed(_view, "123"), Is.False);
             Assert.That(_presenter.TryRestart(_view), Is.True); Assert.That(_presenter.TryReturnToTitle(_view), Is.False);
             ((Action<bool, int>)Get(_results, "RestartWithSeedRequested"))(_view.UseFixedSeed, _view.NextSeed);

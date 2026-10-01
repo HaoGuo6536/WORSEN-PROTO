@@ -11,8 +11,8 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Preserve independent cleanse, revival, grace, Glimpse and runtime blur commands.
-//   - Bound invalid inputs and preserve arbitrary fractional health values.
-//   - Apply Mirror Skin once to timed blindness; expire responses independently.
+//   - Replace hit dimming with fading red edges and heartbeat-driven low-health borders.
+//   - Ease bounded blindness with its own dark lens/blur; apply Mirror Skin once to duration.
 //   - Keep catches visible: legacy consumption never fades to black.
 //   - Compose existing degradation with the independently timed camcorder frame.
 //
@@ -23,6 +23,8 @@
 //   - Stateless; PostFXDriver owns the supplied state and all volume APIs.
 //   - The caller supplies intrusion duration, including the initial two-second response.
 //   - Look-back release blur affects focus only, never camera pose or view blending.
+//   - Severity is accepted health lost / maximum health, not a gameplay damage rule.
+//   - Heartbeat envelope is injected by routing; no independent audio clock is guessed.
 //
 // ============================================================================
 
@@ -37,8 +39,9 @@ namespace Worsen.Presentation.PostFX
         {
             state.ReacquireBlurEnabled = enabled;
             if (enabled) return;
-            state.BlurRemaining = state.Blur = 0f;
-            state.BlurRadius = 0.5f;
+            state.BlurRemaining = 0f;
+            state.Blur = state.BlindnessWeight;
+            if (state.Blur <= 0f) state.BlurRadius = 0.5f;
         }
 
         public void Reset(PostFXDriverState state)
@@ -56,7 +59,11 @@ namespace Worsen.Presentation.PostFX
             state.GlimpseRemaining = 0f;
             state.HunterRim = 0f;
             state.SubtleIntrusionRemaining = state.BlindnessRemaining = 0f;
+            state.BlindnessPhase = state.BlindnessWeight = 0f;
+            state.BlindnessSourceActive = false;
             state.Proximity = state.Injury = state.IntrusionRemaining = state.BlurRemaining = 0f;
+            state.HasHealthSample = false;
+            state.Health = state.DamageSeverity = state.DamageElapsed = state.PendingDamageSeverity = state.HeartbeatEnvelope = 0f;
             state.Chromatic = state.Distortion = state.Vignette = state.Saturation = state.Grain = state.Blur = 0f;
             state.BlurRadius = 0.5f;
         }
@@ -78,14 +85,54 @@ namespace Worsen.Presentation.PostFX
 
         public float OutlineStrength(PostFXDriverState state)
             => state.LookBack && !state.Consumed && state.Injury < 1f && state.Blackout <= 0f
+                && state.BlindnessRemaining <= 0f && state.BlindnessWeight <= 0f
+                && !state.BlindnessSourceActive
                 ? Mathf.Max(state.HunterRim, state.GlimpseRemaining > 0f ? 1f : 0f) : 0f;
 
         public void SetInjury(PostFXDriverState state, float currentHealth, float maxHealth)
         {
             maxHealth = Finite(maxHealth);
-            float injury = maxHealth > 0f ? 1f - Mathf.Clamp01(Finite(currentHealth) / maxHealth) : 0f;
-            if (injury > state.Injury) state.Frame.HitWeight = 1f;
-            state.Injury = injury;
+            currentHealth = Mathf.Clamp(Finite(currentHealth), 0f, Mathf.Max(0f, maxHealth));
+            float lost = state.HasHealthSample && maxHealth > 0f
+                ? Mathf.Clamp01((state.Health - currentHealth) / maxHealth) : 0f;
+            if (lost > 0f)
+            {
+                state.Frame.HitWeight = 1f;
+                state.PendingDamageSeverity = Mathf.Clamp01(state.PendingDamageSeverity + lost);
+            }
+            state.HasHealthSample = maxHealth > 0f;
+            state.Health = currentHealth;
+            state.Injury = maxHealth > 0f ? 1f - currentHealth / maxHealth : 0f;
+            if (state.Injury <= 0f)
+                state.DamageSeverity = state.DamageElapsed = state.PendingDamageSeverity = state.HeartbeatEnvelope = state.Vignette = 0f;
+        }
+
+        public void SetHeartbeatEnvelope(PostFXDriverState state, float strength)
+            => state.HeartbeatEnvelope = Mathf.Clamp01(Finite(strength));
+
+        private void TickDamage(PostFXDriverState state, PostFXDriverConfig config, float dt)
+        {
+            float duration = Mathf.Max(.001f, Finite(config.DamageFadeSeconds));
+            float remaining = Mathf.Clamp01(1f - state.DamageElapsed / duration);
+            if (state.PendingDamageSeverity > 0f)
+            {
+                // A weaker repeat hit cannot abruptly erase the still-visible stronger hit.
+                state.DamageSeverity = Mathf.Max(Mathf.Clamp01(state.PendingDamageSeverity /
+                    Mathf.Max(.001f, Finite(config.DamageFullStrengthHealthFraction))), state.DamageSeverity * remaining);
+                state.DamageElapsed = 0f;
+                state.PendingDamageSeverity = 0f;
+            }
+            state.DamageElapsed = Mathf.Min(duration, state.DamageElapsed + dt);
+            float hit = state.DamageSeverity * Mathf.Clamp01(Finite(config.DamageVignettePeak))
+                * Mathf.Clamp01(1f - state.DamageElapsed / duration);
+            float threshold = Mathf.Clamp(Finite(config.LowHealthFraction), .001f, 1f);
+            // URP's radial falloff squares intensity; sqrt keeps faint borders readable.
+            float low = Mathf.Sqrt(Mathf.Clamp01((threshold - (1f - state.Injury)) / threshold))
+                * Mathf.Clamp01(Finite(config.LowHealthVignette))
+                * (1f + Mathf.Clamp01(Finite(config.LowHealthPulseMultiplier)) * state.HeartbeatEnvelope);
+            state.Vignette = state.Injury > 0f ? Mathf.Clamp01(Mathf.Max(hit, low)) : 0f;
+            state.VignetteColor = config.DamageVignetteColor;
+            state.VignetteSmoothness = Mathf.Clamp(Finite(config.DamageVignetteSmoothness), .01f, 1f);
         }
 
         public void PlayReacquireBlur(PostFXDriverState state, PostFXDriverConfig config)
@@ -104,8 +151,13 @@ namespace Worsen.Presentation.PostFX
         {
             state.BlindnessRemaining = Mathf.Max(0f, Finite(seconds));
             if (state.ActiveEffects?.Has(new EffectId("mirror-skin")) == true)
-                state.BlindnessRemaining *= config != null ? Mathf.Clamp01(Finite(config.MirrorSkinDurationMultiplier)) : PostFXDriverConfig.DefaultMirrorSkinDurationMultiplier;
-            if (seconds != 0f || config == null || config.BlindnessEffectIds == null) return;
+                state.BlindnessRemaining *= config is not null ? Mathf.Clamp01(Finite(config.MirrorSkinDurationMultiplier)) : PostFXDriverConfig.DefaultMirrorSkinDurationMultiplier;
+            if (state.BlindnessRemaining <= 0f)
+            {
+                state.BlindnessPhase = state.BlindnessWeight = 0f;
+                state.BlindnessSourceActive = false;
+            }
+            if (seconds != 0f || config is null || config.BlindnessEffectIds == null) return;
             foreach (string id in config.BlindnessEffectIds)
                 if (!string.IsNullOrWhiteSpace(id) && state.ActiveEffects?.Has(new EffectId(id)) == true)
                     state.CleansedBlindness.Add(new EffectId(id));
@@ -164,11 +216,11 @@ namespace Worsen.Presentation.PostFX
                 ? Mathf.Max(0f, state.GlimpseRemaining - dt) : 0f;
             state.IntrusionRemaining = Mathf.Max(0f, state.IntrusionRemaining - dt);
             state.SubtleIntrusionRemaining = Mathf.Max(0f, state.SubtleIntrusionRemaining - dt);
-            state.BlindnessRemaining = Mathf.Max(0f, state.BlindnessRemaining - dt);
+            TickBlindness(state, config, dt);
             state.BlurRemaining = (state.ReacquireBlurEnabled ?? config.ReacquireBlurEnabled) ? Mathf.Max(0f, state.BlurRemaining - dt) : 0f;
             state.Chromatic = Mathf.Clamp01(config.BaselineChromatic + state.Proximity * config.PeripheralChromatic);
             state.Distortion = -Mathf.Clamp01(state.Proximity * config.PeripheralDistortion);
-            state.Vignette = Mathf.Clamp01(config.FrameVignette + state.Injury * config.InjuryVignette);
+            TickDamage(state, config, dt);
             float intrusion = state.IntrusionRemaining > 0f ? 1f :
                 state.SubtleIntrusionRemaining > 0f ? Mathf.Clamp01(config.SubtleIntrusionMultiplier) : 0f;
             CamcorderFramePresenter.Tick(state.Frame, config, state.Injury, state.Proximity, intrusion, dt);
@@ -176,18 +228,60 @@ namespace Worsen.Presentation.PostFX
             float ease = state.GraceActive ? config.GraceEaseInSeconds : config.GraceEaseOutSeconds;
             state.GraceWeight = Mathf.MoveTowards(state.GraceWeight, state.GraceActive ? 1f : 0f,
                 dt / Mathf.Max(0.001f, Finite(ease)));
-            float grace = state.GraceWeight * state.GraceWeight * (3f - 2f * state.GraceWeight);
-            state.Saturation = Mathf.Min(state.Saturation, Mathf.Clamp(Finite(config.GraceSaturation), -100f, 0f) * grace);
+            // Grace still retains its identity/envelope; its old desaturation is intentionally retired.
             state.Grain = Mathf.Clamp01(config.BaselineGrain + config.IntrusionGrain * intrusion);
             state.Blur = Mathf.Clamp01(state.BlurRemaining / Mathf.Max(0.001f, config.ReacquireBlurSeconds));
-            state.BlurRadius = Mathf.Lerp(0.5f, config.BlurRadius, state.Blur);
+            state.BlurRadius = Mathf.Max(Mathf.Lerp(0.5f, config.BlurRadius, state.Blur),
+                Mathf.Lerp(0.5f, Mathf.Clamp(Finite(config.BlindnessBlurRadius), 0.5f, 1.5f), state.BlindnessWeight));
+            state.Blur = Mathf.Max(state.Blur, state.BlindnessWeight);
             state.Blackout = state.Exposure = 0f;
-            // A held catch must remain visible even if a blindness hook was still active.
-            state.Blackout = !state.Consumed && state.Injury < 1f && (state.BlindnessRemaining > 0f || HasBlindness(state, config))
-                ? Mathf.Clamp01(config.BlindnessDarkness) : 0f;
-            state.SceneTint = Color.Lerp(Color.white, Color.black, state.Blackout);
+            state.Blackout = Mathf.Clamp(Finite(config.BlindnessDarkness), 0f,
+                PostFXDriverConfig.MaximumBlindnessDarkness) * state.BlindnessWeight;
+            // URP linearizes colorFilter before grading. Encode linear transmission,
+            // otherwise 0.85 darkness would retain only about 2%, not 15%, of the light.
+            float transmission = 1f - state.Blackout;
+            float filter = state.Blackout <= 0f ? 1f :
+                (float)(1.055d * System.Math.Pow(transmission, 1d / 2.4d) - 0.055d);
+            state.SceneTint = new Color(filter, filter, filter, 1f);
+            ComposeBlindnessLens(state, config);
             if (!state.Consumed) return;
             state.ConsumptionElapsed = Mathf.Min(state.ConsumptionDuration, state.ConsumptionElapsed + dt);
+        }
+
+        private void TickBlindness(PostFXDriverState state, PostFXDriverConfig config, float dt)
+        {
+            bool timed = state.BlindnessRemaining > 0f;
+            state.BlindnessRemaining = Mathf.Max(0f, state.BlindnessRemaining - dt);
+            // Float partitioning can leave a sub-microsecond residue at the exact expiry boundary.
+            if (state.BlindnessRemaining <= 0.000001f) state.BlindnessRemaining = 0f;
+            bool catalogue = HasBlindness(state, config);
+            state.BlindnessSourceActive = state.BlindnessRemaining > 0f || catalogue;
+            float recovery = Mathf.Max(0.001f, Finite(config.BlindnessRecoverySeconds));
+            if (state.Consumed || state.Injury >= 1f) state.BlindnessPhase = 0f;
+            else if (timed || catalogue)
+            {
+                state.BlindnessPhase = Mathf.MoveTowards(state.BlindnessPhase, 1f,
+                    dt / Mathf.Max(0.001f, Finite(config.BlindnessOnsetSeconds)));
+                // Ease out INSIDE the original timer, with no tail after expiry.
+                if (!catalogue) state.BlindnessPhase = Mathf.Min(state.BlindnessPhase,
+                    Mathf.Clamp01(state.BlindnessRemaining / recovery));
+            }
+            else state.BlindnessPhase = Mathf.MoveTowards(state.BlindnessPhase, 0f, dt / recovery);
+            state.BlindnessWeight = Mathf.SmoothStep(0f, 1f, state.BlindnessPhase);
+        }
+
+        private void ComposeBlindnessLens(PostFXDriverState state, PostFXDriverConfig config)
+        {
+            float weight = state.BlindnessWeight;
+            if (weight <= 0f) return;
+            Vector4 lens = state.Frame.Lens;
+            // The black blindness border is in the existing lens pass, NOT URP's red damage vignette.
+            lens.x = Mathf.Max(lens.x, Mathf.Clamp(Finite(config.BlindnessVignette), 0f,
+                PostFXDriverConfig.MaximumBlindnessDarkness) * weight);
+            lens.y = Mathf.Lerp(lens.y, Mathf.Clamp(Finite(config.BlindnessVignetteRadius), .01f, 1f), weight);
+            lens.z = Mathf.Lerp(lens.z, Mathf.Clamp(Finite(config.BlindnessVignetteSoftness), .01f, 1f), weight);
+            lens.w = Mathf.Max(lens.w, Mathf.Clamp(Finite(config.BlindnessEdgeBlurPixels), 0f, 4f) * weight);
+            state.Frame.Lens = lens;
         }
 
         private float Finite(float value) => float.IsNaN(value) || float.IsInfinity(value) ? 0f : value;

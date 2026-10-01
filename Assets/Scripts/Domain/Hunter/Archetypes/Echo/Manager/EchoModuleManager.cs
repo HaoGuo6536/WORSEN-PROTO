@@ -2,8 +2,8 @@
 // EchoModuleManager.cs
 // ============================================================================
 // PURPOSE:
-//   Registers Echo's recording rules with the Hunter factory. Ordered replay
-//   remains on the shared replay contract, so no specialised driver tick is needed.
+//   Registers Echo's recording rules with the Hunter factory. The shared opt-in
+//   kinematic replay contract replaces sensing, navigation and lunge attacks.
 // ARCHITECTURAL ROLE:
 //   Manager (§1), Entity system facet · Domain · Hunter Echo.
 // KEY RESPONSIBILITIES:
@@ -12,7 +12,7 @@
 //   - Parent Hunter module contracts and local Echo config/controller.
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, HunterManager owns tick and teardown.
-//   No subscriptions or independent state. Shared replay acknowledgements are unchanged.
+//   No subscriptions or independent state. HunterManager applies replay poses directly.
 //   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 namespace Worsen.Domain.Hunter.Archetypes.Echo

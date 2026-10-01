@@ -3,7 +3,27 @@ guid: bc827e9bb1b1f0d40ba4003f52ca5b03
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_door_steel
+    second: {fileID: 2100000, guid: 333441121944106478f9e4193f6dd69a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_galvanised
+    second: {fileID: 2100000, guid: b5879ad84e391334abcdccbb7ddfcfce, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_rust
+    second: {fileID: 2100000, guid: 92853eba551b381488e796e9374bea85, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_steel
+    second: {fileID: 2100000, guid: f496011f0031f284794e26dc93b7fc43, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

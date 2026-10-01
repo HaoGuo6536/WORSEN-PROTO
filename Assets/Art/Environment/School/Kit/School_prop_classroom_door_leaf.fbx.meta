@@ -3,7 +3,22 @@ guid: c628ce9e11ed697419852b8db6780962
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_door_laminate
+    second: {fileID: 2100000, guid: c14b8abd10e4ce34f994e3351a6e5121, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_glass
+    second: {fileID: 2100000, guid: 57dd9562fd705f64c8f04f2b93bfe284, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_steel
+    second: {fileID: 2100000, guid: ba98b52c38fbaae43b9ba02a8186dd53, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

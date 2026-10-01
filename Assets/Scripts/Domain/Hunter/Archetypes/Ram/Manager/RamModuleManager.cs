@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Register per-life charge rules and sequence charge motion.
 //   - Resolve breakable identities and preserve normal-aware charge contacts.
-//   - Publish charge facts before catch and after committed movement.
+//   - Publish charge facts and map stamp/charge/stagger to ready/run/hit poses.
 // DEPENDENCIES:
 //   - Local Ram rules/config, parent Hunter contracts/driver and Core identities.
 // USAGE NOTES:
@@ -30,6 +30,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ram
             => factory.Register<RamConfig, RamModuleManager>((config, profile, random) => new RamController(config, profile));
         public override bool OwnsDecisionMotion => Controller.OwnsPursuit;
         public override bool HandlesContact => true;
+        public override HunterAnimationPhase AnimationPhase => HunterAnimationPresenter.FromRamPhase(Controller.Phase);
         public override bool Move(float dt)
         {
             if (!Controller.OwnsPursuit || Shared.CatchActive || !Hunter.IsActive) return false;

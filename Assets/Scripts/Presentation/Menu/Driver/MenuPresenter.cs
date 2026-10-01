@@ -55,9 +55,9 @@ namespace Worsen.Presentation.Menu
             overrides = state.Draft;
             if (!state.SettingsReady || !state.Paused || state.Pending) return false;
             overrides = PersistenceUtility.ClampSettings(state.Draft, state.Settings);
-            state.Message = "Applying settings…"; return true;
+            state.Message = "Saving…"; return true;
         }
         public void SetSaveResult(MenuDriverState state, bool saved, string message)
-            => state.Message = saved ? "Settings saved." : "Active for this session; not saved. " + message;
+            => state.Message = saved ? "Settings saved." : "Applied, but not saved: " + message;
     }
 }

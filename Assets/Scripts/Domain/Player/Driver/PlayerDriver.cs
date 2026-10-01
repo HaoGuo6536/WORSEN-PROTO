@@ -25,6 +25,9 @@
 //   No other Domain system or Presentation system is referenced.
 //   Query buffers are pooled until teardown; saturation grows and retries before
 //   consuming any contacts. Equal-distance hits retain the query's encounter order.
+//   Wall jumps probe ordinary non-body walls in eight horizontal directions; authored
+//   IDs remain stable and untagged collider IDs are captured in the replay probe.
+//   Legacy crouched parameters mean Slide's reduced capsule only.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -100,9 +103,9 @@ namespace Worsen.Domain.Player
             Vector3 feet = _state.Position;
             Vector3 forward = Quaternion.Euler(0f, _state.Heading, 0f) * Vector3.forward;
             bool grounded = FindGround(feet, _config.GroundProbeDistance, _state.Velocity, out RaycastHit ground);
-            bool wallHit = Cast(feet, _state.Height, forward, _config.WallProbeDistance + _config.SkinWidth, out RaycastHit wall);
+            bool wallHit = ProbeWall(feet, forward, out RaycastHit wall);
             ITraversalSurface wallSurface = wallHit ? wall.collider.GetComponentInParent<ITraversalSurface>() : null;
-            bool rebound = wallSurface != null && wallSurface.Kind == TraversalSurfaceKind.Rebound;
+            bool rebound = wallHit;
             bool vaultHit = Cast(feet, Mathf.Min(_state.Height, _config.Height * 0.5f), forward,
                 _config.VaultProbeDistance, out RaycastHit vault);
             ITraversalSurface vaultSurface = vaultHit ? vault.collider.GetComponentInParent<ITraversalSurface>() : null;
@@ -124,7 +127,7 @@ namespace Worsen.Domain.Player
             return new MovementProbe(grounded, grounded ? ground.normal : Vector3.up,
                 rebound, rebound ? Mathf.Max(0f, wall.distance - _config.SkinWidth) : 0f,
                 rebound ? wall.normal : Vector3.zero, rebound ? Vector3.Angle(forward, -wall.normal) : 0f,
-                rebound ? wallSurface.SurfaceId : 0, candidate,
+                rebound ? (wallSurface != null && wallSurface.SurfaceId != 0 ? wallSurface.SurfaceId : wall.collider.GetInstanceID()) : 0, candidate,
                 height, clearance, target,
                 _state.Height < _config.Height && IsBlocked(feet, _config.Height), candidate ? vaultSurface.SurfaceId : 0);
         }
@@ -236,9 +239,9 @@ namespace Worsen.Domain.Player
         public void ShowMovement(MovementState movement)
         {
             if (movement != MovementState.Vault) ClearTraversal();
-            // Relaxed arms swing with horizontal speed and settle when crouched (PlayerLimbPresenter).
+            // Relaxed arms swing on Ground and settle during Slide (PlayerLimbPresenter).
             if (_limbs != null) _limbs.Apply(movement, _config.EyeHeight, _config.HandOffset, _config.FootOffset,
-                new Vector2(_state.Velocity.x, _state.Velocity.z).magnitude, _state.Height < _config.Height, _state.LastStepDuration, _config);
+                new Vector2(_state.Velocity.x, _state.Velocity.z).magnitude, _state.LastStepDuration, _config);
         }
 
         public void Teardown()
@@ -315,7 +318,22 @@ namespace Worsen.Domain.Player
             _capsule.direction = 1;
         }
 
-        private bool Cast(Vector3 feet, float height, Vector3 direction, float distance, out RaycastHit closest)
+        private bool ProbeWall(Vector3 feet, Vector3 forward, out RaycastHit closest)
+        {
+            closest = default;
+            float nearest = float.PositiveInfinity;
+            for (int sample = 0; sample < 8; sample++)
+            {
+                Vector3 direction = Quaternion.Euler(0f, sample * 45f, 0f) * forward;
+                if (!Cast(feet, _state.Height, direction, _config.WallProbeDistance + _config.SkinWidth,
+                    out RaycastHit hit, true) || hit.distance >= nearest) continue;
+                closest = hit;
+                nearest = hit.distance;
+            }
+            return nearest < float.PositiveInfinity;
+        }
+
+        private bool Cast(Vector3 feet, float height, Vector3 direction, float distance, out RaycastHit closest, bool wallsOnly = false)
         {
             _presenter.Capsule(feet, height, _config.Radius, out Vector3 bottom, out Vector3 top);
             int count;
@@ -329,6 +347,20 @@ namespace Worsen.Domain.Player
                 RaycastHit hit = _state.QueryHits[i];
                 if (hit.collider == null || hit.collider == _state.IgnoredTraversalCollider
                     || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
+                if (wallsOnly)
+                {
+                    // Hunter bodies remain exclusively on Second Bounce, even without a configured layer.
+                    if (hit.collider.gameObject.layer == _state.HunterBodyLayer
+                        || hit.collider.GetComponentInParent<IEntityHandle>() != null
+                        || hit.collider.attachedRigidbody != null) continue;
+                    if (_presenter.IsInitialOverlap(hit.distance, hit.point))
+                    {
+                        if (!Physics.ComputePenetration(_capsule, feet, Quaternion.identity, hit.collider,
+                            hit.collider.transform.position, hit.collider.transform.rotation, out Vector3 normal, out _)) continue;
+                        hit.normal = normal;
+                    }
+                    if (Mathf.Abs(hit.normal.y) >= 0.5f || hit.normal.sqrMagnitude < 0.5f) continue;
+                }
                 closest = hit;
                 nearest = hit.distance;
             }

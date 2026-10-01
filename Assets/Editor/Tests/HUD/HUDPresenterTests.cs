@@ -5,14 +5,14 @@
 // PURPOSE:
 //   Verifies presentation-only HUD behavior with primitive samples and explicit time.
 //   These tests protect chase chrome suppression, interrupted restoration, missing direction
-//   samples and suppression of empty capacity without opening a Unity scene.
+//   samples and the fixed three-slot contract without opening a Unity scene.
 //
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
 //   - Verify half-second restore timing and immediate chase interruption.
-//   - Keep formatting stable and invalid samples from becoming visible direction arrows.
+//   - Verify remaining-only counts and keep invalid samples from becoming direction arrows.
 //   - Keep guidance visible through chases and keep all formatted text chase-neutral.
 //
 // DEPENDENCIES:
@@ -34,7 +34,30 @@ namespace Worsen.Tests.HUD
     public sealed class HUDPresenterTests
     {
         [Test]
-        public void HeadingRotatesWorldCueAndExitStateChangesCaption()
+        public void HealthTracksHitsAndRegenerationThroughChaseAndModalSuppression()
+        {
+            var p = new HUDPresenter(); var s = new HUDDriverState(); var g = new HUDGuidancePresenter();
+            p.SetDirection(s, Vector3.forward, true); p.SetCount(s, 1, 4);
+            p.SetHealth(s, 100f, 100f); Assert.That(s.HealthFraction, Is.EqualTo(1f));
+            p.SetChaseMode(s, true); p.SetHealth(s, 42.5f, 100f);
+            Assert.That(s.HealthFraction, Is.EqualTo(.425f)); Assert.That(s.HealthText, Is.EqualTo("42.5 / 100"));
+            p.SetModalOpen(s, true); p.SetHealth(s, 60f, 100f);
+            Assert.That(s.HealthText, Is.EqualTo("60 / 100")); Assert.That(s.HealthKnown, Is.True);
+            Assert.That(g.ArrowVisible(s), Is.False); Assert.That(p.TryShowPhantomCake(s, 1f), Is.False);
+            p.SetChaseMode(s, false); p.Tick(s, 1f, .5f); Assert.That(g.CountVisible(s), Is.False);
+            p.ResetRunView(s); Assert.That(s.ModalOpen, Is.True, "Capture reset must not reopen chrome over a modal.");
+            p.SetModalOpen(s, false); Assert.That(g.CountVisible(s), Is.True);
+        }
+
+        [TestCase(float.NaN, 100f)] [TestCase(10f, 0f)] [TestCase(10f, float.PositiveInfinity)]
+        public void InvalidHealthNeverClaimsAFullBar(float current, float maximum)
+        {
+            var s = new HUDDriverState(); var p = new HUDPresenter(); p.SetHealth(s, 100f, 100f); p.SetHealth(s, current, maximum);
+            Assert.That(s.HealthKnown, Is.False); Assert.That(s.HealthFraction, Is.Zero); Assert.That(s.HealthText, Is.EqualTo("— / —"));
+        }
+
+        [Test]
+        public void HeadingRotatesWorldCueAndExitStateRetainsOnlyTheFact()
         {
             var state = new HUDDriverState();
             var presenter = new HUDPresenter();
@@ -46,11 +69,9 @@ namespace Worsen.Tests.HUD
             presenter.SetHeading(state, float.NaN);
             Assert.That(state.DirectionDegrees, Is.Zero.Within(0.0001f));
             presenter.SetExitState(state, ExitState.Open);
-            Assert.That(state.ExitText, Is.EqualTo("Exit: OPEN"));
-            Assert.That(state.DirectionCaption, Is.Empty);
+            Assert.That(state.ExitOpen, Is.True);
             presenter.SetExitState(state, ExitState.Locked);
-            Assert.That(state.ExitText, Is.EqualTo("Exit: LOCKED"));
-            Assert.That(state.DirectionCaption, Is.Empty);
+            Assert.That(state.ExitOpen, Is.False);
         }
 
         [Test]
@@ -63,8 +84,8 @@ namespace Worsen.Tests.HUD
             presenter.SetDirection(state, Vector3.forward, true);
             presenter.SetChaseMode(state, true);
             presenter.Tick(state, 1f, 0.5f);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 3 / 7"));
-            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.CountText, Is.EqualTo("4"));
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ExtraOpacity, Is.Zero);
             Assert.That(state.ChaseMode, Is.True);
@@ -145,17 +166,17 @@ namespace Worsen.Tests.HUD
             var state = new HUDDriverState();
             var presenter = new HUDPresenter();
             presenter.SetCount(state, 0, 0);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 0 / 0"));
+            Assert.That(state.CountText, Is.EqualTo("0"));
             presenter.SetCount(state, -1, 4);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: —"));
+            Assert.That(state.CountText, Is.EqualTo("—"));
             presenter.SetItemSlots(state, 11, 8);
-            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             Assert.That(state.SlotOverflowText, Is.Empty);
             presenter.SetHeldItemCount(state, 11, 8);
-            Assert.That(state.DisplayedSlots, Is.EqualTo(8));
-            Assert.That(state.SlotOverflowText, Is.EqualTo("+3 items"));
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
+            Assert.That(state.SlotOverflowText, Is.EqualTo("+8"));
             presenter.SetItemSlots(state, -2, 8);
-            Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             Assert.That(state.SlotOverflowText, Is.Empty);
         }
 
@@ -165,11 +186,11 @@ namespace Worsen.Tests.HUD
             var state = new HUDDriverState();
             var presenter = new HUDPresenter();
             presenter.SetCount(state, 7, 4);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 7 / 4"));
+            Assert.That(state.CountText, Is.EqualTo("0"));
             Assert.That(state.CountKnown, Is.True);
             Assert.That(state.CountFraction, Is.EqualTo(1f));
             presenter.SetCount(state, 0, 0);
-            Assert.That(state.CountKnown, Is.False);
+            Assert.That(state.CountKnown, Is.True);
             Assert.That(state.CountFraction, Is.Zero);
             presenter.SetCount(state, -1, 4);
             Assert.That(state.CountFraction, Is.Zero);
@@ -190,8 +211,8 @@ namespace Worsen.Tests.HUD
             Assert.That(state.ExtraOpacity, Is.EqualTo(1f));
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ChromeVisible, Is.True);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 2 / 6"));
-            Assert.That(state.ExitText, Is.EqualTo("Exit: LOCKED"));
+            Assert.That(state.CountText, Is.EqualTo("4"));
+            Assert.That(state.ExitOpen, Is.False);
 
             presenter.SetChaseMode(state, true);
             presenter.SetChaseMode(state, false);
@@ -213,7 +234,7 @@ namespace Worsen.Tests.HUD
             presenter.SetItemSlots(state, 11, 8);
             presenter.SetDirection(state, Vector3.forward, true);
             presenter.SetChaseMode(state, chasing);
-            foreach (string text in new[] { state.CountText, state.ExitText, state.DirectionCaption, state.SlotOverflowText })
+            foreach (string text in new[] { state.CountText, state.HealthText, state.SlotOverflowText })
                 Assert.That(text, Does.Not.Contain("HUNTED"));
             Assert.That(state.DirectionVisible, Is.True);
             Assert.That(state.ChromeVisible, Is.EqualTo(!chasing));

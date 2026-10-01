@@ -10,7 +10,7 @@
 #   - Assemble primitive meshes with rigid bone assignments.
 #   - Bake six in-place actions and export manifest/source/FBX.
 #   - Render neutral, true-scale Workbench previews.
-#   - Independently inspect imported content and record reproducibility evidence.
+#   - Inspect imported motion, 3–8k triangle/2–4 material budgets and reproducibility.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils, Python standard library; model callbacks only.
 # USAGE NOTES:
@@ -144,6 +144,8 @@ class Body:
         for name, parent, head in self.bones:
             bone = data.edit_bones.new(name)
             bone.head, bone.tail = head, Vector(head) + Vector((0, 0, .1))
+            if name == 'Root':
+                bone.tail = (0, -.1, 0)  # Keep Hips disconnected on FBX re-import.
             bone.align_roll(Vector((0, -1, 0)))
             if parent:
                 bone.parent = data.edit_bones[parent]
@@ -222,6 +224,12 @@ def animate(rig, lengths, author):
                 for field in ('location', 'rotation_quaternion', 'scale'):
                     bone.keyframe_insert(field, frame=frame, group=bone.name)
         clips.append(clip)
+        for layer in clip.layers:
+            for strip in layer.strips:
+                for bag in strip.channelbags:
+                    for curve in bag.fcurves:
+                        for key in curve.keyframe_points:
+                            key.interpolation = 'LINEAR'
     clear_pose(rig)
     return clips
 
@@ -353,7 +361,7 @@ def combined_lineup():
     render(ROOT/'Logs/AgentValidation/Art/HunterLineup-hunter-art-a.png', (.4,-10,1.3), (.4,0,1.3), 3.25, True)
 
 
-def validate(name, expected_lengths):
+def validate(name, expected_lengths, motion_minima):
     """Fresh import measurements, not a checksum of the generator's claims."""
     source, fbx, previews = paths(name)
     rows, report = [], {'hunter': name}
@@ -405,7 +413,9 @@ def validate(name, expected_lengths):
         width = max(p.x for p in points)-min(p.x for p in points)
         check('height and ground', abs(height-HEIGHTS[name])<.002 and abs(min(p.z for p in points))<1e-4, height)
         check('manifest dimensions', abs(height-manifest['height_m'])<1e-4 and abs(width-manifest['width_m'])<1e-4, [height,width])
-        check('triangle budget and manifest', 0<triangles<=4000 and triangles==manifest['triangles'], triangles)
+        from validate_hunter_detail_contract import measure_budget
+        measure_budget(meshes, check)
+        check('triangle manifest', triangles==manifest['triangles'], triangles)
         check('rigid weights', not invalid, invalid)
         check('bind pose', bind_error<1e-4, bind_error)
         # The actual foot geometry is elongated towards -Y, independently of metadata.
@@ -434,11 +444,14 @@ def validate(name, expected_lengths):
             check(n+' loop flag', entry['loop']==(n in NAMES[:3]), entry['loop'])
             if n in NAMES[:3]:
                 check(n+' seam', seam<1e-4, seam)
-            check(n+' authored samples', motion<1e-5 if name=='Mannequin' and n=='idle' else motion>1e-4, motion)
+            check(n+' authored samples', motion>1e-4, motion)
             if n=='attack':
                 check('contact frame', entry['contact_frame']==round(expected_lengths[n]*.4), entry['contact_frame'])
             action_report.append({**entry, 'imported_frames': [start,end], 'seam_error': seam})
             animation_signature.append([n,samples])
+        from hunter_animation_review import validate_motion, validate_source_motion
+        report['motion'] = validate_motion(name, rig, meshes, clips, motion_minima, check)
+        validate_source_motion(source, rig, clips, check)
         check('manifest action set', len(manifest['actions'])==6 and {a['name'] for a in manifest['actions']}==set(NAMES), len(manifest['actions']))
         contact = next(a['contact_frame'] for a in manifest['actions'] if a['name']=='attack')
         set_action(rig,clips['attack'],int(clips['attack'].frame_range[0])+contact)
@@ -450,6 +463,7 @@ def validate(name, expected_lengths):
             check('attack reaches forward at contact', reach<-.35, reach)
         material_signature = []
         actual_materials = {s.material.name:s.material for m in meshes for s in m.material_slots}
+
         check('material names', set(actual_materials)=={m['name'] for m in manifest['materials']} and all(n.startswith('M_Hunter'+name+'_') for n in actual_materials), list(actual_materials))
         for entry in manifest['materials']:
             m = actual_materials[entry['name']]
@@ -495,7 +509,7 @@ def validate(name, expected_lengths):
     target = previews/'validation.json'
     previews.mkdir(parents=True,exist_ok=True)
     # Preserve the first successful content measurement; compare on every rerun.
-    baseline = previews/'validation-run1.json'
+    baseline = previews/'validation-detail-run1.json'
     if report['passed'] and baseline.exists():
         first = json.loads(baseline.read_text(encoding='utf-8'))
         report['two_run_hash_match'] = first.get('signature_version')==report['signature_version'] and first['content_sha256']==report['content_sha256']

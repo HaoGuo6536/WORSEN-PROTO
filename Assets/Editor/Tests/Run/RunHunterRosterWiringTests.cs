@@ -191,8 +191,10 @@ namespace Worsen.Tests.Run
         }
 
         [Test]
-        public void AfterglowWindowIsAppliedToEveryMannequinAndPublishedOnce()
+        public void AfterglowGivesNoMannequinSafetyWindowAndPublishesNone()
         {
+            // Owner rule 2026-09-30: the Mannequin moves whenever unseen, lit or dark, so an
+            // extinguished light opens no refuge for any bound Mannequin, even with Afterglow.
             var config = Config<Worsen.Domain.Hunter.Archetypes.Mannequin.MannequinConfig>();
             var effects = new ActiveEffects(new[] { new ActiveEffect(new EffectId("afterglow"), EffectKind.Upgrade, 1) });
             foreach (int id in new[] { -1, -2 })
@@ -205,12 +207,16 @@ namespace Worsen.Tests.Run
                 module.InitializeModule(rules, null, null, null, null, null, null);
                 Set(h, "_module", module); run.BindAdditionalHunter(h);
             }
-            int windows = 0; run.HunterFacts.AfterglowWindowPublished += (room, seconds) => {
-                Assert.That(room, Is.EqualTo(1)); Assert.That(seconds, Is.EqualTo(config.AfterglowSeconds)); windows++; };
-            run.ObserveLightExtinguished(1); Assert.That(windows, Is.EqualTo(1));
+            int windows = 0; run.HunterFacts.AfterglowWindowPublished += (room, seconds) => windows++;
+            Assert.That(config.AfterglowSeconds, Is.Zero);
+            run.ObserveLightExtinguished(1); Assert.That(windows, Is.Zero, "No Mannequin refuge window may be published.");
+            Assert.That(hunters.Count, Is.EqualTo(2));
             foreach (var h in hunters)
-                Assert.That(((IDictionary)Get(Get(((Worsen.Domain.Hunter.HunterArchetypeManager)Get(h, "_module")).Rules, "_state"), "Afterglow")).Contains(1), Is.True);
-            run.SetPaused(true); run.ObserveLightExtinguished(2); Assert.That(windows, Is.EqualTo(1));
+            {
+                Assert.That(Get(h, "_module"), Is.InstanceOf<Worsen.Domain.Hunter.Archetypes.Mannequin.MannequinModuleManager>());
+                Assert.That(h.BeginAfterglow(1), Is.Zero, "Afterglow must not hold a Mannequin in a darkened room.");
+            }
+            run.SetPaused(true); run.ObserveLightExtinguished(2); Assert.That(windows, Is.Zero);
         }
 
         [Test]

@@ -12,7 +12,7 @@
 //   - Complete in-place revival once after the catch without resetting collapse.
 //   - Route hand/ward/throw outcomes while rejecting revival-protected grabs.
 //   - Own effect lifecycle, actor refresh, trap slows and world jam bindings.
-//   - Publish sensory facts; only authorized item noise reaches hunter hearing.
+//   - Apply hunter reactions and publish flashlight progress and authorized sensory facts.
 // DEPENDENCIES:
 //   Domain Level closes/breaks doors. Own Driver observes head bones and physics sweeps.
 //   Core contracts; Domain Player/Hunter registries and managers; Domain Floor manager.
@@ -62,6 +62,7 @@ namespace Worsen.Session.HorrorEffects
         public event Action<int> OptionalRoomCracked;
         public event Action<int, Vector3> DoorMarked;
         public event Action<HunterStunFact> HunterStunned;
+        public event Action<bool, float, float> FlashlightStatusChanged;
         public event Action<HunterSlipFact> HunterSlipped;
         public event Action<DoorJamFact> DoorJamChanged;
         public event Action<SensoryCleanseFact> SensesCleansed;
@@ -69,6 +70,10 @@ namespace Worsen.Session.HorrorEffects
         public event Action<EntityId> PlayerRevived;
         public bool FlashlightCharged => consumables != null && consumables.Charged;
         public bool FlashlightEnabled => controller != null && controller.FlashlightEnabled;
+        public float FlashlightCharge => consumables == null ? 0f : consumables.ChargeFraction;
+        public float FlashlightAim => consumables == null ? 0f : consumables.AimFraction;
+        public void PublishFlashlightStatus() => FlashlightStatusChanged?.Invoke(
+            controller != null && controller.CurrentLight.Enabled, FlashlightCharge, FlashlightAim);
         public float FootstepLoudnessMultiplier => controller == null ? 1f : controller.FootstepLoudnessMultiplier;
         public float ReboundCooldownMultiplier => controller == null ? 1f : controller.ReboundCooldownMultiplier;
         public float OptionalWindowMultiplier => controller == null ? 1f : controller.OptionalWindowMultiplier;
@@ -88,7 +93,7 @@ namespace Worsen.Session.HorrorEffects
             return this;
         }
         public void BeginFloor(int generationId, ProgressionEffects effects) { Suspend(); controller?.BeginFloor(generationId, effects); consumables?.BeginFloor(); RefreshActors(); Publish(); }
-        public void ResetRun() => consumables?.ResetRun();
+        public void ResetRun() { consumables?.ResetRun(); PublishFlashlightStatus(); }
         public void UpdateEffects(ProgressionEffects effects) { controller?.UpdateEffects(effects); RefreshActors(); Publish(); }
         public void ObserveAim(FlashlightSample aim) { controller?.ObserveAim(aim); Publish(); }
         public void ReceiveInput(InputFrame frame) { controller?.ReceiveInput(frame); consumables?.ReceiveInput(frame); Publish(); }
@@ -207,6 +212,7 @@ namespace Worsen.Session.HorrorEffects
         private void Publish()
         {
             if (controller == null) return;
+            PublishFlashlightStatus();
             foreach (HorrorEffectFact fact in controller.DrainFacts())
             {
                 switch (fact.Kind)
@@ -326,8 +332,16 @@ namespace Worsen.Session.HorrorEffects
         private void PublishConsumables()
         {
             if (consumables == null) return;
-            foreach (var fact in consumables.DrainStuns()) HunterStunned?.Invoke(fact);
-            foreach (var fact in consumables.DrainSlips()) HunterSlipped?.Invoke(fact);
+            foreach (var fact in consumables.DrainStuns())
+            {
+                if (HunterRegistry.TryGet(fact.HunterId, out var hunter)) hunter.ApplyStun(fact.Seconds, fact.Strength);
+                HunterStunned?.Invoke(fact);
+            }
+            foreach (var fact in consumables.DrainSlips())
+            {
+                if (HunterRegistry.TryGet(fact.HunterId, out var hunter)) hunter.ApplySlip(fact.Seconds);
+                HunterSlipped?.Invoke(fact);
+            }
             foreach (var fact in consumables.DrainDoors())
             { level?.SetDoorJammed(fact.DoorId, fact.Active); DoorJamChanged?.Invoke(fact); }
             foreach (var fact in consumables.DrainNoiseFacts())
@@ -349,6 +363,7 @@ namespace Worsen.Session.HorrorEffects
         {
             if (Instance == this) Instance = null;
             FlashlightChanged = null;
+            FlashlightStatusChanged = null;
             AfterimageChanged = null;
             NoiseEmitted = null;
             FlameDimChanged = null;

@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises owned roster sources, effect readers and setup failure atomicity.
+//   Legacy sentinel clips expose both missing-id and null-direct-clip fallback leaks.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
 // KEY RESPONSIBILITIES:
@@ -126,6 +127,89 @@ namespace Worsen.Tests.Audio
             Assert.Throws<FileNotFoundException>(() => HunterRosterAudioSetup.Configure(config, text));
             Assert.That(JsonUtility.ToJson(config), Is.EqualTo(before));
         }
+        [TestCase("echo")][TestCase("weaver")][TestCase("ticking")][TestCase("ram")][TestCase("skip")]
+        [TestCase("mimic")][TestCase("blinder")][TestCase("herald")][TestCase("mannequin")][TestCase("stare")]
+        public void MissingOrNullRosterSlotsNeverPlayPopulatedLegacyBanks(string hunter)
+        {
+            driver.Teardown();
+            var slots = new[] { ("presence", CueId.Presence, HunterCueSlot.Presence),
+                ("detection", CueId.Detection, HunterCueSlot.Detection), ("chase", CueId.Chase, HunterCueSlot.ChaseLayer),
+                ("attack", CueId.EnemyWindup, HunterCueSlot.AttackTiming), ("death", CueId.Death, HunterCueSlot.DeathSting) };
+            Set(config, "_sounds", slots.Select(s => new AudioSoundDefinition { Cue = s.Item2, Clips = new[] { first }, Gain = 1f }).ToArray());
+            driver.Initialize(config); driver.SetOwnerEnabled(true);
+            foreach (bool exactButNull in new[] { false, true })
+            {
+                driver.ResetRun(); driver.SetInRun(true);
+                Read<AudioRosterDriverState>(driver, "_roster").Archetypes[new EntityId(7)] = hunter;
+                foreach (var slot in slots)
+                {
+                    string id = hunter + "." + slot.Item1;
+                    var bindings = new List<AudioRosterBinding> { new AudioRosterBinding("hunter." + slot.Item1, slot.Item2) { Clip = first } };
+                    if (exactButNull) bindings.Add(new AudioRosterBinding(id, slot.Item2));
+                    Set(config, "_rosterBindings", bindings.ToArray());
+                    var command = new AudioRosterCommand { Hunter = new EntityId(7), Id = id, Slot = slot.Item3, Gain = 1f, Pitch = 1f };
+                    LogAssert.Expect(LogType.Warning, "Roster cue '" + id + "' has no clip; silent placeholder.");
+                    Assert.That(PlayNamed(command), Is.False); Assert.That(PlayNamed(command), Is.False);
+                    Assert.That(Pool.Voices.Any(v => v.Remaining > 0f), Is.False);
+                    Assert.That(Sources.All(s => s.clip == null), Is.True);
+                }
+            }
+        }
+        [Test] public void UnknownCatchWarnsOnceAndExplicitHandCatchStillUsesItsBank()
+        {
+            driver.Teardown();
+            Set(config, "_sounds", new[] { new AudioSoundDefinition { Cue = CueId.Death, Clips = new[] { first }, Gain = 1f, PitchMinimum = 1f, PitchMaximum = 1f } });
+            driver.Initialize(config); driver.SetOwnerEnabled(true);
+            LogAssert.Expect(LogType.Warning, "Roster cue 'unknown.death' has no clip; silent placeholder.");
+            Assert.That(driver.PlayDeath(), Is.False);
+            driver.ObserveHit(new HunterHit(new EntityId(8), new EntityId(1), 100, 1, default));
+            Assert.That(driver.PlayDeath(), Is.False);
+            Assert.That(Pool.Voices.Any(v => v.Remaining > 0), Is.False);
+            Assert.That(driver.PlayDeath(true), Is.True);
+        }
+        [Test] public void RawSharedAttackCannotBypassRosterBindingAndAuthoredSilenceAllocatesNothing()
+        {
+            LogAssert.Expect(LogType.Warning, "Hunter cue 'Detection' requires an identified legacy emitter or a named roster binding; silent.");
+            Assert.That(driver.PlayLocal(CueId.Detection), Is.False);
+            Assert.That(driver.PlayLocal(CueId.Detection), Is.False);
+            driver.ObserveHunter(new HunterFeedbackEvent(new EntityId(7), "echo", HunterFeedbackKind.LostTarget, default, 1));
+            LogAssert.Expect(LogType.Warning, "Hunter cue 'EnemyWindup' requires an identified legacy emitter or a named roster binding; silent.");
+            Assert.That(driver.Play(CueId.EnemyWindup, default, 1, 7), Is.False);
+            Assert.That(driver.Play(CueId.EnemyWindup, default, 1, 7), Is.False);
+            Set(config, "_rosterBindings", new[] { new AudioRosterBinding("echo.turn", CueId.Presence, true) { OverrideGain = true, Gain = 0f } });
+            driver.ObserveDeliberation(new EntityId(7), default, 2);
+            Assert.That(Pool.Voices.Any(v => v.Remaining > 0), Is.False);
+            Assert.That(Read<AudioRosterDriverState>(driver, "_roster").Missing.Contains("echo.turn"), Is.False);
+        }
+        [Test] public void SetupReplacesStaleOwnedBindingsButPreservesLegacyAndUnrelatedIds()
+        {
+            Set(config, "_rosterBindings", new[] { new AudioRosterBinding("echo.old", CueId.Presence) { Clip = first },
+                new AudioRosterBinding("stare.find-me", CueId.Presence) { Clip = first },
+                new AudioRosterBinding("hunter.death", CueId.Death) { Clip = first },
+                new AudioRosterBinding("unrelated", CueId.Presence) { Clip = second } });
+            const string selection = "| cue:echo.presence | Presence | 0 | silence | - | intentional silence |\n";
+            HunterRosterAudioSetup.Configure(config, selection);
+            Assert.That(config.RosterBindings.Select(b => b.Id), Is.EquivalentTo(new[] { "echo.presence", "hunter.death", "unrelated" }));
+            Assert.That(config.RosterBindings.Single(b => b.Id == "hunter.death").Clip, Is.SameAs(first));
+            HunterRosterAudioSetup.Configure(config, selection);
+            Assert.That(config.RosterBindings.Count, Is.EqualTo(3));
+        }
+        [Test] public void DedicatedFactCannotSmuggleSharedOrOtherHunterBinding()
+        {
+            Set(config, "_rosterBindings", new[] {
+                new AudioRosterBinding("hunter.attack", CueId.EnemyWindup) { Clip = first },
+                new AudioRosterBinding("ram-bellow", CueId.EnemyWindup) { Clip = first } });
+            foreach (string id in new[] { "hunter.attack", "ram-bellow" })
+            {
+                driver.ResetRun(); driver.SetInRun(true);
+                LogAssert.Expect(LogType.Warning, "Roster cue '" + id + "' has no clip; silent placeholder.");
+                driver.ObserveHerald(new HeraldScreamFact(new EntityId(7), HeraldSound.Attack, id, 1f,
+                    new NoiseEvent(new EntityId(7), default, 1, 1), default, 1, false));
+                Assert.That(Pool.Voices.Any(v => v.Remaining > 0), Is.False);
+            }
+        }
+        private bool PlayNamed(AudioRosterCommand command) => (bool)typeof(AudioSoundscapeDriver)
+            .GetMethod("PlayRoster", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(driver, new object[] { command });
         private AudioClip Clip(string name, int seconds)
         { var clip = AudioClip.Create(name, seconds * 22050, 1, 22050, false); owned.Add(clip); return clip; }
         private static T Read<T>(object target, string field) => (T)target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);

@@ -3,7 +3,32 @@ guid: c6119e4dc8c25384395928623fcd6fc2
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_mustard
+    second: {fileID: 2100000, guid: acb4de58e4876af4ea30133169a75e55, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_scuff
+    second: {fileID: 2100000, guid: 0b38aca8f4f887749864fd5170e70ed0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_steel
+    second: {fileID: 2100000, guid: ba98b52c38fbaae43b9ba02a8186dd53, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_teal
+    second: {fileID: 2100000, guid: f30e70c5ba6ac91489665c51c7e1fb33, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_wood
+    second: {fileID: 2100000, guid: d024647c089f7db429e3debec39c2445, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

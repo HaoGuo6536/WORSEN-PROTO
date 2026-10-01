@@ -9,7 +9,7 @@
 //   Manager (§1), Entity system facet · Domain · Hunter Blinder.
 // KEY RESPONSIBILITIES:
 //   - Register rules and validate the authored sweep configuration.
-//   - Resolve projectile contacts and route probe/launch commands.
+//   - Resolve projectile contacts and route probes, launches and throw poses.
 //   - Forward effects, trap observations and typed outward facts.
 // DEPENDENCIES:
 //   - Local Blinder rules/config, parent Hunter contracts/driver and Core values.
@@ -35,6 +35,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Blinder
             Driver.ConfigureWeaver(Config.SweepConfig);
         }
         public override bool Hold => Controller.Hold;
+        public override HunterAnimationPhase AnimationPhase => Controller.Warning ? HunterAnimationPhase.Ready : HunterAnimationPhase.None;
         public override bool PrepareTick(float dt, long tick)
         {
             if (tick <= Controller.LastTick) return false;
@@ -57,7 +58,8 @@ namespace Worsen.Domain.Hunter.Archetypes.Blinder
         {
             while (Controller.TakeSound(out BlinderSoundFact sound)) Events.Publish(sound);
             while (Controller.TakeTrapPolicy(out BlinderTrapPolicyFact policy)) Events.Publish(policy);
-            while (Controller.TakeThrow(out BlinderThrowFact shot)) Events.Publish(shot);
+            while (Controller.TakeThrow(out BlinderThrowFact shot))
+            { Driver.TriggerAnimation(HunterAnimationPhase.Attack); Events.Publish(shot); }
         }
         public override void BeginCatch() { Controller.BeginCatch(); PublishFacts(); }
         public override void SetEffects(IReadOnlyActiveEffects effects) => Controller.SetEffects(effects);

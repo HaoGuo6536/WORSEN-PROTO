@@ -3,7 +3,17 @@ guid: 6a1ae0dd7f82dfa4da91e144d4f9d179
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_damp
+    second: {fileID: 2100000, guid: f149d3807ed06f74d95ba7d1ea214cee, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_steel
+    second: {fileID: 2100000, guid: f496011f0031f284794e26dc93b7fc43, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

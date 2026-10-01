@@ -3,7 +3,22 @@ guid: ceca12627c8099f488b03999f767133d
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: castle_mortar
+    second: {fileID: 2100000, guid: 9292ba6ee10a97a499c959d3fdbc13b5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: castle_stone
+    second: {fileID: 2100000, guid: 3a523d42070dc9a4d925ec56a8717123, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: castle_stone_dark
+    second: {fileID: 2100000, guid: d2fe6c5fef64b5240b96199531bbec85, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

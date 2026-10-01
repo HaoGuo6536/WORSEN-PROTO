@@ -32,7 +32,7 @@ namespace Worsen.Tests.ProgressionUI
         {
             var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
             presenter.Present(state, Snapshot(4, true));
-            Assert.That(state.Title, Is.EqualTo("THE BARGAIN")); Assert.That(state.Subtitle, Does.Contain("free"));
+            Assert.That(state.Title, Is.EqualTo("BARGAIN")); Assert.That(state.Subtitle, Does.Contain("free"));
             Assert.That(state.Cards.Length, Is.EqualTo(3)); Assert.That(state.Cards[0].Action, Is.EqualTo("TAKE  +18"));
             Assert.That(presenter.TryIssue(state, ProgressionUIAction.ChooseCurse, "a", 4), Is.False);
             Assert.That(presenter.TryIssue(state, ProgressionUIAction.TakeBargain, "a", 3), Is.False);
@@ -46,7 +46,7 @@ namespace Worsen.Tests.ProgressionUI
         {
             var state = new ProgressionUIDriverState(); var presenter = new ProgressionUIPresenter();
             presenter.Present(state, Snapshot(4, true)); presenter.Present(state, Snapshot(5, false));
-            Assert.That(state.Title, Is.EqualTo("A MOMENT OF SHELTER"));
+            Assert.That(state.Title, Is.EqualTo("SHOP"));
             Assert.That(presenter.TryIssue(state, ProgressionUIAction.TakeBargain, "a", 5), Is.False);
             presenter.Present(state, Snapshot(6, true, ProgressionPhase.Exploring));
             Assert.That(state.Cards, Is.Empty); Assert.That(state.ModalVisible, Is.False);

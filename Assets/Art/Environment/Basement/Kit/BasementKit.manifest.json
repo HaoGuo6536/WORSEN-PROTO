@@ -451,6 +451,18 @@
         2.0
       ],
       "kind": "floor"
+    },
+    {
+      "id": "prop_vault_low_duct",
+      "file": "Basement_prop_vault_low_duct.fbx",
+      "size": [
+        1.2,
+        0.65,
+        0.5
+      ],
+      "kind": "prop",
+      "traversal": "vault",
+      "collision": true
     }
   ]
 }

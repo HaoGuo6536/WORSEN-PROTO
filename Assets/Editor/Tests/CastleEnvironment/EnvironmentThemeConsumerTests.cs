@@ -6,7 +6,7 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Environment.
 // KEY RESPONSIBILITIES:
-//   - Compare real castle/hospital dressing and exact Level light binding.
+//   - Compare kit-backed castle/hospital dressing and exact Level light binding.
 //   - Check deterministic, bounded fluorescent flicker and theme reset.
 // DEPENDENCIES:
 //   NUnit, Core, Environment and Unity temporary object creation.
@@ -27,7 +27,7 @@ namespace Worsen.Tests.CastleEnvironment
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EnvironmentThemeConsumerTests
     {
-        [Test]
+        [Test, Category("Native")]
         public void HospitalReplacesTorchesButPreservesEveryIdentityAndSocket()
         {
             var root = new GameObject("Theme fixture"); var config = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<EnvironmentDriverConfig>();
@@ -36,6 +36,8 @@ namespace Worsen.Tests.CastleEnvironment
             var state = (EnvironmentDriverState)typeof(EnvironmentDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(driver);
             try
             {
+                Assert.That(Resources.Load<GameObject>(config.HospitalFixture), Is.Not.Null,
+                    "Coordinator must build the hospital kit before native fixture checks.");
                 var cells = new[] { new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f)), new Bounds(new Vector3(12f, 3.5f, 0f), new Vector3(12f, 7f, 12f)) };
                 var bounds = new Bounds(new Vector3(6f, 3.5f, 0f), new Vector3(24f, 7f, 12f));
                 driver.SetTheme("castle", "torch"); driver.SetRoomTheme(7, "castle", "Hall");

@@ -4,6 +4,7 @@
 // PURPOSE:
 //   Applies the shared hearing model to every environmental voice using a supplied level view.
 //   It also computes bodily masking, timed sensory effects and rare presentation-only misdirection.
+//   Native spatial sources request portal-only gain; pure audibility queries retain distance loss.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Audio.
 // KEY RESPONSIBILITIES:
@@ -45,23 +46,30 @@ namespace Worsen.Presentation.Audio
         {
             if (fact.MuffledDark) MuffledDark(state, Positive(fact.Duration) * (state.MirrorSkin ? Mathf.Clamp01(Positive(durationMultiplier)) : 1f));
         }
-        public float Gain(AudioWorldMixDriverState state, AudioCueCatalogueEntry entry, Vector3 source, AudioSoundscapeDriverConfig config)
+        public float Gain(AudioWorldMixDriverState state, AudioCueCatalogueEntry entry, Vector3 source, AudioSoundscapeDriverConfig config, bool distanceAttenuatedBySource = false)
         {
             bool presence = entry.Category == CueCategory.Hunter && entry.Slot == (int)HunterCueSlot.Presence;
             if (presence && state.SilentPresence) return 0f;
             float gain = 1f;
             if (entry.Noise.HasValue)
             {
-                if (state.Graph == null) return 0f;
                 HearingModelSettings hearing = config.Hearing;
                 if (presence && state.KeenEars)
                     hearing = new HearingModelSettings(hearing.ReferenceDistance * config.KeenEarsRangeMultiplier,
                         hearing.Rolloff, hearing.PerPortalAttenuation, hearing.ClosedDoorAttenuation, hearing.AudibleThreshold);
-                var sample = AcousticOcclusionUtility.Sample(state.Graph, Room(state.Graph, source), source,
-                    Room(state.Graph, state.Listener), state.Listener, 1f, hearing, state.ClosedDoors);
-                gain = sample.Audible ? sample.PerceivedLoudness : 0f;
+                gain = AcousticGain(state, source, hearing, distanceAttenuatedBySource);
             }
             return gain * Mask(state, entry.Protected, config);
+        }
+        public float AcousticGain(AudioWorldMixDriverState state, Vector3 source, HearingModelSettings hearing, bool distanceAttenuatedBySource)
+        {
+            if (state.Graph == null) return 0f;
+            if (distanceAttenuatedBySource)
+                hearing = new HearingModelSettings(hearing.ReferenceDistance, 0f,
+                    hearing.PerPortalAttenuation, hearing.ClosedDoorAttenuation, hearing.AudibleThreshold);
+            var sample = AcousticOcclusionUtility.Sample(state.Graph, Room(state.Graph, source), source,
+                Room(state.Graph, state.Listener), state.Listener, 1f, hearing, state.ClosedDoors);
+            return sample.Audible ? sample.PerceivedLoudness : 0f;
         }
         public float Mask(AudioWorldMixDriverState state, bool protectedVoice, AudioSoundscapeDriverConfig config) =>
             protectedVoice ? 1f : state.MaskGain * (state.DeafenedRemaining > 0f ? config.DeafenedGain : 1f);

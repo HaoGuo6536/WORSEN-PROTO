@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (section 10), test suite (section 11) - Domain - Hunter integration.
 // KEY RESPONSIBILITIES:
-//   - Check distinct imported meshes, Generic Avatars, six clip roles and hidden capsules.
+//   - Check Generic rigs, six authored roles plus neutral recovery and hidden capsules.
 //   - Verify approved run-roster curse identities, prerequisites and stack caps.
 //   - Exercise actual factory initialization, clip evaluation and graph teardown.
 // DEPENDENCIES:
@@ -64,7 +64,7 @@ namespace Worsen.Tests.Hunter
             new[] { "weaver-stickier-webs", "weaver-wider-webs", "weaver-doorway-nests", "weaver-quick-spin" },
             new[] { "ticking-runs-faster", "ticking-farther-keys", "ticking-loud-keys", "ticking-double-spring" },
             new[] { "ram-longer-charge", "ram-shorter-windup", "ram-partition-breaker", "ram-second-charge" },
-            new[] { "mannequin-fewer-lamps", "mannequin-longer-strides", "mannequin-broken-lights", "mannequin-peripheral-creep" },
+            new[] { "mannequin-longer-strides", "mannequin-peripheral-creep" },
             new[] { "mimic-more-mimics", "mimic-golden-mimic", "mimic-faithless-arrow", "mimic-longer-bite" },
             new[] { "blinder-more-traps", "blinder-longer-dark", "blinder-muffled-dark", "blinder-silent-traps" },
             new[] { "skip-shorter-cooldown", "skip-quicker-learner", "skip-wider-reach", "skip-no-tell" },
@@ -212,9 +212,10 @@ namespace Worsen.Tests.Hunter
                     FieldInfo stateField = typeof(HunterAnimationDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic);
                     Assert.That(stateField, Is.Not.Null);
                     var graphState = (HunterAnimationDriverState)stateField.GetValue(animation);
-                    Assert.That(graphState.Clips.Length, Is.EqualTo(6), key);
+                    Assert.That(graphState.Clips.Length, Is.EqualTo(7), key);
                     AnimationClip[] expected = Clips(config);
-                    for (int slot = 0; slot < 6; slot++) Assert.That(graphState.Clips[slot].GetAnimationClip(), Is.EqualTo(expected[slot]), key + " graph slot " + slot);
+                    for (int slot = 0; slot < expected.Length; slot++) Assert.That(graphState.Clips[slot].GetAnimationClip(), Is.EqualTo(expected[slot]), key + " graph slot " + slot);
+                    Assert.That(config.Recovery, Is.Not.SameAs(config.Hit));
                     CapsuleCollider capsule = hunter.GetComponent<CapsuleCollider>();
                     Vector3 position = hunter.transform.position, colliderCenter = capsule.center;
                     Quaternion rotation = hunter.transform.rotation; float height = capsule.height, radius = capsule.radius;
@@ -237,7 +238,7 @@ namespace Worsen.Tests.Hunter
                     Assert.That(Vector3.Distance(hunter.transform.position, position), Is.LessThan(0.00001f), key + " animation must not move the capsule.");
                     Assert.That(Quaternion.Angle(hunter.transform.rotation, rotation), Is.LessThan(0.00001f), key);
                     Assert.That(capsule.center, Is.EqualTo(colliderCenter), key); Assert.That(capsule.height, Is.EqualTo(height), key); Assert.That(capsule.radius, Is.EqualTo(radius), key);
-                    TestContext.WriteLine(key + ": graph ready, six real clip roles, " + after.vertexCount + " skinned vertices, max attack deformation squared=" + greatestMovement);
+                    TestContext.WriteLine(key + ": graph ready, seven mixer slots, " + after.vertexCount + " skinned vertices, max attack deformation squared=" + greatestMovement);
                     hunter.Teardown(); Assert.That(animation.IsReady, Is.False, key + " teardown must release its playable graph.");
                 }
             }
@@ -269,7 +270,7 @@ namespace Worsen.Tests.Hunter
         private static T LoadAsset<T>(string path) where T : Object
         { T value = AssetDatabase.LoadAssetAtPath<T>(path); Assert.That(value, Is.Not.Null, "Required saved content missing: " + path); return value; }
         private static AnimationClip[] Clips(HunterAnimationDriverConfig config)
-            => new[] { config.Idle, config.Walk, config.Run, config.Windup, config.Attack, config.Recovery };
+            => new[] { config.Idle, config.Walk, config.Run, config.Windup, config.Attack, config.Recovery, config.Hit };
         private static SkinnedMeshRenderer LargestSkin(GameObject root)
         {
             SkinnedMeshRenderer skin = root.GetComponentsInChildren<SkinnedMeshRenderer>(true)

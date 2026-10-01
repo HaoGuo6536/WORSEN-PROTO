@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Use a cold pool with no warm flare for fluorescent fixtures; preserve the shared budget.
 //   - Clone lantern profiles, soften ground pools and retain a small source halo.
-//   - Build a deterministic exit fan and release its private mesh/profile on teardown.
+//   - Build an exit fan and release players/layers before their private meshes/profiles.
 //
 // DEPENDENCIES:
 //   - Environment config/state; Core LumenMathUtility; Lumen runtime SDK.
@@ -96,6 +96,14 @@ namespace Worsen.Presentation.Environment
 
         public void Teardown()
         {
+            foreach (var player in GetComponentsInChildren<LumenEffectPlayer>(true))
+            {
+                if (player == null) continue;
+                player.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
+                player.enabled = false;
+                player.ClearEffect();
+                DestroyOwned(player);
+            }
             gameObject.SetActive(false);
             DestroyOwned(_state.Profile); DestroyOwned(_state.RayMesh);
             _state.Profile = null; _state.RayMesh = null;

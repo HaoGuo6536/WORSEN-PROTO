@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Smooth collapse facts into fog and torch-budget outputs.
-//   - Own finite-lived Weaver and Afterglow visuals, never their gameplay rules.
+//   - Release floor-local Weaver, Afterglow and detached Lumen rigs on regeneration.
 //   - Own micro-events and republish decisions and lighting changes.
 //   - Sequence atmosphere, ambience and attack-cue engine boundaries.
 //   - Advance presentation with injected time and preserve run-wide startle admission.
@@ -274,7 +274,10 @@ namespace Worsen.Presentation.Horror
             ClearCues();
             _presenter.ResetRound(_state);
             if (_micro != null) _micro.ResetFloor();
-            _atmosphere.ClearAfterimage();
+            // The authoritative rig detaches from the camera, and afterimages live under
+            // Horror rather than the generated floor. Hiding only the afterimage retained
+            // both old-floor components and the rig's old world-space aim across regeneration.
+            _atmosphere.ResetFloor();
             ApplyAtmosphere();
             LightingHooksChanged?.Invoke(TorchCountMultiplier, _state.Wick);
         }

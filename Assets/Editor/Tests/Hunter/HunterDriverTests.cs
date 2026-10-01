@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Exercise actual Physics queries and committed active-lunge movement.
 //   - Keep floor-level spawn contact from blocking a clear lunge or bypassing walls.
+//   - Let another Hunter's body never block, occlude, receive contact or push (owner, 2026-10-01).
 // DEPENDENCIES:
 //   - Hunter Driver and config; UnityEditor serialized wiring and NUnit.
 // USAGE NOTES:
@@ -63,6 +64,46 @@ namespace Worsen.Tests.Hunter
             var root = new GameObject("Target"); _objects.Add(root); root.transform.position = _origin + Vector3.forward * 2f;
             var collider = root.AddComponent<CapsuleCollider>(); collider.height = 1.8f; collider.radius = 0.35f;
             collider.center = Vector3.up * 0.9f; return collider;
+        }
+        // The body layer covers spawned prefabs; a HunterDriver parent covers bodies off that layer.
+        private Collider OtherHunter(Vector3 offset, bool onBodyLayer)
+        {
+            var root = new GameObject("Other Hunter"); _objects.Add(root); root.transform.position = _origin + offset;
+            CapsuleCollider capsule;
+            if (onBodyLayer)
+            {
+                int layer = LayerMask.NameToLayer("HunterBody");
+                Assert.That(layer, Is.GreaterThanOrEqualTo(0), "The coordinator provisions the HunterBody layer.");
+                root.layer = layer; capsule = root.AddComponent<CapsuleCollider>();
+            }
+            else { root.AddComponent<HunterDriver>(); capsule = root.GetComponent<CapsuleCollider>(); }
+            capsule.height = 1.8f; capsule.radius = 0.4f; capsule.center = Vector3.up * 0.9f; return capsule;
+        }
+        [TestCase(false)]
+        [TestCase(true)]
+        public void AnotherHunterBodyNeitherBlocksALungeNorReceivesItsContact(bool onBodyLayer)
+        {
+            Collider other = OtherHunter(Vector3.forward, onBodyLayer); Collider target = Target(); Physics.SyncTransforms();
+            _driver.Move(_origin, 0f, 20f, 240f, 0.3f, false, true, Vector3.forward, 18f, 4f);
+            Assert.That(_contacts, Does.Contain(target), "The player behind another Hunter is still reached.");
+            Assert.That(_contacts.Contains(other), Is.False);
+            Assert.That(_driver.Position.z, Is.GreaterThan(_origin.z + 1f), "The lunge passes through the other Hunter.");
+            Assert.That(_driver.Position.z, Is.LessThan(_origin.z + 2f), "The player still stops the lunge.");
+        }
+        [TestCase(false)]
+        [TestCase(true)]
+        public void AnotherHunterBodyNeverOccludesSight(bool onBodyLayer)
+        {
+            Collider target = Target(); OtherHunter(Vector3.forward, onBodyLayer); Physics.SyncTransforms();
+            SightProbe probe = _driver.ProbeSight(_origin + Vector3.forward * 2f, other => other == target);
+            Assert.That(probe.HeadVisible && probe.ChestVisible && probe.HipsVisible, Is.True);
+        }
+        [Test] public void ContactNormalSkipsAnotherHunterButNeverTheTarget()
+        {
+            Collider other = OtherHunter(Vector3.forward * 0.5f, false); Physics.SyncTransforms();
+            Assert.That(_driver.ContactNormal(other), Is.EqualTo(Vector3.zero), "No push away from another Hunter.");
+            _driver.SetTargetFilter(collider => collider == other);
+            Assert.That(_driver.ContactNormal(other), Is.Not.EqualTo(Vector3.zero), "A target is never skipped.");
         }
         [Test] public void SweptLungeReportsReachableTargetAndDoesNotTunnel()
         {

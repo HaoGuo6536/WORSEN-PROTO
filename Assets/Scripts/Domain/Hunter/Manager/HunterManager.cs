@@ -9,7 +9,7 @@
 //   Manager (section 1), Entity system - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Own per-life controllers, factory-created module and paired driver subscriptions.
-//   - Sequence sensing, navigation, committed motion and presentation commands.
+//   - Sequence motion, shared lunges and module-owned animation phases/one-shots.
 //   - Gate shared and specialised contacts on Player revival protection before acceptance.
 //   - Route accepted catch/chase (including Mannequin snap), reactions, effects and world inputs.
 //   - Publish archetype, attack, habit, mutation and navigation evidence facts.
@@ -23,6 +23,8 @@
 //   BeginCatch must follow Session damage acceptance, never an unconfirmed contact.
 //   A Stalk reveal hold (HoldPosition) uses the motor's stopped input to discard inertia.
 //   Mutation restoration uses announce=false; only newly accepted mutations publish tells.
+//   Kinematic replay records while absent, bypasses the shared motor and publishes
+//   contact hits through OnLungeHit's existing ordinary-hit route without rebound.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -130,10 +132,27 @@ namespace Worsen.Domain.Hunter
             _driver.ConfigureAttackFeedback(context.Id, profile.ArchetypeKey);
             _module = factory.CreateModule(gameObject, profile.ArchetypeRules);
             _module.InitializeModule(archetype, profile, _driver, _controller, _state, player, this);
+            if (_controller.KinematicReplay != null)
+            {
+                _driver.ConfigureKinematicReplay();
+                _driver.MoveKinematicReplay(_controller.KinematicReplay.ReplayActive,
+                    _controller.KinematicReplay.ReplayPose, _controller.KinematicReplay.ReplayPoses, 0f);
+                _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+            }
         }
         public void Tick(float dt, long tick)
         {
-            if (_controller == null || !_state.IsActive || !(dt > 0f) || float.IsInfinity(dt)) return;
+            if (_controller == null || (!_state.IsActive && _controller.KinematicReplay == null) || !(dt > 0f) || float.IsInfinity(dt)) return;
+            if (_controller.KinematicReplay != null)
+            {
+                _controller.Tick(default, dt, tick);
+                IHunterKinematicReplayRules replay = _controller.KinematicReplay;
+                _driver.MoveKinematicReplay(replay.ReplayActive, replay.ReplayPose, replay.ReplayPoses, dt);
+                _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+                if (replay.ReplayActive) _driver.Animate(dt, 0, 0f);
+                while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact replayFact)) OnArchetypeFact?.Invoke(replayFact);
+                return;
+            }
             if (_module != null && !_module.PrepareTick(dt, tick)) return;
             bool sample = _controller.NeedsViewObservation || _controller.ShouldProbe(tick);
             if (_controller.NeedsViewObservation)
@@ -185,11 +204,12 @@ namespace Worsen.Domain.Hunter
             _driver.ObserveStall(dt, tick, Id, _state.CurrentAction, _state.LastRoom);
             if (!_driver.PathAvailable && !result.HoldPosition && result.Phase == HunterLungePhase.None) _controller.ReportPathFailure();
             if (!_state.CatchActive) _driver.SetLook(_controller.LookTarget, _controller.LookAtMemory, false);
-            _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
             while (_controller.TryDequeueFeedback(out HunterFeedbackEvent feedback)) OnFeedback?.Invoke(feedback);
             while (_controller.TryTakeHabit(out HunterHabitFact habit)) OnHabit?.Invoke(habit);
             while (_controller.TryTakeArchetypeFact(out HunterArchetypeFact fact)) OnArchetypeFact?.Invoke(fact);
             _module?.FinishTick();
+            HunterAttackSample animation = _controller.AttackSample();
+            _driver.Animate(dt, animation.Phase, animation.Progress, _module?.AnimationPhase ?? HunterAnimationPhase.None);
             if (_controller.TryTakeDeliberation(out Vector3 candidate)) OnDeliberation?.Invoke(Id, candidate, tick);
             if (sample) OnSighting?.Invoke(_controller.Sighting());
         }
@@ -203,6 +223,12 @@ namespace Worsen.Domain.Hunter
             if (_controller == null || _controller.PlayerRevivalProtected) return;
             IEntityHandle handle = collider.GetComponentInParent<IEntityHandle>();
             if (handle == null) return;
+            if (_controller.KinematicReplay != null)
+            {
+                _controller.CommitPose(_driver.Position, _driver.Velocity, _driver.Forward);
+                if (_controller.TryAcceptContact(handle.Id, out HunterHit contactHit)) OnLungeHit?.Invoke(contactHit);
+                return;
+            }
             Vector3 normal = _driver.ContactNormal(collider);
             if (_module?.HandlesContact ?? false)
             {
@@ -239,7 +265,7 @@ namespace Worsen.Domain.Hunter
         public void SetChaseActive(bool active) { _controller?.SetChaseActive(active); }
         public void BeginCatch(Vector3 playerPosition)
         {
-            if (_controller == null || _state.CatchActive) return;
+            if (_controller == null || _controller.KinematicReplay != null || _state.CatchActive) return;
             _module?.BeforeCatch();
             _controller.SetCatchActive(true); _driver.SetLook(playerPosition, true, true);
             _module?.BeginCatch();
@@ -248,7 +274,8 @@ namespace Worsen.Domain.Hunter
         {
             if (_controller == null || !_state.CatchActive) return;
             _driver.SetLook(playerPosition, true, true);
-            _driver.Animate(dt, _controller.AttackSample().Phase, _controller.AttackSample().Progress);
+            HunterAttackSample animation = _controller.AttackSample();
+            _driver.Animate(dt, animation.Phase, animation.Progress, _module?.AnimationPhase ?? HunterAnimationPhase.None);
         }
         public void EndCatch()
         {

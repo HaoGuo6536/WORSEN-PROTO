@@ -8,17 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Verify exactly one normalized landing severity fact without changing stumble duration.
-//   - Verify queued external motion, total speed limits, grace independence and traversal interruption.
-//   - Lock floor health, delayed regeneration, neutral hooks, posture-only crouch and typed noise.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
-//   - Verify live look, last-third steering, jump cancellation, boost boundaries and bounded traversal locks.
-//   - Verify auto-ledge decisions, standing-jump air control, stumble timing and deterministic trajectories.
-//   - Verify committed posture/sprint facts, clearance-safe held crouch and replay/reset parity.
-//   - Verify grace boundaries, severity-scaled boosts, reset/cancellation and the snap-disable hook.
-//   - Distinguish float roundoff at integral recovery ticks from genuine fractional durations.
-//   - Verify hold-to-sprint, uphill landing recovery and clearance-safe slide cancellation.
+//   - Verify locomotion, clearance-safe slides and jump-requested wall kicks.
+//   - Verify vault/ledge priority, steering, cancellation and resolved outcomes.
+//   - Verify external motion, landing recovery, health and hit protection boundaries.
+//   - Verify committed sprint/posture facts, typed noise and life resets.
+//   - Verify deterministic input/probe/resolution replay.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -28,6 +22,8 @@
 //   Damage is supplied separately at matching replay ticks because input records do not encode hits.
 //   Reset after changing profile speed caps so arithmetic tests use the next life's copied values.
 //   No other Domain system or Presentation system is referenced.
+//   Crouch expectations follow the owner's 2026-09-30 Windows playtest decision:
+//   holding C never lowers posture; an obstructed slide continues until it can stand.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -164,21 +160,21 @@ namespace Worsen.Tests.Player
         }
 
         [Test]
-        public void HeldCrouchCommitsLowPostureAndOnlyStandsAfterClearRelease()
+        public void HeldSlideButtonNeverCommitsCrouchOrCreatesALowPosture()
         {
             var held = Frame(held: InputButtons.Crouch);
             CommitAction(held, Ground, Vector3.zero, true, 1);
             Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
-            Assert.That(_state.LastMovementSample.IsCrouched, Is.True);
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.False);
             Assert.That(_state.LastMovementSample.IsSprinting, Is.False);
             CommitAction(Frame(), new MovementProbe(true, Vector3.up, standingBlocked: true), Vector3.zero, true, 2);
-            Assert.That(_state.LastMovementSample.IsCrouched, Is.True, "Blocked release cannot stand through the ceiling.");
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.False, "A clearance fact cannot create a crouch state.");
             CommitAction(Frame(), Ground, Vector3.zero, true, 3);
             Assert.That(_state.LastMovementSample.IsCrouched, Is.False);
         }
 
         [Test]
-        public void HeldCrouchDoesNotPreventJumpAndSlideExpiryKeepsItsLowPosture()
+        public void HeldSlideButtonDoesNotPreventJumpOrStandingAfterSlideExpiry()
         {
             _controller.Tick(Frame(held: InputButtons.Crouch), Ground, Dt, 1);
             var jump = _controller.Tick(Frame(pressed: InputButtons.Jump, held: InputButtons.Crouch), Ground, Dt, 2);
@@ -189,7 +185,7 @@ namespace Worsen.Tests.Player
             _controller.Tick(Frame(Vector2.up, InputButtons.Crouch, InputButtons.Crouch), Ground, Dt, 1);
             var expired = _controller.Tick(Frame(held: InputButtons.Crouch), Ground, _profile.SlideDuration + Dt, 2);
             Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
-            Assert.That(expired.Crouched, Is.True);
+            Assert.That(expired.Crouched, Is.False);
             Assert.That(_controller.Tick(Frame(), Ground, Dt, 3).Crouched, Is.False);
             _state.Velocity = Vector3.forward * 8f;
             _controller.Tick(Frame(Vector2.up, InputButtons.Crouch, InputButtons.Crouch), Ground, Dt, 4);
@@ -203,7 +199,7 @@ namespace Worsen.Tests.Player
         [TestCase(8f, true, false, true, false, false)]
         [TestCase(8f, true, true, false, false, false)]
         [TestCase(8f, false, true, true, false, false)]
-        [TestCase(8f, true, true, true, true, false)]
+        [TestCase(8f, true, true, true, true, true)]
         public void SprintFactRequiresAchievedGroundMotionAndUprightSprintInput(float speed, bool grounded,
             bool movingInput, bool sprintHeld, bool crouched, bool expected)
         {
@@ -214,7 +210,7 @@ namespace Worsen.Tests.Player
                 Vector3.forward * speed, grounded, 1);
             Assert.That(_state.LastMovementSample.IsSprinting, Is.EqualTo(expected));
             Assert.That(_state.IsSprinting, Is.EqualTo(expected));
-            Assert.That(_state.LastMovementSample.IsCrouched, Is.EqualTo(crouched));
+            Assert.That(_state.LastMovementSample.IsCrouched, Is.False);
         }
 
         [Test]
@@ -298,14 +294,14 @@ namespace Worsen.Tests.Player
         }
 
         [Test]
-        public void BlockedSlideCancellationStopsPropulsionWithoutStandingOrDelayedJump()
+        public void BlockedSlideCancellationContinuesSlideWithoutStandingOrDelayedJump()
         {
             _state.Velocity = Vector3.forward * 8f;
             _controller.Tick(Frame(Vector2.up, InputButtons.Crouch), Ground, Dt, 1);
             float slidingSpeed = Speed;
             var blocked = new MovementProbe(true, Vector3.up, standingBlocked: true);
             PlayerTickResult cancelled = _controller.Tick(Frame(pressed: InputButtons.Jump), blocked, Dt, 2);
-            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Slide));
             Assert.That(_state.SlideRemaining, Is.Zero);
             Assert.That(cancelled.Crouched, Is.True);
             Assert.That(Speed, Is.LessThan(slidingSpeed));
@@ -325,7 +321,7 @@ namespace Worsen.Tests.Player
             _controller.Tick(Frame(Vector2.up, InputButtons.Crouch), Ground, Dt, 1);
             var blocked = new MovementProbe(true, Vector3.up, standingBlocked: true);
             _controller.Tick(Frame(Vector2.up, InputButtons.Jump | InputButtons.Crouch), blocked, Dt, 2);
-            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
+            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Slide));
             Assert.That(_state.SlideRemaining, Is.Zero);
         }
 
@@ -538,7 +534,9 @@ namespace Worsen.Tests.Player
 
         [TestCase(0.6f, 45f, true)]
         [TestCase(0.601f, 45f, false)]
-        [TestCase(0.6f, 45.001f, false)]
+        [TestCase(0.6f, 45.001f, true)]
+        [TestCase(0.6f, 90f, true)]
+        [TestCase(0.6f, 180f, true)]
         public void ReboundProbeThresholdsAreInclusive(float distance, float angle, bool succeeds)
         {
             _state.MovementState = MovementState.Air;
@@ -558,7 +556,7 @@ namespace Worsen.Tests.Player
             Assert.That(_state.LastReboundWall, Is.EqualTo(100));
             _state.Velocity = Vector3.forward * 8f;
             var other = new MovementProbe(false, Vector3.up, true, 0.5f, Vector3.back, 0f, 101);
-            PlayerTickResult result = _controller.Tick(Frame(pressed: InputButtons.Jump), other, 0.1f, 2);
+            PlayerTickResult result = _controller.Tick(Frame(pressed: InputButtons.Jump), wall, 0.1f, 2);
             Assert.That(result.Facts, Is.Empty);
             _state.Velocity = Vector3.forward * 8f;
             result = _controller.Tick(Frame(pressed: InputButtons.Jump), wall, 0.5f, 3);
@@ -1318,7 +1316,7 @@ namespace Worsen.Tests.Player
         }
 
         [TestCase(false)] [TestCase(true)]
-        public void CrouchChangesNeitherWalkingNorSprintingSpeedNoiseOrCadence(bool sprint)
+        public void HoldingSlideChangesNeitherPostureNorWalkingOrSprintingSpeedNoiseOrCadence(bool sprint)
         {
             var uprightState = new PlayerBehaviorState();
             var upright = new PlayerController(uprightState, _profile, new System.Random(77));
@@ -1328,7 +1326,7 @@ namespace Worsen.Tests.Player
             {
                 upright.Tick(Frame(Vector2.up, held: held), Ground, Dt, tick);
                 _controller.Tick(Frame(Vector2.up, held: held | InputButtons.Crouch), Ground, Dt, tick);
-                Assert.That(_state.Crouched, Is.True);
+                Assert.That(_state.Crouched, Is.False);
                 Assert.That(_state.MovementState, Is.EqualTo(MovementState.Ground));
                 Assert.That(_state.Velocity, Is.EqualTo(uprightState.Velocity));
                 Assert.That(_state.RecentNoises, Is.EqualTo(uprightState.RecentNoises));

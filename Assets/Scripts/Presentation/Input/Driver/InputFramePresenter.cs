@@ -13,7 +13,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Gate paused input and clear every buffered control on either pause edge.
-//   - Buffer independent button press and release edges.
+//   - Buffer independent button edges and consume direct slot selection once per tick.
 //   - Normalize movement and scale mouse displacement and gamepad look rate.
 //   - Clear pending input on focus loss or an input gate closing.
 //
@@ -104,6 +104,18 @@ namespace Worsen.Presentation.Input
         public void SetPaused(InputDriverState state, bool paused)
         { state.Paused = paused; Reset(state); }
 
+        public void SelectSlot(InputDriverState state, int index)
+        {
+            if (IsAcceptingInput(state) && index >= 0 && index < 3) state.PendingSelectedSlot = index;
+        }
+
+        public int FlushSelectedSlot(InputDriverState state)
+        {
+            int index = IsAcceptingInput(state) ? state.PendingSelectedSlot : -1;
+            state.PendingSelectedSlot = -1;
+            return index;
+        }
+
         public void SetInputEnabled(InputDriverState state, bool enabled)
         {
             state.InputEnabled = enabled;
@@ -127,6 +139,7 @@ namespace Worsen.Presentation.Input
 
         public void Reset(InputDriverState state)
         {
+            state.PendingSelectedSlot = -1;
             state.Move = Vector2.zero;
             state.LookDelta = Vector2.zero;
             state.GamepadLook = Vector2.zero;

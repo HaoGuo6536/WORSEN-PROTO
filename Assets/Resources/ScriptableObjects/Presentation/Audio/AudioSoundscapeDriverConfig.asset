@@ -550,20 +550,26 @@ MonoBehaviour:
     Alternates: []
     Gain: 0.6
     OverrideGain: 1
+  - Id: blinder.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: blinder.chase
     Bank: 2
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 4d0d211f8c2638d47b570332bcded3f9, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 4808e4360c0cb724d93fdbf1efdfc2ef, type: 3}
-    Gain: 0.4
+    Clip: {fileID: 8300000, guid: 24504a233f86f7b4e94412bacba900d7, type: 3}
+    Alternates: []
+    Gain: 0.25
     OverrideGain: 1
   - Id: blinder.death
     Bank: 4
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: da8c0cb7841ba0147915ce05f0b8ddc1, type: 3}
+    Clip: {fileID: 8300000, guid: 24504a233f86f7b4e94412bacba900d7, type: 3}
     Alternates: []
-    Gain: 0.45
+    Gain: 0.4
     OverrideGain: 1
   - Id: blinder.detection
     Bank: 1
@@ -575,10 +581,9 @@ MonoBehaviour:
   - Id: blinder.presence
     Bank: 0
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 4808e4360c0cb724d93fdbf1efdfc2ef, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 4d0d211f8c2638d47b570332bcded3f9, type: 3}
-    Gain: 0.3
+    Clip: {fileID: 8300000, guid: 24504a233f86f7b4e94412bacba900d7, type: 3}
+    Alternates: []
+    Gain: 0.2
     OverrideGain: 1
   - Id: blinder.throw-hiss
     Bank: 28
@@ -594,6 +599,13 @@ MonoBehaviour:
     Alternates: []
     Gain: 0.85
     OverrideGain: 1
+  - Id: blinder.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: echo.attack
     Bank: 28
     Placeholder: 0
@@ -601,27 +613,32 @@ MonoBehaviour:
     Alternates: []
     Gain: 0.5
     OverrideGain: 1
+  - Id: echo.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: echo.chase
     Bank: 2
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: da8c0cb7841ba0147915ce05f0b8ddc1, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 1d68458f74b83ea47a720fabdbb356bf, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
     Gain: 0.35
     OverrideGain: 1
   - Id: echo.death
     Bank: 4
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 1d68458f74b83ea47a720fabdbb356bf, type: 3}
+    Clip: {fileID: 8300000, guid: 1e6992cafd3150e4597ceda484a7663e, type: 3}
     Alternates: []
-    Gain: 0.5
+    Gain: 0.4
     OverrideGain: 1
   - Id: echo.detection
     Bank: 1
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 4808e4360c0cb724d93fdbf1efdfc2ef, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 4d0d211f8c2638d47b570332bcded3f9, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
     Gain: 0.35
     OverrideGain: 1
   - Id: echo.footstep
@@ -647,6 +664,13 @@ MonoBehaviour:
     Alternates: []
     Gain: 0.55
     OverrideGain: 1
+  - Id: echo.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: herald-quickened-approach
     Bank: 0
     Placeholder: 0
@@ -663,10 +687,17 @@ MonoBehaviour:
     OverrideGain: 1
   - Id: herald.breath
     Bank: 28
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 4808e4360c0cb724d93fdbf1efdfc2ef, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0.3
+    OverrideGain: 1
+  - Id: herald.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: herald.chase
     Bank: 2
@@ -692,11 +723,17 @@ MonoBehaviour:
     OverrideGain: 1
   - Id: herald.presence
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 4808e4360c0cb724d93fdbf1efdfc2ef, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 4d0d211f8c2638d47b570332bcded3f9, type: 3}
-    Gain: 0.25
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
+  - Id: herald.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: hunter.attack
     Bank: 28
@@ -749,15 +786,22 @@ MonoBehaviour:
     OverrideGain: 0
   - Id: mannequin.attack
     Bank: 28
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: b04bd0ba4dd35324ab8975cb2b012c24, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
+  - Id: mannequin.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0
     OverrideGain: 1
   - Id: mannequin.chase
     Bank: 2
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 2d96f949c39f5564da017f0baa6b976e, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0
     OverrideGain: 1
@@ -770,66 +814,86 @@ MonoBehaviour:
     OverrideGain: 1
   - Id: mannequin.detection
     Bank: 1
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 092421caa0ee1e04791490c6d12ecc18, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0
     OverrideGain: 1
   - Id: mannequin.long-step
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 2d96f949c39f5564da017f0baa6b976e, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
-    Gain: 0.2
+    Gain: 0
     OverrideGain: 1
   - Id: mannequin.presence
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 112019ee0a03075428da167514cfa7e1, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
+  - Id: mannequin.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0
     OverrideGain: 1
   - Id: mimic-wrong-bite
     Bank: 28
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: ac6034ade498bb94b87620cdf6eac48b, type: 3}
+    Clip: {fileID: 8300000, guid: 2d96f949c39f5564da017f0baa6b976e, type: 3}
     Alternates: []
     Gain: 0.3
     OverrideGain: 1
   - Id: mimic.attack
     Bank: 28
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: ac6034ade498bb94b87620cdf6eac48b, type: 3}
+    Clip: {fileID: 8300000, guid: 2d96f949c39f5564da017f0baa6b976e, type: 3}
     Alternates: []
     Gain: 0.3
     OverrideGain: 1
+  - Id: mimic.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: mimic.chase
     Bank: 2
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: da8c0cb7841ba0147915ce05f0b8ddc1, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0
     OverrideGain: 1
   - Id: mimic.death
     Bank: 4
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: ac6034ade498bb94b87620cdf6eac48b, type: 3}
+    Clip: {fileID: 8300000, guid: 2d96f949c39f5564da017f0baa6b976e, type: 3}
     Alternates: []
     Gain: 0.35
     OverrideGain: 1
   - Id: mimic.detection
     Bank: 1
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 6b8fc7094a5322b42a66be501e3c9db1, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0
     OverrideGain: 1
   - Id: mimic.presence
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 112019ee0a03075428da167514cfa7e1, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 092421caa0ee1e04791490c6d12ecc18, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
+  - Id: mimic.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
     Gain: 0
     OverrideGain: 1
   - Id: ms_mangled_scream_03
@@ -849,9 +913,8 @@ MonoBehaviour:
   - Id: ram-impact
     Bank: 0
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: c01bbab8442e45146be860df82582360, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 879e730a6ca97ae4898f59711107f5eb, type: 3}
+    Clip: {fileID: 8300000, guid: 879e730a6ca97ae4898f59711107f5eb, type: 3}
+    Alternates: []
     Gain: 0.5
     OverrideGain: 1
   - Id: ram-stamp
@@ -876,13 +939,19 @@ MonoBehaviour:
     Alternates: []
     Gain: 0.55
     OverrideGain: 1
+  - Id: ram.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: ram.chase
     Bank: 2
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: da8c0cb7841ba0147915ce05f0b8ddc1, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 1d68458f74b83ea47a720fabdbb356bf, type: 3}
-    Gain: 0.45
+    Clip: {fileID: 8300000, guid: 8591843457825eb41aff83dc9a998d72, type: 3}
+    Alternates: []
+    Gain: 0.35
     OverrideGain: 1
   - Id: ram.death
     Bank: 4
@@ -894,10 +963,9 @@ MonoBehaviour:
   - Id: ram.detection
     Bank: 1
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 1d68458f74b83ea47a720fabdbb356bf, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: da8c0cb7841ba0147915ce05f0b8ddc1, type: 3}
-    Gain: 0.45
+    Clip: {fileID: 8300000, guid: 8591843457825eb41aff83dc9a998d72, type: 3}
+    Alternates: []
+    Gain: 0.35
     OverrideGain: 1
   - Id: ram.presence
     Bank: 0
@@ -906,6 +974,13 @@ MonoBehaviour:
     Alternates:
     - {fileID: 8300000, guid: 1e6992cafd3150e4597ceda484a7663e, type: 3}
     Gain: 0.55
+    OverrideGain: 1
+  - Id: ram.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: sb_mangled_scream_01
     Bank: 2
@@ -930,107 +1005,136 @@ MonoBehaviour:
     OverrideGain: 1
   - Id: skip.attack
     Bank: 28
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 092421caa0ee1e04791490c6d12ecc18, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
-    Gain: 0.65
+    Gain: 0
+    OverrideGain: 1
+  - Id: skip.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: skip.chase
     Bank: 2
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: da8c0cb7841ba0147915ce05f0b8ddc1, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 1d68458f74b83ea47a720fabdbb356bf, type: 3}
-    Gain: 0.4
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: skip.death
     Bank: 4
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: ac6034ade498bb94b87620cdf6eac48b, type: 3}
+    Clip: {fileID: 8300000, guid: 1e6992cafd3150e4597ceda484a7663e, type: 3}
     Alternates: []
-    Gain: 0.35
+    Gain: 0.3
     OverrideGain: 1
   - Id: skip.detection
     Bank: 1
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 5653b1b94e0631c4f99ede150dea8b6a, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 6b8fc7094a5322b42a66be501e3c9db1, type: 3}
-    Gain: 0.45
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: skip.presence
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 112019ee0a03075428da167514cfa7e1, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 092421caa0ee1e04791490c6d12ecc18, type: 3}
-    Gain: 0.7
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
+  - Id: skip.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: stare.attack
     Bank: 28
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 5653b1b94e0631c4f99ede150dea8b6a, type: 3}
+    Clip: {fileID: 8300000, guid: b04bd0ba4dd35324ab8975cb2b012c24, type: 3}
     Alternates: []
-    Gain: 0.45
+    Gain: 0.35
+    OverrideGain: 1
+  - Id: stare.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: stare.chase
     Bank: 2
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 5b5b3fa762abc8f4a806db1366385f37, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 5aac88c3822c6764098a3ec490dd9c4c, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
     Gain: 0.35
     OverrideGain: 1
   - Id: stare.death
     Bank: 4
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 1d68458f74b83ea47a720fabdbb356bf, type: 3}
+    Clip: {fileID: 8300000, guid: b04bd0ba4dd35324ab8975cb2b012c24, type: 3}
     Alternates: []
-    Gain: 0.4
+    Gain: 0.35
     OverrideGain: 1
   - Id: stare.detection
     Bank: 1
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 5b5b3fa762abc8f4a806db1366385f37, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0.3
     OverrideGain: 1
   - Id: stare.presence
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 4808e4360c0cb724d93fdbf1efdfc2ef, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 4d0d211f8c2638d47b570332bcded3f9, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
     Gain: 0.25
     OverrideGain: 1
   - Id: stare.quickened-gaze
     Bank: 0
-    Placeholder: 0
-    Clip: {fileID: 8300000, guid: 5b5b3fa762abc8f4a806db1366385f37, type: 3}
+    Placeholder: 1
+    Clip: {fileID: 0}
     Alternates: []
     Gain: 0.25
+    OverrideGain: 1
+  - Id: stare.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: ticking.attack
     Bank: 28
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 1e6992cafd3150e4597ceda484a7663e, type: 3}
+    Clip: {fileID: 8300000, guid: 2bbce05b2bf38664cb9a558c3cbab66d, type: 3}
     Alternates: []
     Gain: 0.65
+    OverrideGain: 1
+  - Id: ticking.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: ticking.chase
     Bank: 2
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 112019ee0a03075428da167514cfa7e1, type: 3}
-    Alternates:
-    - {fileID: 8300000, guid: 092421caa0ee1e04791490c6d12ecc18, type: 3}
-    Gain: 0.65
+    Clip: {fileID: 8300000, guid: e65728c2c4b85f74688c4c7532836205, type: 3}
+    Alternates: []
+    Gain: 0.45
     OverrideGain: 1
   - Id: ticking.death
     Bank: 4
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: c01bbab8442e45146be860df82582360, type: 3}
+    Clip: {fileID: 8300000, guid: 8a21af710ff0c8d4f985e9d34b5b8377, type: 3}
     Alternates: []
-    Gain: 0.55
+    Gain: 0.45
     OverrideGain: 1
   - Id: ticking.detection
     Bank: 1
@@ -1061,6 +1165,13 @@ MonoBehaviour:
     Alternates: []
     Gain: 0.9
     OverrideGain: 1
+  - Id: ticking.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: ticking.wake
     Bank: 1
     Placeholder: 0
@@ -1071,9 +1182,9 @@ MonoBehaviour:
   - Id: ticking.winding
     Bank: 0
     Placeholder: 0
-    Clip: {fileID: 8300000, guid: 2bbce05b2bf38664cb9a558c3cbab66d, type: 3}
+    Clip: {fileID: 8300000, guid: e65728c2c4b85f74688c4c7532836205, type: 3}
     Alternates: []
-    Gain: 0.8
+    Gain: 0.45
     OverrideGain: 1
   - Id: weaver-quickened-skitter
     Bank: 0
@@ -1088,6 +1199,13 @@ MonoBehaviour:
     Clip: {fileID: 8300000, guid: 6b8fc7094a5322b42a66be501e3c9db1, type: 3}
     Alternates: []
     Gain: 0.5
+    OverrideGain: 1
+  - Id: weaver.cake-reaction
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
     OverrideGain: 1
   - Id: weaver.chase
     Bank: 2
@@ -1128,6 +1246,13 @@ MonoBehaviour:
     - {fileID: 8300000, guid: c381e5cb57b082546b38d507bac11b97, type: 3}
     Gain: 0.5
     OverrideGain: 1
+  - Id: weaver.turn
+    Bank: 0
+    Placeholder: 1
+    Clip: {fileID: 0}
+    Alternates: []
+    Gain: 0
+    OverrideGain: 1
   - Id: weaver.wet-click
     Bank: 28
     Placeholder: 0
@@ -1148,6 +1273,7 @@ MonoBehaviour:
   _rosterClipPriority: 60
   _rosterPitchVariation: 0.03
   _rosterGainVariation: 0.02
+  _rosterMaximumDistance: 32
   _earPlugsDurationMultiplier: 0.5
   _mirrorSkinDurationMultiplier: 0.5
   _hearingReferenceMeters: 2
@@ -1181,7 +1307,7 @@ MonoBehaviour:
   _voiceCount: 24
   _effectsGain: 0.8
   _musicGain: 0.52
-  _ambienceGain: 0.25
+  _ambienceGain: 0.01
   _attackSeconds: 0.65
   _releaseSeconds: 3.5
   _chaseHoldSeconds: 2.5
@@ -1211,7 +1337,7 @@ MonoBehaviour:
   _exteriorAmbience: {fileID: 8300000, guid: 9528e5e45c00e994ab56d0054dbf2488, type: 3}
   _effectsGroup: {fileID: 892772678358457422, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
   _musicGroup: {fileID: 4619527254337218085, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
-  _ambienceGroup: {fileID: 892772678358457422, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
+  _ambienceGroup: {fileID: -1351889155304143044, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
   _torchAudibleDistance: 16
   _accentMinimumSeconds: 7
   _accentMaximumSeconds: 15

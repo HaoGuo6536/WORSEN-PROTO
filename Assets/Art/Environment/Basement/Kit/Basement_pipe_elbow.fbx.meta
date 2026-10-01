@@ -3,7 +3,12 @@ guid: aec5fea16a6c2d5468c4ed9e197ad2c2
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: basement_rust
+    second: {fileID: 2100000, guid: 92853eba551b381488e796e9374bea85, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

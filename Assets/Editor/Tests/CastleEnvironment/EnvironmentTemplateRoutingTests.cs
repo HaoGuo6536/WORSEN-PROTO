@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Exercises procedural boundary and light socket routing without generation.
+//   Renderable test meshes expose admission rather than counting empty transforms.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Environment.
 // KEY RESPONSIBILITIES:
@@ -31,15 +32,18 @@ namespace Worsen.Tests.CastleEnvironment
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class EnvironmentTemplateRoutingTests
     {
-        [Test] public void RoomsUseCurvedBoundaryAndOnlyAuthoredSockets()
+        [Test, Category("Native")] public void RoomsUseCurvedBoundaryAndOnlyAuthoredSockets()
         {
             var objects = new List<GameObject>(); var config = ScriptableObject.CreateInstance<EnvironmentDriverConfig>();
             var procedural = Make<ProceduralManager>(objects); var environment = Make<EnvironmentManager>(objects);
             var expedition = Make<ExpeditionSessionManager>(objects); var route = Make<EnvironmentOrchestrator>(objects);
             var driver = environment.GetComponent<EnvironmentDriver>();
-            var prefab = new GameObject("Boundary test decoration"); objects.Add(prefab); prefab.SetActive(false);
+            var prefab = GameObject.CreatePrimitive(PrimitiveType.Cube); prefab.name = "Boundary test decoration";
+            prefab.transform.localScale = Vector3.one * .5f; objects.Add(prefab); prefab.SetActive(false);
             try
             {
+                Set(config, "_castleFurniture", "Missing/TestFurniture");
+                Set(config, "_castleWallDecoration", "Missing/TestWallDecoration");
                 Set(config, "_wallDecorationPrefabs", new[] { prefab }); Set(config, "_floorPropPrefabs", new[] { prefab });
                 Set(config, "_cornerColumnPrefab", prefab); Set(config, "_doorArchPrefab", prefab);
                 Set(config, "_merchantDisplayPrefab", prefab);
@@ -71,6 +75,7 @@ namespace Worsen.Tests.CastleEnvironment
             finally
             {
                 Call(route, "OnDisable");
+                driver.Teardown(); procedural.Teardown();
                 for (int i = objects.Count - 1; i >= 0; i--) Object.DestroyImmediate(objects[i]);
                 Object.DestroyImmediate(config);
             }

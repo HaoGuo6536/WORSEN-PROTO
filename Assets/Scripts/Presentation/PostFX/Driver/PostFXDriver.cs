@@ -10,7 +10,7 @@
 //   Driver (§7a) · Presentation · PostFX.
 //
 // KEY RESPONSIBILITIES:
-//   - Forward independent health, grace, blindness, revival and intrusion commands.
+//   - Apply independent red damage and eased dark blindness borders with bounded color/blur.
 //   - Apply blur preferences immediately to runtime state and the owned volume.
 //   - Compose camcorder and Glimpse volumes with existing grain, distortion and color.
 //   - Destroy the runtime profile and all its components on teardown.
@@ -122,6 +122,9 @@ namespace Worsen.Presentation.PostFX
             if (_state != null) _presenter.SetInjury(_state, currentHealth, maxHealth);
         }
 
+        public void SetHeartbeatEnvelope(float strength)
+        { if (_state != null) _presenter.SetHeartbeatEnvelope(_state, strength); }
+
         public void SetReacquireBlurEnabled(bool enabled)
         {
             if (_state == null) return;
@@ -221,7 +224,7 @@ namespace Worsen.Presentation.PostFX
             }
             if (_frame != null)
             {
-                _frame.Enabled.Override(_config.CamcorderEnabled);
+                _frame.Enabled.Override(_config.CamcorderEnabled || _state.BlindnessWeight > 0f);
                 _frame.Lens.Override(_state.Frame.Lens);
                 _frame.Tape.Override(_state.Frame.Tape);
                 _frame.EdgeStart.Override(_state.Frame.EdgeStart);
@@ -229,6 +232,10 @@ namespace Worsen.Presentation.PostFX
             _chromatic.intensity.Override(_state.Chromatic);
             _distortion.intensity.Override(_state.Distortion);
             _vignette.intensity.Override(_state.Vignette);
+            _vignette.color.Override(_state.VignetteColor);
+            _vignette.center.Override(new Vector2(.5f, .5f));
+            _vignette.smoothness.Override(_state.VignetteSmoothness);
+            _vignette.rounded.Override(false);
             _color.saturation.Override(_state.Saturation);
             _color.colorFilter.Override(_state.SceneTint);
             _color.postExposure.Override(_state.Exposure);

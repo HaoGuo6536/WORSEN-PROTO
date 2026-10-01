@@ -3,7 +3,12 @@ guid: ec2c1d209682c964a9613dbe61dd2a1c
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_vinyl
+    second: {fileID: 2100000, guid: b5dffdbeb4e57dd41a1818aaf7d118e5, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

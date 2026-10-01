@@ -2,7 +2,8 @@
 // HUDGuidanceAndPhantomTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies separate guidance channels and reversible display-only phantom cakes.
+//   Verifies separate guidance channels and one reusable remaining-cake number.
+//   Phantom cakes remain reversible display-only changes, never pickup credit.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · HUD.
 // KEY RESPONSIBILITIES:
@@ -34,7 +35,7 @@ namespace Worsen.Tests.HUD
             new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.right, Vector3.right) };
 
         [Test]
-        public void VisualSurfaceHasSeparateGoldenAndWhiteVisibilityOutsideChrome()
+        public void VisualSurfaceUsesOneArrowOutsideChaseChrome()
         {
             var go = new GameObject("typed arrow surface"); var visual = go.AddComponent<HUDVisualDriver>();
             var config = ScriptableObject.CreateInstance<HUDDriverConfig>(); var root = new VisualElement();
@@ -44,17 +45,17 @@ namespace Worsen.Tests.HUD
                 var state = new HUDDriverState(); var presenter = new HUDPresenter();
                 presenter.SetGuidance(state, Both); presenter.SetChaseMode(state, true); visual.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                Assert.That(root.Q("golden-direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("golden-direction-group"), Is.Null);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.None));
                 presenter.SetGuidance(state, Array.Empty<GuidanceTarget>()); visual.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
-                Assert.That(root.Q("golden-direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("golden-direction-group"), Is.Null);
             }
             finally { visual.Unbind(); Object.DestroyImmediate(go); Object.DestroyImmediate(config); }
         }
 
         [TestCase(false)] [TestCase(true)]
-        public void HiddenCountHidesBothCountersForTheFloorWithoutHidingGuidance(bool hidden)
+        public void HiddenCountHidesReusedCounterForTheFloorWithoutHidingGuidance(bool hidden)
         {
             var go = new GameObject("floor counter visibility"); var visual = go.AddComponent<HUDVisualDriver>();
             var config = ScriptableObject.CreateInstance<HUDDriverConfig>(); var root = new VisualElement();
@@ -65,8 +66,8 @@ namespace Worsen.Tests.HUD
                 p.SetFloorCounters(state, new FloorDisplaySnapshot(141, 200, 7, ExitState.Locked, false, Vector3.zero,
                     totalCakes: 760, totalGoldenCakes: 23, hiddenCount: hidden));
                 visual.Apply(state);
-                Assert.That(root.Q<Label>("cake-count").text, Is.EqualTo("Cakes: 141 / 760"));
-                Assert.That(root.Q<Label>("golden-count").text, Is.EqualTo("Golden: 7 / 23"));
+                Assert.That(root.Q<Label>("cake-count").text, Is.EqualTo("16"));
+                Assert.That(root.Q<Label>("golden-count"), Is.Null);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(hidden ? DisplayStyle.None : DisplayStyle.Flex));
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
                 if (hidden) Assert.That(p.TryShowPhantomCake(state, 1f), Is.False);
@@ -101,15 +102,17 @@ namespace Worsen.Tests.HUD
             var state = new HUDDriverState(); var presenter = new HUDPresenter();
             Assert.That(presenter.TryShowPhantomCake(state, 1f), Is.False);
             presenter.SetCount(state, 2, 5);
+            Assert.That(presenter.TryShowPhantomCake(state, 1f), Is.False, "No arrow means no visible counter.");
+            presenter.SetDirection(state, Vector3.forward, true);
             Assert.That(presenter.TryShowPhantomCake(state, 1f), Is.True);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 3 / 5")); Assert.That(state.Collected, Is.EqualTo(2));
+            Assert.That(state.CountText, Is.EqualTo("2")); Assert.That(state.Collected, Is.EqualTo(2));
             presenter.SetCount(state, 4, 5);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 5 / 5"));
+            Assert.That(state.CountText, Is.EqualTo("0"));
             presenter.SetChaseMode(state, true); presenter.Tick(state, 1f, .5f);
-            Assert.That(state.CountText, Is.EqualTo("Cakes: 4 / 5")); Assert.That(state.Collected, Is.EqualTo(4));
+            Assert.That(state.CountText, Is.EqualTo("1")); Assert.That(state.Collected, Is.EqualTo(4));
             presenter.ResetRunView(state);
             Assert.That(presenter.TryShowPhantomCake(state, 2f), Is.True);
-            presenter.ResetRunView(state); Assert.That(state.CountText, Is.EqualTo("Cakes: 4 / 5"));
+            presenter.ResetRunView(state); Assert.That(state.CountText, Is.EqualTo("1"));
             Assert.That(presenter.TryShowPhantomCake(state, float.NaN), Is.False);
             Assert.That(presenter.TryShowPhantomCake(state, 0f), Is.False);
         }

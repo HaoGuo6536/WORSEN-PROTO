@@ -1,3 +1,19 @@
+# ============================================================================
+# integrate.ps1
+# ============================================================================
+# PURPOSE: Promote only candidates backed by offline checks and native Unity
+#   evidence. Select affected fixtures with a periodic full-suite safety net.
+# ARCHITECTURAL ROLE: Integration coordinator tooling; no runtime layer.
+# KEY RESPONSIBILITIES:
+#   - Construct and precheck an isolated candidate without moving main.
+#   - Import, set up and test the detached candidate under the exclusive lease.
+#   - Preserve selection, results and cumulative test history in the ledger.
+#   - Promote/publish successful candidates or preserve rejected candidates.
+# DEPENDENCIES: Common/Gate/TestSelection/TestResults, Git, offline compiler,
+#   Python selector, Synaptic HTTP and the native Editor test runner.
+# USAGE NOTES: Coordinator only. Ambiguous or timed-out runs retain the candidate
+#   and lease. 'selected' is not permission to override fail-closed full policy.
+# ============================================================================
 param(
     [Parameter(Mandatory = $true)][string[]]$Branches,
     [Parameter(Mandatory = $true)][string]$Label,
@@ -10,6 +26,8 @@ param(
     # Wait for the Edit Mode results XML. Play-mode tests dominate (about 100 s of domain reload
     # each): batch 12 needed 116 minutes and batch 13 more than 150.
     [int]$TestTimeoutMinutes = 240,
+    [ValidateSet('auto', 'selected', 'full')][string]$TestScope = 'auto',
+    [ValidateRange(1, 1000)][int]$FullSuiteEvery = 5,
     # Owner rule 2026-09-30: restart the editor between gates when it exceeds this many GB committed
     # (restart-editor.ps1). 0 skips the check.
     [double]$RestartAboveGB = 20,
@@ -23,7 +41,7 @@ param(
 #     ast-grep, architecture checks. Nothing in the open checkout changes.
 #  2. Under the Unity lease: check out the candidate DETACHED in the open checkout (main does
 #     not move), refresh, run setup, commit generated .meta files and setup outputs onto the
-#     candidate, run the full Edit Mode suite and evaluate the gate (Gate.ps1).
+#     candidate, select affected fixtures (or full safety net) and evaluate the gate.
 #  3. PASS: move main to the candidate, attach, push main and worker branches, re-index GitNexus.
 #     FAIL: check main out again (the editor re-imports the old state), keep the candidate as
 #     cand/<Label> for fix workers, and push nothing.
@@ -31,6 +49,8 @@ param(
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Common.ps1"
 . "$PSScriptRoot\Gate.ps1"
+. "$PSScriptRoot\TestSelection.ps1"
+. "$PSScriptRoot\TestResults.ps1"
 $main = $script:Main
 $int = Join-Path (Split-Path -Parent $main) 'WORSEN-wt\integration'
 $ledger = Join-Path $main 'evidence\gate-ledger.jsonl'
@@ -212,6 +232,23 @@ try {
     }
     $entry.candidate_final = $candidate
 
+    # Select from the FINAL tree, including setup outputs and generated metadata.
+    $selection = Get-CandidateTestSelection $main $mainHead $candidate $ledger $TestScope $FullSuiteEvery (Join-Path $out 'test-selection.json')
+    # Arbitrary setup snippets may mutate unsaved live wiring not represented by Git.
+    if ($SetupSteps.Count + $SetupSnippets.Count -gt 0) {
+        $selection.scope = 'full'
+        $selection.full_reasons = @($selection.full_reasons) + 'gate executed setup: live state may differ from committed source'
+        if ($selection.all_fixtures.Count -gt 0) { $selection.fixtures = $selection.all_fixtures }
+        $selection.fixture_reasons = @{}
+        foreach ($fixture in $selection.fixtures) { $selection.fixture_reasons[$fixture] = @('full-suite policy (see full_reasons)') }
+        $selection | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $out 'test-selection.json') -Encoding UTF8
+    }
+    $entry.test_scope = $selection.scope
+    $entry.test_selection = $selection
+    $entry.promotion_number = $selection.promotion_number
+    $request = New-NativeTestRequest $out $selection.scope $selection.fixtures
+    $entry.test_run_id = $request.id
+
     Assert-UnityLease $token
     # Unity's SceneView repaint throws NullReferenceException during Play Mode tests in a fresh
     # editor (batch 14: 7 tests failed on that engine-only log). Close Scene views for the
@@ -220,12 +257,14 @@ try {
     $sceneViews = Invoke-UnityCsharp 'int n = 0; foreach (UnityEditor.SceneView sv in new System.Collections.ArrayList(UnityEditor.SceneView.sceneViews)) { if (sv != null) { sv.Close(); n++; } } return "closed=" + n;'
     $entry.scene_views_closed = [int]($sceneViews -replace '^closed=', '')
     Log "Scene views closed for the suite: $sceneViews"
-    Log 'Running full Edit Mode suite'
+    Log "Running $($selection.scope) Edit Mode suite ($($selection.fixtures.Count) required fixtures): $($selection.full_reasons -join '; ')"
     $since = Get-Date
-    $start = Invoke-UnityCsharp 'return SynapticPro.TestRunner.NexusTestRunnerService.Execute("run", "editmode", "");'
+    # A bridge error can occur after scheduling; do not switch files under that run.
+    $keepCandidate = $true
+    $start = Invoke-UnityCsharp $request.code
     Log "Test start: $start"
     $resultsJson = Join-Path $out 'editmode-results.json'
-    $waitOut = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'await-results.ps1') -Token $token -Since $since.ToString('o') -TimeoutMinutes $TestTimeoutMinutes -OutJson $resultsJson
+    $waitOut = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'await-results.ps1') -Token $token -Since $since.ToString('o') -TimeoutMinutes $TestTimeoutMinutes -OutJson $resultsJson -RunDirectory $request.directory -RunId $request.id
     $waitExit = $LASTEXITCODE
     $waitOut | Set-Content -LiteralPath (Join-Path $out 'editmode-summary.txt')
     $waitOut | Select-Object -First 3 | ForEach-Object { Log "  $_" }
@@ -236,6 +275,8 @@ try {
         throw "No test results within $TestTimeoutMinutes min. The open checkout stays on the candidate and the lease is retained until the run is confirmed finished (README: 'Timed-out suite')."
     }
     $s = Wait-EditorIdle $token 10
+    if (-not $s) { throw 'Native results exist but editor did not settle; candidate and lease retained.' }
+    $keepCandidate = $false
     if ($s -and $s.TimeScale -ne 1) { Log "WARNING: Time.timeScale is $($s.TimeScale) after the suite (a test leaked it)" }
     if ($entry.scene_views_closed -gt 0) {
         try { Log ("Scene view restored: " + (Invoke-UnityCsharp 'bool ok = UnityEditor.EditorApplication.ExecuteMenuItem("Window/General/Scene"); return "menu=" + ok + " sceneViews=" + UnityEditor.SceneView.sceneViews.Count;')) } catch { Log "WARNING: could not reopen the Scene view: $($_.Exception.Message)" }
@@ -250,12 +291,23 @@ try {
         throw "HEAD moved during the gate ($headNow); saved as rescue/$Label-$stamp; not promoting."
     }
     $results = Get-Content -LiteralPath $resultsJson -Raw | ConvertFrom-Json
+    $results | Add-Member -NotePropertyName scope -NotePropertyValue $selection.scope
+    $results.issues = @(Get-CoverageIssues $results $selection.fixtures)
     $baseline = Get-LastPromoted $ledger
-    $verdict = Get-GateVerdict $results (Get-Quarantine $quarantineFile) $baseline
+    $quarantine = Get-Quarantine $quarantineFile
+    $verdict = Get-GateVerdict $results $quarantine $baseline
+    $nextBaseline = Merge-TestBaseline $results $quarantine $baseline
     $entry.tests = [ordered]@{ total = $results.total; passed = $results.passed; failed = $results.failed; skipped = $results.skipped }
-    $entry.failed_names = @($results.failures | ForEach-Object { $_.name })
-    $entry.blocking_count = $verdict.blocking.Count
-    $entry.quarantined_count = $verdict.quarantined.Count
+    $entry.run_failed_names = @($results.failures | ForEach-Object { $_.name })
+    $entry.run_blocking_count = $verdict.blocking.Count
+    $entry.run_quarantined_count = $verdict.quarantined.Count
+    $entry.result_fixtures = @($results.cases.fixture | Sort-Object -Unique)
+    $entry.executed_fixtures = @($results.cases | Where-Object { $_.result -in @('Passed', 'Failed') } | ForEach-Object { $_.fixture } | Sort-Object -Unique)
+    $entry.coverage_issues = @($results.issues)
+    $entry.test_statuses = $nextBaseline.test_statuses
+    $entry.failed_names = $nextBaseline.failed_names
+    $entry.blocking_count = $nextBaseline.blocking_count
+    $entry.quarantined_count = $nextBaseline.quarantined_count
     $entry.new_failures = $verdict.new
     $entry.baseline_label = if ($baseline) { $baseline.label } else { $null }
     $pass = $verdict.pass -and $entry.setup_ok
@@ -267,6 +319,9 @@ try {
         Invoke-Git $main update-ref refs/heads/main $candidate $mainHead | Out-Null
         Invoke-Git $main checkout -q main | Out-Null
         $onCandidate = $false; $entry.promoted = $true
+        if ($selection.scope -eq 'full') {
+            $entry.full_suite_coverage = @($selection.promotions_since_full) + @([pscustomobject]@{ label = $Label; candidate = $candidate })
+        }
         Log "PROMOTED: main $mainHead -> $candidate"
     } else {
         Invoke-Git $main branch -f "cand/$Label" $candidate | Out-Null

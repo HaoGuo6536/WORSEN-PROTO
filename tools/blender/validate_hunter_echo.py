@@ -7,7 +7,7 @@
 #   Offline art validator (outside runtime layers) · Hunter art.
 # KEY RESPONSIBILITIES:
 #   - Supply independently declared Echo clip timing expectations.
-#   - Execute shared geometry, rig, animation and manifest checks.
+#   - Require visible skin motion, grounded alternating steps and closed loops.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_humanoid_common; no generator or Unity dependency.
 # USAGE NOTES:
@@ -21,4 +21,5 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 from hunter_humanoid_common import validate
 
 if __name__=='__main__':
-    validate('Echo',dict(idle=60,walk=30,run=20,ready=18,attack=30,hit=18))
+    validate('Echo',dict(idle=60,walk=30,run=20,ready=18,attack=30,hit=18),
+             dict(idle=.025,walk=.25,run=.40,ready=.25,attack=.60,hit=.20))

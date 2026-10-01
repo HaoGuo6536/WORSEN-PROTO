@@ -762,6 +762,27 @@
             0.216
           ],
           "rotY": 180
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            4.5,
+            0,
+            2.25
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.5,
+            0,
+            1.3
+          ],
+          "endpointB": [
+            4.5,
+            0,
+            3.2
+          ]
         }
       ]
     },
@@ -1321,15 +1342,6 @@
           "rotY": 0
         },
         {
-          "id": "prop_chair",
-          "pos": [
-            5,
-            0,
-            5.28
-          ],
-          "rotY": 0
-        },
-        {
           "id": "prop_lab_bench",
           "pos": [
             6,
@@ -1400,6 +1412,27 @@
             3.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            5.5,
+            0,
+            4.75
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.55,
+            0,
+            4.75
+          ],
+          "endpointB": [
+            6.45,
+            0,
+            4.75
+          ]
         }
       ]
     },
@@ -2677,6 +2710,48 @@
             10.0
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            6.75,
+            0,
+            4.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            6.75,
+            0,
+            3.05
+          ],
+          "endpointB": [
+            6.75,
+            0,
+            4.95
+          ]
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            9.0,
+            0,
+            6.0
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            8.05,
+            0,
+            6.0
+          ],
+          "endpointB": [
+            9.95,
+            0,
+            6.0
+          ]
         }
       ]
     },
@@ -4371,6 +4446,48 @@
             10.0
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            8.25,
+            0,
+            4.75
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            7.3,
+            0,
+            4.75
+          ],
+          "endpointB": [
+            9.2,
+            0,
+            4.75
+          ]
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            10.75,
+            0,
+            6.5
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            9.8,
+            0,
+            6.5
+          ],
+          "endpointB": [
+            11.7,
+            0,
+            6.5
+          ]
         }
       ]
     },
@@ -5408,6 +5525,48 @@
             9.784
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            6.25,
+            0,
+            4.0
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.3,
+            0,
+            4.0
+          ],
+          "endpointB": [
+            7.2,
+            0,
+            4.0
+          ]
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            9.25,
+            0,
+            3.75
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            9.25,
+            0,
+            2.8
+          ],
+          "endpointB": [
+            9.25,
+            0,
+            4.7
+          ]
         }
       ]
     },
@@ -5911,6 +6070,27 @@
             5.784
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            4.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            4.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -6748,6 +6928,27 @@
             5.784
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            4.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            4.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -7545,6 +7746,27 @@
             15.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            2.0,
+            0,
+            13.25
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            2.0,
+            0,
+            12.3
+          ],
+          "endpointB": [
+            2.0,
+            0,
+            14.2
+          ]
         }
       ]
     },
@@ -8435,6 +8657,27 @@
             9.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            3.25,
+            0,
+            7.5
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.25,
+            0,
+            6.55
+          ],
+          "endpointB": [
+            3.25,
+            0,
+            8.45
+          ]
         }
       ]
     },
@@ -9623,6 +9866,48 @@
             9.784
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            6.5,
+            0,
+            2.25
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.55,
+            0,
+            2.25
+          ],
+          "endpointB": [
+            7.45,
+            0,
+            2.25
+          ]
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            9.5,
+            0,
+            2.5
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            8.55,
+            0,
+            2.5
+          ],
+          "endpointB": [
+            10.45,
+            0,
+            2.5
+          ]
         }
       ]
     },
@@ -10401,6 +10686,27 @@
             0.216
           ],
           "rotY": 180
+        },
+        {
+          "id": "prop_vault_low_locker",
+          "pos": [
+            4.5,
+            0,
+            2.25
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.5,
+            0,
+            1.3
+          ],
+          "endpointB": [
+            4.5,
+            0,
+            3.2
+          ]
         }
       ]
     }

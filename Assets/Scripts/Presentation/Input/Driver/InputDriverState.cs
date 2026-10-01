@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Keep runtime look overrides and a pause gate separate from recording/readiness.
-//   - Retain movement and held buttons while accumulating consumable edges.
+//   - Retain movement, held buttons, consumable edges and a pending direct slot selection.
 //   - Track focus, owner availability, and the requested input gate.
 //   - Retain the cursor state that this service must restore during teardown.
 //
@@ -48,5 +48,6 @@ namespace Worsen.Presentation.Input
         public InputButtons Held;
         public InputButtons Pressed;
         public InputButtons Released;
+        public int PendingSelectedSlot = -1;
     }
 }

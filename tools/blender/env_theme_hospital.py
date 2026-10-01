@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Model the tiled shell, clinical doors and ceiling-supported ward fixtures.
 #   - Bake four portable surface textures and export metre-scale isolated FBXs.
-#   - Author supported rooms and centred span-two corridor end-cap sockets.
+#   - Author supported rooms, end-cap sockets and collision-bearing vault shortcuts.
 #   - Assemble sources from manifest placements and render review evidence.
 # DEPENDENCIES: Blender 5.2 bpy/bmesh/mathutils, bundled numpy, Python stdlib.
 #   Shared door-review studio from env_theme_castle; no Castle geometry reused.
@@ -827,7 +827,7 @@ def main():
     parser.add_argument('--skip-previews', action='store_true')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     assert bpy.app.version[:2] == (5, 2), 'Use Blender 5.2'
-    assert ROOT.name in ('theme-hospital', 'art-fixes', 'theme-catalogues') and (ROOT/'.git').is_file(), \
+    assert ROOT.name in ('theme-hospital', 'art-fixes', 'theme-catalogues', 'template-vaults') and (ROOT/'.git').is_file(), \
         'Publish only to an authorized isolated worktree, never the shared checkout'
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.preferences.filepaths.save_version = 0
@@ -838,14 +838,23 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'Kit/HospitalKit.blend'))
     materials()
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from env_theme_vaults import PIECES, build_vault, add_vaults
+    KINDS[PIECES['hospital']] = 'prop'
     objects, rows = {}, []
     for piece in KINDS:
-        obj = build_piece(piece)
+        if piece == PIECES['hospital']:
+            mesh = WardMesh(piece)
+            build_vault('hospital', mesh)
+            obj = mesh.finish(center=True)
+        else:
+            obj = build_piece(piece)
         objects[piece] = obj
         rows.append(export_piece(obj, piece))
     kit = {'theme': 'hospital', 'wallHeight': HEIGHT, 'style': '1970s institutional ward',
            'palette': PALETTE, 'pieces': rows}
     templates = catalogue()
+    add_vaults(templates, rows, 'hospital')
     rooms = {'theme': 'hospital', 'module': 2.0, 'templates': templates}
     for path, value in ((ART/'Kit/HospitalKit.manifest.json', kit), (ART/'Rooms/HospitalRooms.manifest.json', rooms)):
         path.write_text(json.dumps(value, indent=2)+'\n', encoding='utf-8', newline='\n')

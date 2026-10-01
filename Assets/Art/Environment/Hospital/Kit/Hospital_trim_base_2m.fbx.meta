@@ -3,7 +3,12 @@ guid: 7f5db7df9fa07dc4d955507a858e5f10
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_rubber
+    second: {fileID: 2100000, guid: 0c9acd5cfa310f0469d19c2e0ed566df, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

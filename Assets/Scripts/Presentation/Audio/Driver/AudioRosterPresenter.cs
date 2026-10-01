@@ -5,6 +5,7 @@
 //   Maps roster observations to the five existing hunter budget slots.
 //   Authoritative replay and tick facts have already been delayed by gameplay;
 //   this presenter neither adds delay nor synthesizes another cadence timer.
+//   New hunters resolve exact named clips only; shared banks belong to legacy ids.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Audio.
 // KEY RESPONSIBILITIES:
@@ -12,6 +13,7 @@
 //   - Queue hidden-mutation tells by committed event identity, never display text.
 //   - Resolve config-driven floor/room sound zones without scene queries.
 //   - Map expansion hunter tells without replaying discovery or unconfirmed death.
+//   - Fail closed on missing roster identities instead of borrowing monster banks.
 // DEPENDENCIES:
 //   - Core fact payloads and own Audio config/state/commands only.
 // USAGE NOTES:
@@ -19,6 +21,7 @@
 //   Duplicate archetypes use EntityId, not archetype name, for voice ownership.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
@@ -68,21 +71,25 @@ namespace Worsen.Presentation.Audio
         public bool Habit(AudioRosterDriverState state, HunterHabitFact fact, out AudioRosterCommand command)
         {
             command = default;
-            if (state.Archetypes.TryGetValue(fact.Hunter, out string key) && (key == "mannequin" || key == "mimic")) return false;
+            state.Archetypes.TryGetValue(fact.Hunter, out string key);
+            if (key == "mannequin" || key == "mimic" || key == "skip") return false;
             if (fact.Kind == HunterHabitKind.ThresholdPause) return false;
             string beat = fact.Kind == HunterHabitKind.TurnToFace ? "turn" : "cake";
             if (!Fresh(state, fact.Hunter, beat, fact.Tick)) return false;
-            command = Command(fact.Hunter, "hunter." + (beat == "turn" ? "turn" : "cake-reaction"), HunterCueSlot.Presence, fact.Position);
+            command = Command(fact.Hunter, (IsLegacyHunter(key) ? "hunter" : string.IsNullOrEmpty(key) ? "unknown" : key) +
+                "." + (beat == "turn" ? "turn" : "cake-reaction"), HunterCueSlot.Presence, fact.Position);
             return true;
         }
         public bool Deliberation(AudioRosterDriverState state, EntityId hunter, Vector3 position, long tick, out AudioRosterCommand command)
             => Habit(state, new HunterHabitFact(hunter, HunterHabitKind.TurnToFace, position, tick), out command);
         public bool Feedback(AudioRosterDriverState state, HunterFeedbackEvent fact, out AudioRosterCommand command)
         {
-            command = default; state.Archetypes[fact.Hunter] = fact.ArchetypeKey;
-            if (fact.ArchetypeKey == "mannequin" || fact.ArchetypeKey == "mimic") return false;
+            command = default;
+            if (!string.IsNullOrEmpty(fact.ArchetypeKey)) state.Archetypes[fact.Hunter] = fact.ArchetypeKey;
+            state.Archetypes.TryGetValue(fact.Hunter, out string key);
+            if (key == "mannequin" || key == "mimic" || key == "skip") return false;
             // Dedicated facts own these cues; generic feedback must not double-play them.
-            if (fact.ArchetypeKey == "herald" || fact.ArchetypeKey == "blinder" || fact.ArchetypeKey == "stare") return false;
+            if (key == "herald" || key == "blinder" || key == "stare") return false;
             string suffix; HunterCueSlot slot;
             switch (fact.Kind)
             {
@@ -91,12 +98,12 @@ namespace Worsen.Presentation.Audio
                 case HunterFeedbackKind.Scream: suffix = "chase"; slot = HunterCueSlot.ChaseLayer; break;
                 case HunterFeedbackKind.LightReaction: suffix = "presence"; slot = HunterCueSlot.Presence; break;
                 case HunterFeedbackKind.Footstep:
-                    if (fact.ArchetypeKey == "echo" || fact.ArchetypeKey == "weaver" || fact.ArchetypeKey == "ticking") return false;
+                    if (key == "echo" || key == "weaver" || key == "ticking") return false;
                     suffix = "presence"; slot = HunterCueSlot.Presence; break;
                 default: return false;
             }
             if (!Fresh(state, fact.Hunter, "feedback:" + fact.Kind, fact.Tick)) return false;
-            command = Command(fact.Hunter, (string.IsNullOrEmpty(fact.ArchetypeKey) ? "hunter" : fact.ArchetypeKey) + "." + suffix,
+            command = Command(fact.Hunter, (string.IsNullOrEmpty(key) ? "unknown" : key) + "." + suffix,
                 slot, fact.Position, slot == HunterCueSlot.AttackTiming);
             return true;
         }
@@ -158,14 +165,50 @@ namespace Worsen.Presentation.Audio
         public bool AcceptBlinderHit(AudioRosterDriverState state, BlinderHitFact fact) =>
             fact.Player.IsValid && Fresh(state, fact.Hunter, "blinder:hit:" + fact.Player.Value + ":" + fact.Serial, fact.Tick);
         public AudioRosterBinding? Binding(AudioSoundscapeDriverConfig config, string id)
+            => ResolveBinding(config.RosterBindings, id);
+        public AudioRosterBinding? ResolveBinding(IReadOnlyList<AudioRosterBinding> bindings, string id)
         {
-            foreach (var binding in config.RosterBindings) if (binding.Id == id) return binding;
-            if (id == "mannequin.death") return null; // Never substitute the generic loud sting for the approved snap.
+            if (string.IsNullOrEmpty(id) || bindings == null) return null;
+            foreach (var binding in bindings) if (binding.Id == id) return binding;
             int dot = id == null ? -1 : id.LastIndexOf('.');
+            if (dot < 0 || !IsLegacyHunter(id.Substring(0, dot))) return null;
             string suffix = dot >= 0 ? id.Substring(dot + 1) : "";
             if (suffix != "presence" && suffix != "detection" && suffix != "chase" && suffix != "attack" && suffix != "death") return null;
-            foreach (var binding in config.RosterBindings) if (binding.Id == "hunter." + suffix) return binding;
+            foreach (var binding in bindings) if (binding.Id == "hunter." + suffix) return binding;
             return null;
+        }
+        public bool IsLegacyHunter(string key) => key == "rusher" || key == "hexer" || key == "lurker" || key == "thorncaller" || key == "watcher";
+        public bool AllowsSharedBank(string id)
+        {
+            int dot = id == null ? -1 : id.IndexOf('.');
+            return dot > 0 && (id.Substring(0, dot) == "hunter" || IsLegacyHunter(id.Substring(0, dot)));
+        }
+        public bool IsRosterCue(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            if (id == "ms_mangled_scream_03" || id == "sb_mangled_scream_01" || id == "sb_mangled_scream_02" || id == "sb_mangled_scream_03") return true;
+            int separator = id.IndexOfAny(new[] { '.', '-' });
+            string key = separator > 0 ? id.Substring(0, separator) : id;
+            return key == "echo" || key == "weaver" || key == "ticking" || key == "ram" || key == "skip" ||
+                key == "mimic" || key == "blinder" || key == "herald" || key == "mannequin" || key == "stare";
+        }
+        public string DeathId(AudioRosterDriverState state) => state.LastAttacker.IsValid &&
+            state.Archetypes.TryGetValue(state.LastAttacker, out string key) && !string.IsNullOrEmpty(key) ? key + ".death" : "unknown.death";
+        public bool AllowsSharedEmitter(AudioRosterDriverState state, int emitter) =>
+            state.Archetypes.TryGetValue(new EntityId(emitter), out string key) && IsLegacyHunter(key);
+        public bool OwnsCommand(AudioRosterDriverState state, AudioRosterCommand command)
+        {
+            if (string.IsNullOrEmpty(command.Id)) return false;
+            // Progression tells deliberately carry no entity; they still cannot address legacy banks.
+            if (!command.Hunter.IsValid) return IsRosterCue(command.Id);
+            if (!state.Archetypes.TryGetValue(command.Hunter, out string key) || string.IsNullOrEmpty(key)) return false;
+            if (IsLegacyHunter(key)) return command.Id.StartsWith(key + ".", StringComparison.Ordinal) ||
+                command.Id.StartsWith("hunter.", StringComparison.Ordinal);
+            if (!IsRosterCue(key)) return false;
+            return command.Id.StartsWith(key + ".", StringComparison.Ordinal) ||
+                command.Id.StartsWith(key + "-", StringComparison.Ordinal) || key == "herald" &&
+                (command.Id == "ms_mangled_scream_03" || command.Id == "sb_mangled_scream_01" ||
+                 command.Id == "sb_mangled_scream_02" || command.Id == "sb_mangled_scream_03");
         }
         public void Theme(AudioRosterDriverState state, string zone) { state.DefaultZone = zone; state.RoomZones.Clear(); }
         public void RoomTheme(AudioRosterDriverState state, AudioSoundscapeDriverConfig config, int room, string theme, string family)

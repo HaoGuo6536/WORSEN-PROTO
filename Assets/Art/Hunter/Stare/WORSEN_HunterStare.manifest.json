@@ -3,8 +3,8 @@
   "hunter": "Stare",
   "fps": 30,
   "height_m": 2.3,
-  "width_m": 0.671562,
-  "triangles": 588,
+  "width_m": 0.683082,
+  "triangles": 5592,
   "bones": [
     {
       "name": "Root",
@@ -206,9 +206,9 @@
     {
       "name": "M_HunterStare_Cloth",
       "base_color_srgb": [
-        0.075,
-        0.09,
-        0.115,
+        0.19,
+        0.22,
+        0.25,
         1
       ],
       "emission_color_srgb": [
@@ -222,9 +222,9 @@
     {
       "name": "M_HunterStare_CoolRim",
       "base_color_srgb": [
-        0.15,
-        0.2,
-        0.25,
+        0.32,
+        0.38,
+        0.43,
         1
       ],
       "emission_color_srgb": [
@@ -234,6 +234,38 @@
         1
       ],
       "emission_strength": 0.12
+    },
+    {
+      "name": "M_HunterStare_Mask",
+      "base_color_srgb": [
+        0.62,
+        0.65,
+        0.61,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
+    },
+    {
+      "name": "M_HunterStare_Eyes",
+      "base_color_srgb": [
+        0.85,
+        0.88,
+        0.77,
+        1
+      ],
+      "emission_color_srgb": [
+        0.4,
+        0.48,
+        0.42,
+        1
+      ],
+      "emission_strength": 0.16
     }
   ],
   "coordinate_system": "Blender Z-up, forward -Y, metres",

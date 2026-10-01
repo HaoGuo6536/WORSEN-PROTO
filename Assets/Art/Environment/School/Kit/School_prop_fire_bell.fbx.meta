@@ -3,7 +3,17 @@ guid: fb1a23b76526d874b89c22fdb572a44b
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_fire_red
+    second: {fileID: 2100000, guid: 59112fc0c840afd4b9aeb9ac7b42a91b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_steel
+    second: {fileID: 2100000, guid: ba98b52c38fbaae43b9ba02a8186dd53, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Sub-driver (section 7e), owned by HunterDriver - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Evaluate speed-matched gait blends and distinct ready/attack/recovery/hit clips.
+//   - Retain committed module one-shots across the quantised pose cadence.
 //   - Quantise manual graph evaluations, never motor time; enable playable humanoid IK callbacks.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
@@ -39,15 +39,17 @@ namespace Worsen.Domain.Hunter
             Teardown();
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
             if (_animator == null || _config == null || _config.Idle == null) return;
-            _state = new HunterAnimationDriverState { Graph = PlayableGraph.Create("Hunter creature animation"), Clips = new AnimationClipPlayable[6] };
+            _state = new HunterAnimationDriverState { Graph = PlayableGraph.Create("Hunter creature animation"), Clips = new AnimationClipPlayable[7] };
             _state.OriginalRootMotion = _animator.applyRootMotion;
+            _state.OriginalCullingMode = _animator.cullingMode;
             _animator.applyRootMotion = false;
+            _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             _state.HasHumanoidRig = _animator.avatar != null && _animator.avatar.isValid && _animator.isHuman;
             _state.Graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
-            _state.Mixer = AnimationMixerPlayable.Create(_state.Graph, 6);
+            _state.Mixer = AnimationMixerPlayable.Create(_state.Graph, _state.Clips.Length);
             var output = AnimationPlayableOutput.Create(_state.Graph, "Creature", _animator);
             output.SetSourcePlayable(_state.Mixer);
-            var clips = new[] { _config.Idle, _config.Walk, _config.Run, _config.Windup, _config.Attack, _config.Recovery };
+            var clips = new[] { _config.Idle, _config.Walk, _config.Run, _config.Windup, _config.Attack, _config.Recovery, _config.Hit };
             for (int i = 0; i < clips.Length; i++)
             {
                 _state.Clips[i] = AnimationClipPlayable.Create(_state.Graph, clips[i] != null ? clips[i] : _config.Idle);
@@ -58,11 +60,19 @@ namespace Worsen.Domain.Hunter
             _state.Graph.Play();
             EvaluatePose(0f, 0f, 0, 0f);
         }
-        public void Apply(float dt, float speed, int phase, float progress)
+        public void Trigger(HunterAnimationPhase phase)
+        { if (IsReady) _presenter.Trigger(_state, phase); }
+        public void Apply(float dt, float speed, int phase, float progress, HunterAnimationPhase module = HunterAnimationPhase.None)
         {
             if (!IsReady) return;
             int steps = _presenter.PoseSteps(_state, dt, _config.SampleRate, _config.MaximumPoseSteps, out float step);
-            for (int i = 0; i < steps; i++) EvaluatePose(step, speed, phase, progress);
+            for (int i = 0; i < steps; i++)
+            {
+                int resolved = _presenter.ResolvePhase(_state, step, phase, progress, module,
+                    _state.Clips[3].GetAnimationClip().length, _state.Clips[4].GetAnimationClip().length,
+                    _state.Clips[6].GetAnimationClip().length, out float poseProgress);
+                EvaluatePose(step, speed, resolved, poseProgress);
+            }
         }
         public void SetLook(Vector3 target, bool looking, bool catchActive)
         {
@@ -80,18 +90,20 @@ namespace Worsen.Domain.Hunter
             _state.PoseDeltaTime = dt;
             _state.IKApplied = false;
             _presenter.Look(_state, dt, _config.LookBlendInSeconds, _config.LookBlendOutSeconds);
-            int slot = _presenter.Tick(_state, dt, speed, phase, _config.RunThreshold, _config.BlendSeconds);
-            for (int i = 0; i < 6; i++) _state.Mixer.SetInputWeight(i, _state.Weights[i]);
+            int slot = _presenter.Tick(_state, dt, speed, phase, _config.RunThreshold, _config.BlendSeconds, _config.RunHysteresis);
+            for (int i = 0; i < _state.Clips.Length; i++) _state.Mixer.SetInputWeight(i, _state.Weights[i]);
+            // Both gaits keep their clocks through crossfades; threshold jitter must
+            // never restart a stride. Inactive phase clips stay frozen at their last pose.
+            _state.Clips[0].SetSpeed(1);
+            _state.Clips[1].SetSpeed(_presenter.PlaybackRate(speed, _config.WalkStrideSpeed, _config.MinimumLocomotionRate, _config.MaximumLocomotionRate));
+            _state.Clips[2].SetSpeed(_presenter.PlaybackRate(speed, _config.RunStrideSpeed, _config.MinimumLocomotionRate, _config.MaximumLocomotionRate));
+            for (int i = 3; i < _state.Clips.Length; i++) _state.Clips[i].SetSpeed(0);
             if (slot >= 3)
             {
                 _state.Clips[slot].SetSpeed(0);
                 _state.Clips[slot].SetTime(Mathf.Clamp01(progress) * _state.Clips[slot].GetAnimationClip().length);
             }
-            else
-            {
-                if (_state.ActiveClip != slot) _state.Clips[slot].SetTime(0);
-                _state.Clips[slot].SetSpeed(1);
-            }
+
             _state.ActiveClip = slot;
             _state.Graph.Evaluate(Mathf.Max(0f, dt));
         }
@@ -100,7 +112,8 @@ namespace Worsen.Domain.Hunter
             if (_state != null)
             {
                 if (_state.Graph.IsValid()) _state.Graph.Destroy();
-                if (_animator != null) _animator.applyRootMotion = _state.OriginalRootMotion;
+                if (_animator != null)
+                { _animator.applyRootMotion = _state.OriginalRootMotion; _animator.cullingMode = _state.OriginalCullingMode; }
             }
             _state = null;
         }
