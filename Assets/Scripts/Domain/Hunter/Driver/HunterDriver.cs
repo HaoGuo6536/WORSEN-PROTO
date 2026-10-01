@@ -776,8 +776,9 @@ namespace Worsen.Domain.Hunter
             if (_attacks != null) _attacks.Teardown();
             if (_state != null)
             {
-                ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
-                ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+                // A driver torn down before Initialize rented its buffers has nothing to return.
+                if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+                if (_state.QueryOverlaps != null) ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
                 _state.QueryHits = null; _state.QueryOverlaps = null;
             }
             _state = null;

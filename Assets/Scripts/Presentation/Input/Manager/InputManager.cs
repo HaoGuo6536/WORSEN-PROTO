@@ -17,7 +17,6 @@
 //   - Pair Driver subscriptions with this component's enabled lifetime.
 //   - Command one frame publication per caller-controlled fixed tick.
 //   - Expose exact source selection and tick-aligned recording through the owned Driver.
-
 //
 // DEPENDENCIES:
 //   - Core InputFrame; the Input system's own PlayerInputDriver only.
