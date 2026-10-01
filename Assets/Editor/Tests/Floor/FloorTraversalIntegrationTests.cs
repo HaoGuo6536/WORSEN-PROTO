@@ -4,14 +4,15 @@
 // PURPOSE:
 //   Measures one unopposed automated FloorLoop route through ordinary movement,
 //   physical cake/exit triggers and independently checked navigation cues.
+//   The oracle retains eligible target identities while checking refreshed path bearings.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Floor scene integration.
 // KEY RESPONSIBILITIES:
 //   - Cover Horror progression and Shift-to-run while preserving fixture motion intent.
 //   - Follow complete NavMesh corners through synthetic Run input after real spawn.
-//   - Compare fresh cues against independent path-length/direction queries.
+//   - Check retained-target hysteresis and fresh path bearings across room crossings.
 //   - Retain actual timings, provenance, route samples and failures in a JSON log.
-//   - Separate the density-selected required route from incidental optional pickups.
+//   - Require the complete physical cake route before exit opening and collapse.
 // DEPENDENCIES:
 //   - Core, Player/Floor/Level/Hunter, Run, Input, SceneRoot, Unity navigation.
 //   - NUnit, Unity Test Framework, read-only Editor asset lookup and log-file IO.
@@ -212,12 +213,13 @@ namespace Worsen.Tests.Floor
             private int _target = -1, _corner;
             private double _nextPlan, _lastImprovement, _nextTrace;
             private float _bestLength = float.PositiveInfinity;
-            private bool _inTick;
             private int _producedFrames, _observedFrames;
             private InputFrame _expectedInput;
             private Vector3 _previousPosition;
             private long _previousCueTick = -1;
             private ExitState _previousCueExit;
+            private int _previousCueAnchor = -1, _publishedCueAnchor = -1;
+            private bool _cueRefreshed;
             public bool Ended { get; private set; }
 
             public Trial(RunSessionManager run, FloorManager floor, PlayerManager player, InputManager input,
@@ -234,6 +236,11 @@ namespace Worsen.Tests.Floor
                 _run.PlayerMovementPublished += Movement; _run.FloorDisplayChanged += Cue;
                 _run.RunEnded += Finished; _input.FramePublished += HardwareFrame;
                 _floor.OnPickupCollected += Pickup; _floor.OnExitOpened += Opened;
+                _floor.OnGuidanceChanged += Guidance;
+                var white = _floor.Snapshot();
+                // The fixture attaches after initialization; retain its already-published identity.
+                var controller = Field<FloorController>(_floor, "_controller");
+                if (white.HasCue && controller.TryWhiteGuidance(false, out var target)) _previousCueAnchor = target.AnchorId;
             }
             public void Unbind()
             {
@@ -241,6 +248,7 @@ namespace Worsen.Tests.Floor
                 _run.PlayerMovementPublished -= Movement; _run.FloorDisplayChanged -= Cue;
                 _run.RunEnded -= Finished; _input.FramePublished -= HardwareFrame;
                 _floor.OnPickupCollected -= Pickup; _floor.OnExitOpened -= Opened;
+                _floor.OnGuidanceChanged -= Guidance;
             }
             public void Fail(string reason) { if (_report.failure.Length == 0) _report.failure = reason + " " + Describe(); }
             public string Describe() => "tick=" + _run.Tick + "; target=" + _target + "; corner=" + _corner +
@@ -253,7 +261,6 @@ namespace Worsen.Tests.Floor
             }
             private void BeforeTick()
             {
-                _inTick = true;
                 try
                 {
                     if (_report.failure.Length > 0 || Ended) { _run.ReceiveInput(default); return; }
@@ -291,7 +298,6 @@ namespace Worsen.Tests.Floor
             }
             private void AfterTick(InputFrame frame, float _, long __)
             {
-                _inTick = false;
                 if (_report.failure.Length > 0) return;
                 if (_producedFrames != _observedFrames + 1) Fail("Expected exactly one ordinary input publication before each committed tick.");
                 if (!frame.Equals(_expectedInput)) Fail("Committed input differs from the synthetic movement command.");
@@ -339,33 +345,55 @@ namespace Worsen.Tests.Floor
                     if (route != null) yield return route;
                 }
             }
+            private void Guidance(IReadOnlyList<GuidanceTarget> targets)
+            {
+                _cueRefreshed = true;
+                _publishedCueAnchor = -1;
+                foreach (var target in targets)
+                    if (target.Kind == GuidanceKind.WhiteArrow)
+                    {
+                        if (target.IsFallback) Fail("White guidance must use a complete route, not a held or straight-line fallback.");
+                        _publishedCueAnchor = target.AnchorId;
+                    }
+            }
             private void Cue(FloorDisplaySnapshot snapshot)
             {
-                // Physics-time pickup snapshots intentionally preserve the previous
-                // direction until the scheduled refresh; only compare fresh tick cues.
-                if (!_inTick || !_player.ReadOnlyState.IsAlive || _report.failure.Length > 0) return;
+                // Opening-progress snapshots are not route refreshes. Pickup and room-crossing
+                // refreshes are real cues, even outside the fixed-tick dispatch.
+                if (!_cueRefreshed) return;
+                _cueRefreshed = false;
+                if (!_player.ReadOnlyState.IsAlive || _report.failure.Length > 0) return;
                 try
                 {
                     bool exit = snapshot.Exit == ExitState.Open;
-                    var candidates = Candidates(_player.ReadOnlyState.Position, exit).OrderBy(route => route.length).ThenBy(route => route.id).ToArray();
+                    var candidates = Candidates(_player.ReadOnlyState.Position, exit).Where(route => route.direction.sqrMagnitude > 0f)
+                        .OrderBy(route => route.length).ThenBy(route => route.id).ToArray();
                     var best = candidates.FirstOrDefault();
-                    // A complete path must produce a cue. Without one, SPEC-004 permits a flagged
-                    // straight-line or held cue, so the oracle only checks complete-path cues.
-                    if (best != null && !snapshot.HasCue) { Fail("Fresh cue is missing although a complete navigation path exists."); return; }
+                    if (snapshot.HasCue != (best != null)) { Fail("Cue availability differs from complete navigation path availability."); return; }
                     if (_previousCueTick >= 0 && snapshot.Exit == _previousCueExit)
                     {
                         double gap = (_run.Tick - _previousCueTick) * (double)Time.fixedDeltaTime;
-                        if (Math.Abs(gap - _config.DirectionCueInterval) > 2d * Time.fixedDeltaTime)
-                            Fail("Fresh cue cadence differs from the configured interval: " + gap);
+                        if (gap > _config.DirectionCueInterval + 2d * Time.fixedDeltaTime)
+                            Fail("Fresh cue exceeded the configured maximum refresh interval: " + gap);
                     }
                     _previousCueTick = _run.Tick; _previousCueExit = snapshot.Exit;
-                    if (best == null) return;
-                    if (Vector3.Distance(best.direction, snapshot.CueDirection) > 0.001f) { Fail("Fresh cue is not the shortest complete-path direction."); return; }
+                    if (best == null)
+                    {
+                        _previousCueAnchor = -1;
+                        if (_publishedCueAnchor != -1) Fail("Guidance retained an unreachable target.");
+                        return;
+                    }
+                    var retained = candidates.FirstOrDefault(route => route.id == _previousCueAnchor);
+                    var selected = retained != null && retained.length - best.length <=
+                        Math.Max(_config.CueSwitchMargin, retained.length * _config.CueSwitchFraction) ? retained : best;
+                    if (_publishedCueAnchor != selected.id) { Fail("Fresh cue identity violates path-ranked target hysteresis."); return; }
+                    _previousCueAnchor = selected.id;
+                    if (Vector3.Distance(selected.direction, snapshot.CueDirection) > 0.001f) { Fail("Fresh cue is not the retained target's complete-path direction."); return; }
                     if (exit) _report.exitCueChecks++; else _report.firstSweepCueChecks++;
-                    bool discriminating = candidates.Any(route => route.id != best.id && Vector3.Distance(route.direction, best.direction) > 0.1f);
+                    bool discriminating = candidates.Any(route => route.id != selected.id && Vector3.Distance(route.direction, selected.direction) > 0.1f);
                     if (discriminating) _report.discriminatingCueChecks++;
-                    _report.cues.Add(new CueSample { tick = _run.Tick, exit = exit, selectedAnchor = best.id,
-                        length = best.length, expected = best.direction, observed = snapshot.CueDirection, alternatives = candidates.Length,
+                    _report.cues.Add(new CueSample { tick = _run.Tick, exit = exit, selectedAnchor = selected.id,
+                        length = selected.length, expected = selected.direction, observed = snapshot.CueDirection, alternatives = candidates.Length,
                         discriminating = discriminating });
                 }
                 catch (Exception exception) { Fail("Cue oracle exception: " + exception); }
@@ -374,20 +402,30 @@ namespace Worsen.Tests.Floor
 
         private sealed class Route { public int id; public float length; public Vector3 direction; public Vector3[] corners; }
         // Independent oracle for SPEC-004 §2.18: direction is horizontal, measured from the
-        // NavMesh-sampled origin, and skips corners within the configured distance (the
-        // final corner is used when every corner is that close).
+        // NavMesh-sampled origin, and skips passed/near corners on the closest path segment.
+        // The final corner is used when all remaining corners are within lookahead distance.
         private static Route Query(int id, Vector3 from, Vector3 to, float radius, float skipDistance = 0f)
         {
-            if (!NavMesh.SamplePosition(from, out var start, radius, NavMesh.AllAreas) ||
-                !NavMesh.SamplePosition(to, out var end, radius, NavMesh.AllAreas)) return null;
+            const int walkingArea = 1;
+            if (!NavMesh.SamplePosition(from, out var start, radius, walkingArea) ||
+                !NavMesh.SamplePosition(to, out var end, radius, walkingArea)) return null;
             var path = new NavMeshPath();
-            if (!NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) return null;
+            if (!NavMesh.CalculatePath(start.position, end.position, walkingArea, path) || path.status != NavMeshPathStatus.PathComplete) return null;
             var corners = path.corners;
             if (corners.Length < 2) return null;
             float length = 0f;
             for (int index = 1; index < corners.Length; index++) length += Vector3.Distance(corners[index - 1], corners[index]);
             Vector3 origin = start.position, direction = Vector3.zero;
-            foreach (var point in corners)
+            var segments = Enumerable.Range(0, corners.Length - 1).Select(index =>
+            {
+                Vector3 a = Vector3.ProjectOnPlane(corners[index], Vector3.up);
+                Vector3 delta = Vector3.ProjectOnPlane(corners[index + 1] - corners[index], Vector3.up);
+                Vector3 offset = Vector3.ProjectOnPlane(origin, Vector3.up) - a;
+                float projection = delta.sqrMagnitude > 0f ? Mathf.Clamp01(Vector3.Dot(offset, delta) / delta.sqrMagnitude) : 0f;
+                return (index, distance: (offset - delta * projection).sqrMagnitude);
+            });
+            int nextCorner = segments.OrderBy(segment => segment.distance).ThenBy(segment => segment.index).First().index + 1;
+            foreach (var point in corners.Skip(nextCorner))
             {
                 Vector3 delta = point - origin; delta.y = 0f;
                 if (delta.sqrMagnitude <= 0.0001f || delta.magnitude <= skipDistance) continue;

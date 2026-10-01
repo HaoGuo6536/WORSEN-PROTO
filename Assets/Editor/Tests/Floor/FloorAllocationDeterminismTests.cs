@@ -2,11 +2,12 @@
 // FloorAllocationDeterminismTests.cs
 // ============================================================================
 // PURPOSE:
-//   Compare scratch-based collapse with the old allocating LINQ ordering and routes.
+//   Compare collection-gated collapse with an independent deterministic schedule oracle.
+//   Seeded activation and injected time check ordered facts and snapshot ownership.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Compare seeded pocket transition streams including simultaneous starts.
+//   - Compare activated pocket transitions, time/id ordering and ten-second phases.
 //   - Compare live escape routes with the pre-cleanup implementation.
 //   - Check result ownership, graph replacement and warmed scratch allocations.
 // DEPENDENCIES:
@@ -17,7 +18,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
@@ -31,45 +31,54 @@ namespace Worsen.Tests.Floor
     public sealed class FloorAllocationDeterminismTests
     {
         [TestCase(7, false)] [TestCase(77, true)] [TestCase(2026, false)]
-        public void PocketFactsMatchLegacyOrderAndThresholds(int seed, bool fast)
+        public void PocketFactsMatchDeterministicScheduleAndTenSecondThresholds(int seed, bool fast)
         {
             var random = new System.Random(seed);
             var config = FloorCakeRulesTests.Config();
             var state = new FloorBehaviorState();
-            typeof(FloorBehaviorState).GetProperty("IsReady").SetValue(state, true);
-            FloorCakeRulesTests.Set(state, "FasterCollapse", fast);
-            var starts = Field<Dictionary<int, double>>(state, "PocketStarts");
-            var phases = Field<Dictionary<int, RoomPhase>>(state, "MutableRoomPhases");
-            foreach (int id in Enumerable.Range(1, 32).OrderBy(_ => random.Next()))
-            { starts.Add(id, random.Next(4)); phases.Add(id, RoomPhase.Open); }
-            var expectedPhases = phases.ToDictionary(p => p.Key, p => p.Value);
+            var graph = LevelGraphUtility.Build(Enumerable.Range(1, 33).Select(id =>
+                new LevelRoom(id, Position(id), Vector3.one * 8f, pocket: id != 33)).ToArray(),
+                Enumerable.Range(1, 32).Select(id => new LevelEdge(id, id, 33, true)).ToArray(),
+                new[] { new LevelAnchor(1, 33, CakeAnchorType.Flow, Position(33)) }, 33, Position(33));
+            var player = new PlayerBehaviorState { Id = new EntityId(1), Health = 100f, Position = Position(33) };
             var controller = new FloorController(state, config, new System.Random(seed));
+            controller.Initialize(graph, new[] { player }, requiredCakeCount: 1, fasterCollapse: fast, shuffledCollapse: true);
+            foreach (int id in Enumerable.Range(1, 32).OrderBy(_ => random.Next()))
+                Assert.That(controller.ActivatePocket(id), Is.True);
+            Assert.That(controller.Tick(10000f, 0), Is.Empty, "Activated pockets cannot collapse before collection.");
+            Assert.That(state.RoomPhases.Values, Is.All.EqualTo(RoomPhase.Open));
+            Assert.That(controller.DrainCakeLosses(), Is.Empty);
+            Assert.That(controller.Collect(player.Id, 1, PickupKind.Cake, 0, out _), Is.True);
+            var expectedPhases = graph.Rooms.ToDictionary(r => r.Id, _ => RoomPhase.Open);
+            double total = 60d * (1d + config.CollapseLogGrowth * Math.Log(33d / config.CollapseReferenceRooms));
+            double spacing = (total - 10d) / 31d;
+            var order = new[] { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed };
+            double[] thresholds = { 0d, config.CollapseTelegraphSeconds,
+                config.CollapseTelegraphSeconds + config.CollapseTearingSeconds, 10d };
+            var transitions = Enumerable.Range(1, 32).SelectMany(id => order.Select((phase, i) =>
+                (room: id, phase, at: (id - 1) * spacing + thresholds[i])))
+                .OrderBy(value => value.at).ThenBy(value => value.room).ToArray();
             var retained = new List<IReadOnlyList<RoomPhaseChangedFact>>();
             var copies = new List<RoomPhaseChangedFact[]>();
-            double elapsed = 0d;
-            for (int tick = 1; tick <= 40; tick++)
+            double elapsed = 0d; int next = 0;
+            for (int tick = 1; tick <= 240; tick++)
             {
                 float dt = random.Next(4) * .5f; elapsed += dt;
                 var expected = new List<RoomPhaseChangedFact>();
-                foreach (var pocket in starts.OrderBy(p => p.Value).ThenBy(p => p.Key).ToArray())
+                while (next < transitions.Length && transitions[next].at <= elapsed)
                 {
-                    double age = (elapsed - pocket.Value) * (fast ? config.FasterCollapseMultiplier : 1f);
-                    var order = new[] { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed };
-                    double[] thresholds = { 0d, config.TelegraphDuration, config.TelegraphDuration + config.TearingDuration,
-                        config.TelegraphDuration + config.TearingDuration + config.EncroachingDuration };
-                    int completed = Array.IndexOf(order, expectedPhases[pocket.Key]);
-                    for (int i = 0; i < order.Length; i++)
-                        if (age >= thresholds[i] && completed < i)
-                        {
-                            expectedPhases[pocket.Key] = order[i]; completed = i;
-                            expected.Add(new RoomPhaseChangedFact(pocket.Key, order[i], tick));
-                        }
+                    var transition = transitions[next++];
+                    expectedPhases[transition.room] = transition.phase;
+                    expected.Add(new RoomPhaseChangedFact(transition.room, transition.phase, tick));
                 }
                 var actual = controller.Tick(dt, tick);
                 Assert.That(actual, Is.EqualTo(expected), "tick " + tick);
                 Assert.That(state.RoomPhases, Is.EquivalentTo(expectedPhases));
                 retained.Add(actual); copies.Add(actual.ToArray());
+                Assert.That(controller.DrainCakeLosses(), Is.Empty);
             }
+            Assert.That(next, Is.EqualTo(transitions.Length));
+            Assert.That(state.RoomPhases[33], Is.EqualTo(RoomPhase.Open));
             controller.Reset();
             for (int i = 0; i < retained.Count; i++) Assert.That(retained[i], Is.EqualTo(copies[i]));
         }
@@ -147,7 +156,5 @@ namespace Worsen.Tests.Floor
             return protectedRooms;
         }
         private static Vector3 Position(int room) => new Vector3(room * 10f, 0f, 0f);
-        private static T Field<T>(object target, string name)
-            => (T)target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);
     }
 }
