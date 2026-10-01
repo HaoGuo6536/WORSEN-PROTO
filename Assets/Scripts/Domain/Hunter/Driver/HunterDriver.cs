@@ -9,7 +9,7 @@
 //   Driver (section 7a) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Apply swept navigation or explicit ghost replay poses with target-only contact queries.
-//   - Honor collider layer exclusions in motor queries without weakening world or sight probes.
+//   - Honor grace layer exclusions in motor queries; pass through other Hunters' bodies everywhere.
 //   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
 //   - Own animation/attack, shared sweep and injected placement sub-drivers.
 //   - Apply charge, teleport and reaction motion; probe silent interception contacts.
@@ -22,6 +22,9 @@
 //   configured-area path queries. It does not measure avoidance or change paths.
 //   Replay disables this body's colliders/agents, not global collision rules. It
 //   restores original component flags on teardown; queries still admit target contacts.
+//   Hunters ignore each other's bodies (owner, 2026-10-01): HunterBody leaves every
+//   motor and sight mask, and a collider under another HunterDriver never blocks,
+//   occludes, receives a contact or yields a push normal. Walls and the target still do.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -58,6 +61,7 @@ namespace Worsen.Domain.Hunter
         }
         private readonly HunterRoutePresenter _routePresenter = new HunterRoutePresenter();
         private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
+        private readonly HunterBodyPresenter _bodyPresenter = new HunterBodyPresenter();
         private HunterDriverState _state;
         private readonly HunterSteeringPresenter _presenter = new HunterSteeringPresenter();
         private readonly HunterStallPresenter _stallPresenter = new HunterStallPresenter();
@@ -79,7 +83,8 @@ namespace Worsen.Domain.Hunter
         public event Action<Collider> OnLungeContact;
         public Vector3 ContactNormal(Collider other)
         {
-            if (other == null || _capsule == null) return Vector3.zero;
+            // Another Hunter's body is never depenetrated against or pushed away from.
+            if (other == null || _capsule == null || (_state != null && ForeignHunter(other))) return Vector3.zero;
             if (Physics.ComputePenetration(other, other.transform.position, other.transform.rotation,
                 _capsule, _capsule.transform.position, _capsule.transform.rotation, out var normal, out _)) return normal;
             Vector3 delta = other.bounds.center - _capsule.bounds.center;
@@ -187,8 +192,10 @@ namespace Worsen.Domain.Hunter
             _state = new HunterDriverState { Path = new NavMeshPath() };
             _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
             _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
-            _state.CollisionMask = WithoutHunterGate(_config.CollisionMask);
-            _state.SightMask = WithoutHunterGate(_config.SightMask);
+            int gate = LayerMask.NameToLayer("HunterRouteGate");
+            _state.HunterBodyLayer = LayerMask.NameToLayer("HunterBody");
+            _state.CollisionMask = _bodyPresenter.WithoutLayers(_config.CollisionMask, gate, _state.HunterBodyLayer);
+            _state.SightMask = _bodyPresenter.WithoutLayers(_config.SightMask, gate, _state.HunterBodyLayer);
             _presenter.Reset(_state.Steering, Position, Forward);
             if (_animation == null) _animation = GetComponentInChildren<HunterAnimationDriver>();
             if (_animation != null) _animation.Initialize();
@@ -233,7 +240,7 @@ namespace Worsen.Domain.Hunter
             for (int i = 0; i < count; i++)
             {
                 RaycastHit hit = _state.QueryHits[i];
-                if (!Own(hit.collider) && (permitted == null || !permitted(hit.collider))) return false;
+                if (!Own(hit.collider) && (permitted == null || !permitted(hit.collider)) && !ForeignHunter(hit.collider)) return false;
             }
             return true;
         }
@@ -417,7 +424,7 @@ namespace Worsen.Domain.Hunter
             for (int i = 0; i < count; i++)
             {
                 RaycastHit hit = _state.QueryHits[i];
-                if (Own(hit.collider)) continue;
+                if (Own(hit.collider) || ForeignHunter(hit.collider)) continue;
                 return isTarget(hit.collider);
             }
             return false;
@@ -468,7 +475,7 @@ namespace Worsen.Domain.Hunter
                 for (int i = 0; i < count; i++)
                 {
                     Collider other = _state.QueryOverlaps[i];
-                    if (!Own(other) && !_state.Contacts.Contains(other)) _state.Contacts.Add(other);
+                    if (!Own(other) && !ForeignHunter(other) && !_state.Contacts.Contains(other)) _state.Contacts.Add(other);
                 }
                 foreach (Collider other in _state.Contacts) OnLungeContact?.Invoke(other);
             }
@@ -688,9 +695,13 @@ namespace Worsen.Domain.Hunter
         // Static physics queries do not apply the queried collider's contact exclusions.
         // Player temporarily excludes this body's layer during revival collision grace.
         private bool IgnoreMotorCollider(Collider other) => other == null || Own(other) ||
-            (other.excludeLayers.value & (1 << _capsule.gameObject.layer)) != 0;
-        private static int WithoutHunterGate(int mask)
-        { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
+            (other.excludeLayers.value & (1 << _capsule.gameObject.layer)) != 0 || ForeignHunter(other);
+        // Hunters ignore each other's bodies (owner, 2026-10-01). The layer covers spawned
+        // prefabs; the parent driver covers bodies off that layer. The target is never skipped.
+        private bool ForeignHunter(Collider other) => other != null && !Own(other) &&
+            ((_state.HunterBodyLayer >= 0 && other.gameObject.layer == _state.HunterBodyLayer) ||
+                other.GetComponentInParent<HunterDriver>() != null) &&
+            !(_state.TargetFilter?.Invoke(other) ?? false);
         private int RayQuery(Vector3 origin, Vector3 direction, float distance, int mask)
         {
             int count;

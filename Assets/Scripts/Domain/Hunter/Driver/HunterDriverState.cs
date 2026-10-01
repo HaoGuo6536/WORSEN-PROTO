@@ -9,7 +9,7 @@
 //   DriverState (section 7c) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Preserve sensing/attacks and the original component flags of an opt-in replay body.
-//   - Retain pooled physics buffers and configured masks separately from foreign systems.
+//   - Retain pooled physics buffers, configured masks and the resolved HunterBody layer.
 //   - Cache a bounded, physically verified corner-arc prediction until the next path refresh.
 //   - Retain independent observation-only stall history for this life.
 //   - Cache bounded emergence observations and the owned humanoid backend binding.
@@ -32,6 +32,7 @@ namespace Worsen.Domain.Hunter
         public RaycastHit[] QueryHits;
         public Collider[] QueryOverlaps;
         public int CollisionMask, SightMask;
+        public int HunterBodyLayer = -1;
         public bool ClearCornerArc;
         public readonly List<Collider> Contacts = new List<Collider>();
         public readonly List<Bounds> UnavailableRooms = new List<Bounds>();

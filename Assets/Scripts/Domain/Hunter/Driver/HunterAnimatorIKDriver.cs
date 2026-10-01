@@ -9,13 +9,15 @@
 //   Sub-driver (section 7e), owned by HunterDriver - Domain - Hunter.
 // KEY RESPONSIBILITIES:
 //   - Apply supplied gaze weights and raycast each foot independently.
-//   - Ignore the owning body, triggers, steep hits and saturated query buffers.
+//   - Ignore the owning body, other Hunters' bodies, triggers, steep hits and saturated query buffers.
 // DEPENDENCIES:
-//   - Hunter animation state/config/presenter and Unity Animator/Physics only.
+//   - Hunter animation state/config, animation and body presenters, Unity Animator/Physics only.
 // USAGE NOTES:
 //   Scene-owned; HunterDriver binds and unbinds it with the manual animation graph.
 //   No Final IK references. A future backend can replace this component and binding.
 //   Playable clips request IK callbacks; no Animator Controller IK-pass asset is required.
+//   Hunters ignore each other's bodies (owner, 2026-10-01): feet never plant on another
+//   Hunter, because Bind removes the HunterBody layer from the configured ground mask.
 // ============================================================================
 using UnityEngine;
 namespace Worsen.Domain.Hunter
@@ -26,9 +28,14 @@ namespace Worsen.Domain.Hunter
         private Transform _bodyRoot;
         private HunterAnimationDriverConfig _config;
         private HunterAnimationDriverState _state;
+        private int _groundMask;
         private readonly HunterAnimationPresenter _presenter = new HunterAnimationPresenter();
+        private readonly HunterBodyPresenter _bodies = new HunterBodyPresenter();
         public void Bind(Animator animator, Transform bodyRoot, HunterAnimationDriverConfig config, HunterAnimationDriverState state)
-        { _animator = animator; _bodyRoot = bodyRoot; _config = config; _state = state; }
+        {
+            _animator = animator; _bodyRoot = bodyRoot; _config = config; _state = state;
+            _groundMask = config != null ? _bodies.WithoutLayer(config.GroundMask, LayerMask.NameToLayer("HunterBody")) : 0;
+        }
         public void Unbind() { _animator = null; _bodyRoot = null; _config = null; _state = null; }
         private void OnAnimatorIK(int layerIndex)
         {
@@ -48,7 +55,7 @@ namespace Worsen.Domain.Hunter
             if (_config.FootIK)
             {
                 int count = Physics.RaycastNonAlloc(animated + Vector3.up * _config.FootProbeUp, Vector3.down,
-                    _state.FootHits, _config.FootProbeUp + _config.FootProbeDown, _config.GroundMask, QueryTriggerInteraction.Ignore);
+                    _state.FootHits, _config.FootProbeUp + _config.FootProbeDown, _groundMask, QueryTriggerInteraction.Ignore);
                 float nearest = float.PositiveInfinity;
                 if (count < _state.FootHits.Length) for (int i = 0; i < count; i++)
                 {
