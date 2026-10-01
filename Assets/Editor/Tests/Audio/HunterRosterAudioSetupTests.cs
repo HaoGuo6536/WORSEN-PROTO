@@ -46,7 +46,7 @@ namespace Worsen.Tests.Audio
             foreach (string id in new[] { "ms_mangled_scream_03", "sb_mangled_scream_01", "sb_mangled_scream_02", "sb_mangled_scream_03" })
                 Assert.That(rows.Single(row => row.Id == id).Paths.Single(), Does.EndWith("/" + id + ".wav"));
             var snap = rows.Single(row => row.Id == "mannequin.death");
-            Assert.That(snap.Paths.Single(), Does.EndWith("/jmg_bone-break_snap_027.wav"));
+            Assert.That(snap.Paths.Single(), Does.EndWith("/SFX_Punch_Designed_Gore_01.wav"));
             Assert.That(snap.Gain, Is.EqualTo(.3f)); Assert.That(snap.Bank, Is.EqualTo(CueId.Death));
             foreach (string slot in new[] { "presence", "detection", "chase", "attack" })
                 Assert.That(rows.Single(row => row.Id == "mannequin." + slot).Gain, Is.Zero);
@@ -72,6 +72,21 @@ namespace Worsen.Tests.Audio
                 Assert.That(row.Paths, Is.Empty); Assert.That(row.Gain, Is.Zero);
             }
             Assert.That(rows.Single(row => row.Id == "mannequin.long-step").Gain, Is.Zero, "No motion/hold fact exists to gate this mutation sound safely.");
+        }
+        [Test] public void Pass3RemovesConflictedLabelsAndCatchAliasMatchesDeath()
+        {
+            var rows = HunterRosterAudioSetup.Parse(File.ReadAllText(HunterRosterAudioSetup.SelectionPath));
+            string[] rejected = { "tt2_goose", "jmg_crunch_rip_014", "jmg_bone-break_snap_027", "ca_pig", "Orcs_", "SFX_impactmechanical01.wav", "SFX_impactmechanical02.wav" };
+            foreach (var row in rows)
+            foreach (string path in row.Paths)
+                Assert.That(rejected.Any(path.Contains), Is.False, row.Id + ": " + path);
+            Assert.That(rows.Single(row => row.Id == "stare.catch").Paths,
+                Is.EqualTo(rows.Single(row => row.Id == "stare.death").Paths));
+            foreach (string id in new[] { "mimic.attack", "mimic.death", "mimic-wrong-bite", "herald.breath", "echo.detection", "echo.chase" })
+            {
+                var row = rows.Single(r => r.Id == id);
+                Assert.That(row.Paths, Is.Empty, id); Assert.That(row.Gain, Is.GreaterThan(0f), id);
+            }
         }
         [Test] public void MissingClipFailsLoudlyWithItsExactPath()
         {

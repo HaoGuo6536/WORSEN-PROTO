@@ -16,7 +16,7 @@
 //   - Route committed world/roster facts into budgeted soundscape playback.
 //   - Retain confirmed hand death and admit one correctly identified sting at catch start.
 //   - Apply settings, pause, health and floor/run resets without config writes.
-//   - Render movement, breathing and grace/proximity heartbeat from supplied observations.
+//   - Render bodily feedback and expose its heartbeat envelope and assigned Effects bus without gameplay queries.
 //   - Own and release bodily sources and the pooled soundscape.
 //
 // DEPENDENCIES:
@@ -56,6 +56,8 @@ namespace Worsen.Presentation.Audio
         private AudioFeedbackDriverState _feedbackState;
 
         public float BreathGain => _soundscape != null ? _soundscape.BreathGain : 0f;
+        public float HeartbeatEnvelope => _soundscape != null && _ownerEnabled && isActiveAndEnabled && _state != null && !_state.Paused ? _soundscape.HeartbeatEnvelope : 0f;
+        public UnityEngine.Audio.AudioMixerGroup EffectsGroup => _soundscape != null && _soundscape.Config != null ? _soundscape.Config.EffectsGroup : null;
         public float HunterGain => 0f; // Nonspatial proximity drone removed from the budget.
         public bool IsInitialized => _state != null;
 

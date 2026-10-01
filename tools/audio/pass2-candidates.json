@@ -1,0 +1,20 @@
+{
+  "human-breath": "Assets/External/Audio/Horror Elements/Misc/Misc_breath.wav",
+  "human-female": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/scsh_human_female_028.wav",
+  "ghost-quiet": "Assets/External/MonstersSFX/MonstersUpdateOne/FantasyCreatures/Ghosts/SFX_Ghost_Whisper_Quiet_Loop.wav",
+  "ghost-wind": "Assets/External/MonstersSFX/MonstersUpdateOne/FantasyCreatures/Ghosts/SFX_Ghost_Whisper_Wind_Loop.wav",
+  "ghost-no": "Assets/External/MonstersSFX/PackGhostsAndZombies/Ghost_Whisper_No_v1/Ghost_Whisper_No_v1_wav.wav",
+  "shh": "Assets/External/Audio/Horror Elements/Misc/Misc_Shh.wav",
+  "cloth": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/jw3_whoosh_cloth_leather_fight-007.wav",
+  "body-wet": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/jmg_blood-squeeze_drip_058.wav",
+  "slime": "Assets/External/MonstersSFX/MonstersUpdateOne/FantasyCreatures/Slime/SFX_Slime_Move_WetSound_01.wav",
+  "hit-dark": "Assets/External/Audio/Horror Elements/Hits/Hit_Dark.wav",
+  "hit-stress": "Assets/External/Audio/Horror Elements/Hits/Hit_stress.wav",
+  "hit-suspense": "Assets/External/Audio/Horror Elements/Hits/Hit_Suspens.wav",
+  "short-reverse": "Assets/External/Audio/Free Pack/Magic Spell_Short Reverse_1.wav",
+  "tick1": "Assets/External/RegularImpactsSFX/ImpactMechanical01/SFX_impactmechanical01.wav",
+  "tick2": "Assets/External/RegularImpactsSFX/ImpactMechanical01/SFX_impactmechanical02.wav",
+  "hiss": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/tt2_goose_hissing_01.wav",
+  "snap": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/jmg_bone-break_snap_027.wav",
+  "crunch": "Assets/External/Audio/Soundbits_freeSFX_2025/Sounds/jmg_crunch_rip_014.wav"
+}

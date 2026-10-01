@@ -5,7 +5,7 @@
 // PURPOSE:
 //   Applies pooled spatial effects, adaptive impact/danger loops and a scheduled run sequence.
 //   It receives room anchors and portal evidence as facts, and never reads enemy state.
-//   Every world voice uses shared acoustic attenuation without duplicate Unity rolloff.
+//   World voices use Unity distance rolloff and shared portal loss, never both distance models.
 //   Missing roster clips and unknown catch identities stay silent, never borrowing legacy vocals.
 //
 // ARCHITECTURAL ROLE:
@@ -58,6 +58,7 @@ namespace Worsen.Presentation.Audio
         private readonly AudioRosterPresenter _rosterPresenter = new AudioRosterPresenter();
         private readonly AudioRosterDriverState _roster = new AudioRosterDriverState();
         private bool _ownsConfig;
+        private bool _missingHeartbeatWarned;
         private GameObject _root;
         private readonly Dictionary<CueId, AudioSoundDefinition> _banks = new Dictionary<CueId, AudioSoundDefinition>();
         private readonly Dictionary<CueId, float[]> _durations = new Dictionary<CueId, float[]>();
@@ -67,9 +68,9 @@ namespace Worsen.Presentation.Audio
             bool MasterAccepted, bool MusicAccepted, bool EffectsAccepted)? MixerVolumeRequest => _state?.MixerVolumeRequest;
         public float BreathGain => _state != null ? _state.WorldMix.BreathGain : 0f;
         public bool Heartbeat => _state != null && _state.WorldMix.Heartbeat;
+        public float HeartbeatEnvelope => _state != null && _state.OwnerEnabled && _state.InRun && _state.Alive && !_state.Paused && isActiveAndEnabled ? _state.WorldMix.HeartbeatEnvelope : 0f;
         public float HeartbeatGain => _state != null ? _state.WorldMix.HeartbeatStrength * _config.HeartbeatGain : 0f;
-        public AudioClip HeartbeatClip => _config.HeartbeatClip != null ? _config.HeartbeatClip :
-            _banks.TryGetValue(CueId.Land, out var bank) && bank.Clips != null && bank.Clips.Length > 0 ? bank.Clips[0] : null;
+        public AudioClip HeartbeatClip => _config != null ? _config.HeartbeatClip : null;
         public AudioSoundscapeDriverConfig Config => _config;
         public float ChaseGain => _music != null ? _music.StressGain : 0f;
         public float DangerGain => _music != null ? _music.DangerGain : 0f;
@@ -165,8 +166,8 @@ namespace Worsen.Presentation.Audio
             }
             source.Stop(); source.clip = bank.Clips[request.Clip]; source.loop = bank.Loop;
             source.spatialBlend = bank.Spatial ? 1f : 0f; source.dopplerLevel = 0f;
-            source.rolloffMode = AudioRolloffMode.Custom;
-            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, AnimationCurve.Linear(0f, 1f, 1f, 1f));
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            source.spatialize = bank.Spatial && !string.IsNullOrEmpty(AudioSettings.GetSpatializerPluginName());
             source.minDistance = Mathf.Max(0.1f, bank.MinimumDistance); source.maxDistance = Mathf.Max(source.minDistance + 0.1f, bank.MaximumDistance);
             source.priority = Mathf.Clamp(256 - bank.Priority * 2, 0, 256);
             source.pitch = request.Pitch;
@@ -254,6 +255,7 @@ namespace Worsen.Presentation.Audio
                 if (binding.Value.Alternates != null) System.Array.Copy(binding.Value.Alternates, 0, clips, 1, binding.Value.Alternates.Length);
                 bank = new AudioSoundDefinition { Cue = binding.Value.Bank, Clips = clips,
                     Gain = binding.Value.OverrideGain ? binding.Value.Gain : _config.RosterClipGain,
+                    MinimumDistance = _config.Hearing.ReferenceDistance, MaximumDistance = _config.RosterMaximumDistance,
                     Priority = _config.RosterClipPriority, PitchMinimum = 1f - _config.RosterPitchVariation,
                     PitchMaximum = 1f + _config.RosterPitchVariation, GainVariation = _config.RosterGainVariation };
             }
@@ -306,6 +308,11 @@ namespace Worsen.Presentation.Audio
         {
             if (_state == null) return;
             _worldPresenter.Tick(_state.WorldMix, _config, _state.InRun, _state.Alive, injuryBreath, dt);
+            if (_state.WorldMix.Heartbeat && HeartbeatClip == null && !_missingHeartbeatWarned)
+            {
+                _missingHeartbeatWarned = true;
+                Debug.LogWarning("Heartbeat clip is missing; heartbeat audio is silent (envelope retained).", this);
+            }
             foreach (var command in _state.WorldMix.Commands) Play(command.Cue, command.Position, command.Gain, command.Emitter);
         }
         public void SetThreat(int id, bool chasing, float closeness)
@@ -397,8 +404,10 @@ namespace Worsen.Presentation.Audio
         private void ApplyVoiceGain(int i)
         {
             var voice = _state.Voices[i];
+            if (voice.Catalogue.Category == CueCategory.Hunter && voice.Catalogue.Slot == (int)HunterCueSlot.Presence)
+                _voices[i].minDistance = _config.Hearing.ReferenceDistance * (_state.WorldMix.KeenEars ? _config.KeenEarsRangeMultiplier : 1f);
             _voices[i].volume = voice.Remaining <= 0f ? 0f : _state.VoiceGains[i] * EffectsSourceGain * _config.EffectsGain *
-                _worldPresenter.Gain(_state.WorldMix, voice.Catalogue, voice.Position, _config);
+                _worldPresenter.Gain(_state.WorldMix, voice.Catalogue, voice.Position, _config, true);
             float zone = _rosterPresenter.ZoneCutoff(_roster, _config, _worldPresenter.Room(_state.WorldMix.Graph, _state.ListenerPosition));
             _filters[i].cutoffFrequency = voice.Catalogue.Protected ? 22000f : Mathf.Min(zone, _worldPresenter.Cutoff(_state.WorldMix, false, _config));
         }
@@ -476,7 +485,7 @@ namespace Worsen.Presentation.Audio
             StopSources();
             if (_root != null) { if (Application.isPlaying) Destroy(_root); else DestroyImmediate(_root); }
             if (_ownsConfig && _config != null) { if (Application.isPlaying) Destroy(_config); else DestroyImmediate(_config); }
-            _ownsConfig = false;
+            _ownsConfig = false; _missingHeartbeatWarned = false;
             _rosterPresenter.Reset(_roster, false);
             _root = null; _worldPresenter = null; _voices = null; _filters = null; _layers = null; _state = null; _config = null; _presenter = null;
             _banks.Clear(); _durations.Clear();

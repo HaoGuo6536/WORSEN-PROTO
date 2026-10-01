@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Admit named roster banks under hunter slots without charging replayed footsteps to the Player.
-//   - Enforce one voice per budget slot per hunter, cooldowns and priorities, without cross-category or equal-priority stealing.
+//   - Bound hunter/room slots and priorities; fresh collapse facts rearticulate their room, never adding a voice.
 //   - Use Core variation metadata; timing tells never receive scheduling jitter; loops keep their chosen voice and variation.
 //   - Identify enemy-owned voices for death cleanup without muting player death, UI or world sounds.
 //   - Fade synchronized music layers after a short lost-contact hold.
@@ -73,6 +73,10 @@ namespace Worsen.Presentation.Audio
             var catalogue = new AudioCueCataloguePresenter();
             if (!catalogue.Admits(sound.Cue, state.InRun) || !catalogue.TryGet(sound.Cue, out var entry)) return false;
             if (rosterEntry.HasValue) entry = rosterEntry.Value;
+            // The feedback presenter already deduplicates committed collapse facts.
+            // A new hit/phase edge rearticulates its room slot instead of being lost
+            // behind the previous clip's tail; other categories keep their cooldowns.
+            retrigger |= entry.Category == CueCategory.World && entry.TimingIsTell;
             int cue = (int)sound.Cue;
             long key = ((long)cue << 32) | (uint)emitter;
             int sameSlot = -1;

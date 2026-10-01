@@ -23,6 +23,25 @@ namespace Worsen.Tests.Audio
     public sealed class AudioCueCataloguePresenterTests
     {
         private readonly AudioCueCataloguePresenter catalogue = new AudioCueCataloguePresenter();
+        [TestCase(CueId.GrabWarning)][TestCase(CueId.GrabStart)][TestCase(CueId.GrabHit)][TestCase(CueId.GrabEscape)]
+        [TestCase(CueId.RoomTear)][TestCase(CueId.MistAdvance)][TestCase(CueId.RoomConsumed)]
+        public void CollapseCuesAdmitWithoutJitterAndDifferentRoomsCanSoundTogether(CueId cue)
+        {
+            Assert.That(catalogue.Admits(cue, true), Is.True);
+            catalogue.TryGet(cue, out var entry);
+            Assert.That(entry.TimingIsTell, Is.True);
+            Assert.That(catalogue.SameVoice(entry, 1, entry, 2), Is.False);
+            var presenter = new AudioSoundscapePresenter(); var state = new AudioSoundscapeDriverState();
+            presenter.Reset(state, 8, new System.Random(7)); state.InRun = true;
+            var bank = new AudioSoundDefinition { Cue = cue, Gain = .15f, PitchMinimum = 1f, PitchMaximum = 1f, Priority = 50 };
+            for (int room = 1; room <= 3; room++)
+            {
+                Assert.That(presenter.TryPlay(state, bank, room, new[] { 2f }, 1f, out var playback, .3f), Is.True);
+                Assert.That(playback.Delay, Is.Zero); Assert.That(playback.Gain, Is.EqualTo(.15f));
+            }
+            Assert.That(presenter.TryPlay(state, bank, 1, new[] { 2f }, 1f, out var repeated), Is.True);
+            Assert.That(repeated.Voice, Is.Zero, "A fresh fact rearticulates its room, not an extra voice.");
+        }
         [TestCase(CueId.FootstepWood, CueId.Footstep)]
         [TestCase(CueId.FootstepMetal, CueId.Footstep)]
         [TestCase(CueId.FootstepSoil, CueId.Footstep)]
