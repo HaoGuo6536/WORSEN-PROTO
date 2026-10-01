@@ -25,6 +25,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
 
+
 PALETTE = {"Wood": (.24, .13, .075), "WoodEdge": (.38, .22, .11),
            "Brass": (.70, .51, .23), "Dial": (.88, .82, .64), "Dark": (.07, .055, .045)}
 
@@ -85,27 +86,39 @@ def motion(rig, name, t):
     wave = math.sin(2 * math.pi * t)
     c.delta(rig, "Pendulum", (0, .30 * wave, 0))
     if name in {"walk", "run"}:
-        stride = .26 if name == "walk" else .43
-        c.delta(rig, "Case", (0, .075 * wave, 0), (0, 0, .012 * (1 - math.cos(4 * math.pi * t))))
+        stride = .50 if name == "walk" else .78
+        c.delta(rig, "Case", (.12 if name=='run' else .04, .14 * wave, 0), (0, 0, .025 * (1 - math.cos(4 * math.pi * t))))
         for side, sign in (("Left", -1), ("Right", 1)):
             c.delta(rig, side + "Leg", (sign * stride * wave, 0, 0))
-            c.delta(rig, side + "Shin", (-.18 * max(0, sign * wave), 0, 0))
-        c.delta(rig, "LongArm", (-stride * wave, 0, .04 * wave))
-        c.delta(rig, "ShortArm", (stride * wave, 0, 0))
+            c.delta(rig, side + "Shin", (.30 * max(0, -sign * wave), 0, 0))
+            import bpy
+            from mathutils import Vector
+            bpy.context.view_layer.update()
+            bone = rig.pose.bones[side+'Shin']
+            matrix = bone.matrix @ bone.bone.matrix_local.inverted()
+            x = -.21 if side=='Left' else .18
+            floor = min((matrix @ Vector((x+dx,-.09+dy,.05+dz))).z
+                        for dx in (-.09,.09) for dy in (-.14,.14) for dz in (-.05,.05))
+            lift = (.14 if name=='run' else .08)*max(0,sign*math.cos(2*math.pi*t))
+            c.delta(rig,side+'Leg',(sign*stride*wave,0,0),(0,0,lift-floor))
+        c.delta(rig, "LongArm", (stride * wave, 0, .08 * wave))
+        c.delta(rig, "ShortArm", (-stride * wave, 0, 0))
         c.delta(rig, "Key", (0, .07 * wave, 0))
     elif name == "idle":
+        c.delta(rig, "Case", (0, .055*wave, 0))
         c.delta(rig, "Key", (0, .04 * wave, 0))
     elif name == "ready":
-        c.delta(rig, "LongArm", (-.25 * t, -.52 * t, -.18 * t))
+        c.delta(rig, "LongArm", (.45 * t, -.65 * t, -.25 * t))
         c.delta(rig, "LongForearm", (-.25 * t, 0, 0))
-        c.delta(rig, "Case", (0, -.06 * t, .08 * t))
+        c.delta(rig, "Case", (-.14*t, -.12 * t, .18 * t))
     elif name == "attack":
-        swing = c.envelope(t, [(0, -.25), (.23, -.45), (.4, -1.45), (.60, -1.65), (1, 0)])
+        swing = c.envelope(t, [(0, .45), (.23, .60), (.4, -1.75), (.60, -1.85), (1, 0)])
         c.delta(rig, "LongArm", (swing, -.20 * math.sin(math.pi * t), 0))
         c.delta(rig, "LongForearm", (-.35 * math.sin(math.pi * t), 0, 0))
         c.delta(rig, "Case", (.10 * math.sin(math.pi * t), 0, -.14 * math.sin(math.pi * t)))
     elif name == "hit":
-        c.delta(rig, "Case", (-.15 * math.sin(math.pi * t), .14 * math.sin(math.pi * t), 0))
+        recoil = math.sin(math.pi*t)
+        c.delta(rig, "Case", (-.30*recoil, .25*recoil, 0), (0,.04*recoil,.04*recoil))
         c.delta(rig, "LongArm", (.35 * math.sin(math.pi * t), 0, 0))
 
 

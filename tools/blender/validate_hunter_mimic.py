@@ -10,7 +10,7 @@
 # KEY RESPONSIBILITIES:
 #   - Validate the two-bone rigid FBX and all six correctly ranged actions.
 #   - Compare closed cake bounds, exterior surface samples and UV correspondence.
-#   - Verify concealed teeth, stationary loops, jaw contact and palette provenance.
+#   - Verify concealed rest teeth, in-place jaw cycles, bite and palette provenance.
 #   - Write failure evidence and content hashes without modifying the cake source.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils; hunter_creature_common; own cake source read-only.
@@ -29,6 +29,7 @@ from mathutils.bvhtree import BVHTree
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_animation_review import validate_motion
 
 
 def surface(objects):
@@ -130,13 +131,9 @@ def main():
                 if distance > 1e-6 and not any(enclosed(solid, p) for solid in solids):
                     outside.append([obj.name, vertex.index, list(p)])
         v.check("teeth_and_mouth_concealed", not outside, outside)
-        for name in ("idle", "walk", "run"):
-            errors = []
-            for f in range(1, c.CLIPS[name] + 2):
-                c.pose(v.rig, v.clips[name], f)
-                errors.append(max((a - b).length for a, b in zip(c.points(v.meshes), c.points(v.meshes, True))))
-            v.check(name + "_closed_still", max(errors) < 1e-6, max(errors))
-        c.pose(v.rig, v.clips["attack"], 1)
+        v.report['motion'] = validate_motion('Mimic',v.rig,v.meshes,v.clips,
+            dict(idle=.004,walk=.08,run=.14,ready=.07,attack=.20,hit=.15),v.check)
+        c.pose(v.rig, v.clips["idle"], 1)
         rest = v.rig.pose.bones["Jaw"].matrix.to_quaternion()
         c.pose(v.rig, v.clips["attack"], 9)
         open_angle = rest.rotation_difference(v.rig.pose.bones["Jaw"].matrix.to_quaternion()).angle

@@ -144,6 +144,8 @@ class Body:
         for name, parent, head in self.bones:
             bone = data.edit_bones.new(name)
             bone.head, bone.tail = head, Vector(head) + Vector((0, 0, .1))
+            if name == 'Root':
+                bone.tail = (0, -.1, 0)  # Keep Hips disconnected on FBX re-import.
             bone.align_roll(Vector((0, -1, 0)))
             if parent:
                 bone.parent = data.edit_bones[parent]
@@ -222,6 +224,12 @@ def animate(rig, lengths, author):
                 for field in ('location', 'rotation_quaternion', 'scale'):
                     bone.keyframe_insert(field, frame=frame, group=bone.name)
         clips.append(clip)
+        for layer in clip.layers:
+            for strip in layer.strips:
+                for bag in strip.channelbags:
+                    for curve in bag.fcurves:
+                        for key in curve.keyframe_points:
+                            key.interpolation = 'LINEAR'
     clear_pose(rig)
     return clips
 
@@ -353,7 +361,7 @@ def combined_lineup():
     render(ROOT/'Logs/AgentValidation/Art/HunterLineup-hunter-art-a.png', (.4,-10,1.3), (.4,0,1.3), 3.25, True)
 
 
-def validate(name, expected_lengths):
+def validate(name, expected_lengths, motion_minima):
     """Fresh import measurements, not a checksum of the generator's claims."""
     source, fbx, previews = paths(name)
     rows, report = [], {'hunter': name}
@@ -434,11 +442,14 @@ def validate(name, expected_lengths):
             check(n+' loop flag', entry['loop']==(n in NAMES[:3]), entry['loop'])
             if n in NAMES[:3]:
                 check(n+' seam', seam<1e-4, seam)
-            check(n+' authored samples', motion<1e-5 if name=='Mannequin' and n=='idle' else motion>1e-4, motion)
+            check(n+' authored samples', motion>1e-4, motion)
             if n=='attack':
                 check('contact frame', entry['contact_frame']==round(expected_lengths[n]*.4), entry['contact_frame'])
             action_report.append({**entry, 'imported_frames': [start,end], 'seam_error': seam})
             animation_signature.append([n,samples])
+        from hunter_animation_review import validate_motion, validate_source_motion
+        report['motion'] = validate_motion(name, rig, meshes, clips, motion_minima, check)
+        validate_source_motion(source, rig, clips, check)
         check('manifest action set', len(manifest['actions'])==6 and {a['name'] for a in manifest['actions']}==set(NAMES), len(manifest['actions']))
         contact = next(a['contact_frame'] for a in manifest['actions'] if a['name']=='attack')
         set_action(rig,clips['attack'],int(clips['attack'].frame_range[0])+contact)

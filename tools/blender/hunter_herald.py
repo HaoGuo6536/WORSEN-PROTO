@@ -20,6 +20,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from hunter_humanoid_common import Body, humanoid, limbs, rotate, envelope, generate
+from hunter_motion_common import biped_gait
 
 LENGTHS = dict(idle=90,walk=40,run=24,ready=24,attack=40,hit=20)
 PALETTE = [('Skin',(.49,.48,.46),(0,0,0),0),
@@ -58,31 +59,32 @@ def chest_open(rig,amount):
 def author(rig,action,t):
     wave = math.sin(t*2*math.pi)
     if action=='idle':
-        chest_open(rig,4+3*wave)
-        rotate(rig,'Chest',(1.5*wave,0,0))
+        chest_open(rig,12+10*wave)
+        rotate(rig,'Chest',(5*wave,0,0))
+        rotate(rig,'Head',(-7*wave,0,0))
     elif action in ('walk','run'):
-        for side,sign in (('Left',1),('Right',-1)):
-            rotate(rig,side+'Thigh',(sign*(30 if action=='run' else 18)*wave,0,0))
-            rotate(rig,side+'Arm',(-sign*15*wave,0,0))
-        rotate(rig,'Chest',(-12 if action=='run' else -3,0,0))
-        chest_open(rig,8)
+        biped_gait(rig,t,action=='run',arm_scale=1.1)
+        rotate(rig,'Chest',(18 if action=='run' else 5,3*wave,-5*wave))
+        chest_open(rig,15+10*math.sin(4*math.pi*t))
     elif action=='ready':
         chest_open(rig,65*t)
-        rotate(rig,'Chest',(10*t,0,0))
-        rotate(rig,'Head',(32*t,0,0))
+        rotate(rig,'Chest',(-18*t,0,0))
+        rotate(rig,'Head',(-32*t,0,0))
         for side,sign in (('Left',1),('Right',-1)):
             rotate(rig,side+'Arm',(0,-sign*28*t,0))
     elif action=='attack':
-        a = envelope(t)
-        chest_open(rig,100*a)
-        rotate(rig,'Head',(24*a,0,0))
-        rotate(rig,'Chest',(-8*a,0,0))
+        from hunter_creature_common import envelope as keyed
+        a = keyed(t,[(0,0),(.18,.05),(.4,1),(.64,.92),(1,0)])
+        pre = max(0,1-t/.4)
+        chest_open(rig,65*pre+100*a)
+        rotate(rig,'Head',(-32*pre-24*a,0,0))
+        rotate(rig,'Chest',(-18*pre+22*a,0,0))
         for side,sign in (('Left',1),('Right',-1)):
-            rotate(rig,side+'Arm',(-18*a,-sign*72*a,0))
+            rotate(rig,side+'Arm',(-18*a,-sign*(28*pre+72*a),0))
     else:
         a = envelope(t,.25)
         chest_open(rig,15*a)
-        rotate(rig,'Chest',(18*a,0,8*a))
+        rotate(rig,'Chest',(-30*a,0,15*a))
         rotate(rig,'Head',(-15*a,0,0))
 
 
