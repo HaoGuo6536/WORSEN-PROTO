@@ -8,7 +8,7 @@
 # KEY RESPONSIBILITIES:
 #   - Build original metre-scale School architecture and furniture.
 #   - Export applied Y-up/-Z-forward meshes and the mandatory kit catalogue.
-#   - Author supported rooms, end-cap corridor sockets and attached door leaves.
+#   - Author supported rooms, end-cap sockets, door leaves and vault shortcuts.
 #   - Save editable sources and render kit, cutaway and darkness reviews.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils, Python standard library only.
 #   Shared door-review studio from env_theme_castle; no Castle geometry reused.
@@ -933,10 +933,16 @@ def main():
     bpy.context.scene.unit_settings.system='METRIC'
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'Kit/SchoolKit.blend'))
     materials()
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from env_theme_vaults import PIECES, build_vault, add_vaults
+    KINDS[PIECES['school']] = 'prop'
     pieces,rows={},[]
     for name,kind in KINDS.items():
         builder=SchoolMesh(name)
-        (furniture if kind=='prop' else architecture)(builder)
+        if name == PIECES['school']:
+            build_vault('school', builder)
+        else:
+            (furniture if kind=='prop' else architecture)(builder)
         obj=builder.finish(kind)
         pieces[name]=obj
         filename=obj.name+'.fbx'
@@ -947,6 +953,7 @@ def main():
         print(f'BUILT {name}: triangles={len(obj.data.loop_triangles)} size={size}')
     kit={'theme':'school','wallHeight':HEIGHT,'pieces':rows}
     rooms=templates(pieces)
+    add_vaults(rooms['templates'], rows, 'school')
     for path,data in ((ART/'Kit/SchoolKit.manifest.json',kit),(ART/'Rooms/SchoolRooms.manifest.json',rooms)):
         path.write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8',newline='\n')
     if not args.skip_previews:

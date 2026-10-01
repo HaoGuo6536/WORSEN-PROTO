@@ -850,6 +850,27 @@
             1.0
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            3.75,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.75,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            3.75,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -1598,6 +1619,27 @@
             4.6
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            4.5,
+            0,
+            1.75
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.55,
+            0,
+            1.75
+          ],
+          "endpointB": [
+            5.45,
+            0,
+            1.75
+          ]
         }
       ]
     },
@@ -2288,6 +2330,27 @@
             3.2
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            2.5,
+            0,
+            2.25
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            2.5,
+            0,
+            1.3
+          ],
+          "endpointB": [
+            2.5,
+            0,
+            3.2
+          ]
         }
       ]
     },
@@ -3072,6 +3135,27 @@
             4.5
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            1.75,
+            0,
+            3.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            1.75,
+            0,
+            2.05
+          ],
+          "endpointB": [
+            1.75,
+            0,
+            3.95
+          ]
         }
       ]
     },
@@ -3602,6 +3686,27 @@
             4.8
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            3.0,
+            0,
+            3.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            2.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            3.95
+          ]
         }
       ]
     },
@@ -4368,6 +4473,27 @@
             2
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            3.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -4898,6 +5024,27 @@
             1
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            2.25,
+            0,
+            3.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            2.25,
+            0,
+            2.05
+          ],
+          "endpointB": [
+            2.25,
+            0,
+            3.95
+          ]
         }
       ]
     },
@@ -5734,6 +5881,27 @@
             11.0
           ],
           "rotY": 270
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            1.75,
+            0,
+            7.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            1.75,
+            0,
+            6.05
+          ],
+          "endpointB": [
+            1.75,
+            0,
+            7.95
+          ]
         }
       ]
     },
@@ -6650,6 +6818,27 @@
             6.25
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            6.5,
+            0,
+            7.0
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            5.55,
+            0,
+            7.0
+          ],
+          "endpointB": [
+            7.45,
+            0,
+            7.0
+          ]
         }
       ]
     },
@@ -7791,6 +7980,48 @@
             4.3
           ],
           "rotY": 25
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            6.75,
+            0,
+            4.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            6.75,
+            0,
+            3.05
+          ],
+          "endpointB": [
+            6.75,
+            0,
+            4.95
+          ]
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            4.0,
+            0,
+            2.75
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.05,
+            0,
+            2.75
+          ],
+          "endpointB": [
+            4.95,
+            0,
+            2.75
+          ]
         }
       ]
     },
@@ -9570,6 +9801,48 @@
             6.5
           ],
           "rotY": 90
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            7.25,
+            0,
+            7.5
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            6.3,
+            0,
+            7.5
+          ],
+          "endpointB": [
+            8.2,
+            0,
+            7.5
+          ]
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            4.75,
+            0,
+            4.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.75,
+            0,
+            3.05
+          ],
+          "endpointB": [
+            4.75,
+            0,
+            4.95
+          ]
         }
       ]
     },
@@ -10100,6 +10373,27 @@
             3.4
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            3.0,
+            0,
+            2.0
+          ],
+          "rotY": 0,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            3.0,
+            0,
+            1.05
+          ],
+          "endpointB": [
+            3.0,
+            0,
+            2.95
+          ]
         }
       ]
     },
@@ -11071,6 +11365,27 @@
             6.8
           ],
           "rotY": 0
+        },
+        {
+          "id": "prop_vault_partition",
+          "pos": [
+            5.0,
+            0,
+            4.25
+          ],
+          "rotY": 90,
+          "traversal": "vault",
+          "collision": true,
+          "endpointA": [
+            4.05,
+            0,
+            4.25
+          ],
+          "endpointB": [
+            5.95,
+            0,
+            4.25
+          ]
         }
       ]
     }
