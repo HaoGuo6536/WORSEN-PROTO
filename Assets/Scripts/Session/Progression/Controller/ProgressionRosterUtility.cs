@@ -41,7 +41,9 @@ namespace Worsen.Session.Progression
             {
                 case "echo-debt": case "afterimage": case "restless-masonry": case "gilded-hunger":
                 case "borrowed-footsteps": case "unquiet-flame": case "sealed-sills":
-                case "thin-skin": case "bail-bond": case "field-dressing": return true;
+                case "thin-skin": case "bail-bond": case "field-dressing":
+                // Owner 2026-09-30: the Mannequin now ignores light, so its light curses retire.
+                case "mannequin-fewer-lamps": case "mannequin-broken-lights": return true;
                 default: return false;
             }
         }

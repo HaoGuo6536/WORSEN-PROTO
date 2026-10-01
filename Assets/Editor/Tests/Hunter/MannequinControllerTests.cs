@@ -2,13 +2,14 @@
 // MannequinControllerTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies darkness, observation and Wick as hard movement/attack gates.
-//   Seeded light-failure trials and capped effects remain independent of Unity
-//   lighting so the coordinator can distinguish rules from scene wiring.
+//   Verifies the light-independent camera rule through the shared Hunter controller.
+//   Observation and Wick cancel motion and attacks immediately; lighting and the
+//   retired lamp curses cannot interfere with pursuit or change the environment.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
-//   - Cover darkness-only rules, catch admission, silence, rarity and curse isolation.
+//   - Cover lit/dark pursuit, immediate observation holds, silence and Wick.
+//   - Guard retired light effects, retained curses and per-life catch admission.
 // DEPENDENCIES:
 //   - Hunter/Mannequin controllers, Core values and NUnit fixtures.
 // USAGE NOTES:
@@ -51,83 +52,92 @@ namespace Worsen.Tests.Hunter
             _shared.ObservePlayerView(clear);
             return _shared.Tick(new SightProbe(true, true, true), new HunterLightObservation(illuminated, illuminated, Vector3.forward * 10, _tick), dt, _tick);
         }
-        [Test] public void LitObservedOrWickAlwaysHoldAndUnseenDarknessMovesSilently()
+        [TestCase(false)] [TestCase(true)]
+        public void UnseenAdvancesAndSeenImmediatelyHoldsSilentlyRegardlessOfLight(bool lit)
         {
-            _world.Lit = true; Assert.That(Step().HoldPosition, Is.True);
-            _world.Lit = false; Assert.That(Step(true).HoldPosition, Is.True);
-            Assert.That(Step().Speed, Is.GreaterThan(0));
-            Assert.That(Step(illuminated: true).HoldPosition, Is.True);
+            _world.Lit = lit;
+            var moving = Step();
+            Assert.That(moving.HoldPosition, Is.False); Assert.That(moving.Speed, Is.GreaterThan(0));
+            Assert.That(moving.Target, Is.EqualTo(Vector3.forward * 10));
+            _shared.CommitPose(Vector3.forward, Vector3.forward * moving.Speed, Vector3.forward);
+            var stopped = Step(true);
+            Assert.That(stopped.HoldPosition, Is.True); Assert.That(stopped.Speed, Is.Zero);
+            Assert.That(_hunter.Velocity, Is.EqualTo(Vector3.zero));
+            Assert.That(_shared.TryAcceptContact(new EntityId(1), out _), Is.False);
+            Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
+            Assert.That(Step(illuminated: true).Speed, Is.GreaterThan(0));
             Assert.That(Step(true, false).Speed, Is.GreaterThan(0));
             _shared.SetWickActive(true); Assert.That(Step().HoldPosition, Is.True);
             Assert.That(_shared.TryAcceptContact(new EntityId(1), out _), Is.False);
-            _shared.CommitPose(Vector3.forward * 3, Vector3.forward, Vector3.forward);
+            _shared.SetWickActive(false); Assert.That(Step().Speed, Is.GreaterThan(0));
             Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
         }
         [Test]
-        public void AuthoritativeAfterglowProtectsOnlyItsRoomAndExpiresOrClearsWithEffect()
+        public void AfterglowNoLongerCreatesALightSafetyWindow()
         {
             var effects = new ActiveEffects(new[] { new ActiveEffect(new EffectId("afterglow"), EffectKind.Upgrade, 1) });
             _shared.SetActiveEffects(effects); _module.SetEffects(effects);
-            Assert.That(_module.BeginAfterglow(99), Is.EqualTo(_config.AfterglowSeconds));
-            Assert.That(Step().Speed, Is.GreaterThan(0));
-            Assert.That(_module.BeginAfterglow(1), Is.EqualTo(_config.AfterglowSeconds));
-            Assert.That(Step().HoldPosition, Is.True);
-            Assert.That(Step(dt: _config.AfterglowSeconds).Speed, Is.GreaterThan(0));
-            _module.BeginAfterglow(1); _shared.SetActiveEffects(default(ActiveEffects));
-            Assert.That(Step().Speed, Is.GreaterThan(0));
+            Assert.That(_module.BeginAfterglow(99), Is.Zero);
             Assert.That(_module.BeginAfterglow(1), Is.Zero);
-        }
-        [Test] public void DarknessPolicyCannotInvertAndWickAndMissingWorldStillHold()
-        {
-            Assert.That(_config.MovesInDarkness, Is.True);
-            Assert.That(Step().Speed, Is.GreaterThan(0)); _world.Lit = true; Assert.That(Step().HoldPosition, Is.True);
+            Assert.That(_config.AfterglowSeconds, Is.Zero);
+            Assert.That(Step().Speed, Is.GreaterThan(0));
             Assert.That(Step(true).HoldPosition, Is.True);
-            _shared.SetWickActive(true); Assert.That(Step().HoldPosition, Is.True);
-            _shared.SetWickActive(false); _world.Known = false; Assert.That(Step().HoldPosition, Is.True);
         }
-        [Test] public void SeededSubversionIsRareAndReproducibleAtConfiguredCheckCadence()
+        [Test] public void MissingLightingDoesNotHoldButMissingCameraStillDoes()
         {
-            _world.Lit = true; int failures = 0;
-            var expected = new System.Random(23);
-            for (int i = 0; i < 1000; i++)
-            {
-                bool occurs = expected.NextDouble() < _config.FailureChance;
-                Step(dt: _config.FailureCheckSeconds);
-                bool actual = false;
-                while (_module.TakeFact(out var fact)) if (fact.Kind == MannequinFactKind.RoomLightOverride) actual = true;
-                Assert.That(actual, Is.EqualTo(occurs)); if (actual) failures++;
-            }
-            Assert.That(failures, Is.InRange(1, 50));
-        }
-        [Test] public void TemporaryFailureExpiresAndObservationCannotBeSubverted()
-        {
-            EchoControllerTests.Tune(_config, "_failureChance", 1f); _world.Lit = true;
-            Assert.That(Step(dt: 15f).HoldPosition, Is.False);
-            Assert.That(Step(true).HoldPosition, Is.True);
-            EchoControllerTests.Tune(_config, "_failureChance", 0f);
-            Assert.That(Step(dt: 2f).HoldPosition, Is.True);
-        }
-        [Test] public void SubversionOnlySwitchesRoomLightOffAndStaleViewHolds()
-        {
-            _world.Lit = true;
-            EchoControllerTests.Tune(_config, "_failureChance", 1f);
-            Assert.That(Step(dt: 15f).HoldPosition, Is.False);
-            bool switchedOff = false;
-            while (_module.TakeFact(out var fact)) if (fact.Kind == MannequinFactKind.RoomLightOverride) switchedOff = !fact.Lit;
-            Assert.That(switchedOff, Is.True);
+            _world.Known = false; Assert.That(Step().Speed, Is.GreaterThan(0));
+            _shared.SetWorldView(null); Assert.That(Step().Speed, Is.GreaterThan(0));
+            _tick++; Assert.That(_shared.Tick(default, .1f, _tick).HoldPosition, Is.True);
+            _shared.SetPlayerView(default);
             _tick++; Assert.That(_shared.Tick(default, .1f, _tick).HoldPosition, Is.True);
         }
-        [Test] public void DirectIlluminationCannotTriggerRoomFailureAndCatchAdmissionResetsPerLife()
+        [Test] public void RetiredLightCursesNeverPublishLampBudgetsOrRoomOverrides()
         {
-            _world.Lit = true; EchoControllerTests.Tune(_config, "_failureChance", 1f);
-            Assert.That(Step(dt: 15f, illuminated: true).HoldPosition, Is.True);
-            while (_module.TakeFact(out var fact)) Assert.That(fact.Kind, Is.Not.EqualTo(MannequinFactKind.RoomLightOverride));
+            _shared.SetActiveEffects(new ActiveEffects(new[] {
+                new ActiveEffect(new EffectId("mannequin-fewer-lamps"), EffectKind.Curse, 99),
+                new ActiveEffect(new EffectId("mannequin-broken-lights"), EffectKind.Curse, 99) }));
+            _world.Lit = true;
+            for (int i = 0; i < 1000; i++)
+            {
+                Assert.That(Step(dt: 15f).HoldPosition, Is.False);
+                while (_module.TakeFact(out var fact)) Assert.That(fact.Kind, Is.EqualTo(MannequinFactKind.SilentSoundSet));
+            }
+            Assert.That(_world.Lit, Is.True); Assert.That(_module.SpeedMultiplier, Is.EqualTo(1f));
+        }
+        [TestCase(false)] [TestCase(true)]
+        public void ObservationCancelsAnActiveLungeBeforeContactOrFeedback(bool lit)
+        {
+            _world.Lit = lit;
+            _shared.CommitPose(Vector3.forward * 7, Vector3.zero, Vector3.forward);
+            Assert.That(Step().Phase, Is.EqualTo(HunterLungePhase.Windup));
+            Assert.That(Step(dt: _profile.LungeWindupSeconds).Phase, Is.EqualTo(HunterLungePhase.Active));
+            var held = Step(true);
+            Assert.That(held.HoldPosition, Is.True); Assert.That(held.Phase, Is.EqualTo(HunterLungePhase.None));
+            Assert.That(held.Speed, Is.Zero); Assert.That(held.ActiveContact, Is.False);
+            Assert.That(_shared.TryAcceptContact(new EntityId(1), out _), Is.False);
+            Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
+        }
+        [Test] public void OcclusionAndHunterFacingCannotSubstituteABodyHeadingHoldOrLightReaction()
+        {
+            EchoControllerTests.Tune(_profile, "_lightResponse", HunterLightResponse.Avoid);
+            _shared.CommitPose(Vector3.zero, Vector3.zero, Vector3.back);
+            var result = Step(looking: true, clear: false, illuminated: true);
+            Assert.That(result.HoldPosition, Is.False); Assert.That(result.Speed, Is.GreaterThan(0));
+            Assert.That(result.Target, Is.EqualTo(Vector3.forward * 10));
+            Assert.That(_hunter.CurrentAction, Is.EqualTo(HunterAction.Chase));
+            Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
+        }
+        [Test] public void CatchAdmissionResetsPerLifeAndOrdinaryMovementIsSilent()
+        {
+            Assert.That(Step(illuminated: true).Speed, Is.GreaterThan(0));
+            _shared.CommitPose(Vector3.forward * 3, Vector3.forward, Vector3.forward);
+            Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
             Assert.That(_module.TryCatch(), Is.True); Assert.That(_module.TryCatch(), Is.False);
             _shared.Reset(new EntityId(-2), Vector3.zero, Vector3.forward);
             Assert.That(_module.TryCatch(), Is.True);
             Assert.That(_shared.TryDequeueFeedback(out _), Is.False);
         }
-        [Test] public void CurseHooksUseExactIdsCapAndLeaveConfigUnchanged()
+        [Test] public void LongerStridesUsesExactIdCapsAndLeavesConfigUnchanged()
         {
             _shared.SetActiveEffects(new ActiveEffects(new[] {
                 new ActiveEffect(new EffectId("mannequin-fewer-lamps"), EffectKind.Curse, 99),
@@ -135,23 +145,23 @@ namespace Worsen.Tests.Hunter
                 new ActiveEffect(new EffectId("mannequin-broken-lights"), EffectKind.Curse, 1) }));
             _world.Lit = true; Assert.That(Step().HoldPosition, Is.False);
             Assert.That(_module.SpeedMultiplier, Is.EqualTo(Mathf.Pow(1.2f, 3)).Within(.0001f));
-            bool budget = false, broken = false;
-            while (_module.TakeFact(out var fact))
-            {
-                if (fact.Kind == MannequinFactKind.LampBudget) { budget = true; Assert.That(fact.Value, Is.EqualTo(Mathf.Pow(.8f, 3)).Within(.0001f)); }
-                if (fact.Kind == MannequinFactKind.RoomLightOverride) broken = fact.Permanent;
-            }
-            Assert.That(budget && broken, Is.True); Assert.That(_config.LongerStridesMultiplier, Is.EqualTo(1.2f));
+            while (_module.TakeFact(out var fact)) Assert.That(fact.Kind, Is.EqualTo(MannequinFactKind.SilentSoundSet));
+            Assert.That(_config.LongerStridesMultiplier, Is.EqualTo(1.2f));
+            _shared.SetActiveEffects(new ActiveEffects(new[] { new ActiveEffect(new EffectId("longer-strides"), EffectKind.Curse, 3) }));
+            Step(); Assert.That(_module.SpeedMultiplier, Is.EqualTo(1f));
         }
-        [Test] public void PeripheralCreepNarrowsOnlyObservationNotLightSafety()
+        [TestCase(false)] [TestCase(true)]
+        public void PeripheralCreepNarrowsObservationInBothLitAndDarkRooms(bool lit)
         {
+            _world.Lit = lit;
             _tick++; var view = new HunterPlayerView(new Vector3(0, 1, 10), Quaternion.Euler(0, 150, 0), 90, 60, _tick);
             _shared.SetPlayerView(view); _shared.ObservePlayerView(true);
             Assert.That(_shared.Tick(default, .1f, _tick).HoldPosition, Is.True);
             _shared.SetActiveEffects(new ActiveEffects(new[] { new ActiveEffect(new EffectId("mannequin-peripheral-creep"), EffectKind.Curse, 1) }));
             _tick++; _shared.SetPlayerView(new HunterPlayerView(view.Origin, view.Rotation, 90, 60, _tick));
             _shared.Tick(new SightProbe(true, true, true), .1f, _tick); Assert.That(_module.Hold, Is.False);
-            _world.Lit = true; Assert.That(Step().HoldPosition, Is.True);
+            Assert.That(Step(true).HoldPosition, Is.True);
+            Assert.That(Step().Speed, Is.GreaterThan(0));
         }
     }
 }

@@ -2,22 +2,23 @@
 // MannequinController.cs
 // ============================================================================
 // PURPOSE:
-//   Gates every shared movement and attack on light and camera observation.
-//   It is silent except for an accepted snap/crunch catch. It waits at safe
-//   light boundaries, with rare seeded light failures and an optional permanent
-//   room-darkening curse leaving visible evidence behind it.
+//   Gates shared movement and attacks on the player's camera observation, not light.
+//   An unseen Mannequin pursues the player in lit and dark rooms alike; a clear
+//   view or the Wick shrine freezes it. Ordinary feedback remains silent, with
+//   the accepted snap/crunch catch published separately by its Manager.
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
-//   - Freeze while observed, illuminated or under Wick; move only in darkness.
-//   - Enforce authoritative room safety windows after a light goes out.
-//   - Read capped neutral curse hooks and publish Core light/silence facts.
+//   - Freeze while observed or under Wick; fail closed on missing camera evidence.
+//   - Pursue unseen prey without shared flashlight, retreat or Stalk reveal rules.
+//   - Apply capped peripheral-creep/longer-strides curses and publish silence facts.
 //   - Admit the distinct catch fact once per life for the Manager to publish.
 // DEPENDENCIES:
-//   - Parent Hunter neutral rules, injected camera/world views, Core effects and facts.
+//   - Parent Hunter neutral rules, injected camera/occlusion, Core effects and facts.
 // USAGE NOTES:
-//   Unknown room/camera data holds safely. Light overrides are locally predicted
-//   and must be routed by Session to Level; no engine calls occur here.
+//   Time and camera/occlusion evidence are injected. Room lighting is irrelevant.
+//   Legacy afterglow entry points are inert until the coordinator retires their
+//   Session callers. Shared navigation, collision and attack timing remain intact.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -28,35 +29,24 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
     public sealed class MannequinController : HunterArchetypeController, IHunterObservationRules
     {
         private readonly MannequinConfig _config;
-        private readonly System.Random _random;
         private readonly MannequinBehaviorState _state = new MannequinBehaviorState();
         public MannequinController(MannequinConfig config, System.Random random)
-        { _config = config ?? throw new ArgumentNullException(nameof(config)); _random = random ?? throw new ArgumentNullException(nameof(random)); }
+        { _config = config ?? throw new ArgumentNullException(nameof(config)); if (random == null) throw new ArgumentNullException(nameof(random)); }
+        public override bool OwnsPursuit => true;
         public bool Hold => _state.Hold || _state.Wick;
         public bool Silent => true;
         public float SpeedMultiplier => _state.Speed;
         public float LossMultiplier => 1f;
-        public void SetEffects(IReadOnlyActiveEffects effects)
-        {
-            _state.Effects = effects;
-            if (!(effects?.Has(new EffectId("afterglow")) ?? false)) _state.Afterglow.Clear();
-        }
-        public float BeginAfterglow(int roomId)
-        {
-            if (roomId <= 0 || !(_state.Effects?.Has(new EffectId("afterglow")) ?? false)) return 0f;
-            _state.Afterglow[roomId] = _config.AfterglowSeconds;
-            return _config.AfterglowSeconds;
-        }
+        // Compatibility only: curses are read from the tick context; light is never a gate.
+        public void SetEffects(IReadOnlyActiveEffects effects) { }
+        public float BeginAfterglow(int roomId) => 0f;
         public void Observe(HunterPlayerView view, bool clear, bool illuminated, IReadOnlyHunterWorldView world, bool wick)
-        { _state.View = view; _state.Clear = clear; _state.Illuminated = illuminated; _state.World = world; _state.Wick = wick; }
+        { _state.View = view; _state.Clear = clear; _state.Wick = wick; }
         public override void Reset(HunterArchetypeContext context)
         {
-            _state.Hold = true; _state.Wick = false; _state.View = default; _state.World = null;
+            _state.Hold = true; _state.Wick = false; _state.View = default; _state.Clear = false;
             _state.CatchPublished = false;
-            _state.Afterglow.Clear(); _state.Effects = context.Effects;
-            _state.Room = _state.FailureRoom = 0; _state.FailureRemaining = 0;
-            _state.CheckRemaining = _config.FailureCheckSeconds; _state.LampStacks = -1;
-            _state.LastTick = -1; _state.Speed = 1f; _state.BrokenRooms.Clear(); _state.Facts.Clear();
+            _state.LastTick = -1; _state.Speed = 1f; _state.Facts.Clear();
             _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.SilentSoundSet, context.Tick));
         }
         private static int Stacks(HunterArchetypeContext context, string id, int cap) =>
@@ -65,60 +55,21 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         {
             if (!(context.DeltaTime > 0f) || float.IsInfinity(context.DeltaTime) || context.Tick <= _state.LastTick) return;
             _state.LastTick = context.Tick; _state.Hold = true;
-            SetEffects(context.Effects);
-            foreach (int id in new System.Collections.Generic.List<int>(_state.Afterglow.Keys))
-            {
-                _state.Afterglow[id] = Mathf.Max(0f, _state.Afterglow[id] - context.DeltaTime);
-                if (_state.Afterglow[id] <= 0f) _state.Afterglow.Remove(id);
-            }
-            int lamps = Stacks(context, "mannequin-fewer-lamps", 3);
-            if (lamps != _state.LampStacks)
-            {
-                _state.LampStacks = lamps;
-                _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.LampBudget, context.Tick,
-                    value: Mathf.Pow(_config.FewerLampsMultiplier, lamps)));
-            }
             _state.Speed = Mathf.Pow(_config.LongerStridesMultiplier, Stacks(context, "mannequin-longer-strides", 3));
-            _state.FailureRemaining = Mathf.Max(0f, _state.FailureRemaining - context.DeltaTime);
-            int room = HunterNavigationUtility.RoomAt(context.Level?.Graph, context.Hunter.Position);
-            if (_state.Wick || !context.Player.IsAlive || !HunterViewUtility.Fresh(_state.View, context.Tick) ||
-                room == 0 || _state.World == null || !_state.World.TryGetRoomLit(room, out bool lit)) return;
-            bool entered = room != _state.Room; _state.Room = room;
-            if (entered && lit && Stacks(context, "mannequin-broken-lights", 1) > 0 && _state.BrokenRooms.Add(room))
-            {
-                BeginAfterglow(room);
-                _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.RoomLightOverride,
-                    context.Tick, room, permanent: true));
-            }
-            if (_state.BrokenRooms.Contains(room)) lit = false;
-            if (_state.FailureRemaining > 0f && _state.FailureRoom == room) lit = false;
-            bool observed = _state.Clear && HunterViewUtility.Contains(_state.View,
+            if (_state.Wick || !context.Player.IsAlive || !HunterViewUtility.Fresh(_state.View, context.Tick)) return;
+            _state.Hold = _state.Clear && HunterViewUtility.Contains(_state.View,
                 context.Hunter.Position + Vector3.up * _config.ObservationHeight,
                 Stacks(context, "mannequin-peripheral-creep", 1) > 0 ? _config.DirectLookHalfAngle : 0f);
-            if (lit && !observed && !_state.Illuminated && _state.FailureRemaining <= 0f)
-            {
-                _state.CheckRemaining -= context.DeltaTime;
-                if (_state.CheckRemaining <= 0f)
-                {
-                    _state.CheckRemaining = _config.FailureCheckSeconds;
-                    if (_random.NextDouble() < _config.FailureChance)
-                    {
-                        _state.FailureRoom = room; _state.FailureRemaining = _config.FailureSeconds;
-                        BeginAfterglow(room);
-                        lit = false;
-                        _state.Facts.Enqueue(new MannequinFact(context.Hunter.Id, MannequinFactKind.RoomLightOverride,
-                            context.Tick, room, lit, _config.FailureSeconds));
-                    }
-                }
-            }
-            _state.Hold = observed || lit || _state.Illuminated || _state.Afterglow.ContainsKey(room);
         }
         public bool TryCatch()
         {
             if (_state.CatchPublished) return false;
             _state.CatchPublished = true; return true;
         }
-        public override bool FilterVisibility(bool visible, SightProbe probe, HunterArchetypeContext context) => !Hold && visible;
+        // The player's view, not the hunter's sight cone or body-heading proxy,
+        // decides when pursuit is permitted. Occluded prey still supplies its target.
+        public override bool FilterVisibility(bool visible, SightProbe probe, HunterArchetypeContext context) => !Hold;
+        public override float GoalUtility(HunterGoal goal, float utility) => goal == HunterGoal.LocatePrey ? utility : 0f;
         public bool TakeFact(out MannequinFact fact)
         { fact = default; if (_state.Facts.Count == 0) return false; fact = _state.Facts.Dequeue(); return true; }
     }

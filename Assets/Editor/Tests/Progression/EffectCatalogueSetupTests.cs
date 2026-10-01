@@ -58,7 +58,8 @@ namespace Worsen.Tests.Progression
                     new[] { old, new EffectCatalogueEntry("thin-skin", EffectKind.Curse, FearAxis.Stakes, "Old", "Old"),
                         new EffectCatalogueEntry("bail-bond", EffectKind.Upgrade, FearAxis.Stakes, "Old", "Old"),
                         new EffectCatalogueEntry("watcher", EffectKind.Threat, FearAxis.Time, "Old", "Old"),
-                        new EffectCatalogueEntry("rusher-long-stride", EffectKind.Curse, FearAxis.Time, "Old", "Old"), old, custom });
+                        new EffectCatalogueEntry("rusher-long-stride", EffectKind.Curse, FearAxis.Time, "Old", "Old"),
+                        new EffectCatalogueEntry("mannequin-broken-lights", EffectKind.Curse, FearAxis.Information, "Old", "Old"), old, custom });
                 EffectCatalogueSetup.AppendMissingEntries(catalogue);
                 Assert.That(catalogue.Entries.Select(e => e.Id).Distinct().Count(), Is.EqualTo(catalogue.Entries.Count));
                 Assert.That(catalogue.Entries.Any(e => ProgressionRosterUtility.Retired(e.Id)), Is.False);

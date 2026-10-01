@@ -103,7 +103,7 @@ MonoBehaviour:
     _requiredThreatId: 
   - _id: mannequin
     _title: THE MANNEQUIN
-    _description: Adds a hunter that moves only in darkness while unobserved.
+    _description: Adds a hunter that moves whenever unseen and freezes while observed.
     _descriptionAtThreatCap: 
     _price: 0
     _movementSpeedMultiplier: 1
