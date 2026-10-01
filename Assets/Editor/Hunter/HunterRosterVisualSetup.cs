@@ -44,7 +44,6 @@ namespace Worsen.Editor.Hunter
         public const float PrototypeSmoothness = 0.25f;
         public const string CakeMaterialPath = "Assets/Art/Horror/Cake/CakeSlice.mat";
         private const string Bundle = "Assets/External/NHance/Creatures/StylizedCreaturesBundle/";
-        private const string Kobolds = "Assets/External/NHance/Creatures/KoboldPack/";
         private static readonly string[] Roles = { "idle", "walk", "run", "ready", "attack", "hit" };
         public static IReadOnlyList<string> Names { get; } = Array.AsReadOnly(new[]
             { "Echo", "Weaver", "Ticking", "Ram", "Skip", "Mimic", "Blinder", "Herald", "Mannequin", "Stare" });
@@ -202,8 +201,10 @@ namespace Worsen.Editor.Hunter
                     entry.Model = Bundle + "Meshes/ForestImp/ForestImp.fbx";
                     entry.SourcePath = SelectPackPrefab(Bundle + "Prefabs/ForestImp", entry.Model); entry.Height = 1.2f; break;
                 case "Blinder":
-                    entry.Model = Kobolds + "Meshes/KoboldThief/Kobold_Thief.fbx";
-                    entry.SourcePath = SelectPackPrefab(Kobolds + "Prefabs/KoboldThief", entry.Model); entry.Height = 1.5f; break;
+                    // Goblin, not the Kobold Thief: the Kobold pack is Humanoid-rigged and this pipeline needs a
+                    // Generic avatar (batch 14 setup failure). The Goblin is the proven legacy lurker body.
+                    entry.Model = Bundle + "Meshes/Goblin/GoblinMale.fbx";
+                    entry.SourcePath = SelectPackPrefab(Bundle + "Prefabs/GoblinMale", entry.Model); entry.Height = 1.5f; break;
                 default:
                     entry.Manifest = ParseManifest(File.ReadAllText(ManifestPath(name)), name);
                     entry.Height = entry.Manifest.Height;
@@ -270,8 +271,8 @@ namespace Worsen.Editor.Hunter
             if (entry.Avatar == null || !entry.Avatar.isValid || entry.Avatar.isHuman)
                 throw new InvalidOperationException(entry.Name + " requires a valid Generic avatar.");
             string[] names = entry.Name == "Ram" ? new[] { "Idle_Unarmed", "Walk_Unarmed", "run", "Ready_Unarmed", "Attack_Unarmed", "Hit_Unarmed" } :
-                entry.Name == "Skip" ? new[] { "idle", "walk", "run", "Ready", "attack", "hit" } :
-                entry.Name == "Blinder" ? new[] { "idle", "Walk_Forward", "Run_Forward", "Spell_Unarmed_Ready", "Spell_Unarmed_Forward_End", "Combat_Unarmed_Hit" } : Roles;
+                (entry.Name == "Skip" || entry.Name == "Blinder") ? new[] { "idle", "walk", "run", "Ready", "attack", "hit" } :
+                Roles;
             AnimationClip[] clips = AssetDatabase.LoadAllAssetsAtPath(entry.Model).OfType<AnimationClip>().ToArray();
             entry.Clips = names.Select(name =>
             {
