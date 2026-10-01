@@ -6,6 +6,7 @@
 //   Applies pooled spatial effects, adaptive impact/danger loops and a scheduled run sequence.
 //   It receives room anchors and portal evidence as facts, and never reads enemy state.
 //   Every world voice uses shared acoustic attenuation without duplicate Unity rolloff.
+//   Missing roster clips and unknown catch identities stay silent, never borrowing legacy vocals.
 //
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by AudioDriver · Presentation · Audio.
@@ -126,9 +127,18 @@ namespace Worsen.Presentation.Audio
             if (value && isActiveAndEnabled) StartLayers(); else ResetRun();
         }
         public bool Play(CueId cue, Vector3 position, float gain, int emitter, bool presentationOnly = false)
+            => PlayBank(cue, position, gain, emitter, presentationOnly, false);
+        private bool PlayBank(CueId cue, Vector3 position, float gain, int emitter, bool presentationOnly, bool handDeath)
         {
             if (_state == null || _state.Paused || !_state.OwnerEnabled || !isActiveAndEnabled) return false;
             if (!_catalogue.Admits(cue, _state.InRun)) return false;
+            if (_catalogue.TryGet(cue, out var category) && category.Category == CueCategory.Hunter &&
+                !(handDeath && cue == CueId.Death) && !_rosterPresenter.AllowsSharedEmitter(_roster, emitter))
+            {
+                string missing = "shared:" + emitter + ":" + cue;
+                if (_roster.Missing.Add(missing)) Debug.LogWarning("Hunter cue '" + cue + "' requires an identified legacy emitter or a named roster binding; silent.", this);
+                return false;
+            }
             if (presentationOnly && (!_catalogue.FalsePositiveExempt(cue) || _state.WorldMix.InChase)) return false;
             cue = _catalogue.Canonical(cue);
             if (cue == CueId.PlayerCritical) return false; // The dedicated breathing source owns this slot.
@@ -199,9 +209,8 @@ namespace Worsen.Presentation.Audio
         public void ObserveHit(HunterHit fact) { _roster.LastAttacker = fact.Hunter; }
         public bool PlayDeath(bool handDeath = false)
         {
-            if (handDeath || !_roster.LastAttacker.IsValid) return PlayLocal(CueId.Death);
-            string key = _roster.Archetypes.TryGetValue(_roster.LastAttacker, out var archetype) ? archetype : "hunter";
-            return PlayRoster(new AudioRosterCommand { Hunter = _roster.LastAttacker, Id = key + ".death", Slot = HunterCueSlot.DeathSting, Gain = 1f, Pitch = 1f, Exact = true });
+            if (handDeath) return _state != null && PlayBank(CueId.Death, _state.ListenerPosition, 1f, 0, false, true);
+            return PlayRoster(new AudioRosterCommand { Hunter = _roster.LastAttacker, Id = _rosterPresenter.DeathId(_roster), Slot = HunterCueSlot.DeathSting, Gain = 1f, Pitch = 1f, Exact = true });
         }
         private bool RosterReady => _state != null && _state.Alive && !_state.Paused && _state.OwnerEnabled && isActiveAndEnabled;
         private void FlushTells()
@@ -228,9 +237,13 @@ namespace Worsen.Presentation.Audio
                     if (_state.Voices[i].Emitter == command.Hunter.Value && _state.Voices[i].Catalogue.Category == CueCategory.Hunter) StopVoice(i);
                 return true;
             }
-            var binding = _rosterPresenter.Binding(_config, command.Id);
+            AudioRosterBinding? binding = _rosterPresenter.OwnsCommand(_roster, command) ?
+                _rosterPresenter.Binding(_config, command.Id) : null;
+            // Authored silence is not a missing asset and must not spend a voice.
+            if (binding.HasValue && binding.Value.Placeholder && binding.Value.OverrideGain && binding.Value.Gain == 0f) return true;
             AudioSoundDefinition bank = default;
-            if (!binding.HasValue || binding.Value.Clip == null && (binding.Value.Placeholder || !_banks.TryGetValue(_catalogue.Canonical(binding.Value.Bank), out bank)))
+            if (!binding.HasValue || binding.Value.Clip == null && (binding.Value.Placeholder ||
+                !_rosterPresenter.AllowsSharedBank(command.Id) || !_banks.TryGetValue(_catalogue.Canonical(binding.Value.Bank), out bank)))
             {
                 if (_roster.Missing.Add(command.Id)) Debug.LogWarning("Roster cue '" + command.Id + "' has no clip; silent placeholder.", this);
                 return false;

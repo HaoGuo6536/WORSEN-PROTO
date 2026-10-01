@@ -3,11 +3,13 @@
 // ============================================================================
 // PURPOSE:
 //   Resolves the reviewed path-only roster selection without copying vendor audio.
+//   Explicit silence and whole-clip choices replace stale owned bindings atomically.
+//   Unrelated legacy banks remain available only to compatibility hunters.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Audio.
 // KEY RESPONSIBILITIES:
 //   - Validate the selection table and every required clip before changing a config.
-//   - Merge named bindings deterministically while preserving unrelated legacy banks.
+//   - Replace owned named bindings deterministically while preserving unrelated legacy banks.
 //   - Save only the explicitly targeted soundscape asset, never scenes or importers.
 // DEPENDENCIES:
 //   - Core cue ids, Audio config, UnityEditor asset/serialization APIs and file IO.
@@ -71,6 +73,13 @@ namespace Worsen.Editor.Audio
                 if (!float.TryParse(row[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float gain) ||
                     float.IsNaN(gain) || float.IsInfinity(gain) || gain < 0f || gain > 1f) throw new FormatException("Invalid gain: " + id);
                 var paths = new List<string>();
+                if (row[4] == "silence" || row[4] == "missing")
+                {
+                    if (row[5] != "-" || (row[4] == "silence" ? gain != 0f : gain == 0f))
+                        throw new FormatException("Silence requires zero gain; missing requires positive gain; neither permits alternates: " + id);
+                    selections.Add(new Selection(id, bank, gain, Array.Empty<string>()));
+                    continue;
+                }
                 foreach (string key in (row[4] + "," + row[5]).Split(','))
                 {
                     if (key.Trim() == "-" || key.Trim().Length == 0) continue;
@@ -88,6 +97,7 @@ namespace Worsen.Editor.Audio
         {
             if (selections == null || load == null) throw new ArgumentNullException();
             return selections.Select(s => {
+                if (s.Paths.Length == 0) return new AudioRosterBinding(s.Id, s.Bank, true) { Gain = s.Gain, OverrideGain = true };
                 var clips = s.Paths.Select(path => load(path) ?? throw new FileNotFoundException("Required roster clip missing: " + path, path)).ToArray();
                 return new AudioRosterBinding(s.Id, s.Bank) { Clip = clips[0], Alternates = clips.Skip(1).ToArray(), Gain = s.Gain, OverrideGain = true };
             }).ToArray();
@@ -109,7 +119,8 @@ namespace Worsen.Editor.Audio
             // No asset mutation until every selection resolves successfully.
             var selected = Resolve(Parse(selectionText), AssetDatabase.LoadAssetAtPath<AudioClip>);
             var merged = new SortedDictionary<string, AudioRosterBinding>(StringComparer.Ordinal);
-            foreach (var binding in config.RosterBindings) merged[binding.Id] = binding;
+            var roster = new AudioRosterPresenter();
+            foreach (var binding in config.RosterBindings) if (!roster.IsRosterCue(binding.Id)) merged[binding.Id] = binding;
             foreach (var binding in selected) merged[binding.Id] = binding;
             var serialized = new SerializedObject(config); var bindings = serialized.FindProperty("_rosterBindings");
             bindings.arraySize = merged.Count; int index = 0;

@@ -5,6 +5,7 @@
 // PURPOSE:
 //   Checks the Audio engine boundary's source ownership and unavailable-clip behavior.
 //   Transient sources and clips isolate routing and cleanup without modifying assets.
+//   Compatibility bank tests explicitly identify a legacy hunter at each run boundary.
 //
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
@@ -33,6 +34,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Worsen.Core;
 using Worsen.Presentation.Audio;
+using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Audio
 {
@@ -66,6 +68,7 @@ namespace Worsen.Tests.Audio
         {
             try
             {
+                if (_driver != null) _driver.Teardown();
                 if (_owner != null) Object.DestroyImmediate(_owner);
                 if (_config != null) Object.DestroyImmediate(_config);
                 if (_clip != null) Object.DestroyImmediate(_clip);
@@ -91,7 +94,7 @@ namespace Worsen.Tests.Audio
             Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
             _driver.SetOwnerEnabled(true);
             _driver.SetWorld(AudioWorldMixPresenterTests.Graph(), null);
-            Assert.That(_driver.PlayCue(CueId.Presence), Is.True);
+            Assert.That(PlayLegacy(CueId.Presence), Is.True);
             Assert.That(System.Array.Exists(_owner.GetComponentsInChildren<AudioSource>(), source => !source.loop && source.clip == _clip && source.volume > 0f), Is.True);
             _driver.SetOwnerEnabled(false);
             Assert.That(_driver.PlayCue(CueId.Death), Is.False);
@@ -109,14 +112,14 @@ namespace Worsen.Tests.Audio
             CreateFixture();
             _driver.Initialize(_config);
             _driver.SetOwnerEnabled(true);
-            Assert.That(_driver.PlayCue(CueId.Presence), Is.True);
-            Assert.That(_driver.PlayCue(CueId.Chase), Is.True);
-            Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
+            Assert.That(PlayLegacy(CueId.Presence), Is.True);
+            Assert.That(PlayLegacy(CueId.Chase), Is.True);
+            Assert.That(PlayLegacy(CueId.Presence), Is.False);
             Assert.That(_driver.PlayCue(CueId.Lose), Is.False);
-            Assert.That(_driver.PlayCue(CueId.Chase), Is.False);
-            Assert.That(_driver.PlayCue(CueId.Death), Is.True);
+            Assert.That(PlayLegacy(CueId.Chase), Is.False);
+            Assert.That(PlayLegacy(CueId.Death), Is.True);
             _driver.ResetRun();
-            Assert.That(_driver.PlayCue(CueId.Presence), Is.True);
+            Assert.That(PlayLegacy(CueId.Presence), Is.True);
         }
 
         [Test]
@@ -129,8 +132,8 @@ namespace Worsen.Tests.Audio
             _driver.Initialize(_config);
             _driver.SetOwnerEnabled(true);
             LogAssert.Expect(LogType.Warning, "Soundscape cue 'Presence' is not wired to a playable bank.");
-            Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
-            Assert.That(_driver.PlayCue(CueId.Presence), Is.False);
+            Assert.That(PlayLegacy(CueId.Presence), Is.False);
+            Assert.That(PlayLegacy(CueId.Presence), Is.False);
         }
 
         [UnityTest]
@@ -145,14 +148,19 @@ namespace Worsen.Tests.Audio
             Assert.That(Application.isPlaying, Is.True, "This assertion requires real runtime MonoBehaviour callbacks.");
             _driver.Initialize(_config);
             _driver.SetOwnerEnabled(true);
-            Assert.That(_driver.PlayCue(CueId.Chase), Is.True);
+            Assert.That(PlayLegacy(CueId.Chase), Is.True);
             _driver.enabled = false;
             Assert.That(_driver.PlayCue(CueId.Chase), Is.False);
             yield return null;
             Assert.That(System.Array.TrueForAll(_owner.GetComponentsInChildren<AudioSource>(), source => !source.isPlaying), Is.True,
                 "OnDisable must stop every owned source before the component is re-enabled.");
             _driver.enabled = true;
-            Assert.That(_driver.PlayCue(CueId.Chase), Is.True);
+            Assert.That(PlayLegacy(CueId.Chase), Is.True);
+        }
+        private bool PlayLegacy(CueId cue)
+        {
+            _driver.ObserveHunterFeedback(new HunterFeedbackEvent(new EntityId(7), "rusher", HunterFeedbackKind.LostTarget, Vector3.zero, 1));
+            return _driver.PlayCueAt(cue, Vector3.zero, 1f, 7);
         }
     }
 }

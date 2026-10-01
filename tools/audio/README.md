@@ -54,3 +54,13 @@ $mossPython = Join-Path $mossRoot 'venv\Scripts\python.exe'
 ```
 
 The candidate list and selection rationale reproduce the existing twelve-clip evaluation; they are not a general batch-selection interface. Inspect them before adapting the sample. Model descriptions and objective measurements do not establish human listening, perceptual loop quality, or final in-game mix acceptance.
+
+## Hunter roster review (PLAN-021)
+
+`prepare_roster_candidates.py` freezes the path-only roster catalogue plus diagnostic candidates from an explicit read-only `--source-root`. Pass `--results` (a NEW directory under this checkout's Logs) and `--model-manifest` (an existing verified model-files.json). Optional `--only key ...` restricts the candidate list. It hashes/decodes whole WAVs, excludes clips longer than 20 seconds rather than cutting them, and verifies local weights without downloading anything.
+
+Set `MOSS_AUDIO_RESULTS_DIR` to that directory, then run `analyze_roster.py --coordinator-admitted --limit N` with the installed interpreter and `-B`. The default prompt asks about pig/orc/goblin resemblance, human/creature, size and material. A separately prepared directory with `--describe` uses open captioning; `--plain` uses a short non-JSON follow-up. The wrapper refuses to overwrite an existing inference-status.json and confines framework caches to the result directory. Admission is not permission to stop another process; the same 11 GiB free-memory guard applies. No Unity operations are needed.
+
+Run `audit_roster.py --source-root <licensed-checkout> --runs <completed-run> ... --output <new-Logs-report.json>` to resolve serialized audio GUIDs, verify completion/counts and rehash inputs, and join every selected cue/path to its raw model evidence. Its snapshot is not live playback verification. Keep all model disagreement visible: this installed model gave contradictory material/creature labels on several short transients, including the diagnostic controls.
+
+Current reviewed tables and routing limitations: [SELECTION.md](../../Assets/Audio/HunterRoster/SELECTION.md) and [ROUTING.md](../../Assets/Audio/HunterRoster/ROUTING.md). The executable manifest supports `silence` (zero gain, no clip, no missing warning) versus `missing` (positive-gain placeholder, silent with warning). Neither is permission to borrow a legacy bank. Coordinator Unity assignment and owner listening remain separate gates.

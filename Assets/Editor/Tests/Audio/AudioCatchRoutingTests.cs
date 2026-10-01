@@ -5,6 +5,7 @@
 //   Exercises the catch sting through the real Audio Orchestrator, Manager and Driver.
 //   Injected publisher facts and transient clips isolate event timing and per-run
 //   admission without loading scenes, initializing persistent gameplay or importing assets.
+//   Hunter catch fixtures identify the attacker explicitly; unknown catch origins are silent.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio integration.
 // KEY RESPONSIBILITIES:
@@ -121,6 +122,7 @@ namespace Worsen.Tests.Audio
         {
             var player = new EntityId(7);
             _driver.ObserveHealth(player, 100, 100);
+            IdentifyLegacyCatch(player);
             _driver.ObserveHealth(player, 0, 100);
             Publish(_run, "HealthChanged", player, 0f, 100f);
             Publish(_run, "PlayerDied", player, Vector3.one);
@@ -143,6 +145,7 @@ namespace Worsen.Tests.Audio
         public void RestartAndCaptureResetRearmSting(bool capture)
         {
             var player = new EntityId(7);
+            IdentifyLegacyCatch(player);
             Publish(_camera, "CatchHoldStarted", player);
             AudioFeedbackDriverState before = Feedback;
             if (capture) Publish(_run, "CaptureStarted", default(RunCaptureMetadata));
@@ -150,6 +153,7 @@ namespace Worsen.Tests.Audio
             Assert.That(Feedback, Is.Not.SameAs(before));
             Assert.That(Feedback.CatchStingIssued, Is.False);
             Assert.That(Feedback.HandDeathPlayer.IsValid, Is.False);
+            IdentifyLegacyCatch(player);
             Publish(_camera, "CatchHoldStarted", player);
             Assert.That(Feedback.CatchStingIssued, Is.True);
             Assert.That(Array.Exists(Soundscape.Voices, entry => entry.Remaining > 0f && entry.Cue == (int)CueId.Death), Is.True);
@@ -213,6 +217,7 @@ namespace Worsen.Tests.Audio
             Assert.That(_driver.PlayCatchSting(player), Is.False);
             Assert.That(Feedback.CatchStingIssued, Is.False);
             _driver.enabled = true;
+            IdentifyLegacyCatch(player);
             Assert.That(_driver.PlayCatchSting(player), Is.True);
             Assert.That(_driver.PlayCatchSting(player), Is.False);
         }
@@ -327,6 +332,12 @@ namespace Worsen.Tests.Audio
             Assert.That(Subscribers(progression, "EffectsSnapshotChanged"), Is.Zero);
         }
 
+        private void IdentifyLegacyCatch(EntityId player)
+        {
+            var hunter = new EntityId(4);
+            _soundscape.ObserveHunter(new HunterFeedbackEvent(hunter, "rusher", HunterFeedbackKind.LostTarget, Vector3.one, 1));
+            _soundscape.ObserveHit(new HunterHit(hunter, player, 100, 2, Vector3.one));
+        }
         private sealed class HunterFixture : IReadOnlyHunterState
         {
             public EntityId Id => new EntityId(-1);

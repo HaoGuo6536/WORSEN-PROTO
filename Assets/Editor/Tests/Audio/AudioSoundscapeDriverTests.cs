@@ -5,6 +5,7 @@
 // PURPOSE:
 //   Checks the actual AudioSource pool and spatial source configuration using transient fixtures.
 //   It verifies stable emitter reuse and complete teardown without claiming audible quality.
+//   Generic enemy-bank tests explicitly identify compatibility hunters, not anonymous emitters.
 //
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
@@ -43,6 +44,7 @@ namespace Worsen.Tests.Audio
             {
                 ConfigureFixtureBanks(bank, clip);
                 var driver = owner.AddComponent<AudioSoundscapeDriver>(); driver.Initialize(bank); driver.SetOwnerEnabled(true);
+                IdentifyLegacy(driver, 1, 2, 4, 5);
                 Assert.That(driver.Play(CueId.EnemyScream, Vector3.zero, 1, 2), Is.True);
                 Assert.That(driver.Play(CueId.DoorOpen, Vector3.zero, 1, 3), Is.True);
                 Assert.That(CountAssignedSources(owner, clip), Is.EqualTo(2));
@@ -118,6 +120,8 @@ namespace Worsen.Tests.Audio
                 var serialized = new SerializedObject(config); serialized.FindProperty("_soundscape").objectReferenceValue = bank;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 var driver = owner.AddComponent<AudioDriver>(); driver.Initialize(config); driver.SetOwnerEnabled(true);
+                foreach (int id in new[] { 7, 12, 13 })
+                    driver.ObserveHunterFeedback(new HunterFeedbackEvent(new EntityId(id), "rusher", HunterFeedbackKind.LostTarget, Vector3.zero, 1));
                 Assert.That(driver.PlayCueAt(CueId.EnemyWindup, Vector3.zero, 1, 7), Is.True);
                 Assert.That(driver.PlayCueAt(CueId.SlideLoop, Vector3.zero, 1, 8), Is.True);
                 Assert.That(driver.PlayCueAt(CueId.PlayerCritical, Vector3.zero, 1, 9), Is.False);
@@ -150,6 +154,10 @@ namespace Worsen.Tests.Audio
                 driver.Teardown();
             }
             finally { Object.DestroyImmediate(owner); Object.DestroyImmediate(bank); Object.DestroyImmediate(clip); }
+        }
+        private static void IdentifyLegacy(AudioSoundscapeDriver driver, params int[] ids)
+        {
+            foreach (int id in ids) driver.ObserveHunter(new HunterFeedbackEvent(new EntityId(id), "rusher", HunterFeedbackKind.LostTarget, Vector3.zero, 1));
         }
         private static int CountAssignedSources(GameObject owner, AudioClip clip)
         {

@@ -3,6 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Validates the real path-only manifest without installing or copying audio.
+//   Intentional silence is explicit data, not a dummy monster clip at zero volume.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Audio.
 // KEY RESPONSIBILITIES:
@@ -35,7 +36,7 @@ namespace Worsen.Tests.Audio
                 Assert.That(rows.Count(row => row.Id == hunter + "." + slot), Is.EqualTo(1), hunter + "." + slot);
             foreach (string tell in new[] { "echo.quickened-recording", "weaver-quickened-skitter", "blinder-quickened-approach",
                 "herald-quickened-approach", "mannequin.long-step", "stare.quickened-gaze" })
-                Assert.That(rows.Single(row => row.Id == tell).Paths, Is.Not.Empty);
+                Assert.That(rows.Count(row => row.Id == tell), Is.EqualTo(1), "A reviewed missing/silent tell is explicit, never a borrowed vocal.");
             Assert.That(rows.Select(row => row.Id), Is.Ordered.Using<string>(StringComparer.Ordinal));
             foreach (var row in rows) Assert.That(row.Paths.All(path => path.StartsWith("Assets/External/")), Is.True);
         }
@@ -52,11 +53,25 @@ namespace Worsen.Tests.Audio
             Assert.That(rows.Any(row => row.Id == "stare.i-see-you" || row.Id == "stare.find-me"), Is.False,
                 "Unverified speech must remain an explicit content request, not an unrelated substituted line.");
         }
-        [Test] public void AlternativesExistButFixedAttackTellsHaveOneSelectedClip()
+        [Test] public void ReviewedAlternativesRemainLocalAndFixedAttackTellsNeverRandomize()
         {
             var rows = HunterRosterAudioSetup.Parse(File.ReadAllText(HunterRosterAudioSetup.SelectionPath));
-            Assert.That(rows.Count(row => row.Paths.Length > 1), Is.GreaterThan(10));
-            foreach (var row in rows.Where(row => row.Bank == CueId.EnemyWindup)) Assert.That(row.Paths.Length, Is.EqualTo(1), row.Id);
+            Assert.That(rows.Single(row => row.Id == "echo.footstep").Paths.Length, Is.EqualTo(2));
+            Assert.That(rows.Single(row => row.Id == "weaver.skitter").Paths.Length, Is.EqualTo(2));
+            Assert.That(rows.Where(row => row.Paths.Length > 1).Select(row => row.Id), Is.EquivalentTo(new[] {
+                "echo.presence", "weaver.presence", "weaver.detection", "weaver.chase", "ticking.presence",
+                "ram.presence", "herald.chase", "echo.footstep", "weaver.skitter", "ram-stride" }));
+            foreach (var row in rows.Where(row => row.Bank == CueId.EnemyWindup && row.Paths.Length > 0))
+                Assert.That(row.Paths.Length, Is.EqualTo(1), row.Id);
+            foreach (var row in rows.Where(row => !row.Id.StartsWith("ram", StringComparison.Ordinal)))
+                Assert.That(row.Paths.Any(path => path.Contains("Roar_Scream") || path.Contains("Breath_Generic") || path.EndsWith("Monster Bite.wav")), Is.False, row.Id);
+            foreach (string hunter in new[] { "echo", "weaver", "ticking", "ram", "skip", "mimic", "blinder", "herald", "mannequin", "stare" })
+            foreach (string habit in new[] { "turn", "cake-reaction" })
+            {
+                var row = rows.Single(r => r.Id == hunter + "." + habit);
+                Assert.That(row.Paths, Is.Empty); Assert.That(row.Gain, Is.Zero);
+            }
+            Assert.That(rows.Single(row => row.Id == "mannequin.long-step").Gain, Is.Zero, "No motion/hold fact exists to gate this mutation sound safely.");
         }
         [Test] public void MissingClipFailsLoudlyWithItsExactPath()
         {
@@ -64,6 +79,24 @@ namespace Worsen.Tests.Audio
             var error = Assert.Throws<FileNotFoundException>(() => HunterRosterAudioSetup.Resolve(selections, _ => null));
             Assert.That(error.FileName, Is.EqualTo("Assets/External/Test/a.wav"));
         }
+        [Test] public void ExplicitSilenceResolvesWithoutLoadingAnyClip()
+        {
+            var rows = HunterRosterAudioSetup.Parse("| cue:mimic.presence | Presence | 0 | silence | - | intentional silence |\n");
+            var bindings = HunterRosterAudioSetup.Resolve(rows, _ => throw new InvalidOperationException("Silence must not load assets"));
+            Assert.That(rows[0].Paths, Is.Empty); Assert.That(bindings[0].Placeholder, Is.True);
+            Assert.That(bindings[0].OverrideGain, Is.True); Assert.That(bindings[0].Gain, Is.Zero);
+        }
+        [Test] public void MissingSelectionIsDistinctFromAuthoredSilence()
+        {
+            var rows = HunterRosterAudioSetup.Parse("| cue:echo.detection | Detection | 0.3 | missing | - | pending breath |\n");
+            var binding = HunterRosterAudioSetup.Resolve(rows, _ => throw new InvalidOperationException("Missing must not load assets"))[0];
+            Assert.That(binding.Placeholder, Is.True); Assert.That(binding.Clip, Is.Null);
+            Assert.That(binding.OverrideGain, Is.True); Assert.That(binding.Gain, Is.EqualTo(.3f));
+            Assert.Throws<FormatException>(() => HunterRosterAudioSetup.Parse("| cue:echo.detection | Detection | 0 | missing | - | invalid |\n"));
+        }
+        [TestCase("0.5", "-")][TestCase("0", "a")]
+        public void SilenceRejectsNonzeroGainOrAlternates(string gain, string alternate) => Assert.Throws<FormatException>(() =>
+            HunterRosterAudioSetup.Parse(Clip + "| cue:mimic.presence | Presence | " + gain + " | silence | " + alternate + " | intentional silence |\n"));
         [Test] public void DuplicateCueAndUnresolvedClipAreRejected()
         {
             Assert.Throws<FormatException>(() => HunterRosterAudioSetup.Parse(Clip + Cue + Cue));
