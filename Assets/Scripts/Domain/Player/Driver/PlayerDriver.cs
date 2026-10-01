@@ -31,6 +31,8 @@
 //   Owner 2026-10-01: low rays/full-height face sweeps offer untagged knee vaults
 //   and airborne grabs, including thin lips. Requested authored routes keep their
 //   endpoints; without a jump request, airborne tagged geometry can offer a grab too.
+//   Top rays extend past the minimum-height boundary; admitted probe heights clamp
+//   numerical roundoff to the rule bounds without moving the physical endpoint.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -131,7 +133,8 @@ namespace Worsen.Domain.Player
                 edgeMinimum, edgeMaximum, ledgeChestHeight, out Vector3 ledge))
             {
                 candidate = false;
-                target = ledge; height = ledge.y - feet.y; clearance = _config.Height; _state.ProbedTraversalTarget = target;
+                target = ledge; height = Mathf.Clamp(ledge.y - feet.y, edgeMinimum, edgeMaximum);
+                clearance = _config.Height; _state.ProbedTraversalTarget = target;
             }
             return new MovementProbe(grounded, grounded ? ground.normal : Vector3.up,
                 rebound, rebound ? Mathf.Max(0f, wall.distance - _config.SkinWidth) : 0f,
@@ -417,7 +420,9 @@ namespace Worsen.Domain.Player
             {
                 Vector3 topOrigin = chest.point + forward * (sample == 0 ? _config.Radius + _config.SkinWidth : _config.SkinWidth);
                 topOrigin.y = upper.y;
-                bool topFound = Ray(topOrigin, Vector3.down, maximumHeight - minimumHeight + _config.SkinWidth, out RaycastHit top)
+                // Do not end exactly on the minimum top: translated float arithmetic
+                // can shorten that ray by an ulp. CanClimbLedge still enforces the bounds.
+                bool topFound = Ray(topOrigin, Vector3.down, maximumHeight - minimumHeight + 2f * _config.SkinWidth, out RaycastHit top)
                     && top.collider == chest.collider;
                 if (!_presenter.CanClimbLedge(true, aboveBlocked, topFound, topFound && IsBlocked(top.point, _config.Height),
                     feet, top.point, top.normal, reach, minimumHeight, maximumHeight, _config.SlopeLimitDegrees)) continue;

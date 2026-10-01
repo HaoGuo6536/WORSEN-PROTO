@@ -24,6 +24,8 @@
 //   The separate Level integration fixture remains the ordinary Run-tick gate.
 //   Owner 2026-10-01 edge cases use ordinary colliders with no marker or tag;
 //   focus is required for the coordinator's traversal acceptance run.
+//   Minimum-height solid and floating ledges keep the real translated collider top;
+//   probe bounds must survive roundoff without relaxing unsupported/blocked admission.
 // ============================================================================
 using System.Linq;
 using NUnit.Framework;
@@ -98,9 +100,13 @@ namespace Worsen.Tests.Player
                         profile.LedgeChestHeight, tick == 2 || (tick == 1 && !ledge));
                     if (tick == 1)
                     {
+                        Assert.That(probe.Grounded, Is.EqualTo(!ledge), "The fixture must exercise the intended admission path.");
                         Assert.That(probe.VaultCandidate, Is.False);
                         Assert.That(probe.VaultHeight, Is.EqualTo(height).Within(.001f));
                         Assert.That(probe.VaultClearance, Is.GreaterThan(0f));
+                        Assert.That(probe.VaultHeight, Is.InRange(ledge ? profile.LedgeMinimumHeight : config.KneeProbeMinimumHeight,
+                            ledge ? profile.LedgeMaximumHeight : config.KneeProbeMaximumHeight));
+                        Assert.That(probe.VaultTarget.y, Is.EqualTo(driver.Position.y + height).Within(.001f));
                     }
                     var input = new InputFrame(Vector2.up, Vector2.zero, InputButtons.Sprint,
                         tick == 2 || (tick == 1 && !ledge) ? InputButtons.Jump : InputButtons.None, InputButtons.None);
@@ -131,7 +137,7 @@ namespace Worsen.Tests.Player
             finally { Object.DestroyImmediate(profile); }
         }
 
-        [TestCase(.65f, false)] [TestCase(1.4f, true)] [TestCase(2.2f, true)]
+        [TestCase(.65f, false)] [TestCase(.5f, true)] [TestCase(1.4f, true)] [TestCase(2.2f, true)]
         [Category("RequiresFocus")]
         public void ThinFloatingTabletopOrBalconyLipDoesNotNeedALowSolidFace(float height, bool airborne)
         {
@@ -158,6 +164,17 @@ namespace Worsen.Tests.Player
             Assert.That(requested.VaultCandidate, Is.True);
             Assert.That(requested.VaultTarget, Is.EqualTo(authored));
             ExerciseGeometricTraversal(true, 1.4f);
+        }
+
+        [TestCase(.499f)] [TestCase(2.201f)]
+        public void UntaggedAirborneLedgeOutsideHeightBoundsDoesNotOfferAGrab(float height)
+        {
+            Box("Out-of-range airborne ledge", new Vector3(2f, (height + .4f) * .5f, 0f),
+                new Vector3(2f, height + .4f, 3f));
+            Spawn(new Vector3(.6f, .4f, 0f));
+            MovementProbe probe = driver.Probe(1.2f, .5f, 2.2f, .8f, false);
+            Assert.That(probe.Grounded || probe.VaultCandidate, Is.False);
+            Assert.That(probe.VaultClearance, Is.Zero);
         }
 
         [TestCase(0f)] [TestCase(45f)] [TestCase(90f)] [TestCase(135f)]

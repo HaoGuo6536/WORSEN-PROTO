@@ -18,6 +18,7 @@
 //   Explicit provisional fixture values mirror profile defaults. The uninitialized
 //   SO is managed data only, never passed to Unity APIs or destroyed. DriverTests
 //   separately exercise real collider probes; these supplied probes are not PhysX evidence.
+//   Completion grace ages before a fresh press; buffered traversal input is distinct.
 // ============================================================================
 using System;
 using System.Reflection;
@@ -192,6 +193,17 @@ namespace Worsen.Tests.Player
             Step(Frame(move: Vector2.up), Ground, delay);
             Assert.That(IsLaunch(Step(Frame(true, Vector2.up), Ground)), Is.EqualTo(expected));
             Assert.That(Speed, Is.EqualTo(expected ? 14f : 8f).Within(.00001f));
+        }
+
+        [TestCase(.2f, true)] [TestCase(.22f, false)] [TestCase(1.01f, false)]
+        public void FreshCompletionPressUsesGraceAfterAdvancingTheCurrentTick(float dt, bool expected)
+        {
+            Step(Frame(true), Edge(.65f, true)); Finish();
+            state.MovementState = MovementState.Ground;
+            state.Velocity = Vector3.forward * 2f;
+            Assert.That(IsLaunch(Step(Frame(true), Ground, dt)), Is.EqualTo(expected));
+            Assert.That(Speed, Is.EqualTo(expected ? 8f : 2f).Within(.00001f));
+            Assert.That(state.TraversalLaunchReady, Is.False);
         }
 
         [Test]

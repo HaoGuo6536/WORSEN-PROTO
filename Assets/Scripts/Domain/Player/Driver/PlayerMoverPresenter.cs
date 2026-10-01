@@ -18,6 +18,7 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Stateless pure math. Collision distances and normals are inputs obtained by PlayerDriver.
+//   Ledge height bounds admit only a numerical epsilon for translated float coordinates.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using UnityEngine;
@@ -106,7 +107,7 @@ namespace Worsen.Domain.Player
         {
             Vector3 delta = top - feet;
             return chestBlocked && !aboveBlocked && topFound && !endpointBlocked && Finite(delta)
-                && delta.y >= minimumHeight && delta.y <= maximumHeight
+                && delta.y >= minimumHeight - 0.00001f && delta.y <= maximumHeight + 0.00001f
                 && new Vector2(delta.x, delta.z).magnitude <= reach && IsWalkable(normal, slopeLimit);
         }
 

@@ -21,6 +21,7 @@
 //   No other Domain system or Presentation system is referenced.
 //   Owner 2026-10-01: low edge rays and a distinct grab/pull-up envelope replace
 //   chest-only probing and the generic hop envelope for automatic airborne climbs.
+//   Translated height boundaries regress single-precision subtraction at native ledges.
 // ============================================================================
 using NUnit.Framework;
 using UnityEngine;
@@ -37,6 +38,19 @@ namespace Worsen.Tests.Player
         public void EdgeProbeStartsBelowTheLowestPermittedTop(float minimum)
         {
             Assert.That(_presenter.EdgeProbeHeight(minimum, .8f, .02f), Is.EqualTo(minimum - .02f).Within(.00001f));
+        }
+
+        [TestCase(.5f)] [TestCase(1.4f)] [TestCase(2.2f)]
+        public void TranslatedLedgeHeightBoundariesSurviveFloatRoundoff(float height)
+        {
+            Vector3 feet = new Vector3(2000.6f, .4f, 0f);
+            Vector3 top = new Vector3(2001.32f, .4f + height, 0f);
+            Assert.That(_presenter.CanClimbLedge(true, false, true, false, feet, top, Vector3.up,
+                1.2f, .5f, 2.2f, 50f), Is.True);
+            Assert.That(_presenter.CanClimbLedge(true, false, true, false, feet,
+                new Vector3(top.x, .4f + .499f, top.z), Vector3.up, 1.2f, .5f, 2.2f, 50f), Is.False);
+            Assert.That(_presenter.CanClimbLedge(true, false, true, false, feet,
+                new Vector3(top.x, .4f + 2.201f, top.z), Vector3.up, 1.2f, .5f, 2.2f, 50f), Is.False);
         }
 
         [TestCase(.5f)] [TestCase(1.4f)] [TestCase(2.2f)]

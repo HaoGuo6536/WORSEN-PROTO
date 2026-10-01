@@ -18,6 +18,7 @@
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Pure rules with injected time/randomness. Reset clears a pooled life; hard stumble does not lock input.
+//   Fresh post-completion launch presses use aged grace; in-traversal buffered presses release once.
 //   Recovery uses end-exclusive run ticks, rounded up from seconds at Reset's injected fixed step.
 //   Revival immunity reuses grace presentation facts, but its collision deadline is independent.
 //   The optional 60 Hz step preserves existing pure callers; the Manager supplies the actual engine step.
@@ -201,11 +202,13 @@ namespace Worsen.Domain.Player
                 return ContinueVault(frame, probe, deltaTime, facts, true);
             _state.VaultProgress = 0f;
 
+            // Match the other action windows: elapsed tick time precedes a fresh press.
+            // A press already buffered inside the traversal still releases on completion.
+            _state.TraversalLaunchGrace = Mathf.Max(0f, _state.TraversalLaunchGrace - deltaTime);
             if (!externalMotion && _state.TraversalLaunchReady
                 && (_state.TraversalLaunchBuffered || ((frame.Pressed & InputButtons.Jump) != 0
                     && _state.TraversalLaunchGrace > 0f)) && !probe.StandingBlocked)
                 return LaunchTraversal(deltaTime, facts);
-            _state.TraversalLaunchGrace = Mathf.Max(0f, _state.TraversalLaunchGrace - deltaTime);
             if (_state.TraversalLaunchGrace <= 0f || probe.StandingBlocked) ClearTraversalLaunch();
 
             // A slope can project a landing velocity upward without starting a jump.
