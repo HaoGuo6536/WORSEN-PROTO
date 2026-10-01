@@ -145,12 +145,12 @@ namespace Worsen.Orchestrator
         {
             if (_level == null || _horror == null) return;
             foreach (var light in _level.Interactables.InRoom(roomId))
-                if (light.Kind == InteractableKind.Light && light.Value == InteractableStateValue.Broken)
+                if (light.Kind == InteractableKind.Light && light.Value == InteractableStateValue.Inactive)
                     _horror.SetAfterglow(light, seconds);
         }
         private void OnLightChanged(InteractableState before, InteractableState after)
         {
-            if (before.Kind == InteractableKind.Light && (after.Kind != InteractableKind.Light || after.Value != InteractableStateValue.Broken))
+            if (before.Kind == InteractableKind.Light && (after.Kind != InteractableKind.Light || after.Value != InteractableStateValue.Inactive))
                 _horror.SetAfterglow(before, 0f);
         }
         private void OnDeathPending(EntityId player, Vector3 killer)

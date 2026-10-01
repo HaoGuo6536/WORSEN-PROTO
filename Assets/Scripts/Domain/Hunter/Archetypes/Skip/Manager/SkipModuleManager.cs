@@ -15,12 +15,13 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, root owns tick and teardown.
 //   No subscriptions, independent state or time source. Shared contacts are retained.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Skip
 {
-    public sealed class SkipModuleManager : HunterArchetypeManager
+    public sealed class SkipModuleManager : HunterArchetypeManager, IEntityHandle
     {
         private SkipController Controller => (SkipController)Rules;
         public static void Register(HunterArchetypeFactory factory)
