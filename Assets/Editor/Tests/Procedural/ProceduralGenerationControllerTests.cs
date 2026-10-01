@@ -27,6 +27,20 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralGenerationControllerTests
     {
+        [TestCase("missing-catalogue:castle")]
+        [TestCase("InvalidOperationException:Template placement budget exhausted.")]
+        public void ImmediateOrganicRecoveryIsCountedWithoutBecomingNoFloor(string reason)
+        {
+            var state = new ProceduralBehaviorState(); var controller = new ProceduralGenerationController(state);
+            controller.Begin(7, 3, 3); controller.Succeed("organic", reason);
+            Assert.That(state.FallbackCount, Is.EqualTo(1));
+            Assert.That(state.OrganicFallbackReason, Is.EqualTo(reason));
+            Assert.That(state.GenerationSucceeded, Is.True); Assert.That(state.UsedFallback, Is.False);
+            Assert.That(state.GenerationManifest, Does.Contain("fallback=Organic"));
+            Assert.That(Uri.UnescapeDataString(state.GenerationManifest), Does.Contain(reason));
+            controller.Begin(8, 3, 3); controller.Succeed("template");
+            Assert.That(state.FallbackCount, Is.Zero); Assert.That(state.OrganicFallbackReason, Is.Empty);
+        }
         [Test]
         public void ManagerExhaustionCannotBecomeReadyAndJournalSurvivesTeardown()
         {

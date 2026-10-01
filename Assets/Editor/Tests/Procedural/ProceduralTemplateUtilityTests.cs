@@ -24,6 +24,19 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateUtilityTests
     {
+        [Test]
+        public void PhysicalOverhangRejectsCellOnlyFitButSharedStraightWallsAreAdmitted()
+        {
+            var c = ProceduralTemplateSeamPresenterTests.Read("Castle");
+            var t = c.Templates.Single(r => r.Id == "castle_guard_room");
+            var a = new ProceduralTemplateRoom { RoomId = 1, Template = t };
+            var b = new ProceduralTemplateRoom { RoomId = 2, Template = t, Offset = new Vector2Int(0, 3) };
+            Assert.That(ProceduralTemplateUtility.Compatible(a, b, c), Is.True);
+            t.Pieces = t.Pieces.Concat(new[] { new ProceduralTemplatePiece { Id = "prop_barrel", Position = new Vector3(3f, 0f, 6.4f) } }).ToArray();
+            Assert.That(ProceduralTemplateUtility.OccupiedCells(a).Intersect(ProceduralTemplateUtility.OccupiedCells(b)), Is.Empty);
+            Assert.That(ProceduralTemplateUtility.Compatible(a, b, c), Is.False);
+            Assert.That(ProceduralTemplateUtility.DoorClear(t, 1, c), Is.False);
+        }
         [Test] public void QuarterTurnsKeepCellAndMetreCentersAligned()
         {
             for (int turn = 0; turn < 4; turn++)

@@ -42,6 +42,9 @@ namespace Worsen.Domain.Procedural
         public bool IsReady => _state.IsReady;
         public bool GenerationSucceeded => _state.GenerationSucceeded;
         public bool UsedFallback => _state.UsedFallback;
+        public int FallbackCount => _state.FallbackCount;
+        public string FallbackReason => _state.OrganicFallbackReason;
+        public float ExitDoorYaw => _state.Layout?.ExitDoorYaw ?? 0f;
         public LevelGraph Graph => IsReady ? _state.Layout.Graph : null;
         public Vector3 PlayerSpawnPosition => _state.Layout?.PlayerSpawnPosition ?? Vector3.zero;
         public Quaternion PlayerSpawnRotation => _state.Layout?.PlayerSpawnRotation ?? Quaternion.identity;
@@ -62,6 +65,7 @@ namespace Worsen.Domain.Procedural
             Array.AsReadOnly(_state.Layout.Interactables.Select(plan => plan.State).ToArray());
         public IReadOnlyList<LevelMarkerRecord> TraversalMarkers => _driver != null ? _driver.TraversalMarkers : Array.Empty<LevelMarkerRecord>();
         public event Action<bool> ReadinessChanged;
+        public event Action<int, int, string> GenerationFallbackPublished;
         public string ThemeId => IsReady ? _state.Layout.ThemeId : string.Empty;
         public event Action<string, string, string, string, string> ThemePublished;
         public event Action<int, string, string> RoomThemePublished;
@@ -113,7 +117,7 @@ namespace Worsen.Domain.Procedural
                     var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed,
                         requiredHunterCount, _state.OrganicFallbackReason);
                     _driver.Build(layout, _config, _driverConfig, IsPuzzleActor);
-                    generation.Succeed(layout.Manifest + layout.InteractableManifest);
+                    generation.Succeed(layout.Manifest + layout.InteractableManifest, layout.TemplateFallbackReason);
                     _controller.Admit();
                     break;
                 }
@@ -128,6 +132,11 @@ namespace Worsen.Domain.Procedural
                 }
             }
             // Subscriber failures are not generation failures and must never trigger a retry.
+            if (_state.FallbackCount != 0)
+            {
+                Debug.LogWarning("Procedural template fallback: seed=" + _state.AttemptSeed + " round=" + roundIndex + " reason=" + FallbackReason);
+                GenerationFallbackPublished?.Invoke(_state.AttemptSeed, roundIndex, FallbackReason);
+            }
             ReadinessChanged?.Invoke(true);
             var ready = _state.Layout;
             ThemePublished?.Invoke(ready.ThemeId, ready.Theme?.LightSource ?? "torch", ready.Theme?.SoundZone ?? "castle-stone",

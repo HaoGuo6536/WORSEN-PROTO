@@ -73,6 +73,7 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<ProceduralRoomModule> Modules { get; internal set; }
         public Vector3 PlayerSpawnPosition { get; internal set; }
         public Quaternion PlayerSpawnRotation { get; internal set; }
+        public float ExitDoorYaw { get; internal set; }
         public IReadOnlyList<Vector3> HunterSpawnPositions { get; internal set; }
         public int MinimumHunterSpawnRooms { get; internal set; }
         public string SpawnValidationReport { get; internal set; }
@@ -103,8 +104,11 @@ namespace Worsen.Domain.Procedural
 
     public readonly struct ProceduralStoreyPlan
     {
-        public ProceduralStoreyPlan(int roomId, Vector3 origin, float height, ProceduralVerticalKind drop)
-        { RoomId = roomId; Origin = origin; Height = height; Drop = drop; }
+        public ProceduralStoreyPlan(int roomId, Vector3 origin, float height, ProceduralVerticalKind drop, int turns = 0, bool mirrored = false, float ledgeAdvance = 0f)
+        { RoomId = roomId; Origin = origin; Height = height; Drop = drop; Turns = turns; Mirrored = mirrored; LedgeAdvance = ledgeAdvance; }
+        public int Turns { get; }
+        public bool Mirrored { get; }
+        public float LedgeAdvance { get; }
         public int RoomId { get; }
         public int UpperRegionId => 10000 + RoomId;
         public Vector3 Origin { get; }

@@ -86,6 +86,7 @@ namespace Worsen.Domain.Procedural
         public Vector2Int Offset;
         public Vector2Int SubcellOffset;
         public int Turns;
+        public int MaximumEntrances = int.MaxValue;
         public int[] OpenDoors = Array.Empty<int>();
     }
 }

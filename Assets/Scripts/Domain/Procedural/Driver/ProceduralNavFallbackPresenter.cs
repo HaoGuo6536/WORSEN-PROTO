@@ -60,12 +60,15 @@ namespace Worsen.Domain.Procedural
 
             void Check(string label, Vector3 from, Vector3 to)
             {
-                // Template sockets are ground-level, even when their marker has a small y offset.
-                from.y = to.y = height * .5f;
+                // Marker lift is not a storey: preserve the actual standing level.
+                float Level(Vector3 p) => layout.Storeys.Where(s => Math.Abs(p.x - s.Origin.x) <= 4f && Math.Abs(p.z - s.Origin.z) <= 4f &&
+                    p.y >= s.Height - .001f).Select(s => s.Height).DefaultIfEmpty(0f).Max();
+                from.y = Level(from) + height * .5f; to.y = Level(to) + height * .5f;
                 foreach (var block in obstacles)
                     if (Blocked(block, from, to, radius, height))
                         throw new InvalidOperationException("Template navigation preflight blocked " + label +
-                            " at " + from + " by room=" + block.RoomId + " piece=" + (block.PieceId ?? "primitive") + ".");
+                            " at " + from + " by room=" + block.RoomId + " piece=" + (block.PieceId ?? "primitive") +
+                            " center=" + block.Center + " size=" + block.Size + ".");
             }
         }
 

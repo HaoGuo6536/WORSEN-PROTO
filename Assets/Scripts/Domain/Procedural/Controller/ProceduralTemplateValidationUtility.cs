@@ -74,7 +74,9 @@ namespace Worsen.Domain.Procedural
                 !new[] { "rect", "L", "T", "round", "irregular" }.Contains(room.Shape) ||
                 !new[] { "none", "puzzle", "freeze", "traversal" }.Contains(room.Gimmick) ||
                 room.MinRound < (room.Gimmick == "none" ? 1 : 3) ||
-                !ProceduralTemplateUtility.Finite(room.Weight) || room.Weight <= 0f || room.Height != catalogue.WallHeight)
+                !ProceduralTemplateUtility.Finite(room.Weight) || room.Weight <= 0f || !ProceduralTemplateUtility.Finite(room.Height) ||
+                room.Height < catalogue.WallHeight || room.Height > catalogue.WallHeight * 2f ||
+                room.Height > catalogue.WallHeight && room.MinRound < 3)
                 Fail("Invalid template metadata.");
             if (room.Footprint == null || room.Footprint.Length == 0 || room.Footprint.Length > 4096 ||
                 room.Footprint.Any(c => c.x < 0 || c.y < 0 || c.x > 256 || c.y > 256) ||

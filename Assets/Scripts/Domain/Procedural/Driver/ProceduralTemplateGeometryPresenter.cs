@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Tile template floors and ceilings and preserve authored prop placements.
+//   - Preserve every authored floor/ceiling placement independently of support tiles.
 //   - Cut only connected sockets and seal all unused openings.
 //   - Preserve offset frames, radial arcs and separate tangent-pier collision.
 //   - Keep decals and opened leaves out of collision and navigation.
@@ -42,21 +42,18 @@ namespace Worsen.Domain.Procedural
             var kit = layout.TemplateCatalogue.Kit.ToDictionary(p => p.Id);
             foreach (var room in layout.TemplateRooms)
             {
+                float height = Math.Max(room.Template.Height, layout.Graph?.Rooms.FirstOrDefault(r => r.Id == room.RoomId).Size.y ?? room.Template.Height);
+                float extra = height - layout.TemplateCatalogue.WallHeight;
+                int roomStart = blocks.Count;
                 Vector3 World(Vector3 p) => ProceduralTemplateUtility.Point(room, p, layout.Origin);
                 foreach (var cell in room.Template.Footprint)
                 {
                     var center = World(new Vector3(cell.x * 2f + 1f, 0f, cell.y * 2f + 1f));
-                    var floor = room.Template.Pieces.FirstOrDefault(p => kit[p.Id].Kind == "floor" &&
-                        Mathf.Abs(p.Position.x - (cell.x * 2f + 1f)) < .001f && Mathf.Abs(p.Position.z - (cell.y * 2f + 1f)) < .001f);
-                    var ceiling = room.Template.Pieces.FirstOrDefault(p => kit[p.Id].Kind == "ceiling" &&
-                        Mathf.Abs(p.Position.x - (cell.x * 2f + 1f)) < .001f && Mathf.Abs(p.Position.z - (cell.y * 2f + 1f)) < .001f);
                     blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Floor, center - Vector3.up * (driver.FloorThickness * .5f),
-                        new Vector3(2f, driver.FloorThickness, 2f), rotation: Yaw(room.Turns * 90f + (floor?.RotY ?? 0f)),
-                        pieceId: floor?.Id ?? "floor_2x2", piecePosition: floor == null ? center - Vector3.up * driver.FloorThickness : World(floor.Position)));
-                    center.y = room.Template.Height;
+                        new Vector3(2f, driver.FloorThickness, 2f), role: ProceduralBlockRole.CollisionOnly));
+                    center.y = height;
                     blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Ceiling, center + Vector3.up * (driver.CeilingThickness * .5f),
-                        new Vector3(2f, driver.CeilingThickness, 2f), rotation: Yaw(room.Turns * 90f + (ceiling?.RotY ?? 0f)),
-                        pieceId: ceiling?.Id ?? "ceiling_2x2", piecePosition: ceiling == null ? center : World(ceiling.Position)));
+                        new Vector3(2f, driver.CeilingThickness, 2f), role: ProceduralBlockRole.CollisionOnly));
                 }
                 var placements = room.Template.Pieces.ToList();
                 foreach (int i in Enumerable.Range(0, room.Template.Doors.Length).Where(i => !room.OpenDoors.Contains(i)))
@@ -68,8 +65,20 @@ namespace Worsen.Domain.Procedural
                 {
                     var placement = placements[placementIndex];
                     var piece = kit[placement.Id];
-                    if (piece.Kind == "floor" || piece.Kind == "ceiling") continue; // One exact tile per footprint cell.
                     float yaw = room.Turns * 90f + placement.RotY;
+                    if (piece.Kind == "floor" || piece.Kind == "ceiling")
+                    {
+                        // Art is a placement list, not a cell lookup: vault webs, ribs,
+                        // beams, portals and curved slabs may overlap the same cell.
+                        var pivot = World(placement.Position) + Vector3.up * (piece.Kind == "ceiling" ? height - room.Template.Height : 0f);
+                        bool raised = piece.Kind == "floor" && placement.Position.y + piece.Size.y > .01f;
+                        blocks.Add(new ProceduralBlock(room.RoomId,
+                            piece.Kind == "floor" ? ProceduralSurfaceKind.Floor : ProceduralSurfaceKind.Ceiling,
+                            pivot + Vector3.up * (piece.Size.y * .5f), piece.Size, rotation: Yaw(yaw),
+                            role: raised || piece.Kind == "ceiling" ? ProceduralBlockRole.Solid : ProceduralBlockRole.VisualOnly,
+                            pieceId: piece.Id, piecePosition: pivot));
+                        continue;
+                    }
                     if (layout.TemplateCatalogue.Theme == "castle" && kit.TryGetValue("wall_2m", out var masonry) &&
                         Math.Abs(masonry.Size.z - .8f) < .00001f && (piece.Kind == "arc" || piece.Id == "wall_round_tangent_r4"))
                     {
@@ -146,11 +155,11 @@ namespace Worsen.Domain.Procedural
                     void Add(float low, float high, float bottom, string id = null, Vector3? pivot = null)
                     {
                         if (high - low <= .0001f) return;
-                        float height = room.Template.Height - bottom;
-                        if (height <= .0001f) return;
+                        float partHeight = layout.TemplateCatalogue.WallHeight - bottom;
+                        if (partHeight <= .0001f) return;
                         blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Wall,
-                            a + tangent * ((low + high) * .5f) + Vector3.up * ((room.Template.Height + bottom) * .5f),
-                            new Vector3(high - low, height, piece.Kind == "arc" ? driver.WallThickness : piece.Size.z),
+                            a + tangent * ((low + high) * .5f) + Vector3.up * ((layout.TemplateCatalogue.WallHeight + bottom) * .5f),
+                            new Vector3(high - low, partHeight, piece.Kind == "arc" ? driver.WallThickness : piece.Size.z),
                             rotation: Yaw(yaw), pieceId: id, piecePosition: pivot));
                     }
                 }
@@ -169,19 +178,30 @@ namespace Worsen.Domain.Procedural
                     Frame(blocks, room.RoomId, center, yaw + room.Turns * 90f,
                         new Vector3(4f, room.Template.Height, driver.WallThickness), config.DoorWidth, config.DoorHeight, room.OpenDoors.Contains(i));
                 }
+                if (extra > 0f)
+                    foreach (var b in blocks.Skip(roomStart).ToArray())
+                        if (b.HasCollision && b.Kind == ProceduralSurfaceKind.Wall &&
+                            Math.Abs(b.Center.y + b.Size.y * .5f - layout.TemplateCatalogue.WallHeight) < .001f &&
+                            (b.PieceId == null || ProceduralTemplateValidationUtility.Wall(kit[b.PieceId])))
+                            blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Wall,
+                                new Vector3(b.Center.x, layout.TemplateCatalogue.WallHeight + extra * .5f, b.Center.z),
+                                new Vector3(b.Size.x, extra, b.Size.z), rotation: b.Rotation));
             }
+            blocks = new ProceduralTemplateSeamPresenter().Build(layout, blocks, config);
+            blocks.AddRange(new ProceduralStoreyPresenter().Build(layout, config, driver));
             if (layout.Graph != null)
             {
-                var exit = new Bounds(layout.Graph.ExitPosition + Vector3.up * 1.5f,
-                    new Vector3(config.TemplateExitClearance * 2f, 3f, config.TemplateExitClearance * 2f));
-                foreach (var block in blocks.Where(b => b.HasCollision && b.Kind == ProceduralSurfaceKind.Wall))
+                var exit = ProceduralExitHubUtility.DoorEnvelope(layout.Graph.ExitPosition, layout.ExitDoorYaw);
+                foreach (var block in blocks.Where(b => b.HasCollision && (b.Kind == ProceduralSurfaceKind.Wall ||
+                    b.Kind == ProceduralSurfaceKind.Floor && b.Center.y + b.Size.y * .5f > .01f)))
                 {
                     var bounds = new Bounds(block.Center, Vector3.zero);
                     for (int x = -1; x <= 1; x += 2) for (int y = -1; y <= 1; y += 2) for (int z = -1; z <= 1; z += 2)
                         bounds.Encapsulate(block.Center + block.Rotation * Vector3.Scale(block.Size, new Vector3(x, y, z)) * .5f);
                     if (bounds.min.x <= exit.max.x && bounds.max.x >= exit.min.x && bounds.min.y <= exit.max.y &&
                         bounds.max.y >= exit.min.y && bounds.min.z <= exit.max.z && bounds.max.z >= exit.min.z)
-                        throw new InvalidOperationException("Template exit-door envelope intersects kit collision.");
+                        throw new InvalidOperationException("Template exit-door envelope intersects kit collision: room=" + block.RoomId +
+                            " piece=" + block.PieceId + " center=" + block.Center + " exit=" + layout.Graph.ExitPosition + " yaw=" + layout.ExitDoorYaw);
                 }
             }
             return blocks.AsReadOnly();

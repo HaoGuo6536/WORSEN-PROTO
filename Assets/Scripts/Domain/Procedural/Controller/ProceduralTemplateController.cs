@@ -62,20 +62,34 @@ namespace Worsen.Domain.Procedural
                     _config.DoorHeight, out _, out _)).ToArray();
                 if (starts.Length == 0) throw new InvalidOperationException("No clear multi-entrance exit template is available at this round.");
                 var placed = new List<ProceduralTemplateRoom> { new ProceduralTemplateRoom
-                    { RoomId = 1, Template = Pick(starts), Turns = _random.Next(4) } };
+                    { RoomId = 1, Template = Pick(starts), Turns = _random.Next(4),
+                        MaximumEntrances = round >= _config.MultiFloorStartRound && _config.StoreyProbability > 0f ? ProceduralExitHubUtility.MinimumEntrances : int.MaxValue } };
                 var doors = new List<ProceduralDoorPlan>(); var occupied = new HashSet<Vector2Int>(Cells(placed[0]));
                 var gaps = new HashSet<Vector2Int>(); var sites = new List<ProceduralGapSite>();
-                int attempts = 0;
+                int attempts = 0, lastProgress = 0;
                 while (placed.Count < count)
                 {
-                    if (++attempts > _config.TemplatePlacementBudget) throw new InvalidOperationException("Template placement budget exhausted.");
+                    if (++attempts > _config.TemplatePlacementBudget) throw new InvalidOperationException("Template placement budget exhausted at room " + placed.Count + ".");
+                    // A blocked branch is not a failed floor: undo its last leaf
+                    // and try another authored placement within the same budget.
+                    if (attempts - lastProgress >= 128 && placed.Count > 3)
+                    {
+                        var removed = placed[placed.Count - 1]; placed.RemoveAt(placed.Count - 1);
+                        occupied.ExceptWith(Cells(removed));
+                        doors.RemoveAll(d => d.FromRoomId == removed.RoomId || d.ToRoomId == removed.RoomId);
+                        foreach (var r in placed)
+                            r.OpenDoors = Enumerable.Range(0, r.Template.Doors.Length).Where(i => doors.Any(d =>
+                                (d.FromRoomId == r.RoomId || d.ToRoomId == r.RoomId) &&
+                                (d.Center - ProceduralTemplateUtility.Point(r, ProceduralTemplateUtility.Door(r.Template.Doors[i]), _config.Origin)).sqrMagnitude < .001f)).ToArray();
+                        lastProgress = attempts;
+                    }
                     var choices = eligible.Where(t => (t.Gimmick == "none" || placed.Count(p => p.Template.Gimmick != "none") < budget) &&
                         (t.SizeClass != "hall" || placed.All(p => p.Template.Id != t.Id))).ToArray();
                     // Alternate room/hall preference; both remain actual catalogue templates.
                     var preferred = choices.Where(t => placed.Count % 2 == 1 ? t.Kind != "room" : t.Kind == "room").ToArray();
-                    if (preferred.Length != 0) choices = preferred;
+                    if (preferred.Length != 0 && attempts % 4 != 0) choices = preferred;
                     if (choices.Length == 0) throw new InvalidOperationException("No eligible template remains.");
-                    Attach(Pick(choices), 0, 0, placed, occupied, gaps, doors, sites);
+                    if (Attach(Pick(choices), 0, 0, placed, occupied, gaps, doors, sites)) lastProgress = attempts;
                 }
                 if (round >= _config.GapStartRound && _random.NextDouble() < _config.GapProbability && _random.NextDouble() < _config.PocketProbability)
                 {
@@ -95,7 +109,8 @@ namespace Worsen.Domain.Procedural
                 foreach (var room in placed)
                 {
                     var cells = Cells(room).OrderBy(c => c.x).ThenBy(c => c.y).ToArray();
-                    var volumes = ProceduralTemplateUtility.Volumes(cells, _config.Origin, room.Template.Height, 1f);
+                    var volumes = ProceduralTemplateUtility.Volumes(cells, _config.Origin,
+                        room.RoomId == 1 ? Math.Max(room.Template.Height, 3.21f) : room.Template.Height, 1f);
                     var bounds = volumes[0]; foreach (var volume in volumes.Skip(1)) bounds.Encapsulate(volume);
                     rooms.Add(new LevelRoom(room.RoomId, bounds.center, bounds.size, cells: volumes, pocket: room.PocketId != 0));
                     modules.Add(new ProceduralRoomModule(room.RoomId, refuge ? ProceduralModuleKind.MerchantRefuge : room.RoomId == 1 ?
@@ -133,6 +148,8 @@ namespace Worsen.Domain.Procedural
                     // Horizontal yaw is managed math, so seeded layout tests need no native engine.
                     PlayerSpawnPosition = spawn, PlayerSpawnRotation = new Quaternion(0f, (float)Math.Sin(facing), 0f, (float)Math.Cos(facing))
                 };
+                candidate.ExitDoorYaw = (ProceduralExitHubUtility.ApproachYaw(localSpawn, localExit) + first.Turns * 90f) % 360f;
+                ProceduralTemplateStoreyUtility.Apply(candidate, _config, _random);
                 candidate.HunterSpawnPositions = ProceduralSpawnUtility.Select(candidate, _config, hunters.Distinct().ToArray(), out int minimum, out string report);
                 candidate.MinimumHunterSpawnRooms = minimum; candidate.SpawnValidationReport = report;
                 if (candidate.ValidatedHunterSpawnCapacity < requiredHunters) throw new InvalidOperationException("Template hunter capacity below requested " + requiredHunters);
@@ -149,15 +166,16 @@ namespace Worsen.Domain.Procedural
             // Establish the starting hub before extending branches. A count check at
             // the end alone would turn otherwise valid seeded floors into fallbacks.
             bool needsHubEntrance = pocket == 0 && placed[0].OpenDoors.Length < ProceduralExitHubUtility.MinimumEntrances;
-            var sockets = placed.Where(r => r.PocketId == 0 && (!needsHubEntrance || r.RoomId == placed[0].RoomId))
+            var sockets = placed.Where(r => r.PocketId == 0 && r.OpenDoors.Length < r.MaximumEntrances && (!needsHubEntrance || r.RoomId == placed[0].RoomId))
                 .SelectMany(r => Enumerable.Range(0, r.Template.Doors.Length)
                 .Where(i => !r.OpenDoors.Contains(i)).Select(i => (room: r, index: i))).ToArray();
             if (sockets.Length == 0) return false;
-            var from = sockets[_random.Next(sockets.Length)]; int to = _random.Next(template.Doors.Length), turns = _random.Next(4);
+            var from = sockets[_random.Next(sockets.Length)]; int to = _random.Next(template.Doors.Length);
             var fromPoint = ProceduralTemplateUtility.Point(from.room, ProceduralTemplateUtility.Door(from.room.Template.Doors[from.index]), _config.Origin);
             if (sites.Any(s => (s.Edge - fromPoint).sqrMagnitude < .01f)) return false;
             var normal = ProceduralTemplateUtility.Rotate(ProceduralTemplateUtility.Direction(from.room.Template.Doors[from.index].Side), from.room.Turns);
-            if (ProceduralTemplateUtility.Rotate(ProceduralTemplateUtility.Direction(template.Doors[to].Side), turns) != -normal) return false;
+            int turns = Enumerable.Range(0, 4).Single(t =>
+                ProceduralTemplateUtility.Rotate(ProceduralTemplateUtility.Direction(template.Doors[to].Side), t) == -normal);
             var world = ProceduralTemplateUtility.Point(from.room, ProceduralTemplateUtility.Door(from.room.Template.Doors[from.index]), Vector2.zero);
             var target = ProceduralTemplateUtility.Rotate(ProceduralTemplateUtility.Door(template.Doors[to]), turns);
             var delta = world - target;
@@ -168,6 +186,10 @@ namespace Worsen.Domain.Procedural
                 SubcellOffset = new Vector2Int((int)delta.x, (int)delta.z) - offset * 2 };
             var cells = Cells(next).ToArray();
             if (cells.Any(c => occupied.Contains(c) || gaps.Contains(c))) return false;
+            var catalogue = _config.RoomCatalogue?.Catalogues.FirstOrDefault(c => c.Templates.Contains(template));
+            if (catalogue != null && (!ProceduralTemplateUtility.DoorClear(from.room.Template, from.index, catalogue) ||
+                !ProceduralTemplateUtility.DoorClear(template, to, catalogue))) return false;
+            if (catalogue != null && placed.Any(other => !ProceduralTemplateUtility.Compatible(next, other, catalogue))) return false;
             var reserved = new List<Vector2Int>();
             if (gap > 0)
             {
@@ -201,6 +223,9 @@ namespace Worsen.Domain.Procedural
                 for (int b = 0; b < next.Template.Doors.Length; b++)
                 {
                     if (other.OpenDoors.Contains(a) || next.OpenDoors.Contains(b)) continue;
+                    if (other.OpenDoors.Length >= other.MaximumEntrances || next.OpenDoors.Length >= next.MaximumEntrances) continue;
+                    if (catalogue != null && (!ProceduralTemplateUtility.DoorClear(other.Template, a, catalogue) ||
+                        !ProceduralTemplateUtility.DoorClear(next.Template, b, catalogue))) continue;
                     var point = ProceduralTemplateUtility.Point(other, ProceduralTemplateUtility.Door(other.Template.Doors[a]), _config.Origin);
                     if (point != ProceduralTemplateUtility.Point(next, ProceduralTemplateUtility.Door(next.Template.Doors[b]), _config.Origin) ||
                         ProceduralTemplateUtility.Rotate(ProceduralTemplateUtility.Direction(other.Template.Doors[a].Side), other.Turns) !=

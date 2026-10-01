@@ -18,7 +18,7 @@
 // USAGE NOTES:
 //   Owner playtest decision 2026-09-30 supersedes PLAN-019 sparse destinations.
 //   A 0.25m search lattice is algorithm resolution, not cake spacing. Ground lines
-//   deliberately do not use vaults, ramps or upper decks as shortcuts. Native
+//   never use vaults or ramps as shortcuts; each storey gets its own walking lines. Native
 //   admission still proves reachability; no engine APIs or random draws occur here.
 // ============================================================================
 using System;
@@ -49,24 +49,26 @@ namespace Worsen.Domain.Procedural
             var anchors = new List<LevelAnchor>();
             int identity = 40000000; // Separate from staging, puzzle, Passage and interactable identities.
             foreach (var room in layout.Graph.Rooms.OrderBy(r => r.Id))
+            foreach (float elevation in new[] { 0f }.Concat(layout.Storeys.Where(s => s.RoomId == room.Id).Select(s => s.Height)))
             {
                 if (room.Pocket) continue; // Passage keeps its separately reserved golden rewards.
                 var local = blocks.Where(b => b.HasCollision && OverlapsXZ(b, room.Bounds, height + radius)).ToArray();
                 var floors = local.Where(b => b.RoomId == room.Id && b.Kind == ProceduralSurfaceKind.Floor &&
-                    b.Role != ProceduralBlockRole.StairRamp && Math.Abs(b.Center.y + b.Size.y * .5f) < Epsilon).ToArray();
+                    b.Role != ProceduralBlockRole.StairRamp && b.Role != ProceduralBlockRole.PlayerOnly &&
+                    Math.Abs(b.Center.y + b.Size.y * .5f - elevation) < Epsilon).ToArray();
                 var obstacles = local.Where(b => !floors.Contains(b)).ToArray();
                 var nodes = new HashSet<Vector2Int>();
                 // Include inflated obstacle faces as well as the regular lattice.
                 // Otherwise a valid narrow aisle between furniture can fall entirely
                 // between 0.25m grid rows. Exact sweeps still prove each edge.
                 var xs = Coordinates(0); var zs = Coordinates(2);
-                Vector3 Point(Vector2Int key) => new Vector3(xs[key.x], 0f, zs[key.y]);
+                Vector3 Point(Vector2Int key) => new Vector3(xs[key.x], elevation, zs[key.y]);
                 float[] Coordinates(int axisIndex)
                 {
                     float min = room.Bounds.min[axisIndex], max = room.Bounds.max[axisIndex];
                     var values = new SortedSet<float>();
                     for (int i = (int)Math.Ceiling(min / Step); i <= (int)Math.Floor(max / Step); i++) values.Add(i * Step);
-                    foreach (var obstacle in obstacles.Where(b => b.Center.y - b.Size.y * .5f < height && b.Center.y + b.Size.y * .5f > 0f))
+                    foreach (var obstacle in obstacles.Where(b => b.Center.y - b.Size.y * .5f < elevation + height && b.Center.y + b.Size.y * .5f > elevation))
                     {
                         var right = obstacle.Rotation * Vector3.right; var forward = obstacle.Rotation * Vector3.forward;
                         float halfSize = (Math.Abs(right[axisIndex]) * obstacle.Size.x + Math.Abs(forward[axisIndex]) * obstacle.Size.z) * .5f + radius + .002f;
@@ -83,13 +85,15 @@ namespace Worsen.Domain.Procedural
                     if (room.ContainsXZ(p) && Clear(p, p, floors, obstacles, radius, height)) nodes.Add(key);
                 }
                 if (nodes.Count == 0) throw new InvalidOperationException("No supported cake route in room " + room.Id);
-                Vector2Int Near(Vector3 p, IEnumerable<Vector2Int> source = null) => (source ?? nodes).OrderBy(n => (Point(n) - new Vector3(p.x, 0f, p.z)).sqrMagnitude)
+                Vector2Int Near(Vector3 p, IEnumerable<Vector2Int> source = null) => (source ?? nodes).OrderBy(n => (Point(n) - new Vector3(p.x, elevation, p.z)).sqrMagnitude)
                     .ThenBy(n => n.x).ThenBy(n => n.y).First();
-                var walkingDoors = layout.Doors.Where(d => !d.IsOptional && (d.FromRoomId == room.Id || d.ToRoomId == room.Id))
+                var walkingDoors = layout.Doors.Where(d => !d.IsOptional && Math.Abs(d.Center.y - elevation) < Epsilon && (d.FromRoomId == room.Id || d.ToRoomId == room.Id))
                     .OrderBy(d => d.Center.x).ThenBy(d => d.Center.z).ToArray();
                 // The nearest clear centre can be a tiny isolated space between
                 // props. Choose the centre from the entry's walkable component.
-                var component = Flood(Near(walkingDoors.Length == 0 ? room.Center : walkingDoors[0].Center));
+                var entry = elevation == 0f ? (walkingDoors.Length == 0 ? room.Center : walkingDoors[0].Center) :
+                    layout.VerticalRoutes.Single(r => r.RoomId == room.Id && r.Kind == ProceduralVerticalKind.Ramp).Points.Last();
+                var component = Flood(Near(entry));
                 var root = Near(room.Center, component.Keys);
                 var previous = Flood(root);
                 Dictionary<Vector2Int, Vector2Int> Flood(Vector2Int origin)
@@ -120,9 +124,17 @@ namespace Worsen.Domain.Procedural
                     targets.Add(near);
                 }
                 bool alongX = room.Size.x >= room.Size.z;
+                if (elevation > 0f)
+                    alongX = component.Keys.Max(n => xs[n.x]) - component.Keys.Min(n => xs[n.x]) >=
+                        component.Keys.Max(n => zs[n.y]) - component.Keys.Min(n => zs[n.y]);
                 var axis = alongX ? Vector3.right : Vector3.forward;
                 float half = (alongX ? room.Size.x : room.Size.z) * .5f;
-                targets.Add(Near(Point(root) - axis * half)); targets.Add(Near(Point(root) + axis * half));
+                var targetNodes = elevation > 0f ? component.Keys : null;
+                if (elevation > 0f)
+                    foreach (int x in new[] { -1, 1 }) foreach (int z in new[] { -1, 1 })
+                        targets.Add(Near(new Vector3(room.Center.x + x * room.Size.x * .5f, elevation,
+                            room.Center.z + z * room.Size.z * .5f), component.Keys));
+                targets.Add(Near(Point(root) - axis * half, targetNodes)); targets.Add(Near(Point(root) + axis * half, targetNodes));
                 var emitted = new List<Vector3>();
                 int before = anchors.Count;
                 // Join both halves before sampling: a small room may fit a full
@@ -139,6 +151,24 @@ namespace Worsen.Domain.Procedural
                 {
                     if (!previous.ContainsKey(target)) continue; // A disconnected decorative island is not a walking route.
                     EmitPath(Path(target));
+                }
+                // A gallery's through-route may sit entirely in reserved landing
+                // space. Find a straight row in the same reachable component,
+                // proving every segment with the unchanged capsule/support test.
+                if (elevation > 0f && anchors.Count == before)
+                foreach (bool horizontal in new[] { true, false })
+                foreach (var row in previous.Keys.GroupBy(n => horizontal ? n.y : n.x).OrderBy(g => g.Key))
+                {
+                    if (anchors.Count != before) break;
+                    var run = new List<Vector2Int>();
+                    foreach (var point in row.OrderBy(n => horizontal ? n.x : n.y))
+                    {
+                        if (run.Count != 0 && ((point - run.Last()).sqrMagnitude != 1 ||
+                            !Clear(Point(run.Last()), Point(point), floors, obstacles, radius, height)))
+                        { EmitPath(run); run.Clear(); }
+                        run.Add(point);
+                    }
+                    if (run.Count != 0) EmitPath(run);
                 }
                 // Tiny dead-end closets may have no straight run after doorway
                 // clearance. They need no pickup; freeze triggers still require one.
@@ -172,8 +202,8 @@ namespace Worsen.Domain.Procedural
                     for (int i = 0; i < count; i++)
                     {
                         var p = from + direction * (inset + i * spacing);
-                        bool reserved = Reserved(layout, room.Id, p, config, radius) || local.Any(b =>
-                            b.TraversalKind != TraversalSurfaceKind.None && NearTraversal(p, b, radius)) ||
+                        bool reserved = Reserved(layout, room.Id, p, config, radius, height) || local.Any(b =>
+                            b.TraversalKind != TraversalSurfaceKind.None && NearTraversal(p, b, radius, height)) ||
                             emitted.Any(other => (other - p).sqrMagnitude < spacing * spacing - Epsilon);
                         if (reserved) { Flush(); continue; }
                         var anchor = new LevelAnchor(++identity, room.Id, CakeAnchorType.Flow, p + Vector3.up * config.AnchorHeight);
@@ -198,15 +228,16 @@ namespace Worsen.Domain.Procedural
                     a.Position.x.ToString("R", CultureInfo.InvariantCulture) + "," + a.Position.z.ToString("R", CultureInfo.InvariantCulture)));
         }
 
-        private static bool Reserved(ProceduralLayout layout, int roomId, Vector3 point, ProceduralConfig config, float radius)
+        private static bool Reserved(ProceduralLayout layout, int roomId, Vector3 point, ProceduralConfig config, float radius, float height)
         {
             float clearance = Math.Max(config.TemplateExitCakeClearance, radius * 2f);
             var exitDelta = point - layout.Graph.ExitPosition; exitDelta.y = 0f;
-            if (roomId == layout.Graph.ExitRoomId && exitDelta.sqrMagnitude < clearance * clearance) return true;
+            if (roomId == layout.Graph.ExitRoomId && Math.Abs(point.y - layout.Graph.ExitPosition.y) < 3.21f && exitDelta.sqrMagnitude < clearance * clearance) return true;
             var spawnDelta = point - layout.PlayerSpawnPosition; spawnDelta.y = 0f;
-            if (spawnDelta.sqrMagnitude < clearance * clearance) return true;
+            if (Math.Abs(point.y - layout.PlayerSpawnPosition.y) < height && spawnDelta.sqrMagnitude < clearance * clearance) return true;
             foreach (var door in layout.Doors.Where(d => d.FromRoomId == roomId || d.ToRoomId == roomId))
             {
+                if (Math.Abs(point.y - door.Center.y) >= config.DoorHeight) continue;
                 var d = point - door.Center;
                 float across = Math.Abs(door.AlongX ? d.z : d.x), along = Math.Abs(door.AlongX ? d.x : d.z);
                 if (across < radius * 2f && along < config.DoorWidth * .5f + radius) return true;
@@ -222,7 +253,7 @@ namespace Worsen.Domain.Procedural
             // but even a narrow unsupported gap along a run fails closed.
             foreach (float x in new[] { -radius, 0f, radius }) foreach (float z in new[] { -radius, 0f, radius })
                 if (!Supported(from + new Vector3(x, -.01f, z), to + new Vector3(x, -.01f, z), floors)) return false;
-            from.y = to.y = height * .5f;
+            from.y += height * .5f; to.y += height * .5f;
             foreach (var block in obstacles)
                 // Do not admit exact tangencies: quarter-turn float error otherwise
                 // creates isolated boundary nodes that cannot be reached by a sweep.
@@ -263,8 +294,10 @@ namespace Worsen.Domain.Procedural
             return false;
         }
 
-        private static bool NearTraversal(Vector3 p, ProceduralBlock block, float radius)
+        private static bool NearTraversal(Vector3 p, ProceduralBlock block, float radius, float height)
         {
+            if (p.y > Math.Max(block.EndpointA.y, block.EndpointB.y) + height ||
+                p.y + height < Math.Min(block.EndpointA.y, block.EndpointB.y)) return false;
             var a = block.EndpointA; var b = block.EndpointB; a.y = b.y = p.y;
             var delta = b - a;
             float t = delta.sqrMagnitude < Epsilon ? 0f : Mathf.Clamp01(Vector3.Dot(p - a, delta) / delta.sqrMagnitude);
