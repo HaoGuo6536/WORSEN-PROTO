@@ -14,17 +14,18 @@
 //   - Check wallet, purchase, seed, restart and invalid-input behavior.
 //   - Verify catalogue pedestals, retired healing, automatic ward use and curse exhaustion.
 // DEPENDENCIES:
-//   - Core contracts, Session Progression, NUnit and Unity asset allocation.
+//   - Core contracts, Session Progression, NUnit and managed config reflection.
 // USAGE NOTES:
-//   Pure controller tests use a temporary default Config and seeded randomness.
-//   They do not assemble scenes or imply generated navigation has been verified.
+//   Pure controller tests use managed-only config shells with explicit inputs and
+//   seeded randomness. They do not verify Unity asset defaults, native lifecycle,
+//   assembled scenes or generated navigation.
 // ============================================================================
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.Runtime.Serialization;
 using NUnit.Framework;
-using UnityEngine;
 using Worsen.Core;
 using Worsen.Session.Progression;
 
@@ -41,8 +42,23 @@ namespace Worsen.Tests.Progression
         [SetUp]
         public void SetUp()
         {
-            config = ScriptableObject.CreateInstance<ProgressionConfig>();
-            catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
+            config = (ProgressionConfig)FormatterServices.GetUninitializedObject(typeof(ProgressionConfig));
+            catalogue = (EffectCatalogueConfig)FormatterServices.GetUninitializedObject(typeof(EffectCatalogueConfig));
+            // Supply rule inputs explicitly: uninitialized shells have no field initializers.
+            SetConfigField("_threats", new[] { "echo", "weaver", "ticking", "ram", "mannequin",
+                "mimic", "blinder", "skip", "herald", "stare" }
+                .Select(id => new ProgressionEntryConfig(id, id, "Adds a hunter.")).ToArray());
+            SetConfigField("_offers", Array.Empty<ProgressionEntryConfig>());
+            SetConfigField("_selectionInterval", 2); SetConfigField("_shopInterval", 2);
+            SetConfigField("_maximumActiveThreats", 5); SetConfigField("_goldenCakeValue", 1);
+            SetConfigField("_initialMaximumHealth", 100f); SetConfigField("_minimumMaximumHealth", 30f);
+            SetConfigField("_maximumMaximumHealth", 200f); SetConfigField("_minimumMultiplier", .4f);
+            SetConfigField("_maximumMovementMultiplier", 1.6f); SetConfigField("_maximumHunterMultiplier", 1.5f);
+            SetConfigField("_maximumFogMultiplier", 2f); SetConfigField("_maximumFlashlightMultiplier", 2f);
+            SetConfigField("_nothingShopPriceMultiplier", .85f); SetConfigField("_fasterCollapseGoldenCakeMultiplier", 1.15f);
+            SetConfigField("_firstEventRound", 8); SetConfigField("_eventInterval", 8);
+            SetConfigField("_eventJitter", 1); SetConfigField("_eventHazardFloors", 3);
+            SetConfigField("_maximumMutationSpeedMultiplier", 4f);
             typeof(EffectCatalogueConfig).GetField("_entries", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(catalogue, new[] {
                 new EffectCatalogueEntry("golden-touch", EffectKind.Upgrade, FearAxis.Stakes, "Golden Touch", "Each cake is worth one more.", price: 3),
                 new EffectCatalogueEntry("firecracker", EffectKind.Consumable, FearAxis.Information, "Firecracker", "Draws hunters.", price: 4),
@@ -59,7 +75,6 @@ namespace Worsen.Tests.Progression
             controller = new ProgressionSessionController(state, config, new System.Random(731));
             controller.StartRun(731);
         }
-        [TearDown] public void TearDown() { UnityEngine.Object.DestroyImmediate(config); UnityEngine.Object.DestroyImmediate(catalogue); }
         private int Revision => controller.Snapshot().Revision;
 
         [Test]
@@ -99,9 +114,11 @@ namespace Worsen.Tests.Progression
         public void CursesAreUniqueOfferedOnlyAndExhaustionStartsGeneration()
         {
             var chosen = new HashSet<string>();
-            for (int combat = 0; combat < 200 && chosen.Count < config.Curses.Count; combat++)
+            // Four general curses + one Echo-gated curse = five, with no retired rows.
+            // R1/R4/R5/R6 can each select; skipping R6's shop selected one invisibly:
+            // four recorded + one shop selection = five retained, not a pool of four.
+            for (int round = 0; round < 200 && chosen.Count < config.Curses.Count; round++)
             {
-                SkipPendingShop();
                 if (state.Phase == ProgressionPhase.ChooseThreat)
                     Assert.That(controller.ChooseThreat(controller.Snapshot().Choices.OrderBy(choice => choice.SelectedCount).First().Id, Revision), Is.True);
                 ProgressionSnapshot choices = controller.Snapshot();
@@ -114,13 +131,47 @@ namespace Worsen.Tests.Progression
                     Assert.That(chosen.Add(id), Is.True);
                 }
                 else Assert.That(choices.Phase, Is.EqualTo(ProgressionPhase.Generating));
-                controller.ConfirmFloorReady(state.GenerationId);
-                controller.CompleteFloor(state.GenerationId);
+                Assert.That(state.CurseCount, Is.EqualTo(chosen.Count), "Include selections before shop generation.");
+                Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
+                if (state.IsShop) Assert.That(controller.ContinueShop(Revision), Is.True);
+                else Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
             }
             Assert.That(chosen.Count, Is.EqualTo(config.Curses.Count));
             Assert.That(state.CurseCount, Is.EqualTo(config.Curses.Count));
             foreach (var selection in controller.Snapshot().Retained)
                 if (selection.Kind == ProgressionChoiceKind.Curse) Assert.That(selection.Count, Is.EqualTo(1));
+            AdvanceToSelection();
+            Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, Revision), Is.True);
+            Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.Generating), "Exhaustion must bypass the empty curse menu.");
+            Assert.That(controller.Snapshot().Choices, Is.Empty);
+            Assert.That(state.CurseCount, Is.EqualTo(chosen.Count));
+        }
+
+        [Test]
+        public void RetiredLegacyRowsDoNotInflateCursePoolOrDelayExhaustion()
+        {
+            string[] retired = { "afterglow", "blind-faith", "greedy-door" };
+            SetConfigField("_curses", new[] { new ProgressionEntryConfig("no-look-back", "Look", "Removes look-back.") }
+                .Concat(retired.Select(id => new ProgressionEntryConfig(id, id, "Stale retired row."))).ToArray());
+            controller = new ProgressionSessionController(state, config, new System.Random(731));
+            controller.StartRun(731);
+            Assert.That(controller.ChooseThreat("echo", Revision), Is.True);
+            Assert.That(controller.Snapshot().Choices.Select(choice => choice.Id), Is.EqualTo(new[] { "no-look-back" }));
+            foreach (string id in retired)
+            {
+                Assert.That(controller.ChooseCurse(id, Revision), Is.False);
+                Assert.That(state.CurseCount, Is.Zero);
+                Assert.That(controller.Snapshot().Retained.Any(selection => selection.Id == id), Is.False);
+            }
+            Assert.That(controller.ChooseCurse("no-look-back", Revision), Is.True);
+            Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
+            Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
+            AdvanceToSelection();
+            Assert.That(controller.ChooseThreat(controller.Snapshot().Choices[0].Id, Revision), Is.True);
+            // Four serialized rows - three retired identities = one selectable curse.
+            Assert.That(state.CurseCount, Is.EqualTo(1));
+            Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.Generating));
+            Assert.That(controller.Snapshot().Choices, Is.Empty);
         }
 
         [Test]
@@ -619,9 +670,9 @@ namespace Worsen.Tests.Progression
             controller = new ProgressionSessionController(state, config, new System.Random(seed));
             controller.StartRun(seed);
             var hunters = new HashSet<string>(); var curses = new HashSet<string>();
-            for (int combat = 0; combat < 200 && (curses.Count < config.Curses.Count || hunters.Count < config.Threats.Count); combat++)
+            bool selectedCurseBeforeGateShop = false;
+            for (int round = 0; round < 200 && (curses.Count < config.Curses.Count || hunters.Count < config.Threats.Count); round++)
             {
-                SkipPendingShop();
                 bool selection = state.Phase == ProgressionPhase.ChooseThreat;
                 string added = null;
                 if (state.Phase == ProgressionPhase.ChooseThreat)
@@ -638,6 +689,9 @@ namespace Worsen.Tests.Progression
                 {
                     Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.ChooseCurse));
                     var offered = controller.Snapshot().Choices;
+                    // Keep all five live fixture curses in the ledger, including R6's
+                    // pre-shop selection. Otherwise two look unchosen although one was
+                    // already retained at the shop, and the real remaining menu has one.
                     Assert.That(offered.Count, Is.EqualTo(Math.Min(3, eligible.Length)));
                     Assert.That(offered.Select(choice => choice.Id).Distinct().Count(), Is.EqualTo(offered.Count));
                     foreach (var choice in offered) Assert.That(eligible.Any(entry => entry.Id == choice.Id), Is.True);
@@ -646,12 +700,18 @@ namespace Worsen.Tests.Progression
                     if (added != null && eligible.Any(entry => entry.RequiredThreatId == added))
                         Assert.That(offered.Any(choice => eligible.Any(entry => entry.Id == choice.Id && entry.RequiredThreatId == added)), Is.True);
                     string selected = offered[0].Id;
-                    Assert.That(controller.ChooseCurse(selected, Revision), Is.True); curses.Add(selected);
+                    Assert.That(controller.ChooseCurse(selected, Revision), Is.True);
+                    Assert.That(curses.Add(selected), Is.True);
+                    if (state.Round == 6 && state.IsShop) selectedCurseBeforeGateShop = true;
                 }
+                Assert.That(state.CurseCount, Is.EqualTo(curses.Count));
+                Assert.That(controller.Snapshot().Effects.ActiveThreatIds.Distinct(), Is.EquivalentTo(hunters));
                 Assert.That(state.Phase, Is.EqualTo(ProgressionPhase.Generating));
                 Assert.That(controller.ConfirmFloorReady(state.GenerationId), Is.True);
-                Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
+                if (state.IsShop) Assert.That(controller.ContinueShop(Revision), Is.True);
+                else Assert.That(controller.CompleteFloor(state.GenerationId), Is.True);
             }
+            Assert.That(selectedCurseBeforeGateShop, Is.True, "Exercise the R6 gate selection before its shop.");
             Assert.That(hunters.Count, Is.EqualTo(10));
             Assert.That(curses.Count, Is.EqualTo(config.Curses.Count));
         }
