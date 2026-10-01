@@ -33,11 +33,12 @@ namespace Worsen.Domain.Procedural
         {
             if (layout.RoundIndex < config.MultiFloorStartRound || config.StoreyProbability <= 0f) return;
             var plans = new List<ProceduralStoreyPlan>();
-            var kit = layout.TemplateCatalogue.Kit.ToDictionary(p => p.Id);
             var selectedExit = layout.Graph.ExitPosition;
             foreach (var room in layout.TemplateRooms)
             {
-                if (room.PocketId != 0 ||
+                var catalogue = room.Catalogue ?? layout.TemplateCatalogue;
+                var kit = catalogue.Kit.ToDictionary(p => p.Id);
+                if (room.PocketId != 0 || room.Template.ReservedAreas.Length != 0 ||
                     layout.Modules.Single(m => m.RoomId == room.RoomId).Kind == ProceduralModuleKind.MerchantRefuge) continue;
                 if (random.NextDouble() >= config.StoreyProbability) continue;
                 // The canonical exit is taller than the ordinary 3.2m gallery.
@@ -130,7 +131,7 @@ namespace Worsen.Domain.Procedural
                     if (room.RoomId == layout.Graph.ExitRoomId && !SocketClear(player, exit))
                     {
                         Vector3 World(Vector3 p) => ProceduralTemplateUtility.Point(room, p, layout.Origin);
-                        if (!ProceduralExitHubUtility.TrySelect(layout.TemplateCatalogue, room.Template, config.TemplateExitClearance,
+                        if (!ProceduralExitHubUtility.TrySelect(catalogue, room.Template, config.TemplateExitClearance,
                             config.TemplateExitSpawnDistance, config.TemplateExitCakeClearance, config.DoorHeight, out var p, out var e,
                             (p0, e0) => { if (!SocketClear(World(p0), World(e0))) return false; clearSockets++;
                                 return Connected(World(p0), World(e0)); })) { sockets++; continue; }

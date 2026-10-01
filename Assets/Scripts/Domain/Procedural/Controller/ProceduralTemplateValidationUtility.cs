@@ -12,6 +12,7 @@
 //   - Check connected footprints, boundary sockets and gameplay anchor density.
 //   - Reject overlapping walls and incomplete straight or curved enclosures.
 //   - Admit only collision-bearing low vaults with opposite supported landing endpoints.
+//   - Admit dedicated interaction rooms without weakening legacy catalogue coverage.
 // DEPENDENCIES:
 //   - Own definitions and coordinate utility only; no file or engine access.
 // USAGE NOTES:
@@ -57,6 +58,7 @@ namespace Worsen.Domain.Procedural
                 catalogue.Templates.Any(t => t == null || !Identifier(t.Id)) ||
                 catalogue.Templates.Select(t => t.Id).Distinct().Count() != catalogue.Templates.Length) Fail("Catalogue needs at least ten unique templates.");
             foreach (var room in catalogue.Templates) ValidateRoom(catalogue, room);
+            foreach (var room in catalogue.Templates) ProceduralFurnishedUtility.Validate(catalogue, room);
             var rooms = catalogue.Templates.Where(t => t.Kind == "room").ToArray();
             var halls = catalogue.Templates.Where(t => t.Kind == "hallway" || t.Kind == "junction").ToArray();
             if (!rooms.Any(t => t.SizeClass == "closet") || rooms.Count(t => t.SizeClass == "small") < 2 ||
@@ -70,7 +72,7 @@ namespace Worsen.Domain.Procedural
         public static void ValidateRoom(ProceduralTemplateCatalogue catalogue, ProceduralRoomTemplate room)
         {
             if (room == null || !Identifier(room.Id) || !room.Id.StartsWith(catalogue.Theme + "_", StringComparison.Ordinal) ||
-                !new[] { "room", "hallway", "junction" }.Contains(room.Kind) ||
+                !new[] { "room", "hallway", "junction", "shrine", "puzzle" }.Contains(room.Kind) ||
                 !new[] { "rect", "L", "T", "round", "irregular" }.Contains(room.Shape) ||
                 !new[] { "none", "puzzle", "freeze", "traversal" }.Contains(room.Gimmick) ||
                 room.MinRound < (room.Gimmick == "none" ? 1 : 3) ||
@@ -115,8 +117,8 @@ namespace Worsen.Domain.Procedural
                 Fail(room.Id + ": hallway needs distinct ends.");
             if (room.Cake == null || room.GoldenCake == null || room.Light == null || room.HunterSpawn == null ||
                 room.GoldenCake.Length > 1 || room.Light.Length == 0 ||
-                (room.Kind == "room" && room.Cake.Length < (size == "closet" ? 1 : Math.Max(2, (area * 2 + 8) / 9))) ||
-                (room.Kind == "room" && area >= 10 && room.HunterSpawn.Length == 0)) Fail(room.Id + ": insufficient gameplay anchors.");
+                ((room.Kind == "room" || room.Kind == "shrine" || room.Kind == "puzzle") && room.Cake.Length < (size == "closet" ? 1 : Math.Max(2, (area * 2 + 8) / 9))) ||
+                ((room.Kind == "room" || room.Kind == "shrine" || room.Kind == "puzzle") && area >= 10 && room.HunterSpawn.Length == 0)) Fail(room.Id + ": insufficient gameplay anchors.");
             foreach (var group in new[] { room.Cake, room.GoldenCake, room.Light, room.HunterSpawn })
                 if (group.Distinct().Count() != group.Length || group.Any(p => !ProceduralTemplateUtility.Inside(room, p, .6f)))
                     Fail(room.Id + ": anchor outside footprint or less than 0.6m from a wall.");
@@ -236,7 +238,7 @@ namespace Worsen.Domain.Procedural
         public static IReadOnlyList<Vector3> PresentationBoundary(ProceduralLayout layout, int roomId)
         {
             var template = layout.TemplateRooms.FirstOrDefault(r => r.RoomId == roomId);
-            if (template != null) return RoundBoundary(layout.TemplateCatalogue, template, layout.Origin);
+            if (template != null) return RoundBoundary(template.Catalogue ?? layout.TemplateCatalogue, template, layout.Origin);
             var organic = layout.OrganicRooms.FirstOrDefault(r => r.RoomId == roomId && r.Shape == ProceduralRoomShape.Round);
             if (organic.RoomId == 0) return null;
             var side = new Vector3(organic.RoundFacing.z, 0f, -organic.RoundFacing.x);

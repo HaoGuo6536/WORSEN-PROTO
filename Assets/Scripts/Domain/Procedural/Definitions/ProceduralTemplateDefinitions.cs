@@ -11,6 +11,7 @@
 //   - Carry serializable theme, kit, room, anchor and piece data.
 //   - Record placed template origins and the door sockets actually opened.
 //   - Preserve explicit traversal kinds, collision and room-local paired endpoints.
+//   - Retain furnished reservations, singular shrine sockets and authored puzzle lanes.
 // DEPENDENCIES:
 //   - Unity value types and System serialization only.
 // USAGE NOTES:
@@ -50,6 +51,12 @@ namespace Worsen.Domain.Procedural
         public string Id, Kind, SizeClass, Shape, Gimmick;
         public float Height, Weight;
         public int MinRound;
+        public int FurnishingVersion;
+        public ProceduralShrineSocket[] ShrineSockets = Array.Empty<ProceduralShrineSocket>();
+        public ProceduralPuzzleSocket PuzzleSockets;
+        public ProceduralTemplateGap PassageGap;
+        public ProceduralTemplateReservation[] ReservedAreas = Array.Empty<ProceduralTemplateReservation>();
+        public ProceduralTemplateTransition Transition;
         public Vector2Int[] Footprint = Array.Empty<Vector2Int>();
         public ProceduralTemplateDoor[] Doors = Array.Empty<ProceduralTemplateDoor>();
         public Vector3[] Cake = Array.Empty<Vector3>(), GoldenCake = Array.Empty<Vector3>(),
@@ -78,11 +85,64 @@ namespace Worsen.Domain.Procedural
         public Vector3 EndpointA, EndpointB;
     }
 
+    [Serializable]
+    public sealed class ProceduralShrineSocket
+    {
+        public string Id;
+        public Vector3 Position, Facing, ModelEnvelope, InteractionCenter, InteractionSize;
+    }
+
+    [Serializable]
+    public sealed class ProceduralPuzzleSocket
+    {
+        public Vector3 Origin, Axis, Reward;
+        public float LaneLength, LaneWidth, CageHeight, PanelThickness, Clearance;
+        public Vector3[] Steps = Array.Empty<Vector3>();
+        public string[] SupportedKinds = Array.Empty<string>();
+    }
+
+    [Serializable]
+    public sealed class ProceduralTemplateGap
+    {
+        public string Side, PocketTemplateId;
+        public Vector2Int EdgeCell, PocketOffset;
+        public Vector3 Edge, Landing;
+        public float Width, GapLength;
+        public int PocketTurns;
+        public bool SealedUntilActivated, OptionalOnly;
+    }
+
+    [Serializable]
+    public sealed class ProceduralTemplateReservation
+    {
+        public string Id;
+        public Vector3 Center, Size;
+    }
+
+    [Serializable]
+    public sealed class ProceduralTemplateTransition
+    {
+        public string Purpose;
+        public string[] CompatibleThemes = Array.Empty<string>();
+        public ProceduralTransitionDoor[] Doors = Array.Empty<ProceduralTransitionDoor>();
+    }
+
+    [Serializable]
+    public sealed class ProceduralTransitionDoor
+    {
+        public int Index;
+        public float ClearWidth, ClearHeight, FloorY;
+        public string Seam;
+    }
+
     public sealed class ProceduralTemplateRoom
     {
         public int RoomId;
         public int PocketId;
         public ProceduralRoomTemplate Template;
+        public ProceduralTemplateCatalogue Catalogue;
+        public ProceduralThemeData Theme;
+        public ProceduralTemplateRoom PassagePocket;
         public Vector2Int Offset;
         public Vector2Int SubcellOffset;
         public int Turns;

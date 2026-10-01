@@ -54,6 +54,8 @@ namespace Worsen.Domain.Procedural
         public int GimmickBudget { get; internal set; } = int.MaxValue;
         public IReadOnlyList<ProceduralOrganicRoom> OrganicRooms { get; internal set; } = System.Array.Empty<ProceduralOrganicRoom>();
         public ProceduralThemeData Theme { get; internal set; }
+        public IReadOnlyDictionary<int, ProceduralThemeData> RoomThemes { get; internal set; }
+            = new Dictionary<int, ProceduralThemeData>();
         public string ThemeId => Theme?.Id ?? "castle";
         public IReadOnlyList<ProceduralFreezePlan> FreezeRooms { get; internal set; } = System.Array.Empty<ProceduralFreezePlan>();
         public IReadOnlyList<ProceduralPuzzlePlan> Puzzles { get; internal set; } = System.Array.Empty<ProceduralPuzzlePlan>();

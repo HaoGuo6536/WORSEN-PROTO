@@ -39,11 +39,12 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<ProceduralBlock> Build(ProceduralLayout layout, ProceduralConfig config, ProceduralDriverConfig driver)
         {
             var blocks = new List<ProceduralBlock>();
-            var kit = layout.TemplateCatalogue.Kit.ToDictionary(p => p.Id);
             foreach (var room in layout.TemplateRooms)
             {
+                var catalogue = room.Catalogue ?? layout.TemplateCatalogue;
+                var kit = catalogue.Kit.ToDictionary(p => p.Id);
                 float height = Math.Max(room.Template.Height, layout.Graph?.Rooms.FirstOrDefault(r => r.Id == room.RoomId).Size.y ?? room.Template.Height);
-                float extra = height - layout.TemplateCatalogue.WallHeight;
+                float extra = height - catalogue.WallHeight;
                 int roomStart = blocks.Count;
                 Vector3 World(Vector3 p) => ProceduralTemplateUtility.Point(room, p, layout.Origin);
                 foreach (var cell in room.Template.Footprint)
@@ -79,7 +80,7 @@ namespace Worsen.Domain.Procedural
                             pieceId: piece.Id, piecePosition: pivot));
                         continue;
                     }
-                    if (layout.TemplateCatalogue.Theme == "castle" && kit.TryGetValue("wall_2m", out var masonry) &&
+                    if (catalogue.Theme == "castle" && kit.TryGetValue("wall_2m", out var masonry) &&
                         Math.Abs(masonry.Size.z - .8f) < .00001f && (piece.Kind == "arc" || piece.Id == "wall_round_tangent_r4"))
                     {
                         Masonry(blocks, room.RoomId, piece, World(placement.Position), yaw);
@@ -155,10 +156,10 @@ namespace Worsen.Domain.Procedural
                     void Add(float low, float high, float bottom, string id = null, Vector3? pivot = null)
                     {
                         if (high - low <= .0001f) return;
-                        float partHeight = layout.TemplateCatalogue.WallHeight - bottom;
+                        float partHeight = catalogue.WallHeight - bottom;
                         if (partHeight <= .0001f) return;
                         blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Wall,
-                            a + tangent * ((low + high) * .5f) + Vector3.up * ((layout.TemplateCatalogue.WallHeight + bottom) * .5f),
+                            a + tangent * ((low + high) * .5f) + Vector3.up * ((catalogue.WallHeight + bottom) * .5f),
                             new Vector3(high - low, partHeight, piece.Kind == "arc" ? driver.WallThickness : piece.Size.z),
                             rotation: Yaw(yaw), pieceId: id, piecePosition: pivot));
                     }
@@ -181,10 +182,10 @@ namespace Worsen.Domain.Procedural
                 if (extra > 0f)
                     foreach (var b in blocks.Skip(roomStart).ToArray())
                         if (b.HasCollision && b.Kind == ProceduralSurfaceKind.Wall &&
-                            Math.Abs(b.Center.y + b.Size.y * .5f - layout.TemplateCatalogue.WallHeight) < .001f &&
+                            Math.Abs(b.Center.y + b.Size.y * .5f - catalogue.WallHeight) < .001f &&
                             (b.PieceId == null || ProceduralTemplateValidationUtility.Wall(kit[b.PieceId])))
                             blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Wall,
-                                new Vector3(b.Center.x, layout.TemplateCatalogue.WallHeight + extra * .5f, b.Center.z),
+                                new Vector3(b.Center.x, catalogue.WallHeight + extra * .5f, b.Center.z),
                                 new Vector3(b.Size.x, extra, b.Size.z), rotation: b.Rotation));
             }
             blocks = new ProceduralTemplateSeamPresenter().Build(layout, blocks, config);

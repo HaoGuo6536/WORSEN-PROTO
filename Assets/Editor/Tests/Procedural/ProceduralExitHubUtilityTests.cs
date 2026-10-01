@@ -97,14 +97,17 @@ namespace Worsen.Tests.Procedural
             {
                 var random = new System.Random(seed);
                 var config = (ProceduralConfig)FormatterServices.GetUninitializedObject(typeof(ProceduralConfig));
+                var data = ProceduralTemplateSeamPresenterTests.Empty<ProceduralRoomCatalogueData>();
+                ProceduralTemplateSeamPresenterTests.Field(data, "_catalogues", new[] { catalogue });
+                ProceduralTemplateSeamPresenterTests.Field(config, "_roomCatalogue", data);
                 var controller = new ProceduralTemplateController(config, random);
-                var hub = new ProceduralTemplateRoom { RoomId = 1, Template = starts[seed % starts.Length], Turns = seed % 4 };
+                var hub = new ProceduralTemplateRoom { RoomId = 1, Template = starts[seed % starts.Length], Catalogue = catalogue, Turns = seed % 4 };
                 var placed = new List<ProceduralTemplateRoom> { hub };
                 var occupied = new HashSet<Vector2Int>(ProceduralTemplateUtility.OccupiedCells(hub));
                 var doors = new List<ProceduralDoorPlan>(); var gaps = new HashSet<Vector2Int>(); var sites = new List<ProceduralGapSite>();
                 for (int attempt = 0; attempt < 2048 && placed.Count < 3; attempt++)
                     attach.Invoke(controller, new object[] { catalogue.Templates[random.Next(catalogue.Templates.Length)],
-                        0, 0, placed, occupied, gaps, doors, sites });
+                        0, 0, placed, occupied, gaps, doors, sites, 0, null });
                 Assert.That(placed.Count, Is.EqualTo(3), theme + " seed=" + seed);
                 Assert.That(hub.OpenDoors.Length, Is.GreaterThanOrEqualTo(2));
                 Assert.That(doors.Count(d => d.FromRoomId == hub.RoomId || d.ToRoomId == hub.RoomId), Is.GreaterThanOrEqualTo(2));

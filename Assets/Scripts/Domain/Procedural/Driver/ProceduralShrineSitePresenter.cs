@@ -12,6 +12,7 @@
 //   - Reserve the larger of the shrine and supplied navigation agent envelopes.
 //   - Record candidate positions, room ownership, gap flags and facing in the manifest.
 //   - Admit gap sockets only when their straight crossing reaches an identified pocket.
+//   - Consume exactly one authored socket per designated template shrine room.
 // DEPENDENCIES:
 //   - Own layout/config/block definitions and Core graph values only.
 // USAGE NOTES:
@@ -54,6 +55,23 @@ namespace Worsen.Domain.Procedural
                 .Concat(layout.Doors.Select(d => d.Center)).ToArray();
             var obstacles = blocks.Where(b => b.HasCollision).Select(WorldBounds).Concat(layout.Interactables
                 .Where(p => p.State.Kind == InteractableKind.KnockableProp).Select(p => new Bounds(p.State.Position, p.Size))).ToArray();
+            if (layout.UsesTemplates)
+            {
+                foreach (var placed in layout.TemplateRooms.Where(r => r.PocketId == 0 && r.Template.Kind == "shrine").OrderBy(r => r.RoomId))
+                {
+                    if (placed.Template.ShrineSockets.Length != 1) throw new ArgumentException("Shrine room needs exactly one socket.");
+                    var socket = placed.Template.ShrineSockets[0];
+                    var rotated = ProceduralTemplateUtility.Rotate(socket.ModelEnvelope, placed.Turns);
+                    size = new Vector3(Math.Max(Math.Abs(rotated.x), navigationRadius * 2f), Math.Max(rotated.y, navigationHeight), Math.Max(Math.Abs(rotated.z), navigationRadius * 2f));
+                    var position = ProceduralTemplateUtility.Point(placed, socket.Position, layout.Origin);
+                    var facing = ProceduralTemplateUtility.Rotate(socket.Facing, placed.Turns);
+                    bool gap = new ProceduralPassagePresenter().Destination(layout, placed.RoomId, position, facing) != 0;
+                    int previousCount = result.Count;
+                    Add(placed.RoomId, position, gap, facing);
+                    if (!gap || result.Count != previousCount + 1) throw new InvalidOperationException("Authored shrine socket or Passage pocket failed admission in room " + placed.RoomId);
+                }
+                return result.AsReadOnly();
+            }
             foreach (var gap in layout.GapSites)
             {
                 var facing = gap.Landing - gap.Edge; facing.y = 0f; facing.Normalize();

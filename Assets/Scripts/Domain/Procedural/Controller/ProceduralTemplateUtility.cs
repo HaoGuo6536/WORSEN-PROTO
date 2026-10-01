@@ -81,10 +81,10 @@ namespace Worsen.Domain.Procedural
         }
         public static bool Compatible(ProceduralTemplateRoom a, ProceduralTemplateRoom b, ProceduralTemplateCatalogue catalogue)
         {
-            var kit = catalogue.Kit.ToDictionary(p => p.Id);
             return Clear(a, b) && Clear(b, a);
             bool Clear(ProceduralTemplateRoom source, ProceduralTemplateRoom target)
             {
+                var kit = (source.Catalogue ?? catalogue).Kit.ToDictionary(p => p.Id);
                 var own = new HashSet<Vector2Int>(OccupiedCells(source));
                 var other = new HashSet<Vector2Int>(OccupiedCells(target));
                 foreach (var p in source.Template.Pieces.Concat(source.Template.Doors.SelectMany(d => d.ClosedWith ?? Array.Empty<ProceduralTemplatePiece>())))

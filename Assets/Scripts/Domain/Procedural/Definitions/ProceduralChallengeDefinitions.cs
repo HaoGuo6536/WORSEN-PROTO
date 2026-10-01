@@ -23,8 +23,9 @@ namespace Worsen.Domain.Procedural
     public enum ProceduralPuzzleKind { OrderedPlates, DimmingPath, MovingDoor, TimedVaults }
     public readonly struct ProceduralPuzzlePlan
     {
-        public ProceduralPuzzlePlan(int id, int roomId, ProceduralPuzzleKind kind, Vector3 origin, bool alongX, LevelAnchor reward)
-        { Id = id; RoomId = roomId; Kind = kind; Origin = origin; AlongX = alongX; Reward = reward; }
+        public ProceduralPuzzlePlan(int id, int roomId, ProceduralPuzzleKind kind, Vector3 origin, bool alongX, LevelAnchor reward, bool reversed = false)
+        { Id = id; RoomId = roomId; Kind = kind; Origin = origin; AlongX = alongX; Reward = reward; Reversed = reversed; }
+        public bool Reversed { get; }
         public int Id { get; }
         public int RoomId { get; }
         public ProceduralPuzzleKind Kind { get; }

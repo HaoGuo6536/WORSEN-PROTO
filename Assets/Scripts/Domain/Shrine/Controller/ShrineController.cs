@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Enforce depth, gap-edge placement, nearest Interact and single use.
 //   - Return activation facts using the supplied committed player pose and tick.
+//   - Select separated rooms with a seeded first site, never repeated room placements.
 // DEPENDENCIES:
 //   - Own state/config, Core values and injected System.Random only.
 // USAGE NOTES:
@@ -17,6 +18,7 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Worsen.Core;
 namespace Worsen.Domain.Shrine
@@ -48,16 +50,24 @@ namespace Worsen.Domain.Shrine
         {
             var placements = new List<ShrinePlacement>();
             int count = CountForFloor(floor, moreShrines);
-            for (int i = 0; sites != null && i < sites.Count && placements.Count < count; i++)
+            var candidates = sites == null ? new List<int>() : Enumerable.Range(0, sites.Count)
+                .Where(i => sites[i].RoomId >= 0 && Finite(sites[i].Position)).ToList();
+            while (candidates.Count > 0 && placements.Count < count)
             {
+                int i = placements.Count == 0 ? candidates[random.Next(candidates.Count)] : candidates
+                    .OrderByDescending(index => placements.Min(p => (p.Site.Position - sites[index].Position).sqrMagnitude)).ThenBy(index => index).First();
+                candidates.Remove(i);
                 var site = sites[i];
-                if (site.RoomId < 0 || !Finite(site.Position)) continue;
                 var kinds = new List<ShrineKind>();
                 foreach (var entry in config.Availability)
                 {
                     if (floor >= entry.Floor && (entry.Kind != ShrineKind.Passage || site.GapEdge)) kinds.Add(entry.Kind);
                 }
-                if (kinds.Count > 0) placements.Add(new ShrinePlacement(i, kinds[random.Next(kinds.Count)], site));
+                if (kinds.Count > 0)
+                {
+                    placements.Add(new ShrinePlacement(i, kinds[random.Next(kinds.Count)], site));
+                    candidates.RemoveAll(index => sites[index].RoomId == site.RoomId);
+                }
             }
             Reset(placements);
             return Array.AsReadOnly(placements.ToArray());

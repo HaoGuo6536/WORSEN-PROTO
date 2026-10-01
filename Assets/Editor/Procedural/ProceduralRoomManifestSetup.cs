@@ -11,6 +11,7 @@
 //   - Parse kit and room manifests without repairing malformed source tokens.
 //   - Publish validated snapshots into the selected content asset.
 //   - Reject malformed traversal metadata and preserve room-local vault endpoints.
+//   - Merge explicit expansion manifests before admission, retaining typed reservations.
 // DEPENDENCIES:
 //   - Domain.Procedural, bounded local JSON reader and UnityEditor.
 // USAGE NOTES:
@@ -43,19 +44,34 @@ namespace Worsen.Editor.Procedural
                 throw new InvalidOperationException("Room catalogue publication lost catalogues.");
             EditorUtility.SetDirty(asset); AssetDatabase.SaveAssetIfDirty(asset);
         }
-        public static ProceduralTemplateCatalogue Parse(string kitJson, string roomsJson)
+        public static ProceduralTemplateCatalogue Parse(string kitJson, string roomsJson, string expansionJson = null)
         {
             var kit = ProceduralManifestJsonSetup.Parse(kitJson); var rooms = ProceduralManifestJsonSetup.Parse(roomsJson);
+            var templates = Array(rooms["templates"]).ToList();
+            if (expansionJson != null)
+            {
+                var expansion = ProceduralManifestJsonSetup.Parse(expansionJson);
+                if (Text(expansion, "theme") != Text(rooms, "theme") || Number(expansion["module"]) != Number(rooms["module"]) ||
+                    Integer(expansion["schemaVersion"]) != 2) throw new ArgumentException("Expansion theme/module/schema mismatch.");
+                templates.AddRange(Array(expansion["templates"]));
+            }
             var result = new ProceduralTemplateCatalogue
             {
                 Theme = Text(rooms, "theme"), Module = Number(rooms["module"]), WallHeight = Number(kit["wallHeight"]),
                 Kit = Array(kit["pieces"]).Select(p => new ProceduralKitPiece
                 { Id = Text(p, "id"), File = Text(p, "file"), Kind = Text(p, "kind"), Size = Point(p["size"]),
                     TraversalKind = Traversal(p), Collision = Collision(p) }).ToArray(),
-                Templates = Array(rooms["templates"]).Select(t => new ProceduralRoomTemplate
+                Templates = templates.Select(t => new ProceduralRoomTemplate
                 {
                     Id = Text(t, "id"), Kind = Text(t, "kind"), Shape = Text(t, "shape"), SizeClass = Text(t, "sizeClass"),
                     Height = Number(t["height"]), Gimmick = Text(t, "gimmick"), MinRound = Integer(t["minRound"]), Weight = Number(t["weight"]),
+                    FurnishingVersion = t["furnishingVersion"] == null ? 0 : Integer(t["furnishingVersion"]),
+                    ShrineSockets = t["shrineSockets"] == null ? System.Array.Empty<ProceduralShrineSocket>() : Array(t["shrineSockets"]).Select(s =>
+                        new ProceduralShrineSocket { Id = Text(s, "id"), Position = Point(s["position"]), Facing = Point(s["facing"]),
+                            ModelEnvelope = Point(s["modelEnvelope"]), InteractionCenter = Point(s["interactionCenter"]), InteractionSize = Point(s["interactionSize"]) }).ToArray(),
+                    PuzzleSockets = Puzzle(t["puzzleSockets"]), PassageGap = Gap(t["passageGap"]), Transition = Transition(t["transition"]),
+                    ReservedAreas = t["reservedAreas"] == null ? System.Array.Empty<ProceduralTemplateReservation>() : Array(t["reservedAreas"]).Select(r =>
+                        new ProceduralTemplateReservation { Id = Text(r, "id"), Center = Point(r["center"]), Size = Point(r["size"]) }).ToArray(),
                     Footprint = Array(t["footprint"]).Select(Cell).ToArray(),
                     Doors = Array(t["doors"]).Select(d => new ProceduralTemplateDoor
                     {
@@ -72,6 +88,28 @@ namespace Worsen.Editor.Procedural
             ProceduralTemplateValidationUtility.Validate(result);
             return result;
         }
+        private static ProceduralPuzzleSocket Puzzle(JToken p) => p == null ? null : new ProceduralPuzzleSocket
+        {
+            Origin = Point(p["origin"]), Axis = Point(p["axis"]), Reward = Point(p["reward"]), Steps = Points(p["steps"]),
+            LaneLength = Number(p["laneLength"]), LaneWidth = Number(p["laneWidth"]), CageHeight = Number(p["cageHeight"]),
+            PanelThickness = Number(p["panelThickness"]), Clearance = Number(p["clearance"]), SupportedKinds = Strings(p["supportedKinds"])
+        };
+        private static ProceduralTemplateGap Gap(JToken p) => p == null ? null : new ProceduralTemplateGap
+        {
+            Side = Text(p, "side"), EdgeCell = Cell(p["edgeCell"]), Edge = Point(p["edge"]), Landing = Point(p["landing"]),
+            Width = Number(p["width"]), GapLength = Number(p["gapLength"]), PocketTemplateId = Text(p, "pocketTemplateId"),
+            PocketOffset = Cell(p["pocketOffset"]), PocketTurns = Integer(p["pocketTurns"]),
+            SealedUntilActivated = Boolean(p["sealedUntilActivated"]), OptionalOnly = Boolean(p["optionalOnly"])
+        };
+        private static ProceduralTemplateTransition Transition(JToken p) => p == null ? null : new ProceduralTemplateTransition
+        {
+            Purpose = Text(p, "purpose"), CompatibleThemes = Strings(p["compatibleThemes"]),
+            Doors = Array(p["doors"]).Select(d => new ProceduralTransitionDoor { Index = Integer(d["index"]),
+                ClearWidth = Number(d["clearWidth"]), ClearHeight = Number(d["clearHeight"]), FloorY = Number(d["floorY"]), Seam = Text(d, "seam") }).ToArray()
+        };
+        private static string[] Strings(JToken p) => Array(p).Select(s => s.IsString ? s.Text : throw new ArgumentException("Expected string array.")).ToArray();
+        private static bool Boolean(JToken p) => p != null && !p.IsString && (p.Text == "true" || p.Text == "false") ?
+            p.Text == "true" : throw new ArgumentException("Expected boolean.");
         private static ProceduralTemplatePiece Placement(JToken value)
         {
             var traversal = Traversal(value);

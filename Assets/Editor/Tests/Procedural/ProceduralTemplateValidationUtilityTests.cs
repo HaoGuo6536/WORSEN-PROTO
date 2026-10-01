@@ -39,14 +39,15 @@ namespace Worsen.Tests.Procedural
             if (accepted) Assert.DoesNotThrow(() => ProceduralTemplateValidationUtility.ValidateRoom(c, room));
             else Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.ValidateRoom(c, room));
         }
-        [TestCase("Castle", 15)] [TestCase("Hospital", 14)]
-        [TestCase("School", 12)] [TestCase("Basement", 13)]
+        [TestCase("Castle", 25)] [TestCase("Hospital", 24)]
+        [TestCase("School", 22)] [TestCase("Basement", 23)]
         public void CheckedInThemeManifestsPassProductionAdmission(string theme, int expectedCount)
         {
             string root = "Assets/Art/Environment/" + theme;
             var catalogue = ProceduralRoomManifestSetup.Parse(
                 File.ReadAllText(root + "/Kit/" + theme + "Kit.manifest.json"),
-                File.ReadAllText(root + "/Rooms/" + theme + "Rooms.manifest.json"));
+                File.ReadAllText(root + "/Rooms/" + theme + "Rooms.manifest.json"),
+                File.ReadAllText(root + "/Rooms/" + theme + "Rooms.expansion.manifest.json"));
             Assert.That(catalogue.Theme, Is.EqualTo(theme.ToLowerInvariant()));
             Assert.That(catalogue.Templates.Length, Is.EqualTo(expectedCount));
             Assert.DoesNotThrow(() => ProceduralTemplateValidationUtility.Validate(catalogue));

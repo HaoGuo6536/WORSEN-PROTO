@@ -14,6 +14,7 @@
 // USAGE NOTES:
 //   Null config means legacy castle. FirstRound now controls the first re-roll,
 //   not access to the catalogue: round one always draws from all enabled entries.
+//   Mixed template floors use BiomeRoundsPerUnlock instead of the legacy re-roll.
 // ============================================================================
 using System;
 using UnityEngine;
@@ -24,6 +25,8 @@ namespace Worsen.Domain.Procedural
     public sealed class ProceduralThemeConfig : ScriptableObject
     {
         [SerializeField] private int _firstRound = 2;
+        [SerializeField, Min(1)] private int _biomeRoundsPerUnlock = 1;
+        public int BiomeRoundsPerUnlock => _biomeRoundsPerUnlock;
         [SerializeField] private bool _perRun = false;
         [SerializeField] private bool _hospitalEnabled = true;
         [SerializeField] private bool _schoolEnabled = true, _basementEnabled = true;
