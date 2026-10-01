@@ -109,7 +109,10 @@ if ($PrecheckOnly) { Log 'Precheck only; nothing published.'; return }
 
 # ---------- 2. Unity gate on the detached candidate ----------
 if ($RestartAboveGB -gt 0) {
-    & (Join-Path $PSScriptRoot 'restart-editor.ps1') -ThresholdGB $RestartAboveGB -Plan $Plan | ForEach-Object { Log "  restart: $_" }
+    # A failed restart is a warning, not a gate failure: the tool releases its lease when it changed
+    # nothing, and the lease acquisition below still refuses a held lease.
+    try { & (Join-Path $PSScriptRoot 'restart-editor.ps1') -ThresholdGB $RestartAboveGB -Plan $Plan | ForEach-Object { Log "  restart: $_" } }
+    catch { Log "WARNING: editor restart skipped: $($_.Exception.Message)" }
 }
 $token = Enter-UnityLease $Plan "Gate $Label`: candidate $($candidate.Substring(0,8)) import, setup, Edit Mode suite"
 Log "Lease acquired ($($token.Substring(0,8))...)"
