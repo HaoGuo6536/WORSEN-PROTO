@@ -99,7 +99,12 @@ namespace Worsen.Tests.Scenes
                 authored.GetType().GetField("name").SetValue(authored, "Authored view");
                 views.SetValue(authored, 0); viewsProperty.SetValue(mixer, views);
                 if (missingView) viewsProperty.SetValue(mixer, Array.CreateInstance(views.GetType().GetElementType(), 0));
-                else MixerProperty(mixer, "currentViewIndex").SetValue(mixer, views.Length);
+                else
+                {
+                    // Unity validates the index on assignment and logs this error; corrupting it is the point.
+                    UnityEngine.TestTools.LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Invalid view index"));
+                    MixerProperty(mixer, "currentViewIndex").SetValue(mixer, views.Length);
+                }
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
                 AssertCurrentView(mixer, 3);
                 Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(guid));
