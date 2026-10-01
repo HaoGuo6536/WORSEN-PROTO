@@ -12,7 +12,7 @@
 //   - Build torch, school/hospital fluorescent and basement cage art at exact sockets.
 //   - Admit footprint/curved dressing without decorative collision or real lights.
 //   - Own budgeted Lumen grammar and bind Core light facts by exact socket position.
-//   - Own room objects and threshold chalk with symmetric floor teardown.
+//   - Release room objects, chalk and all imported Lumen players on floor teardown.
 // DEPENDENCIES:
 //   - Own Presenter/DriverState/DriverConfig; DistantLands.Lumen.Runtime external SDK.
 //   - Core interactable snapshots are pushed by the owning Manager, never pulled from Level.
@@ -357,6 +357,14 @@ namespace Worsen.Presentation.Environment
         private static void RemoveOwned(GameObject item)
         {
             if (item == null) return;
+            // Include decorative/fire-prefab players, not just the budgeted grammar.
+            foreach (var player in item.GetComponentsInChildren<LumenEffectPlayer>(true))
+            {
+                if (player == null) continue;
+                player.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
+                player.enabled = false;
+                player.ClearEffect();
+            }
             item.SetActive(false);
             if (Application.isPlaying) Destroy(item); else DestroyImmediate(item);
         }

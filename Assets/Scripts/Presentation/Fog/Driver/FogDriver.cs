@@ -2,13 +2,13 @@
 // FogDriver.cs
 // ============================================================================
 // PURPOSE:
-//   Owns the bounded density texture and publishes the field to the fog shader.
-//   Progress commands are coalesced until LateUpdate so a frame uploads at most once.
+//   Owns exact doorway haze by default and retains the volumetric spike as opt-in.
+//   Progress commands coalesce until the Manager's LateUpdate; hazards remain in Floor.
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Presentation · Fog.
 // KEY RESPONSIBILITIES:
 //   - Preserve the pending look during room construction and apply only optical colours.
-//   - Apply pure density changes, upload R8 data and own shader globals.
+//   - Choose confined doorway sheets or the explicit legacy R8 experiment, never both.
 //   - Release texture/global ownership on disable and record actual upload CPU time.
 // DEPENDENCIES:
 //   - Core room/graph data, own presenter/state/config and Unity rendering APIs.
@@ -29,6 +29,7 @@ namespace Worsen.Presentation.Fog
     public sealed class FogDriver : MonoBehaviour
     {
         private FogDriverConfig _config;
+        private FogDoorwayDriver _doorways;
         private FogDriverState _state = new FogDriverState();
         public int RoomCount => _state.Rooms.Count;
         public int UploadRevision => _state.UploadRevision;
@@ -49,7 +50,14 @@ namespace Worsen.Presentation.Fog
             _state = FogDensityPresenter.Build(rooms, graph, _config);
             _state.Enabled = enabledBefore;
             _state.Look = look;
-            if (_state.UnmatchedEdges > 0) Debug.LogWarning($"Fog omitted {_state.UnmatchedEdges} graph edges without matching shared-wall portal centers.", this);
+            if (_config.DoorwayOnly)
+            {
+                var root = new GameObject("Owned doorway haze");
+                root.transform.SetParent(transform, false);
+                _doorways = root.AddComponent<FogDoorwayDriver>();
+                _doorways.Build(rooms, _config);
+            }
+            if (!_config.DoorwayOnly && _state.UnmatchedEdges > 0) Debug.LogWarning($"Fog omitted {_state.UnmatchedEdges} graph edges without matching shared-wall portal centers.", this);
         }
         public void SetLook(string look)
         { _state.Look = look; _state.UploadPending = true; }
@@ -58,16 +66,29 @@ namespace Worsen.Presentation.Fog
         public void SetEnabled(bool value)
         {
             _state.Enabled = value;
+            if (_doorways != null) _doorways.gameObject.SetActive(value);
             if (!value) ReleaseTexture();
             else _state.UploadPending = true;
         }
         public void ResetFloor()
         {
+            if (_doorways != null)
+            {
+                _doorways.Teardown();
+                if (Application.isPlaying) Destroy(_doorways.gameObject); else DestroyImmediate(_doorways.gameObject);
+                _doorways = null;
+            }
             ReleaseTexture();
             _state = new FogDriverState { Enabled = _state.Enabled };
         }
         public void Flush()
         {
+            if (_config != null && _config.DoorwayOnly)
+            {
+                ReleaseTexture();
+                if (_doorways != null) _doorways.Apply(_state, _config);
+                return;
+            }
             if (_config == null || !_state.Enabled || !isActiveAndEnabled || _state.Density.Length == 0) return;
             FogDensityPresenter.Rebuild(_state, _config);
             if (!_state.UploadPending) return;
