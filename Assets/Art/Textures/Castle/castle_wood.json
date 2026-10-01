@@ -1,0 +1,9 @@
+{
+  "metresPerTile": 2.0,
+  "paletteSrgb": "#4a3423",
+  "recipe": "wood",
+  "resolution": 512,
+  "seed": 261001,
+  "normalConvention": "OpenGL +Y",
+  "packing": "Albedo=sRGB RGB; Normal=linear RGB; Smoothness=linear R:metallic A:smoothness GB:0"
+}
