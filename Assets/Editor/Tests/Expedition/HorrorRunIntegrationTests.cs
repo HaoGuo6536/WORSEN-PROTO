@@ -120,8 +120,10 @@ namespace Worsen.Tests.Expedition
                     ChooseCombatFloor(progression, input, round);
                     yield return AwaitFloor(progression, expedition, run, ProgressionPhase.Exploring);
                     AssertFloor(progression, expedition, run, procedural, floor, sceneHandle, false, captures);
-                    Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
-                    previousRooms = procedural.Graph.Rooms.Count;
+                    // PLAN-026 §2 growth; ProceduralConfig budgets optional pockets separately.
+                    Assert.That(procedural.Graph.Rooms.Count(room => !room.Pocket), Is.GreaterThan(previousRooms),
+                        "Connected rooms must grow on combat round " + round + ".");
+                    previousRooms = procedural.Graph.Rooms.Count(room => !room.Pocket);
                     if (round == 1) firstManifest = procedural.LayoutManifest;
                     var player = One<PlayerManager>();
                     if (round == 1)
@@ -152,8 +154,9 @@ namespace Worsen.Tests.Expedition
 
                 yield return AwaitFloor(progression, expedition, run, ProgressionPhase.Shop);
                 AssertFloor(progression, expedition, run, procedural, floor, sceneHandle, true, captures);
-                Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
-                previousRooms = procedural.Graph.Rooms.Count;
+                Assert.That(procedural.Graph.Rooms.Count(room => !room.Pocket), Is.GreaterThan(previousRooms),
+                    "Shop round 3 grows the connected budget even when round 2 had optional pockets.");
+                previousRooms = procedural.Graph.Rooms.Count(room => !room.Pocket);
                 Assert.That(progression.Snapshot.Round, Is.EqualTo(3));
                 Assert.That(progression.Snapshot.Wallet, Is.EqualTo(6));
                 var shopPlayer = One<PlayerManager>();
@@ -178,7 +181,8 @@ namespace Worsen.Tests.Expedition
                 ChooseCombatFloor(progression, input, 4);
                 yield return AwaitFloor(progression, expedition, run, ProgressionPhase.Exploring);
                 AssertFloor(progression, expedition, run, procedural, floor, sceneHandle, false, captures);
-                Assert.That(procedural.Graph.Rooms.Count, Is.GreaterThan(previousRooms));
+                Assert.That(procedural.Graph.Rooms.Count(room => !room.Pocket), Is.GreaterThan(previousRooms),
+                    "Connected rooms must grow when returning from the shop on round 4.");
                 var doomedPlayer = One<PlayerManager>();
                 Assert.That(doomedPlayer.ReadOnlyState.Health, Is.EqualTo(doomedPlayer.ReadOnlyState.MaxHealth));
                 Assert.That(progression.Snapshot.ThreatCount, Is.EqualTo(2));
