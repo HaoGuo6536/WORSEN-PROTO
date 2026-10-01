@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies independent Ticking bearings and retained shield facts without HUD text.
-//   Shield routing remains intact while numerical protection stays off the run surface.
+//   Shield/threat routing remains intact while obsolete text and glyph rows are absent.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · HUD and Run relay.
 // KEY RESPONSIBILITIES:
@@ -46,10 +46,10 @@ namespace Worsen.Tests.HUD
             Assert.That(state.Threats[new EntityId(4)].Visible, Is.False);
             Assert.That(state.Threats[new EntityId(5)].Visible, Is.True);
             presenter.SetThreat(state, Threat(4, true, 2)); Assert.That(state.Threats[new EntityId(4)].Visible, Is.True);
-            presenter.SetShield(state, 23.5f); Assert.That(state.ShieldText, Is.EqualTo("Shield: 23.5"));
+            presenter.SetShield(state, 23.5f); Assert.That(state.Shield, Is.EqualTo(23.5f));
             presenter.ResetRunView(state); Assert.That(state.Threats, Is.Empty); Assert.That(state.Shield, Is.Zero);
         }
-        [Test] public void VisualThreatsSurviveChaseWithoutShieldTextAndUnbindCleanly()
+        [Test] public void RemovedThreatGlyphRowAndShieldTextStayAbsentAndUnbindCleanly()
         {
             var go = new GameObject("Roster HUD"); var config = ScriptableObject.CreateInstance<HUDDriverConfig>();
             var visual = go.AddComponent<HUDVisualDriver>(); var root = new VisualElement();
@@ -59,11 +59,12 @@ namespace Worsen.Tests.HUD
                 presenter.SetThreat(state, Threat(4, true, 1)); presenter.SetChaseMode(state, true); presenter.SetShield(state, 12);
                 visual.Bind(root, config); visual.Apply(state);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.None));
-                Assert.That(root.Q("threat-4").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("threat-4"), Is.Null);
+                Assert.That(root.Q("threat-directions"), Is.Null);
                 Assert.That(root.Q("shield"), Is.Null);
                 Assert.That(state.Shield, Is.EqualTo(12), "Decluttering must not erase routed shield facts.");
                 presenter.SetThreat(state, Threat(4, false, 2)); visual.Apply(state);
-                Assert.That(root.Q("threat-4").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("threat-4"), Is.Null);
                 visual.Unbind(); Assert.That(root.childCount, Is.Zero);
             }
             finally { Object.DestroyImmediate(go); Object.DestroyImmediate(config); }
@@ -86,7 +87,7 @@ namespace Worsen.Tests.HUD
                 Assert.That(Get<Delegate>(player, "OnShieldChanged").GetInvocationList().Length, Is.EqualTo(1));
                 Assert.That(Get<Delegate>(run, "ShieldChanged").GetInvocationList().Length, Is.EqualTo(1));
                 Get<Delegate>(player, "OnShieldChanged").DynamicInvoke(player.Id, 15f);
-                Assert.That(state.ShieldText, Is.EqualTo("Shield: 15"));
+                Assert.That(state.Shield, Is.EqualTo(15f));
                 Get<Delegate>(run, "TickingGuidancePublished").DynamicInvoke(Threat(4, true, 1));
                 Assert.That(state.Threats.Count, Is.EqualTo(1));
                 playerState.Shield = 9; Get<Delegate>(run, "CaptureStarted").DynamicInvoke(default(RunCaptureMetadata));

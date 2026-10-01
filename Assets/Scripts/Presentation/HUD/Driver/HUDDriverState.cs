@@ -13,7 +13,7 @@
 //   - Retain remaining counter text, Hidden Count and phantom presentation lifetime.
 //   - Retain independent objective/threat/Exit Sense guidance and supplied camera orientation.
 //   - Retain three physical item slots and independent flashlight display samples.
-//   - Retain chrome visibility and fade progress independently of guidance.
+//   - Retain health, modal suppression and chase fade independently of guidance.
 //
 // DEPENDENCIES:
 //   - No other project systems; values are presentation copies.
@@ -33,7 +33,9 @@ namespace Worsen.Presentation.HUD
     {
         public readonly Dictionary<EntityId, HUDThreatDriverState> Threats = new Dictionary<EntityId, HUDThreatDriverState>();
         public float Shield;
-        public string ShieldText = "Shield: 0";
+        public bool HealthKnown, ModalOpen;
+        public float HealthFraction;
+        public string HealthText = "— / —";
         public string CountText = "—";
         public int Collected = -1;
         public int Required = -1;
@@ -53,8 +55,7 @@ namespace Worsen.Presentation.HUD
         public bool ArrowInitialized, GoldenArrowInitialized;
         public float DisplayArrowDegrees, DisplayGoldenArrowDegrees;
         public float ArrowDegrees;
-        public string ExitText = "Exit: —";
-        public string DirectionCaption = "";
+
         public string SlotOverflowText = "";
         public int DisplayedSlots = 3;
         public int SelectedDisplaySlot = -1;

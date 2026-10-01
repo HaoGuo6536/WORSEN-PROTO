@@ -10,9 +10,9 @@
 //   DriverConfig (§7d) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Distinguish the entity-keyed threat arrow from white and golden guidance.
-//   - Distinguish Golden Sense and Exit Sense arrows using designer-owned colors.
+//   - Tint the single guidance arrow for normal, Golden Sense and Exit Sense targets.
 //   - Expose restoration, inventory emphasis and the vector interface palette and geometry.
+//   - Tune persistent health and safe-area placement without gameplay dependencies.
 //   - Keep shared asset values read-only at runtime.
 //   - Tune flat-arrow turning and number clearance independently of inventory slots.
 //
@@ -34,7 +34,17 @@ namespace Worsen.Presentation.HUD
     {
         [SerializeField, Min(0f)] private float _restoreSeconds = 0.5f;
         [SerializeField, Min(10)] private int _fontSize = 18;
-        [SerializeField, Min(18)] private int _smallFontSize = 21;
+        [SerializeField, Min(10)] private int _smallFontSize = 16;
+        [SerializeField, Min(19)] private int _countFontSize = 26;
+        [SerializeField, Range(0f, .15f)] private float _safeInset = .05f;
+        [SerializeField, Min(80f)] private float _healthWidth = 180f;
+        [SerializeField, Min(4f)] private float _healthBarHeight = 8f;
+        [SerializeField] private Color _healthColor = new Color(.65f, .82f, .60f, 1f);
+        public int CountFontSize => System.Math.Max(FontSize + 1, _countFontSize);
+        public float SafeInset => _safeInset;
+        public float HealthWidth => _healthWidth;
+        public float HealthBarHeight => _healthBarHeight;
+        public Color HealthColor => _healthColor;
         [SerializeField, Min(64f)] private float _inventorySlotWidth = 112f;
         [SerializeField, Min(48f)] private float _inventorySlotHeight = 72f;
         [SerializeField, Min(0f)] private float _inventorySlotGap = 14f;
@@ -89,7 +99,7 @@ namespace Worsen.Presentation.HUD
         public float CompassSize => _compassSize >= 48f ? _compassSize : 84f;
         public float RestoreSeconds => _restoreSeconds;
         public int FontSize => _fontSize;
-        public int SmallFontSize => _smallFontSize;
+        public int SmallFontSize => System.Math.Min(_smallFontSize, FontSize);
         public int MaximumDisplayedSlots => 3; // Owner contract, not designer capacity.
     }
 }

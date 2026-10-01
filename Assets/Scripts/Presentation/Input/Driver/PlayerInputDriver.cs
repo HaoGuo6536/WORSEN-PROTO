@@ -30,8 +30,8 @@
 //   - Changes no global Input System settings; an uninitialized duplicate owns no cursor.
 //   - Bindings: WASD/arrows or left stick move; mouse/right stick look; left Shift/left
 //   - stick press hold to sprint; Space/south jump or cancel slide; C/east press to slide;
-//   - Tab/right stick press look back; E/west interact; F/left shoulder flashlight;
-//   - Q/right shoulder consume; wheel or D-pad left/right cycle. Template asset untouched.
+//   - Q or Tab/right stick press look back; E/west interact; F/left shoulder flashlight;
+//   - Left click/right shoulder consume; wheel or D-pad left/right cycle. Template asset untouched.
 //   - 1/2/3 select physical slots; emitted before the same tick's frame through the owner.
 //   - Direct selection needs a Core/replay contract extension before recorded playback supports it.
 //   - Serialized _config wins; Resources fallback warns and uses ephemeral defaults if absent.
@@ -382,10 +382,11 @@ namespace Worsen.Presentation.Input
             AddButton("Sprint", "<Keyboard>/leftShift", "<Gamepad>/leftStickPress");
             AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
             AddButton("Slide", "<Keyboard>/c", "<Gamepad>/buttonEast");
-            AddButton("LookBack", "<Keyboard>/tab", "<Gamepad>/rightStickPress");
+            AddButton("LookBack", "<Keyboard>/q", "<Gamepad>/rightStickPress");
+            _actions["LookBack"].AddBinding("<Keyboard>/tab");
             AddButton("Interact", "<Keyboard>/e", "<Gamepad>/buttonWest");
             AddButton("UseItem", "<Keyboard>/f", "<Gamepad>/leftShoulder");
-            AddButton("UseConsumable", "<Keyboard>/q", "<Gamepad>/rightShoulder");
+            AddButton("UseConsumable", "<Mouse>/leftButton", "<Gamepad>/rightShoulder");
             AddButton("CycleConsumable", "<Mouse>/scroll/up", "<Gamepad>/dpad/right");
             AddButton("CycleConsumablePrevious", "<Mouse>/scroll/down", "<Gamepad>/dpad/left");
             _actions.AddAction("SelectSlot1", InputActionType.Button, "<Keyboard>/1");

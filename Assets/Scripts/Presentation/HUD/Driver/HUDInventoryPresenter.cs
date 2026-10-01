@@ -36,9 +36,9 @@ namespace Worsen.Presentation.HUD
             state.SelectedDisplaySlot = selected >= 0 && selected < Math.Min(count, ItemSlotCount) ? selected : -1;
             for (int i = 0; i < ItemSlotCount; i++) state.SlotLabels[i] = Label(snapshot, i);
             state.SelectedSlotText = selected >= 0 && selected < count
-                ? (selected + 1).ToString(CultureInfo.InvariantCulture) + ": " + Label(snapshot, selected) : "";
+                ? Label(snapshot, selected) : "";
             state.SlotOverflowText = count > ItemSlotCount
-                ? "+" + (count - ItemSlotCount).ToString(CultureInfo.InvariantCulture) + " slots outside HUD" : "";
+                ? "+" + (count - ItemSlotCount).ToString(CultureInfo.InvariantCulture) : "";
         }
 
         private static string Label(ConsumableInventorySnapshot snapshot, int index)
@@ -47,8 +47,8 @@ namespace Worsen.Presentation.HUD
                 string.IsNullOrEmpty(snapshot.Inventory[index].Id)) return "Empty";
             var item = snapshot.Inventory[index];
             string title = string.IsNullOrEmpty(item.Title) ? item.Id : item.Title;
-            return title + (snapshot.RemainingUses != null && index < snapshot.RemainingUses.Count
-                ? " ×" + Math.Max(0, snapshot.RemainingUses[index]).ToString(CultureInfo.InvariantCulture) : "");
+            return title + (snapshot.RemainingUses != null && index < snapshot.RemainingUses.Count && snapshot.RemainingUses[index] > 1
+                ? " ×" + snapshot.RemainingUses[index].ToString(CultureInfo.InvariantCulture) : "");
         }
 
         public Rect SlotRect(int index, bool selected, float width, float height, float gap, float selectedScale)

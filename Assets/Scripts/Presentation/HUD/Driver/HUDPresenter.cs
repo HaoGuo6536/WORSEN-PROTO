@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Format remaining cake counts and floor-scoped hiding independently of guidance.
 //   - Compute independent objective, threat, Golden Sense and Exit Sense bearings.
-//   - Retain shield facts and forward physical inventory formatting to its Presenter.
+//   - Format health, retain shield facts and forward physical inventory formatting.
 //   - Compute interruptible chase restoration using supplied time and explicit resets.
 //   - Keep phantom counts temporary and separate from authoritative pickup counts.
 //
@@ -57,8 +57,7 @@ namespace Worsen.Presentation.HUD
         public void SetExitState(HUDDriverState state, ExitState exitState)
         {
             state.ExitOpen = exitState == ExitState.Open;
-            state.ExitText = exitState == ExitState.Open ? "Exit: OPEN" : exitState == ExitState.Locked ? "Exit: LOCKED" : "Exit: —";
-            state.DirectionCaption = "";
+
         }
 
         public void SetGoldenCount(HUDDriverState state, int count, int total = -1)
@@ -146,7 +145,21 @@ namespace Worsen.Presentation.HUD
         public void SetShield(HUDDriverState state, float shield)
         {
             state.Shield = IsFinite(shield) ? Math.Max(0f, shield) : 0f;
-            state.ShieldText = "Shield: " + state.Shield.ToString("0.#", CultureInfo.InvariantCulture);
+        }
+
+        public void SetHealth(HUDDriverState state, float current, float maximum)
+        {
+            state.HealthKnown = IsFinite(current) && IsFinite(maximum) && maximum > 0f;
+            float health = state.HealthKnown ? Math.Max(0f, Math.Min(current, maximum)) : 0f;
+            state.HealthFraction = state.HealthKnown ? health / maximum : 0f;
+            state.HealthText = state.HealthKnown
+                ? health.ToString("0.#", CultureInfo.InvariantCulture) + " / " + maximum.ToString("0.#", CultureInfo.InvariantCulture) : "— / —";
+        }
+
+        public void SetModalOpen(HUDDriverState state, bool open)
+        {
+            state.ModalOpen = open;
+            if (open) ClearPhantomCake(state);
         }
 
         private static void Direction(Vector3 world, bool visible, float heading, bool hasRotation, Quaternion rotation,
@@ -184,7 +197,7 @@ namespace Worsen.Presentation.HUD
             new HUDInventoryPresenter().SetSlots(state, default);
             int count = Math.Max(0, heldItemCount);
             int overflow = count - state.DisplayedSlots;
-            state.SlotOverflowText = overflow > 0 ? "+" + overflow.ToString(CultureInfo.InvariantCulture) + " items" : "";
+            state.SlotOverflowText = overflow > 0 ? "+" + overflow.ToString(CultureInfo.InvariantCulture) : "";
             for (int i = 0; i < Math.Min(count, state.DisplayedSlots); i++) state.SlotLabels[i] = "Item";
         }
 

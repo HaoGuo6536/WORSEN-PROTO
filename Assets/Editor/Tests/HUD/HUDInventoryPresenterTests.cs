@@ -31,9 +31,9 @@ namespace Worsen.Tests.HUD
             p.SetSlots(s, new ConsumableInventorySnapshot(new[] { default(ProgressionInventorySlot),
                 new ProgressionInventorySlot("gauze", "Gauze", 0), default }, new[] { 0, 1, 0 }, index));
             Assert.That(s.DisplayedSlots, Is.EqualTo(3)); Assert.That(s.SelectedDisplaySlot, Is.EqualTo(index));
-            Assert.That(s.SlotLabels, Is.EqualTo(new[] { "Empty", "Gauze ×1", "Empty" }));
+            Assert.That(s.SlotLabels, Is.EqualTo(new[] { "Empty", "Gauze", "Empty" }));
             Assert.That(s.FlashlightCharge, Is.EqualTo(.5f)); Assert.That(s.FlashlightOn, Is.True);
-            Assert.That(s.SelectedSlotText, Does.StartWith((index + 1) + ": "));
+            Assert.That(s.SelectedSlotText, Is.EqualTo(index == 1 ? "Gauze" : "Empty"));
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace Worsen.Tests.HUD
             p.SetSlots(s, new ConsumableInventorySnapshot(new[] { default(ProgressionInventorySlot), default,
                 default, new ProgressionInventorySlot("oil-flask", "Oil", 0) }, null, 3));
             Assert.That(s.DisplayedSlots, Is.EqualTo(3)); Assert.That(s.SelectedDisplaySlot, Is.EqualTo(-1));
-            Assert.That(s.SelectedSlotText, Is.EqualTo("4: Oil")); Assert.That(s.SlotOverflowText, Is.EqualTo("+1 slots outside HUD"));
+            Assert.That(s.SelectedSlotText, Is.EqualTo("Oil")); Assert.That(s.SlotOverflowText, Is.EqualTo("+1"));
             Assert.That(s.FlashlightKnown, Is.False);
             p.SetSlots(s, default);
             Assert.That(s.DisplayedSlots, Is.EqualTo(3)); Assert.That(s.SlotLabels, Is.All.EqualTo("Empty"));

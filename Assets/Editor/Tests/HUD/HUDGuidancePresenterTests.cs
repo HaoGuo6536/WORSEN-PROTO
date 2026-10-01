@@ -34,6 +34,23 @@ namespace Worsen.Tests.HUD
             GuidanceKind.GoldenSense, direction, Vector3.right * id, id);
 
         [Test]
+        public void SingleArrowPrioritizesExitThenGoldenThenWhiteAndUsesMatchingTint()
+        {
+            var p = new HUDPresenter(); var g = new HUDGuidancePresenter(); var s = new HUDDriverState();
+            var white = White(1, Vector3.forward); var gold = Gold(2, Vector3.right);
+            var exit = new GuidanceTarget(GuidanceKind.ExitThroughWalls, Vector3.left, Vector3.left);
+            p.SetCount(s, 1, 4); p.SetGoldenCount(s, 1, 2);
+            p.SetGuidance(s, new[] { white, gold, exit });
+            Assert.That(g.ActiveDegrees(s), Is.EqualTo(-90f).Within(.001f));
+            Assert.That(g.ArrowTint(s, Color.yellow, Color.cyan), Is.EqualTo(Color.cyan)); Assert.That(g.CountText(s), Is.EqualTo("3"));
+            p.SetGuidance(s, new[] { white, gold }); Assert.That(g.ActiveDegrees(s), Is.EqualTo(90f).Within(.001f));
+            Assert.That(g.ArrowTint(s, Color.yellow, Color.cyan), Is.EqualTo(Color.yellow)); Assert.That(g.CountText(s), Is.EqualTo("1"));
+            p.SetGuidance(s, new[] { white }); Assert.That(g.ActiveDegrees(s), Is.Zero);
+            Assert.That(g.ArrowTint(s, Color.yellow, Color.cyan), Is.EqualTo(Color.white));
+            p.SetGuidance(s, null); Assert.That(g.ArrowVisible(s), Is.False);
+        }
+
+        [Test]
         public void AlternatingSnapshotOrderRetainsEachChannelAndItsCurrentSample()
         {
             var p = new HUDPresenter(); var s = new HUDDriverState();
@@ -110,7 +127,7 @@ namespace Worsen.Tests.HUD
             var tint = new Color(1f, .75f, .15f, 1f);
             p.SetFloorCounters(s, new FloorDisplaySnapshot(3, 4, 2, ExitState.Locked, false, Vector3.zero,
                 totalCakes: 8, totalGoldenCakes: 6));
-            p.SetGuidance(s, golden ? new[] { Gold(4, Vector3.right) } : new[] { White(2, Vector3.forward), Gold(4, Vector3.right) });
+            p.SetGuidance(s, golden ? new[] { White(2, Vector3.forward), Gold(4, Vector3.right) } : new[] { White(2, Vector3.forward) });
             Assert.That(g.CountText(s), Is.EqualTo(golden ? "4" : "5"));
             Assert.That(g.CountTint(s, tint), Is.EqualTo(golden ? tint : Color.white));
             Assert.That(g.CountVisible(s), Is.True);
@@ -123,7 +140,7 @@ namespace Worsen.Tests.HUD
         }
 
         [Test]
-        public void ExitGuidanceYieldsNumberToGoldenSenseWithoutReplacingEitherArrow()
+        public void WhiteExitTargetYieldsTheSingleArrowAndNumberToGoldenSense()
         {
             var s = new HUDDriverState(); var p = new HUDPresenter(); var g = new HUDGuidancePresenter();
             p.SetCount(s, 8, 8); p.SetGoldenCount(s, 2, 6);

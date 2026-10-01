@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own document binding and the HUDVisualDriver lifetime.
-//   - Forward counters, floor hiding, inventory, flashlight and shield to pure Presenters.
+//   - Forward counters, health, modal hiding, inventory, flashlight and shield to Presenters.
 //   - Forward independent guidance and smooth bearings after the current camera aim.
 //   - Admit phantom counts only on a bound, enabled display.
 //   - Preserve supplied facts across document recreation and disable/enable.
@@ -87,6 +87,10 @@ namespace Worsen.Presentation.HUD
         { if (_state != null) { _presenter.SetThreat(_state, fact); Apply(); } }
         public void SetShield(float shield)
         { if (_state != null) { _presenter.SetShield(_state, shield); Apply(); } }
+        public void SetHealth(float current, float maximum)
+        { if (_state != null) { _presenter.SetHealth(_state, current, maximum); Apply(); } }
+        public void SetModalOpen(bool open)
+        { if (_state != null) { _presenter.SetModalOpen(_state, open); Apply(); } }
 
         public void SetGoldenCount(int count)
         {
