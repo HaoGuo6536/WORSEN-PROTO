@@ -9,7 +9,7 @@
 //   Editor tool (§10) · Tests · Art.
 // KEY RESPONSIBILITIES:
 //   - Verify base/emission maps, UVs, keywords and surface values survive copying.
-//   - Verify legacy migration, stale rebuild and serialized provenance stability.
+//   - Verify previous-hash migration, stale rebuild and serialized provenance stability.
 //   - Verify edited output stays unchanged, including deliberate map removals.
 //   - Verify generated texture adoption overrides the base but retains emission.
 // DEPENDENCIES:
@@ -36,6 +36,55 @@ namespace Worsen.Tests.Art
     public sealed class ProceduralKitMaterialNativeTests
     {
         private const string Slot = "castle_missing_material_test";
+
+        [TestCase("none")] [TestCase("tint")] [TestCase("base-removal")]
+        [TestCase("emission-removal")] [TestCase("replacement")] [TestCase("uv")]
+        [TestCase("smoothness")] [TestCase("keyword")] [TestCase("unknown-version")]
+        public void PreviousHashMigratesOnlyExactGeneratedOutput(string edit)
+        {
+            var source = NewMaterial(); var output = NewMaterial();
+            var map = Pixel(Color.red); var replacement = Pixel(Color.red);
+            try
+            {
+                source.SetTexture("_BaseMap", map); source.SetTexture("_EmissionMap", map);
+                MissingSet();
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot, true), Is.True);
+                output.SetOverrideTag("WorsenKitHashVersion", "");
+                // Recreate the pre-f7fef42 serialized-only hash, not the current
+                // safe hash. Unsaved map refs are the version's lossy boundary.
+                var hash = typeof(ProceduralKitAssetSetup).GetMethod("MaterialHash", BindingFlags.NonPublic | BindingFlags.Static);
+                string previous = (string)hash.Invoke(null, new object[] { output, false });
+                Assert.That((string)hash.Invoke(null, new object[] { output, true }), Is.Not.EqualTo(previous));
+                output.SetOverrideTag("WorsenKitGeneratedHash", previous);
+                if (edit == "tint") output.color = Color.magenta;
+                if (edit == "base-removal") output.SetTexture("_BaseMap", null);
+                if (edit == "emission-removal") output.SetTexture("_EmissionMap", null);
+                if (edit == "replacement") output.SetTexture("_BaseMap", replacement);
+                if (edit == "uv") output.SetTextureOffset("_BaseMap", Vector2.one);
+                if (edit == "smoothness") output.SetFloat("_Smoothness", .91f);
+                if (edit == "keyword") output.EnableKeyword("_EMISSION");
+                if (edit == "unknown-version") output.SetOverrideTag("WorsenKitHashVersion", "future");
+                string before = EditorJsonUtility.ToJson(output);
+                if (edit == "none") MissingSet();
+                else LogAssert.Expect(LogType.Warning, "Preserving edited or unrecognised kit material: " + Slot);
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot), Is.EqualTo(edit == "none"));
+                if (edit != "none") Assert.That(EditorJsonUtility.ToJson(output), Is.EqualTo(before));
+                else
+                {
+                    Assert.That(output.GetTag("WorsenKitHashVersion", false), Is.EqualTo("2"));
+                    Assert.That(output.GetTexture("_BaseMap"), Is.SameAs(map));
+                    Assert.That(output.GetTexture("_EmissionMap"), Is.SameAs(map));
+                    string migrated = EditorJsonUtility.ToJson(output);
+                    Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot), Is.False);
+                    Assert.That(EditorJsonUtility.ToJson(output), Is.EqualTo(migrated));
+                    source.color = Color.blue;
+                    MissingSet();
+                    Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot), Is.True);
+                    Assert.That(output.color, Is.EqualTo(Color.blue));
+                }
+            }
+            finally { Object.DestroyImmediate(source); Object.DestroyImmediate(output); Object.DestroyImmediate(map); Object.DestroyImmediate(replacement); }
+        }
 
         [Test]
         public void UrpPreprocessedBaseAndEmissionAppearanceIsPreserved()

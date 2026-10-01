@@ -22,7 +22,8 @@
 //   Material/prefab assets are written only in Unity. Generated PNGs and per-slot
 //   scale metadata come from tools/textures/generate_theme_textures.py. Texture
 //   provenance tags record source and generated-state hashes. Only unchanged
-//   generated outputs rebuild; unrecognised legacy materials are kept intact.
+//   generated outputs rebuild; previous hashes migrate only after exact output
+//   reconstruction. Theme import preparation is independent of material admission.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -49,6 +50,7 @@ namespace Worsen.Editor.Procedural
             foreach (var catalogue in asset.Catalogues)
             {
                 string theme = char.ToUpperInvariant(catalogue.Theme[0]) + catalogue.Theme.Substring(1);
+                PrepareThemeTextures(theme);
                 string source = "Assets/Art/Environment/" + theme + "/Kit/";
                 string folder = output + "/" + theme; Folder(folder); Folder(folder + "/Materials"); Folder(folder + "/Rooms");
                 foreach (var piece in catalogue.Kit)
@@ -86,7 +88,6 @@ namespace Worsen.Editor.Procedural
                                     material.name.Any(c => !char.IsLetterOrDigit(c) && c != '_'))
                                     throw new InvalidOperationException("Invalid theme material slot in " + path);
                                 string materialPath = folder + "/Materials/" + material.name + ".mat";
-                                if (!textured.Contains(materialPath)) PrepareSlotTextures(theme, material.name);
                                 var mapped = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
                                 if (mapped == null)
                                 {
@@ -181,6 +182,8 @@ namespace Worsen.Editor.Procedural
         private const string TextureTag = "WorsenGeneratedTextures";
         private const string SourceTag = "WorsenKitSourceHash";
         private const string StateTag = "WorsenKitGeneratedHash";
+        private const string HashVersionTag = "WorsenKitHashVersion";
+        private const string HashVersion = "2";
 
         // A source change alone is not permission to overwrite an artist's edits.
         // Kept pure so the fail-closed provenance decision has headless coverage.
@@ -214,7 +217,7 @@ namespace Worsen.Editor.Procedural
             throw new InvalidOperationException("Unstable material reference: " + value.name);
         }
 
-        private static string MaterialHash(Material material)
+        private static string MaterialHash(Material material, bool includeTransientMaps = true)
         {
             // Full serialized state catches edits to shader, keywords, emission,
             // culling, maps (including removals), UVs and otherwise unused values.
@@ -225,6 +228,7 @@ namespace Worsen.Editor.Procedural
             try
             {
                 copy.SetOverrideTag(SourceTag, ""); copy.SetOverrideTag(StateTag, "");
+                copy.SetOverrideTag(HashVersionTag, "");
                 var references = new Dictionary<int, string> { { 0, "null" } };
                 var property = new SerializedObject(copy).GetIterator();
                 while (property.Next(true))
@@ -239,7 +243,7 @@ namespace Worsen.Editor.Procedural
                 foreach (string name in material.GetTexturePropertyNames())
                 {
                     Texture texture = material.GetTexture(name);
-                    if (texture != null && !EditorUtility.IsPersistent(texture))
+                    if (includeTransientMaps && texture != null && !EditorUtility.IsPersistent(texture))
                         json += "\ntransient-map:" + name + ":" + texture.GetInstanceID().ToString(CultureInfo.InvariantCulture);
                 }
                 return Hash(json);
@@ -306,6 +310,7 @@ namespace Worsen.Editor.Procedural
             string sourceHash = SourceHash(embedded, theme, slot);
             string savedSource = mapped.GetTag(SourceTag, false, "");
             string savedState = mapped.GetTag(StateTag, false, "");
+            string version = mapped.GetTag(HashVersionTag, false, "");
             string current = MaterialHash(mapped);
             bool legacy = false;
             var shader = Shader.Find("Universal Render Pipeline/Lit");
@@ -321,15 +326,26 @@ namespace Worsen.Editor.Procedural
                     legacy = current == MaterialHash(old);
                     if (!legacy && mapped.GetTag(TextureTag, false, "") == "1")
                     {
-                        ApplySlotTextures(old, theme, slot);
+                        ApplySlotTextures(old, theme, slot, true);
                         legacy = current == MaterialHash(old);
                     }
                 }
                 finally { UnityEngine.Object.DestroyImmediate(old); }
             }
-            if (!newlyCreated && (mapped.isVariant || !ShouldRebuildSlot(sourceHash, savedSource, current, savedState, legacy)))
+            // Pre-version hashes omitted transient maps (Unity can serialize them
+            // as null). A matching old hash alone would also bless map removal.
+            // Require the complete current output to equal a reconstructed old
+            // generation; ambiguous output is preserved, never guessed at.
+            bool previous = !newlyCreated && !mapped.isVariant && version.Length == 0 &&
+                savedSource.Length > 0 && savedState.Length > 0 &&
+                (current == savedState || MaterialHash(mapped, false) == savedState) &&
+                MatchesPreviousOutput(mapped, embedded, theme, slot, shader, current);
+            bool stamped = version == HashVersion;
+            bool rebuild = previous || ShouldRebuildSlot(sourceHash, savedSource, current,
+                stamped ? savedState : "", legacy);
+            if (!newlyCreated && (mapped.isVariant || (version.Length > 0 && !stamped) || !rebuild))
             {
-                if (current != savedState)
+                if (current != savedState || !stamped)
                     Debug.LogWarning("Preserving edited or unrecognised kit material: " + slot);
                 return false;
             }
@@ -343,11 +359,26 @@ namespace Worsen.Editor.Procedural
                 // is not a provenance contract, and an old adoption must clear.
                 mapped.SetOverrideTag(TextureTag, rebuilt.GetTag(TextureTag, false, ""));
                 mapped.SetOverrideTag(SourceTag, sourceHash);
+                mapped.SetOverrideTag(HashVersionTag, HashVersion);
                 mapped.SetOverrideTag(StateTag, MaterialHash(mapped));
                 EditorUtility.SetDirty(mapped);
                 return true;
             }
             finally { UnityEngine.Object.DestroyImmediate(rebuilt); }
+        }
+
+        private static bool MatchesPreviousOutput(Material mapped, Material embedded, string theme,
+            string slot, Shader shader, string current)
+        {
+            var previous = new Material(shader) { name = mapped.name };
+            try
+            {
+                CopyEmbeddedAppearance(previous, embedded);
+                if (mapped.GetTag(TextureTag, false, "") == "1")
+                    if (!ApplySlotTextures(previous, theme, slot, true)) return false;
+                return current == MaterialHash(previous);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(previous); }
         }
 
         [Serializable]
@@ -450,6 +481,17 @@ namespace Worsen.Editor.Procedural
         private static bool NearColor(Color a, Color b)
             => Math.Abs(a.r - b.r) < .002f && Math.Abs(a.g - b.g) < .002f &&
                Math.Abs(a.b - b.b) < .002f && Math.Abs(a.a - b.a) < .002f;
+
+        private static void PrepareThemeTextures(string theme)
+        {
+            // Validate before constructing a filesystem path. Recipes, not FBX
+            // material enumeration, own the complete theme texture inventory.
+            TexturePath(theme, (theme ?? "").ToLowerInvariant() + "_validation", "Albedo");
+            string folder = "Assets/Art/Textures/" + theme;
+            if (!Directory.Exists(folder)) return;
+            foreach (string recipe in Directory.GetFiles(folder, "*.json").OrderBy(path => path, StringComparer.Ordinal))
+                PrepareSlotTextures(theme, Path.GetFileNameWithoutExtension(recipe));
+        }
 
         private static void PrepareSlotTextures(string theme, string slot)
         {

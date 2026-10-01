@@ -9,6 +9,7 @@
 //   Editor tool (§10), Tests (§11) · Editor · HeldItem.
 // KEY RESPONSIBILITIES:
 //   - Verify arm-free camera parenting, collider removal, suppression and teardown.
+//   - Diagnose remaining child identities and pose state after real rendered frames.
 // DEPENDENCIES:
 //   NUnit, Unity Test Framework, Core and HeldItem presentation components.
 // USAGE NOTES:
@@ -17,6 +18,7 @@
 //   Does not save assets, load project scenes or depend on window focus.
 // ============================================================================
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -80,12 +82,15 @@ namespace Worsen.Tests.HeldItem
             var view = viewOwner.AddComponent<UnityEngine.Camera>();
             var manager = owner.AddComponent<HeldItemManager>();
             var config = ScriptableObject.CreateInstance<HeldItemDriverConfig>();
+            bool previousBackground = Application.runInBackground;
+            Application.runInBackground = true;
             try
             {
                 var shader = Shader.Find("Universal Render Pipeline/Unlit");
                 Assert.That(shader, Is.Not.Null);
                 typeof(HeldItemDriverConfig).GetField("_shader", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(config, shader);
                 manager.Initialize(view, config);
+                Assert.That(view.transform.childCount, Is.Zero, "Initialization creates materials, not a persistent camera child.");
                 manager.SetConsumables(new ConsumableInventorySnapshot(new[] { new ProgressionInventorySlot("gauze", "Gauze", 0) }, new[] { 1 }, 0));
                 yield return new WaitForSeconds(.4f);
                 var item = view.transform.Find("Held gauze"); Assert.That(item, Is.Not.Null);
@@ -96,11 +101,13 @@ namespace Worsen.Tests.HeldItem
                 manager.SetSuppressed(true); Assert.That(item.gameObject.activeSelf, Is.False);
                 manager.SetSuppressed(false); yield return new WaitForSeconds(.4f);
                 manager.SetConsumables(new ConsumableInventorySnapshot(new[] { default(ProgressionInventorySlot) }, new[] { 0 }, 0));
-                yield return new WaitForSeconds(.4f);
-                // WaitForSeconds resumes before LateUpdate; a long editor frame
-                // can satisfy the wait before the driver applies that frame's dt.
-                yield return null;
-                Assert.That(view.transform.childCount, Is.Zero);
+                // Observe the actual hierarchy, not a fixed wait which can resume
+                // before LateUpdate. Keep a wall-clock bound and report precisely
+                // what remains; do not accept a hidden or pooled item as removal.
+                double deadline = Time.realtimeSinceStartupAsDouble + 5d;
+                while (view.transform.childCount != 0 && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
+                Assert.That(view.transform.childCount, Is.Zero, DescribeRemaining(view, owner.GetComponent<HeldItemDriver>()));
+                yield return null; // Native destruction follows synchronous detachment.
                 Assert.That(item == null, Is.True, "Exhaustion destroys, rather than merely hiding, the view model.");
                 manager.SetConsumables(new ConsumableInventorySnapshot(new[] { new ProgressionInventorySlot("gauze", "Gauze", 0) }, new[] { 1 }, 0));
                 yield return new WaitForSeconds(.4f); yield return null;
@@ -115,8 +122,25 @@ namespace Worsen.Tests.HeldItem
             {
                 manager.Teardown();
                 Object.DestroyImmediate(owner); Object.DestroyImmediate(viewOwner); Object.DestroyImmediate(config);
+                Application.runInBackground = previousBackground;
             }
             yield return new ExitPlayMode();
+        }
+
+        private static string DescribeRemaining(UnityEngine.Camera view, HeldItemDriver driver)
+        {
+            var state = (HeldItemDriverState)typeof(HeldItemDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(driver);
+            return "Remaining hierarchy: " + string.Join("; ", view.GetComponentsInChildren<Transform>(true)
+                .Where(child => child != view.transform).Select(child => child.name + " active=" + child.gameObject.activeSelf +
+                    " local=" + child.localPosition)) + "; selected=" + state.SelectedId + "; displayed=" + state.DisplayedId +
+                "; raise=" + state.Raise + "; suppressed=" + state.Suppressed + "; driverEnabled=" + driver.isActiveAndEnabled +
+                "; timeScale=" + Time.timeScale;
+        }
+
+        [UnityTearDown]
+        public IEnumerator RestoreEditMode()
+        {
+            if (Application.isPlaying) yield return new ExitPlayMode();
         }
     }
 }

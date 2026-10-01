@@ -3,11 +3,13 @@
 // ============================================================================
 // PURPOSE:
 //   Protects wave-two renderer, mixer and title build-order setup contracts.
+//   Mixer repair retains the four-bus hierarchy and every group's identity,
+//   including the Ambience child whose volume also inherits Effects preferences.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Scenes.
 // KEY RESPONSIBILITIES:
 //   - Retain existing features and one shader-bound hunter-only Glimpse subasset.
-//   - Bind both soundscape mixer groups and preserve title-first test-scene ordering.
+//   - Bind all soundscape mixer groups and preserve title-first test-scene ordering.
 //   - Repair missing mixer views without replacing groups or valid authored views.
 // DEPENDENCIES:
 //   Editor setup, Presentation Audio, UnityEditor, NUnit; URP via serialized seams.
@@ -69,17 +71,23 @@ namespace Worsen.Tests.Scenes
             try
             {
                 var mixer = AudioMixerSetup.Configure(path, config);
-                AssertCurrentView(mixer, 3);
+                AssertCurrentView(mixer, 4);
                 var data = new SerializedObject(config);
                 var effects = data.FindProperty("_effectsGroup").objectReferenceValue;
                 var music = data.FindProperty("_musicGroup").objectReferenceValue;
+                var ambience = data.FindProperty("_ambienceGroup").objectReferenceValue;
+                var groups = mixer.FindMatchingGroups("").Select(group => group.GetInstanceID()).OrderBy(id => id).ToArray();
                 Assert.That(effects, Is.Not.Null); Assert.That(music, Is.Not.Null); Assert.That(effects, Is.Not.SameAs(music));
+                Assert.That(ambience, Is.Not.Null);
                 data.FindProperty("_effectsGroup").objectReferenceValue = null;
+                data.FindProperty("_ambienceGroup").objectReferenceValue = null;
                 data.FindProperty("_musicGroup").objectReferenceValue = null; data.ApplyModifiedPropertiesWithoutUndo();
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer)); data.Update();
                 Assert.That(data.FindProperty("_effectsGroup").objectReferenceValue, Is.SameAs(effects));
                 Assert.That(data.FindProperty("_musicGroup").objectReferenceValue, Is.SameAs(music));
-                AssertCurrentView(mixer, 3);
+                Assert.That(data.FindProperty("_ambienceGroup").objectReferenceValue, Is.SameAs(ambience));
+                Assert.That(mixer.FindMatchingGroups("").Select(group => group.GetInstanceID()).OrderBy(id => id), Is.EqualTo(groups));
+                AssertCurrentView(mixer, 4);
             }
             finally { UnityEngine.Object.DestroyImmediate(config); AssetDatabase.DeleteAsset(path); }
         }
@@ -106,7 +114,7 @@ namespace Worsen.Tests.Scenes
                     MixerProperty(mixer, "currentViewIndex").SetValue(mixer, views.Length);
                 }
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
-                AssertCurrentView(mixer, 3);
+                AssertCurrentView(mixer, 4);
                 Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(guid));
                 Assert.That(mixer.FindMatchingGroups("").Select(group => group.GetInstanceID()).OrderBy(id => id), Is.EqualTo(groups));
                 if (!missingView)
@@ -120,7 +128,8 @@ namespace Worsen.Tests.Scenes
                         "Repair must not overwrite an authored view's group identities.");
                 }
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
-                AssertCurrentView(mixer, 3);
+                AssertCurrentView(mixer, 4);
+                Assert.That(mixer.FindMatchingGroups("").Select(group => group.GetInstanceID()).OrderBy(id => id), Is.EqualTo(groups));
             }
             finally { UnityEngine.Object.DestroyImmediate(config); AssetDatabase.DeleteAsset(path); }
         }
@@ -128,6 +137,13 @@ namespace Worsen.Tests.Scenes
             => mixer.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         private static void AssertCurrentView(UnityEngine.Audio.AudioMixer mixer, int groupCount)
         {
+            var groups = mixer.FindMatchingGroups("");
+            Assert.That(groups.Select(group => group.name), Is.EquivalentTo(new[] { "Master", "Music", "Effects", "Ambience" }));
+            var effects = groups.Single(group => group.name == "Effects");
+            var children = (Array)effects.GetType().GetProperty("children",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(effects);
+            Assert.That(children.Cast<UnityEngine.Audio.AudioMixerGroup>(),
+                Is.EquivalentTo(new[] { groups.Single(group => group.name == "Ambience") }));
             var views = (Array)MixerProperty(mixer, "views").GetValue(mixer);
             int index = (int)MixerProperty(mixer, "currentViewIndex").GetValue(mixer);
             Assert.That(index, Is.InRange(0, views.Length - 1));
@@ -135,6 +151,8 @@ namespace Worsen.Tests.Scenes
             var guids = (Array)view.GetType().GetField("guids").GetValue(view);
             Assert.That(guids.Length, Is.EqualTo(groupCount));
             Assert.That(guids.Cast<object>().Distinct().Count(), Is.EqualTo(groupCount));
+            Assert.That(guids.Cast<object>(), Is.EquivalentTo(groups.Select(group => group.GetType().GetProperty("groupID",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(group))));
         }
         [Test] public void DuplicateTitleEntriesCollapseWithoutDroppingOrEnablingTestScenes()
         {

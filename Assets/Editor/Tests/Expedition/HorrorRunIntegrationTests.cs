@@ -11,7 +11,7 @@
 //   - Reject inter-floor health carry-over, including shop entry and return to combat.
 //   - Verify native geometry/navigation admission, growing floors and canonical input/HUD reset.
 //   - Exercise independent cadence, catalogue pedestals and held inventory across floors.
-//   - Verify a central four-route exit hub and distinct ready animated hunter models.
+//   - Verify clear hub doorways with blocker diagnostics and distinct ready hunter models.
 // DEPENDENCIES:
 //   - Core; Domain Procedural/Level/Floor/Player/Hunter; Session Run/Progression/
 //     Expedition; Presentation Input/HUD; NUnit and Unity Test Framework.
@@ -22,7 +22,7 @@
 //   Neutral input is supplied after the ordinary input router on BeforeTick.
 //   Choices, pickup/exit contact and damage enter public manager boundaries;
 //   this does not claim physical locomotion, device input or subjective quality.
-//   Reflection only observes input/HUD presentation state, never changes it.
+//   Reflection observes presentation and procedural diagnostics, never changes live state.
 //   Retains Unity's SceneHandle type for identity assertions without int coercion.
 // ============================================================================
 using System;
@@ -311,7 +311,7 @@ namespace Worsen.Tests.Expedition
             var path = new NavMeshPath();
             Assert.That(NavMesh.CalculatePath(start.position, exit.position, NavMesh.AllAreas, path), Is.True);
             Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete), "Generated spawn and exit must have native walking connectivity.");
-            AssertCentralExitHub(procedural.Graph, procedural.PlayerSpawnPosition, procedural.Doors);
+            AssertCentralExitHub(procedural);
             if (shop)
             {
                 Assert.That(HunterRegistry.Items, Is.Empty);
@@ -332,8 +332,11 @@ namespace Worsen.Tests.Expedition
             }
         }
 
-        private static void AssertCentralExitHub(LevelGraph graph, Vector3 playerSpawn, IReadOnlyList<ProceduralDoorPlan> doors)
+        private static void AssertCentralExitHub(ProceduralManager procedural)
         {
+            var graph = procedural.Graph;
+            var playerSpawn = procedural.PlayerSpawnPosition;
+            var doors = procedural.Doors;
             var hub = graph.Rooms.Single(room => room.Id == graph.ExitRoomId);
             // SPEC-004 §2.2 "Reveals, not spawns": player starts in the central
             // exit ROOM. PLAN-026 §2's four-door hub is the starting implementation,
@@ -387,11 +390,46 @@ namespace Worsen.Tests.Expedition
                     Assert.That((hub.ContainsXZ(sideA.position) && neighbor.ContainsXZ(sideB.position)) ||
                         (neighbor.ContainsXZ(sideA.position) && hub.ContainsXZ(sideB.position)), Is.True,
                         "Door samples must lie on opposite sides in the two connected rooms.");
-                    Assert.That(NavMesh.Raycast(sideA.position, sideB.position, out _, walkingArea), Is.False,
-                        "Hub doorway to " + neighborId + " is blocked; an alternate path is not sufficient.");
+                    if (NavMesh.Raycast(sideA.position, sideB.position, out var hit, walkingArea))
+                        Assert.Fail("Hub doorway to " + neighborId + " is blocked; an alternate path is not sufficient. " +
+                            DoorwayDiagnostics(procedural, door, sideA.position, sideB.position, hit.position));
                 }
             }
         }
+
+        private static string DoorwayDiagnostics(ProceduralManager procedural, ProceduralDoorPlan door,
+            Vector3 sideA, Vector3 sideB, Vector3 hit)
+        {
+            var layout = Observe<ProceduralBehaviorState>(procedural, "_state").Layout;
+            var config = Observe<ProceduralConfig>(procedural, "_config");
+            var driver = Observe<ProceduralDriverConfig>(procedural, "_driverConfig");
+            var native = Observe<ProceduralDriverState>(procedural.GetComponent<ProceduralDriver>(), "_state");
+            var nearby = Physics.OverlapBox(hit + Vector3.up, new Vector3(1f, 1f, 1f), Quaternion.identity,
+                ~0, QueryTriggerInteraction.Ignore).Select(c => HierarchyPath(c.transform) + " bounds=" + c.bounds);
+            var obstacles = Object.FindObjectsByType<NavMeshObstacle>(FindObjectsSortMode.None)
+                .Where(o => o.enabled && o.carving && (o.transform.position - hit).sqrMagnitude < 16f)
+                .Select(o => HierarchyPath(o.transform) + " size=" + o.size);
+            var geometry = new ProceduralGeometryPresenter().Build(layout, config, driver);
+            string blocks = string.Join("; ", geometry.Where(b => b.HasCollision && b.Kind == ProceduralSurfaceKind.Wall &&
+                    (b.Center - hit).sqrMagnitude <= (b.Size.magnitude + 2f) * (b.Size.magnitude + 2f))
+                    .Select(b => "room=" + b.RoomId + " piece=" + b.PieceId + " role=" + b.Role +
+                        " center=" + b.Center + " size=" + b.Size + " rotation=" + b.Rotation));
+            var sources = native.NavigationSources.Where(s =>
+                (s.transform.MultiplyPoint3x4(Vector3.zero) - hit).sqrMagnitude <= (s.size.magnitude + 2f) * (s.size.magnitude + 2f))
+                .Select(s => "shape=" + s.shape + " area=" + s.area + " size=" + s.size + " transform=" + s.transform);
+            return "theme=" + procedural.ThemeId + " door=" + door.Center + " alongX=" + door.AlongX +
+                " samples=" + sideA + " -> " + sideB + " hit=" + hit +
+                " seed=" + layout.Seed + " round=" + layout.RoundIndex + " radius=" + native.NavigationSettings.agentRadius +
+                " height=" + native.NavigationSettings.agentHeight + " voxel=" + native.NavigationSettings.voxelSize +
+                " templates=" + string.Join("; ", layout.TemplateRooms.Where(r => r.RoomId == door.FromRoomId || r.RoomId == door.ToRoomId)
+                    .Select(r => r.RoomId + ":" + r.Template.Id + " turns=" + r.Turns + " offset=" + r.Offset +
+                        " open=" + string.Join(",", r.OpenDoors))) +
+                " baked blocks=[" + blocks + "] colliders=[" + string.Join("; ", nearby) + "] carving=[" +
+                string.Join("; ", obstacles) + "] native sources=[" + string.Join("; ", sources) + "] manifest=" + procedural.LayoutManifest;
+        }
+
+        private static string HierarchyPath(Transform item)
+            => item.parent == null ? item.name : HierarchyPath(item.parent) + "/" + item.name;
 
         private static void AssertActiveRoster(ProgressionEffects effects)
         {

@@ -11,6 +11,7 @@
 //   - Verify maps, keywords and scale for every generated slot.
 //   - Verify repeat setup leaves materials and importer metadata unchanged.
 //   - Verify edited materials and incomplete sets are not overwritten.
+//   - Prepare recipe-only maps even when no FBX is present and materials are preserved.
 // DEPENDENCIES:
 //   - NUnit, UnityEditor import APIs, URP Lit and Editor.Procedural setup.
 // USAGE NOTES:
@@ -18,12 +19,16 @@
 //   Materials are temporary and destroyed in finally. No Play Mode or focus needed.
 // ============================================================================
 using System.IO;
+using System;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 using Worsen.Editor.Procedural;
+using Worsen.Domain.Procedural;
+using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Art
 {
@@ -31,6 +36,64 @@ namespace Worsen.Tests.Art
     [Category("NativeUnity")]
     public sealed class ProceduralKitTextureNativeTests
     {
+        [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
+        [Timeout(300000)]
+        public void SetupPreparesRecipeOnlyMapsWhilePreservingEditedMaterials(string theme)
+        {
+            string slot = theme.ToLowerInvariant() + "_preparation_test_" + Guid.NewGuid().ToString("N");
+            string folder = "Assets/Art/Textures/" + theme;
+            string recipe = folder + "/" + slot + ".json";
+            string[] suffixes = { "Albedo", "Normal", "Smoothness" };
+            var paths = Array.ConvertAll(suffixes, suffix => ProceduralKitAssetSetup.TexturePath(theme, slot, suffix));
+            var source = Flat(Color.gray); var edited = Flat(Color.magenta);
+            var catalogue = ScriptableObject.CreateInstance<ProceduralRoomCatalogueData>();
+            var config = ScriptableObject.CreateInstance<ProceduralConfig>();
+            try
+            {
+                string prototype = Directory.GetFiles(folder, "*.json")[0];
+                string prototypeSlot = Path.GetFileNameWithoutExtension(prototype);
+                File.Copy(prototype, recipe);
+                for (int i = 0; i < paths.Length; i++)
+                {
+                    File.Copy(ProceduralKitAssetSetup.TexturePath(theme, prototypeSlot, suffixes[i]), paths[i]);
+                    AssetDatabase.ImportAsset(paths[i], ImportAssetOptions.ForceSynchronousImport);
+                    var importer = (TextureImporter)AssetImporter.GetAtPath(paths[i]);
+                    importer.textureType = TextureImporterType.Default; importer.sRGBTexture = true;
+                    importer.wrapMode = TextureWrapMode.Clamp; importer.mipmapEnabled = false; importer.SaveAndReimport();
+                }
+                edited.SetColor("_EmissionColor", Color.cyan);
+                string before = EditorJsonUtility.ToJson(edited);
+                LogAssert.Expect(LogType.Warning, "Preserving edited or unrecognised kit material: " + slot);
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(edited, source, theme, slot), Is.False);
+                // No kit pieces: this recipe is deliberately absent from FBX
+                // enumeration, the path that previously left its normal unprepared.
+                typeof(ProceduralRoomCatalogueData).GetField("_catalogues", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(catalogue, new[] { new ProceduralTemplateCatalogue { Theme = theme.ToLowerInvariant() } });
+                ProceduralKitAssetSetup.Build(catalogue, config);
+                var metadata = Array.ConvertAll(paths, path => File.ReadAllText(path + ".meta"));
+                for (int i = 0; i < paths.Length; i++)
+                {
+                    var importer = (TextureImporter)AssetImporter.GetAtPath(paths[i]);
+                    Assert.That(importer.textureType, Is.EqualTo(i == 1 ? TextureImporterType.NormalMap : TextureImporterType.Default));
+                    Assert.That(importer.sRGBTexture, Is.EqualTo(i == 0));
+                    Assert.That(importer.wrapModeU, Is.EqualTo(TextureWrapMode.Repeat));
+                    Assert.That(importer.wrapModeV, Is.EqualTo(TextureWrapMode.Repeat));
+                    Assert.That(importer.mipmapEnabled, Is.True);
+                }
+                ProceduralKitAssetSetup.Build(catalogue, config);
+                LogAssert.Expect(LogType.Warning, "Preserving edited or unrecognised kit material: " + slot);
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(edited, source, theme, slot), Is.False);
+                Assert.That(EditorJsonUtility.ToJson(edited), Is.EqualTo(before));
+                for (int i = 0; i < paths.Length; i++) Assert.That(File.ReadAllText(paths[i] + ".meta"), Is.EqualTo(metadata[i]));
+            }
+            finally
+            {
+                foreach (string path in paths) { AssetDatabase.DeleteAsset(path); if (File.Exists(path)) File.Delete(path); }
+                AssetDatabase.DeleteAsset(recipe); if (File.Exists(recipe)) File.Delete(recipe);
+                Object.DestroyImmediate(source); Object.DestroyImmediate(edited); Object.DestroyImmediate(catalogue); Object.DestroyImmediate(config);
+            }
+        }
+
         [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
         [Timeout(300000)]
         public void EverySlotAdoptsCorrectMapsAndSecondSetupIsIdempotent(string theme)
