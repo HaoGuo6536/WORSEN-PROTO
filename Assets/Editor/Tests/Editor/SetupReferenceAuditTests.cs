@@ -43,6 +43,7 @@ namespace Worsen.Tests.Editor
             { "AudioSoundscapeDriverConfig.Clip", "AudioSoundscapeDriver roster lookup falls back to the binding's canonical bank" },
             { "AudioSoundscapeDriverConfig._heartbeatClip", "AudioSoundscapeDriver.HeartbeatClip falls back to the generated heartbeat" },
             { "CameraDriverConfig._handMesh", "CameraHandCatchDriver builds the primitive hand when no mesh is set" },
+            { "HorrorDriverConfig._webMaterial", "HorrorWebDriver builds the web material from WebShader (HorrorShaderSetup); it errors only when both are missing" },
             { "EnvironmentDriverConfig._lightTemplate", "no runtime consumer yet; the HorrorEnvironmentLightSetup template is not wired (tracked gap)" },
             { "FloorDriverConfig._cakePrefab", "FloorDriver keeps the primitive cake when no visual prefab is set" },
             { "FloorDriverConfig._crackMaterial", "RoomCollapseVolume uses its dark material" },
@@ -52,7 +53,9 @@ namespace Worsen.Tests.Editor
             { "FloorDriverConfig._mistMaterial", "RoomCollapseVolume.MakeFogMaterial" },
             { "HunterDriver._animation", "optional animation driver on legacy hunter prefabs" },
             { "HunterDriver._attacks", "HunterDriver resolves the sibling HunterAttackDriver or runs without one" },
+            { "HunterDriver._config", "HunterDriver.Initialize uses the profile motor override, then the Resources HunterMotorDriverConfig" },
             { "HunterProfile._motorOverride", "optional per-profile motor override; the shared motor config applies" },
+            { "HunterProfile._archetypeRules", "null selects the registered Default module (HunterArchetypeFactory); legacy profiles use it" },
             { "PlayerManager._effectConfig", "PlayerDriver.ResolveEffectConfig loads the Resources fallback" },
         };
 
