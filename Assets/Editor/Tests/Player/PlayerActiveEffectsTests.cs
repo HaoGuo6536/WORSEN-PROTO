@@ -15,6 +15,7 @@
 // USAGE NOTES:
 //   No physics queries or wall time. Mutable-view tests prove sampling happens at
 //   Tick, not at SetActiveEffects or ApplyHit; external events must be replayed too.
+//   Momentum expiry also distinguishes a normal jump from the separate traversal launch.
 // ============================================================================
 using System.Collections;
 using System.Collections.Generic;
@@ -235,8 +236,10 @@ namespace Worsen.Tests.Player
             _controller.CommitPose(new PlayerMoveResult(Vector3.forward, Vector3.forward * 8f, true, false));
             _state.MovementState = MovementState.Ground;
             _state.Velocity = Vector3.forward * 2f;
-            _controller.Tick(Frame(InputButtons.Jump), Ground, expire ? 1.01f : Dt, 2);
+            var release = _controller.Tick(Frame(InputButtons.Jump), Ground, expire ? 1.01f : Dt, 2);
             Assert.That(Speed, Is.EqualTo(expire ? 2f : 8f).Within(0.00001f));
+            Assert.That(release.Facts[0].Kind, Is.EqualTo(TraversalKind.Jump));
+            Assert.That(release.Facts[0].Duration, Is.EqualTo(expire ? 0f : _profile.TraversalMomentumDuration));
             Assert.That(_state.StoredMomentumSpeed, Is.Zero);
             _state.MovementState = MovementState.Ground;
             _state.Velocity = Vector3.forward * 2f;

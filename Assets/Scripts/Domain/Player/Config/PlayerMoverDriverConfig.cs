@@ -9,6 +9,7 @@
 //   DriverConfig (§7d) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Tune landing contact tolerance and legal step height independently of traversal rules.
+//   - Tune knee-edge probe bounds and the airborne grab/pull-up path.
 //   - Name the hunter-body layer excluded from movement queries and contacts during grace.
 //   - Tune yaw-only shoulder anchors and eased, speed-scaled walking arm swing.
 // DEPENDENCIES:
@@ -45,6 +46,9 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _slopeLimitDegrees = 50f;
         [SerializeField] private float _wallProbeDistance = 0.6f;
         [SerializeField] private float _vaultProbeDistance = 1.15f;
+        [SerializeField, Min(0f)] private float _kneeProbeMinimumHeight = 0.35f;
+        [SerializeField, Min(0f)] private float _kneeProbeMaximumHeight = 0.9f;
+        [SerializeField, Range(0.1f, 0.8f)] private float _ledgePullUpPortion = 0.55f;
         [SerializeField] private float _eyeHeight = 1.6f;
         [SerializeField] private float _traversalLift = 0.08f;
         [Tooltip("Fallback rise completion when collider through-span geometry is unavailable.")]
@@ -74,6 +78,9 @@ namespace Worsen.Domain.Player
         public float SlopeLimitDegrees => _slopeLimitDegrees;
         public float WallProbeDistance => _wallProbeDistance;
         public float VaultProbeDistance => _vaultProbeDistance;
+        public float KneeProbeMinimumHeight => _kneeProbeMinimumHeight;
+        public float KneeProbeMaximumHeight => _kneeProbeMaximumHeight;
+        public float LedgePullUpPortion => _ledgePullUpPortion;
         public float EyeHeight => _eyeHeight;
         public float TraversalLift => _traversalLift;
         public float TraversalRisePortion => _traversalRisePortion;

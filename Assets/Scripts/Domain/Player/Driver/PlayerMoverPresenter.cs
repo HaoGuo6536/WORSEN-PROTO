@@ -12,12 +12,13 @@
 //   - Distinguish overlap sentinels from real sweep contacts and retain slope-tangent motion.
 //   - Decide support, wall-slide redirection and untagged ledge admission from supplied geometry.
 //   - Remove only the hunter layer during grace and decide the once-per-session missing-layer warning.
-//   - Select opposite endpoints and geometry-timed arcs with eased joins to the apex hold.
+//   - Select endpoints, knee-height probes and eased hop/grab/pull-up trajectories.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Stateless pure math. Collision distances and normals are inputs obtained by PlayerDriver.
+//   Ledge height bounds admit only a numerical epsilon for translated float coordinates.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using UnityEngine;
@@ -81,12 +82,32 @@ namespace Worsen.Domain.Player
             return projected.normalized * Mathf.Max(projected.magnitude, velocity.magnitude * Mathf.Clamp01(retention));
         }
 
+        public float EdgeProbeHeight(float minimumHeight, float chestHeight, float skin)
+            => Mathf.Max(skin, Mathf.Min(minimumHeight, chestHeight > 0f ? chestHeight : minimumHeight) - skin);
+
+        public Vector3 LedgePosition(Vector3 from, Vector3 to, float progress, float lift, float pullUpPortion)
+        {
+            progress = Mathf.Clamp01(progress);
+            if (progress <= 0f) return from;
+            if (progress >= 1f) return to;
+            float split = Mathf.Clamp(pullUpPortion, 0.1f, 0.8f);
+            float rise = Mathf.Clamp01(progress / split);
+            float cross = Mathf.Clamp01((progress - split) / (1f - split));
+            // Grab holds at the near face, pulls the feet above it, then crosses.
+            // Smooth joins avoid the old first-quarter vertical pop into a long hold.
+            Vector3 position = Vector3.Lerp(from, to, cross * cross * (3f - 2f * cross));
+            float apex = Mathf.Max(from.y, to.y) + Mathf.Max(0f, lift);
+            position.y = progress < split ? Mathf.Lerp(from.y, apex, rise * rise * (3f - 2f * rise))
+                : Mathf.Lerp(apex, to.y, cross * cross);
+            return position;
+        }
+
         public bool CanClimbLedge(bool chestBlocked, bool aboveBlocked, bool topFound, bool endpointBlocked,
             Vector3 feet, Vector3 top, Vector3 normal, float reach, float minimumHeight, float maximumHeight, float slopeLimit)
         {
             Vector3 delta = top - feet;
             return chestBlocked && !aboveBlocked && topFound && !endpointBlocked && Finite(delta)
-                && delta.y >= minimumHeight && delta.y <= maximumHeight
+                && delta.y >= minimumHeight - 0.00001f && delta.y <= maximumHeight + 0.00001f
                 && new Vector2(delta.x, delta.z).magnitude <= reach && IsWalkable(normal, slopeLimit);
         }
 

@@ -27,6 +27,8 @@
 //   No other Domain system or Presentation system is referenced.
 //   Floor assembly captures ReadOnlyShieldState.Shield before despawn and restores
 //   it after Initialize. BeginFloorHealth and health regeneration do not modify it.
+//   The Controller's ledge mode selects the Driver's grab/pull-up path; no camera
+//   or audio work happens here. Existing traversal progress/facts remain the relays.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -95,14 +97,15 @@ namespace Worsen.Domain.Player
             bool wasAlive = _state.IsAlive;
             AdvanceRecovery(tick);
             MovementProbe probe = _driver.Probe(_profile.LedgeReach, _profile.LedgeMinimumHeight,
-                _profile.LedgeMaximumHeight, _profile.LedgeChestHeight);
+                _profile.LedgeMaximumHeight, _profile.LedgeChestHeight,
+                (frame.Pressed & InputButtons.Jump) != 0 || _state.JumpBufferRemaining > 0f);
             PlayerTickResult result = _controller.Tick(frame, probe, dt, tick);
             if (_controller.TakeHeartbeat(out NoiseEvent heartbeat)) OnHeartbeat?.Invoke(heartbeat);
             PlayerMoveResult movement = !_state.IsAlive
                 ? new PlayerMoveResult(_state.Position, Vector3.zero, _state.Grounded, false)
                 : result.Traversing
                 ? _driver.MoveTraversal(result.TraversalStart, result.TraversalTarget, result.TraversalProgress,
-                    result.TraversalHeight, _state.Velocity, _state.HeadingDegrees, dt, _controller.MaximumMovementSpeed, result.TraversalOffset)
+                    result.TraversalHeight, _state.Velocity, _state.HeadingDegrees, dt, _controller.MaximumMovementSpeed, result.TraversalOffset, _state.VaultIsLedge)
                 : _driver.Move(result.Displacement, _state.Velocity, result.Crouched, _state.HeadingDegrees, dt,
                     _state.MovementState == MovementState.Slide, _controller.SlideWallSpeedRetention);
             _controller.CommitPose(movement);

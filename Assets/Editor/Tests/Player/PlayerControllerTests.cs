@@ -9,7 +9,7 @@
 //   Editor tool (§10) · test suite (§11) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Verify locomotion, clearance-safe slides and jump-requested wall kicks.
-//   - Verify vault/ledge priority, steering, cancellation and resolved outcomes.
+//   - Verify vault/ledge priority, steering, buffered launch and resolved outcomes.
 //   - Verify external motion, landing recovery, health and hit protection boundaries.
 //   - Verify committed sprint/posture facts, typed noise and life resets.
 //   - Verify deterministic input/probe/resolution replay.
@@ -24,6 +24,8 @@
 //   No other Domain system or Presentation system is referenced.
 //   Crouch expectations follow the owner's 2026-09-30 Windows playtest decision:
 //   holding C never lowers posture; an obstructed slide continues until it can stand.
+//   Owner 2026-10-01 replaces traversal jump cancellation with a buffered launch
+//   after successful collision-resolved completion, including presses near the top.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -751,11 +753,11 @@ namespace Worsen.Tests.Player
             Assert.That(_state.InputLockSeconds, Is.LessThanOrEqualTo(1f));
         }
 
-        [TestCase(0.1201f, 8f)]
-        [TestCase(0.12f, 11f)]
-        [TestCase(0.0001f, 11f)]
-        [TestCase(0f, 8f)]
-        public void FreshTraversalJumpCancelsAndBoostsOnlyInsideTheEndWindow(float remaining, float expectedSpeed)
+        [TestCase(0.3f)]
+        [TestCase(0.22f)]
+        [TestCase(0.0001f)]
+        [TestCase(0f)]
+        public void FreshTraversalJumpBuffersUntilResolvedCompletion(float remaining)
         {
             _state.MovementState = MovementState.Vault;
             _state.VaultDuration = _profile.MantleDuration;
@@ -763,13 +765,17 @@ namespace Worsen.Tests.Player
             _state.VaultKind = TraversalKind.Mantle;
             _state.VaultExitVelocity = Vector3.forward * 8f;
             var result = _controller.Tick(Frame(pressed: InputButtons.Jump), default, Dt, 1);
-            Assert.That(result.Traversing, Is.False);
-            Assert.That(Speed, Is.EqualTo(expectedSpeed).Within(0.0001f));
-            Assert.That(_state.Velocity.y, Is.EqualTo(_profile.JumpSpeed - _profile.Gravity * Dt));
-            Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
-            Assert.That(_state.InputLockSeconds, Is.Zero);
-            Assert.That(result.Facts[0].Kind, Is.EqualTo(TraversalKind.Jump));
+            Assert.That(result.Traversing, Is.True, "Owner 2026-10-01: even an early press must not cancel the arc.");
+            Assert.That(_state.TraversalLaunchBuffered, Is.True);
+            Assert.That(result.Facts, Is.Empty);
             Assert.That(_state.JumpBufferRemaining, Is.Zero);
+            if (_state.VaultRemaining > 0f) _controller.Tick(Frame(), default, _state.VaultRemaining, 2);
+            _controller.CommitPose(new PlayerMoveResult(Vector3.zero, Vector3.zero, true, false));
+            var launch = _controller.Tick(Frame(), Ground, Dt, 3);
+            Assert.That(launch.Traversing, Is.False);
+            Assert.That(Speed, Is.EqualTo(14f).Within(.0001f));
+            Assert.That(_state.Velocity.y, Is.EqualTo(_profile.TraversalBoostUpwardSpeed - _profile.Gravity * Dt));
+            Assert.That(launch.Facts[0].Kind, Is.EqualTo(TraversalKind.Jump));
         }
 
         [Test]
@@ -798,12 +804,16 @@ namespace Worsen.Tests.Player
             for (int tick = 2; _state.VaultRemaining > _profile.TraversalBoostWindow; tick++)
                 _controller.Tick(Frame(), probe, Dt, tick);
             _controller.Tick(Frame(pressed: InputButtons.Jump), probe, Dt, 30);
+            // Owner 2026-10-01: finish the sweep instead of cancelling at the press.
+            if (_state.VaultRemaining > 0f) _controller.Tick(Frame(), probe, _state.VaultRemaining, 31);
+            _controller.CommitPose(new PlayerMoveResult(probe.VaultTarget, Vector3.zero, true, false));
+            _controller.Tick(Frame(), Ground, Dt, 32);
             Assert.That(Speed, Is.EqualTo(_profile.MaxDesignSpeed).Within(0.0001f));
             Assert.That(_state.MovementState, Is.EqualTo(MovementState.Air));
         }
 
         [Test]
-        public void BlockedTraversalCancelConsumesPressWithoutDelayedJumpOrBoost()
+        public void BlockedTraversalPressConsumesInputWithoutDelayedJumpOrBoost()
         {
             _state.Velocity = Vector3.forward * 8f;
             var probe = new MovementProbe(true, Vector3.up, vaultCandidate: true,
@@ -829,7 +839,10 @@ namespace Worsen.Tests.Player
             Assert.That(_controller.Tick(Frame(), ledge, Dt, 2).Traversing, Is.True);
             Assert.That(_state.VaultKind, Is.EqualTo(TraversalKind.Mantle));
             _controller.Tick(Frame(pressed: InputButtons.Jump), ledge, Dt, 3);
-            Assert.That(_controller.Tick(Frame(), ledge, Dt, 4).Traversing, Is.False, "Cancel cannot immediately regrab.");
+            Assert.That(_controller.Tick(Frame(), ledge, Dt, 4).Traversing, Is.True, "Owner 2026-10-01: early press buffers, not cancels.");
+            _controller.Tick(Frame(), ledge, _state.VaultRemaining, 5);
+            _controller.CommitPose(new PlayerMoveResult(ledge.VaultTarget, Vector3.zero, true, false));
+            Assert.That(_controller.Tick(Frame(), ledge, Dt, 6).Traversing, Is.False, "Launch cannot immediately regrab.");
         }
 
         [Test]

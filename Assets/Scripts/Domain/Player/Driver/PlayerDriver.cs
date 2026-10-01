@@ -28,6 +28,11 @@
 //   Wall jumps probe ordinary non-body walls in eight horizontal directions; authored
 //   IDs remain stable and untagged collider IDs are captured in the replay probe.
 //   Legacy crouched parameters mean Slide's reduced capsule only.
+//   Owner 2026-10-01: low rays/full-height face sweeps offer untagged knee vaults
+//   and airborne grabs, including thin lips. Requested authored routes keep their
+//   endpoints; without a jump request, airborne tagged geometry can offer a grab too.
+//   Top rays extend past the minimum-height boundary; admitted probe heights clamp
+//   numerical roundoff to the rule bounds without moving the physical endpoint.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -97,7 +102,7 @@ namespace Worsen.Domain.Player
         }
 
         public MovementProbe Probe(float ledgeReach = 0f, float ledgeMinimumHeight = 0f,
-            float ledgeMaximumHeight = 0f, float ledgeChestHeight = 0f)
+            float ledgeMaximumHeight = 0f, float ledgeChestHeight = 0f, bool preferAuthoredRoute = true)
         {
             if (!_state.Ready) return default;
             Vector3 feet = _state.Position;
@@ -119,11 +124,18 @@ namespace Worsen.Domain.Player
             _state.ProbedTraversalTarget = target;
             float clearance = targetAvailable && !IsBlocked(target, _config.Height) ? _config.Height : 0f;
             float height = candidate ? vault.collider.bounds.max.y - feet.y : 0f;
-            // Preserve authored route semantics. Only untagged geometry offers an automatic
-            // ledge: positive checked clearance with VaultCandidate=false is replayable data.
-            if (!candidate && !grounded && ledgeReach > 0f && TryLedge(feet, forward, ledgeReach,
-                ledgeMinimumHeight, ledgeMaximumHeight, ledgeChestHeight, out Vector3 ledge))
-            { target = ledge; height = ledge.y - feet.y; clearance = _config.Height; _state.ProbedTraversalTarget = target; }
+            // Positive checked clearance without VaultCandidate records a geometric edge:
+            // grounded + Jump is a knee vault; airborne is an automatic grab.
+            float edgeReach = grounded ? _config.VaultProbeDistance : ledgeReach;
+            float edgeMinimum = grounded ? _config.KneeProbeMinimumHeight : ledgeMinimumHeight;
+            float edgeMaximum = grounded ? _config.KneeProbeMaximumHeight : ledgeMaximumHeight;
+            if ((!candidate || (!grounded && !preferAuthoredRoute)) && edgeReach > 0f && TryLedge(feet, forward, edgeReach,
+                edgeMinimum, edgeMaximum, ledgeChestHeight, out Vector3 ledge))
+            {
+                candidate = false;
+                target = ledge; height = Mathf.Clamp(ledge.y - feet.y, edgeMinimum, edgeMaximum);
+                clearance = _config.Height; _state.ProbedTraversalTarget = target;
+            }
             return new MovementProbe(grounded, grounded ? ground.normal : Vector3.up,
                 rebound, rebound ? Mathf.Max(0f, wall.distance - _config.SkinWidth) : 0f,
                 rebound ? wall.normal : Vector3.zero, rebound ? Vector3.Angle(forward, -wall.normal) : 0f,
@@ -199,7 +211,7 @@ namespace Worsen.Domain.Player
         }
 
         public PlayerMoveResult MoveTraversal(Vector3 from, Vector3 to, float progress, float obstacleHeight,
-            Vector3 velocity, float heading, float dt, float maximumSpeed, Vector3 steeringOffset = default)
+            Vector3 velocity, float heading, float dt, float maximumSpeed, Vector3 steeringOffset = default, bool ledgeClimb = false)
         {
             if (!(dt > 0f) || float.IsInfinity(dt)) throw new ArgumentOutOfRangeException(nameof(dt));
             if (!_state.TraversalActive)
@@ -213,8 +225,10 @@ namespace Worsen.Domain.Player
                     out _state.TraversalRisePortion, out _state.TraversalTraverseEnd);
             }
             Vector3 before = _state.Position;
-            Vector3 target = _presenter.TraversalPosition(from, to, progress, obstacleHeight, _config.TraversalLift,
-                _state.TraversalRisePortion, _state.TraversalTraverseEnd) + steeringOffset;
+            Vector3 target = (ledgeClimb
+                ? _presenter.LedgePosition(from, to, progress, _config.TraversalLift, _config.LedgePullUpPortion)
+                : _presenter.TraversalPosition(from, to, progress, obstacleHeight, _config.TraversalLift,
+                    _state.TraversalRisePortion, _state.TraversalTraverseEnd)) + steeringOffset;
             // Admission checks distance/duration against the speed budget. Clamping an
             // absolute target here accumulates debt, then releases it as a catch-up jump.
             // Landing admission and the actual landing sweep still reject other geometry.
@@ -390,18 +404,54 @@ namespace Worsen.Domain.Player
             float maximumHeight, float chestHeight, out Vector3 target)
         {
             target = Vector3.zero;
-            if (!Ray(feet + Vector3.up * chestHeight, forward, reach, out RaycastHit chest)
-                || chest.collider.GetComponentInParent<ITraversalSurface>() != null) return false;
+            // Low rays find knee faces; a narrow vertical sweep also finds tabletops
+            // and balcony slabs with empty space underneath (no sampling-height gaps).
+            float faceHeight = _presenter.EdgeProbeHeight(minimumHeight, chestHeight, _config.SkinWidth);
+            if (!Ray(feet + Vector3.up * faceHeight, forward, reach, out RaycastHit chest)
+                && !LedgeFace(feet, forward, faceHeight, maximumHeight, reach, out chest)) return false;
+            if (_presenter.IsInitialOverlap(chest.distance, chest.point)
+                || Mathf.Abs(chest.normal.y) >= 0.5f
+                || chest.collider.gameObject.layer == _state.HunterBodyLayer
+                || chest.collider.GetComponentInParent<IEntityHandle>() != null) return false;
             Vector3 upper = feet + Vector3.up * (maximumHeight + _config.SkinWidth);
             bool aboveBlocked = Ray(upper, forward, chest.distance + _config.Radius + _config.SkinWidth, out _);
-            Vector3 topOrigin = chest.point + forward * (_config.Radius + _config.SkinWidth);
-            topOrigin.y = upper.y;
-            bool topFound = Ray(topOrigin, Vector3.down, maximumHeight - minimumHeight + _config.SkinWidth, out RaycastHit top);
-            if (!_presenter.CanClimbLedge(true, aboveBlocked, topFound, topFound && IsBlocked(top.point, _config.Height),
-                feet, top.point, top.normal, reach, minimumHeight, maximumHeight, _config.SlopeLimitDegrees)) return false;
-            target = top.point;
-            _state.ProbedTraversalCollider = chest.collider;
-            return true;
+            // Prefer a full-footprint inset; a thin lip may only have near-edge support.
+            for (int sample = 0; sample < 2; sample++)
+            {
+                Vector3 topOrigin = chest.point + forward * (sample == 0 ? _config.Radius + _config.SkinWidth : _config.SkinWidth);
+                topOrigin.y = upper.y;
+                // Do not end exactly on the minimum top: translated float arithmetic
+                // can shorten that ray by an ulp. CanClimbLedge still enforces the bounds.
+                bool topFound = Ray(topOrigin, Vector3.down, maximumHeight - minimumHeight + 2f * _config.SkinWidth, out RaycastHit top)
+                    && top.collider == chest.collider;
+                if (!_presenter.CanClimbLedge(true, aboveBlocked, topFound, topFound && IsBlocked(top.point, _config.Height),
+                    feet, top.point, top.normal, reach, minimumHeight, maximumHeight, _config.SlopeLimitDegrees)) continue;
+                target = top.point;
+                _state.ProbedTraversalCollider = chest.collider;
+                return true;
+            }
+            return false;
+        }
+
+        private bool LedgeFace(Vector3 feet, Vector3 forward, float minimumHeight, float maximumHeight,
+            float reach, out RaycastHit closest)
+        {
+            float radius = Mathf.Max(0.001f, _config.SkinWidth);
+            Vector3 bottom = feet + Vector3.up * minimumHeight;
+            Vector3 top = feet + Vector3.up * Mathf.Max(minimumHeight, maximumHeight - radius);
+            int count;
+            while ((count = Physics.CapsuleCastNonAlloc(bottom, top, radius, forward, _state.QueryHits,
+                reach, MovementMask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            closest = default;
+            float nearest = float.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i];
+                if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
+                closest = hit; nearest = hit.distance;
+            }
+            return nearest < float.PositiveInfinity;
         }
 
         private bool Ray(Vector3 origin, Vector3 direction, float distance, out RaycastHit closest)

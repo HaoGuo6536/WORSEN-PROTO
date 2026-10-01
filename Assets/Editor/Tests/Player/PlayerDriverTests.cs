@@ -22,6 +22,10 @@
 //   Fixtures create their own geometry and in-memory default config away from
 //   authored scenes, destroy both in teardown and never alter global physics.
 //   The separate Level integration fixture remains the ordinary Run-tick gate.
+//   Owner 2026-10-01 edge cases use ordinary colliders with no marker or tag;
+//   focus is required for the coordinator's traversal acceptance run.
+//   Minimum-height solid and floating ledges keep the real translated collider top;
+//   probe bounds must survive roundoff without relaxing unsupported/blocked admission.
 // ============================================================================
 using System.Linq;
 using NUnit.Framework;
@@ -59,6 +63,118 @@ namespace Worsen.Tests.Player
             if (actor != null) Object.DestroyImmediate(actor);
             if (arrangement != null) Object.DestroyImmediate(arrangement);
             if (config != null) Object.DestroyImmediate(config);
+        }
+
+        [TestCase(.35f, 1f)] [TestCase(.65f, 1f)] [TestCase(.9f, 1f)] [TestCase(.65f, .2f)]
+        [Category("RequiresFocus")]
+        public void UntaggedKneeObstacleProbesVaultsAndLaunchesAfterResolvedCompletion(float height, float depth)
+        {
+            Box("Untagged knee obstacle", new Vector3(1f + depth * .5f, height * .5f, 0f), new Vector3(depth, height, 3f));
+            Spawn(new Vector3(.6f, 0f, 0f));
+            ExerciseGeometricTraversal(false, height);
+        }
+
+        [TestCase(.5f)] [TestCase(1.4f)] [TestCase(2.2f)]
+        [Category("RequiresFocus")]
+        public void UntaggedAirborneLedgePullsUpAndLaunchesWithoutPenetration(float height)
+        {
+            Box("Untagged airborne ledge", new Vector3(2f, (height + .4f) * .5f, 0f), new Vector3(2f, height + .4f, 3f));
+            Spawn(new Vector3(.6f, .4f, 0f));
+            ExerciseGeometricTraversal(true, height);
+        }
+
+        private void ExerciseGeometricTraversal(bool ledge, float height)
+        {
+            const float dt = 1f / 60f;
+            var profile = ScriptableObject.CreateInstance<PlayerProfile>();
+            try
+            {
+                var state = new PlayerBehaviorState();
+                var controller = new PlayerController(state, profile, new System.Random(13));
+                controller.Reset(new EntityId(13), driver.Position, driver.Heading);
+                state.Velocity = Vector3.right * 8f;
+                int outcomes = 0, launches = 0;
+                for (int tick = 1; tick <= 25; tick++)
+                {
+                    var probe = driver.Probe(profile.LedgeReach, profile.LedgeMinimumHeight, profile.LedgeMaximumHeight,
+                        profile.LedgeChestHeight, tick == 2 || (tick == 1 && !ledge));
+                    if (tick == 1)
+                    {
+                        Assert.That(probe.Grounded, Is.EqualTo(!ledge), "The fixture must exercise the intended admission path.");
+                        Assert.That(probe.VaultCandidate, Is.False);
+                        Assert.That(probe.VaultHeight, Is.EqualTo(height).Within(.001f));
+                        Assert.That(probe.VaultClearance, Is.GreaterThan(0f));
+                        Assert.That(probe.VaultHeight, Is.InRange(ledge ? profile.LedgeMinimumHeight : config.KneeProbeMinimumHeight,
+                            ledge ? profile.LedgeMaximumHeight : config.KneeProbeMaximumHeight));
+                        Assert.That(probe.VaultTarget.y, Is.EqualTo(driver.Position.y + height).Within(.001f));
+                    }
+                    var input = new InputFrame(Vector2.up, Vector2.zero, InputButtons.Sprint,
+                        tick == 2 || (tick == 1 && !ledge) ? InputButtons.Jump : InputButtons.None, InputButtons.None);
+                    var decision = controller.Tick(input, probe, dt, tick);
+                    var moved = decision.Traversing
+                        ? driver.MoveTraversal(decision.TraversalStart, decision.TraversalTarget, decision.TraversalProgress,
+                            decision.TraversalHeight, state.Velocity, state.HeadingDegrees, dt, controller.MaximumMovementSpeed,
+                            decision.TraversalOffset, state.VaultIsLedge)
+                        : driver.Move(decision.Displacement, state.Velocity, false, state.HeadingDegrees, dt);
+                    controller.CommitPose(moved);
+                    Physics.SyncTransforms();
+                    AssertNoPenetration();
+                    if (state.CompletedTraversal.HasValue)
+                    {
+                        outcomes++;
+                        Assert.That(state.CompletedTraversal.Value.Succeeded, Is.True);
+                        Assert.That(state.Velocity.x, Is.EqualTo(8f).Within(.001f));
+                    }
+                    if (decision.Facts.Any(f => f.Kind == TraversalKind.Jump && f.Duration > 0f))
+                    {
+                        launches++;
+                        Assert.That(state.Velocity.x, Is.EqualTo(14f).Within(.001f));
+                        Assert.That(state.Velocity.y, Is.GreaterThan(2f));
+                    }
+                }
+                Assert.That(outcomes, Is.EqualTo(1)); Assert.That(launches, Is.EqualTo(1));
+            }
+            finally { Object.DestroyImmediate(profile); }
+        }
+
+        [TestCase(.65f, false)] [TestCase(.5f, true)] [TestCase(1.4f, true)] [TestCase(2.2f, true)]
+        [Category("RequiresFocus")]
+        public void ThinFloatingTabletopOrBalconyLipDoesNotNeedALowSolidFace(float height, bool airborne)
+        {
+            float feetHeight = airborne ? .4f : 0f;
+            Box("Thin floating untagged slab", new Vector3(2f, feetHeight + height - .025f, 0f),
+                new Vector3(2f, .05f, 3f));
+            Spawn(new Vector3(.6f, feetHeight, 0f));
+            ExerciseGeometricTraversal(airborne, height);
+        }
+
+        [Test, Category("RequiresFocus")]
+        public void TaggedAirborneEdgeGrabsWithoutPressButFreshJumpKeepsAuthoredEndpoint()
+        {
+            BoxCollider obstacle = Box("Tagged reachable ledge", new Vector3(2f, .9f, 0f), new Vector3(2f, 1.8f, 3f));
+            var marker = obstacle.gameObject.AddComponent<LevelMarker>();
+            using var fields = new SerializedObject(marker);
+            fields.FindProperty("_id").intValue = 92503;
+            fields.FindProperty("_kind").enumValueIndex = (int)LevelMarkerKind.VaultSurface;
+            Vector3 authored = Origin + new Vector3(1.7f, 1.8f, 0f);
+            fields.FindProperty("_targetPosition").vector3Value = authored;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            Spawn(new Vector3(.6f, .4f, 0f));
+            var requested = driver.Probe(1.2f, .5f, 2.2f, .8f, true);
+            Assert.That(requested.VaultCandidate, Is.True);
+            Assert.That(requested.VaultTarget, Is.EqualTo(authored));
+            ExerciseGeometricTraversal(true, 1.4f);
+        }
+
+        [TestCase(.499f)] [TestCase(2.201f)]
+        public void UntaggedAirborneLedgeOutsideHeightBoundsDoesNotOfferAGrab(float height)
+        {
+            Box("Out-of-range airborne ledge", new Vector3(2f, (height + .4f) * .5f, 0f),
+                new Vector3(2f, height + .4f, 3f));
+            Spawn(new Vector3(.6f, .4f, 0f));
+            MovementProbe probe = driver.Probe(1.2f, .5f, 2.2f, .8f, false);
+            Assert.That(probe.Grounded || probe.VaultCandidate, Is.False);
+            Assert.That(probe.VaultClearance, Is.Zero);
         }
 
         [TestCase(0f)] [TestCase(45f)] [TestCase(90f)] [TestCase(135f)]
