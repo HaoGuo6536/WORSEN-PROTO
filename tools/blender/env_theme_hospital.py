@@ -54,7 +54,7 @@ COMMON = {'wall_2m': 'wall', 'wall_door_4m': 'door', 'wall_window_2m': 'window',
           'prop_bed': 'prop', 'prop_curtain_rail': 'prop',
           'prop_cabinet': 'prop', 'prop_wheelchair': 'prop'}
 EXTRA = {'wall_1m': 'wall', 'wall_closed_4m': 'wall',
-         'door_double_porthole_4m': 'door', 'ceiling_drop_panel_2x2': 'ceiling',
+         'door_double_porthole_4m': 'prop', 'ceiling_drop_panel_2x2': 'ceiling',
          'light_fluorescent_panel': 'prop', 'light_fluorescent_dead': 'prop',
          'wall_handrail_2m': 'trim', 'corner_guard': 'trim',
          'curtain_track_bay': 'prop', 'wall_tile_dado_2m': 'trim',
@@ -458,7 +458,8 @@ def build_piece(piece):
     else:
         furniture(m, piece)
     # Wall-plane pivots stay fixed. Portable props use their measured bottom centre.
-    return m.finish(center=KINDS[piece] == 'prop' or piece in ('wall_handrail_2m', 'corner_guard'))
+    return m.finish(center=(KINDS[piece] == 'prop' and piece != 'door_double_porthole_4m') or
+                    piece in ('wall_handrail_2m', 'corner_guard'))
 
 
 def geometry_hash(obj):
@@ -587,7 +588,8 @@ def assemble_template(name, cells, kind, shape, doors, props, gimmick='none'):
     candidates = [[2*x+1, 0, 2*z+1] for x, z in sorted(cells)
                   if not any(abs(2*x+1-a) < ex and abs(2*z+1-b) < ez for a, b, ex, ez in occupied)]
     assert len(candidates) >= 2, (name, 'no free cake sockets')
-    count = min(len(candidates), max(2, math.ceil(n/5)))
+    count = max(2, (n*2+8)//9)
+    assert len(candidates) >= count, (name, 'insufficient cake density')
     selected = [candidates[round(i*(len(candidates)-1)/max(1, count-1))] for i in range(count)]
     return {'id': 'hospital_'+name, 'kind': kind, 'sizeClass': size_class, 'shape': shape,
             'footprint': [list(c) for c in sorted(cells)], 'height': HEIGHT, 'doors': sockets,
@@ -819,7 +821,7 @@ def main():
     parser.add_argument('--skip-previews', action='store_true')
     args = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     assert bpy.app.version[:2] == (5, 2), 'Use Blender 5.2'
-    assert ROOT.name in ('theme-hospital', 'art-fixes') and (ROOT/'.git').is_file(), \
+    assert ROOT.name in ('theme-hospital', 'art-fixes', 'theme-catalogues') and (ROOT/'.git').is_file(), \
         'Publish only to an authorized isolated worktree, never the shared checkout'
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.preferences.filepaths.save_version = 0

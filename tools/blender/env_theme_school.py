@@ -733,7 +733,7 @@ def safe_anchors(t,pieces):
             if any(a<px<b and c<pz<d for a,b,c,d in boxes):
                 continue
             candidates.append([px,0,pz])
-    need=max(2,math.ceil(len(cells)/6))
+    need=max(2,(len(cells)*2+8)//9)
     chosen=[]
     for p in candidates:
         if all(math.hypot(p[0]-q[0],p[2]-q[2])>=1.4 for q in chosen):
