@@ -584,5 +584,101 @@
         -0.024999994784593582
       ]
     }
+  },
+  "motion_contract": {
+    "authored_walk_speed_mps": 0.659781,
+    "authored_run_speed_mps": 1.557523,
+    "stride_measurement": {
+      "method": "net foot travel / elapsed validated stance time, pooled over all feet and one full cycle; Ticking uses magnitude of its forward-rolling waddle",
+      "source": "shipped FBX; Blender Z-up, forward -Y; world metres",
+      "samples_per_cycle": 240,
+      "sole_contact_tolerance_m": 0.015,
+      "walk": {
+        "cycle_seconds": 1.0,
+        "feet": [
+          {
+            "bone": "LeftShin",
+            "travel_m": 0.336233,
+            "stance_seconds": 0.5,
+            "signed_travel_m": -0.336233,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.25
+              ],
+              [
+                0.75,
+                1
+              ]
+            ],
+            "sole_height_range_m": [
+              -9.3e-05,
+              0.011814
+            ],
+            "speed_mps": 0.672467
+          },
+          {
+            "bone": "RightShin",
+            "travel_m": 0.323547,
+            "stance_seconds": 0.5,
+            "signed_travel_m": -0.323547,
+            "stance_phase_intervals": [
+              [
+                0.25,
+                0.75
+              ]
+            ],
+            "sole_height_range_m": [
+              -7.3e-05,
+              0.011813
+            ],
+            "speed_mps": 0.647095
+          }
+        ]
+      },
+      "run": {
+        "cycle_seconds": 0.666667,
+        "feet": [
+          {
+            "bone": "LeftShin",
+            "travel_m": 0.527752,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": -0.527752,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.25
+              ],
+              [
+                0.75,
+                1
+              ]
+            ],
+            "sole_height_range_m": [
+              -0.001697,
+              0.011252
+            ],
+            "speed_mps": 1.583257
+          },
+          {
+            "bone": "RightShin",
+            "travel_m": 0.510597,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": -0.510597,
+            "stance_phase_intervals": [
+              [
+                0.25,
+                0.75
+              ]
+            ],
+            "sole_height_range_m": [
+              -0.001696,
+              0.011252
+            ],
+            "speed_mps": 1.53179
+          }
+        ]
+      }
+    }
   }
 }

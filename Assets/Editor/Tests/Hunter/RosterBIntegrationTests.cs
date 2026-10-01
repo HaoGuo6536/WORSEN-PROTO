@@ -18,6 +18,7 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
@@ -67,6 +68,18 @@ namespace Worsen.Tests.Hunter
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, rootPath + "/Placeholder.prefab");
                 Assert.That(prefab, Is.Not.Null);
                 var first = RosterBProfileSetup.BuildAssets(name, prefab, rootPath);
+                string motorGuid = null, motorTuning = null;
+                if (name == "Mimic")
+                {
+                    Assert.That(first.MotorOverride, Is.Not.Null);
+                    Assert.That(first.MotorOverride.Radius, Is.EqualTo(.133f));
+                    Assert.That(first.MotorOverride.Height, Is.EqualTo(.289f));
+                    Assert.That(((MimicConfig)first.ArchetypeRules).TouchRadius, Is.EqualTo(.65f));
+                    motorGuid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(first.MotorOverride));
+                    motorTuning = EditorJsonUtility.ToJson(first.MotorOverride);
+                }
+                else Assert.That(first.MotorOverride, Is.Null, "Ram/Skip retain the shared motor.");
+                Assert.That(prefab.GetComponent<BoxCollider>(), Is.Null, "Setup never modifies the shared placeholder.");
                 string path = rootPath + "/" + name + "/" + name + "Profile.asset";
                 string guid = AssetDatabase.AssetPathToGUID(path);
                 string prefabGuid = AssetDatabase.AssetPathToGUID(rootPath + "/Placeholder.prefab");
@@ -96,6 +109,11 @@ namespace Worsen.Tests.Hunter
                 Assert.That(EditorJsonUtility.ToJson(rules), Is.EqualTo(ruleTuning));
 
                 // Model setup binds a different persistent body; profile setup must not undo it.
+                if (name == "Mimic")
+                {
+                    Assert.That(AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(second.MotorOverride)), Is.EqualTo(motorGuid));
+                    Assert.That(EditorJsonUtility.ToJson(second.MotorOverride), Is.EqualTo(motorTuning));
+                }
                 var body = PrefabUtility.SaveAsPrefabAsset(root, rootPath + "/SelectedBody.prefab");
                 Assert.That(body, Is.Not.Null);
                 EchoControllerTests.Tune(first, "_prefab", body);
@@ -123,6 +141,28 @@ namespace Worsen.Tests.Hunter
                 Assert.That(AssetDatabase.IsValidFolder(path), Is.False);
             }
             finally { AssetDatabase.DeleteAsset(path); Object.DestroyImmediate(root); }
+        }
+        [Test]
+        public void MimicCakeBoxIsIdempotentAndCannotLeaveASolidPillar()
+        {
+            var root = new GameObject("isolated Mimic collision");
+            root.SetActive(false); root.AddComponent<HunterManager>();
+            try
+            {
+                var capsule = root.GetComponent<CapsuleCollider>(); capsule.radius = .4f; capsule.height = 1.8f;
+                Vector3 center = new Vector3(0f, .8445f, 0f);
+                RosterBProfileSetup.ConfigureMimicCollision(root, center);
+                var box = root.GetComponent<BoxCollider>(); Assert.That(box, Is.Not.Null);
+                RosterBProfileSetup.ConfigureMimicCollision(root, center);
+                Assert.That(root.GetComponents<BoxCollider>().Length, Is.EqualTo(1));
+                Assert.That(root.GetComponent<BoxCollider>(), Is.SameAs(box));
+                Assert.That(box.size, Is.EqualTo(new Vector3(.266f, .289f, .352f)));
+                Assert.That(box.center, Is.EqualTo(center)); Assert.That(box.enabled && !box.isTrigger, Is.True);
+                Assert.That(capsule.enabled, Is.False); Assert.That(capsule.height, Is.EqualTo(.289f));
+                Assert.That(capsule.radius, Is.EqualTo(.133f)); Assert.That(capsule.center, Is.EqualTo(center));
+                Assert.That(root.GetComponents<Collider>().Count(collider => collider.enabled && !collider.isTrigger), Is.EqualTo(1));
+            }
+            finally { root.GetComponent<HunterManager>().Teardown(); Object.DestroyImmediate(root); }
         }
         [Test] public void NativeChargeDoesNotTurnStepOrContinueAfterWall()
         {

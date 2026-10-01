@@ -11,6 +11,7 @@
 #   - Bake six in-place actions and export manifest/source/FBX.
 #   - Render neutral, true-scale Workbench previews.
 #   - Inspect imported motion, 3–8k triangle/2–4 material budgets and reproducibility.
+#   - Independently audit manifest stride references from planted FBX feet.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils, Python standard library; model callbacks only.
 # USAGE NOTES:
@@ -451,6 +452,8 @@ def validate(name, expected_lengths, motion_minima):
             animation_signature.append([n,samples])
         from hunter_animation_review import validate_motion, validate_source_motion
         report['motion'] = validate_motion(name, rig, meshes, clips, motion_minima, check)
+        from hunter_stride_measurement import audit
+        report['stride'] = audit(name, rig, meshes, clips, manifest, check)
         validate_source_motion(source, rig, clips, check)
         check('manifest action set', len(manifest['actions'])==6 and {a['name'] for a in manifest['actions']}==set(NAMES), len(manifest['actions']))
         contact = next(a['contact_frame'] for a in manifest['actions'] if a['name']=='attack')

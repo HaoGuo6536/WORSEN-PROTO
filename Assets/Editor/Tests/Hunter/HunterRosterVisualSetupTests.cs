@@ -48,7 +48,8 @@ namespace Worsen.Tests.Hunter
             "\"actions\":[{\"name\":\"idle\",\"frames\":[0,60],\"loop\":true},{\"name\":\"walk\",\"frames\":[0,30],\"loop\":true}," +
             "{\"name\":\"run\",\"frames\":[0,20],\"loop\":true},{\"name\":\"ready\",\"frames\":[0,18],\"loop\":false}," +
             "{\"name\":\"attack\",\"frames\":[0,30],\"loop\":false,\"contact_frame\":12},{\"name\":\"hit\",\"frames\":[0,18],\"loop\":false}]," +
-            "\"materials\":[{\"name\":\"Cloth\",\"base_color_srgb\":[0.5,0.02,1,0.25],\"emission_color_srgb\":[1,0.5,0,1],\"emission_strength\":2}]}";
+            "\"materials\":[{\"name\":\"Cloth\",\"base_color_srgb\":[0.5,0.02,1,0.25],\"emission_color_srgb\":[1,0.5,0,1],\"emission_strength\":2}]," +
+            "\"motion_contract\":{\"authored_walk_speed_mps\":1.143072,\"authored_run_speed_mps\":6.762004}}";
 
         [Test]
         public void ParsesFramesLoopFlagsContactAndEmissionWithoutEngine()
@@ -61,6 +62,8 @@ namespace Worsen.Tests.Hunter
             Assert.That(manifest.Actions[4].ContactFrame, Is.EqualTo(12));
             Assert.That(manifest.Materials[0].EmissionStrength, Is.EqualTo(2f));
             Assert.That(manifest.Materials[0].BaseColor[3], Is.EqualTo(0.25f));
+            Assert.That(manifest.Motion.WalkSpeed, Is.EqualTo(1.143072f));
+            Assert.That(manifest.Motion.RunSpeed, Is.EqualTo(6.762004f));
         }
         [Test]
         public void ManifestLoopFlagsAreDataNotHardcodedByRole()
@@ -79,6 +82,13 @@ namespace Worsen.Tests.Hunter
         [TestCase("[0.5,0.02,1,0.25]", "[1.1,0,0,1]")]
         [TestCase("\"emission_strength\":2", "\"emission_strength\":-1")]
         [TestCase(",\"loop\":true", "")]
+        [TestCase("\"authored_walk_speed_mps\":1.143072", "\"authored_walk_speed_mps\":0")]
+        [TestCase("\"authored_run_speed_mps\":6.762004", "\"authored_run_speed_mps\":-1")]
+        [TestCase("\"authored_walk_speed_mps\":1.143072,", "")]
+        [TestCase(",\"authored_run_speed_mps\":6.762004", "")]
+        [TestCase("\"motion_contract\"", "\"undeclared_contract\"")]
+        [TestCase("\"authored_run_speed_mps\":6.762004", "\"authored_run_speed_mps\":\"Infinity\"")]
+        [TestCase("\"authored_walk_speed_mps\":1.143072", "\"authored_walk_speed_mps\":\"NaN\"")]
         public void RejectsInvalidManifest(string before, string after)
         {
             Assert.Throws<FormatException>(() => Setup.ParseManifest(Json.Replace(before, after), "Echo"));
@@ -110,12 +120,25 @@ namespace Worsen.Tests.Hunter
             var manifest = Setup.ParseManifest(File.ReadAllText(Path.Combine(directory, Setup.ManifestPath(name))), name);
             Assert.That(manifest.Hunter, Is.EqualTo(name)); Assert.That(manifest.Materials.Length, Is.GreaterThan(0));
             Assert.That(manifest.Actions.Where(action => action.Loop).Select(action => action.Name), Is.EquivalentTo(new[] { "idle", "walk", "run" }));
+            Assert.That(manifest.Motion.WalkSpeed, Is.GreaterThan(0f));
+            Assert.That(manifest.Motion.RunSpeed, Is.GreaterThan(0f));
             if (name == "Mimic")
             {
+                Assert.That(manifest.Motion.DefaultReason, Does.Contain("Stationary cake disguise"));
+                Assert.That(manifest.Motion.WalkSpeed, Is.EqualTo(1.6f));
+                Assert.That(manifest.Motion.RunSpeed, Is.EqualTo(3f));
                 var cake = manifest.Materials.Single(material => material.Name == "M_HunterMimic_Cake");
                 Assert.That(cake.Textures.Base, Is.EqualTo("CakePalette.png"));
                 Assert.That(cake.Textures.Emission, Is.EqualTo("CakeEmission.png"));
             }
+        }
+        [Test]
+        public void StationaryMimicRequiresAnExplicitDefaultReason()
+        {
+            string mimic = Json.Replace("\"hunter\":\"Echo\"", "\"hunter\":\"Mimic\"");
+            Assert.Throws<FormatException>(() => Setup.ParseManifest(mimic, "Mimic"));
+            var manifest = Setup.ParseManifest(mimic.Replace("\"motion_contract\":{", "\"motion_contract\":{\"stride_default_reason\":\"Stationary hold\","), "Mimic");
+            Assert.That(manifest.Motion.DefaultReason, Is.EqualTo("Stationary hold"));
         }
         [Test]
         public void ConvertsSrgbToLinearAndLeavesAlphaUnchanged()
@@ -251,20 +274,57 @@ namespace Worsen.Tests.Hunter
             {
                 GameObject source = Load<GameObject>(Setup.BasePrefabPath(name)); GameObject target = Profile(name).Prefab;
                 var a = source.GetComponent<CapsuleCollider>(); var b = target.GetComponent<CapsuleCollider>();
-                Assert.That(b.height, Is.EqualTo(a.height), name); Assert.That(b.radius, Is.EqualTo(a.radius), name);
-                Assert.That(b.center, Is.EqualTo(a.center), name); Assert.That(b.direction, Is.EqualTo(a.direction), name);
-                Assert.That(b.enabled, Is.EqualTo(a.enabled), name); Assert.That(b.isTrigger, Is.EqualTo(a.isTrigger), name);
-                Assert.That(b.sharedMaterial, Is.EqualTo(a.sharedMaterial), name); Assert.That(b.contactOffset, Is.EqualTo(a.contactOffset), name);
-                Assert.That(b.includeLayers.value, Is.EqualTo(a.includeLayers.value), name); Assert.That(b.excludeLayers.value, Is.EqualTo(a.excludeLayers.value), name);
+                if (name == "Mimic")
+                {
+                    var floor = Load<FloorDriverConfig>(Setup.CakeConfigPath);
+                    Vector3 center = Vector3.up * floor.PickupHeight + Setup.MeasureVisualBounds(floor.CakePrefab).center;
+                    var box = target.GetComponent<BoxCollider>(); Assert.That(box, Is.Not.Null);
+                    Assert.That(box.enabled && !box.isTrigger, Is.True);
+                    Assert.That(box.size, Is.EqualTo(new Vector3(.266f, .289f, .352f)));
+                    Assert.That(box.center, Is.EqualTo(center)); Assert.That(b.enabled, Is.False);
+                    Assert.That(b.height, Is.EqualTo(.289f)); Assert.That(b.radius, Is.EqualTo(.133f));
+                    Assert.That(b.center, Is.EqualTo(center));
+                    Assert.That(target.GetComponentsInChildren<Collider>(true).Count(collider => collider.enabled && !collider.isTrigger), Is.EqualTo(1));
+                    Assert.That(Profile(name).MotorOverride, Is.Not.Null);
+                    Assert.That(Profile(name).MotorOverride.Height, Is.EqualTo(.289f));
+                    Assert.That(Profile(name).MotorOverride.Radius, Is.EqualTo(.133f));
+                    Assert.That(((Worsen.Domain.Hunter.Archetypes.Mimic.MimicConfig)Profile(name).ArchetypeRules).TouchRadius, Is.EqualTo(.65f));
+                    Assert.That(box.sharedMaterial, Is.EqualTo(a.sharedMaterial)); Assert.That(box.contactOffset, Is.EqualTo(a.contactOffset));
+                    Assert.That(box.includeLayers.value, Is.EqualTo(a.includeLayers.value)); Assert.That(box.excludeLayers.value, Is.EqualTo(a.excludeLayers.value));
+                }
+                else
+                {
+                    Assert.That(b.height, Is.EqualTo(a.height), name); Assert.That(b.radius, Is.EqualTo(a.radius), name);
+                    Assert.That(b.center, Is.EqualTo(a.center), name); Assert.That(b.direction, Is.EqualTo(a.direction), name);
+                    Assert.That(b.enabled, Is.EqualTo(a.enabled), name); Assert.That(b.isTrigger, Is.EqualTo(a.isTrigger), name);
+                    Assert.That(b.sharedMaterial, Is.EqualTo(a.sharedMaterial), name); Assert.That(b.contactOffset, Is.EqualTo(a.contactOffset), name);
+                    Assert.That(b.includeLayers.value, Is.EqualTo(a.includeLayers.value), name); Assert.That(b.excludeLayers.value, Is.EqualTo(a.excludeLayers.value), name);
+                }
                 Assert.That(target.layer, Is.EqualTo(source.layer), name); Assert.That(target.transform.localScale, Is.EqualTo(source.transform.localScale), name);
                 Assert.That(target.GetComponent<Rigidbody>().isKinematic, Is.EqualTo(source.GetComponent<Rigidbody>().isKinematic));
                 Assert.That(target.GetComponent<Rigidbody>().useGravity, Is.EqualTo(source.GetComponent<Rigidbody>().useGravity));
                 Assert.That(new SerializedObject(target.GetComponent<HunterDriver>()).FindProperty("_config").objectReferenceValue,
-                    Is.EqualTo(new SerializedObject(source.GetComponent<HunterDriver>()).FindProperty("_config").objectReferenceValue));
+                    Is.EqualTo(name == "Mimic" ? Profile(name).MotorOverride :
+                        new SerializedObject(source.GetComponent<HunterDriver>()).FindProperty("_config").objectReferenceValue));
                 foreach (Component component in source.GetComponents<Component>()) Assert.That(target.GetComponent(component.GetType()), Is.Not.Null, name);
                 Assert.That(ProfileGameplay(name), Is.EqualTo(gameplay[name]), name + " tuning changed");
             }
             AssertProtectedFiles();
+        }
+        [Test]
+        public void SavedStrideReferencesMatchAllTenMeasuredManifests()
+        {
+            foreach (string name in Setup.Names)
+            {
+                var manifest = Setup.ParseManifest(File.ReadAllText(Setup.ManifestPath(name)), name);
+                var config = Load<HunterAnimationDriverConfig>(Setup.AnimationPath(name));
+                Assert.That(config.WalkStrideSpeed, Is.EqualTo(manifest.Motion.WalkSpeed), name);
+                Assert.That(config.RunStrideSpeed, Is.EqualTo(manifest.Motion.RunSpeed), name);
+                AnimationClip hit = AssetDatabase.LoadAllAssetsAtPath(Setup.ArtPath(name) + "/WORSEN_Hunter" + name + ".fbx")
+                    .OfType<AnimationClip>().Single(clip => clip.name == "hit");
+                Assert.That(config.Hit, Is.SameAs(hit), name + " authored flinch");
+                Assert.That(config.Recovery, Is.SameAs(config.Idle), name + " neutral recovery");
+            }
         }
         [Test]
         public void MimicClosedSurfaceUsesRealCakePropertiesAndTextures()
@@ -510,6 +570,8 @@ namespace Worsen.Tests.Hunter
             foreach (var pair in firstGuids) Assert.That(AssetDatabase.AssetPathToGUID(pair.Key), Is.EqualTo(pair.Value), pair.Key);
             foreach (var pair in firstMaterials) Assert.That(EditorJsonUtility.ToJson(Load<Material>(pair.Key)), Is.EqualTo(pair.Value), pair.Key);
             foreach (string name in Setup.Names) Assert.That(ProfileGameplay(name), Is.EqualTo(gameplay[name]), name);
+            SavedStrideReferencesMatchAllTenMeasuredManifests();
+            MotorCollisionGameplayAndTickingKeysRemainUnchanged();
             AssertProtectedFiles();
         }
         private static string[] GeneratedPaths() => Setup.Names.SelectMany(name =>

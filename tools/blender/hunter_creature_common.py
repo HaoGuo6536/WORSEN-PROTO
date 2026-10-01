@@ -12,6 +12,7 @@
 #   - Bake six named actions and export the manifest/FBX/source contract.
 #   - Render neutral Workbench evidence and true-scale lineups.
 #   - Measure re-imported motion, 3–8k triangle/2–4 material budgets and semantics.
+#   - Audit manifest stride references independently from the shipped foot motion.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils and Python standard library; no runtime systems.
 # USAGE NOTES:
@@ -445,6 +446,8 @@ class Validation:
                            for a, b in zip(actual_row, saved_row))
         self.check("manifest_rest_matrices", matrix_error < 1e-5, matrix_error)
         self.check("manifest_actions", actions == m["actions"], actions)
+        from hunter_stride_measurement import audit
+        self.report['stride'] = audit(self.name, rig, self.meshes, self.clips, m, self.check)
         self.check("manifest_sockets", set(m["sockets"]) == {"attack_origin", "head_or_top"} and all(s["bone"] in actual and len(s["local_offset"]) == 3 and all(math.isfinite(v) for v in s["local_offset"]) for s in m["sockets"].values()), m["sockets"])
         self.report.update(height_m=height, width_m=width, triangles=tris, bones=actual, bone_count=len(actual), actions=actions)
         self.signature.update(geometry=geometry, bones=[(b.name, rounded(v for r in rig.matrix_world @ b.matrix_local for v in r)) for b in rig.data.bones], actions=samples, materials=materials, manifest=m)

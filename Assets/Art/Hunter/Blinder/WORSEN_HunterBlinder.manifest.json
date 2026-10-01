@@ -730,6 +730,90 @@
     "attack": "powder throw; release at 40 percent",
     "hit": "recover balance",
     "authored_walk_speed_mps": 0.9408,
-    "authored_run_speed_mps": 2.02272
+    "authored_run_speed_mps": 2.02272,
+    "stride_measurement": {
+      "method": "net foot travel / elapsed validated stance time, pooled over all feet and one full cycle; Ticking uses magnitude of its forward-rolling waddle",
+      "source": "shipped FBX; Blender Z-up, forward -Y; world metres",
+      "samples_per_cycle": 240,
+      "sole_contact_tolerance_m": 0.015,
+      "walk": {
+        "cycle_seconds": 1.0,
+        "feet": [
+          {
+            "bone": "LeftFoot",
+            "travel_m": 0.4704,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.4704,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              -0.000318,
+              0.0
+            ],
+            "speed_mps": 0.9408
+          },
+          {
+            "bone": "RightFoot",
+            "travel_m": 0.4704,
+            "stance_seconds": 0.5,
+            "signed_travel_m": 0.4704,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              -0.000318,
+              0.0
+            ],
+            "speed_mps": 0.9408
+          }
+        ]
+      },
+      "run": {
+        "cycle_seconds": 0.666667,
+        "feet": [
+          {
+            "bone": "LeftFoot",
+            "travel_m": 0.67424,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.67424,
+            "stance_phase_intervals": [
+              [
+                0,
+                0.5
+              ]
+            ],
+            "sole_height_range_m": [
+              -0.001792,
+              0.0
+            ],
+            "speed_mps": 2.02272
+          },
+          {
+            "bone": "RightFoot",
+            "travel_m": 0.67424,
+            "stance_seconds": 0.333333,
+            "signed_travel_m": 0.67424,
+            "stance_phase_intervals": [
+              [
+                0.5,
+                1.0
+              ]
+            ],
+            "sole_height_range_m": [
+              -0.001792,
+              0.0
+            ],
+            "speed_mps": 2.02272
+          }
+        ]
+      }
+    }
   }
 }
