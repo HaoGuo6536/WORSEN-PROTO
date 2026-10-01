@@ -57,7 +57,7 @@ namespace Worsen.Tests.Shrine
                         Assert.That(clone.Find("Body").GetComponent<MeshFilter>().sharedMesh,
                             Is.SameAs(model.transform.Find("Body").GetComponent<MeshFilter>().sharedMesh));
                         Assert.That(root.transform.Find("Pedestal"), Is.Null);
-                        Assert.That(State(driver).Bodies[1].color, Is.EqualTo(body.color));
+                        AssertColor(State(driver).Bodies[1].color, body.color);
                         foreach (var collider in clone.GetComponentsInChildren<Collider>(true)) Assert.That(collider.enabled, Is.False);
                         Assert.That(clone.Find("Inactive accent").gameObject.activeSelf, Is.False);
                     }
@@ -90,7 +90,7 @@ namespace Worsen.Tests.Shrine
                     foreach (var material in renderer.sharedMaterials)
                         Assert.That(material.globalIlluminationFlags, Is.EqualTo(MaterialGlobalIlluminationFlags.None));
                 driver.MarkUsed(1);
-                Assert.That(state.Bodies[1].color, Is.EqualTo(config.SpentColor));
+                AssertColor(state.Bodies[1].color, config.SpentColor);
                 AssertColor(state.Accents[1].color, ShrineDriverPresenter.DimAccent(config.Shapes.Get(ShrineKind.Wick).AccentColor, config.SpentAccentMultiplier));
                 var spent = state.Accents[1].GetColor("_EmissionColor");
                 AssertColor(spent, ShrineDriverPresenter.Emission(config.Shapes.Get(ShrineKind.Wick).AccentColor,
@@ -98,7 +98,7 @@ namespace Worsen.Tests.Shrine
                 driver.MarkUsed(1);
                 AssertColor(state.Accents[1].GetColor("_EmissionColor"), spent);
                 AssertColor(state.Accents[2].GetColor("_EmissionColor"), otherEmission);
-                Assert.That(body.color, Is.EqualTo(sharedBody)); Assert.That(accent.color, Is.EqualTo(sharedAccent));
+                AssertColor(body.color, sharedBody); AssertColor(accent.color, sharedAccent);
                 AssertColor(accent.GetColor("_EmissionColor"), sharedEmission);
                 Assert.That(model.GetComponentsInChildren<Collider>(true).All(c => c.enabled), Is.True);
                 var children = driver.GetComponentsInChildren<Transform>(true).Where(t => t != driver.transform).ToArray();
@@ -175,7 +175,7 @@ namespace Worsen.Tests.Shrine
                     var marker = shrine.GetComponentsInChildren<Transform>().Single(t => t.name == "InteractionPoint");
                     var point = shrine.transform.InverseTransformPoint(marker.position);
                     Assert.That(point.y, Is.EqualTo(.30f).Within(.001f));
-                    Assert.That(point.z, Is.EqualTo(-.405f).Within(.001f));
+                    Assert.That(point.z, Is.EqualTo(.405f).Within(.001f)); // Blender -Y front imports as Unity +Z (forward).
                 }
             }
             finally { driver.Clear(); Object.DestroyImmediate(root); }

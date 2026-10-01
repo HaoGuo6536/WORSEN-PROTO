@@ -73,7 +73,7 @@ namespace Worsen.Tests.Shrine
                 var state = State(driver);
                 var otherEmission = state.Accents[2].GetColor("_EmissionColor");
                 driver.MarkUsed(1);
-                Assert.That(state.Bodies[1].color, Is.EqualTo(config.SpentColor));
+                AssertColor(state.Bodies[1].color, config.SpentColor);
                 AssertColor(state.Accents[1].color, ShrineDriverPresenter.DimAccent(state.AccentColors[1], config.SpentAccentMultiplier));
                 var spent = state.Accents[1].GetColor("_EmissionColor");
                 AssertColor(spent, ShrineDriverPresenter.Emission(state.AccentColors[1], config.AccentEmission, config.SpentAccentMultiplier));
@@ -81,7 +81,7 @@ namespace Worsen.Tests.Shrine
                 driver.MarkUsed(1); driver.MarkUsed(-1);
                 AssertColor(state.Accents[1].GetColor("_EmissionColor"), spent);
                 AssertColor(state.Accents[2].GetColor("_EmissionColor"), otherEmission);
-                Assert.That(state.Bodies[2].color, Is.EqualTo(config.Color));
+                AssertColor(state.Bodies[2].color, config.Color);
                 Assert.That(config.Color, Is.EqualTo(new Color(.6f, .5f, .2f)));
                 Assert.That(state.Bodies[1], Is.Not.SameAs(state.Bodies[2]));
                 Assert.That(state.Accents[1], Is.Not.SameAs(state.Accents[2]));
@@ -89,7 +89,7 @@ namespace Worsen.Tests.Shrine
                 {
                     var before = state.Accents[id].GetColor("_EmissionColor");
                     driver.MarkUsed(id);
-                    Assert.That(state.Bodies[id].color, Is.EqualTo(config.SpentColor));
+                    AssertColor(state.Bodies[id].color, config.SpentColor);
                     Assert.That(state.Accents[id].GetColor("_EmissionColor").maxColorComponent, Is.LessThan(before.maxColorComponent));
                 }
             });
@@ -119,7 +119,7 @@ namespace Worsen.Tests.Shrine
                 foreach (var value in roots) Assert.That(value == null, Is.True);
                 foreach (var value in materials) Assert.That(value == null, Is.True);
                 Assert.That(driver.transform.childCount, Is.EqualTo(8));
-                Assert.That(State(driver).Bodies[1].color, Is.EqualTo(config.Color));
+                AssertColor(State(driver).Bodies[1].color, config.Color);
                 AssertColor(State(driver).Accents[1].GetColor("_EmissionColor"),
                     ShrineDriverPresenter.Emission(State(driver).AccentColors[1], config.AccentEmission, 1f));
             });

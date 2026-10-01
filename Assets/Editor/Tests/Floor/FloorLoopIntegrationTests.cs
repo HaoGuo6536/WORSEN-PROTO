@@ -150,8 +150,9 @@ namespace Worsen.Tests.Floor
                 Assert.That(floor.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                 Assert.That(floor.ReadOnlyState.ActiveCakeAnchors, Is.Empty);
                 var hud = One<HUDManager>().GetComponent<UIDocument>().rootVisualElement;
+                // Owner playtest: one number above the arrow, counting the cakes still remaining.
                 Assert.That(hud.Q<Label>("cake-count").text,
-                    Is.EqualTo("Cakes: " + ordinaryPickups.Count + " / " + generatedCakeTotal));
+                    Is.EqualTo((generatedCakeTotal - ordinaryPickups.Count).ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 Assert.That(hud.Q<Label>("exit-state"), Is.Null, "PLAN-020 removes exit-state HUD chrome.");
 
                 // The last cake may immediately spawn a golden trigger around the

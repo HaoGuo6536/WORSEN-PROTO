@@ -340,6 +340,8 @@ namespace Worsen.Presentation.Horror
         public void ResetFloor()
         {
             if (_state == null) return;
+            // Scene teardown can destroy the camera first: release the rig rather than rebuild it.
+            if (_camera == null) { Teardown(); return; }
             bool owned = _state.AtmosphereCaptured;
             // Initialize releases the detached rig, afterimage and private profiles,
             // then builds fresh camera-local lights without carrying the old aim forward.

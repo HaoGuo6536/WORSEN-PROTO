@@ -52,6 +52,7 @@ namespace Worsen.Tests.Hunter
         private TickingDriver _clockDriver;
         private TickingManager _clock;
         public HunterProfile Profile { get; private set; }
+        public HunterMotorDriverConfig Motor { get; private set; }
         public HunterManager Hunter { get; private set; }
         public HunterDriver Driver { get; private set; }
         public PlayerBehaviorState Player { get; } = new PlayerBehaviorState {
@@ -72,15 +73,19 @@ namespace Worsen.Tests.Hunter
             Assert.That(Profile, Is.Not.Null, "Missing production profile: " + path + ". Run the approved profile/content setup before this fixture; no fallback is substituted.");
             Assert.That(Profile.ArchetypeKey, Is.EqualTo(name.ToLowerInvariant()));
             Assert.That(Profile.ArchetypeRules, Is.Not.Null, path + " has no module config.");
-            Assert.That(Profile.MotorOverride, Is.Not.Null, path + " has no motor config.");
             Assert.That(Profile.Prefab, Is.Not.Null, path + " has no prefab.");
             Assert.That(EditorUtility.IsPersistent(Profile.Prefab), Is.True);
-            Remember(Profile); Remember(Profile.ArchetypeRules); Remember(Profile.MotorOverride);
+            Remember(Profile); Remember(Profile.ArchetypeRules);
             Assert.That(Profile.Prefab.activeSelf, Is.True, "The factory does not activate disabled prefabs.");
             var authoredManager = Profile.Prefab.GetComponent<HunterManager>();
             var authoredDriver = Profile.Prefab.GetComponent<HunterDriver>();
             Assert.That(authoredManager != null && authoredManager.enabled, Is.True, "Prefab Manager missing/disabled.");
             Assert.That(authoredDriver != null && authoredDriver.enabled, Is.True, "Prefab Driver missing/disabled.");
+            // MotorOverride is optional: a null override means the prefab Driver's own motor config.
+            Motor = Profile.MotorOverride != null ? Profile.MotorOverride : (HunterMotorDriverConfig)typeof(HunterDriver)
+                .GetField("_config", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(authoredDriver);
+            Assert.That(Motor, Is.Not.Null, path + " resolves no motor config (override or prefab Driver).");
+            Remember(Motor);
             var authoredCapsule = Profile.Prefab.GetComponent<CapsuleCollider>();
             Assert.That(authoredCapsule != null && authoredCapsule.enabled && !authoredCapsule.isTrigger, Is.True, "Prefab body missing/disabled/trigger-only.");
 
@@ -130,7 +135,8 @@ namespace Worsen.Tests.Hunter
             Assert.That(module, Is.Not.Null, "Factory failed to attach an archetype module.");
             Assert.That(module.GetType(), Is.EqualTo(HunterArchetypeFactory.BuiltIn.ModuleType(Profile.ArchetypeRules.GetType())));
             Assert.That(module.Rules, Is.Not.Null); Assert.That(module.enabled, Is.True);
-            Assert.That(Hunter.isActiveAndEnabled && Driver.isActiveAndEnabled && Hunter.ReadOnlyState.IsActive, Is.True);
+            // Echo is deliberately hidden and inactive until its replay delay elapses (owner rule).
+            Assert.That(Hunter.isActiveAndEnabled && Driver.isActiveAndEnabled && (Hunter.ReadOnlyState.IsActive || name == "Echo"), Is.True);
             Hunter.SetWorldView(new ExpeditionHunterController(new ExpeditionHunterBehaviorState(), 1, Level.Graph, Level));
             Hunter.SetClosedDoors(Level.Doors); Hunter.SetInteractables(Level); Hunter.SetFloorView(Level);
             Metrics.Attach(Hunter, Driver, Player.Id);
@@ -146,7 +152,7 @@ namespace Worsen.Tests.Hunter
         }
         public Vector3 Point(Vector3 local)
         {
-            Assert.That(NavMesh.SamplePosition(Origin + local, out NavMeshHit hit, 1f, Profile.MotorOverride.NavigationAreaMask), Is.True,
+            Assert.That(NavMesh.SamplePosition(Origin + local, out NavMeshHit hit, 1f, Motor.NavigationAreaMask), Is.True,
                 "Scripted pose must lie on this arena's baked surface.");
             return hit.position;
         }
