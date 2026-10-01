@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Progression.
 // KEY RESPONSIBILITIES:
-//   - Commit gated choices, seeded events and generation-scoped floor transitions.
+//   - Offer each newly unlocked hunter on its gate round, alongside the ordinary cadence.
 //   - Delegate shop transactions and retain consumed Extra Life independently of purchases.
 //   - Resolve shrines, temporary effects and economy without mutating foreign state.
 //   - Grow Nothing??? stacks and the retained roster once per shop round.
@@ -25,6 +25,7 @@
 //   that visit resets the shop clock and walking away adds no bargain-specific cost.
 //   Events use another stream and never draw layout randomness. Mutation messages
 //   occupy one selection/shelter phase, not one snapshot read; later phases do not replay them.
+//   Gate selections precede generation even at shops; shops still suspend hunter bodies.
 //   CompleteFloor admits normal escapes only; no wallet penalty or early-bail action exists.
 // ============================================================================
 using System;
@@ -150,9 +151,7 @@ namespace Worsen.Session.Progression
             if (!MatchesGeneration(ProgressionPhase.Generating, generationId)) return false;
             state.Phase = state.IsShop ? ProgressionPhase.Shop : ProgressionPhase.Exploring;
             if (state.IsShop) shrines.OpenDeal(Active());
-            state.Message = state.IsShop
-                ? "A moment of safety. Spend Golden Cakes, or continue without buying."
-                : "Collect the Cakes. Find the exit. Keep your light close.";
+            state.Message = "";
             events.ShowPendingMessage();
             state.Revision++;
             return true;
@@ -323,7 +322,7 @@ namespace Worsen.Session.Progression
         {
             if (!MatchesGeneration(ProgressionPhase.Exploring, generationId) || state.WaxWardCharges != 1) return false;
             state.WaxWardCharges = 0;
-            state.Message = "Your Wax Ward broke the shadow's grip.";
+            state.Message = "Wax Ward broke the grab.";
             state.Revision++;
             return true;
         }
@@ -379,7 +378,7 @@ namespace Worsen.Session.Progression
             state.Health = 0f;
             state.Wallet = 0;
             shrines.EndFloor(); shrines.CloseDeal();
-            state.Message = "The expedition ended on floor " + state.Round + ".";
+            state.Message = "Run ended on floor " + state.Round + ".";
             state.Revision++;
             return true;
         }
@@ -455,13 +454,13 @@ namespace Worsen.Session.Progression
             state.OfferedThreatIds.Clear();
             state.OfferedCurseIds.Clear();
             state.CollectedGoldenAnchors.Clear();
-            if (state.IsShop || state.CompletedCombatFloors % config.SelectionInterval != 0) BeginGeneration();
+            if (!HasNewlyUnlockedThreat() && (state.IsShop || state.CompletedCombatFloors % config.SelectionInterval != 0)) BeginGeneration();
             else if (!HasEligibleThreat()) BeginCurseSelection(null);
             else
             {
                 BuildThreatChoices();
                 state.Phase = ProgressionPhase.ChooseThreat;
-                state.Message = "Choose what follows you onto floor " + state.Round + ".";
+                state.Message = "Floor " + state.Round + ": choose a threat.";
                 events.ShowPendingMessage();
                 state.Revision++;
             }
@@ -494,7 +493,7 @@ namespace Worsen.Session.Progression
                 state.Health = state.MaximumHealth;
                 state.GenerationId++;
                 state.Phase = ProgressionPhase.Generating;
-                state.Message = state.IsShop ? "Finding a safe room..." : "The next floor is taking shape...";
+                state.Message = state.IsShop ? "Loading shop…" : "Loading floor…";
             }
             state.Revision++;
         }
@@ -534,13 +533,24 @@ namespace Worsen.Session.Progression
         private void BuildThreatChoices()
         {
             state.OfferedThreatIds.Clear();
+            // Reserve slots for the whole newly unlocked cohort, including after rerolls.
+            foreach (ProgressionEntryConfig entry in config.Threats)
+                if (ProgressionRosterUtility.FirstRound(entry.Id) == state.Round && EligibleEntry(entry, EffectKind.Threat))
+                    state.OfferedThreatIds.Add(entry.Id);
             // Derive offers from the committed round seed without consuming layout randomness.
             int offset = (int)(((long)(uint)state.RoundSeed + state.ThreatRerollsUsed) % config.Threats.Count);
             for (int index = 0; index < config.Threats.Count && state.OfferedThreatIds.Count < MaximumChoices; index++)
             {
                 ProgressionEntryConfig entry = config.Threats[(offset + index) % config.Threats.Count];
-                if (EligibleEntry(entry, EffectKind.Threat)) state.OfferedThreatIds.Add(entry.Id);
+                if (!state.OfferedThreatIds.Contains(entry.Id) && EligibleEntry(entry, EffectKind.Threat)) state.OfferedThreatIds.Add(entry.Id);
             }
+        }
+
+        private bool HasNewlyUnlockedThreat()
+        {
+            foreach (ProgressionEntryConfig entry in config.Threats)
+                if (ProgressionRosterUtility.FirstRound(entry.Id) == state.Round && EligibleEntry(entry, EffectKind.Threat)) return true;
+            return false;
         }
 
         private bool HasEligibleThreat()
@@ -556,11 +566,11 @@ namespace Worsen.Session.Progression
             if (state.OfferedCurseIds.Count == 0)
             {
                 BeginGeneration();
-                state.Message = "All eligible curses are already carried. The next floor is taking shape...";
+                state.Message = "No curses left to offer.";
                 return;
             }
             state.Phase = ProgressionPhase.ChooseCurse;
-            state.Message = "Choose a curse to carry into the dark.";
+            state.Message = "Choose a curse.";
             events.ShowPendingMessage();
             state.Revision++;
         }

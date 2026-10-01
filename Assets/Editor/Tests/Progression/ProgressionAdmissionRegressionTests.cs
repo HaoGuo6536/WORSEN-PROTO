@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   Tests (§11) · Editor · Progression.
 // KEY RESPONSIBILITIES:
-//   - Verify round-gated, seed-stable menus and retained roster activation.
-//   - Admit Faithless Arrow only after selecting Mimic through normal cadence.
+//   - Verify exact gate offers, seed-stable rerolls and retained roster activation through R10.
+//   - Admit Faithless Arrow at Mimic's gate and reject retired rows in stale catalogues.
 //   - Check Nothing's flat discount and exactly-once uncapped shop growth.
 // DEPENDENCIES:
 //   - Core effects, Progression controllers/config data, reflection and NUnit.
@@ -52,6 +52,12 @@ namespace Worsen.Tests.Progression
                     string[] offered = snapshot.Choices.Select(choice => choice.Id).ToArray();
                     Assert.That(right.Snapshot().Choices.Select(choice => choice.Id), Is.EqualTo(offered));
                     Assert.That(left.Snapshot().Choices.Select(choice => choice.Id), Is.EqualTo(offered));
+                    string[] unlocked = Roster.Where((id, index) => Gates[index] == round).ToArray();
+                    if (unlocked.Length > 0)
+                    {
+                        Assert.That(snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat), "Gate round " + round);
+                        Assert.That(unlocked, Is.SubsetOf(offered), "Every new hunter must be offered on round " + round);
+                    }
                     if (snapshot.Phase == ProgressionPhase.ChooseThreat)
                     {
                         string[] eligible = Roster.Where((id, index) => Gates[index] <= round).ToArray();
@@ -78,7 +84,7 @@ namespace Worsen.Tests.Progression
             const string arrow = "mimic-faithless-arrow";
             var session = Session(73, new[] { "echo", "mimic" }, new EffectCatalogueEntry(
                 arrow, EffectKind.Curse, FearAxis.Information, "Faithless Arrow", "Replaces safe guidance.", hunters: new[] { "mimic" }));
-            while (session.Snapshot().Round < 7)
+            while (session.Snapshot().Round < 5)
             {
                 var snapshot = session.Snapshot();
                 if (snapshot.Phase == ProgressionPhase.ChooseThreat)
@@ -96,6 +102,73 @@ namespace Worsen.Tests.Progression
             Assert.That(session.ChooseCurse(arrow, session.Snapshot().Revision), Is.True);
             Assert.That(session.EffectsSnapshot().ActiveEffects.Stacks(new EffectId(arrow)), Is.EqualTo(1));
             Assert.That(session.GenerationRequest().Effects.ActiveThreatIds, Does.Contain("mimic"));
+        }
+
+        [Test]
+        public void EveryHunterIsSelectableAtItsGateIncludingShopAndSurvivesRerollsAndLaterFloors()
+        {
+            for (int seed = 0; seed < 32; seed++)
+            for (int target = 0; target < Roster.Length; target++)
+            {
+                var session = Session(seed, Roster, new EffectCatalogueEntry("lucky-reroll", EffectKind.Upgrade,
+                    FearAxis.Agency, "Lucky Reroll", "Adds a reroll.", price: 0));
+                var retained = new List<string>(); var random = new System.Random(seed);
+                for (int round = 1; round <= 10; round++)
+                {
+                    var snapshot = session.Snapshot();
+                    Assert.That(snapshot.Round, Is.EqualTo(round));
+                    Assert.That(session.GenerationRequest().Seed, Is.EqualTo(random.Next()));
+                    Assert.That(session.GenerationRequest().IsShop, Is.EqualTo(round % 3 == 0), "Shop cadence must not move.");
+                    if (round == Gates[target])
+                    {
+                        Assert.That(snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
+                        Assert.That(snapshot.Choices.Select(choice => choice.Id), Does.Contain(Roster[target]));
+                        Assert.That(session.ConfirmFloorReady(snapshot.GenerationId), Is.False, "Gate choices precede generation, even at a shop.");
+                        if (round > 1)
+                        {
+                            int seedBefore = session.GenerationRequest().Seed;
+                            Assert.That(session.RerollSelection(snapshot.Revision), Is.True);
+                            Assert.That(session.GenerationRequest().Seed, Is.EqualTo(seedBefore));
+                            var rerolled = session.Snapshot();
+                            Assert.That(Roster.Where((id, index) => Gates[index] == round),
+                                Is.SubsetOf(rerolled.Choices.Select(choice => choice.Id)));
+                            Assert.That(session.ChooseThreat(Roster[target], snapshot.Revision), Is.False, "Rerolls invalidate old clicks.");
+                            snapshot = rerolled;
+                        }
+                    }
+                    if (snapshot.Phase == ProgressionPhase.ChooseThreat)
+                    {
+                        string selected = round == Gates[target] ? Roster[target] : snapshot.Choices[0].Id;
+                        Assert.That(session.ChooseThreat(selected, snapshot.Revision), Is.True);
+                        Assert.That(session.ChooseThreat(selected, snapshot.Revision), Is.False);
+                        retained.Add(selected);
+                    }
+                    Open(session);
+                    Assert.That(session.GenerationRequest().Effects.ActiveThreatIds, Is.EqualTo(retained));
+                    Assert.That(session.GenerationRequest().Effects.ActiveThreatBudget, Is.EqualTo(round % 3 == 0 ? 0 : retained.Count));
+                    Assert.That(session.Snapshot().Message, Is.Empty);
+                    if (round == 3) Assert.That(session.Purchase("lucky-reroll", session.Snapshot().Revision), Is.True);
+                    Finish(session);
+                }
+                Assert.That(retained, Does.Contain(Roster[target]));
+            }
+        }
+
+        [TestCase("afterglow", EffectKind.Upgrade)] [TestCase("blind-faith", EffectKind.Upgrade)]
+        [TestCase("greedy-door", EffectKind.Curse)]
+        public void OwnerRetiredRowsCannotBeSelectedOrBoughtFromStaleCatalogues(string id, EffectKind kind)
+        {
+            var entry = new EffectCatalogueEntry(id, kind, FearAxis.Agency, id, "Removes safety.", price: 0);
+            var session = Session(73, new[] { "echo" }, entry);
+            Assert.That(EffectCatalogueUtility.Eligible(entry, 100, default(ActiveEffects)), Is.False);
+            Assert.That(session.ChooseThreat("echo", session.Snapshot().Revision), Is.True);
+            Assert.That(session.Snapshot().Choices.Select(choice => choice.Id), Does.Not.Contain(id));
+            Assert.That(session.ChooseCurse(id, session.Snapshot().Revision), Is.False);
+            Open(session); Finish(session); Open(session); Finish(session); Open(session);
+            Assert.That(session.Snapshot().Phase, Is.EqualTo(ProgressionPhase.Shop));
+            Assert.That(session.Snapshot().Offers.Select(offer => offer.Id), Does.Not.Contain(id));
+            Assert.That(session.Purchase(id, session.Snapshot().Revision), Is.False);
+            Assert.That(session.EffectsSnapshot().ActiveEffects.Has(new EffectId(id)), Is.False);
         }
 
         [Test]

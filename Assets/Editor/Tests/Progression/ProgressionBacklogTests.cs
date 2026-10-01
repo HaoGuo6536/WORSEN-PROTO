@@ -121,8 +121,8 @@ namespace Worsen.Tests.Progression
             }
             Assert.That(config.WindupSeconds, Is.EqualTo(1f));
         }
-        [TestCase(1)] [TestCase(4)] [TestCase(5)] [TestCase(6)]
-        public void ActualOffersRespectRoundGatesAndExposeEveryEligibleHunter(int round)
+        [TestCase(1)] [TestCase(4)] [TestCase(5)] [TestCase(6)] [TestCase(7)]
+        public void ActualOffersPrioritizeGateCohortsAndOtherwiseExposeEveryEligibleHunter(int round)
         {
             var config = Config<ProgressionConfig>(); Set(config, "_eventPool", Array.Empty<ProgressionEventKind>());
             var seen = new HashSet<string>();
@@ -135,7 +135,9 @@ namespace Worsen.Tests.Progression
                 foreach (var choice in session.Snapshot().Choices)
                 { Assert.That(ProgressionRosterUtility.Admits(choice.Id, round), Is.True); seen.Add(choice.Id); }
             }
-            Assert.That(seen, Is.EquivalentTo(config.Threats.Where(t => ProgressionRosterUtility.Admits(t.Id, round)).Select(t => t.Id)));
+            string[] newlyUnlocked = config.Threats.Where(t => ProgressionRosterUtility.FirstRound(t.Id) == round).Select(t => t.Id).ToArray();
+            if (newlyUnlocked.Length == 3) Assert.That(seen, Is.EquivalentTo(newlyUnlocked));
+            else Assert.That(seen, Is.EquivalentTo(config.Threats.Where(t => ProgressionRosterUtility.Admits(t.Id, round)).Select(t => t.Id)));
         }
     }
 }

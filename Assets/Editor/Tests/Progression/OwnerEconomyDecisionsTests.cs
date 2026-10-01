@@ -172,9 +172,10 @@ namespace Worsen.Tests.Progression
         [Test] public void NothingAddsOneStackAndOneRosterMemberExactlyOncePerShopBeyondItsAcquisitionCap()
         {
             var session = Session(EffectCatalogueUtility.Find(catalogue, "nothing"));
-            int visits = 0;
+            int visits = 0, selectionHunters = 0;
             for (int round = 1; round <= 15; round++)
             {
+                if (session.Snapshot().Phase == ProgressionPhase.ChooseThreat) selectionHunters++;
                 if (session.GenerationRequest().IsShop)
                 {
                     visits++;
@@ -191,7 +192,6 @@ namespace Worsen.Tests.Progression
                 else
                 {
                     Open(session);
-                    int selectionHunters = (round + 2) / 3;
                     Assert.That(session.Snapshot().ThreatCount, Is.EqualTo(selectionHunters + visits));
                     Assert.That(session.GenerationRequest().Effects.ActiveThreatIds.Count, Is.EqualTo(selectionHunters + visits));
                     session.CompleteFloor(session.Snapshot().GenerationId);
@@ -225,9 +225,9 @@ namespace Worsen.Tests.Progression
             Assert.That(EffectCatalogueUtility.Eligible(entry, 12, Empty), Is.False);
             Assert.That(EffectCatalogueUtility.Eligible(entry, 12, Held("mimic", kind: EffectKind.Threat)), Is.True);
             var session = Session(entry);
-            // Mimic opens at round 5; normal selection cadence next offers it on round 7.
+            // Mimic is offered at round 5 independently of the normal selection cadence.
             // Traverse real floors instead of bypassing either gate with injected state.
-            while (session.Snapshot().Round < 7)
+            while (session.Snapshot().Round < 5)
             {
                 var before = session.Snapshot();
                 Assert.That(before.Choices.Select(c => c.Id), Does.Not.Contain(entry.Id));

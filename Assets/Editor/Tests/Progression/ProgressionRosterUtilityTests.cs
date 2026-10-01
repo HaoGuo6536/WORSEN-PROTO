@@ -46,6 +46,7 @@ namespace Worsen.Tests.Progression
         [TestCase("watcher-long-memory")] [TestCase("echo-debt")] [TestCase("thin-skin")]
         [TestCase("bail-bond")] [TestCase("field-dressing")]
         [TestCase("mannequin-fewer-lamps")] [TestCase("mannequin-broken-lights")]
+        [TestCase("afterglow")] [TestCase("blind-faith")] [TestCase("greedy-door")]
         public void RetiredRowsRemainIneligibleEvenInStaleCatalogues(string id)
         {
             Assert.That(ProgressionRosterUtility.Retired(id), Is.True);

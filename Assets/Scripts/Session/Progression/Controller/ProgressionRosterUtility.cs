@@ -42,6 +42,8 @@ namespace Worsen.Session.Progression
                 case "echo-debt": case "afterimage": case "restless-masonry": case "gilded-hunger":
                 case "borrowed-footsteps": case "unquiet-flame": case "sealed-sills":
                 case "thin-skin": case "bail-bond": case "field-dressing":
+                // Owner: remove Afterglow; exits need every cake and golden cakes come only from Passage.
+                case "afterglow": case "blind-faith": case "greedy-door":
                 // Owner 2026-09-30: the Mannequin now ignores light, so its light curses retire.
                 case "mannequin-fewer-lamps": case "mannequin-broken-lights": return true;
                 default: return false;
