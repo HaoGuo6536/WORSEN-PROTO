@@ -9,7 +9,7 @@
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
 //   - Probe world support, traversal endpoints, ledges and capsule clearance.
-//   - Resolve swept movement, steps, penetrations and visual interpolation.
+//   - Resolve swept movement and interpolation, excluding only the admitted obstacle during its arc.
 //   - Filter hunter bodies from all queries and capsule contacts during collision grace.
 //   - Restore an explicit pose and capsule posture without interpolation on revival.
 //   - Resolve configuration and own first-person limb lifecycle.
@@ -20,6 +20,8 @@
 //   Scene-owned. Owns capsule/kinematic body and visual interpolation; no global side effects. Configuration has a mirrored Resources fallback.
 //   Unity 6 per-collider exclusions avoid a global IgnoreLayerCollision change and restore on end/disable/teardown.
 //   Both current actor bodies are kinematic; their transforms are moved explicitly, not by contact impulses.
+//   Traversal filtering is query-local, not Physics.IgnoreCollision: no pair/layer state leaks on cancellation.
+//   Genuine arc obstructions latch until the existing completion deadline; no delayed catch-up is attempted.
 //   No other Domain system or Presentation system is referenced.
 //   Query buffers are pooled until teardown; saturation grows and retries before
 //   consuming any contacts. Equal-distance hits retain the query's encounter order.
@@ -53,6 +55,7 @@ namespace Worsen.Domain.Player
 
         public void Initialize()
         {
+            ClearTraversal();
             SetGraceActive(false);
             if (_config == null) _config = Resources.Load<PlayerMoverDriverConfig>("ScriptableObjects/Domain/Player/PlayerMoverDriverConfig");
             if (_config == null) throw new InvalidOperationException("Build Player assets before spawning a Player.");
@@ -78,6 +81,7 @@ namespace Worsen.Domain.Player
 
         public void Teleport(Vector3 position, float heading, bool crouched = false)
         {
+            ClearTraversal();
             _state.Position = _state.PreviousPosition = position;
             _state.Heading = _state.PreviousHeading = heading;
             _state.Velocity = Vector3.zero;
@@ -108,13 +112,15 @@ namespace Worsen.Domain.Player
             if (candidate && vaultSurface is ITraversalEndpointPair pair && pair.HasEndpointPair)
                 targetAvailable = _presenter.TrySelectTraversalEndpoint(feet, forward,
                     pair.EndpointA, pair.EndpointB, out target);
+            _state.ProbedTraversalCollider = targetAvailable ? vault.collider : null;
+            _state.ProbedTraversalTarget = target;
             float clearance = targetAvailable && !IsBlocked(target, _config.Height) ? _config.Height : 0f;
             float height = candidate ? vault.collider.bounds.max.y - feet.y : 0f;
             // Preserve authored route semantics. Only untagged geometry offers an automatic
             // ledge: positive checked clearance with VaultCandidate=false is replayable data.
             if (!candidate && !grounded && ledgeReach > 0f && TryLedge(feet, forward, ledgeReach,
                 ledgeMinimumHeight, ledgeMaximumHeight, ledgeChestHeight, out Vector3 ledge))
-            { target = ledge; height = ledge.y - feet.y; clearance = _config.Height; }
+            { target = ledge; height = ledge.y - feet.y; clearance = _config.Height; _state.ProbedTraversalTarget = target; }
             return new MovementProbe(grounded, grounded ? ground.normal : Vector3.up,
                 rebound, rebound ? Mathf.Max(0f, wall.distance - _config.SkinWidth) : 0f,
                 rebound ? wall.normal : Vector3.zero, rebound ? Vector3.Angle(forward, -wall.normal) : 0f,
@@ -124,6 +130,13 @@ namespace Worsen.Domain.Player
         }
 
         public PlayerMoveResult Move(Vector3 displacement, Vector3 velocity, bool crouched, float heading, float dt,
+            bool sliding = false, float slideWallRetention = 0f)
+        {
+            ClearTraversal();
+            return MoveResolved(displacement, velocity, crouched, heading, dt, sliding, slideWallRetention);
+        }
+
+        private PlayerMoveResult MoveResolved(Vector3 displacement, Vector3 velocity, bool crouched, float heading, float dt,
             bool sliding = false, float slideWallRetention = 0f)
         {
             if (!_state.Ready) throw new InvalidOperationException("PlayerDriver.Initialize must precede Move.");
@@ -185,23 +198,46 @@ namespace Worsen.Domain.Player
         public PlayerMoveResult MoveTraversal(Vector3 from, Vector3 to, float progress, float obstacleHeight,
             Vector3 velocity, float heading, float dt, float maximumSpeed, Vector3 steeringOffset = default)
         {
+            if (!(dt > 0f) || float.IsInfinity(dt)) throw new ArgumentOutOfRangeException(nameof(dt));
+            if (!_state.TraversalActive)
+            {
+                _state.TraversalActive = true;
+                _state.TraversalObstructed = false;
+                _state.TraversalCollider = to == _state.ProbedTraversalTarget ? _state.ProbedTraversalCollider : null;
+            }
             Vector3 before = _state.Position;
             Vector3 target = _presenter.TraversalPosition(from, to, progress, obstacleHeight, _config.TraversalLift,
                 _config.TraversalRisePortion, _config.TraversalTraverseEnd) + steeringOffset;
-            if (IsBlocked(to + steeringOffset, _config.Height)) target = before;
-            Vector3 displacement = _presenter.LimitHorizontalDisplacement(target - before, maximumSpeed, dt);
-            // Contacts resolve the commanded path velocity, not stale entry momentum.
-            PlayerMoveResult resolved = Move(displacement, displacement / dt, false, heading, dt);
-            return new PlayerMoveResult(resolved.Position, (resolved.Position - before) / dt, resolved.Grounded, resolved.Ceiling);
+            // Admission checks distance/duration against the speed budget. Clamping an
+            // absolute target here accumulates debt, then releases it as a catch-up jump.
+            // Landing admission and the actual landing sweep still reject other geometry.
+            if (_state.TraversalObstructed) target = before;
+            _state.IgnoredTraversalCollider = _state.TraversalCollider;
+            try
+            {
+                Vector3 displacement = target - before;
+                PlayerMoveResult resolved = MoveResolved(displacement, displacement / dt, false, heading, dt);
+                // Never resume a blocked arc if the obstruction subsequently moves away.
+                // The Controller retains its deadline and resolves failure from the endpoint.
+                _state.TraversalObstructed |= (resolved.Position - target).sqrMagnitude > _config.SkinWidth * _config.SkinWidth;
+                return new PlayerMoveResult(resolved.Position, (resolved.Position - before) / dt, resolved.Grounded, resolved.Ceiling);
+            }
+            finally
+            {
+                _state.IgnoredTraversalCollider = null;
+                if (progress >= 1f) ClearTraversal();
+            }
         }
 
         public void ShowMovement(MovementState movement)
         {
+            if (movement != MovementState.Vault) ClearTraversal();
             if (_limbs != null) _limbs.Apply(movement, _config.EyeHeight, _config.HandOffset, _config.FootOffset);
         }
 
         public void Teardown()
         {
+            ClearTraversal();
             SetGraceActive(false);
             _state.Ready = false;
             _state.Velocity = Vector3.zero;
@@ -245,7 +281,13 @@ namespace Worsen.Domain.Player
             _state.GraceActive = active;
         }
 
-        private void OnDisable() { SetGraceActive(false); }
+        private void OnDisable() { ClearTraversal(); SetGraceActive(false); }
+
+        private void ClearTraversal()
+        {
+            _state.TraversalActive = _state.TraversalObstructed = false;
+            _state.TraversalCollider = _state.IgnoredTraversalCollider = _state.ProbedTraversalCollider = null;
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetSessionWarnings() { SessionWarnings.MissingHunterLayerWarned = false; }
@@ -278,7 +320,8 @@ namespace Worsen.Domain.Player
             for (int i = 0; i < count; i++)
             {
                 RaycastHit hit = _state.QueryHits[i];
-                if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
+                if (hit.collider == null || hit.collider == _state.IgnoredTraversalCollider
+                    || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
                 closest = hit;
                 nearest = hit.distance;
             }
@@ -290,7 +333,8 @@ namespace Worsen.Domain.Player
             _presenter.Capsule(feet, height, _config.Radius, out Vector3 bottom, out Vector3 top);
             int count = OverlapCapsule(bottom, top);
             for (int i = 0; i < count; i++)
-                if (!_state.QueryOverlaps[i].transform.IsChildOf(transform)) return true;
+                if (_state.QueryOverlaps[i] != _state.IgnoredTraversalCollider
+                    && !_state.QueryOverlaps[i].transform.IsChildOf(transform)) return true;
             return false;
         }
 
@@ -317,6 +361,7 @@ namespace Worsen.Domain.Player
             if (!_presenter.CanClimbLedge(true, aboveBlocked, topFound, topFound && IsBlocked(top.point, _config.Height),
                 feet, top.point, top.normal, reach, minimumHeight, maximumHeight, _config.SlopeLimitDegrees)) return false;
             target = top.point;
+            _state.ProbedTraversalCollider = chest.collider;
             return true;
         }
 
@@ -331,7 +376,8 @@ namespace Worsen.Domain.Player
             for (int i = 0; i < count; i++)
             {
                 RaycastHit hit = _state.QueryHits[i];
-                if (hit.collider == null || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
+                if (hit.collider == null || hit.collider == _state.IgnoredTraversalCollider
+                    || hit.collider.transform.IsChildOf(transform) || hit.distance >= nearest) continue;
                 closest = hit; nearest = hit.distance;
             }
             return nearest < float.PositiveInfinity;
@@ -339,6 +385,7 @@ namespace Worsen.Domain.Player
 
         private bool Depenetrate(ref Vector3 position, Collider obstacle)
         {
+            if (obstacle == _state.IgnoredTraversalCollider) return false;
             if (!Physics.ComputePenetration(_capsule, position, Quaternion.identity, obstacle,
                 obstacle.transform.position, obstacle.transform.rotation, out Vector3 direction, out float depth)) return false;
             position += _presenter.PenetrationOffset(direction, depth, _config.SkinWidth);

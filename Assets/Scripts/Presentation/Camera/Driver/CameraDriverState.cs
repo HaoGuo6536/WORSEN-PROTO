@@ -3,7 +3,7 @@
 // ============================================================================
 //
 // PURPOSE:
-//   Retains the last player view sample and transient visual envelopes.
+//   Retains two committed player view samples and transient visual envelopes.
 //   Keeping this data separate makes presentation timing reproducible without a scene.
 //
 // ARCHITECTURAL ROLE:
@@ -13,7 +13,7 @@
 //   - Retain progress/cancellation height, severity-scaled landing and stumble clocks.
 //   - Retain runtime lens and comfort overrides across transient view resets.
 //   - Keep unshaken aim separate from cosmetic banking and deterministic shake envelopes.
-//   - Store sample identity, output pose and lens values for the Driver.
+//   - Store sample identity, interpolation clocks, output pose and lens values for the Driver.
 //   - Latch hunter/hand catch clocks, hand reveal/grip and once-only completion edges.
 //
 // DEPENDENCIES:
@@ -41,9 +41,13 @@ namespace Worsen.Presentation.Camera
         public long TraversalTick = -1;
         public long ProgressTick = -1, StumbleTick = -1;
         public bool VaultActive;
+        public bool VaultCompleting;
         public float VaultHeight, VaultReturnHeight, VaultReturnElapsed;
+        public float PreviousVaultHeight, RenderedVaultHeight, VaultStepTime, VaultStepDuration;
         public float LandingDepth, LandingElapsed, StumbleElapsed, StumbleDuration;
         public Vector3 EyePosition;
+        public Vector3 PreviousEyePosition;
+        public float MovementStepTime, MovementStepDuration;
         public Vector3 Velocity;
         public float HeadingDegrees;
         public MovementState Movement;

@@ -12,10 +12,7 @@
 //   - Distinguish overlap sentinels from real sweep contacts and retain slope-tangent motion.
 //   - Decide support, wall-slide redirection and untagged ledge admission from supplied geometry.
 //   - Remove only the hunter layer during grace and decide the once-per-session missing-layer warning.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
-//   - Select the opposite authored traversal endpoint from feet and approach, rejecting invalid pairs.
-//   - Use the full traversal duration for horizontal travel while retaining the vertical clearance envelope.
+//   - Select valid opposite endpoints and evaluate constant horizontal travel with C1 vertical easing.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -164,12 +161,15 @@ namespace Worsen.Domain.Player
             risePortion = Mathf.Clamp(risePortion, 0.01f, 0.98f);
             traverseEnd = Mathf.Clamp(traverseEnd, risePortion + 0.01f, 0.99f);
             if (progress < risePortion)
-                position.y = Mathf.Lerp(from.y, top, progress / risePortion);
+                position.y = Mathf.Lerp(from.y, top, Ease(progress / risePortion));
             else if (progress < traverseEnd)
                 position.y = top;
             else
-                position.y = Mathf.Lerp(top, to.y, (progress - traverseEnd) / (1f - traverseEnd));
+                position.y = Mathf.Lerp(top, to.y, Ease((progress - traverseEnd) / (1f - traverseEnd)));
             return position;
         }
+
+        // Zero vertical velocity at each phase boundary; derivative is bounded by 1.5 per phase.
+        private static float Ease(float t) => t * t * (3f - 2f * t);
     }
 }

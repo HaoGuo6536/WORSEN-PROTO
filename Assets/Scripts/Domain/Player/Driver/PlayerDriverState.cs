@@ -11,6 +11,7 @@
 //   - Retain grace query filtering, original capsule exclusions and the session warning latch.
 //   - Retain resolved poses, interpolation timing and posture.
 //   - Hold Driver-rented query buffers across ticks until teardown.
+//   - Retain the admitted traversal collider and a latched obstruction until completion/cancellation.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -41,5 +42,8 @@ namespace Worsen.Domain.Player
         public bool MissingHunterLayerWarned;
         public RaycastHit[] QueryHits;
         public Collider[] QueryOverlaps;
+        public Collider ProbedTraversalCollider, TraversalCollider, IgnoredTraversalCollider;
+        public Vector3 ProbedTraversalTarget;
+        public bool TraversalActive, TraversalObstructed;
     }
 }

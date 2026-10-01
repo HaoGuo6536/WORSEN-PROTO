@@ -11,10 +11,8 @@
 //   - Reproduce separating drop-edge snap admission, jump rejection and uphill support.
 //   - Reproduce the 26.6-degree overlap sentinel, uphill support, ledge gates and slide redirects.
 //   - Verify grace mask exclusion, invalid-layer safety and the session warning latch.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
 //   - Verify paired traversal landings across approach directions and malformed geometry.
-//   - Check horizontal progress throughout the lock while preserving the clearance envelope.
+//   - Check continuous horizontal progress and C1 vertical easing at all phase boundaries.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -32,6 +30,55 @@ namespace Worsen.Tests.Player
     public sealed class PlayerMoverPresenterTests
     {
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();
+
+        [TestCase(.25f, .95f)]
+        [TestCase(.4f, .9f)]
+        [TestCase(.01f, .99f)]
+        public void TraversalHasMatchingValuesAndFirstDerivativesAtBothPhaseBoundaries(float rise, float end)
+        {
+            var from = new Vector3(0f, .2f, 0f);
+            var to = new Vector3(2f, .5f, 3f);
+            const float top = 1.28f;
+            foreach (float boundary in new[] { rise, end })
+            {
+                float epsilon = Mathf.Min(rise, 1f - end) * .002f;
+                Vector3 left = _presenter.TraversalPosition(from, to, boundary - epsilon, 1f, .08f, rise, end);
+                Vector3 center = _presenter.TraversalPosition(from, to, boundary, 1f, .08f, rise, end);
+                Vector3 right = _presenter.TraversalPosition(from, to, boundary + epsilon, 1f, .08f, rise, end);
+                Assert.That(center.y, Is.EqualTo(top).Within(.00001f));
+                Assert.That(left.y, Is.EqualTo(center.y).Within(.00002f));
+                Assert.That(right.y, Is.EqualTo(center.y).Within(.00002f));
+                // Normalize the one-sided derivatives by each phase's height/time scale.
+                // C0 linear ramps have a normalized jump of 1; cubic easing tends to 0.
+                float scale = boundary == rise ? rise / (top - from.y) : (1f - end) / (top - to.y);
+                Assert.That(Mathf.Abs((center.y - left.y) / epsilon * scale), Is.LessThan(.01f));
+                Assert.That(Mathf.Abs((right.y - center.y) / epsilon * scale), Is.LessThan(.01f));
+                Assert.That((right.x - left.x) / (2f * epsilon), Is.EqualTo(2f).Within(.02f));
+            }
+            Assert.That(_presenter.TraversalPosition(from, to, 0f, 1f, .08f, rise, end), Is.EqualTo(from));
+            Assert.That(_presenter.TraversalPosition(from, to, 1f, 1f, .08f, rise, end), Is.EqualTo(to));
+        }
+
+        [TestCase(.25f, .95f)]
+        [TestCase(.4f, .9f)]
+        public void EveryEasingPhaseIsMonotoneAndItsVelocityIsBounded(float rise, float end)
+        {
+            const float epsilon = .0001f, height = 1.08f;
+            float previous = 0f;
+            for (int i = 1; i <= 10000; i++)
+            {
+                float p = i * epsilon;
+                float y = _presenter.TraversalPosition(Vector3.zero, Vector3.forward * 2f,
+                    p, 1f, .08f, rise, end).y;
+                Assert.That(y, Is.InRange(0f, height));
+                float velocity = (y - previous) / epsilon;
+                float bound = p <= rise ? 1.5f * height / rise : p > end ? 1.5f * height / (1f - end) : .02f;
+                Assert.That(Mathf.Abs(velocity), Is.LessThanOrEqualTo(bound + .02f));
+                if (p <= rise) Assert.That(y, Is.GreaterThanOrEqualTo(previous));
+                if (p > end) Assert.That(y, Is.LessThanOrEqualTo(previous));
+                previous = y;
+            }
+        }
         [TestCase(0.25f, 0.16f)]
         [TestCase(0.2f, 0.12f)]
         public void SnapSizedDropRetainsSupportAcrossRoundedEdge(float snapDistance, float probeDistance)
