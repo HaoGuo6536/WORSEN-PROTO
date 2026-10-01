@@ -26,6 +26,8 @@
 //   Portal occlusion must be pushed by the owning Manager; empty configuration produces visible missing-bank warnings.
 //   Floor reset retains only music contact/floor and the cosmetic random stream;
 //   full run reset clears them. AudioThreatSample.Chasing carries belief for live snapshots.
+//   MixerVolumeRequest records actual SetFloat arguments/results, not an audible gain
+//   or a snapshot value; editor readback must not be used to infer whether a call occurred.
 //
 // ============================================================================
 
@@ -60,6 +62,8 @@ namespace Worsen.Presentation.Audio
         private readonly Dictionary<CueId, float[]> _durations = new Dictionary<CueId, float[]>();
         private float _master = 1f;
         public float EffectsSourceGain => _master * (_state != null ? _state.RuntimeEffects : 1f);
+        public (AudioMixer Mixer, float Master, float Music, float Effects,
+            bool MasterAccepted, bool MusicAccepted, bool EffectsAccepted)? MixerVolumeRequest => _state?.MixerVolumeRequest;
         public float BreathGain => _state != null ? _state.WorldMix.BreathGain : 0f;
         public bool Heartbeat => _state != null && _state.WorldMix.Heartbeat;
         public float HeartbeatGain => _state != null ? _state.WorldMix.HeartbeatStrength * _config.HeartbeatGain : 0f;
@@ -347,9 +351,13 @@ namespace Worsen.Presentation.Audio
             bool wired = _config.Mixer != null && _config.EffectsGroup != null && _config.MusicGroup != null &&
                 _config.AmbienceGroup != null && _config.EffectsGroup.audioMixer == _config.Mixer &&
                 _config.MusicGroup.audioMixer == _config.Mixer && _config.AmbienceGroup.audioMixer == _config.Mixer;
-            bool master = wired && _config.Mixer.SetFloat(_config.MasterParameter, volume.Decibels(settings.MasterVolume));
-            bool music = wired && _config.Mixer.SetFloat(_config.MusicParameter, volume.Decibels(settings.MusicVolume));
-            bool effects = wired && _config.Mixer.SetFloat(_config.EffectsParameter, volume.Decibels(settings.EffectsVolume));
+            float masterDb = volume.Decibels(settings.MasterVolume), musicDb = volume.Decibels(settings.MusicVolume),
+                effectsDb = volume.Decibels(settings.EffectsVolume);
+            bool master = wired && _config.Mixer.SetFloat(_config.MasterParameter, masterDb);
+            bool music = wired && _config.Mixer.SetFloat(_config.MusicParameter, musicDb);
+            bool effects = wired && _config.Mixer.SetFloat(_config.EffectsParameter, effectsDb);
+            _state.MixerVolumeRequest = wired ? (_config.Mixer, masterDb, musicDb, effectsDb, master, music, effects) :
+                ((AudioMixer, float, float, float, bool, bool, bool)?)null;
             SetRuntimeGains(volume.Linear(designerMaster) * volume.SourceGain(settings.MasterVolume, master),
                 volume.SourceGain(settings.MusicVolume, music), volume.SourceGain(settings.EffectsVolume, effects));
         }

@@ -15,6 +15,8 @@
 //   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Unity Edit Mode only; temporary objects are destroyed without saving assets.
 //   Contact callbacks are invoked explicitly; physical collision/rendering needs live QA.
+//   PLAN-019 specifies typed coexisting arrows, not publication order; last-good
+//   direction is target-local path fallback, not priority between the two channels.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -109,11 +111,13 @@ namespace Worsen.Tests.Floor
             {
                 int opened = 0; IReadOnlyList<GuidanceTarget> targets = null;
                 f.Manager.OnExitOpened += _ => opened++; f.Manager.OnGuidanceChanged += value => targets = value;
-                f.Initialize(hooks: new FloorCakeHooks(greedyDoor: true, goldenSense: true));
+                // The shared fixture player stands on the exit, where exit guidance has no direction.
+                // Start in room 1 so the white arrow to the locked exit is defined beside Golden Sense.
+                f.Initialize(hooks: new FloorCakeHooks(greedyDoor: true, goldenSense: true), player: new Vector3(10f, 0f, 0f));
                 foreach (var a in f.Manager.ReadOnlyState.ActiveCakeAnchors.ToArray()) f.Manager.Collect(new EntityId(1), a.Id, PickupKind.Cake);
                 Assert.That(opened, Is.Zero); Assert.That(f.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Locked));
                 Assert.That(f.Root.GetComponentsInChildren<CakePickup>().Count(p => p.Kind == PickupKind.GoldenCake), Is.EqualTo(6));
-                Assert.That(targets.Select(t => t.Kind), Is.EqualTo(new[] { GuidanceKind.WhiteArrow, GuidanceKind.GoldenSense }));
+                Assert.That(targets.Select(t => t.Kind), Is.EquivalentTo(new[] { GuidanceKind.WhiteArrow, GuidanceKind.GoldenSense }));
                 f.Manager.Tick(10000f, 2);
                 Assert.That(opened, Is.EqualTo(1)); Assert.That(f.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                 f.Manager.Tick(1f, 3); Assert.That(opened, Is.EqualTo(1));
@@ -167,8 +171,9 @@ namespace Worsen.Tests.Floor
                 Driver = Root.AddComponent<FloorDriver>(); FloorCakeRulesTests.Set(Driver, "_config", VisualConfig);
                 Manager = Root.AddComponent<FloorManager>();
             }
-            public void Initialize(int seed = 7, FloorCakeHooks hooks = default)
-                => Manager.Initialize(Config, new Level(), new[] { new FloorCakeRulesTests.Player() }, new System.Random(seed), round: 3, cakeHooks: hooks);
+            public void Initialize(int seed = 7, FloorCakeHooks hooks = default, Vector3? player = null)
+                => Manager.Initialize(Config, new Level(), new[] { player.HasValue ? new FloorCakeRulesTests.Player(player.Value) : new FloorCakeRulesTests.Player() },
+                    new System.Random(seed), round: 3, cakeHooks: hooks);
             public void Dispose() { Manager.Teardown(); Object.DestroyImmediate(Root); Object.DestroyImmediate(Config); Object.DestroyImmediate(VisualConfig); }
         }
         private sealed class Level : IReadOnlyLevelState { public bool IsReady => true; public LevelGraph Graph => FloorCakeRulesTests.Graph(); }
