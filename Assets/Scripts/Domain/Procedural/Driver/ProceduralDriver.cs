@@ -9,7 +9,7 @@
 //   Driver (§7a) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Build kit visuals with primitive collision/fallback and owned collapse fragments.
-//   - Bake navigation and verify objectives, spawn capacity and pocket isolation.
+//   - Preflight template sockets, then bake and verify objectives, spawns and pockets.
 //   - Own interactables, puzzles and routed state changes without sibling calls.
 //   - Admit shrine sites and Passage apertures, tiles and future reward counts.
 //   - Release only owned geometry, materials, links and navigation on teardown.
@@ -335,6 +335,7 @@ namespace Worsen.Domain.Procedural
             var settings = NavMesh.GetSettingsByID(config.NavMeshAgentTypeId);
             if (settings.agentTypeID != config.NavMeshAgentTypeId || settings.agentRadius <= 0f || settings.agentHeight <= 0f)
                 throw new InvalidOperationException("The configured navigation agent type is unavailable.");
+            new ProceduralNavFallbackPresenter().ValidateTemplate(layout, blocks, settings.agentRadius, settings.agentHeight);
             settings.overrideVoxelSize = true;
             settings.voxelSize = config.NavVoxelSize;
             settings.ledgeDropHeight = 0f;
@@ -383,17 +384,13 @@ namespace Worsen.Domain.Procedural
             var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = config.HunterAreaMask };
             if (!NavMesh.SamplePosition(layout.PlayerSpawnPosition, out var start, config.NavSampleRadius, filter))
                 throw new InvalidOperationException("Generated player spawn has no walkable navigation.");
-            var targets = new List<Vector3> { layout.Graph.ExitPosition };
-            foreach (var anchor in layout.Graph.Anchors) targets.Add(anchor.Position);
-            foreach (var position in layout.HunterSpawnPositions) targets.Add(position);
-            foreach (var route in layout.VerticalRoutes)
-            { targets.Add(route.Points[0]); targets.Add(route.Points.Last()); }
+            var targets = new ProceduralNavFallbackPresenter().RequiredPositions(layout);
             var path = new NavMeshPath();
             foreach (var target in targets)
-                if (!NavMesh.SamplePosition(target, out var end, config.NavSampleRadius, filter) ||
+                if (!NavMesh.SamplePosition(target.position, out var end, config.NavSampleRadius, filter) ||
                     !NavMesh.CalculatePath(start.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete ||
                     !NavMesh.CalculatePath(end.position, start.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
-                    throw new InvalidOperationException("Generated navigation cannot reach required position " + target + ".");
+                    throw new InvalidOperationException("Generated navigation cannot reach required " + target.label + " position " + target.position + ".");
             foreach (var pocket in layout.Modules.Where(m => m.PocketId != 0).GroupBy(m => m.PocketId))
             {
                 var anchors = layout.PocketAnchors.Where(a => pocket.Any(m => m.RoomId == a.RoomId)).ToArray();

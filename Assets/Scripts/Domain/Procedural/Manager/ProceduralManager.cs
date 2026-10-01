@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Procedural (Service system).
 // KEY RESPONSIBILITIES:
-//   - Sequence seeded generation, physical admission, bounded retries and no-floor failure.
+//   - Sequence seeded generation, physical admission, organic recovery and no-floor failure.
 //   - Publish Core graphs, validated hunter capacity and future Passage gold counts.
 //   - Route destruction and interactable state into owned presentation.
 //   - Publish theme, threshold, puzzle and admitted shrine facts for external routing.
@@ -19,6 +19,8 @@
 //   Scene-owned Service system with explicit Initialize/Teardown. The boot/session
 //   owner injects both configs and destroys actors before replacing the map.
 //   No Update, singleton, implicit authored fallback or global render changes.
+//   UsedFallback means terminal no-floor, not a validated organic recovery floor;
+//   the latter retains its reason and all failed attempts in LayoutManifest.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -108,7 +110,8 @@ namespace Worsen.Domain.Procedural
                     new System.Random(ProceduralController.LayoutSeed(_state.AttemptSeed, roundIndex)));
                 try
                 {
-                    var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed, requiredHunterCount);
+                    var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed,
+                        requiredHunterCount, _state.OrganicFallbackReason);
                     _driver.Build(layout, _config, _driverConfig, IsPuzzleActor);
                     generation.Succeed(layout.Manifest + layout.InteractableManifest);
                     _controller.Admit();
@@ -118,7 +121,8 @@ namespace Worsen.Domain.Procedural
                 {
                     _driver.Teardown();
                     if (generation.Fail(exception.GetType().Name + ": " + exception.Message,
-                        _state.Layout == null ? null : _state.Layout.Manifest + _state.Layout.InteractableManifest)) continue;
+                        _state.Layout == null ? null : _state.Layout.Manifest + _state.Layout.InteractableManifest,
+                        _state.Layout?.UsesTemplates ?? false)) continue;
                     ReadinessChanged?.Invoke(false);
                     throw new InvalidOperationException("Procedural fallback: NoFloorAwaitingSession. " + LayoutManifest, exception);
                 }
