@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10), Tests (§11) · Editor · Input.
 // KEY RESPONSIBILITIES:
-//   - Check keyboard/gamepad/wheel paths and route short taps into one Run frame.
+//   - Check direct keys, existing keyboard/gamepad/wheel paths and one-shot buffering.
 // DEPENDENCIES:
 //   - Core, Input presentation, Run/HorrorEffects controllers, NUnit and Input System.
 // USAGE NOTES:
@@ -39,11 +39,15 @@ namespace Worsen.Tests.Input
                 typeof(PlayerInputDriver).GetMethod("BuildActionMap", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, null);
                 map = (InputActionMap)typeof(PlayerInputDriver).GetField("_actions", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(driver);
                 pause = (InputAction)typeof(PlayerInputDriver).GetField("_pause", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(driver);
-                Assert.That(map["UseConsumable"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/q", "<Gamepad>/rightShoulder" }));
+                Assert.That(map["UseConsumable"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Mouse>/leftButton", "<Gamepad>/rightShoulder" }));
+                Assert.That(map.actions.Where(a => a.bindings.Any(b => b.path == "<Mouse>/leftButton")).Select(a => a.name), Is.EqualTo(new[] { "UseConsumable" }));
                 Assert.That(map["CycleConsumable"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Mouse>/scroll/up", "<Gamepad>/dpad/right" }));
                 Assert.That(map["CycleConsumablePrevious"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Mouse>/scroll/down", "<Gamepad>/dpad/left" }));
-                Assert.That(map["LookBack"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/tab", "<Gamepad>/rightStickPress" }));
+                Assert.That(map["LookBack"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/q", "<Keyboard>/tab", "<Gamepad>/rightStickPress" }));
                 Assert.That(map["UseItem"].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/f", "<Gamepad>/leftShoulder" }));
+                for (int i = 1; i <= 3; i++)
+                    Assert.That(map["SelectSlot" + i].bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/" + i }));
+                Assert.That(map["Slide"].bindings.Select(b => b.path), Does.Contain("<Keyboard>/c"));
             }
             finally { map?.Dispose(); pause?.Dispose(); Object.DestroyImmediate(owner); }
         }

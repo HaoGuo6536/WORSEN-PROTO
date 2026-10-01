@@ -17,8 +17,8 @@
 //   Core guidance values, own HUDDriverState and Unity value math only.
 // USAGE NOTES:
 //   Stateless; caller owns state and supplies time, turn speed, color and spacing.
-//   White objective has counter priority except when it leads to the exit (anchor 0).
-//   Golden Sense remains an independent optional arrow; no absent target is retained.
+//   One visible arrow: Exit Sense wins, then Golden Sense, then the white objective.
+//   Underlying channels retain their identities; no absent target is retained.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -89,12 +89,16 @@ namespace Worsen.Presentation.HUD
         private static float Turn(float current, float target, float step)
             => Mathf.Repeat(Mathf.MoveTowardsAngle(current, target, step) + 180f, 360f) - 180f;
 
-        public bool UsesGoldenCount(HUDDriverState state) => state.GoldenSenseVisible &&
-            (!state.DirectionVisible || state.WhiteTarget.HasValue && state.WhiteTarget.Value.AnchorId == 0);
+        public bool ArrowVisible(HUDDriverState state) => !state.ModalOpen &&
+            (state.ExitSenseVisible || state.GoldenSenseVisible || state.DirectionVisible);
+        public float ActiveDegrees(HUDDriverState state) => state.ExitSenseVisible ? state.ExitSenseArrowDegrees
+            : state.GoldenSenseVisible ? state.DisplayGoldenArrowDegrees : state.DisplayArrowDegrees;
+        public Color ArrowTint(HUDDriverState state, Color gold, Color exit) => state.ExitSenseVisible ? exit
+            : state.GoldenSenseVisible ? gold : Color.white;
+        public bool UsesGoldenCount(HUDDriverState state) => !state.ExitSenseVisible && state.GoldenSenseVisible;
         public string CountText(HUDDriverState state) => UsesGoldenCount(state) ? state.GoldenText : state.CountText;
         public Color CountTint(HUDDriverState state, Color gold) => UsesGoldenCount(state) ? gold : Color.white;
-        public bool CountVisible(HUDDriverState state) => !state.HiddenCount && state.ChromeVisible &&
-            (state.DirectionVisible || state.GoldenSenseVisible) &&
+        public bool CountVisible(HUDDriverState state) => !state.HiddenCount && state.ChromeVisible && ArrowVisible(state) &&
             (UsesGoldenCount(state) ? state.GoldenCountKnown : state.CountKnown);
         public float CounterBottom(float compassSize, float gap)
             => Math.Max(0f, compassSize) * (1f + (float)Math.Sqrt(2d)) * .5f + Math.Max(0f, gap);

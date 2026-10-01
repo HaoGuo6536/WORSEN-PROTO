@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Own document binding and the HUDVisualDriver lifetime.
-//   - Forward counters, floor hiding, inventory and shield to the pure Presenter.
+//   - Forward counters, health, modal hiding, inventory, flashlight and shield to Presenters.
 //   - Forward independent guidance and smooth bearings after the current camera aim.
 //   - Admit phantom counts only on a bound, enabled display.
 //   - Preserve supplied facts across document recreation and disable/enable.
@@ -46,6 +46,7 @@ namespace Worsen.Presentation.HUD
         private HUDDriverState _state;
         private HUDPresenter _presenter;
         private readonly HUDGuidancePresenter _guidance = new HUDGuidancePresenter();
+        private readonly HUDInventoryPresenter _inventory = new HUDInventoryPresenter();
         private HUDVisualDriver _visual;
         private VisualElement _boundRoot;
         private bool _ownsVisual;
@@ -86,6 +87,10 @@ namespace Worsen.Presentation.HUD
         { if (_state != null) { _presenter.SetThreat(_state, fact); Apply(); } }
         public void SetShield(float shield)
         { if (_state != null) { _presenter.SetShield(_state, shield); Apply(); } }
+        public void SetHealth(float current, float maximum)
+        { if (_state != null) { _presenter.SetHealth(_state, current, maximum); Apply(); } }
+        public void SetModalOpen(bool open)
+        { if (_state != null) { _presenter.SetModalOpen(_state, open); Apply(); } }
 
         public void SetGoldenCount(int count)
         {
@@ -105,6 +110,12 @@ namespace Worsen.Presentation.HUD
         {
             if (_state == null || _config == null) return;
             _presenter.SetConsumables(_state, snapshot, _config.MaximumDisplayedSlots); Apply();
+        }
+
+        public void SetFlashlightStatus(bool enabled, float charge, float aim)
+        {
+            if (_state == null) return;
+            _inventory.SetFlashlight(_state, enabled, charge, aim); Apply();
         }
 
         public void SetExitState(ExitState exitState)
@@ -194,6 +205,7 @@ namespace Worsen.Presentation.HUD
             if (_state == null || _config == null || _document == null) return;
             _presenter.Tick(_state, Time.unscaledDeltaTime, _config.RestoreSeconds);
             _guidance.Tick(_state, Time.unscaledDeltaTime, _config.ArrowTurnDegreesPerSecond);
+            _inventory.Tick(_state, Time.unscaledDeltaTime, _config.ReadyPulseSeconds);
             if (!_document.isActiveAndEnabled) { HideAndUnbind(); return; }
             Apply();
         }

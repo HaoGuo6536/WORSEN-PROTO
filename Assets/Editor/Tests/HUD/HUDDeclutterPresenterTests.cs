@@ -3,7 +3,7 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies flat-arrow orientation and remaining-count facts through chase suppression.
-//   Empty capacity never creates a consumable outline before items exist.
+//   The owner's three-slot contract preserves empty capacity without disturbing counts.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · HUD.
 // KEY RESPONSIBILITIES:
@@ -31,14 +31,14 @@ namespace Worsen.Tests.HUD
             Assert.That(state.DirectionVisible, Is.True); Assert.That(state.ArrowDegrees, Is.EqualTo(angle).Within(.001));
         }
         [Test]
-        public void GoldenFigureIsIndependentAndEmptyCapacityNeverDraws()
+        public void GoldenFigureIsIndependentAndThreeSlotsAlwaysRemain()
         {
             var state = new HUDDriverState(); var p = new HUDPresenter();
             p.SetCount(state, 3, 8); p.SetGoldenCount(state, 4, 4); p.SetItemSlots(state, 2, 8);
             Assert.That(state.CountText, Is.EqualTo("5")); Assert.That(state.GoldenText, Is.EqualTo("0"));
-            Assert.That(state.DisplayedSlots, Is.Zero);
-            p.SetHeldItemCount(state, 1, 8); Assert.That(state.DisplayedSlots, Is.EqualTo(1));
-            p.SetHeldItemCount(state, 0, 8); Assert.That(state.DisplayedSlots, Is.Zero);
+            Assert.That(state.DisplayedSlots, Is.EqualTo(3));
+            p.SetHeldItemCount(state, 1, 8); Assert.That(state.DisplayedSlots, Is.EqualTo(3));
+            p.SetHeldItemCount(state, 0, 8); Assert.That(state.DisplayedSlots, Is.EqualTo(3));
             p.SetGoldenCount(state, -1); Assert.That(state.GoldenText, Is.EqualTo("—"));
         }
     }

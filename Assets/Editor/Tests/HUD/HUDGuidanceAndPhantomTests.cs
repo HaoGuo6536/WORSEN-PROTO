@@ -35,7 +35,7 @@ namespace Worsen.Tests.HUD
             new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.right, Vector3.right) };
 
         [Test]
-        public void VisualSurfaceHasSeparateGoldenAndWhiteVisibilityOutsideChrome()
+        public void VisualSurfaceUsesOneArrowOutsideChaseChrome()
         {
             var go = new GameObject("typed arrow surface"); var visual = go.AddComponent<HUDVisualDriver>();
             var config = ScriptableObject.CreateInstance<HUDDriverConfig>(); var root = new VisualElement();
@@ -45,11 +45,11 @@ namespace Worsen.Tests.HUD
                 var state = new HUDDriverState(); var presenter = new HUDPresenter();
                 presenter.SetGuidance(state, Both); presenter.SetChaseMode(state, true); visual.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                Assert.That(root.Q("golden-direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(root.Q("golden-direction-group"), Is.Null);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.None));
                 presenter.SetGuidance(state, Array.Empty<GuidanceTarget>()); visual.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
-                Assert.That(root.Q("golden-direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("golden-direction-group"), Is.Null);
             }
             finally { visual.Unbind(); Object.DestroyImmediate(go); Object.DestroyImmediate(config); }
         }
@@ -66,7 +66,7 @@ namespace Worsen.Tests.HUD
                 p.SetFloorCounters(state, new FloorDisplaySnapshot(141, 200, 7, ExitState.Locked, false, Vector3.zero,
                     totalCakes: 760, totalGoldenCakes: 23, hiddenCount: hidden));
                 visual.Apply(state);
-                Assert.That(root.Q<Label>("cake-count").text, Is.EqualTo("619"));
+                Assert.That(root.Q<Label>("cake-count").text, Is.EqualTo("16"));
                 Assert.That(root.Q<Label>("golden-count"), Is.Null);
                 Assert.That(root.Q("hud").style.display.value, Is.EqualTo(hidden ? DisplayStyle.None : DisplayStyle.Flex));
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));

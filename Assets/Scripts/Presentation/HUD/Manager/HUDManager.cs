@@ -13,7 +13,7 @@
 // KEY RESPONSIBILITIES:
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
 //   - Forward fixed-total counters, floor hiding and chase/reset facts.
-//   - Forward shield and immutable inventory snapshots without querying gameplay.
+//   - Forward health, modal visibility, shield, flashlight and inventory without querying gameplay.
 //   - Forward guidance/camera orientation and expose fallible phantom presentation.
 //
 // DEPENDENCIES:
@@ -53,11 +53,15 @@ namespace Worsen.Presentation.HUD
         public void SetFloorCounters(FloorDisplaySnapshot display) { if (_driver != null) _driver.SetFloorCounters(display); }
         public void SetThreat(TickingGuidanceFact fact) { if (_driver != null) _driver.SetThreat(fact); }
         public void SetShield(float shield) { if (_driver != null) _driver.SetShield(shield); }
+        public void SetHealth(float current, float maximum) { if (_driver != null) _driver.SetHealth(current, maximum); }
+        public void SetModalOpen(bool open) { if (_driver != null) _driver.SetModalOpen(open); }
         public void SetGuidance(IReadOnlyList<GuidanceTarget> targets) { if (_driver != null) _driver.SetGuidance(targets); }
         public bool TryShowPhantomCake(float seconds) => isActiveAndEnabled && _initialized && _driver != null && _driver.TryShowPhantomCake(seconds);
         public void SetGoldenCount(int count) { if (_driver != null) _driver.SetGoldenCount(count); }
         public void SetHeldItemCount(int count) { if (_driver != null) _driver.SetHeldItemCount(count); }
         public void SetConsumables(ConsumableInventorySnapshot snapshot) { if (_driver != null) _driver.SetConsumables(snapshot); }
+        public void SetFlashlightStatus(bool enabled, float charge, float aim)
+        { if (_driver != null) _driver.SetFlashlightStatus(enabled, charge, aim); }
         public void SetExitState(ExitState exitState) { if (_driver != null) _driver.SetExitState(exitState); }
         public void SetDirection(Vector3 worldDirection, bool visible) { if (_driver != null) _driver.SetDirection(worldDirection, visible); }
         public void SetHeading(float headingDegrees) { if (_driver != null) _driver.SetHeading(headingDegrees); }

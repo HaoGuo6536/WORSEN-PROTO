@@ -2,7 +2,7 @@
 // HUDExitSenseTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies Exit Sense is a separate display channel, not a replacement objective.
+//   Verifies Exit Sense retains a separate fact channel and owns the single arrow.
 //   Exercises the existing Floor-owned Mimic policy before presenting its snapshot.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · HUD.
@@ -52,10 +52,10 @@ namespace Worsen.Tests.HUD
                 for (int i = 0; i < 2; i++)
                 {
                     visual.Bind(root, config); visual.Apply(state);
-                    Assert.That(root.Query<VisualElement>("exit-sense-cue").ToList().Count, Is.EqualTo(1));
-                    Assert.That(root.Q("exit-sense-group").parent, Is.SameAs(root));
-                    Assert.That(root.Q("exit-sense-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                    Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
+                    Assert.That(root.Query<VisualElement>("direction-cue").ToList().Count, Is.EqualTo(1));
+                    Assert.That(root.Q("exit-sense-group"), Is.Null);
+                    Assert.That(root.Q("direction-group").parent, Is.SameAs(root));
+                    Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
                     visual.Unbind(); Assert.That(root.childCount, Is.Zero);
                 }
                 Lifecycle("OnDisable"); Assert.That(state.ExitSenseTarget, Is.Null); Assert.That(channel.GetValue(run.FloorFacts), Is.Null);
