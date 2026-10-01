@@ -6,7 +6,7 @@
 # ARCHITECTURAL ROLE: Offline acceptance tool; outside Unity runtime layers.
 # KEY RESPONSIBILITIES:
 #   - Verify inventory, geometry, axes, transforms, pivots, seams and materials.
-#   - Verify end caps, floor/wall support, anchors and complete wall coverage.
+#   - Verify end caps, support, enclosure and non-blocking vault density/clearance.
 #   - Compare source assemblies and rendered evidence with the room manifest.
 #   - Record and compare deterministic manifest and semantic geometry hashes.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils, bundled FBX parser/NumPy, stdlib;
@@ -556,6 +556,8 @@ def main():
     kit,rooms = [json.loads(p.read_text(encoding="utf-8")) for p in (kit_path,room_path)]
     lookup,details,records = kit_validation(kit)
     placement_regressions(rooms['templates'],lookup,{k:v['points'] for k,v in records.items()})
+    from validate_env_theme_vaults import validate_vaults
+    validate_vaults(rooms['templates'], lookup, {k:v['points'] for k,v in records.items()})
     if not args.skip_previews:
         check_door_previews('basement', REVIEW)
     templates = room_validation(rooms,lookup)

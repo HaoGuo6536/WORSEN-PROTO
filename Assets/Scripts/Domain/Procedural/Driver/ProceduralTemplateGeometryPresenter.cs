@@ -12,6 +12,7 @@
 //   - Cut only connected sockets and seal all unused openings.
 //   - Preserve offset frames, radial arcs and separate tangent-pier collision.
 //   - Keep decals and opened leaves out of collision and navigation.
+//   - Emit authored low props as Vault traversal blocks without rotating endpoints twice.
 // DEPENDENCIES:
 //   - Own catalogue/layout/config and pure coordinate/validation utilities.
 // USAGE NOTES:
@@ -25,6 +26,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Domain.Procedural
 {
@@ -62,8 +64,9 @@ namespace Worsen.Domain.Procedural
                     var door = room.Template.Doors[i];
                     if (door.ClosedWith != null) placements.AddRange(door.ClosedWith);
                 }
-                foreach (var placement in placements)
+                for (int placementIndex = 0; placementIndex < placements.Count; placementIndex++)
                 {
+                    var placement = placements[placementIndex];
                     var piece = kit[placement.Id];
                     if (piece.Kind == "floor" || piece.Kind == "ceiling") continue; // One exact tile per footprint cell.
                     float yaw = room.Turns * 90f + placement.RotY;
@@ -99,7 +102,11 @@ namespace Worsen.Domain.Procedural
                             }
                         }
                         blocks.Add(new ProceduralBlock(room.RoomId, ProceduralSurfaceKind.Wall,
-                            pivot + Vector3.up * (piece.Size.y * .5f), piece.Size, rotation: rotation,
+                            pivot + Vector3.up * (piece.Size.y * .5f), piece.Size,
+                            surfaceId: placement.TraversalKind == TraversalSurfaceKind.Vault ? checked(1000000 + room.RoomId * 16384 + placementIndex) : 0,
+                            traversalKind: placement.TraversalKind,
+                            endpointA: placement.HasEndpoints ? World(placement.EndpointA) : default,
+                            endpointB: placement.HasEndpoints ? World(placement.EndpointB) : default, rotation: rotation,
                             role: visual ? ProceduralBlockRole.VisualOnly : ProceduralBlockRole.Solid,
                             pieceId: piece.Id, piecePosition: pivot));
                         continue;

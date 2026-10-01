@@ -8,7 +8,7 @@
 #   - Build poured concrete, structural steel, services and industrial machinery.
 #   - Export applied Y-up/-Z-forward meshes and deterministic kit/room manifests.
 #   - Assemble editable sources and render catalogue and darkness review images.
-#   - Seat services on measured supports and centre hallway end-cap sockets.
+#   - Seat services, preserve end-cap sockets and place optional vault shortcuts.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils and Python standard library only.
 #   Shared door-review studio from env_theme_castle; no Castle geometry reused.
 # USAGE NOTES: --background --factory-startup --python-exit-code 1 --python FILE
@@ -881,10 +881,16 @@ def main():
     bpy.context.scene.unit_settings.system = "METRIC"
     bpy.context.scene.unit_settings.scale_length = 1
     materials()
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from env_theme_vaults import PIECES, build_vault, add_vaults
+    KINDS[PIECES['basement']] = 'prop'
     pieces,rows = {},[]
     for name,kind in KINDS.items():
         builder = BasementMesh(name)
-        build(builder)
+        if name == PIECES['basement']:
+            build_vault('basement', builder)
+        else:
+            build(builder)
         obj = builder.finish(kind)
         export(obj,ART/"Kit"/(obj.name+".fbx"))
         points = [v.co for v in obj.data.vertices]
@@ -894,6 +900,7 @@ def main():
         print(f"BUILT {name}: {len(obj.data.loop_triangles)} triangles")
     kit = {"theme":"basement","wallHeight":HEIGHT,"pieces":rows}
     rooms = catalogue()
+    add_vaults(rooms['templates'], rows, 'basement')
     for path,value in ((ART/"Kit/BasementKit.manifest.json",kit),(ART/"Rooms/BasementRooms.manifest.json",rooms)):
         path.write_text(json.dumps(value,indent=2)+"\n",encoding="utf-8",newline="\n")
     if not args.skip_previews:

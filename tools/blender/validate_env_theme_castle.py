@@ -7,7 +7,7 @@
 # ARCHITECTURAL ROLE: Offline art validator; outside Unity runtime layers.
 # KEY RESPONSIBILITIES:
 #   - Enforce inventory, axes, pivots, dimensions, budgets, openings and seams.
-#   - Verify room schema, topology, sockets, anchors and geometric enclosure.
+#   - Verify schema, enclosure, sockets, anchors and non-blocking vault density.
 #   - Compare source geometry/placements and reject broken preview evidence.
 #   - Record immutable determinism baselines and exercise negative controls.
 #   - Supply measured support, end-cap, door and spatial regression checks.
@@ -1061,6 +1061,9 @@ def main():
     require(1 <= sum(t['gimmick'] != 'none' for t in rooms) <= 2, 'gimmick catalogue')
     controls = negative_controls(rooms,meshes)
     placement_regressions(rooms, {r['id']:r for r in rows}, {k:v['points'] for k,v in meshes.items()})
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from validate_env_theme_vaults import validate_vaults
+    validate_vaults(rooms, {r['id']:r for r in rows}, {k:v['points'] for k,v in meshes.items()})
     if not args.skip_previews:
         check_door_previews('castle', OUT)
     check_sources(rows,rooms)

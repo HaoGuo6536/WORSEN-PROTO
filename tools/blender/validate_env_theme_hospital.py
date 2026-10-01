@@ -7,7 +7,7 @@
 # ARCHITECTURAL ROLE: Offline art validator; no Unity runtime dependencies.
 # KEY RESPONSIBILITIES:
 #   - Verify kit inventory, axes, pivots, budgets, openings and repeat seams.
-#   - Verify end caps, floor/wall support, fixture datums and geometric enclosure.
+#   - Verify end caps, support, enclosure and safe, non-blocking vault density.
 #   - Verify editable source/placement agreement, textures and rendered evidence.
 #   - Exercise rejection controls and compare repeat-generation manifest hashes.
 # DEPENDENCIES: Blender 5.2 bpy/mathutils/io_scene_fbx, bundled numpy, Python stdlib.
@@ -537,6 +537,8 @@ def main():
         check_fixture_attachments(t, rows, points)
     controls += fixture_rejection_controls(rooms['templates'], rows, points)
     placement_regressions(rooms['templates'], rows, points)
+    from validate_env_theme_vaults import validate_vaults
+    vault_details = validate_vaults(rooms['templates'], rows, points)
     if not args.skip_previews:
         check_door_previews('hospital', OUT)
     sources(rows, rooms)
@@ -567,7 +569,7 @@ def main():
         lines.append(f'PASS hospital: {len(preview_details)} nonblank previews; all-piece kit sheet; each room cutaway; theme-only plus flashlight darkness view')
     if args.compare_baseline:
         lines.append('PASS hospital: determinism; both manifest hashes plus geometry/texture hashes identical across two generations')
-    report = {'pass': True, 'checks': lines, 'snapshot': snapshot, 'rooms': room_details,
+    report = {'pass': True, 'checks': lines, 'snapshot': snapshot, 'rooms': room_details, 'vaults': vault_details,
               'negativeControls': controls, 'previews': preview_details,
               'limits': ['No Unity import, navigation, runtime socket closure or artistic acceptance is established.',
                          'Wall nonoverlap refers to collinear spans; perpendicular module corner joins are intentional.',
