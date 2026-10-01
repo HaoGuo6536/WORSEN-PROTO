@@ -11,7 +11,7 @@
 //   - Exercise real manifests, invalid inputs and managed sRGB conversion headlessly.
 //   - Verify ten saved rigs, six clip roles, project materials and visible dimensions.
 //   - Compare collision and protected gameplay/source assets against the base.
-//   - Prove first-save shader validation and repeated-build GUID/material stability.
+//   - Prove first-import shader validation and repeated-build GUID/material stability.
 // DEPENDENCIES:
 //   - HunterRosterVisualSetup, Hunter configs, NUnit and UnityEditor test APIs.
 // USAGE NOTES:
@@ -19,6 +19,8 @@
 //   runs Build in OneTimeSetUp and again for repeatability; hold the Unity lease.
 //   No Play Mode/focus requirement. Generated assets are intentional setup output,
 //   not disposable fixtures; all loaded prefab contents are released in finally.
+//   The fresh pack-import regression alone owns a temporary material folder and
+//   deletes it in finally, without replacing any roster or vendor assets.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -354,6 +356,64 @@ namespace Worsen.Tests.Hunter
                 }
                 finally { Object.DestroyImmediate(clone); }
             }
+        }
+        [Test]
+        public void FreshPackMaterialIsAlreadyInPostImportForm()
+        {
+            // Batch 17's Goblin source: use the actual vendor material, never a warmed-up
+            // generated variant. Exercise PackMaterial without adding a public test API.
+            const string sourceGuid = "44011044716e5da40b1952e25d719fa1";
+            Material source = Load<Material>(AssetDatabase.GUIDToAssetPath(sourceGuid));
+            Assert.That(AssetDatabase.TryGetGUIDAndLocalFileIdentifier(source, out string guid, out long id), Is.True);
+            Assert.That(guid, Is.EqualTo(sourceGuid)); Assert.That(id, Is.EqualTo(2100000L));
+            string sourcePath = AssetDatabase.GetAssetPath(source);
+            string sourceHash = Hash(sourcePath), sourceMetaHash = Hash(sourcePath + ".meta");
+            var build = typeof(Setup).GetMethod("PackMaterial", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(build, Is.Not.Null);
+            string hunter = "PackImportTest_" + Guid.NewGuid().ToString("N");
+            string folder = Setup.ArtPath(hunter);
+            string key = sourceGuid + "_2100000";
+            string path = folder + "/Materials/Pack_" + key + ".mat";
+            Assert.That(AssetDatabase.IsValidFolder(folder), Is.False);
+            try
+            {
+                AssetDatabase.CreateFolder("Assets/Art/Hunter", hunter);
+                AssetDatabase.CreateFolder(folder, "Materials");
+                Assert.That(File.Exists(path), Is.False, "The regression requires a genuinely fresh material.");
+                Material material = (Material)build.Invoke(null, new object[] { hunter, key, source });
+                string firstFile = File.ReadAllText(path), firstJson = EditorJsonUtility.ToJson(material);
+                string firstGuid = AssetDatabase.AssetPathToGUID(path);
+                Assert.That(material, Is.EqualTo(Load<Material>(path)), "Builder must return the imported asset.");
+                var floats = new SerializedObject(material).FindProperty("m_SavedProperties.m_Floats");
+                Assert.That(Enumerable.Range(0, floats.arraySize).Select(index =>
+                    floats.GetArrayElementAtIndex(index).FindPropertyRelative("first").stringValue), Does.Contain("_XRMotionVectorsPass"));
+                var versions = AssetDatabase.LoadAllAssetsAtPath(path).Where(asset =>
+                    asset.GetType().FullName == "UnityEditor.Rendering.Universal.AssetVersion").ToArray();
+                Assert.That(versions.Length, Is.EqualTo(1), "URP must create its version marker during the first build.");
+                string firstVersion = EditorJsonUtility.ToJson(versions[0]);
+                Assert.That(new SerializedObject(versions[0]).FindProperty("version").intValue, Is.GreaterThan(0));
+
+                void AssertUnchanged()
+                {
+                    Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(firstGuid));
+                    Assert.That(EditorJsonUtility.ToJson(Load<Material>(path)), Is.EqualTo(firstJson));
+                    var importedVersions = AssetDatabase.LoadAllAssetsAtPath(path).Where(asset =>
+                        asset.GetType().FullName == "UnityEditor.Rendering.Universal.AssetVersion").ToArray();
+                    Assert.That(importedVersions.Length, Is.EqualTo(1));
+                    Assert.That(EditorJsonUtility.ToJson(importedVersions[0]), Is.EqualTo(firstVersion));
+                    // Flush even a marker-only upgrade before comparing raw on-disk serialization.
+                    foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(path)) AssetDatabase.SaveAssetIfDirty(asset);
+                    Assert.That(File.ReadAllText(path), Is.EqualTo(firstFile));
+                }
+
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+                AssertUnchanged();
+                build.Invoke(null, new object[] { hunter, key, source });
+                AssertUnchanged();
+                Assert.That(Hash(sourcePath), Is.EqualTo(sourceHash));
+                Assert.That(Hash(sourcePath + ".meta"), Is.EqualTo(sourceMetaHash));
+            }
+            finally { if (AssetDatabase.IsValidFolder(folder)) AssetDatabase.DeleteAsset(folder); }
         }
         [Test]
         public void SecondBuildKeepsEveryGeneratedGuidAndMaterialValue()

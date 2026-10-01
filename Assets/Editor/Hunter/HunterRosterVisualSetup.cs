@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Validate manifests with a managed parser and convert authored sRGB colours.
 //   - Import project rigs and resolve six clips without editing vendor sources.
-//   - Validate project materials before saving and fit/ground visible geometry.
+//   - Finalize imported project materials and fit/ground visible geometry.
 //   - Reuse legacy wiring and bind ten distinct, stable-identity prefabs.
 //   - Fail the setup gate on missing content, invalid wiring or logged errors.
 // DEPENDENCIES:
@@ -428,7 +428,7 @@ namespace Worsen.Editor.Hunter
                 material.shader = cake.shader; material.CopyPropertiesFromMaterial(cake);
             }
             material.name = spec.Name; material.enableInstancing = true;
-            ValidateAndSaveMaterial(material); return material;
+            return ValidateAndSaveMaterial(material);
         }
         private static Texture2D Texture(string hunter, string name)
         {
@@ -447,12 +447,19 @@ namespace Worsen.Editor.Hunter
             material.SetColor(tint, new Color(color.r * PackDarkening, color.g * PackDarkening, color.b * PackDarkening, color.a));
             if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", source.GetColor("_EmissionColor") * PackDarkening);
             material.name = hunter + "_" + source.name;
-            ValidateAndSaveMaterial(material); return material;
+            return ValidateAndSaveMaterial(material);
         }
-        private static void ValidateAndSaveMaterial(Material material)
+        private static Material ValidateAndSaveMaterial(Material material)
         {
+            string path = AssetDatabase.GetAssetPath(material);
+            // URP MaterialPostprocessor.OnPostprocessAllAssets owns AssetVersion creation
+            // and upgrades (MaterialPostprocessor.cs:144-200), not ShaderGUI validation.
+            // Finish that import before persisting defaults or handing a material to a prefab.
+            EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            material = Require<Material>(path);
             // Older pack materials omit newer shader defaults (notably _XRMotionVectorsPass).
-            // Persist effective values now, rather than letting a later editor load add them.
+            // Persist effective values on the imported object, not its pre-import instance.
             // Getters preserve authored overrides and supply shader defaults for missing slots.
             Shader shader = material.shader;
             for (int i = 0; i < shader.GetPropertyCount(); i++)
@@ -480,7 +487,10 @@ namespace Worsen.Editor.Hunter
                 editor.customShaderGUI.ValidateMaterial(material);
             }
             finally { Object.DestroyImmediate(editor); }
+            // Save the imported material and URP's dirty version sub-asset in this file;
+            // do not wait for URP's deferred, project-wide SaveAssetsToDisk callback.
             EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
+            return material;
         }
         private static Material EnsureMaterial(string path)
         {
