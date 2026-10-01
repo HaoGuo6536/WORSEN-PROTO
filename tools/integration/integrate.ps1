@@ -39,6 +39,18 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $out = Join-Path $main "Logs\AgentValidation\integration\$Label-$stamp"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 function Log($m) { $line = "[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $m; $line; Add-Content -LiteralPath (Join-Path $out 'integration.log') -Value $line }
+# Setup or tests can still write tracked files after the gate's meta commit (batch 26r: kit material
+# remaps and normal-map importer types). A dirty tracked file blocks `checkout main` and strands the open
+# checkout on the candidate, so record the drift as a patch and stash it (recoverable) before switching.
+function Save-CandidateDrift {
+    $dirty = @(Invoke-Git $main -c core.quotepath=off status --porcelain --untracked-files=no)
+    if ($dirty.Count -eq 0) { return }
+    $patch = Join-Path $out 'post-commit-drift.patch'
+    Invoke-Git $main diff --binary "--output=$patch" | Out-Null
+    $dirty | Set-Content -LiteralPath (Join-Path $out 'post-commit-drift-status.txt') -Encoding UTF8
+    Invoke-Git $main stash push -q -m "$Label post-commit drift ($($dirty.Count) files; patch in $out)" | Out-Null
+    Log "Post-commit drift: $($dirty.Count) tracked file(s) changed after the meta commit; stashed, patch $patch"
+}
 $entry = [ordered]@{ label = $Label; started = (Get-Date).ToString('o'); branches = $Branches; plan = $Plan; promoted = $false; pushed = $false; evidence = $out }
 
 # ---------- 1. offline pre-check ----------
@@ -254,6 +266,7 @@ try {
         Log "PROMOTED: main $mainHead -> $candidate"
     } else {
         Invoke-Git $main branch -f "cand/$Label" $candidate | Out-Null
+        Save-CandidateDrift
         Invoke-Git $main checkout -q main | Out-Null
         $onCandidate = $false
         Log "NOT PROMOTED: candidate kept as cand/$Label; open checkout back on main $mainHead"
@@ -268,7 +281,7 @@ try {
         try { Invoke-Git $main branch -f "cand/$Label" (Invoke-Git $main rev-parse HEAD | Select-Object -Last 1) | Out-Null } catch { }
         Log "Open checkout left on the candidate (cand/$Label): the suite may still be running"
     } elseif ($onCandidate) {
-        try { Invoke-Git $main branch -f "cand/$Label" (Invoke-Git $main rev-parse HEAD | Select-Object -Last 1) | Out-Null; Invoke-Git $main checkout -q main | Out-Null; Log "Restored open checkout to main; candidate kept as cand/$Label" } catch { Log "RESTORE FAILED: $($_.Exception.Message)" }
+        try { Invoke-Git $main branch -f "cand/$Label" (Invoke-Git $main rev-parse HEAD | Select-Object -Last 1) | Out-Null; Save-CandidateDrift; Invoke-Git $main checkout -q main | Out-Null; Log "Restored open checkout to main; candidate kept as cand/$Label" } catch { Log "RESTORE FAILED: $($_.Exception.Message)" }
     }
     throw
 } finally {
