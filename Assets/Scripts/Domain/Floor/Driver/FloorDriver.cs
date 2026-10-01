@@ -11,7 +11,7 @@
 //   - Sample Walkable guidance paths and report target-local fallback/held flags.
 //   - Own cake/trap visuals, materials, lights and duplicate-safe optional rewards.
 //   - Relay pickup/trap contacts and apply explicit visual/audio commands.
-//   - Apply staged room destruction and sample footprint-aware hand/reward probes.
+//   - Apply staged destruction and supply player observations/time to cosmetic hands.
 //   - Operate normal exit opening, crossing contacts and continuous progress.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
@@ -182,6 +182,8 @@ namespace Worsen.Domain.Floor
         public FloorHandProbe QueryHand(Vector3 playerPosition, int preferredRoom = 0, int preferredHand = -1,
             EntityId playerId = default, bool closedOnly = false)
         {
+            if (!closedOnly)
+                foreach (var room in _state.Rooms.Values) room.ObservePlayer(playerPosition, playerId);
             if (preferredHand >= 0)
                 return _state.Rooms.TryGetValue(preferredRoom, out var preferred) ? preferred.Probe(playerPosition, preferredHand, playerId) : default;
             FloorHandProbe closest = default;
@@ -222,6 +224,9 @@ namespace Worsen.Domain.Floor
         public void Teardown()
         {
             OnDisable();
+            foreach (var room in _state.Rooms.Values) if (room != null) room.Teardown();
+            if (_state.Root != null)
+                foreach (var glow in _state.Root.GetComponentsInChildren<FloorLumenGlow>(true)) glow.Teardown();
             if (_state.Root != null) { _state.Root.SetActive(false); Release(_state.Root); }
             foreach (var material in _state.Materials) if (material != null) Release(material);
             if (_state.TrapTickClip != null) Release(_state.TrapTickClip);

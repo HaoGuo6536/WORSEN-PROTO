@@ -9,7 +9,7 @@
 //   Sub-driver (§7e), owned by FloorDriver or FloorExitDoor · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Configure a private Lumen player before activating its effect hierarchy.
-//   - Refresh only changed visible appearance and release native meshes on disable.
+//   - Refresh visible appearance and explicitly release native layers/registrations on teardown.
 //   - Leave designer profiles untouched and never fall back to Unity Light.
 // DEPENDENCIES:
 //   UnityEngine and DistantLands.Lumen runtime engine integration only.
@@ -18,7 +18,8 @@
 //   white LumenLightLayer with range2 from the shared Editor setup helper.
 //   Missing optional prefabs produce no glow in legacy fixtures. Normal scene
 //   setup supplies both glow prefabs. Vendor disable clears generated meshes;
-//   the parent hierarchy owns disposal. Configuration never edits a shared profile.
+//   FloorDriver explicitly tears down every glow, including inactive pickups and warnings.
+//   Configuration never edits a shared profile; no vendor global list is cleared wholesale.
 //   Requested local visibility is armed even while the owner hierarchy is inactive;
 //   hierarchy activation gates actual rendering without requiring Edit Mode callbacks.
 // ============================================================================
@@ -38,12 +39,7 @@ namespace Worsen.Domain.Floor
 
         public void Configure(GameObject prefab, float radius, Color color, float brightness, bool visible)
         {
-            if (_effectRoot != null)
-            {
-                _effectRoot.SetActive(false);
-                if (Application.isPlaying) Destroy(_effectRoot); else DestroyImmediate(_effectRoot);
-            }
-            _effectRoot = null; _player = null;
+            Teardown();
             _visible = visible; _color = color; _brightness = Mathf.Max(0f, brightness);
             if (prefab == null) return;
             _effectRoot = new GameObject("Floor Native Lumen Effect");
@@ -84,5 +80,22 @@ namespace Worsen.Domain.Floor
         }
         private void OnEnable() { if (_effectRoot != null) _effectRoot.SetActive(_visible); }
         private void OnDisable() { if (_effectRoot != null) _effectRoot.SetActive(false); }
+        public void Teardown()
+        {
+            if (_effectRoot != null)
+            {
+                foreach (var player in _effectRoot.GetComponentsInChildren<LumenEffectPlayer>(true))
+                {
+                    if (player == null) continue;
+                    player.deinitializationBehavior = LumenEffectPlayer.DeinitializationBehavior.Immediate;
+                    player.enabled = false; // Vendor OnDisable unpairs its manager and static redraw event.
+                    player.ClearEffect(); // Also clear layers redrawn while already inactive.
+                }
+                _effectRoot.SetActive(false);
+                if (Application.isPlaying) Destroy(_effectRoot); else DestroyImmediate(_effectRoot);
+            }
+            _effectRoot = null; _player = null; _visible = false;
+        }
+        private void OnDestroy() => Teardown();
     }
 }

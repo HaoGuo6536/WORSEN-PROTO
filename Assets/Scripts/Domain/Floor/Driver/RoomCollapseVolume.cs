@@ -2,13 +2,13 @@
 // RoomCollapseVolume.cs
 // ============================================================================
 // PURPOSE:
-//   Operates a fog boundary trigger independently of pooled hand art, cracks and clipped mist.
+//   Operates a collapse boundary trigger independently of pooled reaching hand art and cracks.
 //   Explicit observations and elapsed time keep room hazards reproducible.
 //   Room-local ownership prevents effects or contacts leaking across portals.
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by FloorDriver Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
-//   - Apply cosmetic hand scaling and route warning pulses to the native Lumen effect.
+//   - Apply deterministic hand flailing/player strain and native Lumen warning pulses.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Reconcile overlap contacts before each Floor tick, including stationary actors on activation.
@@ -21,7 +21,7 @@
 //   Visual colliders stay disabled. The dedicated trigger includes the room interior
 //   so penetrating or spawning inside a consumed room cannot evade its boundary.
 //   Pooled query buffers grow on saturation, retry without truncation and return on destroy.
-//   Fallback mist uses the config's serialized shader, never a runtime name lookup.
+//   Doorway mist is owned by Presentation/Fog from published portal geometry, not hand cells.
 // ============================================================================
 using System;
 using System.Buffers;
@@ -59,7 +59,7 @@ namespace Worsen.Domain.Floor
             _state.ResolveIdentity = resolveIdentity; _state.BoundaryReach = boundaryReach;
             _state.Phase = RoomPhase.Open; warning.SetVisible(false);
             int width = config.HandGridWidth;
-            var fogMaterial = config.MistMaterial != null ? config.MistMaterial : MakeFogMaterial();
+
             foreach (var cell in room.Cells)
             {
                 var boundary = gameObject.AddComponent<BoxCollider>();
@@ -71,18 +71,18 @@ namespace Worsen.Domain.Floor
                 {
                     Vector3 point = _presenter.GridPoint(cell, i, width, config.PortalInset);
                     point.y = SurfaceHeight(point, cell);
-                    AddHand(point, i, width, darkMaterial, fogMaterial, true, cell);
+                    AddHand(point, darkMaterial, cell);
                     if (point.y > cell.min.y + 1.5f)
-                        AddHand(new Vector3(point.x, cell.min.y + 0.015f, point.z), i, width, darkMaterial, fogMaterial, false, cell);
+                        AddHand(new Vector3(point.x, cell.min.y + 0.015f, point.z), darkMaterial, cell);
                 }
                 BuildCracks(config.CrackMaterial != null ? config.CrackMaterial : darkMaterial, cell);
             }
             while (_state.Hands.Count < minimumHands)
                 AddHand(_presenter.GridPoint(room.Cells[0], _state.Hands.Count % (width * width), width, config.PortalInset),
-                    0, width, darkMaterial, fogMaterial, false, room.Cells[0]);
+                    darkMaterial, room.Cells[0]);
         }
 
-        private void AddHand(Vector3 point, int gridIndex, int width, Material darkMaterial, Material fogMaterial, bool addMist, Bounds cell)
+        private void AddHand(Vector3 point, Material darkMaterial, Bounds cell)
         {
             int index = _state.Hands.Count;
             var hand = _config.HandPrefab != null ? Instantiate(_config.HandPrefab, transform, false) : BuildHand(darkMaterial);
@@ -91,14 +91,15 @@ namespace Worsen.Domain.Floor
             foreach (var collider in hand.GetComponentsInChildren<Collider>()) collider.enabled = false;
             hand.SetActive(false); _state.Hands.Add(hand.transform); _state.HandPositions.Add(point);
             _state.HandBounds.Add(cell);
-            _state.Mist.Add(addMist ? BuildMist(gridIndex,point,width,fogMaterial,cell) : null);
+            _state.HandSkins.Add(hand.GetComponentsInChildren<SkinnedMeshRenderer>(true));
         }
         public void SetHandLook(string look) => _state.HandLook = look;
         public void ApplyHandFact(CollapseHandFact fact)
         {
+            _state.GripWeight = _presenter.GripWeight(fact.Kind);
             for (int i=0;i<_state.HandPositions.Count;i++)
             {
-                foreach(var skin in _state.Hands[i].GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                foreach(var skin in _state.HandSkins[i])
                 {
                     if(skin.sharedMesh==null)continue;
                     int index=skin.sharedMesh.GetBlendShapeIndex("Grasp");
@@ -143,18 +144,45 @@ namespace Worsen.Domain.Floor
                     reaching = cakes[i].x >= cell.min.x && cakes[i].x <= cell.max.x && cakes[i].z >= cell.min.z && cakes[i].z <= cell.max.z;
                 if (reaching) reveal = Mathf.Max(reveal, mist);
                 var hand = _state.Hands[i]; hand.gameObject.SetActive(reveal > 0.01f);
-                hand.position = reaching ? _presenter.CakeReach(_state.HandPositions[i], cakes[i], sample.Phase, sample.Progress) : _state.HandPositions[i];
+                Vector3 origin = reaching ? _presenter.CakeReach(_state.HandPositions[i], cakes[i], sample.Phase, sample.Progress) : _state.HandPositions[i];
+                var pose = FloorHandPresenter.Pose(origin, _state.PlayerTarget, elapsed, i,
+                    _config.HandFlailAmplitude, _config.HandFlailRate, _config.HandVisualReachRange, _config.HandVisualReachDistance);
+                // Root motion stays within its footprint cell, including at cake targets near notches.
+                hand.position = cell.ClosestPoint(origin + pose.Offset);
                 hand.localScale = _presenter.HandScale(reveal, elapsed, i,
                     FloorHandPresenter.VisualScale(_state.HandLook, _config.HandVisualScale, _config.GlovedHandScaleMultiplier));
-                hand.localRotation = Quaternion.Euler(Mathf.Sin(elapsed + i) * 6f, i * 137.5f, Mathf.Cos(elapsed * 0.7f + i) * 7f);
-                var fog = _state.Mist[i];
-                if (fog == null) continue;
-                var main = fog.main;
-                main.startColor = new Color(0.012f, 0.008f, 0.025f, 0.9f *
-                    (sample.PulseRate > 0f ? Mathf.Lerp(_config.WarningMistPulseFloor, 1f, pulse) : 1f));
-                if (reveal > 0.01f && !fog.gameObject.activeSelf) { fog.gameObject.SetActive(true); fog.Play(); }
-                if (reveal <= 0.01f && fog.gameObject.activeSelf) { fog.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); fog.gameObject.SetActive(false); }
+                hand.rotation = Quaternion.FromToRotation(Vector3.up, pose.Direction) * Quaternion.Euler(0f, i * 137.5f, 0f);
+                foreach (var skin in _state.HandSkins[i])
+                {
+                    if (skin.sharedMesh == null) continue;
+                    int grip = skin.sharedMesh.GetBlendShapeIndex("Grasp");
+                    if (grip >= 0) skin.SetBlendShapeWeight(grip, Mathf.Max(_state.GripWeight, pose.Grip));
+                }
             }
+            _state.PlayerTarget = null; // Observations expire unless the owner samples the player again.
+        }
+
+        public void ObservePlayer(Vector3 position, EntityId playerId)
+        {
+            // Cosmetic reach does not require a gameplay-trigger contact. Sample at the
+            // visual range while retaining footprint/height rejection and wall occlusion.
+            var probe = _presenter.BoundaryProbe(_state.Room, _state.Phase, position, _config.HandVisualReachRange);
+            if (!probe.Available) return;
+            if (probe.Distance > 0f)
+            {
+                Vector3 from = position + Vector3.up * _config.HandTargetHeight;
+                Vector3 delta = probe.Position + Vector3.up * _config.HandTargetHeight - from;
+                int count = RayHits(from, delta.normalized, delta.magnitude);
+                for (int i = 0; i < count; i++)
+                {
+                    var hit = _state.QueryHits[i];
+                    if (!hit.collider.transform.IsChildOf(transform) &&
+                        (!playerId.IsValid || (_state.ResolveIdentity?.Invoke(hit.collider) ?? EntityId.None) != playerId)) return;
+                }
+            }
+            Vector3 target = position + Vector3.up * _config.HandTargetHeight;
+            if (!_state.PlayerTarget.HasValue || (target - _state.Bounds.center).sqrMagnitude <
+                (_state.PlayerTarget.Value - _state.Bounds.center).sqrMagnitude) _state.PlayerTarget = target;
         }
 
         public FloorHandProbe Probe(Vector3 playerPosition, int preferredHand = -1, EntityId playerId = default)
@@ -259,46 +287,6 @@ namespace Worsen.Domain.Floor
             part.GetComponent<Collider>().enabled = false; part.GetComponent<Renderer>().sharedMaterial = material;
         }
 
-        private ParticleSystem BuildMist(int index, Vector3 point, int width, Material material, Bounds bounds)
-        {
-            var root = new GameObject("Clipped Shadow Mist " + index); root.transform.SetParent(transform, false);
-            float cell = Mathf.Min(bounds.size.x, bounds.size.z) / width;
-            root.transform.position = new Vector3(point.x, bounds.center.y, point.z);
-            var fog = root.AddComponent<ParticleSystem>(); fog.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            fog.useAutoRandomSeed = false; fog.randomSeed = (uint)(1 + _state.RoomId * 97 + index);
-            var main = fog.main; main.loop = true; main.duration = 8f; main.startLifetime = 8f;
-            main.startSpeed = 0f; main.startSize = Mathf.Min(cell * 0.9f, 1.9f);
-            main.startColor = new Color(0.012f, 0.008f, 0.025f, 0.9f); main.maxParticles = 32;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local;
-            var emission = fog.emission; emission.rateOverTime = 4f;
-            var shape = fog.shape; shape.shapeType = ParticleSystemShapeType.Box;
-            float margin = main.startSize.constant;
-            shape.scale = new Vector3(Mathf.Max(0.05f, cell - margin), Mathf.Max(0.05f, bounds.size.y - margin - 0.1f), Mathf.Max(0.05f, cell - margin));
-            var color = fog.colorOverLifetime; color.enabled = true;
-            var gradient = new Gradient(); gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(1f, 0.8f), new GradientAlphaKey(0f, 1f) });
-            color.color = gradient;
-            fog.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
-            root.SetActive(false); return fog;
-        }
-        private Material MakeFogMaterial()
-        {
-            var shader = _config.MistShader;
-            var material = new Material(shader); _state.OwnedMaterials.Add(material);
-            var texture = new Texture2D(32, 32, TextureFormat.RGBA32, false) { name = "Collapse soft fog falloff" };
-            var pixels = new Color[1024];
-            for (int y = 0; y < 32; y++) for (int x = 0; x < 32; x++)
-            {
-                float radial = Mathf.Clamp01(1f - new Vector2((x - 15.5f) / 15.5f, (y - 15.5f) / 15.5f).magnitude);
-                pixels[y * 32 + x] = new Color(1f, 1f, 1f, radial * radial);
-            }
-            texture.SetPixels(pixels); texture.Apply(); material.mainTexture = texture; _state.OwnedResources.Add(texture);
-            if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 1f);
-            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            material.SetInt("_ZWrite", 0); material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); material.renderQueue = 3000;
-            return material;
-        }
 
         private void BuildCracks(Material material, Bounds bounds)
         {
@@ -317,15 +305,14 @@ namespace Worsen.Domain.Floor
                 line.widthMultiplier = 0.02f; line.numCapVertices = 2; line.enabled = false; _state.Cracks.Add(line);
             }
         }
-        private void OnDestroy()
+        public void Teardown()
         {
             if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
             if (_state.QueryOverlaps != null) ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
             _state.QueryHits = null; _state.QueryOverlaps = null;
-            foreach (var resource in _state.OwnedResources) Release(resource);
-            foreach (var material in _state.OwnedMaterials) Release(material);
+            _state.Contacts.Clear(); _state.PlayerTarget = null;
         }
-        private static void Release(UnityEngine.Object value)
-        { if (value == null) return; if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); }
+        private void OnDestroy() => Teardown();
+
     }
 }
