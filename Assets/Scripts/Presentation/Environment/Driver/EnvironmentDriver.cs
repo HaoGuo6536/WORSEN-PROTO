@@ -9,8 +9,8 @@
 //   Driver (§7a) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
 //   - Protect exit lights while budgeting eligible lamps under destruction and curse hooks.
-//   - Build torch, school/hospital fluorescent and basement cage art at exact sockets.
-//   - Admit footprint/curved dressing without decorative collision or real lights.
+//   - Place kit fixtures and Lumen together while retaining exact gameplay socket identities.
+//   - Ground footprint dressing and skip art already owned by furnished templates.
 //   - Own budgeted Lumen grammar and bind Core light facts by exact socket position.
 //   - Release room objects, chalk and all imported Lumen players on floor teardown.
 // DEPENDENCIES:
@@ -37,6 +37,8 @@ namespace Worsen.Presentation.Environment
         // DriverState (§7c): diagnostics survive floor teardown and retries.
         private sealed class ShaderReferenceDriverState { public bool Reported; }
         private readonly ShaderReferenceDriverState _shaderState = new ShaderReferenceDriverState();
+        private sealed class KitReferenceDriverState { public readonly HashSet<string> Missing = new HashSet<string>(); }
+        private readonly KitReferenceDriverState _kitState = new KitReferenceDriverState();
 
         public bool IsReady => _config != null;
         public int RoomCount => _state.Rooms.Count;
@@ -68,7 +70,11 @@ namespace Worsen.Presentation.Environment
         public void BeginFloor(bool clearTheme = true)
         {
             if (clearTheme) { _state.ThemeId = null; _state.LightSource = null; _state.RoomThemes.Clear(); }
-            foreach (EnvironmentFlameDriverState flame in _state.Flames) if (flame.Grammar != null) flame.Grammar.Teardown();
+            foreach (EnvironmentFlameDriverState flame in _state.Flames)
+            {
+                if (flame.Grammar != null) flame.Grammar.Teardown();
+                if (flame.Panel != null) flame.Panel.Teardown();
+            }
             _state.ExitLightIndex = -1;
             _state.DarkerFloors = _state.Wick = false;
             _state.TorchCountMultiplier = 1f;
@@ -84,7 +90,8 @@ namespace Worsen.Presentation.Environment
         }
 
         public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
-            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
+            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null,
+            bool authoredFurniture = false)
         {
             if (_config == null || _state.Rooms.ContainsKey(id)) return;
             bool fluorescent = EnvironmentThemePresenter.IsFluorescent(_state, id);
@@ -94,22 +101,41 @@ namespace Worsen.Presentation.Environment
             root.transform.SetParent(transform, false); root.SetActive(false);
             _state.Rooms.Add(id, root);
             _state.RoomBounds.Add(id, bounds);
-            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved, cells, boundary, lightSockets);
+            string theme = _state.RoomThemes.TryGetValue(id, out var themedRoom) ? themedRoom.Theme : _state.ThemeId;
+            EnvironmentSlot[] slots = EnvironmentPresenter.BuildDressing(id, bounds, openSky, refuge, portalCenters, reserved,
+                cells, boundary, lightSockets, authoredFurniture, _config.FloorEnvelope, _config.WallEnvelope);
             for (int i = 0; i < slots.Length; i++)
             {
                 EnvironmentSlot slot = slots[i];
                 if (slot.Torch)
                 {
-                    if (!fluorescent && !cage) SpawnDecoration(_config.WallTorchPrefab, root.transform, slot, slot.Envelope);
-                    AddFlame(id, id * 13 + i, root.transform, slot.Position + Vector3.up * 0.25f, refuge, false,
-                        slot.Position, fluorescent, slot.Yaw, slot.Envelope, cage);
+                    EnvironmentDecoration visual = null;
+                    if (!authoredFurniture)
+                    {
+                        var fixtureSlot = fluorescent ? EnvironmentPlacementPresenter.CeilingFixtureSlot(slot.Position, bounds.max.y, _config.FixtureEnvelope) :
+                            EnvironmentPlacementPresenter.WallFixtureSlot(slot.Position, bounds, boundary,
+                                cage ? _config.FixtureEnvelope : slot.Envelope, cells);
+                        GameObject prefab = fluorescent || cage ? LoadKit(cage ? _config.BasementFixture :
+                            theme == "school" ? _config.SchoolFixture : _config.HospitalFixture) : _config.WallTorchPrefab;
+                        visual = SpawnDecoration(prefab, root.transform, fixtureSlot, false, fluorescent, false);
+                    }
+                    // Authored templates already carry their fixture art. Their supplied
+                    // sockets are light sources, not locations for a second decoration.
+                    AddFlame(id, id * 13 + i, root.transform, visual != null ? visual.LightPosition : slot.Position,
+                        refuge, false, slot.Position, fluorescent, cage: cage, fixture: visual != null ? visual.gameObject : null);
                 }
-                else if (!fluorescent && !cage)
+                else
                 {
                     bool groundProp = slot.Kind == EnvironmentDecorationKind.FloorProp || slot.Kind == EnvironmentDecorationKind.MerchantDisplay;
                     if (groundProp && Physics.CheckBox(slot.Position, slot.Envelope * .5f - Vector3.one * .025f,
-                        Quaternion.identity, ~0, QueryTriggerInteraction.Ignore)) continue;
-                    SpawnDecoration(DecorationPrefab(slot.Kind, id + i), root.transform, slot, slot.Envelope);
+                        Quaternion.Euler(0f, slot.Yaw, 0f), ~0, QueryTriggerInteraction.Ignore)) continue;
+                    GameObject prefab = groundProp ? LoadKit(theme == "hospital" ? _config.HospitalFurniture :
+                        theme == "school" ? _config.SchoolFurniture : theme == "basement" ? _config.BasementFurniture : _config.CastleFurniture) :
+                        !fluorescent && !cage ? LoadKit(_config.CastleWallDecoration) : null;
+                    bool kitArt = prefab != null;
+                    if (prefab == null && !fluorescent && !cage) prefab = DecorationPrefab(slot.Kind, id + i);
+                    // Project kit fronts face -Z; the placement frame faces +Z.
+                    SpawnDecoration(prefab, root.transform, slot, groundProp, modelYaw: kitArt ? 180f : 0f);
                 }
             }
             if (openSky)
@@ -129,23 +155,22 @@ namespace Worsen.Presentation.Environment
             return options != null && options.Length > 0 ? options[(variant & int.MaxValue) % options.Length] : null;
         }
 
-        private void SpawnDecoration(GameObject prefab, Transform parent, EnvironmentSlot slot, Vector3 maximumSize)
+        private GameObject LoadKit(string path)
         {
-            if (prefab == null) return;
-            GameObject item = Instantiate(prefab, parent);
-            item.name = prefab.name + " Dressing";
-            item.transform.SetPositionAndRotation(slot.Position, Quaternion.Euler(0f, slot.Yaw, 0f));
-            foreach (Collider collider in item.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
-            RemoveImportedLights(item);
-            foreach (AudioSource audio in item.GetComponentsInChildren<AudioSource>(true)) audio.enabled = false;
-            Renderer[] renderers = item.GetComponentsInChildren<Renderer>(true);
-            if (renderers.Length == 0) return;
-            Bounds extent = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++) extent.Encapsulate(renderers[i].bounds);
-            float scale = EnvironmentPresenter.FitScale(extent.size, maximumSize, slot.Yaw);
-            item.transform.localScale *= scale;
-            Vector3 centerOffset = (extent.center - slot.Position) * scale;
-            item.transform.position = slot.Position - centerOffset;
+            GameObject prefab = string.IsNullOrEmpty(path) ? null : Resources.Load<GameObject>(path);
+            if (prefab == null && _kitState.Missing.Add(path ?? string.Empty))
+                Debug.LogWarning("Environment kit visual missing: " + path + ". Rebuild procedural kit assets before visual acceptance.", this);
+            return prefab;
+        }
+
+        private EnvironmentDecoration SpawnDecoration(GameObject prefab, Transform parent, EnvironmentSlot slot,
+            bool floor, bool ceiling = false, bool alignLongAxis = true, float modelYaw = 0f)
+        {
+            if (prefab == null) return null;
+            var root = new GameObject(prefab.name + " Dressing"); root.transform.SetParent(parent, false);
+            var visual = root.AddComponent<EnvironmentDecoration>();
+            if (visual.Configure(prefab, slot, _config, floor, ceiling, alignLongAxis, modelYaw)) return visual;
+            RemoveOwned(root); return null;
         }
 
         private static void RemoveImportedLights(GameObject root)
@@ -163,7 +188,7 @@ namespace Worsen.Presentation.Environment
         }
 
         private void AddFlame(int roomId, int identity, Transform parent, Vector3 position, bool refuge, bool moon,
-            Vector3 socketPosition = default, bool fluorescent = false, float yaw = 0f, Vector3 envelope = default, bool cage = false)
+            Vector3 socketPosition = default, bool fluorescent = false, bool cage = false, GameObject fixture = null)
         {
             var holder = new GameObject(moon ? "Lumen 2 Moon Pool" : fluorescent ? "Lumen 2 Fluorescent Pool" : "Lumen 2 Torch Pool");
             holder.transform.SetParent(parent, false); holder.transform.position = position;
@@ -174,11 +199,10 @@ namespace Worsen.Presentation.Environment
             var grammar = effectRoot.AddComponent<EnvironmentLumenDriver>();
             LumenEffectPlayer lumen = grammar.CreateLamp(_config, moon, fluorescent);
             EnvironmentFluorescentFixture panel = null;
-            if (fluorescent || cage)
+            if (fixture != null && (fluorescent || cage))
             {
-                var panelRoot = new GameObject("Cold fluorescent panel"); panelRoot.transform.SetParent(holder.transform, false);
-                panel = panelRoot.AddComponent<EnvironmentFluorescentFixture>();
-                panel.Configure(socketPosition, yaw, envelope, _config, cage);
+                panel = fixture.AddComponent<EnvironmentFluorescentFixture>();
+                panel.Configure(socketPosition, 0f, default, _config, cage);
             }
             if (!moon && !fluorescent && !cage && _config.FirePrefab != null)
             {

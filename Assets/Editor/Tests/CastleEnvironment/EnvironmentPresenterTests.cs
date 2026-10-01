@@ -11,7 +11,7 @@
 //   - Verify portal clearance, elevation, selection, local dimming and threshold chalk.
 //   - Verify default-off Wick/Darker Floors composition without exceeding the light cap.
 //   - Bind exact Core light sockets without lighting other rooms, moons or destroyed torches.
-//   - Keep footprint dressing out of notches and off internal walls; preserve rectangle placement.
+//   - Keep wall-side furniture out of notches and reserved routes without corner clutter.
 // DEPENDENCIES:
 //   - NUnit and EnvironmentPresenter; no scene objects required.
 // USAGE NOTES:
@@ -173,50 +173,52 @@ namespace Worsen.Tests.CastleEnvironment
         }
 
         [Test]
-        public void MedievalDressingHasSixPropBudgetAndCoherentRoomRoles()
+        public void WallSideFurnitureReplacesFakeArchesAndCornerColumns()
         {
             var bounds = new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f));
             var doors = new[] { new Vector3(0f, 0f, -6f), new Vector3(6f, 0f, 0f) };
             for (int id = 1; id < 24; id++)
             {
                 var ordinary = EnvironmentPresenter.BuildDressing(id, bounds, false, false, doors);
-                Assert.That(ordinary.Length, Is.LessThanOrEqualTo(6));
-                Assert.That(ordinary.Count(s => s.Kind == EnvironmentDecorationKind.Arch), Is.EqualTo(1));
-                Assert.That(ordinary.Count(s => s.Kind == EnvironmentDecorationKind.Column), Is.GreaterThanOrEqualTo(1));
+                Assert.That(ordinary.Length, Is.LessThanOrEqualTo(4));
+                Assert.That(ordinary.Any(s => s.Kind == EnvironmentDecorationKind.Arch || s.Kind == EnvironmentDecorationKind.Column), Is.False);
                 Assert.That(ordinary.Count(s => s.Kind == EnvironmentDecorationKind.FloorProp), Is.EqualTo(1));
                 var refuge = EnvironmentPresenter.BuildDressing(id, bounds, false, true, doors);
                 Assert.That(refuge.Count(s => s.Kind == EnvironmentDecorationKind.MerchantDisplay), Is.EqualTo(1));
                 var cloister = EnvironmentPresenter.BuildDressing(id, bounds, true, false, doors);
-                Assert.That(cloister.Count(s => s.Kind == EnvironmentDecorationKind.Column), Is.EqualTo(2));
-                Assert.That(cloister.Length, Is.LessThanOrEqualTo(6));
+                Assert.That(cloister.Count(s => s.Kind == EnvironmentDecorationKind.Column), Is.Zero);
+                Assert.That(cloister.Length, Is.LessThanOrEqualTo(3));
             }
         }
 
         [Test]
-        public void FloorPropsStayInCornerAlcovesAndRespectReservedTraversalSpace()
+        public void FloorPropsBackOntoOneWallAndRespectReservedTraversalSpace()
         {
             var bounds = new Bounds(new Vector3(0f, 3.5f, 0f), new Vector3(12f, 7f, 12f));
-            var central = new Bounds(new Vector3(0f, 3f, 0f), new Vector3(9.7f, 6f, 9.7f));
+            var central = new Bounds(new Vector3(0f, 3f, 0f), new Vector3(9f, 6f, 9f));
             var doors = new[] { new Vector3(0f, 0f, -6f), new Vector3(6f, 0f, 0f) };
             var slots = EnvironmentPresenter.BuildDressing(4, bounds, false, false, doors, new[] { central });
+            Assert.That(slots.Any(s => s.Kind == EnvironmentDecorationKind.FloorProp), Is.True);
             foreach (var slot in slots.Where(s => s.Kind == EnvironmentDecorationKind.FloorProp))
             {
-                Assert.That(Mathf.Abs(slot.Position.x) - slot.Envelope.x * .5f, Is.GreaterThan(4.85f));
-                Assert.That(Mathf.Abs(slot.Position.z) - slot.Envelope.z * .5f, Is.GreaterThan(4.85f));
-                Assert.That(EnvironmentPresenter.ClearsFloorRoutes(slot.Position, slot.Envelope, bounds, doors, new[] { central }), Is.True);
+                Vector3 back = slot.Position - EnvironmentPlacementPresenter.RotateYaw(Vector3.forward, slot.Yaw) * (slot.Envelope.z * .5f);
+                Assert.That(Mathf.Max(Mathf.Abs(back.x), Mathf.Abs(back.z)), Is.EqualTo(6f).Within(.0001f));
+                Assert.That(Mathf.Min(Mathf.Abs(back.x), Mathf.Abs(back.z)), Is.LessThan(4f), "Not a corner-centred pot.");
+                var size = EnvironmentPlacementPresenter.RotateBounds(new Bounds(Vector3.zero, slot.Envelope), slot.Yaw).size;
+                Assert.That(EnvironmentPresenter.ClearsFloorRoutes(slot.Position, size, bounds, doors, new[] { central }), Is.True);
             }
             var forbiddenAll = EnvironmentPresenter.BuildDressing(4, bounds, false, false, doors, new[] { bounds });
             Assert.That(forbiddenAll.Any(s => s.Kind == EnvironmentDecorationKind.FloorProp || s.Kind == EnvironmentDecorationKind.Column), Is.False);
         }
 
         [Test]
-        public void DecorativeArchesNeverLowerTheStandingDoorwayClearance()
+        public void DecorativeArchitectureIsNotSpawnedAboveDoorways()
         {
             var bounds = new Bounds(new Vector3(0f, 7.5f, 0f), new Vector3(12f, 7f, 12f));
             var slots = EnvironmentPresenter.BuildDressing(5, bounds, false, false, new[] { new Vector3(-6f, 4f, 0f) });
-            var arch = slots.Single(s => s.Kind == EnvironmentDecorationKind.Arch);
-            Assert.That(arch.Position.y - arch.Envelope.y * .5f - bounds.min.y, Is.GreaterThanOrEqualTo(2.9f));
-            Assert.That(arch.Yaw, Is.EqualTo(90f));
+            Assert.That(slots.Any(s => s.Kind == EnvironmentDecorationKind.Arch || s.Kind == EnvironmentDecorationKind.Column), Is.False);
+            Assert.That(slots.Where(s => s.Kind == EnvironmentDecorationKind.FloorProp)
+                .All(s => Mathf.Abs(s.Position.y - s.Envelope.y * .5f - bounds.min.y) < .0001f), Is.True);
         }
 
         [Test]
@@ -271,11 +273,11 @@ namespace Worsen.Tests.CastleEnvironment
         }
 
         [Test]
-        public void DecorationFitNeverUpscalesOrExceedsEnvelope()
+        public void DecorationFitAllowsBoundedGrowthAndRejectsExtremeShrink()
         {
-            Assert.That(EnvironmentPresenter.FitScale(new Vector3(2, 4, 1), new Vector3(1, 1, 1)), Is.EqualTo(0.25f));
-            Assert.That(EnvironmentPresenter.FitScale(Vector3.one * 0.1f, Vector3.one), Is.EqualTo(1f));
-            Assert.That(EnvironmentPresenter.FitScale(new Vector3(0.3f, 1.3f, 1.2f), new Vector3(1.3f, 1.4f, 0.35f), 90f), Is.EqualTo(1f));
+            Assert.That(EnvironmentPresenter.FitScale(new Vector3(2, 4, 1), new Vector3(1, 1, 1)), Is.Zero);
+            Assert.That(EnvironmentPresenter.FitScale(Vector3.one * 0.1f, Vector3.one), Is.EqualTo(1.25f));
+            Assert.That(EnvironmentPresenter.FitScale(new Vector3(0.3f, 1.3f, 1.2f), new Vector3(1.3f, 1.4f, 0.35f), 90f), Is.EqualTo(1.4f / 1.3f).Within(.0001f));
         }
     }
 }
