@@ -358,7 +358,11 @@ namespace Worsen.Tests.Floor
         internal sealed class Fixture { public LevelGraph Graph; public FloorBehaviorState State; public FloorController Controller; }
         internal sealed class Player : IReadOnlyPlayerState
         {
-            public EntityId Id => new EntityId(1); public Vector3 Position => new Vector3(60f, 0f, 0f);
+            // Defaults to the exit position; pass another point where a fixture needs exit guidance.
+            private readonly Vector3 _position;
+            public Player() : this(new Vector3(60f, 0f, 0f)) { }
+            public Player(Vector3 position) { _position = position; }
+            public EntityId Id => new EntityId(1); public Vector3 Position => _position;
             public Vector3 Velocity => Vector3.zero; public Vector3 Forward => Vector3.forward;
             public float HeadingDegrees => 0f; public float SprintSpeed => 8f; public float MaxDesignSpeed => 12f;
             public float Health => 100f; public float MaxHealth => 100f; public bool IsAlive => true; public bool LookBack => false;
