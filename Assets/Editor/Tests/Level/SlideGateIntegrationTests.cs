@@ -149,7 +149,7 @@ namespace Worsen.Tests.Level
                         gate, gate.transform.position, gate.transform.rotation, out _, out float distance) && distance > config.SkinWidth + 0.005f;
                     if ((record.Input.Pressed & InputButtons.Jump) != 0 && record.Probe.StandingBlocked && inside &&
                         !player.LastTraversalFacts.Any(fact => fact.Kind == TraversalKind.Jump && fact.Succeeded) &&
-                        record.Resolution.Velocity.y <= 0.01f && player.LastMovementSample.MovementState == MovementState.Ground
+                        record.Resolution.Velocity.y <= 0.01f && player.LastMovementSample.MovementState == MovementState.Slide // owner: no crouch; a blocked stand extends the slide
                         && Mathf.Abs(capsule.height - config.Height * config.SlideHeightRatio) < 0.001f)
                         blockedJumpSamples++;
                     sawStandingAfterExit |= position.x > bounds.max.x + config.Radius + config.SkinWidth &&
