@@ -13,6 +13,7 @@
 //   - Create only the owning system's missing config asset.
 //   - Save only that config asset from the standalone menu action.
 //   - Retain a shader-bound hand material and fallback shader reference for player builds.
+//   - Return the config's retained material reference on creation and subsequent runs.
 //   - Leave scene saving, imports and test lease admission to the caller.
 //
 // DEPENDENCIES:
@@ -69,8 +70,11 @@ namespace Worsen.Editor.Camera
                     ?? throw new InvalidOperationException("Camera setup requires URP Unlit.");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
             }
-            var property = serialized.FindProperty("_handMaterial");
-            if (property.objectReferenceValue is Material retained && AssetDatabase.Contains(retained)) return retained;
+            if (config.HandMaterial != null && AssetDatabase.Contains(config.HandMaterial))
+            {
+                AssetDatabase.SaveAssetIfDirty(config);
+                return config.HandMaterial;
+            }
             Material material = null;
             foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(config)))
                 if (asset is Material candidate && candidate.name == "Hand Catch Material") { material = candidate; break; }
@@ -82,10 +86,14 @@ namespace Worsen.Editor.Camera
                 material.SetColor("_BaseColor", new Color(0.12f, 0.10f, 0.09f, 1f));
                 AssetDatabase.AddObjectToAsset(material, config);
             }
-            property.objectReferenceValue = material;
+            // Asset loading can refresh serialized state; bind through a fresh snapshot.
+            serialized = new SerializedObject(config);
+            serialized.FindProperty("_handMaterial").objectReferenceValue = material;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssetIfDirty(config);
-            return material;
+            // Material wrappers returned by SerializedProperty need not be reference-identical
+            // to the original new Material. Both paths expose the same retained managed field.
+            return config.HandMaterial;
         }
     }
 }

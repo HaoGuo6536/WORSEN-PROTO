@@ -19,6 +19,7 @@
 // USAGE NOTES:
 //   Edit Mode boundary fixture. Reflection publishes existing facts and injects a
 //   transient driver config without asset lookup; rooms and exit rays use real commands.
+//   Ordinary torch assertions use a non-exit room; exit-room lamps are protected.
 //   Vendor rendering stays off in Edit Mode. Live rendering and scene wiring remain
 //   coordinator checks; no scene, prefab, shared config or render settings are changed.
 //   Router lifecycle is invoked explicitly; SetActive alone is not an Edit Mode callback.
@@ -124,19 +125,25 @@ namespace Worsen.Tests.CastleEnvironment
         public void TorchFollowsInitialAndChangedLevelStateAndClearsOnRelease()
         {
             _level.gameObject.SetActive(true);
-            Vector3 socket = Array.Find(EnvironmentPresenter.BuildSlots(_room.Id, _room.Bounds, null), s => s.Torch).Position;
-            var light = new InteractableState(42, InteractableKind.Light, _room.Id, socket, InteractableStateValue.Inactive);
-            _level.InitializeGenerated(_level.ReadOnlyState.Graph, new[] { light });
+            var lightRoom = new LevelRoom(8, _room.Center + Vector3.right * 12f, _room.Bounds.size);
+            Vector3 socket = Array.Find(EnvironmentPresenter.BuildSlots(lightRoom.Id, lightRoom.Bounds, null), s => s.Torch).Position;
+            var light = new InteractableState(42, InteractableKind.Light, lightRoom.Id, socket, InteractableStateValue.Inactive);
+            _level.InitializeGenerated(new LevelGraph(new[] { _room, lightRoom },
+                new[] { new LevelEdge(1, _room.Id, lightRoom.Id, true) }, Array.Empty<LevelAnchor>(),
+                _room.Id, _level.ReadOnlyState.Graph.ExitPosition), new[] { light });
             _environment.SetObserver(socket);
-            Rooms();
+            Publish(_expedition, "RoomsReady", (object)new[] {
+                new GeneratedRoomSample(_room.Id, _room.Bounds, false, false, Array.Empty<Vector3>()),
+                new GeneratedRoomSample(lightRoom.Id, lightRoom.Bounds, false, false, Array.Empty<Vector3>()) });
             var flame = State.Flames.Find(f => !f.Moon && !f.Exit && f.SocketPosition.Equals(socket));
             Assert.That(flame, Is.Not.Null); Assert.That(flame.Lit, Is.False);
+            Assert.That(flame.RoomId, Is.Not.EqualTo(Exit.RoomId));
             Assert.That(flame.EffectRoot.activeSelf, Is.False);
             Assert.That(_level.SetLit(42, true), Is.True);
             Assert.That(flame.Lit, Is.True); Assert.That(flame.EffectRoot.activeSelf, Is.True);
             _environment.SetLightingHooks(true, true);
             Assert.That(_level.SetLit(42, false), Is.True);
-            _environment.SetRoomDestruction(_room.Id, .5f); _driver.Tick(0f);
+            _environment.SetRoomDestruction(lightRoom.Id, .5f); _driver.Tick(0f);
             Assert.That(flame.EffectRoot.activeSelf, Is.False, "Wick and destruction updates cannot relight an unlit socket.");
             Publish(_expedition, "FloorReleased");
             Assert.That(State.Flames, Is.Empty); Assert.That(State.ExitLightIndex, Is.EqualTo(-1));
@@ -148,26 +155,35 @@ namespace Worsen.Tests.CastleEnvironment
         {
             var horror = Component<HorrorManager>();
             var driver = horror.GetComponent<HorrorDriver>();
+            var config = ScriptableObject.CreateInstance<HorrorDriverConfig>();
             var state = new HorrorDriverState { TorchCountMultiplier = .5f, Wick = true };
-            Set(driver, "_state", state); Set(horror, "_driver", driver);
-            _route.Configure(_run, _expedition, _effects, _environment, horror: horror);
-            Invoke(_route, "OnEnable");
-            Assert.That(State.TorchCountMultiplier, Is.EqualTo(.5f)); Assert.That(State.Wick, Is.True);
-            Rooms();
-            Assert.That(State.TorchCountMultiplier, Is.EqualTo(.5f)); Assert.That(State.Wick, Is.True);
-            Publish(horror, "LightingHooksChanged", .25f, false);
-            Assert.That(State.TorchCountMultiplier, Is.EqualTo(.25f)); Assert.That(State.Wick, Is.False);
-            var replacement = Component<HorrorManager>();
-            _route.Configure(_run, _expedition, _effects, _environment, horror: replacement);
-            Invoke(_route, "OnEnable");
-            Assert.That(Subscribers(horror, "LightingHooksChanged"), Is.Zero);
-            Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.EqualTo(1));
-            Assert.That(State.TorchCountMultiplier, Is.EqualTo(1f)); Assert.That(State.Wick, Is.False);
-            Invoke(_route, "OnDisable");
-            Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.Zero);
-            Invoke(_route, "OnEnable"); Invoke(_route, "OnDestroy");
-            Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.Zero);
-            Set(driver, "_state", null);
+            try
+            {
+                // Match Initialize's state/config invariant without creating the global atmosphere rig.
+                Set(driver, "_config", config); Set(driver, "_state", state); Set(horror, "_driver", driver);
+                _route.Configure(_run, _expedition, _effects, _environment, horror: horror);
+                Invoke(_route, "OnEnable");
+                Assert.That(State.TorchCountMultiplier, Is.EqualTo(.5f)); Assert.That(State.Wick, Is.True);
+                Rooms();
+                Assert.That(State.TorchCountMultiplier, Is.EqualTo(.5f)); Assert.That(State.Wick, Is.True);
+                Publish(horror, "LightingHooksChanged", .25f, false);
+                Assert.That(State.TorchCountMultiplier, Is.EqualTo(.25f)); Assert.That(State.Wick, Is.False);
+                var replacement = Component<HorrorManager>();
+                _route.Configure(_run, _expedition, _effects, _environment, horror: replacement);
+                Invoke(_route, "OnEnable");
+                Assert.That(Subscribers(horror, "LightingHooksChanged"), Is.Zero);
+                Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.EqualTo(1));
+                Assert.That(State.TorchCountMultiplier, Is.EqualTo(1f)); Assert.That(State.Wick, Is.False);
+                Invoke(_route, "OnDisable");
+                Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.Zero);
+                Invoke(_route, "OnEnable"); Invoke(_route, "OnDestroy");
+                Assert.That(Subscribers(replacement, "LightingHooksChanged"), Is.Zero);
+            }
+            finally
+            {
+                Set(driver, "_state", null); Set(driver, "_config", null);
+                Object.DestroyImmediate(config);
+            }
         }
 
         private void Rooms() => Publish(_expedition, "RoomsReady", (object)new[] {
