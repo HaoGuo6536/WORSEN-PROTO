@@ -4,11 +4,11 @@
 # PURPOSE:
 #   Authors the wide, eight-limbed Weaver instead of reusing the legacy werewolf.
 #   A flattened carapace and pale joints disclose its overhead skitter without
-#   eyes or a face. Its warned attack drops the shell before rearing to release.
+#   losing the eight-legged outline. Eyes and mandibles frame the warned release.
 # ARCHITECTURAL ROLE:
 #   Offline art generator · no runtime layer · Hunter, SPEC-005 §2.3 / PLAN-015.
 # KEY RESPONSIBILITIES:
-#   - Define original primitive geometry, palette and three-segment limb rig.
+#   - Define shaped shell plates, segmented limbs, mandibles and clustered eyes.
 #   - Author in-place skitter, warning, drop/rear attack and recoil actions.
 #   - Produce source, FBX, manifest and Workbench previews via the shared pipeline.
 # DEPENDENCIES:
@@ -25,9 +25,10 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
 from hunter_motion_common import spider_leg
+from hunter_detail_geometry import SculptCreature, weaver_details
 
-PALETTE = {"Carapace": (.24, .135, .085), "Ridge": (.36, .215, .125),
-           "Limbs": (.16, .105, .072), "JointTips": (.76, .70, .53), "Underside": (.095, .065, .052)}
+PALETTE = {"Carapace": (.30, .22, .16), "Ridge": (.46, .35, .23),
+           "Limbs": (.17, .14, .12), "JointTips": (.76, .70, .53)}
 
 
 def build():
@@ -44,10 +45,10 @@ def build():
             for j in range(3):
                 definitions.append((key + "Segment" + str(j), "Body" if j == 0 else key + "Segment" + str(j - 1), p[j]))
             limbs.append((key, p))
-    m = c.Creature("Weaver", PALETTE, definitions)
+    m = SculptCreature("Weaver", PALETTE, definitions)
     m.shape("Carapace", "Body", (0, .02, .9), (.84, 1.02, .25), "Carapace", "ico")
     m.shape("DorsalRidge", "Body", (0, .10, .998), (.25, .77, .075), "Ridge", "ico")
-    m.shape("Underside", "Body", (0, .02, .805), (.61, .81, .10), "Underside", "ico")
+    m.shape("Underside", "Body", (0, .02, .805), (.61, .81, .10), "Limbs", "ico")
     m.shape("ForwardSpinner", "Body", (0, -.49, .84), (.29, .20, .135), "JointTips", "ico")
     # Rear fan and lateral shell plates keep the outline readable from below.
     for sign in (-1, 1):
@@ -60,6 +61,7 @@ def build():
             if j < 2:
                 m.shape(key + "Joint" + str(j), bone, p[j], (.12, .12, .105), "JointTips", "ico")
         m.shape(key + "FootTip", key + "Segment2", p[3], (.085, .105, .07), "JointTips")
+    weaver_details(m)
     return m
 
 

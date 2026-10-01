@@ -4,7 +4,8 @@
 # PURPOSE:
 #   Re-imports Mimic and independently appends the original cake for comparison.
 #   It proves the closed exterior and palette UVs survived export, checks that
-#   added mouth geometry stays inside the disguise, and samples the actual bite.
+#   mouth geometry stays inside the disguise and all disguise slots are still.
+#   Bite/recovery retain the readable motion thresholds of the earlier pass.
 # ARCHITECTURAL ROLE:
 #   Offline art validator · no runtime layer · Hunter / PLAN-015.
 # KEY RESPONSIBILITIES:
@@ -25,11 +26,12 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+from mathutils.kdtree import KDTree
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
-from hunter_animation_review import validate_motion
+from hunter_animation_review import validate_motion, skin_points, render_strips
 
 
 def surface(objects):
@@ -94,6 +96,26 @@ def uv_error(a, b):
     return max(error(a, b), error(b, a))
 
 
+def normal_error(objects, reference):
+    def samples(meshes):
+        result = []
+        for obj in meshes:
+            normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
+            for loop, normal in zip(obj.data.loops, obj.data.corner_normals):
+                result.append((obj.matrix_world @ obj.data.vertices[loop.vertex_index].co,
+                               (normal_matrix @ normal.vector).normalized()))
+        return result
+    def compare(source, target):
+        tree = KDTree(len(target))
+        for i, (position, _) in enumerate(target):
+            tree.insert(position, i)
+        tree.balance()
+        return max(min(((normal-target[i][1]).length for _,i,_ in tree.find_range(position, 2e-6)),
+                       default=2) for position,normal in source)
+    actual, expected = samples(objects), samples([reference])
+    return max(compare(actual, expected), compare(expected, actual))
+
+
 def main():
     v = c.Validation("Mimic")
     try:
@@ -119,8 +141,12 @@ def main():
         correspondence_error = uv_error(uv, cake_uv)
         v.check("cake_uv_preserved", len(uv) == len(cake_uv) and correspondence_error < 1.1e-6,
                 {"reference_pairs": len(cake_uv), "mimic_pairs": len(uv), "max_pair_error": correspondence_error})
+        shading_error = normal_error(exterior, reference)
+        v.check('authored_cake_corner_normals_preserved', shading_error < .002, shading_error)
         # Teeth and gum are tested against the closed original cake, not merely
         # against its axis-aligned box (which would accept protruding wedge teeth).
+        detail = [o for o in v.meshes if o.name.startswith(('Frosting_', 'JamTell'))]
+        v.check('no_added_disguise_tells', not detail, [o.name for o in detail])
         hidden = [o for o in v.meshes if o not in exterior]
         solids = component_trees(reference)
         outside = []
@@ -131,8 +157,22 @@ def main():
                 if distance > 1e-6 and not any(enclosed(solid, p) for solid in solids):
                     outside.append([obj.name, vertex.index, list(p)])
         v.check("teeth_and_mouth_concealed", not outside, outside)
-        v.report['motion'] = validate_motion('Mimic',v.rig,v.meshes,v.clips,
-            dict(idle=.004,walk=.08,run=.14,ready=.07,attack=.20,hit=.15),v.check)
+        # The owner now requires exact stillness, not the old breathing/pulsing
+        # locomotion tests. Measure every evaluated skin vertex in every frame.
+        c.clear_pose(v.rig)
+        closed = skin_points(v.meshes)
+        for role in ('idle', 'walk', 'run'):
+            error = 0
+            for frame in range(1, c.CLIPS[role]+2):
+                c.pose(v.rig, v.clips[role], frame)
+                error = max(error, max((a-b).length for a,b in zip(closed,skin_points(v.meshes))))
+            v.check(role+'_exact_disguise_hold', error < 1e-6, error)
+        v.report['motion'] = validate_motion('Mimic',v.rig,v.meshes,
+            {role:v.clips[role] for role in ('ready','attack','hit')},
+            dict(ready=.07,attack=.20,hit=.15),v.check)
+        if '--render' in sys.argv:
+            reference.hide_render = True
+            render_strips('Mimic',v.rig,v.meshes,v.clips)
         c.pose(v.rig, v.clips["idle"], 1)
         rest = v.rig.pose.bones["Jaw"].matrix.to_quaternion()
         c.pose(v.rig, v.clips["attack"], 9)

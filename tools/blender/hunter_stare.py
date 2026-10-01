@@ -2,11 +2,11 @@
 # hunter_stare.py
 # PURPOSE:
 #   Rebuild Stare as a tall, thin covered figure with a permanent lateral lean.
-#   Unequal shoulders and arm lengths carry recognition, never face detail.
+#   Unequal shoulders and arm lengths carry recognition beside a fixed long face.
 # ARCHITECTURAL ROLE:
 #   Offline art generator (outside runtime layers) · Hunter art.
 # KEY RESPONSIBILITIES:
-#   - Define asymmetric cloth and a faint cool emissive edge.
+#   - Define pleated asymmetric cloth, a long mask and fixed forward eyes.
 #   - Author slow lateral sway, stalking steps, hunched run and long-arm sweep.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_humanoid_common; no Unity dependencies.
@@ -19,12 +19,15 @@ import sys
 from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from hunter_humanoid_common import Body, humanoid, limbs, rotate, envelope, generate
+from hunter_humanoid_common import humanoid, limbs, rotate, envelope, generate
 from hunter_motion_common import biped_gait
+from hunter_detail_geometry import SculptBody as Body, humanoid_details
 
 LENGTHS = dict(idle=90,walk=60,run=24,ready=24,attack=40,hit=20)
-PALETTE = [('Cloth',(.075,.09,.115),(0,0,0),0),
-           ('CoolRim',(.15,.20,.25),(.24,.34,.43),.12)]
+PALETTE = [('Cloth',(.19,.22,.25),(0,0,0),0),
+           ('CoolRim',(.32,.38,.43),(.24,.34,.43),.12),
+           ('Mask',(.62,.65,.61),(0,0,0),0),
+           ('Eyes',(.85,.88,.77),(.40,.48,.42),.16)]
 
 
 def build():
@@ -42,6 +45,7 @@ def build():
     body.link('RightArm',heads['RightArm'],(-.09,0,1.48),.09,0,.055)
     body.link('Chest',(.31,.012,1.3),(.32,.012,1.91),.012,1)
     body.link('Head',(.35,.012,2.02),(.32,.012,2.245),.009,1)
+    humanoid_details(body)
     return body
 
 

@@ -11,12 +11,12 @@
     "unity_bakeAxisConversion": false,
     "socket_space": "Blender bone-local metres"
   },
-  "height_m": 1.0824999809265137,
-  "width_m": 2.0316965579986572,
+  "height_m": 1.1509180068969727,
+  "width_m": 1.9899064302444458,
   "bounds_m": [
     [
-      -1.0158482789993286,
-      1.0158482789993286
+      -0.9949532151222229,
+      0.9949532151222229
     ],
     [
       -0.8224999904632568,
@@ -24,10 +24,10 @@
     ],
     [
       0.0,
-      1.0824999809265137
+      1.1509180068969727
     ]
   ],
-  "triangles": 848,
+  "triangles": 7432,
   "bones": [
     {
       "name": "Root",
@@ -995,9 +995,9 @@
     {
       "name": "M_HunterWeaver_Carapace",
       "base_color_srgb": [
-        0.24,
-        0.135,
-        0.085,
+        0.3,
+        0.22,
+        0.16,
         1
       ],
       "emission_color_srgb": [
@@ -1027,9 +1027,9 @@
     {
       "name": "M_HunterWeaver_Limbs",
       "base_color_srgb": [
-        0.16,
-        0.105,
-        0.072,
+        0.17,
+        0.14,
+        0.12,
         1
       ],
       "emission_color_srgb": [
@@ -1043,25 +1043,9 @@
     {
       "name": "M_HunterWeaver_Ridge",
       "base_color_srgb": [
-        0.36,
-        0.215,
-        0.125,
-        1
-      ],
-      "emission_color_srgb": [
-        1.0,
-        1.0,
-        1.0,
-        1
-      ],
-      "emission_strength": 0.0
-    },
-    {
-      "name": "M_HunterWeaver_Underside",
-      "base_color_srgb": [
-        0.095,
-        0.065,
-        0.052,
+        0.46,
+        0.35,
+        0.23,
         1
       ],
       "emission_color_srgb": [

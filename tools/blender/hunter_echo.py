@@ -6,7 +6,7 @@
 # ARCHITECTURAL ROLE:
 #   Offline art generator (outside runtime layers) · Hunter art.
 # KEY RESPONSIBILITIES:
-#   - Define Echo's primitive silhouette and blue-grey palette.
+#   - Define Echo's pleated, tattered silhouette and blue-grey palette.
 #   - Author six rigid, in-place actions with a straight reach attack.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_humanoid_common; no Unity dependencies.
@@ -20,8 +20,9 @@ import sys
 from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from hunter_humanoid_common import Body, humanoid, limbs, rotate, envelope, generate
+from hunter_humanoid_common import humanoid, limbs, rotate, envelope, generate
 from hunter_motion_common import biped_gait
+from hunter_detail_geometry import SculptBody as Body, humanoid_details
 
 LENGTHS = dict(idle=60, walk=30, run=20, ready=18, attack=30, hit=18)
 PALETTE = [('Cloth', (.37,.44,.49), (0,0,0), 0),
@@ -39,8 +40,9 @@ def build():
     body.cloth('Head', [(0,.025,1.47,.15,.14),(0,.025,1.65,.175,.165),
                         (0,.025,1.78,.11,.12),(0,.025,1.8,.045,.06)], 0)
     # Recess is a single blank dark plane, never eyes or facial features.
-    body.egg('Head',(0,-.119,1.635),(.205,.024,.225),1)
+    body.egg('Head',(0,-.145,1.635),(.205,.024,.225),1)
     body.cloth('Hips',[(0,0,.18,.238,.162),(0,0,.24,.233,.16)],2)
+    humanoid_details(body)
     return body
 
 

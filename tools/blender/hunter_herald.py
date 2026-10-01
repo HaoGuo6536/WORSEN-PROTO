@@ -6,7 +6,7 @@
 # ARCHITECTURAL ROLE:
 #   Offline art generator (outside runtime layers) · Hunter art.
 # KEY RESPONSIBILITIES:
-#   - Define skeletal primitives, open rib cavity and dark-red emission.
+#   - Define tapered bones, hinged ribs, vertebrae, open jaw and red cavity.
 #   - Author full-body inhale and chest-flaring scream actions.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_humanoid_common; no Unity dependencies.
@@ -19,12 +19,14 @@ import sys
 from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from hunter_humanoid_common import Body, humanoid, limbs, rotate, envelope, generate
+from hunter_humanoid_common import humanoid, limbs, rotate, envelope, generate
 from hunter_motion_common import biped_gait
+from hunter_detail_geometry import SculptBody as Body, humanoid_details
 
 LENGTHS = dict(idle=90,walk=40,run=24,ready=24,attack=40,hit=20)
 PALETTE = [('Skin',(.49,.48,.46),(0,0,0),0),
-           ('Cavity',(.17,.022,.03),(.30,.025,.035),.3)]
+           ('Cavity',(.17,.022,.03),(.30,.025,.035),.3),
+           ('Bone',(.76,.72,.59),(0,0,0),0)]
 
 
 def build():
@@ -43,11 +45,13 @@ def build():
         body.link('Chest',(sign*.025,.045,2.01),(sign*.31,0,1.975),.045)
         for z in (1.52,1.64,1.76,1.88,1.99):
             # Each articulated door is a comb of curved polygonal rib segments.
-            points = [(sign*.23,.045,z),(sign*.29,-.045,z-.012),
-                      (sign*.235,-.15,z-.035),(sign*.07,-.19,z-.06)]
-            for a,b in zip(points,points[1:]):
-                body.link(side+'Ribs',a,b,.024)
+            points = [(sign*.23,.045,z),(sign*.275,.01,z-.003),
+                      (sign*.29,-.045,z-.012),(sign*.275,-.11,z-.022),
+                      (sign*.235,-.15,z-.035),(sign*.15,-.18,z-.05),
+                      (sign*.07,-.19,z-.06)]
+            body.sweep(side+'Ribs',points,[.023,.027,.028,.027,.024,.019,.009],2)
         body.link(side+'Ribs',(sign*.23,.045,1.46),(sign*.23,.045,2.015),.027)
+    humanoid_details(body)
     return body
 
 

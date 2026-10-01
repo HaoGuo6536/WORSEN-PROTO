@@ -6,7 +6,7 @@
 # ARCHITECTURAL ROLE:
 #   Offline art generator (outside runtime layers) · Hunter art.
 # KEY RESPONSIBILITIES:
-#   - Define the egg head, segmented body, joints and head/shoulder sheet.
+#   - Define carved shells, screw-fastened joints and pleated head/shoulder sheet.
 #   - Author held/snap sway, stiff gait, abrupt ready and lunge-grab actions.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_humanoid_common; no Unity dependencies.
@@ -19,8 +19,9 @@ import sys
 from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from hunter_humanoid_common import Body, humanoid, limbs, rotate, envelope, generate
+from hunter_humanoid_common import humanoid, limbs, rotate, envelope, generate
 from hunter_motion_common import biped_gait, step_phase
+from hunter_detail_geometry import SculptBody as Body, humanoid_details
 
 LENGTHS = dict(idle=60, walk=36, run=24, ready=12, attack=30, hit=18)
 PALETTE = [('Body',(.79,.77,.70),(0,0,0),0),
@@ -40,6 +41,7 @@ def build():
                        (0,.025,1.83,.085,.09),(0,.025,1.85,.025,.03)],1)
     body.cloth('Chest',[(0,.025,1.37,.345,.185),(0,.025,1.46,.31,.17),
                         (0,.025,1.57,.145,.145)],1)
+    humanoid_details(body)
     return body
 
 
