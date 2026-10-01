@@ -67,6 +67,7 @@ namespace Worsen.Editor.Hunter
                 so.FindProperty("_lungeWindupSeconds").floatValue = .25f;
                 so.FindProperty("_lungeActiveSeconds").floatValue = .3f;
                 so.FindProperty("_lungeRecoverySeconds").floatValue = .8f;
+                so.FindProperty("_lungeDamage").floatValue = 25f;
                 so.FindProperty("_emergenceBias").boolValue = false;
                 so.FindProperty("_predictionChance").floatValue = 0f;
                 so.FindProperty("_habits").arraySize = 0; // Recording habits must not pause or reroute its trail.
