@@ -12,14 +12,17 @@
 //   - Verify live intrusion identity, duration, two-Hertz evaluation and one-shot behavior.
 //   - Check real PostFX volume activation, camera inclusion and natural effect expiry.
 //   - Check admitted or subtle intrusion strength above the persistent grain baseline.
+//   - Restrict gameplay to neutral fixture devices, excluding real and hot-plugged input.
 // DEPENDENCIES:
 //   - Core facts; Director/Player/Hunter/Chase; Session.Run; PostFX; FloorLoopSceneRoot.
 //   - PostFXOrchestrator and optional Horror wiring determine whether the intrusion is admitted.
-//   - Unity Test Framework and reflection for read-only rendering-package inspection.
+//   - Unity Test Framework, Input System, Input driver and reflection for inspection/isolation.
 // USAGE NOTES:
 //   Coordinator runs under the Unity lease. Uses unchanged FloorLoop spawns and
-//   profiles; synthetic neutral input is the only gameplay arrangement. No asset,
-//   scene, configuration or private gameplay state is written. Timing assertions
+//   profiles; neutral fixture devices and synthetic Run input are the only gameplay
+//   arrangement. The runtime gameplay map is device-whitelisted and the separate
+//   pause action is masked before the first tick; both are restored in Dispose.
+//   No asset, scene, configuration or private gameplay state is written. Timing assertions
 //   use Run ticks; the wall-clock bound only detects a stalled editor. Background
 //   execution is restored in finally and UnityTearDown exits Play Mode. This is
 //   a short intrusion smoke, not delayed-hint travel, relief/exit cadence, full-floor
@@ -32,6 +35,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Worsen.Core;
@@ -41,6 +45,7 @@ using Worsen.Domain.Hunter;
 using Worsen.Domain.Player;
 using Worsen.Editor.Level;
 using Worsen.Orchestrator;
+using Worsen.Presentation.Input;
 using Worsen.Presentation.PostFX;
 using Worsen.Session.Run;
 
@@ -107,6 +112,13 @@ namespace Worsen.Tests.Director
 
         private sealed class Trial : IDisposable
         {
+            private PlayerInputDriver inputDriver;
+            private InputActionMap gameplay;
+            private InputAction pause;
+            private InputDevice[] previousDevices;
+            private InputBinding? previousPauseMask;
+            private Keyboard neutralKeyboard;
+            private Mouse neutralMouse;
             private RunSessionManager run;
             private DirectorManager director;
             private PlayerManager player;
@@ -153,6 +165,7 @@ namespace Worsen.Tests.Director
                     Assert.That(Read(root, "_director"), Is.SameAs(director));
                     Assert.That(Read(root, "_postFX"), Is.SameAs(manager));
                     Assert.That(run.Tick, Is.Zero);
+                    IsolateGameplayDevices();
                     Assert.That(run.Phase, Is.EqualTo(RunPhase.FirstSweep));
                     Assert.That(PlayerRegistry.Items.Count, Is.EqualTo(1));
                     Assert.That(HunterRegistry.Items.Count, Is.EqualTo(1));
@@ -192,6 +205,30 @@ namespace Worsen.Tests.Director
                     Ready = true;
                 }
                 catch (Exception error) { Fail("Readiness inspection failed: " + error); }
+            }
+
+            private void IsolateGameplayDevices()
+            {
+                // SceneReady is synchronous with assembly, before the first Run tick
+                // or input update can sample the newly enabled scene action map.
+                inputDriver = One<PlayerInputDriver>();
+                gameplay = (InputActionMap)Read(inputDriver, "_actions");
+                pause = (InputAction)Read(inputDriver, "_pause");
+                previousDevices = gameplay.devices?.ToArray();
+                previousPauseMask = pause.bindingMask;
+                neutralKeyboard = InputSystem.AddDevice<Keyboard>();
+                neutralMouse = InputSystem.AddDevice<Mouse>();
+                gameplay.devices = new InputDevice[] { neutralKeyboard, neutralMouse };
+                // Pause is outside the map. Match no binding, even if RefreshActions
+                // enables it. A group mask would still admit ungrouped bindings.
+                pause.bindingMask = new InputBinding { path = "<DirectorStationaryFixture>/NoInput" };
+                Assert.That(pause.controls, Is.Empty, "Real Escape/Start must not pause the observation.");
+                foreach (InputAction action in gameplay.actions)
+                    foreach (InputControl control in action.controls)
+                        Assert.That(control.device == neutralKeyboard || control.device == neutralMouse, Is.True,
+                            "Gameplay must never read a real or unrelated device: " + control.path);
+                Assert.That(gameplay.FindAction("Move", true).controls.Count, Is.GreaterThan(0),
+                    "Use a real action map bound to neutral test devices, not a disabled gameplay gate.");
             }
 
             private void NeutralInput() => run.ReceiveInput(default);
@@ -276,6 +313,19 @@ namespace Worsen.Tests.Director
                 {
                     run.IntrusionPublished -= OnRelayed; run.BeforeTick -= NeutralInput;
                     run.TickAdvanced -= OnTick;
+                }
+                try
+                {
+                    if (inputDriver != null)
+                    {
+                        if (gameplay != null) gameplay.devices = previousDevices;
+                        if (pause != null) pause.bindingMask = previousPauseMask;
+                    }
+                }
+                finally
+                {
+                    if (neutralKeyboard != null && neutralKeyboard.added) InputSystem.RemoveDevice(neutralKeyboard);
+                    if (neutralMouse != null && neutralMouse.added) InputSystem.RemoveDevice(neutralMouse);
                 }
             }
         }
