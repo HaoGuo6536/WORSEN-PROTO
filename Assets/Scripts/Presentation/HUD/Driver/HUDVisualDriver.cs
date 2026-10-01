@@ -11,7 +11,7 @@
 //   Sub-driver (§7e), owned by HUDDriver · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Build quiet cake/golden counters and honor floor hiding independently of other HUD.
+//   - Reuse one remaining number above its white/golden arrow, honoring floor hiding.
 //   - Render occupied inventory within chase-hidden chrome and independent Exit Sense/guidance.
 //   - Keep numerical shield/health information off the in-run surface.
 //   - Pair vector callbacks across document binding, replacement and teardown.
@@ -39,10 +39,11 @@ namespace Worsen.Presentation.HUD
         private HUDDriverConfig _config;
         private HUDDriverState _state;
         private readonly HUDGeometryPresenter _geometry = new HUDGeometryPresenter();
+        private readonly HUDGuidancePresenter _guidance = new HUDGuidancePresenter();
         private VisualElement _root, _panel, _extra, _directionGroup, _arrow, _slots;
         private VisualElement _goldenDirectionGroup, _goldenArrow;
         private VisualElement _exitDirectionGroup, _exitArrow;
-        private Label _count, _golden, _overflow, _selected;
+        private Label _count, _overflow, _selected;
 
         private VisualElement _threatGroup;
         private readonly Dictionary<EntityId, Label> _threatArrows = new Dictionary<EntityId, Label>();
@@ -63,15 +64,11 @@ namespace Worsen.Presentation.HUD
 
             _panel = Element("hud", root);
             _panel.style.position = Position.Absolute;
-            _panel.style.right = config.ScreenMargin;
-            _panel.style.top = config.ScreenMargin;
-            _panel.style.width = config.PanelWidth;
-            _panel.style.maxWidth = Length.Percent(42);
-            _count = Text("cake-count", "Cakes: —", _panel);
+            _panel.style.left = _panel.style.right = 0;
+            _panel.style.bottom = _guidance.CounterBottom(config.CompassSize, config.CounterArrowGap);
+            _count = Text("cake-count", "", _panel);
             _count.style.fontSize = config.FontSize;
-            _golden = Text("golden-count", "Golden: —", _panel);
-            _golden.style.fontSize = config.FontSize;
-            _golden.style.color = config.MutedColor;
+            _count.style.unityTextAlign = TextAnchor.MiddleCenter;
 
             _threatGroup = Element("threat-directions", root);
             _threatGroup.style.position = Position.Absolute;
@@ -90,6 +87,7 @@ namespace Worsen.Presentation.HUD
             _directionGroup.style.bottom = config.ScreenMargin * 3;
             _directionGroup.style.width = config.PanelWidth * 0.5f;
             _directionGroup.style.alignItems = Align.Center;
+            _directionGroup.Add(_panel);
             _arrow = Element("direction-cue", _directionGroup);
             _arrow.style.width = _arrow.style.height = config.CompassSize;
             _arrow.generateVisualContent += PaintArrow;
@@ -98,6 +96,7 @@ namespace Worsen.Presentation.HUD
             _goldenDirectionGroup.style.left = Length.Percent(50);
             _goldenDirectionGroup.style.marginLeft = config.CompassSize;
             _goldenDirectionGroup.style.bottom = config.ScreenMargin * 3;
+            _goldenDirectionGroup.style.width = config.CompassSize;
             _goldenArrow = Element("golden-direction-cue", _goldenDirectionGroup);
             _goldenArrow.style.width = _goldenArrow.style.height = config.CompassSize;
             _goldenArrow.generateVisualContent += PaintGoldenArrow;
@@ -132,8 +131,10 @@ namespace Worsen.Presentation.HUD
         {
             if (_root == null || state == null) return;
             _state = state;
-            _count.text = state.CountText;
-            _golden.text = state.GoldenText;
+            _count.text = _guidance.CountText(state);
+            _count.style.color = _guidance.CountTint(state, _config.GoldenSenseColor);
+            var countParent = _guidance.UsesGoldenCount(state) ? _goldenDirectionGroup : _directionGroup;
+            if (_panel.parent != countParent) countParent.Add(_panel);
 
             foreach (var id in new List<EntityId>(_threatArrows.Keys))
                 if (!state.Threats.ContainsKey(id)) { _threatArrows[id].RemoveFromHierarchy(); _threatArrows.Remove(id); }
@@ -151,13 +152,13 @@ namespace Worsen.Presentation.HUD
                 arrow.style.display = pair.Value.Visible ? DisplayStyle.Flex : DisplayStyle.None;
                 arrow.style.rotate = new Rotate(new Angle(pair.Value.ArrowDegrees, AngleUnit.Degree));
             }
-            _panel.style.display = state.ChromeVisible && !state.HiddenCount ? DisplayStyle.Flex : DisplayStyle.None;
+            _panel.style.display = _guidance.CountVisible(state) ? DisplayStyle.Flex : DisplayStyle.None;
             _panel.style.opacity = state.ExtraOpacity;
             _extra.style.display = state.ChromeVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _extra.style.opacity = state.ExtraOpacity;
             _directionGroup.style.display = state.DirectionVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _goldenDirectionGroup.style.display = state.GoldenSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
-            _goldenArrow.style.rotate = new Rotate(new Angle(state.GoldenSenseArrowDegrees, AngleUnit.Degree));
+            _goldenArrow.style.rotate = new Rotate(new Angle(state.DisplayGoldenArrowDegrees, AngleUnit.Degree));
             _goldenArrow.MarkDirtyRepaint();
             _exitDirectionGroup.style.display = state.ExitSenseVisible ? DisplayStyle.Flex : DisplayStyle.None;
             _exitArrow.style.rotate = new Rotate(new Angle(state.ExitSenseArrowDegrees, AngleUnit.Degree));
@@ -167,7 +168,7 @@ namespace Worsen.Presentation.HUD
             _selected.style.display = string.IsNullOrEmpty(state.SelectedSlotText) ? DisplayStyle.None : DisplayStyle.Flex;
             _slots.style.width = state.DisplayedSlots * (_config.SlotSize + _config.SlotGap);
             _slots.style.display = state.DisplayedSlots > 0 ? DisplayStyle.Flex : DisplayStyle.None;
-            _arrow.style.rotate = new Rotate(new Angle(state.ArrowDegrees, AngleUnit.Degree));
+            _arrow.style.rotate = new Rotate(new Angle(state.DisplayArrowDegrees, AngleUnit.Degree));
             _slots.MarkDirtyRepaint();
             _arrow.MarkDirtyRepaint();
         }
@@ -184,7 +185,7 @@ namespace Worsen.Presentation.HUD
             if (_slots != null) _slots.generateVisualContent -= PaintSlots;
             if (_root != null) { _root.style.display = DisplayStyle.None; _root.Clear(); }
             _root = _panel = _extra = _directionGroup = _arrow = _slots = null;
-            _count = _golden = _overflow = _selected = null;
+            _count = _overflow = _selected = null;
             _state = null;
             _config = null;
         }

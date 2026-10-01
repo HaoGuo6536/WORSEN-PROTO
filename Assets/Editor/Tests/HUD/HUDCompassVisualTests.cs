@@ -10,6 +10,7 @@
 //   - Ensure bind/unbind leaves no duplicate indicator or obsolete caption.
 //   - Preserve guidance in chases; forbid chrome, hints and empty slot outlines.
 //   - Keep occupied captions under the same chase gate and suppress empty selections.
+//   - Keep one remaining number above its selected arrow, with no separate golden label.
 // DEPENDENCIES:
 //   NUnit, HUD presentation, Unity objects and UI Toolkit.
 // USAGE NOTES:
@@ -25,6 +26,47 @@ namespace Worsen.Tests.HUD
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDCompassVisualTests
     {
+        [Test]
+        public void OneNumberFollowsWhiteThenGoldenArrowWithTintAndRotationClearance()
+        {
+            var owner = new GameObject("Counter attachment test");
+            var config = ScriptableObject.CreateInstance<HUDDriverConfig>();
+            var driver = owner.AddComponent<HUDVisualDriver>(); var root = new VisualElement();
+            var state = new HUDDriverState(); var presenter = new HUDPresenter(); var guidance = new HUDGuidancePresenter();
+            try
+            {
+                driver.Bind(root, config);
+                presenter.SetCount(state, 3, 8); presenter.SetGoldenCount(state, 2, 6);
+                var white = new GuidanceTarget(GuidanceKind.WhiteArrow, Vector3.forward, Vector3.forward, 1);
+                var gold = new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.right, Vector3.right, 2);
+                presenter.SetGuidance(state, new[] { white, gold }); driver.Apply(state);
+                var label = root.Q<Label>("cake-count"); var panel = root.Q("hud");
+                Assert.That(label.text, Is.EqualTo("5"));
+                Assert.That(label.style.color.value, Is.EqualTo(Color.white));
+                Assert.That(panel.parent, Is.SameAs(root.Q("direction-group")));
+                Assert.That(panel.style.bottom.value.value, Is.EqualTo(guidance.CounterBottom(config.CompassSize, config.CounterArrowGap)));
+                Assert.That(panel.style.position.value, Is.EqualTo(Position.Absolute));
+                Assert.That(panel.style.left.value.value, Is.Zero); Assert.That(panel.style.right.value.value, Is.Zero);
+                presenter.SetGuidance(state, new[] { gold }); driver.Apply(state);
+                Assert.That(root.Q<Label>("cake-count"), Is.SameAs(label));
+                Assert.That(label.text, Is.EqualTo("4"));
+                Assert.That(label.style.color.value, Is.EqualTo(config.GoldenSenseColor));
+                Assert.That(panel.parent, Is.SameAs(root.Q("golden-direction-group")));
+                Assert.That(root.Q("golden-count"), Is.Null);
+                Assert.That(root.Query<Label>("cake-count").ToList().Count, Is.EqualTo(1));
+                presenter.SetGuidance(state, new[] { new GuidanceTarget(GuidanceKind.GoldenSense, Vector3.left, Vector3.right, 2) });
+                guidance.Tick(state, .1f, 90f); driver.Apply(state);
+                Assert.That(root.Q("golden-direction-cue").style.rotate.value.angle.value, Is.EqualTo(state.DisplayGoldenArrowDegrees));
+                Assert.That(state.DisplayGoldenArrowDegrees, Is.Not.EqualTo(state.GoldenSenseArrowDegrees));
+                state.HiddenCount = true; driver.Apply(state);
+                Assert.That(panel.style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(root.Q("golden-direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                state.HiddenCount = false; presenter.SetGuidance(state, null); driver.Apply(state);
+                Assert.That(panel.style.display.value, Is.EqualTo(DisplayStyle.None));
+            }
+            finally { driver.Unbind(); Object.DestroyImmediate(owner); Object.DestroyImmediate(config); }
+        }
+
         [Test]
         public void RepeatedBindUnbindOwnsOneNeedleAndNoCaption()
         {
@@ -61,6 +103,7 @@ namespace Worsen.Tests.HUD
                 var state = new HUDDriverState(); driver.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
                 var presenter = new HUDPresenter();
+                presenter.SetCount(state, 0, 4);
                 presenter.SetDirection(state, Vector3.forward, true);
                 presenter.SetConsumables(state, new ConsumableInventorySnapshot(
                     new[] { new ProgressionInventorySlot("gauze", "Gauze", 4) }, new[] { 1 }, 0), 8);
@@ -82,7 +125,7 @@ namespace Worsen.Tests.HUD
                 Assert.That(root.Q("exit-state"), Is.Null);
                 Assert.That(root.Q("item-slots").style.display.value, Is.EqualTo(DisplayStyle.Flex));
                 presenter.SetGoldenCount(state, 4); driver.Apply(state);
-                Assert.That(root.Q<Label>("golden-count").text, Is.EqualTo("Golden: 4"));
+                Assert.That(root.Q<Label>("golden-count"), Is.Null);
                 presenter.SetChaseMode(state, false);
                 presenter.Tick(state, config.RestoreSeconds, config.RestoreSeconds); driver.Apply(state);
                 Assert.That(root.Q("hud-extra").style.display.value, Is.EqualTo(DisplayStyle.Flex));

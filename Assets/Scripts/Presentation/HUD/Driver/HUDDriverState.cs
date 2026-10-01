@@ -10,7 +10,7 @@
 //   DriverState (§7c) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Retain fixed-total counter text, Hidden Count and phantom presentation lifetime.
+//   - Retain remaining counter text, Hidden Count and phantom presentation lifetime.
 //   - Retain independent objective/threat/Exit Sense guidance and supplied camera orientation.
 //   - Retain shield and selected occupied inventory presentation.
 //   - Retain chrome visibility and fade progress independently of guidance.
@@ -34,7 +34,7 @@ namespace Worsen.Presentation.HUD
         public readonly Dictionary<EntityId, HUDThreatDriverState> Threats = new Dictionary<EntityId, HUDThreatDriverState>();
         public float Shield;
         public string ShieldText = "Shield: 0";
-        public string CountText = "Cakes: —";
+        public string CountText = "—";
         public int Collected = -1;
         public int Required = -1;
         public bool HiddenCount;
@@ -47,7 +47,11 @@ namespace Worsen.Presentation.HUD
         public bool ExitSenseVisible;
         public Vector3 ExitSenseViewDirection;
         public float ExitSenseDegrees, ExitSensePitchDegrees, ExitSenseArrowDegrees;
-        public string GoldenText = "Golden: —";
+        public string GoldenText = "—";
+        public bool GoldenCountKnown;
+        public Worsen.Core.GuidanceTarget? WhiteTarget, GoldenTarget;
+        public bool ArrowInitialized, GoldenArrowInitialized;
+        public float DisplayArrowDegrees, DisplayGoldenArrowDegrees;
         public float ArrowDegrees;
         public string ExitText = "Exit: —";
         public string DirectionCaption = "";

@@ -11,7 +11,7 @@
 //   Presenter (§7b) · Presentation · HUD.
 //
 // KEY RESPONSIBILITIES:
-//   - Format fixed-total cake counters and floor-scoped hiding independently of guidance.
+//   - Format remaining cake counts and floor-scoped hiding independently of guidance.
 //   - Compute independent objective, threat, Golden Sense and Exit Sense bearings.
 //   - Retain shield facts and format only occupied inventory selections, never empty capacity.
 //   - Compute interruptible chase restoration using supplied time and explicit resets.
@@ -37,6 +37,7 @@ namespace Worsen.Presentation.HUD
 {
     public sealed class HUDPresenter
     {
+        private static readonly HUDGuidancePresenter Guidance = new HUDGuidancePresenter();
         public void SetCount(HUDDriverState state, int collected, int total)
         {
             state.Collected = collected; state.Required = total;
@@ -46,11 +47,11 @@ namespace Worsen.Presentation.HUD
 
         private static void FormatCount(HUDDriverState state)
         {
-            int collected = state.Collected + (state.PhantomSeconds > 0f ? 1 : 0), total = state.Required;
-            state.CountKnown = collected >= 0 && total > 0;
-            state.CountFraction = state.CountKnown ? Mathf.Clamp01((float)collected / total) : 0f;
-            state.CountText = collected < 0 || total < 0 ? "Cakes: —"
-                : "Cakes: " + collected.ToString(CultureInfo.InvariantCulture) + " / " + total.ToString(CultureInfo.InvariantCulture);
+            long collected = (long)state.Collected + (state.PhantomSeconds > 0f ? 1 : 0);
+            int total = state.Required;
+            state.CountKnown = state.Collected >= 0 && total >= 0;
+            state.CountFraction = state.CountKnown && total > 0 ? Mathf.Clamp01((float)collected / total) : 0f;
+            state.CountText = state.CountKnown ? Math.Max(0L, total - collected).ToString(CultureInfo.InvariantCulture) : "—";
         }
 
         public void SetExitState(HUDDriverState state, ExitState exitState)
@@ -61,8 +62,10 @@ namespace Worsen.Presentation.HUD
         }
 
         public void SetGoldenCount(HUDDriverState state, int count, int total = -1)
-            => state.GoldenText = count < 0 ? "Golden: —" : "Golden: " + count.ToString(CultureInfo.InvariantCulture) +
-                (total < 0 ? "" : " / " + total.ToString(CultureInfo.InvariantCulture));
+        {
+            state.GoldenCountKnown = count >= 0 && total >= 0;
+            state.GoldenText = state.GoldenCountKnown ? Math.Max(0L, (long)total - count).ToString(CultureInfo.InvariantCulture) : "—";
+        }
 
         public void SetFloorCounters(HUDDriverState state, FloorDisplaySnapshot display)
         {
@@ -74,6 +77,7 @@ namespace Worsen.Presentation.HUD
 
         public void SetDirection(HUDDriverState state, Vector3 direction, bool visible)
         {
+            state.WhiteTarget = null; // Legacy untyped input must not retain a prior typed identity.
             state.WorldDirection = direction;
             state.DirectionVisible = visible && IsFinite(direction.x) && IsFinite(direction.y) &&
                 IsFinite(direction.z) && (direction.x != 0f || direction.y != 0f || direction.z != 0f);
@@ -110,29 +114,19 @@ namespace Worsen.Presentation.HUD
                 out state.GoldenSenseViewDirection, out state.GoldenSenseDegrees, out state.GoldenSensePitchDegrees, out state.GoldenSenseArrowDegrees);
             Direction(state.ExitSenseTarget?.WorldDirection ?? Vector3.zero, state.ExitSenseVisible, state.HeadingDegrees, state.HasViewRotation, state.ViewRotation,
                 out state.ExitSenseViewDirection, out state.ExitSenseDegrees, out state.ExitSensePitchDegrees, out state.ExitSenseArrowDegrees);
+            Guidance.SyncVisibility(state);
         }
 
         public void SetGuidance(HUDDriverState state, IReadOnlyList<GuidanceTarget> targets)
         {
-            SetDirection(state, Vector3.zero, false);
-            state.GoldenSenseDirection = Vector3.zero; state.GoldenSenseVisible = false;
-            state.ExitSenseTarget = null; state.ExitSenseVisible = false;
-            if (targets != null) foreach (var target in targets)
-            {
-                if (target.Kind == GuidanceKind.WhiteArrow) SetDirection(state, target.WorldDirection, true);
-                else if (target.Kind == GuidanceKind.ExitThroughWalls)
-                {
-                    state.ExitSenseTarget = target;
-                    state.ExitSenseVisible = IsFinite(target.WorldDirection.x) && IsFinite(target.WorldDirection.y) &&
-                        IsFinite(target.WorldDirection.z) && target.WorldDirection.sqrMagnitude > 0f;
-                }
-                else if (target.Kind == GuidanceKind.GoldenSense)
-                {
-                    state.GoldenSenseDirection = target.WorldDirection;
-                    state.GoldenSenseVisible = IsFinite(target.WorldDirection.x) && IsFinite(target.WorldDirection.y) &&
-                        IsFinite(target.WorldDirection.z) && target.WorldDirection.sqrMagnitude > 0f;
-                }
-            }
+            state.WhiteTarget = Guidance.Select(targets, GuidanceKind.WhiteArrow, state.WhiteTarget);
+            state.GoldenTarget = Guidance.Select(targets, GuidanceKind.GoldenSense, state.GoldenTarget);
+            state.ExitSenseTarget = Guidance.Select(targets, GuidanceKind.ExitThroughWalls, state.ExitSenseTarget);
+            state.WorldDirection = state.WhiteTarget?.WorldDirection ?? Vector3.zero;
+            state.DirectionVisible = state.WhiteTarget.HasValue;
+            state.GoldenSenseDirection = state.GoldenTarget?.WorldDirection ?? Vector3.zero;
+            state.GoldenSenseVisible = state.GoldenTarget.HasValue;
+            state.ExitSenseVisible = state.ExitSenseTarget.HasValue;
             UpdateDirection(state);
         }
 
@@ -248,8 +242,9 @@ namespace Worsen.Presentation.HUD
 
         public bool TryShowPhantomCake(HUDDriverState state, float seconds)
         {
-            if (!IsFinite(seconds) || seconds <= 0f || !state.CountKnown || state.Collected == int.MaxValue ||
-                state.HiddenCount || !state.ChromeVisible || state.ExtraOpacity <= 0f) return false;
+            if (!IsFinite(seconds) || seconds <= 0f || !state.CountKnown || state.Required <= state.Collected ||
+                Guidance.UsesGoldenCount(state) || state.Collected == int.MaxValue ||
+                !Guidance.CountVisible(state) || state.ExtraOpacity <= 0f) return false;
             state.PhantomSeconds = seconds; FormatCount(state); return true;
         }
 
