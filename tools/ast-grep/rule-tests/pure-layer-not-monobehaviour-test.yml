@@ -1,0 +1,6 @@
+id: pure-layer-not-monobehaviour
+valid:
+  - 'class Logic : ILogic {}'
+invalid:
+  - 'class Logic : MonoBehaviour {}'
+  - 'class Logic : UnityEngine.MonoBehaviour {}'

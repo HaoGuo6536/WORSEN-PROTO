@@ -61,6 +61,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Camera
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000), Category("RequiresFocus")]
     public sealed class CriticalHealthFeedbackIntegrationTests
     {
         private const string Arena = "Assets/Scenes/TagArena.unity";
@@ -171,7 +172,7 @@ namespace Worsen.Tests.Camera
                     run.HealthChanged += HealthChanged;
                     run.PlayerDied += Died;
                     run.ChaseStarted += UnexpectedChase;
-                    run.ProximityPublished += Proximity;
+                    run.HunterFacts.ProximityPublished += Proximity;
                 });
             }
 
@@ -480,7 +481,7 @@ namespace Worsen.Tests.Camera
                 if (run == null) return;
                 run.CaptureStarted -= CaptureStarted; run.CaptureEnded -= CaptureEnded;
                 run.HealthChanged -= HealthChanged; run.PlayerDied -= Died;
-                run.ChaseStarted -= UnexpectedChase; run.ProximityPublished -= Proximity;
+                run.ChaseStarted -= UnexpectedChase; run.HunterFacts.ProximityPublished -= Proximity;
             }
         }
 

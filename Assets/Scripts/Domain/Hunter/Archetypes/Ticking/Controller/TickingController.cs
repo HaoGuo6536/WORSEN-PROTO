@@ -11,7 +11,7 @@
 //   - Slow the tick tell, wake at zero and suppress attacks while wound.
 //   - Keep one timed key, publish ThreatArrow guidance and catalogue curse facts.
 // DEPENDENCIES:
-//   - Default Hunter seam, injected Player/Level/Floor views, Core effects and facts.
+//   - Parent Hunter neutral rules/definitions, injected Player/Level/Floor views, Core effects and facts.
 // USAGE NOTES:
 //   Runs Faster and Farther Keys cap at three; binary effects cap at one, matching
 //   the catalogue. Double Spring remembers the first half-wind through decay.
@@ -20,10 +20,10 @@
 using System;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
+
 namespace Worsen.Domain.Hunter.Archetypes.Ticking
 {
-    public sealed class TickingController : DefaultHunterController, IHunterDormancyRules
+    public sealed class TickingController : HunterArchetypeController, IHunterDormancyRules
     {
         public static readonly EffectId RunsFaster = new EffectId("ticking-runs-faster");
         public static readonly EffectId FartherKeys = new EffectId("ticking-farther-keys");

@@ -1,0 +1,11048 @@
+{
+  "theme": "hospital",
+  "module": 2.0,
+  "templates": [
+    {
+      "id": "hospital_ward_bed_bays",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                8
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ],
+          [
+            7.132,
+            3.42,
+            3.0
+          ],
+          [
+            7.132,
+            3.42,
+            7.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            3
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.71175,
+            2.05,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.71175,
+            2.05,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            7.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            7.252,
+            3.46,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            7.252,
+            3.46,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            1.8,
+            0,
+            5.8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            1.8,
+            0,
+            5.8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            2.52,
+            0,
+            6.45
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            6.2,
+            0,
+            5.8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            6.2,
+            0,
+            5.8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            6.92,
+            0,
+            6.45
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cabinet",
+          "pos": [
+            7.1,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "hospital_nurse_station",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                8,
+                0,
+                3
+              ],
+              "rotY": 90
+            }
+          ]
+        },
+        {
+          "cell": [
+            0,
+            2
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                0,
+                0,
+                5
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [
+          [
+            5,
+            0,
+            1
+          ]
+        ],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            3.132,
+            3.42,
+            7.0
+          ],
+          [
+            7.0,
+            3.42,
+            5.132
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            5
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            8,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            0,
+            0,
+            5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            0,
+            0,
+            5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            8,
+            0,
+            0.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            8,
+            0,
+            5.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.0,
+            0.95,
+            5.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.0,
+            0.95,
+            5.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.0,
+            2.05,
+            5.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            7.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0,
+            0,
+            2.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0,
+            0,
+            7.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            7.0,
+            3.46,
+            5.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_nurse_counter",
+          "pos": [
+            3.0,
+            0,
+            2.9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_cabinet",
+          "pos": [
+            1,
+            0,
+            6.8
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_wheelchair",
+          "pos": [
+            1.1,
+            0,
+            4.4
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "hospital_operating_theatre",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            2,
+            2
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                5,
+                0,
+                6
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            5
+          ],
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            2.5,
+            3.42,
+            5.132
+          ],
+          [
+            7.132,
+            3.42,
+            3.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            5
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.71175,
+            2.05,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.71175,
+            2.05,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            5.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            2.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            7.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            2.5,
+            3.46,
+            5.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            7.252,
+            3.46,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            4.5,
+            0,
+            3.1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_operating_lamp",
+          "pos": [
+            6.0,
+            2.706,
+            0.558
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_scrub_sink",
+          "pos": [
+            6.9,
+            0,
+            0.65
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_cabinet",
+          "pos": [
+            7.3,
+            0,
+            4.2
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            3.4,
+            0,
+            3.2
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "hospital_recovery_annex",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            0,
+            2
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                0,
+                0,
+                5
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            3
+          ],
+          [
+            7,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            3.132,
+            3.42,
+            7.0
+          ],
+          [
+            7.132,
+            3.42,
+            3.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            7,
+            0,
+            1
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            0,
+            0,
+            5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            0,
+            0,
+            5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.71175,
+            2.05,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.71175,
+            2.05,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.0,
+            0.95,
+            5.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.0,
+            0.95,
+            5.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.0,
+            2.05,
+            5.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            7.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            7.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0,
+            0,
+            2.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0,
+            0,
+            7.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            7.252,
+            3.46,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            6.1,
+            0,
+            3.9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            6.1,
+            0,
+            3.9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            6.82,
+            0,
+            4.55
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            2,
+            0,
+            6.9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            4.9,
+            0,
+            4.5
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "hospital_waiting_room",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            2
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                6
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            5.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            0.8,
+            0,
+            3
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            5.2,
+            0,
+            3
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_wheelchair",
+          "pos": [
+            5.1,
+            0,
+            4.8
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "hospital_isolation_room",
+      "kind": "room",
+      "sizeClass": "closet",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            0,
+            1
+          ],
+          "side": "W",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                0,
+                0,
+                3
+              ],
+              "rotY": 270
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            1.0,
+            3.42,
+            0.868
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            0,
+            0,
+            3
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            0,
+            0,
+            3
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            2,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            2,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            2,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            2,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.71175,
+            2.05,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            7.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            0.28825
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0,
+            0,
+            0.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            6.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            6.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0,
+            0,
+            7.5
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            1.0,
+            3.46,
+            0.748
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            1,
+            0,
+            6.35
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.0,
+            6.0
+          ],
+          "rotY": 270
+        }
+      ]
+    },
+    {
+      "id": "hospital_sluice_utility",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            1
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                4
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            3
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            5.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            4
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_scrub_sink",
+          "pos": [
+            0.8,
+            0,
+            2
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_cabinet",
+          "pos": [
+            5.25,
+            0,
+            2
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "hospital_xray_room",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            2
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                6
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            5.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            4.4,
+            0,
+            3.2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_xray_screen",
+          "pos": [
+            1.25,
+            0,
+            3.6
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_cabinet",
+          "pos": [
+            5.2,
+            0,
+            1
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "hospital_long_ward_corridor",
+      "kind": "hallway",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            0,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ],
+          "span": 2
+        },
+        {
+          "cell": [
+            0,
+            6
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                2,
+                0,
+                14
+              ],
+              "rotY": 0
+            }
+          ],
+          "span": 2
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            13
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            1
+          ]
+        ],
+        "light": [
+          [
+            3.132,
+            3.42,
+            1.0
+          ],
+          [
+            3.132,
+            3.42,
+            5.0
+          ],
+          [
+            3.132,
+            3.42,
+            9.0
+          ],
+          [
+            3.132,
+            3.42,
+            13.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            3,
+            0,
+            13
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            2,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            2,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            2,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            2,
+            0,
+            14
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.71175,
+            2.05,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.71175,
+            2.05,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.71175,
+            2.05,
+            11.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            13.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            13.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            13
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            9.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            13.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_wheelchair",
+          "pos": [
+            0.75,
+            0,
+            7.2
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            7.0
+          ],
+          "rotY": 270
+        }
+      ]
+    },
+    {
+      "id": "hospital_corridor_bend",
+      "kind": "hallway",
+      "sizeClass": "medium",
+      "shape": "L",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            0,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                2,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ],
+          "span": 2
+        },
+        {
+          "cell": [
+            4,
+            3
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                10,
+                0,
+                8
+              ],
+              "rotY": 90
+            }
+          ],
+          "span": 2
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            3
+          ],
+          [
+            5,
+            0,
+            9
+          ],
+          [
+            9,
+            0,
+            9
+          ]
+        ],
+        "goldenCake": [
+          [
+            3,
+            0,
+            9
+          ]
+        ],
+        "light": [
+          [
+            3.132,
+            3.42,
+            1.0
+          ],
+          [
+            3.132,
+            3.42,
+            5.0
+          ],
+          [
+            3.0,
+            3.42,
+            9.132
+          ],
+          [
+            7.0,
+            3.42,
+            6.868
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            9
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            2,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            2,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            10,
+            0,
+            8
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            10,
+            0,
+            8
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            4,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.71175,
+            2.05,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            9.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.0,
+            0.95,
+            9.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            3.0,
+            2.05,
+            9.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.0,
+            0.95,
+            9.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.0,
+            0.95,
+            9.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.0,
+            2.05,
+            9.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            10
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            9.0,
+            0.95,
+            9.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            6
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.0,
+            0.95,
+            6.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            7.0,
+            0,
+            6
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            7.0,
+            0.95,
+            6.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            7.0,
+            2.05,
+            6.28825
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            9.0,
+            0,
+            6
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            9.0,
+            0.95,
+            6.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.252,
+            3.46,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            3.0,
+            3.46,
+            9.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            7.0,
+            3.46,
+            6.748
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            0.8,
+            0,
+            6.2
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "corner_guard",
+          "pos": [
+            3.75,
+            0,
+            6.25
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "hospital_day_room",
+      "kind": "room",
+      "sizeClass": "large",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                9,
+                0,
+                8
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            3
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            3
+          ],
+          [
+            11,
+            0,
+            7
+          ]
+        ],
+        "goldenCake": [
+          [
+            5,
+            0,
+            3
+          ]
+        ],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ],
+          [
+            6.0,
+            3.42,
+            0.868
+          ],
+          [
+            6.5,
+            3.42,
+            7.132
+          ],
+          [
+            11.132,
+            3.42,
+            5.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            11,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            9,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            9,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            11.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            11.71175,
+            2.05,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            11.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            11.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            11.71175,
+            2.05,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            11.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            7.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            5.0,
+            2.05,
+            7.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            6.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            11.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            8.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            10.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            11.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            6.0,
+            3.46,
+            0.748
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            6.5,
+            3.46,
+            7.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_dead",
+          "pos": [
+            11.252,
+            3.46,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            11.252,
+            3.46,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            1,
+            0,
+            4
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            11,
+            0,
+            4
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            5,
+            0,
+            6.8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_waiting_bench",
+          "pos": [
+            8,
+            0,
+            6.8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_nurse_counter",
+          "pos": [
+            8.2,
+            0,
+            1.1
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_wheelchair",
+          "pos": [
+            5.8,
+            0,
+            4.3
+          ],
+          "rotY": 25
+        }
+      ]
+    },
+    {
+      "id": "hospital_nightingale_landmark",
+      "kind": "room",
+      "sizeClass": "hall",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          5
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            2,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                5,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            4,
+            5
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                9,
+                0,
+                12
+              ],
+              "rotY": 0
+            }
+          ]
+        },
+        {
+          "cell": [
+            6,
+            2
+          ],
+          "side": "E",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                14,
+                0,
+                5
+              ],
+              "rotY": 90
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            9
+          ],
+          [
+            7,
+            0,
+            5
+          ],
+          [
+            9,
+            0,
+            3
+          ],
+          [
+            9,
+            0,
+            11
+          ],
+          [
+            11,
+            0,
+            11
+          ],
+          [
+            13,
+            0,
+            11
+          ]
+        ],
+        "goldenCake": [
+          [
+            7,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            2.5,
+            3.42,
+            0.868
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ],
+          [
+            0.868,
+            3.42,
+            9.0
+          ],
+          [
+            8.0,
+            3.42,
+            0.868
+          ],
+          [
+            5.0,
+            3.42,
+            11.132
+          ],
+          [
+            10.0,
+            3.42,
+            0.868
+          ],
+          [
+            13.132,
+            3.42,
+            2.5
+          ],
+          [
+            12.0,
+            3.42,
+            11.132
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            13,
+            0,
+            11
+          ]
+        ]
+      },
+      "gimmick": "none",
+      "minRound": 1,
+      "weight": 1.0,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            9,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            9,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            14,
+            0,
+            5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            14,
+            0,
+            5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            14,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            13.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            14,
+            0,
+            2.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            14,
+            0,
+            8.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            13.66,
+            0.95,
+            8.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            14,
+            0,
+            10.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            13.66,
+            0.95,
+            10.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            14,
+            0,
+            11.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            11.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            11.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.0,
+            0.95,
+            11.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            5.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.0,
+            0.95,
+            11.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            5.0,
+            2.05,
+            11.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            6.5,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.0,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            12.0,
+            0.95,
+            11.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            13.5,
+            0,
+            12
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            0.28825
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            2.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            8.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            10.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            12.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            12.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            13.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            11.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            11,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            11,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            13,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            13,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            13,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            13,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.16,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            13,
+            3.6,
+            9
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            13,
+            -0.16,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            13,
+            3.6,
+            11
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            2.5,
+            3.46,
+            0.748
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            9.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            8.0,
+            3.46,
+            0.748
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "light_fluorescent_dead",
+          "pos": [
+            6.5,
+            3.46,
+            11.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            5.0,
+            3.46,
+            11.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            10.0,
+            3.46,
+            0.748
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            13.252,
+            3.46,
+            2.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            12.0,
+            3.46,
+            11.252
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            2,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            2,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            2.72,
+            0,
+            3.65
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            2,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            2,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            2.72,
+            0,
+            7.65
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            11.8,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            11.8,
+            0,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            12.52,
+            0,
+            3.65
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            11.8,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "curtain_track_bay",
+          "pos": [
+            11.8,
+            0,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            12.52,
+            0,
+            7.65
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_nurse_counter",
+          "pos": [
+            7,
+            0,
+            10.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            7,
+            0,
+            6.5
+          ],
+          "rotY": 90
+        }
+      ]
+    },
+    {
+      "id": "hospital_isolation_door_freeze",
+      "kind": "room",
+      "sizeClass": "small",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            1,
+            2
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                6
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            5,
+            0,
+            5
+          ]
+        ],
+        "goldenCake": [],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ]
+        ],
+        "hunterSpawn": []
+      },
+      "gimmick": "freeze",
+      "minRound": 3,
+      "weight": 0.6,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            5.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            5.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            6
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            5.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_bed",
+          "pos": [
+            4.7,
+            0,
+            3.5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_xray_screen",
+          "pos": [
+            1.1,
+            0,
+            4
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_iv_stand",
+          "pos": [
+            4.0,
+            0,
+            3.4
+          ],
+          "rotY": 0
+        }
+      ]
+    },
+    {
+      "id": "hospital_gurney_maze",
+      "kind": "room",
+      "sizeClass": "medium",
+      "shape": "rect",
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ]
+      ],
+      "height": 3.6,
+      "doors": [
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "side": "S",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                3,
+                0,
+                0
+              ],
+              "rotY": 180
+            }
+          ]
+        },
+        {
+          "cell": [
+            3,
+            3
+          ],
+          "side": "N",
+          "closedWith": [
+            {
+              "id": "wall_closed_4m",
+              "pos": [
+                7,
+                0,
+                8
+              ],
+              "rotY": 0
+            }
+          ]
+        }
+      ],
+      "anchors": {
+        "cake": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            3,
+            0,
+            7
+          ],
+          [
+            7,
+            0,
+            1
+          ],
+          [
+            9,
+            0,
+            7
+          ]
+        ],
+        "goldenCake": [
+          [
+            5,
+            0,
+            5
+          ]
+        ],
+        "light": [
+          [
+            0.868,
+            3.42,
+            1.0
+          ],
+          [
+            0.868,
+            3.42,
+            5.0
+          ],
+          [
+            9.132,
+            3.42,
+            3.0
+          ],
+          [
+            9.132,
+            3.42,
+            7.0
+          ]
+        ],
+        "hunterSpawn": [
+          [
+            9,
+            0,
+            7
+          ]
+        ]
+      },
+      "gimmick": "traversal",
+      "minRound": 3,
+      "weight": 0.6,
+      "pieces": [
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            3,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_door_4m",
+          "pos": [
+            7,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "door_double_porthole_4m",
+          "pos": [
+            7,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            9.66,
+            0.95,
+            1.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            9.66,
+            0.95,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            9.71175,
+            2.05,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            9.66,
+            0.95,
+            5.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            10,
+            0,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            9.66,
+            0.95,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            9.71175,
+            2.05,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            1.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            1.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            1.0,
+            2.05,
+            7.71175
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            3.0,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            3.0,
+            0.95,
+            7.66
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            4.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            9.5,
+            0,
+            8
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            0.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            6.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            6.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            8.0,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            8.0,
+            0.95,
+            0.34
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_1m",
+          "pos": [
+            9.5,
+            0,
+            0
+          ],
+          "rotY": 180
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            3.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "prop_signage_frame",
+          "pos": [
+            0.28825,
+            2.05,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_2m",
+          "pos": [
+            0,
+            0,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "wall_handrail_2m",
+          "pos": [
+            0.34,
+            0.95,
+            7.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            1,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            1,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            3,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            3,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            5,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            5,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            7,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            7,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            1
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            3
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            5
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "floor_2x2",
+          "pos": [
+            9,
+            -0.16,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "ceiling_drop_panel_2x2",
+          "pos": [
+            9,
+            3.6,
+            7
+          ],
+          "rotY": 0
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            1.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            0.748,
+            3.46,
+            5.0
+          ],
+          "rotY": 270
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            9.252,
+            3.46,
+            3.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "light_fluorescent_panel",
+          "pos": [
+            9.252,
+            3.46,
+            7.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            2,
+            0,
+            2.5
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            5,
+            0,
+            4.0
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_gurney",
+          "pos": [
+            8,
+            0,
+            5.6
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_xray_screen",
+          "pos": [
+            8.7,
+            0,
+            2.6
+          ],
+          "rotY": 90
+        },
+        {
+          "id": "prop_cabinet",
+          "pos": [
+            1,
+            0,
+            6.8
+          ],
+          "rotY": 0
+        }
+      ]
+    }
+  ]
+}

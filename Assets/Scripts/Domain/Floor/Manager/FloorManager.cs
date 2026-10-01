@@ -8,18 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
-//   - Register and spawn routed Passage gold once using existing golden pickup lifecycle.
-//   - Spawn solved puzzle gold once and forward freeze priorities and cosmetic hand looks.
-//   - Snapshot round/collapse hooks; publish the Controller's white-first guidance list.
-//   - Publish H1 guidance, trap contacts and shared trap noise without routing foreign effects.
-//   - Spawn gold at collapse start even when Greedy Door delays the physical exit.
-//   - Support staged cracks, tearing, mist advance and escapable hand contacts.
-//   - Publish escape facts with a bail flag; retain the legacy event for normal exits only.
-//   - Resolve door identities, cancel departed holds before timing, and present bails without rewards.
-//   - Publish cake loss, hand noise and rubber-band acceleration facts for upward routing.
-//   - Publish every accepted pickup's noise and continuous visual exit progress.
-//   - Keep rules, passive state and engine operations in their owning roles.
-//   - Forward explicit pocket activation and read Low Profile protection without mutable casts.
+//   - Own Floor logic/driver lifetimes and forward generation hooks and pocket activation.
+//   - Spawn ordinary, bonus and optional rewards through the shared pickup lifecycle.
+//   - Publish counters and curse-gated Mimic guidance without granting fake pickup credit.
+//   - Route staged collapse, traps, hands, hearing and boundary contacts upward.
+//   - Resolve open-exit contacts with paired subscriptions; locked doors never end a floor.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -27,9 +20,9 @@
 //   Generated required-count overrides apply only when room density is disabled.
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
-//   Door integration must report locked contact and LeaveExit when its last player
-//   collider leaves. OnEscapeResolved carries (exit fact, bailed); consumers must
-//   use it instead of OnExitReached to preserve the penalty through run resolution.
+//   OnExitReached is the sole escape fact, admitted only after normal opening.
+//   Session routes Mimic facts to ReceiveMimic and effect snapshots to SetActiveEffects;
+//   no Hunter dependency or cross-system subscription is introduced here.
 //   OnBoundaryContact carries player, room, outward acceleration (m/s squared),
 //   boundary point and tick. Player's motion owner must enforce the boundary; Floor
 //   never writes a foreign Transform or Rigidbody. Hit throw travels with OnCollapseHand.
@@ -52,11 +45,12 @@ namespace Worsen.Domain.Floor
         private FloorBehaviorState _state;
         private FloorController _controller;
         private FloorHandController _hands;
+        private FloorGuidanceController _guidance;
         public IReadOnlyFloorCollapseState ReadOnlyState => _state;
         public event Action<PickupCollectedFact> OnPickupCollected;
         public event Action<RoomPhaseChangedFact> OnRoomPhaseChanged;
         public event Action<ExitReachedFact> OnExitReached;
-        public event Action<ExitReachedFact, bool> OnEscapeResolved;
+
         public event Action<FloorLethalContactFact> OnLethalContact;
         public event Action<FloorDisplaySnapshot> OnDisplayChanged;
         public event Action<long> OnExitOpened;
@@ -66,6 +60,7 @@ namespace Worsen.Domain.Floor
         public event Action<NoiseEvent> OnHandNoise;
         public event Action<NoiseEvent> OnPickupNoise;
         public event Action<FloorTrapSprungFact> OnTrapSprung;
+        public event Action<BlinderHitFact> OnBlinderHit;
         public event Action<NoiseEvent> OnTrapNoise;
         public event Action<IReadOnlyList<GuidanceTarget>> OnGuidanceChanged;
         public event Action<int, int, PickupKind, long> OnCakeLost;
@@ -74,7 +69,8 @@ namespace Worsen.Domain.Floor
         private void Awake() { if (_driver == null) _driver = GetComponent<FloorDriver>(); }
         public void Initialize(FloorConfig config, IReadOnlyLevelState level, IReadOnlyList<IReadOnlyPlayerState> players, System.Random random,
             int requiredCakeCount = -1, bool fasterCollapse = false, bool shuffledCollapse = false, int round = 1, FloorCakeHooks cakeHooks = default, bool waxHeart = false,
-            IReadOnlyCollection<int> preferredAnchors = null, IReadOnlyCollection<int> earlyCollapseRooms = null, string handLook = null)
+            IReadOnlyCollection<int> preferredAnchors = null, IReadOnlyCollection<int> earlyCollapseRooms = null, string handLook = null,
+            int optionalGoldenCakeCount = 0)
         {
             if (level == null || !level.IsReady) throw new InvalidOperationException("Floor requires a ready authored Level.");
             Teardown();
@@ -86,8 +82,9 @@ namespace Worsen.Domain.Floor
             {
                 _controller = new FloorController(_state, _config, random);
                 _controller.Initialize(level.Graph, players, requiredCakeCount, fasterCollapse, shuffledCollapse, round, cakeHooks, waxHeart,
-                    preferredAnchors, earlyCollapseRooms);
+                    preferredAnchors, earlyCollapseRooms, optionalGoldenCakeCount);
                 _hands = new FloorHandController(_state.Hands, _config);
+                _guidance = new FloorGuidanceController(new FloorGuidanceBehaviorState());
                 _driver.Initialize(level.Graph, _state.SpawnedAnchors, Resolve, _config.HandEscapeDistance, _state.Traps);
                 SetHandLook(handLook);
                 if (isActiveAndEnabled) OnEnable();
@@ -107,6 +104,24 @@ namespace Worsen.Domain.Floor
             return true;
         }
         public void SetHandLook(string look) => _driver?.SetHandLook(look);
+        public void SetActiveEffects(IReadOnlyActiveEffects effects)
+        {
+            if (_guidance == null) return;
+            _controller.SetActiveEffects(effects);
+            _guidance.SetActiveEffects(effects);
+            RefreshCue();
+        }
+        public void ReceiveBlinderTrapPolicy(BlinderTrapPolicyFact fact)
+        {
+            if (_controller == null) return;
+            var added = _controller.ReceiveBlinderTrapPolicy(fact);
+            if (added.Count > 0) { _driver.SpawnTraps(added); RefreshCue(); }
+        }
+        public void ReceiveMimic(MimicFact fact)
+        {
+            if (_state == null || _state.Ended || _guidance == null) return;
+            if (_guidance.ReceiveMimic(fact)) RefreshCue();
+        }
         public bool RegisterPassageReward(LevelAnchor anchor)
         {
             if (_controller == null || !_controller.RegisterPassageReward(anchor)) return false;
@@ -119,17 +134,9 @@ namespace Worsen.Domain.Floor
         {
             if (_controller == null) return;
             var owner = _controller;
-            _driver.RefreshExitContacts();
-            if (!ReferenceEquals(owner, _controller)) return;
-            if (owner.TickExitHold(dt, tick, out var bail))
-            {
-                _driver.PresentBail();
-                var display = owner.Snapshot(_driver.OpeningProgress(true));
-                OnEscapeResolved?.Invoke(bail, true);
-                if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
-                return;
-            }
+
             if (_state.Ended) return;
+            bool guidanceExpired = _guidance?.Tick(dt) ?? false;
             var before = _state.ExitState;
             PublishRoomTransitions(_controller.Tick(dt, tick));
             if (!ReferenceEquals(owner, _controller)) return;
@@ -153,7 +160,7 @@ namespace Worsen.Domain.Floor
             if (!ReferenceEquals(owner, _controller)) return;
             float previousProgress = _driver.OpeningProgress(_state.ExitState == ExitState.Open);
             _driver.TickWarnings((float)_state.CollapseElapsed);
-            if (_controller.ConsumeCueDue()) RefreshCue();
+            if (_controller.ConsumeCueDue() || guidanceExpired) RefreshCue();
             else if (_driver.OpeningProgress(_state.ExitState == ExitState.Open) != previousProgress)
                 OnDisplayChanged?.Invoke(Snapshot());
         }
@@ -193,6 +200,8 @@ namespace Worsen.Domain.Floor
             _driver.RemoveTrap(trapId);
             OnTrapSprung?.Invoke(fact);
             if (!ReferenceEquals(owner, _controller)) return;
+            if (owner.TryBlinderHit(fact, out var blind)) OnBlinderHit?.Invoke(blind);
+            if (!ReferenceEquals(owner, _controller)) return;
             if (fact.Kind == FloorTrapKind.Announce) OnTrapNoise?.Invoke(noise);
         }
 
@@ -231,18 +240,17 @@ namespace Worsen.Domain.Floor
             if (owner != null && owner.ContactExit(playerId, _state.Tick, out var fact))
             {
                 var display = Snapshot();
-                OnEscapeResolved?.Invoke(fact, false);
-                if (!ReferenceEquals(owner, _controller)) return;
                 OnExitReached?.Invoke(fact);
                 if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
             }
         }
-        public void LeaveExit(EntityId playerId) => _controller?.LeaveExit(playerId);
+
         public void Teardown()
         {
             OnDisable();
             if (_driver != null) _driver.Teardown();
             _hands?.Reset(); _hands = null;
+            _guidance?.Reset(); _guidance = null;
             _controller?.Reset(); _controller = null; _state = null;
         }
 
@@ -253,17 +261,17 @@ namespace Worsen.Domain.Floor
             _driver.TrapContact -= HandleTrap; _driver.TrapContact += HandleTrap;
 
             _driver.ExitContact -= HandleExit; _driver.ExitContact += HandleExit;
-            _driver.ExitDeparted -= LeaveExit; _driver.ExitDeparted += LeaveExit;
+
         }
         private void OnDisable()
         {
-            _controller?.CancelExitHolds();
+
             if (_driver == null) return;
             _driver.PickupContact -= HandlePickup;
             _driver.TrapContact -= HandleTrap;
 
             _driver.ExitContact -= HandleExit;
-            _driver.ExitDeparted -= LeaveExit;
+
         }
         private void OnDestroy() => Teardown();
         private void HandlePickup(Collider other, int anchor, PickupKind kind) => Collect(Resolve(other), anchor, kind);
@@ -326,7 +334,8 @@ namespace Worsen.Domain.Floor
             }
         }
 
-        private FloorDisplaySnapshot Snapshot() => _controller.Snapshot(_driver.OpeningProgress(_state.ExitState == ExitState.Open));
+        public FloorDisplaySnapshot Snapshot() => _controller == null ? default :
+            _controller.Snapshot(_driver == null ? 0f : _driver.OpeningProgress(_state.ExitState == ExitState.Open));
 
         private void RefreshCue()
         {
@@ -349,7 +358,9 @@ namespace Worsen.Domain.Floor
                         isFallback: _driver.IsDirectionFallback(golden.Id) || _driver.IsDirectionHeld(golden.Id));
             }
             // A read-only snapshot, including empty, replaces both channels atomically.
-            OnGuidanceChanged?.Invoke(owner.GuidanceTargets(fallback, goldenTarget));
+            var targets = owner.GuidanceTargets(fallback, goldenTarget);
+            if (_guidance != null && player != null) targets = _guidance.Apply(targets, player.Id, player.Position);
+            OnGuidanceChanged?.Invoke(targets);
             if (ReferenceEquals(owner, _controller)) OnDisplayChanged?.Invoke(display);
         }
     }

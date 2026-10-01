@@ -2,7 +2,7 @@
 // FloorConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Stores collection weights, early-bail hold time and collapse timing as designer-owned tuning.
+//   Stores collection weights and collapse timing as designer-owned tuning.
 //   This is the scene-owned Floor collection and collapse loop. Explicit data
 //   inputs make its seeded behavior reproducible and its ownership reviewable.
 // ARCHITECTURAL ROLE:
@@ -11,10 +11,8 @@
 //   - Scale collapse durations by a provisional 0.75 for Faster Collapse (not hand timers).
 //   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
 //   - Tune per-room placement, the required share and shared pickup loudness.
-//   - Tune deliberate locked-exit holds independently of cake-driven collapse.
 //   - Tune the simulation-time delay before an explicitly activated pocket starts its warning.
 //   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
-//   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
@@ -55,7 +53,7 @@ namespace Worsen.Domain.Floor
         [SerializeField, Min(0)] private int _minimumExitRoomCakes = 0;
         [SerializeField, Range(0f, 1f)] private float _requiredCakeFraction = 0.6f;
         [SerializeField, Range(0f, 1f)] private float _pickupNoiseLoudness = 0.6f;
-        [SerializeField, Min(0.01f)] private float _earlyBailHoldDuration = 1f;
+
         [SerializeField, Min(0f)] private float _flowWeight = 5f;
         [SerializeField, Min(0f)] private float _precisionWeight = 3f;
         [SerializeField, Min(0f)] private float _detourWeight = 2f;
@@ -107,7 +105,7 @@ namespace Worsen.Domain.Floor
         public int MinimumExitRoomCakes => _minimumExitRoomCakes;
         public float RequiredCakeFraction => _requiredCakeFraction;
         public float PickupNoiseLoudness => _pickupNoiseLoudness;
-        public float EarlyBailHoldDuration => _earlyBailHoldDuration;
+
         public float FlowWeight => _flowWeight;
         public float PrecisionWeight => _precisionWeight;
         public float DetourWeight => _detourWeight;

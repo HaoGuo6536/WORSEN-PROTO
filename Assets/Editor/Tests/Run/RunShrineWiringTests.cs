@@ -12,6 +12,7 @@
 //   - Run/Progression, Domain Player/Shrine/Director, Core, NUnit and reflection.
 // USAGE NOTES:
 //   Isolated Edit Mode actors; no scene loads, procedural bake or persistent initialization.
+//   Reset Player registrations and clear the owned canonical reference explicitly on teardown.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -28,6 +29,7 @@ using EntityId = Worsen.Core.EntityId;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunShrineWiringTests
     {
         private readonly List<Object> owned = new List<Object>();
@@ -40,6 +42,7 @@ namespace Worsen.Tests.Run
         [SetUp]
         public void SetUp()
         {
+            ResetRegistry();
             Assert.That(PlayerRegistry.Items, Is.Empty);
             Assert.That(ProgressionSessionManager.Instance, Is.Null);
             player = Component<PlayerManager>();
@@ -77,9 +80,13 @@ namespace Worsen.Tests.Run
         {
             if (run != null) run.DetachGameplay();
             if (player != null) player.Teardown();
+            if (ReferenceEquals(ProgressionSessionManager.Instance, progression))
+                typeof(ProgressionSessionManager).GetProperty("Instance").SetValue(null, null);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
             owned.Clear();
+            ResetRegistry();
         }
+        private static void ResetRegistry() => typeof(PlayerRegistry).GetMethod("Reset", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
         private void Bind(ShrineKind kind)
         {
             Set(config, "_availability", new[] { new ShrineAvailability(kind, 1, FearAxis.None) });
@@ -103,7 +110,7 @@ namespace Worsen.Tests.Run
             Assert.That(Subscribers(progression, "ShrineNoiseEmitted"), Is.Zero);
         }
         [Test]
-        public void PacificationNoiseUsesDeliveryTickAndQueuesDirectorExactlyOnce()
+        public void PacificationNoiseUsesDeliveryTickButNeverQueuesDirector()
         {
             var director = Component<DirectorManager>();
             director.Initialize(Config<DirectorConfig>(), new System.Random(3),
@@ -112,14 +119,14 @@ namespace Worsen.Tests.Run
             var noises = new List<NoiseEvent>(); progression.ShrineNoiseEmitted += noises.Add;
             for (long tick = 1; tick <= 5; tick++) Call(run, "TickShrines", default(InputFrame), .5f, tick);
             Assert.That(noises.Count, Is.EqualTo(1)); Assert.That(noises[0].Tick, Is.EqualTo(4));
-            Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises.Count, Is.EqualTo(1));
+            Assert.That(((DirectorBehaviorState)Get(Get(director, "_controller"), "_state")).Noises.Count, Is.Zero);
         }
         [Test]
         public void ShieldOnlyHitPublishesZeroLossAndStartsGraceOnce()
         {
             player.GrantShield(40f);
             var hits = new List<HunterHit>(); var grace = new List<GraceWindowFact>(); var telemetry = new List<TelemetrySample>();
-            run.HitAccepted += hits.Add; run.OnGraceStarted += grace.Add; run.TelemetryPublished += telemetry.Add;
+            run.HitAccepted += hits.Add; run.PlayerFacts.OnGraceStarted += grace.Add; run.TelemetryPublished += telemetry.Add;
             var hit = new HunterHit(new EntityId(-1), player.Id, 10, 0, Vector3.back);
             Call(run, "ApplyAcceptedHit", hit); Call(run, "ApplyAcceptedHit", hit);
             Assert.That(player.ReadOnlyState.Health, Is.EqualTo(100f)); Assert.That(player.ReadOnlyShieldState.Shield, Is.EqualTo(30f));

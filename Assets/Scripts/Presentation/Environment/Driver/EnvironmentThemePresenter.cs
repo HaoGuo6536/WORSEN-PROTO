@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Environment.
 // KEY RESPONSIBILITIES:
-//   - Prefer the published light-source tag for the current floor theme.
+//   - Select school/hospital fluorescent or basement cage fixtures without moving sockets.
 //   - Preserve castle flicker and compute a restrained fluorescent modulation.
 // DEPENDENCIES:
 //   - Own DriverState, EnvironmentPresenter and Unity value math only.
@@ -22,9 +22,12 @@ namespace Worsen.Presentation.Environment
         public static bool IsFluorescent(EnvironmentDriverState state, int roomId)
         {
             if (state.RoomThemes.TryGetValue(roomId, out var room) && room.Theme != state.ThemeId)
-                return room.Theme == "hospital";
-            return state.LightSource == "fluorescent";
+                return room.Theme == "hospital" || room.Theme == "school";
+            return state.LightSource == "fluorescent" || state.ThemeId == "school" || state.ThemeId == "hospital";
         }
+        public static bool IsCageLamp(EnvironmentDriverState state, int roomId)
+            => state.RoomThemes.TryGetValue(roomId, out var room) ? room.Theme == "basement" :
+                state.ThemeId == "basement" || state.LightSource == "cage-lamp";
         public static float LampBrightness(bool fluorescent, float elapsed, int identity, float gutter,
             float destruction, bool wick, float depth, float rate)
         {

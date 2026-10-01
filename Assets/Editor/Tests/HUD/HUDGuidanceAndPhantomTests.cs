@@ -26,6 +26,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDGuidanceAndPhantomTests
     {
         private static GuidanceTarget[] Both => new[] {
@@ -48,6 +49,32 @@ namespace Worsen.Tests.HUD
                 presenter.SetGuidance(state, Array.Empty<GuidanceTarget>()); visual.Apply(state);
                 Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
                 Assert.That(root.Q("golden-direction-group").style.display.value, Is.EqualTo(DisplayStyle.None));
+            }
+            finally { visual.Unbind(); Object.DestroyImmediate(go); Object.DestroyImmediate(config); }
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void HiddenCountHidesBothCountersForTheFloorWithoutHidingGuidance(bool hidden)
+        {
+            var go = new GameObject("floor counter visibility"); var visual = go.AddComponent<HUDVisualDriver>();
+            var config = ScriptableObject.CreateInstance<HUDDriverConfig>(); var root = new VisualElement();
+            try
+            {
+                visual.Bind(root, config); var state = new HUDDriverState(); var p = new HUDPresenter();
+                p.SetGuidance(state, Both);
+                p.SetFloorCounters(state, new FloorDisplaySnapshot(141, 200, 7, ExitState.Locked, false, Vector3.zero,
+                    totalCakes: 760, totalGoldenCakes: 23, hiddenCount: hidden));
+                visual.Apply(state);
+                Assert.That(root.Q<Label>("cake-count").text, Is.EqualTo("Cakes: 141 / 760"));
+                Assert.That(root.Q<Label>("golden-count").text, Is.EqualTo("Golden: 7 / 23"));
+                Assert.That(root.Q("hud").style.display.value, Is.EqualTo(hidden ? DisplayStyle.None : DisplayStyle.Flex));
+                Assert.That(root.Q("direction-group").style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                if (hidden) Assert.That(p.TryShowPhantomCake(state, 1f), Is.False);
+                p.SetChaseMode(state, true); p.SetChaseMode(state, false); p.Tick(state, 1f, .5f); visual.Apply(state);
+                Assert.That(root.Q("hud").style.display.value, Is.EqualTo(hidden ? DisplayStyle.None : DisplayStyle.Flex));
+                p.SetFloorCounters(state, new FloorDisplaySnapshot(0, 2, 0, ExitState.Locked, false, Vector3.zero,
+                    totalCakes: 4, totalGoldenCakes: 2)); visual.Apply(state);
+                Assert.That(root.Q("hud").style.display.value, Is.EqualTo(DisplayStyle.Flex));
             }
             finally { visual.Unbind(); Object.DestroyImmediate(go); Object.DestroyImmediate(config); }
         }
@@ -103,16 +130,16 @@ namespace Worsen.Tests.HUD
             try
             {
                 Call(route, "OnEnable"); Call(route, "OnEnable");
-                Assert.That(((Delegate)Field(run, "GuidanceChanged").GetValue(run)).GetInvocationList().Length, Is.EqualTo(1));
-                Publish(run, "GuidanceChanged", (object)Both);
+                Assert.That(((Delegate)Field(run.FloorFacts, "GuidanceChanged").GetValue(run.FloorFacts)).GetInvocationList().Length, Is.EqualTo(1));
+                Publish(run.FloorFacts, "GuidanceChanged", (object)Both);
                 Publish(run, "FloorDisplayChanged", new FloorDisplaySnapshot(1, 4, 1, ExitState.Open, false, Vector3.back));
                 Publish(run, "ChaseStarted", default(ChaseFact));
                 Assert.That(state.DirectionVisible && state.GoldenSenseVisible, Is.True);
                 Assert.That(state.WorldDirection, Is.EqualTo(Vector3.forward));
-                Publish(run, "GuidanceChanged", (object)Array.Empty<GuidanceTarget>());
+                Publish(run.FloorFacts, "GuidanceChanged", (object)Array.Empty<GuidanceTarget>());
                 Assert.That(state.DirectionVisible || state.GoldenSenseVisible, Is.False);
                 Assert.That(hud.TryShowPhantomCake(1f), Is.False, "Disabled/unbound UI must refuse the micro-event.");
-                Call(route, "OnDisable"); Assert.That(Field(run, "GuidanceChanged").GetValue(run), Is.Null);
+                Call(route, "OnDisable"); Assert.That(Field(run.FloorFacts, "GuidanceChanged").GetValue(run.FloorFacts), Is.Null);
             }
             finally { Call(route, "OnDisable"); Object.DestroyImmediate(routeObject); Object.DestroyImmediate(hudObject); Object.DestroyImmediate(runObject); }
         }

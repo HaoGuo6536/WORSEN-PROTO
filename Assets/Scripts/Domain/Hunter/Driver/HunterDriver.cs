@@ -8,15 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Driver (section 7a) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Traverse physically clear stair risers and verify rounded-edge tread support.
-//   - Preserve open-turn inertia after bounded capsule/floor prediction at path refresh.
-//   - Sample resolved path progress and report stalls without touching motor decisions.
-//   - Probe occluded retreat rooms and apply swept, non-damaging stumble commands.
-//   - Bind the Animator-local IK seam and preserve precise hidden approach corners.
-//   - Apply ordered recording segments without pathfinding shortcuts or corner smoothing.
-//   - Own the optional Weaver sweep/ceiling sub-driver and admit verified partition links.
-//   - Apply non-turning Ram displacement, atomic Skip placement and Mimic touch probes.
+//   - Apply swept movement, stair support, corner prediction and ordered recording segments.
+//   - Honor collider layer exclusions in motor queries without weakening world or sight probes.
+//   - Sample navigation progress, stalls, sight, hearing and retreat evidence.
+//   - Own animation/attack, shared sweep and injected placement sub-drivers.
+//   - Apply charge, teleport and reaction motion; probe silent interception contacts.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -26,10 +22,11 @@
 //   configured-area path queries. It does not measure avoidance or change paths.
 // ============================================================================
 using System;
+using System.Buffers;
 using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+
 namespace Worsen.Domain.Hunter
 {
     [RequireComponent(typeof(CapsuleCollider), typeof(Rigidbody))]
@@ -41,6 +38,22 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterAnimationDriver _animation;
         [SerializeField] private HunterAttackDriver _attacks;
         private WeaverWebDriver _weaver;
+        private IHunterPlacementDriver _stare;
+        public void ConfigureStare(IHunterPlacementDriver placement)
+        {
+            _stare = placement ?? throw new ArgumentNullException(nameof(placement));
+            _stare.Initialize();
+        }
+        public void SetStarePresent(bool present) { if (_stare != null) _stare.SetPresent(present); }
+        public bool ProbeStare(Vector3 candidate, Vector3 player, HunterPlayerView view, out Vector3 point)
+            => _stare.Probe(candidate, player, view, _config, out point);
+        public bool PlayerViewClear(HunterPlayerView view, Vector3 point, float height)
+            => ClearSegment(view.Origin, point + Vector3.up * height, _state.TargetFilter);
+        public void PlaceStare(Vector3 point)
+        {
+            _presenter.Reset(_state.Steering, point, Forward); _state.VerticalSpeed = 0f; _state.PathCooldown = 0f;
+            transform.position = point; _body.position = point; Physics.SyncTransforms();
+        }
         private readonly HunterRoutePresenter _routePresenter = new HunterRoutePresenter();
         private readonly HunterLightPresenter _lightPresenter = new HunterLightPresenter();
         private HunterDriverState _state;
@@ -50,7 +63,27 @@ namespace Worsen.Domain.Hunter
         public Vector3 Forward => transform.forward;
         public Vector3 Velocity => _state?.Steering.Velocity ?? Vector3.zero;
         public bool PathAvailable => _state != null && _state.PathAvailable;
+        public void RemoveMomentum()
+        { if (_state != null) { _state.Steering.Velocity = Vector3.zero; _state.VerticalSpeed = 0f; } }
+        public System.Collections.Generic.IReadOnlyList<Vector3> ProbeReactionPath(Vector3 target)
+        {
+            if (_state == null) return Array.Empty<Vector3>();
+            var path = new NavMeshPath();
+            if (NavMesh.SamplePosition(Position, out NavMeshHit start, _config.PathSampleRadius, _config.NavigationAreaMask) &&
+                NavMesh.SamplePosition(target, out NavMeshHit end, _config.PathSampleRadius, _config.NavigationAreaMask) &&
+                NavMesh.CalculatePath(start.position, end.position, _config.NavigationAreaMask, path)) return path.corners;
+            return Array.Empty<Vector3>();
+        }
         public event Action<Collider> OnLungeContact;
+        public Vector3 ContactNormal(Collider other)
+        {
+            if (other == null || _capsule == null) return Vector3.zero;
+            if (Physics.ComputePenetration(other, other.transform.position, other.transform.rotation,
+                _capsule, _capsule.transform.position, _capsule.transform.rotation, out var normal, out _)) return normal;
+            Vector3 delta = other.bounds.center - _capsule.bounds.center;
+            delta.y = 0f;
+            return delta.normalized;
+        }
         public event Action<Collider, int> OnRangedContact;
         public event Action<int> OnRangedMiss;
         public event Action<HunterFeedbackEvent> OnAttackFeedback;
@@ -150,6 +183,10 @@ namespace Worsen.Domain.Hunter
             if (_body == null) _body = GetComponent<Rigidbody>();
             _body.isKinematic = true; _body.useGravity = false;
             _state = new HunterDriverState { Path = new NavMeshPath() };
+            _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
+            _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
+            _state.CollisionMask = WithoutHunterGate(_config.CollisionMask);
+            _state.SightMask = WithoutHunterGate(_config.SightMask);
             _presenter.Reset(_state.Steering, Position, Forward);
             if (_animation == null) _animation = GetComponentInChildren<HunterAnimationDriver>();
             if (_animation != null) _animation.Initialize();
@@ -179,7 +216,7 @@ namespace Worsen.Domain.Hunter
             bool sourceVisible = _lightPresenter.InSight(eye, Forward, sample.Origin, sightRange, sightCone) && ClearSegment(eye, sample.Origin, isEmitter);
             if (illuminated || sourceVisible) return new HunterLightObservation(true, illuminated, sample.Origin, tick);
             if (Physics.Raycast(sample.Origin, sample.Direction.normalized, out RaycastHit hit, sample.Range,
-                WithoutHunterGate(_config.SightMask), QueryTriggerInteraction.Ignore))
+                _state.SightMask, QueryTriggerInteraction.Ignore))
             {
                 Vector3 patch = hit.point + hit.normal * 0.03f;
                 if (_lightPresenter.InSight(eye, Forward, patch, sightRange, sightCone) && ClearSegment(eye, patch))
@@ -190,9 +227,12 @@ namespace Worsen.Domain.Hunter
         private bool ClearSegment(Vector3 origin, Vector3 point, Func<Collider, bool> permitted = null)
         {
             Vector3 delta = point - origin;
-            foreach (RaycastHit hit in Physics.RaycastAll(origin, delta.normalized, Mathf.Max(0f, delta.magnitude - 0.08f),
-                WithoutHunterGate(_config.SightMask), QueryTriggerInteraction.Ignore))
+            int count = RayQuery(origin, delta.normalized, Mathf.Max(0f, delta.magnitude - 0.08f), _state.SightMask);
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i];
                 if (!Own(hit.collider) && (permitted == null || !permitted(hit.collider))) return false;
+            }
             return true;
         }
         public bool ValidateReactionTarget(Vector3 target)
@@ -246,9 +286,23 @@ namespace Worsen.Domain.Hunter
         }
         public void ProbeMimicTouch(float radius)
         {
-            foreach (Collider other in Physics.OverlapSphere(Position + Vector3.up * radius, radius,
-                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
+            int count = SphereOverlap(Position + Vector3.up * radius, radius);
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = _state.QueryOverlaps[i];
                 if (!Own(other) && (_state.TargetFilter?.Invoke(other) ?? false)) OnLungeContact?.Invoke(other);
+            }
+        }
+        public void ProbeBodyContact()
+        {
+            if (_state == null) return;
+            Capsule(Position, out Vector3 low, out Vector3 high);
+            int count = CapsuleOverlap(low, high, _config.Radius + _config.SkinWidth);
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = _state.QueryOverlaps[i];
+                if (!IgnoreMotorCollider(other) && (_state.TargetFilter?.Invoke(other) ?? false)) OnLungeContact?.Invoke(other);
+            }
         }
         public int MoveRecording(System.Collections.Generic.IReadOnlyList<Vector3> points, float dt, out bool unreachable)
         {
@@ -283,11 +337,11 @@ namespace Worsen.Domain.Hunter
         {
             Vector3 origin = Position + Vector3.up * _config.EyeHeight;
             Vector3 delta = point - origin;
-            RaycastHit[] hits = Physics.RaycastAll(origin, delta.normalized, delta.magnitude,
-                WithoutHunterGate(_config.SightMask), QueryTriggerInteraction.Ignore);
-            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-            foreach (RaycastHit hit in hits)
+            int count = RayQuery(origin, delta.normalized, delta.magnitude, _state.SightMask);
+            SortHits(count);
+            for (int i = 0; i < count; i++)
             {
+                RaycastHit hit = _state.QueryHits[i];
                 if (Own(hit.collider)) continue;
                 return isTarget(hit.collider);
             }
@@ -335,9 +389,12 @@ namespace Worsen.Domain.Hunter
             if (lungeActive)
             {
                 Capsule(position, out Vector3 low, out Vector3 high);
-                foreach (Collider other in Physics.OverlapCapsule(low, high, _config.Radius + _config.SkinWidth,
-                    WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
+                int count = CapsuleOverlap(low, high, _config.Radius + _config.SkinWidth);
+                for (int i = 0; i < count; i++)
+                {
+                    Collider other = _state.QueryOverlaps[i];
                     if (!Own(other) && !_state.Contacts.Contains(other)) _state.Contacts.Add(other);
+                }
                 foreach (Collider other in _state.Contacts) OnLungeContact?.Invoke(other);
             }
         }
@@ -370,10 +427,8 @@ namespace Worsen.Domain.Hunter
             preview.Corners = source.Corners; preview.CornerIndex = source.CornerIndex;
             preview.AlignAfterCorner = false; preview.LungeWasActive = false;
             Capsule(preview.Position, out Vector3 low, out Vector3 high);
-            int overlaps = Physics.OverlapCapsuleNonAlloc(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                _state.CornerOverlaps, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
-            if (overlaps == _state.CornerOverlaps.Length) return false;
-            for (int i = 0; i < overlaps; i++) if (!Own(_state.CornerOverlaps[i])) return false;
+            int overlaps = CapsuleOverlap(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth));
+            for (int i = 0; i < overlaps; i++) if (!IgnoreMotorCollider(_state.QueryOverlaps[i])) return false;
             const float step = 1f / 30f;
             for (int sample = 0; sample < 48; sample++)
             {
@@ -395,23 +450,19 @@ namespace Worsen.Domain.Hunter
             if (delta.sqrMagnitude <= 0.00000001f) return true;
             Capsule(position, out Vector3 low, out Vector3 high);
             low += Vector3.up * _config.SkinWidth; high += Vector3.up * _config.SkinWidth;
-            int hits = Physics.CapsuleCastNonAlloc(low, high, _config.Radius, delta.normalized, _state.CornerCastHits,
-                delta.magnitude + _config.SkinWidth, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
-            if (hits == _state.CornerCastHits.Length) return false;
+            int hits = CapsuleQuery(low, high, _config.Radius, delta.normalized, delta.magnitude + _config.SkinWidth);
             for (int i = 0; i < hits; i++)
-                if (!Own(_state.CornerCastHits[i].collider) && Vector3.Dot(_state.CornerCastHits[i].normal, delta.normalized) < -0.0001f) return false;
+                if (!IgnoreMotorCollider(_state.QueryHits[i].collider) && Vector3.Dot(_state.QueryHits[i].normal, delta.normalized) < -0.0001f) return false;
             return true;
         }
         private bool HasLevelSupport(Vector3 position)
         {
-            int hits = Physics.RaycastNonAlloc(position + Vector3.up * _config.GroundProbeDistance,
-                Vector3.down, _state.CornerCastHits, _config.GroundProbeDistance * 2f + _config.SkinWidth,
-                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
-            if (hits == _state.CornerCastHits.Length) return false;
+            int hits = RayQuery(position + Vector3.up * _config.GroundProbeDistance,
+                Vector3.down, _config.GroundProbeDistance * 2f + _config.SkinWidth, _state.CollisionMask);
             for (int i = 0; i < hits; i++)
             {
-                RaycastHit hit = _state.CornerCastHits[i];
-                if (!Own(hit.collider) && Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees) return true;
+                RaycastHit hit = _state.QueryHits[i];
+                if (!IgnoreMotorCollider(hit.collider) && Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees) return true;
             }
             return false;
         }
@@ -498,12 +549,13 @@ namespace Worsen.Domain.Hunter
         private bool Cast(Vector3 position, Vector3 delta, out RaycastHit closest)
         {
             Capsule(position, out Vector3 low, out Vector3 high);
-            RaycastHit[] hits = Physics.CapsuleCastAll(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth), delta.normalized,
-                delta.magnitude + _config.SkinWidth, WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
-            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-            foreach (RaycastHit hit in hits)
+            int count = CapsuleQuery(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth), delta.normalized,
+                delta.magnitude + _config.SkinWidth);
+            SortHits(count);
+            for (int i = 0; i < count; i++)
             {
-                if (Own(hit.collider) || Vector3.Dot(hit.normal, delta.normalized) >= -0.0001f) continue;
+                RaycastHit hit = _state.QueryHits[i];
+                if (IgnoreMotorCollider(hit.collider) || Vector3.Dot(hit.normal, delta.normalized) >= -0.0001f) continue;
                 closest = hit; return true;
             }
             closest = default; return false;
@@ -532,12 +584,12 @@ namespace Worsen.Domain.Hunter
             // never classify a wall, steep ramp or unrelated floor as a stair.
             Vector3 direction = new Vector3(movement.x, 0f, movement.z).normalized;
             Vector3 origin = raised + direction * Mathf.Max(0f, _config.Radius - _config.SkinWidth);
-            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, _config.StepHeight + _config.GroundProbeDistance,
-                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore);
-            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-            foreach (RaycastHit hit in hits)
+            int count = RayQuery(origin, Vector3.down, _config.StepHeight + _config.GroundProbeDistance, _state.CollisionMask);
+            SortHits(count);
+            for (int i = 0; i < count; i++)
             {
-                if (Own(hit.collider)) continue;
+                RaycastHit hit = _state.QueryHits[i];
+                if (IgnoreMotorCollider(hit.collider)) continue;
                 float rise = hit.point.y - position.y;
                 return hit.collider == edge && rise > _config.SkinWidth && rise <= _config.StepHeight + _config.SkinWidth &&
                     Vector3.Angle(hit.normal, Vector3.up) <= _config.SlopeLimitDegrees;
@@ -547,18 +599,74 @@ namespace Worsen.Domain.Hunter
         private bool Blocked(Vector3 position)
         {
             Capsule(position, out Vector3 low, out Vector3 high);
-            foreach (Collider other in Physics.OverlapCapsule(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth),
-                WithoutHunterGate(_config.CollisionMask), QueryTriggerInteraction.Ignore))
-                if (!Own(other)) return true;
+            int count = CapsuleOverlap(low, high, Mathf.Max(0.001f, _config.Radius - _config.SkinWidth));
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = _state.QueryOverlaps[i];
+                if (!IgnoreMotorCollider(other)) return true;
+            }
             return false;
         }
         private void Capsule(Vector3 position, out Vector3 low, out Vector3 high)
         { low = position + Vector3.up * _config.Radius; high = position + Vector3.up * (_config.Height - _config.Radius); }
         private bool Own(Collider other) => other == _capsule || other.transform.IsChildOf(transform);
+        // Static physics queries do not apply the queried collider's contact exclusions.
+        // Player temporarily excludes this body's layer during revival collision grace.
+        private bool IgnoreMotorCollider(Collider other) => other == null || Own(other) ||
+            (other.excludeLayers.value & (1 << _capsule.gameObject.layer)) != 0;
         private static int WithoutHunterGate(int mask)
         { int layer = LayerMask.NameToLayer("HunterRouteGate"); return layer >= 0 ? mask & ~(1 << layer) : mask; }
+        private int RayQuery(Vector3 origin, Vector3 direction, float distance, int mask)
+        {
+            int count;
+            while ((count = Physics.RaycastNonAlloc(origin, direction, _state.QueryHits, distance, mask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            return count;
+        }
+        private int CapsuleQuery(Vector3 low, Vector3 high, float radius, Vector3 direction, float distance)
+        {
+            int count;
+            while ((count = Physics.CapsuleCastNonAlloc(low, high, radius, direction, _state.QueryHits, distance, _state.CollisionMask, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            return count;
+        }
+        private int CapsuleOverlap(Vector3 low, Vector3 high, float radius)
+        {
+            int count;
+            while ((count = Physics.OverlapCapsuleNonAlloc(low, high, radius, _state.QueryOverlaps, _state.CollisionMask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
+        }
+        private int SphereOverlap(Vector3 origin, float radius)
+        {
+            int count;
+            while ((count = Physics.OverlapSphereNonAlloc(origin, radius, _state.QueryOverlaps, _state.CollisionMask, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                GrowQuery(ref _state.QueryOverlaps);
+            return count;
+        }
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            T[] larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true); buffer = larger;
+            Debug.LogWarning($"Hunter physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
+        }
+        private void SortHits(int count)
+        {
+            // Only the populated prefix participates; ties never depend on PhysX encounter order.
+            for (int i = 1; i < count; i++)
+            {
+                RaycastHit hit = _state.QueryHits[i]; int j = i - 1;
+                while (j >= 0 && (hit.distance < _state.QueryHits[j].distance ||
+                    (hit.distance == _state.QueryHits[j].distance && hit.collider.GetInstanceID() < _state.QueryHits[j].collider.GetInstanceID())))
+                { _state.QueryHits[j + 1] = _state.QueryHits[j]; j--; }
+                _state.QueryHits[j + 1] = hit;
+            }
+        }
+        private void OnDestroy() { Teardown(); }
         public void Teardown()
         {
+            if (_stare != null) _stare.Teardown();
             if (_weaver != null) _weaver.Teardown();
             if (_state != null && _state.IKDriver != null)
             {
@@ -571,6 +679,12 @@ namespace Worsen.Domain.Hunter
             }
             if (_animation != null) _animation.Teardown();
             if (_attacks != null) _attacks.Teardown();
+            if (_state != null)
+            {
+                ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+                ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+                _state.QueryHits = null; _state.QueryOverlaps = null;
+            }
             _state = null;
         }
     }

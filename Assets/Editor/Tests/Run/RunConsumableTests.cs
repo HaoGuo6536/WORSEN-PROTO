@@ -21,6 +21,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class RunConsumableTests
     {
         [TestCase(InputButtons.UseConsumable)] [TestCase(InputButtons.CycleConsumable)] [TestCase(InputButtons.CycleConsumablePrevious)]

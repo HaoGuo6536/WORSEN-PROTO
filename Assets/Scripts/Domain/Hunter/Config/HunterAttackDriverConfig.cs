@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Reference the fallback shader explicitly so player builds retain it.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -23,6 +24,7 @@ namespace Worsen.Domain.Hunter
     public sealed class HunterAttackDriverConfig : ScriptableObject
     {
         [SerializeField] private Material _warningMaterial;
+        [SerializeField] private Shader _fallbackShader = null;
         [SerializeField] private Material _projectileMaterial;
         [SerializeField] private Material _spikeMaterial;
         [SerializeField] private GameObject _projectilePrefab;
@@ -30,6 +32,7 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private LayerMask _collisionMask = ~0;
         [SerializeField] private Color _warningColor = new Color(0.85f, 0.25f, 1f, 1f);
         public Material WarningMaterial => _warningMaterial;
+        public Shader FallbackShader => _fallbackShader;
         public Material ProjectileMaterial => _projectileMaterial;
         public Material SpikeMaterial => _spikeMaterial;
         public GameObject ProjectilePrefab => _projectilePrefab;

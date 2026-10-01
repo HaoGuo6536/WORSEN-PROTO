@@ -3,16 +3,17 @@
 // ============================================================================
 // PURPOSE:
 //   Implements the Blinder's independent Reposition-before-throw rule using the
-//   Weaver's radius-matched sweep observations, not visibility rays. It publishes
+//   parent's radius-matched sweep observations, not visibility rays. It publishes
 //   blindness and Floor-owned trap policy without creating another trap system.
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
+//   - Hand out a read-only state view without exposing mutable runtime collections.
 //   - Require a fresh sweep before warning, throughout warning and at launch.
 //   - Admit each live projectile contact once and publish neutral curse hooks.
 //   - Describe presence, discovery, chase, hiss, floor ticks and the accepted catch.
 // DEPENDENCIES:
-//   - Own config/state, shared Hunter pursuit and Weaver sweep value definitions.
+//   - Own config/state, parent Hunter neutral rules, pursuit and sweep definitions.
 // USAGE NOTES:
 //   Explicit tick/delta time only; this rule has no random decisions. The shared
 //   pursuit receives injected randomness. Floor reports real trap ticks; silence
@@ -22,12 +23,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Blinder
 {
-    public sealed class BlinderController : DefaultHunterController, IHunterIndependentAttackRules
+    public sealed class BlinderController : HunterArchetypeController, IHunterIndependentAttackRules
     {
         public static readonly EffectId MoreTraps = new EffectId("blinder-more-traps");
         public static readonly EffectId LongerDark = new EffectId("blinder-longer-dark");
@@ -39,6 +39,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Blinder
         public BlinderController(BlinderBehaviorState state, BlinderConfig config, HunterProfile profile)
         { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile)); }
+        public IReadOnlyBlinderState ReadOnlyState => _state;
         public BlinderAction Action => _state.Action;
         public bool Warning => _state.Warning;
         public bool Fire => _state.Fire;

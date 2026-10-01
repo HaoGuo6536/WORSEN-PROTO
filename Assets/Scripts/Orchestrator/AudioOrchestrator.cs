@@ -8,17 +8,15 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Audio target.
 // KEY RESPONSIBILITIES:
-//   - Route Level acoustics, physical exit progress, grace and paired active effects.
-//   - Forward committed purchase/reservation/reroll reasons without wallet inference.
-//   - Route Session pause to audio playback and its unscaled presentation clocks.
-//   - Route scene camera hold start to per-run catch sting admission, not PlayerDied.
-//   - Pair run, progression, effects, expedition and UI subscriptions symmetrically.
-//   - Preserve legacy cue fallback and feed rich threat layers in every scene.
-//   - Replace aggregate threat facts, never accumulate nearest-hunter snapshots.
-//   - Reset floor playback at capture/end; retain contact only within an expedition.
+//   - Route roster, progression tells, world acoustics and committed transactions.
+//   - Pair Session, camera, UI and scoped deliberation subscriptions symmetrically.
+//   - Route typed expansion sounds and raw sensory durations once; never publish AI noise.
+//   - Preserve legacy cues and replace aggregate threat facts without accumulation.
+//   - Reset floor playback while retaining contact only within an expedition.
 // DEPENDENCIES:
+//   - Domain Hunter registry supplies only scoped deliberation publisher references.
 //   - Domain Level supplies Core graph and closed-door snapshots; Floor supplies trap positions.
-//   - Core payloads; Session Run, Progression, HorrorEffects and Expedition.
+//   - Core payloads; Session Run typed fact channels, Progression, HorrorEffects and Expedition.
 //   - Presentation Audio target, Camera catch, ProgressionUI feedback and Environment anchor publishers.
 // USAGE NOTES:
 //   Persistent on the canonical Audio root; base Run reference is persistent.
@@ -45,6 +43,9 @@ using Worsen.Presentation.ProgressionUI;
 using Worsen.Presentation.Environment;
 using Worsen.Domain.Level;
 using Worsen.Domain.Floor;
+using Worsen.Domain.Hunter;
+using HunterArchetypeFact = Worsen.Core.HunterArchetypeFact;
+using HunterHabitFact = Worsen.Core.HunterHabitFact;
 
 namespace Worsen.Orchestrator
 {
@@ -59,6 +60,7 @@ namespace Worsen.Orchestrator
         private EnvironmentManager _environment;
         private CameraManager _camera;
         private LevelManager _level;
+        private readonly List<HunterManager> _deliberationPublishers = new List<HunterManager>();
 
         public void ConfigureCatch(CameraManager camera)
         {
@@ -80,7 +82,7 @@ namespace Worsen.Orchestrator
             OnDisable();
             _progression = null; _effects = null; _expedition = null; _ui = null; _environment = null;
             _level = null;
-            if (_audio != null) { _audio.SetWorld(null, null); _audio.SetActiveEffects(null); }
+            if (_audio != null) { _audio.SetWorld(null, null); _audio.SetActiveEffects(null); _audio.SetTheme(null); }
             if (isActiveAndEnabled) OnEnable();
         }
         private void OnEnable()
@@ -94,72 +96,106 @@ namespace Worsen.Orchestrator
             _audio.SetPaused(_run.IsPaused);
             _run.ChaseStarted += OnChase;
             _run.ChaseEnded += OnChaseEnd;
-            _run.ProximityPublished += OnProximity;
+            _run.HunterFacts.ProximityPublished += OnProximity;
             _run.HealthChanged += OnHealth;
             _run.PlayerMovementPublished += OnMovement;
             _run.PlayerTraversalPublished += OnTraversal;
-            _run.HunterFeedbackPublished += OnHunter;
-            _run.PickupCollected += OnPickup;
+            _run.HunterFacts.HunterFeedbackPublished += OnHunter;
+            _run.HunterArchetypePublished += OnArchetype;
+            _run.HunterFacts.HunterHabitPublished += OnHabit;
+            _run.HunterFacts.WeaverFactPublished += OnWeaver;
+            _run.HunterFacts.TickingSoundPublished += OnTicking;
+            _run.RamFactPublished += OnRam;
+            _run.HunterFacts.MimicFactPublished += OnMimic;
+            _run.HunterFacts.BlinderSoundPublished += OnBlinder;
+            _run.HunterFacts.HeraldScreamPublished += OnHerald;
+            _run.HunterFacts.HeraldBreathPublished += OnHeraldBreath;
+            _run.MannequinFactPublished += OnMannequin;
+            _run.HunterFacts.StareFactPublished += OnStare;
+            _run.HunterFacts.BlinderHitPublished += OnBlinderHit;
+            _run.HunterFacts.HeraldDeafenPublished += OnHeraldDeafen;
+            _run.HitAccepted += OnHit;
+            _run.BeforeTick += RefreshHunters;
+            RefreshHunters();
+            _run.FloorFacts.PickupCollected += OnPickup;
             _run.CollapseHandPublished += OnHand;
-            _run.RoomDestructionPublished += OnDestruction;
-            _run.SpeedNormalizedPublished += OnSpeed;
+            _run.FloorFacts.RoomDestructionPublished += OnDestruction;
+            _run.PlayerFacts.SpeedNormalizedPublished += OnSpeed;
             _run.PhaseChanged += OnPhase;
-            _run.RoomPhaseChanged += OnRoom;
+            _run.FloorFacts.RoomPhaseChanged += OnRoom;
             _run.FloorDisplayChanged += OnFloorDisplay;
-            _run.OnGraceStarted += OnGrace;
+            _run.PlayerFacts.OnGraceStarted += OnGrace;
             _run.TrapSprung += OnTrap;
             if (_level != null) { _level.ReadinessChanged += OnLevelReady; _level.InteractableChanged += OnInteractable; }
             if (_camera != null) _camera.CatchHoldStarted += OnCatchStarted;
             if (_progression != null)
-            { _progression.SnapshotChanged += OnSnapshot; _progression.TransactionCommitted += OnTransaction; _progression.EffectsSnapshotChanged += OnEffectsSnapshot; }
+            { _progression.SnapshotChanged += OnSnapshot; _progression.TransactionCommitted += OnTransaction; _progression.EffectsSnapshotChanged += OnEffectsSnapshot; _progression.ProgressionEventCommitted += OnProgressionEvent; }
             RefreshViews();
             if (_progression != null) OnSnapshot(_progression.Snapshot);
-            if (_expedition != null) _expedition.RoomsReady += OnRooms;
+            if (_expedition != null) { _expedition.RoomsReady += OnRooms; _expedition.ThemePublished += OnTheme; _expedition.RoomThemePublished += OnRoomTheme; _expedition.FloorReleased += OnFloorReleased; }
             if (_ui != null) _ui.Feedback += OnUiFeedback;
             if (_effects == null) return;
             _effects.FlashlightChanged += OnFlashlight;
             _effects.AfterimageChanged += OnAfterimage;
             _effects.NoiseEmitted += OnEcho;
             _effects.DoorMarked += OnDoorMarked;
+            _effects.SensesCleansed += OnSensesCleansed;
         }
         private void OnDisable()
         {
+            ClearHunters();
             if (_run != null)
             {
                 _run.CaptureStarted -= OnCapture;
                 _run.PauseChanged -= OnPause;
                 _run.ChaseStarted -= OnChase;
                 _run.ChaseEnded -= OnChaseEnd;
-                _run.ProximityPublished -= OnProximity;
+                _run.HunterFacts.ProximityPublished -= OnProximity;
                 _run.HealthChanged -= OnHealth;
                 _run.PlayerMovementPublished -= OnMovement;
                 _run.PlayerTraversalPublished -= OnTraversal;
-                _run.HunterFeedbackPublished -= OnHunter;
-                _run.PickupCollected -= OnPickup;
+                _run.HunterFacts.HunterFeedbackPublished -= OnHunter;
+                _run.HunterArchetypePublished -= OnArchetype;
+                _run.HunterFacts.HunterHabitPublished -= OnHabit;
+                _run.HunterFacts.WeaverFactPublished -= OnWeaver;
+                _run.HunterFacts.TickingSoundPublished -= OnTicking;
+                _run.RamFactPublished -= OnRam;
+                _run.HunterFacts.MimicFactPublished -= OnMimic;
+                _run.HunterFacts.BlinderSoundPublished -= OnBlinder;
+                _run.HunterFacts.HeraldScreamPublished -= OnHerald;
+                _run.HunterFacts.HeraldBreathPublished -= OnHeraldBreath;
+                _run.MannequinFactPublished -= OnMannequin;
+                _run.HunterFacts.StareFactPublished -= OnStare;
+                _run.HunterFacts.BlinderHitPublished -= OnBlinderHit;
+                _run.HunterFacts.HeraldDeafenPublished -= OnHeraldDeafen;
+                _run.HitAccepted -= OnHit;
+                _run.BeforeTick -= RefreshHunters;
+                _run.FloorFacts.PickupCollected -= OnPickup;
                 _run.CollapseHandPublished -= OnHand;
-                _run.RoomDestructionPublished -= OnDestruction;
-                _run.SpeedNormalizedPublished -= OnSpeed;
+                _run.FloorFacts.RoomDestructionPublished -= OnDestruction;
+                _run.PlayerFacts.SpeedNormalizedPublished -= OnSpeed;
                 _run.PhaseChanged -= OnPhase;
-                _run.RoomPhaseChanged -= OnRoom;
+                _run.FloorFacts.RoomPhaseChanged -= OnRoom;
                 _run.FloorDisplayChanged -= OnFloorDisplay;
-                _run.OnGraceStarted -= OnGrace;
+                _run.PlayerFacts.OnGraceStarted -= OnGrace;
                 _run.TrapSprung -= OnTrap;
             }
             if (_level != null) { _level.ReadinessChanged -= OnLevelReady; _level.InteractableChanged -= OnInteractable; }
             if (_camera != null) _camera.CatchHoldStarted -= OnCatchStarted;
             if (_progression != null)
-            { _progression.SnapshotChanged -= OnSnapshot; _progression.TransactionCommitted -= OnTransaction; _progression.EffectsSnapshotChanged -= OnEffectsSnapshot; }
-            if (_expedition != null) _expedition.RoomsReady -= OnRooms;
+            { _progression.SnapshotChanged -= OnSnapshot; _progression.TransactionCommitted -= OnTransaction; _progression.EffectsSnapshotChanged -= OnEffectsSnapshot; _progression.ProgressionEventCommitted -= OnProgressionEvent; }
+            if (_expedition != null) { _expedition.RoomsReady -= OnRooms; _expedition.ThemePublished -= OnTheme; _expedition.RoomThemePublished -= OnRoomTheme; _expedition.FloorReleased -= OnFloorReleased; }
             if (_ui != null) _ui.Feedback -= OnUiFeedback;
             if (_effects == null) return;
             _effects.FlashlightChanged -= OnFlashlight;
             _effects.AfterimageChanged -= OnAfterimage;
             _effects.NoiseEmitted -= OnEcho;
             _effects.DoorMarked -= OnDoorMarked;
+            _effects.SensesCleansed -= OnSensesCleansed;
         }
         private void OnCapture(RunCaptureMetadata metadata)
         {
-            _audio.ResetRun(_progression != null);
+            _audio.ResetRun(_progression != null, true);
             if (_expedition != null)
             {
                 _audio.SetRooms(_expedition.PresentationRooms);
@@ -199,15 +235,47 @@ namespace Worsen.Orchestrator
             else _audio.SetMovementState(sample.MovementState);
         }
         private void OnTraversal(PlayerTraversalFact fact) { if (_expedition != null) _audio.ObserveTraversal(fact); }
-        private void OnHunter(HunterFeedbackEvent fact) { if (_expedition != null) _audio.ObserveHunterFeedback(fact); }
+        private void OnHunter(HunterFeedbackEvent fact) => _audio.ObserveHunterFeedback(fact);
+        private void OnArchetype(HunterArchetypeFact fact) => _audio.ObserveArchetype(fact);
+        private void OnHabit(HunterHabitFact fact) => _audio.ObserveHabit(fact);
+        private void OnWeaver(WeaverFact fact) => _audio.ObserveWeaver(fact);
+        private void OnTicking(TickingSoundFact fact) => _audio.ObserveTicking(fact);
+        private void OnRam(RamFact fact) => _audio.ObserveRam(fact);
+        private void OnMimic(MimicFact fact) => _audio.ObserveMimic(fact);
+        private void OnBlinder(BlinderSoundFact fact) => _audio.ObserveBlinder(fact);
+        private void OnHerald(HeraldScreamFact fact) => _audio.ObserveHerald(fact);
+        private void OnHeraldBreath(HeraldBreathFact fact) => _audio.ObserveHeraldBreath(fact);
+        private void OnMannequin(MannequinFact fact) => _audio.ObserveMannequin(fact);
+        private void OnStare(StareFact fact) => _audio.ObserveStare(fact);
+        private void OnBlinderHit(BlinderHitFact fact) => _audio.ObserveBlinderHit(fact);
+        private void OnHeraldDeafen(HeraldDeafenFact fact) => _audio.ObserveHeraldDeafen(fact);
+        private void OnHit(HunterHit fact) => _audio.ObserveHit(fact);
+        private void OnDeliberation(EntityId hunter, Vector3 position, long tick)
+        { if (_run != null && !_run.IsPaused) _audio.ObserveDeliberation(hunter, position, tick); }
+        private void OnProgressionEvent(ProgressionEventFact fact) => _audio.ObserveProgressionEvent(fact);
+        private void OnTheme(string theme, string light, string sound, string fog, string hands) => _audio.SetTheme(sound);
+        private void OnRoomTheme(int room, string theme, string family) => _audio.SetRoomTheme(room, theme, family);
+        private void OnSensesCleansed(SensoryCleanseFact fact) => _audio.ClearSenses();
+        private void OnFloorReleased() { ClearHunters(); _audio.ResetRun(true); }
+        private void RefreshHunters()
+        {
+            ClearHunters();
+            foreach (var hunter in HunterRegistry.Items)
+                if (hunter != null) { hunter.OnDeliberation += OnDeliberation; _deliberationPublishers.Add(hunter); }
+        }
+        private void ClearHunters()
+        {
+            foreach (var hunter in _deliberationPublishers) if (hunter != null) hunter.OnDeliberation -= OnDeliberation;
+            _deliberationPublishers.Clear();
+        }
         private void OnPickup(PickupCollectedFact fact, Vector3 position) { if (_expedition != null) _audio.ObservePickup(fact, position); }
         private void OnHand(CollapseHandFact fact) { if (_expedition != null) _audio.ObserveHand(fact); }
         private void OnDestruction(RoomDestructionSample sample) { if (_expedition != null) _audio.ObserveRoom(sample); }
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms) => _audio.SetRooms(rooms);
         private void OnSnapshot(ProgressionSnapshot snapshot) { _audio.ObserveProgression(snapshot); RefreshViews(); }
-        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation, string choiceId)
+        private void OnTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation, string choiceId)
         {
-            if (operation == nameof(ProgressionSessionManager.StartRun) || current.Phase == ProgressionPhase.Ended)
+            if (operation == ProgressionOperation.StartRun || current.Phase == ProgressionPhase.Ended)
                 _audio.ResetRun();
             _audio.ObserveTransaction(previous, current, operation);
         }

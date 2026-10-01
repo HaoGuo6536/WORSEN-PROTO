@@ -12,6 +12,7 @@
 //   - Verify grace relays bind once and detach on disable, rebind and destruction.
 //   - Verify light/hand routing through the Floor event subscription outside Player ticks.
 //   - Distinguish contact candidates from damage admission and retain grace in terminal ordering.
+//   - Reject revival-protected queued hits without catch telemetry until immunity expires.
 // DEPENDENCIES:
 //   Core facts, Domain Player/Floor, Session Run/HorrorEffects, NUnit and UnityEngine.
 // USAGE NOTES:
@@ -37,6 +38,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class RunHitRecoveryTests
     {
         private const float Dt = 1f / 60f;
@@ -73,7 +75,7 @@ namespace Worsen.Tests.Run
             Set(run, "state", state); Set(run, "controller", clock);
             run.gameObject.SetActive(true);
             run.BindGameplay(null, null, null);
-            run.OnGraceStarted += starts.Add; run.OnGraceEnded += ends.Add;
+            run.PlayerFacts.OnGraceStarted += starts.Add; run.PlayerFacts.OnGraceEnded += ends.Add;
             run.HitAccepted += accepted.Add; run.TelemetryPublished += telemetry.Add;
             floor = Component<FloorManager>();
             effects = Component<HorrorEffectsManager>();
@@ -268,7 +270,7 @@ namespace Worsen.Tests.Run
             run.RunEnded += value => { summary = value; order.Add("results"); };
             long terminalTick = run.Tick;
             Invoke(run, "HandleExitOpened", terminalTick);
-            Invoke(run, "HandleExitReached", new ExitReachedFact(player.Id, terminalTick), false);
+            Invoke(run, "HandleExitReached", new ExitReachedFact(player.Id, terminalTick));
             Route(new HunterHit(new EntityId(-1), player.Id, 50, terminalTick, Vector3.back));
             Invoke(run, "FinishIfRequested");
             Invoke(run, "DrainPendingHits"); Invoke(run, "FinishIfRequested");
@@ -276,6 +278,25 @@ namespace Worsen.Tests.Run
             Assert.That(accepted.Count, Is.EqualTo(expired ? 2 : 1));
             Assert.That(run.Tick, Is.EqualTo(terminalTick));
             Assert.That(order, Is.EqualTo(new[] { "capture", "results" }));
+        }
+
+        [TestCase(HitSource.Lunge)] [TestCase(HitSource.Trap)] [TestCase(HitSource.Projectile)]
+        public void RevivalDropsQueuedHitsThroughImmunityAndAcceptsAtExactDeadline(HitSource source)
+        {
+            player.ApplyHit(1000f, Vector3.zero);
+            Assert.That(run.CancelDeathForRevival(player.Id), Is.True);
+            starts.Clear(); ends.Clear();
+            Assert.That(player.ReviveInPlace(.5f), Is.True);
+            var immunity = starts[0];
+            Route(Hit(9999, source: source));
+            AdvanceRun(immunity.EndTick - 1); Route(Hit(0, source: source));
+            Assert.That(accepted, Is.Empty); Assert.That(telemetry, Is.Empty);
+            Assert.That(player.ReadOnlyState.Health, Is.EqualTo(50f));
+            Assert.That(player.RevivalCollisionGraceActive, Is.False);
+            AdvanceRun(immunity.EndTick); Route(Hit(0, source: source));
+            Assert.That(accepted.Count, Is.EqualTo(1)); Assert.That(telemetry.Count, Is.EqualTo(1));
+            Assert.That(player.ReadOnlyState.Health, Is.EqualTo(40f));
+            Assert.That(ends, Is.EqualTo(new[] { immunity }));
         }
 
         private HunterHit Hit(long tick, HitSeverity severity = HitSeverity.Heavy, HitSource source = HitSource.Lunge)

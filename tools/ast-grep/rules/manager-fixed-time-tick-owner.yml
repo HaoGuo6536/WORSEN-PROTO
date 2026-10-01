@@ -1,0 +1,12 @@
+id: manager-fixed-time-tick-owner
+language: csharp
+severity: error
+message: "Only RunSessionManager, the tick owner, reads fixedDeltaTime (§2, §8; A2)."
+files:
+  - "Assets/Scripts/**/Manager/*.cs"
+ignores:
+  - "Assets/Scripts/Session/Run/Manager/RunSessionManager.cs" # authorized tick owner, not debt
+rule:
+  any:
+    - pattern: Time.fixedDeltaTime
+    - pattern: UnityEngine.Time.fixedDeltaTime

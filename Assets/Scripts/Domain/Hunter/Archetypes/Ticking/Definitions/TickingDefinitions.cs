@@ -16,6 +16,6 @@
 
 namespace Worsen.Domain.Hunter.Archetypes.Ticking
 {
-    public interface IHunterDormancyRules { bool Dormant { get; } }
+    // IHunterDormancyRules now lives in the parent Hunter Definitions folder.
 
 }

@@ -1,0 +1,5 @@
+id: lower-layer-no-orchestrator-ref
+valid:
+  - 'class Logic { Manager owner; }'
+invalid:
+  - 'class Logic { InputOrchestrator owner; }'

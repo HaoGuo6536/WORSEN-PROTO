@@ -27,6 +27,7 @@ using Worsen.Core;
 using Worsen.Presentation.Audio;
 namespace Worsen.Tests.Audio
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class AudioWorldPresenterTests
     {
         private AudioWorldDriverState State()

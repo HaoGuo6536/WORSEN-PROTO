@@ -18,6 +18,7 @@ using UnityEngine;
 using Worsen.Presentation.HUD;
 namespace Worsen.Tests.HUD
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HUDDeclutterPresenterTests
     {
         [TestCase(0, 0, 1, 0)] [TestCase(1, 0, 0, 90)]

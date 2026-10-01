@@ -33,6 +33,8 @@ namespace Worsen.Session.Progression
 
         public static bool Eligible(EffectCatalogueEntry entry, int round, IReadOnlyActiveEffects active)
         {
+            if (ProgressionRosterUtility.Retired(entry.Id) ||
+                (entry.Kind == EffectKind.Threat && !ProgressionRosterUtility.Admits(entry.Id, round))) return false;
             if (round < entry.AvailabilityRound || (entry.Kind != EffectKind.Threat && active.Stacks(new EffectId(entry.Id)) >= entry.StackCap)) return false;
             if (!string.IsNullOrEmpty(entry.PrerequisiteEffectId) && !active.Has(new EffectId(entry.PrerequisiteEffectId))) return false;
             if (entry.RequiredHunterIds.Count == 0) return true;
@@ -72,10 +74,10 @@ namespace Worsen.Session.Progression
 
         public static bool CopyStatesChange(EffectCatalogueEntry entry)
         {
-            // SPEC-004 explicitly requires the hidden mutation's displayed copy to say only this.
+            // The owner deliberately keeps Nothing??? uninformative on its card.
             string copy = entry.Id == "nothing" && entry.CardCopy == "Nothing???" ? entry.ChangeStatement : entry.CardCopy;
             return !string.IsNullOrWhiteSpace(copy) && Regex.IsMatch(copy,
-                @"\b(removes?|reduces?|replaces?|shortens?|increases?|adds?|changes?|stores?|releases?|no longer|no noise|cannot|instead|longer|faster|half|double|breaks?|closes?|outlines?|farther|closer|visible|lower|grows|refunds?|shows?|multiplied|restores?|ends?|jams?|slip|flinch|draws?|mark|stops?|deafens?)\b",
+                @"\b(removes?|reduces?|replaces?|shortens?|increases?|adds?|changes?|stores?|releases?|hides?|revives?|no longer|no noise|cannot|instead|longer|faster|half|double|breaks?|closes?|outlines?|farther|closer|visible|lower|grows|refunds?|shows?|multiplied|restores?|ends?|jams?|slip|flinch|draws?|mark|stops?|deafens?)\b",
                 RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
     }

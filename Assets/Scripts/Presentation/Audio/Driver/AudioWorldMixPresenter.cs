@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Resolve room cells, portals and closed doors without engine queries or duplicate distance rolloff.
 //   - Protect hunter presence and attack timing from masking and timed deafening.
+//   - Apply Ear Plugs and Mirror Skin once at raw hunter-fact ingress.
 //   - Schedule false positives and accelerating collapse pulses using injected time/randomness.
 // DEPENDENCIES:
 //   - Core AcousticOcclusionUtility, effects and topology; Audio config/state only.
@@ -35,6 +36,14 @@ namespace Worsen.Presentation.Audio
         {
             state.SilentPresence = effects != null && effects.Has(new EffectId("silent-presence"));
             state.KeenEars = effects != null && effects.Has(new EffectId("keen-ears"));
+            state.EarPlugs = effects != null && effects.Has(new EffectId("ear-plugs"));
+            state.MirrorSkin = effects != null && effects.Has(new EffectId("mirror-skin"));
+        }
+        public void HeraldDeafen(AudioWorldMixDriverState state, HeraldDeafenFact fact, float durationMultiplier)
+            => Deafening(state, Positive(fact.Duration) * (state.EarPlugs ? Mathf.Clamp01(Positive(durationMultiplier)) : 1f));
+        public void BlinderHit(AudioWorldMixDriverState state, BlinderHitFact fact, float durationMultiplier)
+        {
+            if (fact.MuffledDark) MuffledDark(state, Positive(fact.Duration) * (state.MirrorSkin ? Mathf.Clamp01(Positive(durationMultiplier)) : 1f));
         }
         public float Gain(AudioWorldMixDriverState state, AudioCueCatalogueEntry entry, Vector3 source, AudioSoundscapeDriverConfig config)
         {

@@ -9,10 +9,9 @@
 // KEY RESPONSIBILITIES:
 //   - Wait for the title and activate its Start interaction before expecting choices.
 //   - Reject inter-floor health carry-over, including shop entry and return to combat.
-//   - Verify native geometry/navigation admission and growing in-place floors.
+//   - Verify native geometry/navigation admission, growing floors and canonical input/HUD reset.
 //   - Exercise independent cadence, catalogue pedestals and held inventory across floors.
 //   - Verify a central four-route exit hub and distinct ready animated hunter models.
-//   - Verify canonical input routing and immediate capture-boundary HUD reset.
 // DEPENDENCIES:
 //   - Core; Domain Procedural/Level/Floor/Player/Hunter; Session Run/Progression/
 //     Expedition; Presentation Input/HUD; NUnit and Unity Test Framework.
@@ -53,6 +52,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HorrorRunIntegrationTests
     {
         private const string ScenePath = "Assets/Scenes/HorrorRun.unity";
@@ -235,14 +235,15 @@ namespace Worsen.Tests.Expedition
             }
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.ChooseThreat));
             AssertInputGate(input, false);
-            string[] roster = { "watcher", "rusher", "lurker", "hexer", "thorncaller" };
+            string[] roster = { "echo", "weaver", "ticking", "ram", "mannequin", "mimic", "blinder", "herald", "skip", "stare" };
             var retainedThreats = progression.Snapshot.Effects.ActiveThreatIds.ToArray();
-            string[] eligible = roster;
+            string[] eligible = roster.Where(id => ProgressionRosterUtility.Admits(id, round)).ToArray();
             string[] offered = progression.Snapshot.Choices.Select(choice => choice.Id).ToArray();
             Assert.That(offered.Length, Is.EqualTo(Math.Min(3, eligible.Length)), "Offer three hunters while enough remain.");
             Assert.That(offered.Distinct().Count(), Is.EqualTo(offered.Length));
-            Assert.That(offered.All(id => eligible.Contains(id)), Is.True, "Previously selected hunters remain eligible.");
-            // Keep this factory fixture on distinct bodies; duplicate factory support belongs to PLAN-016.
+            Assert.That(offered.All(id => eligible.Contains(id)), Is.True, "Only round-admitted hunters may be offered.");
+            Assert.That(retainedThreats.All(id => eligible.Contains(id)), Is.True, "Previously selected hunters remain eligible.");
+            // Deliberately select distinct bodies for this fixture's distinct-model assertions.
             string nextThreat = progression.Snapshot.Choices.First(choice => !retainedThreats.Contains(choice.Id)).Id;
             Assert.That(progression.ChooseThreat(nextThreat, progression.Snapshot.Revision), Is.True);
             Assert.That(progression.Snapshot.Effects.ActiveThreatIds, Is.EquivalentTo(retainedThreats.Concat(new[] { nextThreat })));
@@ -250,15 +251,25 @@ namespace Worsen.Tests.Expedition
             AssertInputGate(input, false);
             var retainedCurses = progression.Snapshot.Retained.Where(item => item.Kind == ProgressionChoiceKind.Curse).ToArray();
             Assert.That(progression.Snapshot.Choices.Count, Is.InRange(1, 3));
-            Assert.That(progression.Snapshot.Choices.All(choice => choice.SelectedCount == 0
-                && !retainedCurses.Any(item => item.Id == choice.Id)), Is.True);
+            var catalogue = Observe<ProgressionConfig>(progression, "config").EffectCatalogue;
+            Assert.That(catalogue, Is.Not.Null);
+            foreach (var choice in progression.Snapshot.Choices)
+            {
+                var entry = EffectCatalogueUtility.Find(catalogue, choice.Id);
+                Assert.That(entry, Is.Not.Null, choice.Id);
+                Assert.That(choice.SelectedCount, Is.EqualTo(retainedCurses.Where(item => item.Id == choice.Id).Sum(item => item.Count)), choice.Id);
+                Assert.That(EffectCatalogueUtility.Eligible(entry, round, progression.EffectsSnapshot.ActiveEffects), Is.True, choice.Id);
+            }
             // Keep this geometry/factory fixture independent of new Player health curse tuning.
             string nextCurse = progression.Snapshot.Choices.First(choice => choice.Id.StartsWith(nextThreat + "-", StringComparison.Ordinal)).Id;
-            if (retainedCurses.Length > 0)
-                Assert.That(progression.ChooseCurse(retainedCurses[0].Id, progression.Snapshot.Revision), Is.False);
+            var capped = retainedCurses.FirstOrDefault(item => item.Count >= EffectCatalogueUtility.Find(catalogue, item.Id).StackCap);
+            if (!string.IsNullOrEmpty(capped.Id))
+                Assert.That(progression.ChooseCurse(capped.Id, progression.Snapshot.Revision), Is.False);
             Assert.That(progression.ChooseCurse(nextCurse, progression.Snapshot.Revision), Is.True);
             Assert.That(progression.Snapshot.Retained.Where(item => item.Kind == ProgressionChoiceKind.Curse)
-                .All(item => item.Count == 1), Is.True, "Curses remain unique for the expedition.");
+                .All(item => item.Count == 1), Is.True, "This fixture selects one distinct curse per newly selected hunter.");
+            Assert.That(progression.Snapshot.Retained.Where(item => item.Kind == ProgressionChoiceKind.Curse).Select(item => item.Id),
+                Is.EquivalentTo(retainedCurses.Select(item => item.Id).Concat(new[] { nextCurse })));
             Assert.That(progression.Snapshot.Phase, Is.EqualTo(ProgressionPhase.Generating));
             AssertInputGate(input, false);
         }

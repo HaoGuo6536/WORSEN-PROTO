@@ -11,14 +11,14 @@
 //   DriverState (§7c) · Presentation · Horror.
 //
 // KEY RESPONSIBILITIES:
-//   - Retain injected effect identity view, torch count multiplier and Wick presentation flag.
-//   - Retain externally authoritative flashlight facts without owning gameplay light rules.
-//   - Retain run startle count/clock separately from floor resets and optional fog hooks.
-//   - Retain the exact camera, daylight, and render values to restore on release.
-//   - Retain owned Lumen effect handles and private profile clones for paired cleanup.
+//   - Store per-floor room phases and the raw and smoothed collapse fraction, separately from run hooks.
+//   - Retain the injected effect view, torch count multiplier, Wick flag and authoritative flashlight facts, without owning gameplay light rules.
+//   - Retain the run startle count and clock separately from floor resets and optional fog hooks.
+//   - Retain the exact camera, daylight and render values to restore on release.
+//   - Retain owned Lumen handles, private profiles and pooled physics buffers for paired cleanup.
 //
 // DEPENDENCIES:
-//   - Core EntityId; Unity rendering and Lumen references stored without operating on them.
+//   - Core EntityId/RoomPhase; Unity rendering and Lumen references stored without operating on them.
 //
 // USAGE NOTES:
 //   Owned by HorrorDriver; scene-owned and never shared with another system.
@@ -46,6 +46,9 @@ namespace Worsen.Presentation.Horror
         public float HookFogStartMultiplier = 1f;
         public IReadOnlyActiveEffects ActiveEffects;
         public float TorchCountMultiplier = 1f;
+        public readonly Dictionary<int, RoomPhase> CollapseRooms = new Dictionary<int, RoomPhase>();
+        public bool HasCollapseFloor;
+        public float CollapseFraction, SmoothedCollapseFraction;
         public bool Wick;
         public bool HasAuthoritativeFlashlight;
         public FlashlightSample AuthoritativeFlashlight;
@@ -87,8 +90,8 @@ namespace Worsen.Presentation.Horror
         public LumenEffectPlayer NearFill;
         public LumenEffectPlayer Afterimage;
         public readonly List<LumenEffectProfile> LightProfiles = new List<LumenEffectProfile>();
-        public readonly RaycastHit[] BeamHits = new RaycastHit[32];
-        public readonly Collider[] NearColliders = new Collider[32];
+        public RaycastHit[] BeamHits;
+        public Collider[] NearColliders;
         public float AfterimageRange;
         public float FlashlightRange;
         public float FlashlightBrightness;

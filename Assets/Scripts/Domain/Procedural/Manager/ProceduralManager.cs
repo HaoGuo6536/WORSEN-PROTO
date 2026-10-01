@@ -8,14 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Procedural (Service system).
 // KEY RESPONSIBILITIES:
-//   - Sequence seeded generation, physical construction and admission.
-//   - Publish immutable Core graph data and spawn value types for scene assembly.
-//   - Forward room destruction samples into owned masonry presentation.
-//   - Retry failed generation/builds and retain a separate fail-closed fallback journal.
-//   - Expose Core interactable snapshots and apply Level's routed state-change facts.
-//   - Publish primitive theme, threshold and optional puzzle facts for external routing.
-//   - Expose kind-free shrine sites only after physical floor admission; reset on teardown.
-//   - Publish opened Passage tiles, lined Core anchors and ordered per-tile collapse facts.
+//   - Sequence seeded generation, physical admission, bounded retries and no-floor failure.
+//   - Publish Core graphs, validated hunter capacity and future Passage gold counts.
+//   - Route destruction and interactable state into owned presentation.
+//   - Publish theme, threshold, puzzle and admitted shrine facts for external routing.
+//   - Publish Passage tiles, anchors and ordered collapse facts; reset on teardown.
 // DEPENDENCIES:
 //   - Core graph, interactable and destruction contracts; no Domain sibling calls.
 // USAGE NOTES:
@@ -47,6 +44,13 @@ namespace Worsen.Domain.Procedural
         public Vector3 PlayerSpawnPosition => _state.Layout?.PlayerSpawnPosition ?? Vector3.zero;
         public Quaternion PlayerSpawnRotation => _state.Layout?.PlayerSpawnRotation ?? Quaternion.identity;
         public IReadOnlyList<Vector3> HunterSpawnPositions => _state.Layout?.HunterSpawnPositions ?? Array.Empty<Vector3>();
+        public int ValidatedHunterSpawnCapacity => IsReady ? _state.Layout.ValidatedHunterSpawnCapacity : 0;
+        public int FuturePassageGoldenAnchorCount => IsReady ? _state.Layout.FuturePassageGoldenAnchorCount : 0;
+        public IReadOnlyList<Vector3> RoomLightSockets(int roomId)
+            => !IsReady ? null : _state.Layout.Interactables
+                .Where(p => p.State.RoomId == roomId && p.State.Kind == InteractableKind.Light).Select(p => p.State.Position).ToArray();
+        public IReadOnlyList<Vector3> RoomBoundary(int roomId)
+            => !IsReady ? null : ProceduralTemplateValidationUtility.PresentationBoundary(_state.Layout, roomId);
         public IReadOnlyList<GeneratedRoomSample> PresentationRooms => _state.Layout?.PresentationRooms ?? Array.Empty<GeneratedRoomSample>();
         public IReadOnlyList<ProceduralRoomModule> RoomModules => _state.Layout?.Modules ?? Array.Empty<ProceduralRoomModule>();
         public IReadOnlyList<ProceduralDoorPlan> Doors => _state.Layout?.Doors ?? Array.Empty<ProceduralDoorPlan>();
@@ -89,7 +93,7 @@ namespace Worsen.Domain.Procedural
             return true;
         }
 
-        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null)
+        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1)
         {
             Teardown();
             if (config != null) _config = config;
@@ -104,7 +108,7 @@ namespace Worsen.Domain.Procedural
                     new System.Random(ProceduralController.LayoutSeed(_state.AttemptSeed, roundIndex)));
                 try
                 {
-                    var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed);
+                    var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed, requiredHunterCount);
                     _driver.Build(layout, _config, _driverConfig, IsPuzzleActor);
                     generation.Succeed(layout.Manifest + layout.InteractableManifest);
                     _controller.Admit();

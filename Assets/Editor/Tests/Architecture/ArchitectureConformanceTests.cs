@@ -67,6 +67,7 @@ using UnityEngine;
 namespace Worsen.Tests.Architecture
 {
     [TestFixture]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ArchitectureConformanceTests
     {
         // --------------------------------------------------------------------

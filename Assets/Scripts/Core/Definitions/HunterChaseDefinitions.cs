@@ -49,7 +49,8 @@ namespace Worsen.Core
     {
         public HunterHit(EntityId hunter, EntityId target, int damage, long tick, Vector3 hunterPosition,
             ChaseEndReason reason = ChaseEndReason.Lunge, HitSeverity severity = HitSeverity.Heavy,
-            HitSource source = HitSource.Lunge)
+            HitSource source = HitSource.Lunge, Vector3 contactNormal = default,
+            bool ram = false, bool glancing = false, Vector3 knockback = default)
         {
             Hunter = hunter;
             Target = target;
@@ -59,6 +60,7 @@ namespace Worsen.Core
             Reason = reason;
             Severity = severity;
             Source = source;
+            ContactNormal = contactNormal; IsRam = ram; Glancing = glancing; Knockback = knockback;
         }
         public EntityId Hunter { get; }
         public EntityId Target { get; }
@@ -68,6 +70,10 @@ namespace Worsen.Core
         public ChaseEndReason Reason { get; }
         public HitSeverity Severity { get; }
         public HitSource Source { get; }
+        public Vector3 ContactNormal { get; }
+        public bool IsRam { get; }
+        public bool Glancing { get; }
+        public Vector3 Knockback { get; }
     }
     public readonly struct HunterSighting
     {

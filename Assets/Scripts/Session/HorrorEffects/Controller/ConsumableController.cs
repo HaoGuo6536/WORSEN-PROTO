@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Validate targets/restrictions, pause Gauze while still and expire speed bursts.
 //   - Require continuous face aim, spend one charge and recharge with Steady Hand.
-//   - Retain throws until an observed impact and publish oil/door/stun facts once.
+//   - Retain throws until impact and distinguish authorized firecrackers from world noise.
 // DEPENDENCIES:
 //   - Own BehaviorState/Config; immutable Core input, effect and world observations.
 // USAGE NOTES:
@@ -166,7 +166,8 @@ namespace Worsen.Session.HorrorEffects
         public bool Impact(int flightId, Vector3 point, long tick)
         {
             if (!state.Flights.Remove(flightId)) return false;
-            state.Noises.Add(new NoiseEvent(EntityId.None, point, config.FirecrackerLoudness, tick)); return true;
+            state.Noises.Add(new HorrorNoiseFact(new NoiseEvent(EntityId.None, point, config.FirecrackerLoudness,
+                tick, NoiseSourceKind.Firecracker, NoiseOrigin.Firecracker), HorrorNoiseOrigin.Firecracker)); return true;
         }
         public bool IsJammed(int door) => state.Jams.ContainsKey(door);
         public float DoorBreakSeconds => config.DoorBreakSeconds;
@@ -174,14 +175,21 @@ namespace Worsen.Session.HorrorEffects
         {
             if (!state.Jams.TryGetValue(door, out var jam)) return false;
             state.Jams.Remove(door); state.DoorFacts.Add(Jam(door, jam.Position, false));
-            if (broken) state.Noises.Add(new NoiseEvent(EntityId.None, jam.Position, config.DoorBreakLoudness, tick));
+            if (broken) state.Noises.Add(new HorrorNoiseFact(new NoiseEvent(EntityId.None, jam.Position,
+                config.DoorBreakLoudness, tick, NoiseSourceKind.Door, NoiseOrigin.World), HorrorNoiseOrigin.World));
             return true;
         }
         private DoorJamFact Jam(int id, Vector3 position, bool active) => new DoorJamFact(id, position, active ? config.DoorstopSeconds : 0f, config.DoorBreakSeconds, active);
         public HunterStunFact[] DrainStuns() { var result = state.Stuns.ToArray(); state.Stuns.Clear(); return result; }
         public HunterSlipFact[] DrainSlips() { var result = state.Slips.ToArray(); state.Slips.Clear(); return result; }
         public DoorJamFact[] DrainDoors() { var result = state.DoorFacts.ToArray(); state.DoorFacts.Clear(); return result; }
-        public NoiseEvent[] DrainNoises() { var result = state.Noises.ToArray(); state.Noises.Clear(); return result; }
+        public HorrorNoiseFact[] DrainNoiseFacts() { var result = state.Noises.ToArray(); state.Noises.Clear(); return result; }
+        public NoiseEvent[] DrainNoises()
+        {
+            var facts = DrainNoiseFacts(); var result = new NoiseEvent[facts.Length];
+            for (int i = 0; i < facts.Length; i++) result[i] = facts[i].Noise;
+            return result;
+        }
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         private static bool ValidAim(FlashlightSample aim) => aim.Source.IsValid && aim.Direction.sqrMagnitude > 0f;
         private static EntityId Face(FlashlightSample aim, IReadOnlyList<HunterFaceSample> hunters, float range, float cone)

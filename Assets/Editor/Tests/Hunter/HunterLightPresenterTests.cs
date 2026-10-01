@@ -23,6 +23,7 @@ using Worsen.Domain.Hunter;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterLightPresenterTests
     {
         private readonly HunterLightPresenter _presenter = new HunterLightPresenter();

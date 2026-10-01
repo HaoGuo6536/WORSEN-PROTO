@@ -1,0 +1,6 @@
+id: instantiate-only-in-allowed-types
+valid:
+  - 'class Logic { object Make() { return new State(); } }'
+invalid:
+  - 'class Logic { void Make() { Instantiate(prefab); } }'
+  - 'class Logic { void Make() { Object.Instantiate(prefab); } }'

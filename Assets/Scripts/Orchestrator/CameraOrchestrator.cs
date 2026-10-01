@@ -12,7 +12,7 @@
 //   - Forward accepted-hit and hand feedback; only confirmed consumption starts fog drag.
 //   - Pair event subscriptions with component lifetime and preserve ordinary death snaps.
 // DEPENDENCIES:
-//   - Session.Run and Presentation.Camera; Core payloads only.
+//   - Session.Run and its typed fact channels; Presentation.Camera; Core payloads only.
 // USAGE NOTES:
 //   Scene-owned; release subscriptions before scene cameras are destroyed. Setup provides serialized references before activation.
 //   Handlers contain no remembered gameplay state or engine work. Camera owns all
@@ -41,11 +41,11 @@ namespace Worsen.Orchestrator
             _camera.Initialize();
             _run.PlayerMovementPublished += OnMovement;
             _run.PlayerTraversalPublished += OnTraversal;
-            _run.TraversalProgressed += OnTraversalProgressed;
-            _run.PlayerStumbled += OnPlayerStumbled;
+            _run.PlayerFacts.TraversalProgressed += OnTraversalProgressed;
+            _run.PlayerFacts.PlayerStumbled += OnPlayerStumbled;
             _run.CaptureStarted += OnCaptureStarted;
             _run.ChaseStarted += OnChaseStarted;
-            _run.ProximityPublished += OnProximity;
+            _run.HunterFacts.ProximityPublished += OnProximity;
             _run.PlayerDied += OnDeath;
             _run.HitAccepted += OnHit;
             _run.CollapseHandPublished += OnCollapseHand;
@@ -55,11 +55,11 @@ namespace Worsen.Orchestrator
             if (_run == null) return;
             _run.PlayerMovementPublished -= OnMovement;
             _run.PlayerTraversalPublished -= OnTraversal;
-            _run.TraversalProgressed -= OnTraversalProgressed;
-            _run.PlayerStumbled -= OnPlayerStumbled;
+            _run.PlayerFacts.TraversalProgressed -= OnTraversalProgressed;
+            _run.PlayerFacts.PlayerStumbled -= OnPlayerStumbled;
             _run.CaptureStarted -= OnCaptureStarted;
             _run.ChaseStarted -= OnChaseStarted;
-            _run.ProximityPublished -= OnProximity;
+            _run.HunterFacts.ProximityPublished -= OnProximity;
             _run.PlayerDied -= OnDeath;
             _run.HitAccepted -= OnHit;
             _run.CollapseHandPublished -= OnCollapseHand;

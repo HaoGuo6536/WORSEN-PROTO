@@ -30,6 +30,7 @@ using Worsen.Editor.Hunter;
 using Object = UnityEngine.Object;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class HunterEchoIntegrationTests
     {
         [Test] public void DuplicateEchoesAcrossFactoriesHaveDistinctIdentitiesAndIndependentLives()

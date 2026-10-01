@@ -16,6 +16,7 @@
 // USAGE NOTES:
 //   Mirror asset: Resources/ScriptableObjects/Presentation/Environment/EnvironmentDriverConfig.
 //   Runtime never modifies this shared asset. Decoration cannot create collision.
+//   Chalk and panel shaders must be serialized by deterministic world setup.
 // ============================================================================
 using UnityEngine;
 
@@ -24,6 +25,10 @@ namespace Worsen.Presentation.Environment
     [CreateAssetMenu(fileName = "EnvironmentDriverConfig", menuName = "Worsen/Environment/Driver Config")]
     public sealed class EnvironmentDriverConfig : ScriptableObject
     {
+        [SerializeField] private Shader _chalkShader = null;
+        [SerializeField] private Shader _panelShader = null;
+        public Shader ChalkShader => _chalkShader;
+        public Shader PanelShader => _panelShader;
         [SerializeField] private Color _fluorescentColor = new Color(0.65f, 0.85f, 1f);
         [SerializeField] private Vector3 _fluorescentPanelSize = new Vector3(0.5f, 0.8f, 0.08f);
         [SerializeField, Range(0f, 0.2f)] private float _fluorescentFlickerDepth = 0.04f;

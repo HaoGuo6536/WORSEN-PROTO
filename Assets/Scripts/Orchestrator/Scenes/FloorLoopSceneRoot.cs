@@ -13,10 +13,13 @@
 //   - Initialize Level, spawn the Player and preserve the shared seeded source.
 //   - Supply the initialized Director with Level topology for region and noise inference.
 // DEPENDENCIES:
+//   - SharedSceneRoot centralizes common service, actor and catch wiring.
 //   - Session.Run/SceneFlow; Domain.Player/Level; Presentation Input, DebugOverlay,
 //     Camera, PostFX, Audio, HUD, Results and Telemetry. No per-frame gameplay work lives here.
 // USAGE NOTES:
 //   - Scene-owned. Setup wires all fields before the scene is played.
+//   - Compatibility layer (§6b): no Expedition is bound, so the Orchestrators'
+//     _expedition == null routes remain active for FloorLoop.
 //   - Start is this root's assembly entry point; it explicitly initializes its
 //     dependencies instead of depending on any other component's Start.
 //   - Static readiness announces a scene to persistent subscribers and resets
@@ -84,42 +87,11 @@ namespace Worsen.Orchestrator
 
         private void Start()
         {
-            _run = _run != null ? _run.Initialize(_seed) : RunSessionManager.Instance;
-            _sceneFlow = _sceneFlow != null ? _sceneFlow.Initialize() : SceneFlowManager.Instance;
-            _input = _input != null ? _input.Initialize() : InputManager.Instance;
-            _overlay = _overlay != null ? _overlay.Initialize() : DebugOverlayManager.Instance;
-            if (_run == null || _sceneFlow == null || _input == null || _overlay == null)
-            {
-                Debug.LogError("FloorLoop bootstrap is unwired. Run Worsen/Scenes/2 — Build FloorLoop.", this);
-                return;
-            }
-            if (_level == null || _playerFactory == null || _playerProfile == null ||
-                _camera == null || _postFX == null || _telemetry == null)
-            {
-                Debug.LogError("FloorLoop movement wiring is missing. Rebuild FloorLoop.", this);
-                return;
-            }
-            _telemetry = _telemetry.Initialize();
-            if (_hunterFactory == null || _hunterProfile == null || _chase == null || _chaseConfig == null ||
-                _audio == null || _hud == null || _results == null)
-                throw new InvalidOperationException("FloorLoop chase/feedback wiring is missing. Rebuild FloorLoop.");
-            _audio = _audio.Initialize();
-            _hud.Initialize();
-            _results.Initialize();
-            _run.ConfigureCapture(_sourceRevision, _configSnapshotHash);
-            _run.PrepareScene(SceneKey.FloorLoop);
-            _level.Initialize();
-            _camera.Initialize();
-            _postFX.Initialize();
-            if (!_camera.IsReady || !_postFX.IsReady) throw new InvalidOperationException("Camera/PostFX initialization failed; rebuild FloorLoop.");
-            _results.GetComponent<ResultsOrchestrator>()?.ConfigureCatch(_camera);
-            _audio.GetComponent<AudioOrchestrator>()?.ConfigureCatch(_camera);
-            _playerFactory.Configure(_playerProfile, _run.RandomSource);
-            var playerId = _playerFactory.Spawn(new SpawnRequest(_playerProfile.ArchetypeKey, _spawnPosition, Quaternion.Euler(0f, 90f, 0f)));
-            if (!PlayerRegistry.TryGet(playerId, out var player)) throw new InvalidOperationException("Player registration failed.");
-            _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
-            _hunterFactory.Spawn(new SpawnRequest(_hunterProfile.ArchetypeKey, _hunterSpawnPosition, Quaternion.Euler(0f, 270f, 0f)));
-            _chase.Initialize(_chaseConfig, player.ReadOnlyState);
+            if (!SharedSceneRoot.TryAssembleCompatibility(SceneKey.FloorLoop, "Worsen/Scenes/2 — Build FloorLoop", this,
+                _seed, ref _run, ref _sceneFlow, ref _input, ref _overlay, ref _telemetry, ref _audio,
+                _level, _playerFactory, _playerProfile, _spawnPosition, _camera, _postFX,
+                _hunterFactory, _hunterProfile, _hunterSpawnPosition, _chase, _chaseConfig, _hud,
+                _results, _sourceRevision, _configSnapshotHash, out var player)) return;
             if (_floor == null || _floorConfig == null || _director == null || _directorConfig == null)
                 throw new InvalidOperationException("Floor progression or Director wiring is missing. Rebuild FloorLoop.");
             _run.BindGameplay(_chase, _floor, _director);
@@ -131,8 +103,7 @@ namespace Worsen.Orchestrator
         }
         private void OnDestroy()
         {
-            if (_results != null) _results.GetComponent<ResultsOrchestrator>()?.ConfigureCatch(null);
-            if (_audio != null) _audio.GetComponent<AudioOrchestrator>()?.ClearCatch();
+            SharedSceneRoot.ClearCatch(_results, _audio, clearExpansion: false);
             if (_assembled && _run != null) _run.SuspendForSceneLoad();
         }
     }

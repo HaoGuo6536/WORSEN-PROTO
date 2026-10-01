@@ -16,6 +16,7 @@
 //   - Import only the generated files before config wiring resolves their clips.
 //
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor imports audio assets; System math and seeded randomness synthesize samples.
 //
 // USAGE NOTES:
@@ -55,15 +56,7 @@ namespace Worsen.Editor.Audio
         }
 
         private static void EnsureFolder()
-        {
-            string folder = "Assets";
-            foreach (string part in new[] { "Resources", "Audio", "Presentation", "Audio" })
-            {
-                string next = folder + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(folder, part);
-                folder = next;
-            }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(AudioFolder);
 
         private static void WriteMissing(string name, int kind, double seconds)
         {

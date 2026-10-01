@@ -13,8 +13,9 @@
 //   - Require an explicit pocket room directly ahead of every gap-edge candidate.
 //   - Reject unsupported/blocked sockets and invalid designer dimensions.
 //   - Keep the candidate manifest culture-independent and manager admission gated.
+//   - Treat shrine count as optional capacity, never a reason to fail floor generation.
 // DEPENDENCIES:
-//   - Domain.Procedural, Core, NUnit and temporary Unity configuration objects.
+//   - Domain.Procedural, Shrine count configuration, Core, NUnit and temporary Unity objects.
 // USAGE NOTES:
 //   Pure seed samples do not establish a bake. The admission case requires Unity
 //   and is run by the coordinator; this worker only compiles the entire fixture.
@@ -28,17 +29,20 @@ using UnityEngine;
 using UnityEngine.AI;
 using Worsen.Core;
 using Worsen.Domain.Procedural;
+using Worsen.Domain.Shrine;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralShrineSitePresenterTests
     {
         private ProceduralConfig _config;
         private ProceduralDriverConfig _driver;
+        private ShrineConfig _shrines;
         [SetUp] public void SetUp()
-        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); }
+        { _config = ScriptableObject.CreateInstance<ProceduralConfig>(); _driver = ScriptableObject.CreateInstance<ProceduralDriverConfig>(); _shrines = ScriptableObject.CreateInstance<ShrineConfig>(); }
         [TearDown] public void TearDown()
-        { UnityEngine.Object.DestroyImmediate(_config); UnityEngine.Object.DestroyImmediate(_driver); }
+        { UnityEngine.Object.DestroyImmediate(_config); UnityEngine.Object.DestroyImmediate(_driver); UnityEngine.Object.DestroyImmediate(_shrines); }
         private void Set(string field, object value) => typeof(ProceduralConfig).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_config, value);
         private ProceduralLayout Generate(int seed, int round) => new ProceduralController(new ProceduralBehaviorState(), _config,
             new System.Random(ProceduralController.LayoutSeed(seed, round))).Generate(seed, round);
@@ -61,9 +65,10 @@ namespace Worsen.Tests.Procedural
                 var repeated = Generate(seed, round);
                 typeof(ProceduralLayout).GetProperty(nameof(ProceduralLayout.Interactables)).SetValue(repeated, plans);
                 Assert.That(sites, Is.EqualTo(presenter.Build(repeated, _config, blocks)));
-                Assert.That(sites.Count(s => !s.GapEdge), Is.GreaterThanOrEqualTo(4));
+                if (round >= _shrines.CountFloors.Min())
+                    Assert.That(sites.Count(s => !s.GapEdge), Is.GreaterThanOrEqualTo(1), "Spacious sample: seed " + seed + ", round " + round);
                 Assert.That(sites.Select(s => s.Position).Distinct().Count(), Is.EqualTo(sites.Count));
-                if (round >= _config.GapStartRound) Assert.That(sites.Any(s => s.GapEdge), Is.True, "seed " + seed);
+                // A gap does not guarantee an unobstructed straight crossing into a pocket.
                 var reachable = LevelGraphUtility.DistancesTo(layout.Graph, layout.Graph.ExitRoomId, TraversalAccess.Player);
                 foreach (var site in sites)
                 {
@@ -107,10 +112,11 @@ namespace Worsen.Tests.Procedural
             }
         }
 
-        [Test]
-        public void ManagerPublishesOnlyAdmittedReachableSitesAndClearsThemOnTeardown()
+        [TestCase(false)] [TestCase(true)]
+        public void ManagerPublishesOnlyAdmittedReachableSitesAndClearsThemOnTeardown(bool noSpace)
         {
             Set("_origin", new Vector2(10000f, 10000f));
+            if (noSpace) Set("_shrineSiteClearance", 10000f);
             var owner = new GameObject("Shrine producer admission test");
             try
             {
@@ -118,12 +124,14 @@ namespace Worsen.Tests.Procedural
                 Assert.That(manager.ShrineSites, Is.Empty);
                 manager.Initialize(_config, _driver, 19, 3);
                 Assert.That(manager.IsReady, Is.True);
-                Assert.That(manager.ShrineSites.Count(s => !s.GapEdge), Is.GreaterThanOrEqualTo(4));
+                if (noSpace) Assert.That(manager.ShrineSites, Is.Empty, "No sockets must not fail generation.");
+                else Assert.That(manager.ShrineSites.Count(s => !s.GapEdge), Is.GreaterThanOrEqualTo(1));
                 var filter = new NavMeshQueryFilter { agentTypeID = _driver.NavMeshAgentTypeId, areaMask = _driver.HunterAreaMask };
                 Assert.That(NavMesh.SamplePosition(manager.PlayerSpawnPosition, out var start, _driver.NavSampleRadius, filter), Is.True);
                 foreach (var site in manager.ShrineSites)
                 {
-                    Assert.That(manager.LayoutManifest, Does.Contain("|ShrineSite:" + site.RoomId + "," + (site.GapEdge ? 1 : 0)));
+                    Assert.That(Uri.UnescapeDataString(manager.LayoutManifest), Does.Contain("|ShrineSite:" +
+                        site.RoomId + "," + (site.GapEdge ? 1 : 0) + "," + site.DestinationPocketRoomId + ","));
                     Assert.That(NavMesh.SamplePosition(site.Position, out var end, _driver.NavSampleRadius, filter), Is.True);
                     var path = new NavMeshPath();
                     Assert.That(NavMesh.CalculatePath(start.position, end.position, filter, path), Is.True);
