@@ -6,6 +6,7 @@
 #   Offline audio tooling utility; outside Unity runtime and editor assemblies.
 # KEY RESPONSIBILITIES:
 #   Loads one model, checks input hashes, runs sequential inference, and releases GPU memory.
+#   Records optional per-candidate fit questions alongside each unmodified response.
 # DEPENDENCIES:
 #   PyTorch, torchaudio, Transformers, NumPy, Soundfile, official MOSS source, and moss_paths.
 # USAGE NOTES:
@@ -61,12 +62,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--coordinator-admitted", action="store_true", help="Only after the coordinator reserves a non-Playtest GPU window.")
     parser.add_argument("--limit", type=int, default=12)
+    parser.add_argument("--questions", type=Path, help="Optional JSON candidate-id to fit-question map; selected ids must all be present.")
     args = parser.parse_args()
     if not args.coordinator_admitted:
         raise RuntimeError("GPU admission must be coordinated before model loading.")
     if not (RESULT / "model-files.json").exists():
         raise RuntimeError("Pinned model download/hash verification has not completed.")
     candidates = json.loads((RESULT / "candidates.json").read_text(encoding="utf-8"))["candidates"][:args.limit]
+    questions = json.loads(args.questions.read_text(encoding="utf-8-sig")) if args.questions else {}
+    if args.questions and (not isinstance(questions, dict) or any(
+            not isinstance(questions.get(c["id"]), str) or not questions[c["id"]].strip() for c in candidates)):
+        raise ValueError("Every selected candidate needs a nonempty fit question.")
     torch.set_num_threads(4)
     torch.set_num_interop_threads(2)
     torch.manual_seed(0)
@@ -90,6 +96,7 @@ def main():
         "dtype": "bfloat16", "language_attention": "sdpa", "audio_attention": "eager",
         "batch_size": 1, "max_new_tokens": 220, "do_sample": False, "seed": 0,
         "prompt": PROMPT, "audio_io": "soundfile float32 WAV decode; mean channels; torchaudio functional resample to processor mel_sr",
+        "candidate_questions": questions,
         "audio_upload": False, "human_listened": False,
     }
     persist("inference-provenance.json", provenance)
@@ -120,7 +127,8 @@ def main():
         if rate != processor.config.mel_sr:
             waveform = torchaudio.functional.resample(waveform, rate, processor.config.mel_sr)
         raw = waveform.numpy()
-        inputs = processor(text=PROMPT, audios=[raw], return_tensors="pt").to(model.device)
+        prompt = questions.get(candidate["id"], PROMPT)
+        inputs = processor(text=prompt, audios=[raw], return_tensors="pt").to(model.device)
         if inputs.get("audio_data") is not None:
             inputs["audio_data"] = inputs["audio_data"].to(model.dtype)
         inputs["audio_input_mask"] = inputs["input_ids"] == processor.audio_token_id
@@ -136,7 +144,7 @@ def main():
         except (ValueError, json.JSONDecodeError):
             parsed = None
         result = dict(candidate)
-        result.update({"model_output": text, "parsed_output": parsed, "prompt": PROMPT,
+        result.update({"model_output": text, "parsed_output": parsed, "prompt": prompt,
             "model_revision": provenance["model_revision"], "source_commit": provenance["source_commit"],
             "processed_mono_float32_sha256": hashlib.sha256(raw.tobytes()).hexdigest(),
             "processed_sample_rate": processor.config.mel_sr, "input_tokens": input_len,

@@ -14,7 +14,7 @@
 //   - Verify ordinary pickups never become combo stings, and removed cues stay silent.
 //   - Verify per-action mapping and duplicate suppression.
 //   - Cover every typed progression operation, including intentionally silent transactions.
-//   - Verify silence-first posture/health/projectile removal and retained traversal facts.
+//   - Verify silent initialization/death, admitted injury and bounded collapse transitions.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -35,16 +35,16 @@ namespace Worsen.Tests.Audio
     public sealed class AudioFeedbackPresenterTests
     {
         [Test]
-        public void HealthOwnsOneHitOrDeathRegardlessOfHunterAndHandFeedbackOrder()
+        public void HealthOwnsInjuryWhileHandImpactIsDistinctAndDeathWaitsForCatch()
         {
             var presenter = new AudioFeedbackPresenter(); var state = new AudioFeedbackDriverState(); var player = new EntityId(1);
             presenter.Health(state, player, 100, 100);
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.AttackHit, Vector3.zero, 10)); Assert.That(state.Commands, Is.Empty);
-            presenter.Health(state, player, 90, 100); Assert.That(state.Commands, Is.Empty);
-            presenter.Health(state, player, 80, 100); Assert.That(state.Commands, Is.Empty, "Embodiment replaces injury stings.");
+            presenter.Health(state, player, 90, 100); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
+            presenter.Health(state, player, 80, 100); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.AttackHit, Vector3.zero, 11)); Assert.That(state.Commands, Is.Empty);
-            presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Hit, Vector3.zero, 1, 10, 12)); Assert.That(state.Commands, Is.Empty);
-            presenter.Health(state, player, 70, 100); Assert.That(state.Commands, Is.Empty);
+            presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Hit, Vector3.zero, 1, 10, 12)); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.GrabHit));
+            presenter.Health(state, player, 70, 100); Assert.That(state.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
             presenter.Hand(state, new CollapseHandFact(player, 3, CollapseHandEventKind.Consumed, Vector3.zero, 1, 100, 13)); Assert.That(state.Commands, Is.Empty);
             presenter.Health(state, player, 0, 100); Assert.That(state.Commands, Is.Empty);
             presenter.Hunter(state, new HunterFeedbackEvent(new EntityId(2), "rusher", HunterFeedbackKind.Scream, Vector3.zero, 14)); Assert.That(state.Commands, Is.Empty);
@@ -180,7 +180,8 @@ namespace Worsen.Tests.Audio
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState(); var id = new EntityId(1);
             p.Health(s, id, 100, 100); Assert.That(s.Commands, Is.Empty);
-            p.Health(s, id, 20, 100); Assert.That(s.Commands, Is.Empty); Assert.That(s.IsCritical, Is.True);
+            p.Health(s, id, 20, 100); Assert.That(s.Commands.Count, Is.EqualTo(1));
+            Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit)); Assert.That(s.IsCritical, Is.True);
             p.Health(s, id, 20, 100); Assert.That(s.Commands, Is.Empty);
             p.Health(s, id, 40, 100); Assert.That(s.Commands, Is.Empty); Assert.That(s.IsCritical, Is.False);
         }
@@ -228,15 +229,48 @@ namespace Worsen.Tests.Audio
             p.Hunter(s, new HunterFeedbackEvent(new EntityId(1), "hexer", HunterFeedbackKind.ProjectileMoved, Vector3.right * 2, 4, 2, 1)); Assert.That(s.Commands, Is.Empty);
         }
         [Test]
-        public void CollapseRepeatsCracksOnlyAtProgressIntervalsAndReleasesMistOnConsumption()
+        public void CollapsePhasesEmitOncePerRoomWithoutAnotherPulseOrLoopClock()
         {
             var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState();
             p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, 0), Vector3.zero); Assert.That(s.Commands, Is.Empty);
             p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, .01f), Vector3.zero); Assert.That(s.Commands, Is.Empty);
             p.Room(s, new RoomDestructionSample(3, RoomPhase.Telegraph, .21f), Vector3.zero); Assert.That(s.Commands, Is.Empty);
-            p.Room(s, new RoomDestructionSample(3, RoomPhase.Encroaching, .5f), Vector3.zero); Assert.That(s.Commands, Is.Empty);
-            p.Room(s, new RoomDestructionSample(3, RoomPhase.Closed, 1), Vector3.zero); Assert.That(s.Commands, Is.Empty);
-            Assert.That(s.Rooms[3].Phase, Is.EqualTo(RoomPhase.Closed), "World-mix scheduling owns the sole room cue.");
+            foreach (var pair in new[] { (RoomPhase.Tearing, CueId.RoomTear), (RoomPhase.Encroaching, CueId.MistAdvance), (RoomPhase.Closed, CueId.RoomConsumed) })
+            foreach (int room in new[] { 3, 4 })
+            {
+                var fact = new RoomDestructionSample(room, pair.Item1, .5f);
+                p.Room(s, fact, Vector3.right * room);
+                Assert.That(s.Commands.Count, Is.EqualTo(1)); Assert.That(s.Commands[0].Cue, Is.EqualTo(pair.Item2));
+                Assert.That(s.Commands[0].Emitter, Is.EqualTo(room)); Assert.That(s.Commands[0].Position, Is.EqualTo(Vector3.right * room));
+                p.Room(s, fact, Vector3.right * room); Assert.That(s.Commands, Is.Empty);
+            }
+            Assert.That(s.Rooms[3].Phase, Is.EqualTo(RoomPhase.Closed));
+        }
+        [TestCase(CollapseHandEventKind.Warning, CueId.GrabWarning)]
+        [TestCase(CollapseHandEventKind.Grabbed, CueId.GrabStart)]
+        [TestCase(CollapseHandEventKind.Hit, CueId.GrabHit)]
+        [TestCase(CollapseHandEventKind.Escaped, CueId.GrabEscape)]
+        public void HandTransitionsRetainRoomPositionAndDeduplicate(CollapseHandEventKind kind, CueId cue)
+        {
+            var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState();
+            foreach (int room in new[] { 3, 4 })
+            {
+                var fact = new CollapseHandFact(new EntityId(1), room, kind, Vector3.right * room, 1, 10, 7);
+                p.Hand(s, fact); Assert.That(s.Commands.Count, Is.EqualTo(1));
+                Assert.That(s.Commands[0].Cue, Is.EqualTo(cue)); Assert.That(s.Commands[0].Emitter, Is.EqualTo(room));
+                Assert.That(s.Commands[0].Position, Is.EqualTo(fact.Position));
+                p.Hand(s, fact); Assert.That(s.Commands, Is.Empty);
+            }
+        }
+        [Test] public void InvalidAndRepeatedHealthCannotProduceHitOrPoisonNextObservation()
+        {
+            var p = new AudioFeedbackPresenter(); var s = new AudioFeedbackDriverState(); var id = new EntityId(1);
+            p.Health(s, id, 100, 100);
+            p.Health(s, id, float.NaN, 100); Assert.That(s.Commands, Is.Empty);
+            p.Health(s, id, 90, 100); Assert.That(s.Commands[0].Cue, Is.EqualTo(CueId.PlayerHit));
+            p.Health(s, id, 90, 100); Assert.That(s.Commands, Is.Empty);
+            p.Health(s, default, 80, 100); Assert.That(s.Commands, Is.Empty);
+            p.Health(s, id, 0, 100); Assert.That(s.Commands, Is.Empty);
         }
         [Test]
         public void EveryOperationPreservesShopCueAndDuplicateSuppression([Values] ProgressionOperation operation)

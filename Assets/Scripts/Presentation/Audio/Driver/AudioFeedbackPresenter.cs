@@ -12,7 +12,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Scale landing impacts by committed stumble severity and sliding friction by actual turn rate.
-//   - Keep posture, exertion and health changes silent; embodiment owns breathing.
+//   - Keep posture/exertion silent; emit injury and deduplicated hand/room transitions.
 //   - Admit one death sting only at catch hold start and one physical exit-opening cue.
 //   - Route typed shop operations and pickups without changing gameplay or cue cadence.
 //   - Suppress initialization damage and repeated same-event sounds.
@@ -112,17 +112,38 @@ namespace Worsen.Presentation.Audio
         }
         public void Hand(AudioFeedbackDriverState state, CollapseHandFact fact)
         {
-            state.Commands.Clear(); // Room pulses and grace embodiment replace the hand layers.
+            state.Commands.Clear();
+            if (!fact.PlayerId.IsValid || !Fresh(state, fact.RoomId, 300 + (int)fact.Kind, fact.Tick)) return;
+            switch (fact.Kind)
+            {
+                case CollapseHandEventKind.Warning: Add(state, CueId.GrabWarning, fact.Position, fact.RoomId); break;
+                case CollapseHandEventKind.Grabbed: Add(state, CueId.GrabStart, fact.Position, fact.RoomId); break;
+                case CollapseHandEventKind.Hit: Add(state, CueId.GrabHit, fact.Position, fact.RoomId); break;
+                case CollapseHandEventKind.Escaped: Add(state, CueId.GrabEscape, fact.Position, fact.RoomId); break;
+                // Release is cleanup; consumed waits for the confirmed catch-hold sting.
+            }
         }
         public void Room(AudioFeedbackDriverState state, RoomDestructionSample sample, Vector3 position)
         {
             state.Commands.Clear();
+            bool changed = !state.Rooms.TryGetValue(sample.RoomId, out var previous) || previous.Phase != sample.Phase;
             state.Rooms[sample.RoomId] = sample;
-            // AudioWorldMixPresenter is the sole collapse pulse clock.
+            if (!changed) return;
+            // AudioWorldMixPresenter remains the sole warning pulse clock. These
+            // are bounded one-shots on phase edges, not another per-room loop.
+            switch (sample.Phase)
+            {
+                case RoomPhase.Tearing: Add(state, CueId.RoomTear, position, sample.RoomId); break;
+                case RoomPhase.Encroaching: Add(state, CueId.MistAdvance, position, sample.RoomId); break;
+                case RoomPhase.Closed: Add(state, CueId.RoomConsumed, position, sample.RoomId); break;
+            }
         }
         public void Health(AudioFeedbackDriverState state, EntityId player, float health, float maximum)
         {
             state.Commands.Clear();
+            if (!player.IsValid || float.IsNaN(health) || float.IsInfinity(health)) return;
+            if (state.Health.TryGetValue(player.Value, out float previous) && health > 0f && health < previous)
+                Add(state, CueId.PlayerHit);
             state.Health[player.Value] = health;
             state.IsAlive = health > 0f; state.IsCritical = health > 0f && health <= maximum * .25f;
             if (!state.IsAlive) state.IsSprinting = false;
