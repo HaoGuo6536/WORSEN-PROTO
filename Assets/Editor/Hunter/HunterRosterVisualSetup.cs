@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Validate manifests with a managed parser and convert authored sRGB colours.
 //   - Import project rigs and resolve six clips without editing vendor sources.
-//   - Create project materials and fit visible geometry, not collision capsules.
+//   - Finalize imported project materials and fit/ground visible geometry.
 //   - Reuse legacy wiring and bind ten distinct, stable-identity prefabs.
 //   - Fail the setup gate on missing content, invalid wiring or logged errors.
 // DEPENDENCIES:
@@ -32,6 +32,7 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Worsen.Domain.Hunter;
 using Object = UnityEngine.Object;
 
@@ -42,9 +43,10 @@ namespace Worsen.Editor.Hunter
         public const string Summary = "Hunter roster visuals: 10 distinct prefabs; 7 project Generic imports; 3 pack bodies; 60 clips resolved; motor collision and gameplay tuning unchanged.";
         public const float PackDarkening = 0.55f;
         public const float PrototypeSmoothness = 0.25f;
+        public const float VisualHeightRelativeTolerance = 0.005f;
+        public const float VisualFootTolerance = 0.005f;
         public const string CakeMaterialPath = "Assets/Art/Horror/Cake/CakeSlice.mat";
         private const string Bundle = "Assets/External/NHance/Creatures/StylizedCreaturesBundle/";
-        private const string Kobolds = "Assets/External/NHance/Creatures/KoboldPack/";
         private static readonly string[] Roles = { "idle", "walk", "run", "ready", "attack", "hit" };
         public static IReadOnlyList<string> Names { get; } = Array.AsReadOnly(new[]
             { "Echo", "Weaver", "Ticking", "Ram", "Skip", "Mimic", "Blinder", "Herald", "Mannequin", "Stare" });
@@ -202,8 +204,10 @@ namespace Worsen.Editor.Hunter
                     entry.Model = Bundle + "Meshes/ForestImp/ForestImp.fbx";
                     entry.SourcePath = SelectPackPrefab(Bundle + "Prefabs/ForestImp", entry.Model); entry.Height = 1.2f; break;
                 case "Blinder":
-                    entry.Model = Kobolds + "Meshes/KoboldThief/Kobold_Thief.fbx";
-                    entry.SourcePath = SelectPackPrefab(Kobolds + "Prefabs/KoboldThief", entry.Model); entry.Height = 1.5f; break;
+                    // Goblin, not the Kobold Thief: the Kobold pack is Humanoid-rigged and this pipeline needs a
+                    // Generic avatar (batch 14 setup failure). The Goblin is the proven legacy lurker body.
+                    entry.Model = Bundle + "Meshes/Goblin/GoblinMale.fbx";
+                    entry.SourcePath = SelectPackPrefab(Bundle + "Prefabs/GoblinMale", entry.Model); entry.Height = 1.5f; break;
                 default:
                     entry.Manifest = ParseManifest(File.ReadAllText(ManifestPath(name)), name);
                     entry.Height = entry.Manifest.Height;
@@ -270,8 +274,8 @@ namespace Worsen.Editor.Hunter
             if (entry.Avatar == null || !entry.Avatar.isValid || entry.Avatar.isHuman)
                 throw new InvalidOperationException(entry.Name + " requires a valid Generic avatar.");
             string[] names = entry.Name == "Ram" ? new[] { "Idle_Unarmed", "Walk_Unarmed", "run", "Ready_Unarmed", "Attack_Unarmed", "Hit_Unarmed" } :
-                entry.Name == "Skip" ? new[] { "idle", "walk", "run", "Ready", "attack", "hit" } :
-                entry.Name == "Blinder" ? new[] { "idle", "Walk_Forward", "Run_Forward", "Spell_Unarmed_Ready", "Spell_Unarmed_Forward_End", "Combat_Unarmed_Hit" } : Roles;
+                (entry.Name == "Skip" || entry.Name == "Blinder") ? new[] { "idle", "walk", "run", "Ready", "attack", "hit" } :
+                Roles;
             AnimationClip[] clips = AssetDatabase.LoadAllAssetsAtPath(entry.Model).OfType<AnimationClip>().ToArray();
             entry.Clips = names.Select(name =>
             {
@@ -305,12 +309,14 @@ namespace Worsen.Editor.Hunter
                 // geometry after the legacy helper, so a long attack never shrinks the idle body.
                 Bounds bounds = MeasureVisualBounds(creature);
                 float scale = entry.Height / bounds.size.y;
-                Vector3 origin = creature.transform.position;
-                Vector3 foot = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
-                creature.transform.localScale *= scale; creature.transform.position -= (foot - origin) * scale;
+                creature.transform.localScale *= scale;
+                bounds = MeasureVisualBounds(creature);
+                // The legacy fit has already moved the creature origin. Subtracting a
+                // scaled (foot - origin) again grounds at that old origin, not the root.
+                // Measure after scaling and translate the actual feet to the root instead.
+                creature.transform.position += root.transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
                 ApplyMaterials(entry, creature);
-                if (Math.Abs(MeasureVisualBounds(creature).size.y / entry.Height - 1f) > 0.05f)
-                    throw new InvalidOperationException(entry.Name + " visual height is outside tolerance.");
+                ValidateVisualFit(entry, root);
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
                 if (prefab == null) throw new InvalidOperationException("Could not save " + path);
                 var serialized = new SerializedObject(entry.Profile);
@@ -318,6 +324,19 @@ namespace Worsen.Editor.Hunter
                 serialized.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(entry.Profile);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
+            // Acceptance is about saved content, not just the transient fitting instance.
+            root = PrefabUtility.LoadPrefabContents(path);
+            try { ValidateVisualFit(entry, root); }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+        private static void ValidateVisualFit(Entry entry, GameObject root)
+        {
+            Bounds bounds = MeasureVisualBounds(root.transform.Find("Imported Creature").gameObject);
+            if (Math.Abs(bounds.size.y / entry.Height - 1f) > VisualHeightRelativeTolerance ||
+                Math.Abs(bounds.min.y - root.transform.position.y) > VisualFootTolerance)
+                throw new InvalidOperationException(entry.Name + " visual fit failed: height=" + bounds.size.y.ToString("0.######") +
+                    " m, target=" + entry.Height.ToString("0.######") + " m, foot offset=" +
+                    (bounds.min.y - root.transform.position.y).ToString("0.######") + " m.");
         }
         public static Bounds MeasureVisualBounds(GameObject visual)
         {
@@ -329,6 +348,9 @@ namespace Worsen.Editor.Hunter
                 try
                 {
                     if (renderer is SkinnedMeshRenderer skin)
+                    // BakeMesh(mesh) already yields world-scale offsets in the renderer's axes, so map them with
+                    // position and rotation only; TransformPoint applied the scale twice (batch 15: the Satyr,
+                    // lossy scale 0.394, measured 1.21 m instead of 3.06 m; verified against renderer bounds).
                     { mesh = new Mesh(); temporary = true; skin.BakeMesh(mesh); }
                     else if (renderer is MeshRenderer) mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
                     if (mesh == null) throw new InvalidOperationException("Visible renderer has no measurable mesh: " + renderer.name);
@@ -336,7 +358,10 @@ namespace Worsen.Editor.Hunter
                     Bounds local = mesh.bounds;
                     for (int i = 0; i < 8; i++)
                     {
-                        Vector3 point = renderer.transform.TransformPoint(local.center + Vector3.Scale(local.extents,
+                        Matrix4x4 toWorld = renderer is SkinnedMeshRenderer
+                            ? Matrix4x4.TRS(renderer.transform.position, renderer.transform.rotation, Vector3.one)
+                            : renderer.transform.localToWorldMatrix;
+                        Vector3 point = toWorld.MultiplyPoint3x4(local.center + Vector3.Scale(local.extents,
                             new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
                         if (!found) { bounds = new Bounds(point, Vector3.zero); found = true; } else bounds.Encapsulate(point);
                     }
@@ -403,7 +428,7 @@ namespace Worsen.Editor.Hunter
                 material.shader = cake.shader; material.CopyPropertiesFromMaterial(cake);
             }
             material.name = spec.Name; material.enableInstancing = true;
-            EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material); return material;
+            return ValidateAndSaveMaterial(material);
         }
         private static Texture2D Texture(string hunter, string name)
         {
@@ -422,7 +447,50 @@ namespace Worsen.Editor.Hunter
             material.SetColor(tint, new Color(color.r * PackDarkening, color.g * PackDarkening, color.b * PackDarkening, color.a));
             if (material.HasProperty("_EmissionColor")) material.SetColor("_EmissionColor", source.GetColor("_EmissionColor") * PackDarkening);
             material.name = hunter + "_" + source.name;
-            EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material); return material;
+            return ValidateAndSaveMaterial(material);
+        }
+        private static Material ValidateAndSaveMaterial(Material material)
+        {
+            string path = AssetDatabase.GetAssetPath(material);
+            // URP MaterialPostprocessor.OnPostprocessAllAssets owns AssetVersion creation
+            // and upgrades (MaterialPostprocessor.cs:144-200), not ShaderGUI validation.
+            // Finish that import before persisting defaults or handing a material to a prefab.
+            EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            material = Require<Material>(path);
+            // Older pack materials omit newer shader defaults (notably _XRMotionVectorsPass).
+            // Persist effective values on the imported object, not its pre-import instance.
+            // Getters preserve authored overrides and supply shader defaults for missing slots.
+            Shader shader = material.shader;
+            for (int i = 0; i < shader.GetPropertyCount(); i++)
+            {
+                string property = shader.GetPropertyName(i);
+                switch (shader.GetPropertyType(i))
+                {
+                    case ShaderPropertyType.Float:
+                    case ShaderPropertyType.Range: material.SetFloat(property, material.GetFloat(property)); break;
+                    case ShaderPropertyType.Int: material.SetInteger(property, material.GetInteger(property)); break;
+                    case ShaderPropertyType.Color: material.SetColor(property, material.GetColor(property)); break;
+                    case ShaderPropertyType.Vector: material.SetVector(property, material.GetVector(property)); break;
+                    case ShaderPropertyType.Texture:
+                        material.SetTexture(property, material.GetTexture(property));
+                        material.SetTextureScale(property, material.GetTextureScale(property));
+                        material.SetTextureOffset(property, material.GetTextureOffset(property)); break;
+                }
+            }
+            // Dispatch through UnityEditor so URP's shader-specific keyword/pass/render-state
+            // validation runs without a new assembly reference or touching the vendor material.
+            var editor = (MaterialEditor)UnityEditor.Editor.CreateEditor(material, typeof(MaterialEditor));
+            try
+            {
+                if (editor.customShaderGUI == null) throw new InvalidOperationException("Missing material validator: " + shader.name);
+                editor.customShaderGUI.ValidateMaterial(material);
+            }
+            finally { Object.DestroyImmediate(editor); }
+            // Save the imported material and URP's dirty version sub-asset in this file;
+            // do not wait for URP's deferred, project-wide SaveAssetsToDisk callback.
+            EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
+            return material;
         }
         private static Material EnsureMaterial(string path)
         {
