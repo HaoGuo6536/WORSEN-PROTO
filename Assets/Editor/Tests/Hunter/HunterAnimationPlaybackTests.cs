@@ -2,13 +2,14 @@
 // HunterAnimationPlaybackTests.cs
 // ============================================================================
 // PURPOSE:
-//   Proves that every saved roster body actually changes bone rotations through
-//   the runtime manually evaluated PlayableGraph. Merely creating a graph or
-//   finding FBX curves cannot satisfy this native Edit Mode regression.
+//   Proves that moving roster clips articulate through the runtime manually
+//   evaluated PlayableGraph, while Mimic's disguise clips hold the closed cake.
+//   Merely creating a graph or finding FBX curves cannot satisfy this regression.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10), test suite (§11) · Editor · Hunter.
 // KEY RESPONSIBILITIES:
-//   - Require ten degrees of within-clip limb motion for walk, run and attack.
+//   - Require ten degrees of moving limb motion, including Ram's ready stamp.
+//   - Require exact closed-pose holds for stationary Mimic walk/run, even after bite.
 //   - Log observed bone deltas and every curve-to-instance binding on failure.
 //   - Check speed application, offscreen playback and symmetric graph teardown.
 //   - Exercise ceiling inversion after real animation evaluation.
@@ -17,8 +18,8 @@
 // USAGE NOTES:
 //   Native Edit Mode only, coordinator lease required; no Play Mode or focus need.
 //   No assets are built/changed. Every Driver is torn down before its preview scene.
-//   Mimic has Root/Jaw only: its Jaw is the explicit anatomical substitute for a
-//   limb, with the identical ten-degree threshold; no stationary-clip exemption.
+//   Mimic has Root/Jaw only: bite keeps the ten-degree articulation threshold;
+//   walk/run instead compare every transform against the saved closed disguise.
 // ============================================================================
 using System;
 using System.Collections;
@@ -43,7 +44,9 @@ namespace Worsen.Tests.Hunter
             {
                 foreach (string hunter in HunterRosterVisualSetup.Names)
                     foreach (string role in new[] { "walk", "run", "attack" })
-                        yield return new TestCaseData(hunter, role).SetName("RealPlayback_" + hunter + "_" + role);
+                        if (hunter != "Mimic" || role == "attack")
+                            yield return new TestCaseData(hunter, role).SetName("RealPlayback_" + hunter + "_" + role);
+                yield return new TestCaseData("Ram", "ready").SetName("RealPlayback_Ram_ready");
             }
         }
         [TestCaseSource(nameof(RosterRoles))]
@@ -94,6 +97,39 @@ namespace Worsen.Tests.Hunter
             string lower = name.ToLowerInvariant();
             if (hunter == "Mimic") return lower == "jaw";
             return new[] { "arm", "leg", "thigh", "shin", "calf", "hand", "foot", "segment" }.Any(lower.Contains);
+        }
+        [TestCase("walk", TestName = "RealPlayback_Mimic_walk")]
+        [TestCase("run", TestName = "RealPlayback_Mimic_run")]
+        public void MimicLocomotionHoldsClosedCakeEvenAfterBite(string role)
+        {
+            using var probe = new HunterAnimationContactSheet.PlaybackProbe("Mimic");
+            Transform[] transforms = probe.Root.GetComponentsInChildren<Transform>(true);
+            Vector3[] positions = transforms.Select(item => item.localPosition).ToArray();
+            Quaternion[] rotations = transforms.Select(item => item.localRotation).ToArray();
+            Vector3[] scales = transforms.Select(item => item.localScale).ToArray();
+            Transform jaw = transforms.Single(item => item.name == "Jaw");
+            Quaternion closedJaw = jaw.localRotation;
+            try
+            {
+                // A frozen open jaw must fail too, not just a moving disguise.
+                probe.Begin("attack"); probe.AdvanceTo(.267f);
+                Assert.That(Quaternion.Angle(closedJaw, jaw.localRotation), Is.GreaterThan(10f), "Bite must open before the hold resets it.");
+                probe.Begin(role);
+                Assert.That(probe.Animation.Animator.enabled, Is.True);
+                for (int sample = 0; sample <= 24; sample++)
+                {
+                    probe.AdvanceTo(sample / 24f);
+                    Assert.That(probe.Animation.State.ActiveClip, Is.EqualTo(role == "walk" ? 1 : 2), "Exercise the requested hold slot, not idle.");
+                    for (int i = 0; i < transforms.Length; i++)
+                    {
+                        string label = role + "/" + transforms[i].name + " sample=" + sample;
+                        Assert.That(Vector3.Distance(transforms[i].localPosition, positions[i]), Is.LessThan(.00001f), label + " position");
+                        Assert.That(Quaternion.Angle(transforms[i].localRotation, rotations[i]), Is.LessThan(.01f), label + " closed rotation");
+                        Assert.That(Vector3.Distance(transforms[i].localScale, scales[i]), Is.LessThan(.00001f), label + " scale");
+                    }
+                }
+            }
+            catch { TestContext.WriteLine(probe.BindingReport()); throw; }
         }
         [Test] public void RealGraphAppliesBothStrideRatesAndRestoresAnimatorFlagsOnTeardown()
         {

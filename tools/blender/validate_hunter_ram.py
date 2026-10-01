@@ -7,7 +7,7 @@
 #   Offline art validator · no runtime layer · Hunter / PLAN-017.
 # KEY RESPONSIBILITIES:
 #   - Check Generic skeleton, six takes, detail budget and source/FBX agreement.
-#   - Measure planted feet, joint amplitudes, silhouette and archetype landmarks.
+#   - Measure planted feet, stamp/attack limb amplitudes and archetype landmarks.
 #   - Render the existing animation and dim-light review scripts on request.
 # DEPENDENCIES:
 #   Blender 5.2 and shared creature/animation/detail review utilities.
@@ -64,6 +64,29 @@ def validate(name, height_range, minima, landmarks):
             c.pose(v.rig,v.clips['ready'],25)
             planted=bone_point(v.rig,'LeftFoot',foot).z
             v.check('stamp_lifts_then_plants',lifted>planted+.04,[lifted,planted])
+            for role in ('ready','attack'):
+                amplitude=limb_amplitudes(v.rig,v.clips[role])
+                v.check(role+'_articulated_limb_at_least_ten_degrees',max(amplitude.values())>=10,amplitude)
+            # Hold all attack limb channels constant, leaving the torso/head
+            # motion intact: batch 27's nod-only charge must fail this gate.
+            import bpy
+            frozen=v.clips['attack'].copy()
+            try:
+                for layer in frozen.layers:
+                    for strip in layer.strips:
+                        for bag in strip.channelbags:
+                            for curve in bag.fcurves:
+                                if any('"'+side+part+'"' in curve.data_path for side in ('Left','Right')
+                                       for part in ('Arm','Forearm','Hand','Thigh','Shin','Foot')):
+                                    value=curve.keyframe_points[0].co.y
+                                    for key in curve.keyframe_points:
+                                        key.co.y=value
+                                    curve.update()
+                amplitude=limb_amplitudes(v.rig,frozen)
+                v.check('nod_only_attack_mutation_rejected',max(amplitude.values())<10,amplitude)
+            finally:
+                c.clear_pose(v.rig)
+                bpy.data.actions.remove(frozen)
         elif name=='Blinder':
             c.pose(v.rig,v.clips['ready'],25)
             arm=v.rig.pose.bones['RightArm'].matrix.to_quaternion()
@@ -79,6 +102,20 @@ def validate(name, height_range, minima, landmarks):
     if '--detail' in sys.argv:
         from hunter_detail_review import review
         review(name)
+
+
+def limb_amplitudes(rig,clip):
+    names=[side+part for side in ('Left','Right') for part in ('Arm','Forearm','Hand','Thigh','Shin','Foot')]
+    start,end=clip.frame_range
+    rotations={name:[] for name in names}
+    # Same 25 fractions as the native PlayableGraph test, independent of generator.
+    for sample in range(25):
+        c.pose(rig,clip,start+(end-start)*sample/24)
+        for name in names:
+            bone=rig.pose.bones[name]
+            rotations[name].append((bone.parent.matrix.inverted() @ bone.matrix).to_quaternion())
+    return {name:math.degrees(max(a.rotation_difference(b).angle for a in values for b in values))
+            for name,values in rotations.items()}
 
 
 if __name__=='__main__':
