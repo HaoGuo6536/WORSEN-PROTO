@@ -9,6 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Retain generated data independently of engine objects and subscriptions.
 //   - Retain retry provenance after teardown so Session can report failed generation.
+//   - Keep template exhaustion and the bounded organic recovery stage explicit.
 // DEPENDENCIES:
 //   - Procedural definitions only; no other gameplay system.
 // USAGE NOTES:
@@ -26,6 +27,8 @@ namespace Worsen.Domain.Procedural
         public int RetryBudget { get; internal set; }
         public bool GenerationSucceeded { get; internal set; }
         public bool UsedFallback { get; internal set; }
+        public string TemplateFailureReason { get; internal set; } = string.Empty;
+        public string OrganicFallbackReason { get; internal set; } = string.Empty;
         public string GenerationManifest { get; internal set; } = string.Empty;
     }
 }

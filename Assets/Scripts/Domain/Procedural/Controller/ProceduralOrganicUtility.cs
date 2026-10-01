@@ -19,6 +19,8 @@
 //   footprints. Organic content requires shared challenge pacing to be wired.
 //   Circular leaf rooms keep tiled floors behind their curved enclosure, like
 //   floor beneath other interior walls. Candidate/spawn sockets exclude that void.
+//   Refined rooms replace coarse hunter sockets with tile-centre sockets: mere
+//   point containment can admit a legacy socket exactly inside a new boundary wall.
 //   All enumeration affecting a seed is sorted; no hash iteration chooses content.
 // ============================================================================
 using System;
@@ -136,8 +138,9 @@ namespace Worsen.Domain.Procedural
             var result = new List<Vector3>();
             foreach (var point in legacy)
             {
-                int roomId = ProceduralFootprintUtility.At(layout, point).Id;
-                if (roomId != 0 && layout.OrganicRooms.All(r => r.RoomId != roomId || Clear(r, point))) result.Add(point);
+                var room = layout.Graph.Rooms.FirstOrDefault(r => r.ContainsXZ(point) &&
+                    point.y >= r.Bounds.min.y && point.y <= r.Bounds.max.y);
+                if (room.Id != 0 && layout.OrganicRooms.All(r => r.RoomId != room.Id)) result.Add(point);
             }
             foreach (var shape in layout.OrganicRooms)
             {

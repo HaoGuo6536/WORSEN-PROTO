@@ -9,7 +9,7 @@
 //   Controller (§2) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Sample weighted, round-gated templates within the shared gimmick budget.
-//   - Join rotated sockets on the two-metre grid without overlapping footprints.
+//   - Join rotated sockets using metre subcells without rescaling authored tiles.
 //   - Publish connected graph, authored anchors and first-contact spawn capacity.
 //   - Reserve isolated template pockets with explicit Passage gap sites.
 //   - Record placement and fallback provenance deterministically.
@@ -95,7 +95,7 @@ namespace Worsen.Domain.Procedural
                 foreach (var room in placed)
                 {
                     var cells = Cells(room).OrderBy(c => c.x).ThenBy(c => c.y).ToArray();
-                    var volumes = ProceduralTemplateUtility.Volumes(cells, _config.Origin, room.Template.Height);
+                    var volumes = ProceduralTemplateUtility.Volumes(cells, _config.Origin, room.Template.Height, 1f);
                     var bounds = volumes[0]; foreach (var volume in volumes.Skip(1)) bounds.Encapsulate(volume);
                     rooms.Add(new LevelRoom(room.RoomId, bounds.center, bounds.size, cells: volumes, pocket: room.PocketId != 0));
                     modules.Add(new ProceduralRoomModule(room.RoomId, refuge ? ProceduralModuleKind.MerchantRefuge : room.RoomId == 1 ?
@@ -126,7 +126,7 @@ namespace Worsen.Domain.Procedural
                 var candidate = new ProceduralLayout
                 {
                     Seed = seed, RoundIndex = round, Theme = theme, GimmickBudget = budget, TemplateCatalogue = catalogue,
-                    TemplateRooms = placed.AsReadOnly(), Graph = graph, CellSize = 2f, Origin = _config.Origin,
+                    TemplateRooms = placed.AsReadOnly(), Graph = graph, CellSize = 1f, Origin = _config.Origin,
                     Cells = occupied.OrderBy(c => c.x).ThenBy(c => c.y).ToArray(), GapCells = gaps.OrderBy(c => c.x).ThenBy(c => c.y).ToArray(),
                     GapSites = sites.AsReadOnly(), PocketAnchors = optional.AsReadOnly(), Doors = doors.AsReadOnly(), Modules = modules.AsReadOnly(),
                     PlayerSpawnPosition = spawn, PlayerSpawnRotation = Quaternion.LookRotation(new Vector3(exitPosition.x - spawn.x, 0f, exitPosition.z - spawn.z))
@@ -159,20 +159,22 @@ namespace Worsen.Domain.Procedural
             var world = ProceduralTemplateUtility.Point(from.room, ProceduralTemplateUtility.Door(from.room.Template.Doors[from.index]), Vector2.zero);
             var target = ProceduralTemplateUtility.Rotate(ProceduralTemplateUtility.Door(template.Doors[to]), turns);
             var delta = world - target;
-            if (delta.x % 2f != 0f || delta.z % 2f != 0f) return false;
+            if (delta.x % 1f != 0f || delta.z % 1f != 0f) return false;
+            var offset = new Vector2Int((int)Math.Floor(delta.x / 2f), (int)Math.Floor(delta.z / 2f));
             var next = new ProceduralTemplateRoom { RoomId = placed.Count + 1, PocketId = pocket, Template = template, Turns = turns,
-                Offset = new Vector2Int((int)delta.x / 2, (int)delta.z / 2) + normal * gap };
+                Offset = offset + normal * gap,
+                SubcellOffset = new Vector2Int((int)delta.x, (int)delta.z) - offset * 2 };
             var cells = Cells(next).ToArray();
             if (cells.Any(c => occupied.Contains(c) || gaps.Contains(c))) return false;
             var reserved = new List<Vector2Int>();
             if (gap > 0)
             {
-                // A four-metre corridor reserves both sides of the socket centerline.
+                // Reserve the full four-metre frame corridor in metre subcells.
                 var tangent = new Vector2Int(normal.y, -normal.x);
-                for (int i = 0; i < gap; i++) for (int side = -1; side <= 1; side++)
+                for (int i = 0; i < gap * 2; i++) for (int side = -2; side < 2; side++)
                 {
-                    var p = world + new Vector3(normal.x, 0f, normal.y) * (i * 2f + 1f) + new Vector3(tangent.x, 0f, tangent.y) * side;
-                    var c = new Vector2Int(Mathf.FloorToInt(p.x / 2f), Mathf.FloorToInt(p.z / 2f));
+                    var p = world + new Vector3(normal.x, 0f, normal.y) * (i + .5f) + new Vector3(tangent.x, 0f, tangent.y) * (side + .5f);
+                    var c = new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.z));
                     if (occupied.Contains(c) || cells.Contains(c) || gaps.Contains(c)) return false;
                     reserved.Add(c);
                 }
@@ -215,13 +217,14 @@ namespace Worsen.Domain.Procedural
             return values[values.Count - 1];
         }
         private static IEnumerable<Vector2Int> Cells(ProceduralTemplateRoom room)
-            => room.Template.Footprint.Select(c => ProceduralTemplateUtility.Cell(c, room.Turns) + room.Offset);
+            => ProceduralTemplateUtility.OccupiedCells(room);
         public static string Manifest(ProceduralLayout layout)
         {
-            var text = new StringBuilder("|templates-v1|organic-fallback=").Append(Uri.EscapeDataString(layout.TemplateFallbackReason));
+            var text = new StringBuilder("|templates-v2|organic-fallback=").Append(Uri.EscapeDataString(layout.TemplateFallbackReason));
             foreach (var room in layout.TemplateRooms)
                 text.Append("|Template:").Append(room.RoomId).Append(',').Append(room.Template.Id).Append(',').Append(room.Offset.x.ToString(CultureInfo.InvariantCulture))
-                    .Append(',').Append(room.Offset.y.ToString(CultureInfo.InvariantCulture)).Append(',').Append(room.Turns).Append(",open=")
+                    .Append(',').Append(room.Offset.y.ToString(CultureInfo.InvariantCulture)).Append(',').Append(room.Turns)
+                    .Append(",subcell=").Append(room.SubcellOffset.x).Append(';').Append(room.SubcellOffset.y).Append(",open=")
                     .Append(string.Join(";", room.OpenDoors.OrderBy(i => i)));
             return text.Append("|HunterCapacity:").Append(layout.ValidatedHunterSpawnCapacity).ToString();
         }

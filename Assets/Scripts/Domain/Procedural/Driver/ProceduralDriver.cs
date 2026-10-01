@@ -9,7 +9,7 @@
 //   Driver (§7a) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Build kit visuals with primitive collision/fallback and owned collapse fragments.
-//   - Bake navigation and verify objectives, spawn capacity and pocket isolation.
+//   - Preflight template sockets, then bake and verify objectives, spawns and pockets.
 //   - Own interactables, puzzles and routed state changes without sibling calls.
 //   - Admit shrine sites and Passage apertures, tiles and future reward counts.
 //   - Release only owned geometry, materials, links and navigation on teardown.
@@ -20,6 +20,9 @@
 //   lighting/fog or remove another owner's navigation data. Missing materials use
 //   dark rough generated surfaces; no authored-map fallback is silently loaded.
 //   Missing serialized shaders abort before generation and log once per owner.
+//   Compound kit commands instantiate one mesh and share collision with the bake;
+//   missing compound art displays its collision parts, never its overall bounds.
+//   Shrine candidates reserve the configured native agent envelope before baking.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -153,7 +156,8 @@ namespace Worsen.Domain.Procedural
                     navigationBlocks.AddRange(puzzles.Blocks(plan, config.Challenges).Where((b, index) => index != 4));
                 }
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(navigationBlocks);
-                layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks);
+                var agent = NavMesh.GetSettingsByID(driverConfig.NavMeshAgentTypeId);
+                layout.ShrineSites = new ProceduralShrineSitePresenter().Build(layout, config, navigationBlocks, agent.agentRadius, agent.agentHeight);
                 BuildNavigation(layout, navigationBlocks, driverConfig);
                 layout.FuturePassageGoldenAnchorCount = new ProceduralPassagePresenter().FutureGoldenAnchorCount(layout, config, driverConfig, navigationBlocks);
                 layout.InteractableManifest += "|FuturePassageGold:" + layout.FuturePassageGoldenAnchorCount;
@@ -227,11 +231,15 @@ namespace Worsen.Domain.Procedural
             item.layer = layer;
             item.transform.SetParent(_state.Root.transform, false);
             item.transform.SetPositionAndRotation(block.Center, block.Rotation);
-            item.transform.localScale = block.Size;
+            // A zero-height decal must not become a singular parent transform for
+            // its metre-scale mesh. This carrier thickness never creates collision.
+            item.transform.localScale = new Vector3(block.Size.x, block.Size.y == 0f && !block.HasCollision ? .001f : block.Size.y, block.Size.z);
             var renderer = item.GetComponent<Renderer>();
             renderer.sharedMaterial = material; renderer.enabled = block.HasRenderer;
             var prefab = block.PieceId == null ? null : _state.Catalogue?.Piece(_state.ThemeId, block.PieceId);
-            if (prefab != null && block.HasRenderer)
+            if (block.Role == ProceduralBlockRole.KitVisual) renderer.enabled = false;
+            if (block.Role == ProceduralBlockRole.KitCollision) renderer.enabled = prefab == null;
+            if (prefab != null && block.HasRenderer && block.Role != ProceduralBlockRole.KitCollision)
             {
                 var visual = Instantiate(prefab);
                 visual.name = "Kit " + block.PieceId;
@@ -335,6 +343,7 @@ namespace Worsen.Domain.Procedural
             var settings = NavMesh.GetSettingsByID(config.NavMeshAgentTypeId);
             if (settings.agentTypeID != config.NavMeshAgentTypeId || settings.agentRadius <= 0f || settings.agentHeight <= 0f)
                 throw new InvalidOperationException("The configured navigation agent type is unavailable.");
+            new ProceduralNavFallbackPresenter().ValidateTemplate(layout, blocks, settings.agentRadius, settings.agentHeight);
             settings.overrideVoxelSize = true;
             settings.voxelSize = config.NavVoxelSize;
             settings.ledgeDropHeight = 0f;
@@ -383,17 +392,13 @@ namespace Worsen.Domain.Procedural
             var filter = new NavMeshQueryFilter { agentTypeID = config.NavMeshAgentTypeId, areaMask = config.HunterAreaMask };
             if (!NavMesh.SamplePosition(layout.PlayerSpawnPosition, out var start, config.NavSampleRadius, filter))
                 throw new InvalidOperationException("Generated player spawn has no walkable navigation.");
-            var targets = new List<Vector3> { layout.Graph.ExitPosition };
-            foreach (var anchor in layout.Graph.Anchors) targets.Add(anchor.Position);
-            foreach (var position in layout.HunterSpawnPositions) targets.Add(position);
-            foreach (var route in layout.VerticalRoutes)
-            { targets.Add(route.Points[0]); targets.Add(route.Points.Last()); }
+            var targets = new ProceduralNavFallbackPresenter().RequiredPositions(layout);
             var path = new NavMeshPath();
             foreach (var target in targets)
-                if (!NavMesh.SamplePosition(target, out var end, config.NavSampleRadius, filter) ||
+                if (!NavMesh.SamplePosition(target.position, out var end, config.NavSampleRadius, filter) ||
                     !NavMesh.CalculatePath(start.position, end.position, filter, path) || path.status != NavMeshPathStatus.PathComplete ||
                     !NavMesh.CalculatePath(end.position, start.position, filter, path) || path.status != NavMeshPathStatus.PathComplete)
-                    throw new InvalidOperationException("Generated navigation cannot reach required position " + target + ".");
+                    throw new InvalidOperationException("Generated navigation cannot reach required " + target.label + " position " + target.position + ".");
             foreach (var pocket in layout.Modules.Where(m => m.PocketId != 0).GroupBy(m => m.PocketId))
             {
                 var anchors = layout.PocketAnchors.Where(a => pocket.Any(m => m.RoomId == a.RoomId)).ToArray();

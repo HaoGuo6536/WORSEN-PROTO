@@ -17,6 +17,7 @@
 //   four-door description records the starting implementation, not a requirement.
 //   Conservative rotated-piece bounds may reject a site, never remove its collision.
 //   This is geometric preselection, not a substitute for native NavMesh admission.
+//   Render-only decals never reserve player or exit clearance.
 // ============================================================================
 using System;
 using System.Linq;
@@ -42,7 +43,7 @@ namespace Worsen.Domain.Procedural
                 foreach (var placement in room.Pieces)
                 {
                     var piece = kit[placement.Id];
-                    if (piece.Kind == "floor" || piece.Kind == "ceiling" || placement.Position.y >= height ||
+                    if (piece.Kind == "floor" || piece.Kind == "ceiling" || piece.Kind == "decal" || placement.Position.y >= height ||
                         placement.Position.y + piece.Size.y <= 0f) continue;
                     double angle = placement.RotY * Math.PI / 180d;
                     float x = (float)(Math.Abs(Math.Cos(angle)) * piece.Size.x + Math.Abs(Math.Sin(angle)) * piece.Size.z) * .5f;

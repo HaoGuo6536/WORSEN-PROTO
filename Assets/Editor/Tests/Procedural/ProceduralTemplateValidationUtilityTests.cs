@@ -10,12 +10,15 @@
 // KEY RESPONSIBILITIES:
 //   - Reject broken connectivity, sockets, anchors, identities and enclosure.
 //   - Verify strict nested-array parsing of the art-worker manifest format.
+//   - Admit every checked-in theme and check managed wall placement math.
 // DEPENDENCIES:
 //   - NUnit, Domain.Procedural and Editor.Procedural.
 // USAGE NOTES:
-//   No imported assets, scene or native navigation are used.
+//   No imported assets, scene or native navigation are used. Only the explicit
+//   native Euler parity case needs Unity; the admission/mutation cases are pure.
 // ============================================================================
 using System;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -27,12 +30,114 @@ namespace Worsen.Tests.Procedural
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralTemplateValidationUtilityTests
     {
+        [TestCase("Castle", 15)] [TestCase("Hospital", 14)]
+        [TestCase("School", 12)] [TestCase("Basement", 13)]
+        public void CheckedInThemeManifestsPassProductionAdmission(string theme, int expectedCount)
+        {
+            string root = "Assets/Art/Environment/" + theme;
+            var catalogue = ProceduralRoomManifestSetup.Parse(
+                File.ReadAllText(root + "/Kit/" + theme + "Kit.manifest.json"),
+                File.ReadAllText(root + "/Rooms/" + theme + "Rooms.manifest.json"));
+            Assert.That(catalogue.Theme, Is.EqualTo(theme.ToLowerInvariant()));
+            Assert.That(catalogue.Templates.Length, Is.EqualTo(expectedCount));
+            Assert.DoesNotThrow(() => ProceduralTemplateValidationUtility.Validate(catalogue));
+            TestContext.WriteLine(theme + ": admitted " + catalogue.Templates.Length + " templates.");
+        }
+
+        [TestCase(0f)] [TestCase(90f)] [TestCase(180f)] [TestCase(270f)]
+        [TestCase(-75f)] [TestCase(15f)] [TestCase(37f)] [TestCase(405f)]
+        public void SegmentMatchesManagedQuaternionYaw(float yaw)
+        {
+            // Quaternion construction and vector multiplication are managed;
+            // this independent half-angle reference can run outside the engine.
+            double halfAngle = yaw * Math.PI / 360d;
+            var rotation = new Quaternion(0f, (float)Math.Sin(halfAngle), 0f, (float)Math.Cos(halfAngle));
+            foreach (var id in new[] { "wall_2m", "wall_arc_r4", "wall_arc_r6", "wall_arc_r8" })
+            {
+                int radius = id == "wall_arc_r4" ? 4 : id == "wall_arc_r6" ? 6 : id == "wall_arc_r8" ? 8 : 0;
+                double sweep = radius == 4 ? 30d : radius == 6 ? 20d : 15d;
+                float halfWidth = radius == 0 ? 1f : (float)(radius * Math.Sin(sweep * Math.PI / 360d));
+                var center = new Vector3(7f, 0f, -3f);
+                var line = ProceduralTemplateValidationUtility.Segment(
+                    new ProceduralTemplatePiece { Id = id, Position = center + Vector3.up * 2f, RotY = yaw },
+                    new ProceduralKitPiece { Id = id, Kind = radius == 0 ? "wall" : "arc", Size = new Vector3(2f, 7f, .5f) });
+                var expected = rotation * Vector3.right * halfWidth;
+                Assert.That((line.a - (center - expected)).magnitude, Is.LessThan(.00001f), id);
+                Assert.That((line.b - (center + expected)).magnitude, Is.LessThan(.00001f), id);
+            }
+        }
+
         [Test] public void StubManifestsRoundTripThroughStrictParser()
         {
             var c = ProceduralTemplateTestData.Catalogue(); var json = ProceduralTemplateTestData.Json(c);
             var parsed = ProceduralRoomManifestSetup.Parse(json.kit, json.rooms);
             Assert.That(parsed.Templates.Select(t => t.Id), Is.EqualTo(c.Templates.Select(t => t.Id)));
             Assert.That(parsed.Templates[4].Footprint, Is.EqualTo(c.Templates[4].Footprint));
+        }
+        [TestCase(0f)] [TestCase(90f)] [TestCase(180f)] [TestCase(270f)]
+        [TestCase(-75f)] [TestCase(15f)] [TestCase(37f)] [TestCase(405f)]
+        public void SegmentMatchesNativeEulerInUnity(float yaw)
+        {
+            var p = new ProceduralTemplatePiece { Id = "wall_2m", Position = new Vector3(3f, 0f, -7f), RotY = yaw };
+            var line = ProceduralTemplateValidationUtility.Segment(p, new ProceduralKitPiece { Kind = "wall", Size = new Vector3(4f, 7f, .8f) });
+            var expected = Quaternion.Euler(0f, yaw, 0f) * Vector3.right * 2f;
+            Assert.That((line.a - (p.Position - expected)).magnitude, Is.LessThan(.00001f));
+            Assert.That((line.b - (p.Position + expected)).magnitude, Is.LessThan(.00001f));
+        }
+        [TestCase("decal", 0f, true)] [TestCase("prop", 0f, false)]
+        [TestCase("wall", 0f, false)] [TestCase("decal", -.01f, false)]
+        [TestCase("decal", float.NaN, false)]
+        public void OnlyExplicitRenderOnlyDecalsMayHaveZeroHeight(string kind, float height, bool accepted)
+        {
+            var catalogue = ProceduralTemplateTestData.Catalogue();
+            catalogue.Kit = catalogue.Kit.Concat(new[] { new ProceduralKitPiece {
+                Id = "probe", File = "Castle_probe.fbx", Kind = kind, Size = new Vector3(1f, height, 1f) } }).ToArray();
+            if (accepted) Assert.DoesNotThrow(() => ProceduralTemplateValidationUtility.Validate(catalogue));
+            else Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.Validate(catalogue));
+        }
+        [TestCase("Castle")] [TestCase("Hospital")] [TestCase("School")] [TestCase("Basement")]
+        public void RealCatalogueStillRejectsMissingWallsAndInsufficientDensity(string theme)
+        {
+            var c = ReadTheme(theme);
+            var t = c.Templates.First(r => r.Kind == "room" && r.SizeClass == "medium" && r.Shape != "round");
+            var cakes = t.Cake;
+            t.Cake = cakes.Take(Math.Max(2, (t.Footprint.Length * 2 + 8) / 9) - 1).ToArray();
+            Assert.That(Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.Validate(c)).Message,
+                Does.Contain("insufficient gameplay anchors"));
+            t.Cake = cakes;
+            var wall = t.Pieces.First(p => c.Kit.Single(k => k.Id == p.Id).Kind == "wall");
+            t.Pieces = t.Pieces.Where(p => !ReferenceEquals(p, wall)).ToArray();
+            Assert.That(Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.Validate(c)).Message,
+                Does.Contain("walls do not enclose"));
+        }
+        [TestCase("castle_tower_room", "arc-gap")] [TestCase("castle_chapel_apse", "arc-gap")]
+        [TestCase("castle_tower_room", "pier-gap")] [TestCase("castle_tower_room", "duplicate-arc")]
+        [TestCase("castle_chapel_apse", "closure-overlap")]
+        public void RealMasonryShellStillRejectsGapsAndOverlaps(string id, string mutation)
+        {
+            var c = ReadTheme("Castle"); var t = c.Templates.Single(r => r.Id == id);
+            var arc = t.Pieces.First(p => p.Id == "wall_arc_r4");
+            if (mutation == "arc-gap") arc.Position += Vector3.forward * .1f;
+            if (mutation == "pier-gap") t.Pieces = t.Pieces.Where(p => p.Id != "wall_round_tangent_r4").ToArray();
+            if (mutation == "duplicate-arc") t.Pieces = t.Pieces.Concat(new[] { arc }).ToArray();
+            if (mutation == "closure-overlap") t.Doors[0].ClosedWith = new[] { arc };
+            Assert.Throws<ArgumentException>(() => ProceduralTemplateValidationUtility.Validate(c), mutation);
+        }
+        [TestCase("castle_tower_room", 38)] [TestCase("castle_chapel_apse", 36)]
+        public void RealCurvedBoundaryFollowsMasonryInnerFaces(string id, int count)
+        {
+            var c = ReadTheme("Castle"); var t = c.Templates.Single(r => r.Id == id);
+            var boundary = ProceduralTemplateValidationUtility.RoundBoundary(c, new ProceduralTemplateRoom { Template = t }, Vector2.zero);
+            Assert.That(boundary, Has.Length.EqualTo(count));
+            Assert.That(boundary.Min(p => p.z), Is.EqualTo(0f).Within(.00001f));
+            Assert.That(boundary.Min(p => p.x), Is.EqualTo(.4f).Within(.00001f));
+            Assert.That(boundary.Max(p => p.x), Is.EqualTo(7.6f).Within(.00001f));
+        }
+        private static ProceduralTemplateCatalogue ReadTheme(string theme)
+        {
+            string root = "Assets/Art/Environment/" + theme;
+            return ProceduralRoomManifestSetup.Parse(File.ReadAllText(root + "/Kit/" + theme + "Kit.manifest.json"),
+                File.ReadAllText(root + "/Rooms/" + theme + "Rooms.manifest.json"));
         }
         [TestCase("disconnected")] [TestCase("interior-door")] [TestCase("outside-anchor")]
         [TestCase("unknown-piece")] [TestCase("overlap")] [TestCase("open-wall")]
@@ -90,9 +195,10 @@ namespace Worsen.Tests.Procedural
             foreach (int end in new[] { 0, 1 }) for (int i = 0; i < 6; i++)
             {
                 float yaw = -75f + i * 30f + end * 180f;
-                var rotation = Quaternion.Euler(0f, yaw, 0f);
+                double radians = yaw * Math.PI / 180d;
                 pieces.Add(new ProceduralTemplatePiece { Id = "wall_arc_r4", RotY = yaw,
-                    Position = new Vector3(4f, 0f, end == 0 ? 10f : 4f) + rotation * Vector3.forward * (4f * Mathf.Cos(15f * Mathf.Deg2Rad)) });
+                    Position = new Vector3(4f, 0f, end == 0 ? 10f : 4f) +
+                        new Vector3((float)Math.Sin(radians), 0f, (float)Math.Cos(radians)) * (4f * Mathf.Cos(15f * Mathf.Deg2Rad)) });
             }
             foreach (int x in new[] { 0, 8 }) foreach (int z in new[] { 5, 7, 9 })
                 pieces.Add(new ProceduralTemplatePiece { Id = "wall_2m", Position = new Vector3(x, 0f, z), RotY = 90f });

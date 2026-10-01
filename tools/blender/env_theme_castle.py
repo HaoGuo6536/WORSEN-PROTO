@@ -576,7 +576,7 @@ def room(name, cells, doors, kind='room', shape='rect', gimmick='none', low=Fals
                 pieces.append(placement('vault_web_bay', x*2+2, z*2+2, HEIGHT-web_height))
     candidates = [[2*x+1, 0, 2*z+1] for x, z in cells]
     # Cell-centre anchors give >=0.6m clearance even with half-thickness walls.
-    cake_count = max(2, math.ceil(count/6))
+    cake_count = max(2, (count*2+8)//9)
     cake = [candidates[min(len(candidates)-1, i*len(candidates)//cake_count)] for i in range(cake_count)]
     light = []
     usable = [(c, s) for c, s in boundary if (c, s) not in consumed]
@@ -657,16 +657,17 @@ def round_room(apse=False):
 
         angles = (-75,-45,-15,15,45,75)
         t['pieces'] += [placement('floor_apse_r4',4,8,-.16),placement('ceiling_apse_r4',4,8,HEIGHT-.18)]
-        t['anchors'] = {'cake':[[3,0,3],[5,0,3],[3,0,5],[5,0,9]],
-                        'goldenCake':[[3,0,9]],'hunterSpawn':[[5,0,5]],'light':[[1,3.13,5],[7,3.13,5]]}
-        t['pieces'] += [placement('prop_altar',4,9),placement('prop_candelabra',3,7),
+        t['anchors'] = {'cake':[[3,0,1],[5,0,1],[4,0,5],[1,0,7],[7,0,7]],
+                        'goldenCake':[[4,0,8]],'hunterSpawn':[[4,0,3]],'light':[[1,3.13,5],[7,3.13,5]]}
+        t['pieces'] += [placement('prop_altar',4,10),placement('prop_candelabra',3,7),
                         placement('prop_candelabra',5,7)]
-        for z in (3,5):
-            t['pieces'] += [placement('prop_bench',2,z),placement('prop_bench',6,z)]
+        # Longitudinal pews leave the west doorway and a broad central aisle clear.
+        for x in (1.2,6.8):
+            t['pieces'].append(placement('prop_bench',x,5,angle=90))
     else:
         t = {'id':'castle_'+name,'kind':'room','sizeClass':'medium','shape':'round',
              'height':HEIGHT,'doors':[], 'gimmick':'none','minRound':1,'weight':1.0,'pieces':[],
-             'anchors':{'cake':[[3,0,3],[5,0,5]],'goldenCake':[[5,0,3]],
+             'anchors':{'cake':[[3,0,3],[5,0,5],[5,0,3]],'goldenCake':[[5,0,3]],
                         'hunterSpawn':[[3,0,5]],'light':[[3,2.1,4],[5,2.1,4]]}}
         for side,z,cell,yaw in (('S',-.4,[1,0],180),('N',8.4,[1,3],0)):
             t['doors'].append({'cell':cell,'side':side,'span':2,
@@ -722,10 +723,11 @@ def catalogue():
             p += [placement('prop_trestle_table', 3, 3), placement('prop_cauldron', 6.8, 1),
                   placement('prop_barrel', 1, 5), placement('prop_barrel', 1, 6.2)]
         if name == 'chapel':
-            p += [placement('prop_altar', 3, 10), placement('stair_stone_2m', 3, 8),
-                  placement('prop_candelabra', 1, 10), placement('prop_candelabra', 5, 10)]
-            for z in (3, 5, 7):
-                p += [placement('prop_bench', 1.7, z), placement('prop_bench', 4.3, z)]
+            p += [placement('prop_altar', 3, 11.25), placement('stair_stone_2m', 3, 8),
+                  placement('prop_candelabra', 1, 11.5), placement('prop_candelabra', 5, 11.5)]
+            # Keep both the centre aisle and west approach open to the 1m agent.
+            for z in (2.5, 7.5):
+                p += [placement('prop_bench', 1, z, angle=90), placement('prop_bench', 5, z, angle=90)]
         if name in ('great_hall', 'keep_gallery'):
             depth = 16 if name == 'great_hall' else 12
             width = 12 if name == 'great_hall' else 10
@@ -735,15 +737,17 @@ def catalogue():
             if name == 'great_hall':
                 for z in (4, 7, 10):
                     p += [placement('prop_trestle_table', 6, z), placement('prop_bench', 4, z, angle=90)]
-                p += [placement('prop_altar', 6, 14)]
+                p += [placement('prop_altar', 8, 14)]
         if name == 'stair_landing':
             p += [placement('stair_stone_2m', 4.5, 3), placement('pillar', 4.5, 5),
                   placement('prop_chain_hanging', 4.5, 5, 4.6)]
         if name in ('gallery_straight', 'gallery_bend'):
             p += [placement('arch_pointed_door', 6, 2, angle=90)]
         if name == 'portcullis_freeze':
-            # Raised gate leaves the entry traversable until runtime owns it.
-            p += [placement('prop_portcullis', 3, 7.75, 0),
+            # Raised against the north header, not floating below it or sealing
+            # the required walking route. Collision remains on the lifted gate.
+            gate_z = 8-bpy.data.objects['Castle_prop_portcullis'].dimensions.y/2-.001
+            p += [placement('prop_portcullis', 3, gate_z, 3.4),
                   placement('prop_chain_hanging', 1, 7.2, 3.2), placement('prop_rubble', 5, 4)]
         if name == 'collapsed_crossing':
             # Real void surrounded by a walkable U-shaped perimeter; no floor
@@ -756,11 +760,24 @@ def catalogue():
                     v['id'] = 'floor_broken_2x2'
             for z in (3, 5, 7):
                 p += [placement('prop_rubble', 7.2, z)]
-            t['anchors']['goldenCake'] = [[7, 0, 5]]
-            t['anchors']['cake'] = [[1, 0, 1], [9, 0, 1], [1, 0, 9], [9, 0, 9], [7, 0, 5]]
+            t['anchors']['goldenCake'] = [[9, 0, 5]]
+            t['anchors']['cake'] = [[1, 0, 1], [9, 0, 1], [1, 0, 9], [9, 0, 9], [9, 0, 5], [1, 0, 5]]
         result.append(t)
     result += [round_room(),round_room(apse=True)]
+    # Authored corrections verified by ProceduralTemplateAnchorTests against the
+    # runtime collision commands (Humanoid radius .5m, height 2m), not mesh centres.
+    corrections = {
+        'watch_closet': {'cake': [[2.3,0,1],[3.7,0,1]]},
+        'guard_room': {'cake': [[1,0,3],[5,0,3]]},
+        'armoury': {'cake': [[1,0,3],[3,0,3]]},
+        'buttery': {'cake': [[1,0,1],[3,0,5],[3,0,7],[5,0,5]], 'hunterSpawn': [[7,0,3]]},
+        'chapel': {'cake': [[3,0,1],[3,0,4],[3,0,6],[3,0,8]],
+                   'goldenCake': [[3,0,8]], 'hunterSpawn': [[3,0,5]]},
+        'great_hall': {'cake': [[1,0,1],[1,0,9],[3,0,1],[3,0,11],[5,0,3],
+                                [5,0,11],[7,0,5],[7,0,11],[9,0,5],[11,0,15],[11,0,7]]},
+    }
     for t in result:
+        t['anchors'].update(corrections.get(t['id'].removeprefix('castle_'), {}))
         for socket in t['doors']:
             p = socket['closedWith'][0]
             t['pieces'].append(dict(id='floor_portal_4m',pos=[p['pos'][0],-.16,p['pos'][2]],rotY=p['rotY']))
@@ -1005,7 +1022,7 @@ def render_door_reviews(objects, kinds, theme, output):
     folder = output/'doors'
     folder.mkdir(parents=True, exist_ok=True)
     for piece, source in objects.items():
-        if kinds[piece] != 'door' and piece not in ('door_iron_strapped', 'prop_classroom_door_leaf', 'prop_bulkhead_leaf'):
+        if kinds[piece] != 'door' and piece not in ('door_iron_strapped', 'door_double_porthole_4m', 'prop_classroom_door_leaf', 'prop_bulkhead_leaf'):
             continue
         # Match FBX's explicit BMesh triangulation, not the source viewport's
         # loop-triangle tessellation (different diagonals on some quads).

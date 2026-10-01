@@ -297,7 +297,7 @@ def validate_template(t, rows, trees):
         actual = line_piece(closure[0], rows[closure[0]['id']])
         require(actual[0] == axis and close(actual[1:], (line, center-2, center+2)), name+': closure misaligned')
     anchors = t['anchors']
-    require(len(anchors['cake']) >= max(2, math.ceil(n/5)), name+': cake count does not scale with area')
+    require(len(anchors['cake']) >= max(2, (n*2+8)//9), name+': cake count does not scale with area')
     require(len(anchors['goldenCake']) <= 1 and anchors['light'], name+': golden/light sockets')
     require(n < 10 or anchors['hunterSpawn'], name+': hunter spawn absent')
     for kind, values in anchors.items():
