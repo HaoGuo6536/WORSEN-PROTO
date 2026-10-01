@@ -18,9 +18,14 @@ $token = Enter-UnityLease $Plan "Build + smoke $Label"
 $safe = $false; $output = $null
 try {
     Assert-UnityLease $token
-    $s = Get-EditorState
+    # Right after a promotion the editor may still be refreshing the checkout (batch 22: the queue
+    # snippet threw and returned no result). Require a settled editor, and surface the exception.
+    $s = Wait-EditorIdle $token 10
+    if (-not $s) { $s = Get-EditorState }
     if (-not (Test-EditorIsMain $s) -or -not (Test-EditorIdle $s) -or $s.Failed -or $s.Dirty) { throw "Editor not ready for a build: $($s | ConvertTo-Json -Compress)" }
-    $output = Invoke-UnityCsharp 'var t = System.Type.GetType("Worsen.Editor.Horror.HorrorBuildValidation, Worsen.Editor"); string r = (string)t.GetMethod("QueueBuild").Invoke(null, null); return r;'
+    $output = Invoke-UnityCsharp 'string r; try { var t = System.Type.GetType("Worsen.Editor.Horror.HorrorBuildValidation, Worsen.Editor"); r = (string)t.GetMethod("QueueBuild").Invoke(null, null); } catch (System.Exception e) { var x = e.InnerException ?? e; r = "EX " + x.GetType().Name + ": " + x.Message; } return r;'
+    # Nothing was queued and the editor was idle a moment ago: the lease can be released.
+    if ($output -like 'EX *') { $safe = $true; throw "Build queue failed: $output" }
     "Build queued: $output"
     $done = Join-Path $output 'completed.json'
     $deadline = (Get-Date).AddMinutes($BuildTimeoutMinutes); $beat = Get-Date
