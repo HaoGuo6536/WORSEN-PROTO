@@ -9,6 +9,7 @@
 //   Editor tool (§10) · Tests · Procedural.
 // KEY RESPONSIBILITIES:
 //   - Verify tiles, both wall apertures, path opening/closure, facts and teardown.
+//   - Probe tile support inside the void, away from intentionally overlapping room seams.
 //   - Require mask-9 connectivity and mask-1 isolation for each generated link family.
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit, UnityEngine physics and native navigation.
@@ -89,7 +90,21 @@ namespace Worsen.Tests.Procedural
                 Assert.That(opened, Is.Not.Empty); Assert.That(_manager.LinedPocketAnchors, Is.Not.Empty);
                 Assert.That(_manager.ActivatePassage(index), Is.False, "A paid crossing cannot reset its timer.");
                 Assert.That(Connected(site.Position, target, 1), Is.True);
-                foreach (var point in opened)
+                var state = (ProceduralDriverState)typeof(ProceduralDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(driver);
+                var plan = state.Passages.Single(p => p.Plan.SiteIndex == index).Plan;
+                var source = _manager.Graph.Rooms.Single(r => r.Id == site.RoomId);
+                var sourceCell = source.Cells.Single(c => c.min.x <= site.Position.x && c.max.x >= site.Position.x &&
+                    c.min.z <= site.Position.z && c.max.z >= site.Position.z);
+                var pocketCell = pocket.Cells.Single(c => c.min.x <= plan.End.x && c.max.x >= plan.End.x &&
+                    c.min.z <= plan.End.z && c.max.z >= plan.End.z);
+                // PLAN-025 §3 C7 / §8: support must span a real gap and then vanish.
+                // Endpoint centres may coincide with room floors at y=0; neither
+                // collider tie ordering nor removal of permanent room floor is a contract.
+                var probes = plan.Tiles.Select(tile => ProceduralPassageContractTests.GapProbe(tile, site.Facing,
+                    new LevelRoom(source.Id, sourceCell.center, sourceCell.size),
+                    new LevelRoom(pocket.Id, pocketCell.center, pocketCell.size, pocket: true))).ToArray();
+                Assert.That(probes.Length, Is.EqualTo(opened.Count));
+                foreach (var point in probes)
                 {
                     Assert.That(Physics.Raycast(point + Vector3.up, Vector3.down, out var hit, 2f), Is.True);
                     Assert.That(hit.collider.gameObject.name, Does.StartWith("Passage "));
@@ -102,7 +117,7 @@ namespace Worsen.Tests.Procedural
                 Assert.That(Connected(site.Position, target, 1), Is.False);
                 driver.TickPassages(.4f); Assert.That(collapsed, Is.EqualTo(new[] { 0, 1 }));
                 driver.TickPassages(100f); Assert.That(collapsed, Is.EqualTo(Enumerable.Range(0, opened.Count)));
-                foreach (var point in opened)
+                foreach (var point in probes)
                     Assert.That(Physics.Raycast(point + Vector3.up * .5f, Vector3.down, 1f), Is.False);
                 var positions = opened.ToArray(); var anchors = _manager.LinedPocketAnchors.ToArray();
                 var oldLinks = ((ProceduralDriverState)typeof(ProceduralDriver).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic)
