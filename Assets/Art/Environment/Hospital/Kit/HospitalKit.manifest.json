@@ -322,7 +322,7 @@
     {
       "id": "door_double_porthole_4m",
       "file": "Hospital_door_double_porthole_4m.fbx",
-      "kind": "door",
+      "kind": "prop",
       "size": [
         3.601559,
         2.78,

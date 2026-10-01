@@ -51,7 +51,7 @@ KINDS = {
     "floor_grate_2x2": "floor", "catwalk_2m": "floor", "catwalk_rail_2m": "prop",
     "pipe_run_wall_2m": "pipe", "duct_run_ceiling_2m": "duct", "cage_lamp": "prop",
     "cage_lamp_dead": "prop", "prop_pump": "prop", "prop_electrical_cabinet": "prop",
-    "prop_gauge_panel": "prop", "puddle_decal_quad": "prop", "prop_storage_cage": "prop",
+    "prop_gauge_panel": "prop", "puddle_decal_quad": "decal", "prop_storage_cage": "prop",
     "prop_fuel_bunker": "prop", "prop_steam_vent": "prop", "pit_liner_2x2": "prop",
     "pit_retaining_2m": "prop", "prop_bulkhead_leaf": "prop", "floor_sump_2x2": "floor"}
 
@@ -661,7 +661,8 @@ def catalogue():
             if (x+3*z)%7 == 0 and (x,z) not in blocked:
                 pieces.append(placement("puddle_decal_quad",2*x+1,.002,2*z+1))
         available = [c for c in sorted(cells,key=lambda c:(c[1],c[0])) if c not in blocked]
-        cake_count = max(2,math.ceil(count/6)) if count > 4 else 1
+        cake_count = max(2,(count*2+8)//9) if count > 4 else 1
+        assert len(available) >= cake_count, (name, 'insufficient cake density')
         chosen = available[::max(1,len(available)//cake_count)][:cake_count]
         anchors = {"cake":[[2*x+1,0,2*z+1] for x,z in chosen],"goldenCake":[],"light":[],"hunterSpawn":[]}
         if count >= 10:

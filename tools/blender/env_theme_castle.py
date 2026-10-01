@@ -576,7 +576,7 @@ def room(name, cells, doors, kind='room', shape='rect', gimmick='none', low=Fals
                 pieces.append(placement('vault_web_bay', x*2+2, z*2+2, HEIGHT-web_height))
     candidates = [[2*x+1, 0, 2*z+1] for x, z in cells]
     # Cell-centre anchors give >=0.6m clearance even with half-thickness walls.
-    cake_count = max(2, math.ceil(count/6))
+    cake_count = max(2, (count*2+8)//9)
     cake = [candidates[min(len(candidates)-1, i*len(candidates)//cake_count)] for i in range(cake_count)]
     light = []
     usable = [(c, s) for c, s in boundary if (c, s) not in consumed]
@@ -657,7 +657,7 @@ def round_room(apse=False):
 
         angles = (-75,-45,-15,15,45,75)
         t['pieces'] += [placement('floor_apse_r4',4,8,-.16),placement('ceiling_apse_r4',4,8,HEIGHT-.18)]
-        t['anchors'] = {'cake':[[3,0,3],[5,0,3],[3,0,5],[5,0,9]],
+        t['anchors'] = {'cake':[[3,0,3],[5,0,3],[3,0,5],[5,0,9],[3,0,9]],
                         'goldenCake':[[3,0,9]],'hunterSpawn':[[5,0,5]],'light':[[1,3.13,5],[7,3.13,5]]}
         t['pieces'] += [placement('prop_altar',4,9),placement('prop_candelabra',3,7),
                         placement('prop_candelabra',5,7)]
@@ -666,7 +666,7 @@ def round_room(apse=False):
     else:
         t = {'id':'castle_'+name,'kind':'room','sizeClass':'medium','shape':'round',
              'height':HEIGHT,'doors':[], 'gimmick':'none','minRound':1,'weight':1.0,'pieces':[],
-             'anchors':{'cake':[[3,0,3],[5,0,5]],'goldenCake':[[5,0,3]],
+             'anchors':{'cake':[[3,0,3],[5,0,5],[5,0,3]],'goldenCake':[[5,0,3]],
                         'hunterSpawn':[[3,0,5]],'light':[[3,2.1,4],[5,2.1,4]]}}
         for side,z,cell,yaw in (('S',-.4,[1,0],180),('N',8.4,[1,3],0)):
             t['doors'].append({'cell':cell,'side':side,'span':2,
@@ -757,7 +757,7 @@ def catalogue():
             for z in (3, 5, 7):
                 p += [placement('prop_rubble', 7.2, z)]
             t['anchors']['goldenCake'] = [[7, 0, 5]]
-            t['anchors']['cake'] = [[1, 0, 1], [9, 0, 1], [1, 0, 9], [9, 0, 9], [7, 0, 5]]
+            t['anchors']['cake'] = [[1, 0, 1], [9, 0, 1], [1, 0, 9], [9, 0, 9], [7, 0, 5], [1, 0, 5]]
         result.append(t)
     result += [round_room(),round_room(apse=True)]
     for t in result:
@@ -1005,7 +1005,7 @@ def render_door_reviews(objects, kinds, theme, output):
     folder = output/'doors'
     folder.mkdir(parents=True, exist_ok=True)
     for piece, source in objects.items():
-        if kinds[piece] != 'door' and piece not in ('door_iron_strapped', 'prop_classroom_door_leaf', 'prop_bulkhead_leaf'):
+        if kinds[piece] != 'door' and piece not in ('door_iron_strapped', 'door_double_porthole_4m', 'prop_classroom_door_leaf', 'prop_bulkhead_leaf'):
             continue
         # Match FBX's explicit BMesh triangulation, not the source viewport's
         # loop-triangle tessellation (different diagonals on some quads).

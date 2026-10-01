@@ -419,7 +419,7 @@ def validate_room(t,lookup):
         require(occupied==cells,ident+': tile coverage/grid')
     anchors=t['anchors']
     require(set(anchors)=={'cake','goldenCake','light','hunterSpawn'},ident+': anchor schema')
-    require(len(anchors['cake'])>=max(2,math.ceil(n/6)),ident+': area-scaled cakes')
+    require(len(anchors['cake'])>=max(2,(n*2+8)//9),ident+': area-scaled cakes')
     require(len(anchors['goldenCake'])<=1 and anchors['light'],ident+': golden/light sockets')
     require(n<10 or anchors['hunterSpawn'],ident+': missing hunter spawn')
     for kind,points in anchors.items():

@@ -376,7 +376,7 @@ def validate_room(t, meshes):
         require(s.get('closedWith'), name+': missing closedWith')
     anchors = t['anchors']
     require(set(anchors) == {'cake','goldenCake','light','hunterSpawn'}, name+': anchor schema')
-    require(len(anchors['cake']) >= max(2, math.ceil(count/6)), name+': cake scaling')
+    require(len(anchors['cake']) >= max(2, (count*2+8)//9), name+': cake scaling')
     require(len(anchors['goldenCake']) <= 1 and anchors['light'], name+': golden/light count')
     require(size not in ('medium','large','hall') or anchors['hunterSpawn'], name+': hunter spawn')
     for kind, values in anchors.items():
@@ -779,7 +779,7 @@ def check_door_previews(theme, output):
     kit = json.loads((art/'Kit'/(theme.title()+'Kit.manifest.json')).read_text())
     count = 0
     for row in kit['pieces']:
-        if row['kind'] != 'door' and row['id'] not in ('door_iron_strapped','prop_classroom_door_leaf','prop_bulkhead_leaf'):
+        if row['kind'] != 'door' and row['id'] not in ('door_iron_strapped','door_double_porthole_4m','prop_classroom_door_leaf','prop_bulkhead_leaf'):
             continue
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.fbx(filepath=str(art/'Kit'/row['file']),use_anim=False)
