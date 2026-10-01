@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Environment (Service system).
 // KEY RESPONSIBILITIES:
-//   - Receive theme tags, authored light sockets and curved boundaries before dressing.
+//   - Receive theme tags, template ownership, light sockets and boundaries before dressing.
 //   - Own the Driver lifecycle and forward primitive/Core facts without Domain references.
 //   - Route room batches, threshold chalk and local dimming into the owned Driver.
 //   - Expose exit-frame, lamp, fog and rim commands for upward routing.
@@ -45,18 +45,21 @@ namespace Worsen.Presentation.Environment
         public void SetTheme(string theme, string lightSource) => _driver?.SetTheme(theme, lightSource);
         public void SetRoomTheme(int room, string theme, string family) => _driver?.SetRoomTheme(room, theme, family);
         public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms,
-            System.Func<int, IReadOnlyList<Vector3>> boundary = null, System.Func<int, IReadOnlyList<Vector3>> lightSockets = null)
+            System.Func<int, IReadOnlyList<Vector3>> boundary = null, System.Func<int, IReadOnlyList<Vector3>> lightSockets = null,
+            System.Func<int, bool> authoredFurniture = null)
         {
             if (_driver == null) return;
             _driver.BeginFloor(clearTheme: false);
             if (rooms == null) return;
             foreach (GeneratedRoomSample room in rooms)
                 _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters, cells: room.Cells,
-                    boundary: boundary?.Invoke(room.RoomId), lightSockets: lightSockets?.Invoke(room.RoomId));
+                    boundary: boundary?.Invoke(room.RoomId), lightSockets: lightSockets?.Invoke(room.RoomId),
+                    authoredFurniture: authoredFurniture?.Invoke(room.RoomId) ?? false);
         }
         public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
-            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
-        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved, cells, boundary, lightSockets); }
+            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null,
+            bool authoredFurniture = false)
+        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved, cells, boundary, lightSockets, authoredFurniture); }
         public Vector3[] GetTorchPositions(int roomId)
         { return _driver != null ? _driver.GetTorchPositions(roomId) : new Vector3[0]; }
         public void SetObserver(Vector3 position) { if (_driver != null) _driver.SetObserver(position); }
