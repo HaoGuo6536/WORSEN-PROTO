@@ -16,7 +16,8 @@
 #   Blender 5.2 bpy/bmesh; hunter_creature_common; own WORSEN_CakePickup.blend.
 # USAGE NOTES:
 #   The cake source is read-only and its archived concepts are never appended.
-#   Jaw hinge and motion below are provisional; idle/walk/run remain exactly still.
+#   Jaw hinge and motion are provisional. The root/base remain stationary;
+#   the owner's PLAN-017 animation request overrides the old frozen-loop brief.
 #   Add -- --lineup to generate the combined lineup after all hunters exist.
 # ============================================================================
 import hashlib
@@ -140,13 +141,16 @@ def build():
 
 def motion(rig, name, t):
     if name == "ready":
-        angle = -.012 * math.sin(6 * math.pi * t) * math.sin(math.pi * t)
+        angle = -.35*t
     elif name == "attack":
-        angle = c.envelope(t, [(0, 0), (.13, -.38), (.267, -1.28), (.4, 0), (.48, -.14), (.60, 0), (1, 0)])
+        angle = c.envelope(t, [(0, -.35), (.13, -.65), (.267, -1.65), (.4, 0), (.48, -.30), (.60, 0), (1, 0)])
     elif name == "hit":
-        angle = c.envelope(t, [(0, 0), (.25, -.85), (.65, -.57), (1, -.65)])
+        angle = c.envelope(t, [(0, 0), (.20, -1.15), (.42, -.35), (.65, -.80), (1, -.65)])
     else:
-        angle = 0
+        # A breathing lid at idle; locomotion-role clips are in-place jaw
+        # pulses, not permission for the stationary Mimic controller to chase.
+        amplitude = {'idle':.025, 'walk':.40, 'run':.70}[name]
+        angle = -amplitude*(1-math.cos(2*math.pi*t))/2
     c.delta(rig, "Jaw", (angle, 0, 0))
 
 

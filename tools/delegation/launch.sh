@@ -15,7 +15,9 @@ set -uo pipefail
 main() {
 source "$(dirname "$0")/lib.sh"
 SLUG="${1:?slug}"; N="${2:?n}"; MODEL="${3:?model}"; EFFORT="${4:?effort}"
-CLASS="${5:-unclassified}"; TOOLSETS="${6:-terminal,file}"
+CLASS="${5:-unclassified}"
+# Every worker can look at images: renders, contact sheets and screenshots (owner, 2026-10-01).
+TOOLSETS="${6:-terminal,file,vision}"
 RUN="$RUNS/$SLUG-$N"; WT="$WT_ROOT/$SLUG"; REC="$RUN/run.json"
 FLAG_IDLE_MIN="${FLAG_IDLE_MIN:-20}"; FLAG_WALL_MIN="${FLAG_WALL_MIN:-90}"
 KILL_IDLE_MIN="${KILL_IDLE_MIN:-35}"; KILL_WALL_MIN="${KILL_WALL_MIN:-150}"

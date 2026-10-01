@@ -7,7 +7,7 @@
 #   Offline art generator (outside runtime layers) · Hunter art.
 # KEY RESPONSIBILITIES:
 #   - Define the egg head, segmented body, joints and head/shoulder sheet.
-#   - Author dead-still idle, stiff gait, abrupt ready and lunge-grab actions.
+#   - Author held/snap sway, stiff gait, abrupt ready and lunge-grab actions.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_humanoid_common; no Unity dependencies.
 # USAGE NOTES:
@@ -20,6 +20,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from hunter_humanoid_common import Body, humanoid, limbs, rotate, envelope, generate
+from hunter_motion_common import biped_gait, step_phase
 
 LENGTHS = dict(idle=60, walk=36, run=24, ready=12, attack=30, hit=18)
 PALETTE = [('Body',(.79,.77,.70),(0,0,0),0),
@@ -43,29 +44,33 @@ def build():
 
 
 def author(rig,action,t):
-    wave = math.sin(t*2*math.pi)
+    phase = step_phase(t)
+    wave = math.sin(phase*2*math.pi)
     if action=='idle':
-        return
-    if action in ('walk','run'):
-        for side, sign in (('Left',1),('Right',-1)):
-            rotate(rig,side+'Thigh',(sign*(32 if action=='run' else 19)*wave,0,0))
-            rotate(rig,side+'Arm',(-sign*12*wave,0,0))
-        # Knee and elbow bones intentionally remain locked.
+        rotate(rig,'Chest',(0,3*wave,0))
+        rotate(rig,'Head',(0,0,-5*wave))
+    elif action in ('walk','run'):
+        biped_gait(rig,phase,action=='run',arm_scale=1.2,stiff=True)
+        rotate(rig,'Chest',(12 if action=='run' else 3,0,5*wave))
+        rotate(rig,'Head',(0,0,-8*wave))
     elif action=='ready':
         snap = 0 if t<.25 else 1
         rotate(rig,'LeftArm',(-64*snap,0,-12*snap))
         rotate(rig,'RightArm',(-48*snap,0,18*snap))
         rotate(rig,'Head',(0,0,14*snap))
     elif action=='attack':
-        a = envelope(t)
-        rotate(rig,'Chest',(-24*a,0,0))
-        rotate(rig,'LeftArm',(-78*a,0,-12*a))
-        rotate(rig,'RightArm',(-78*a,0,12*a))
+        from hunter_creature_common import envelope as keyed
+        a = keyed(t,[(0,0),(.23,0),(.33,1),(.50,1),(.58,.72),(.78,.72),(1,0)])
+        pre = max(0,1-t/.33)
+        rotate(rig,'Chest',(32*a,0,0))
+        rotate(rig,'LeftArm',(-64*pre-110*a,0,-12*(pre+a)))
+        rotate(rig,'RightArm',(-48*pre-110*a,0,18*pre+12*a))
+        rotate(rig,'Head',(0,0,14*pre))
         rotate(rig,'LeftHand',(0,0,18*a))
         rotate(rig,'RightHand',(0,0,-18*a))
     else:
         a = envelope(t,.25)
-        rotate(rig,'Chest',(13*a,0,12*a))
+        rotate(rig,'Chest',(-28*a,0,18*a))
         rotate(rig,'Head',(0,0,-20*a))
 
 

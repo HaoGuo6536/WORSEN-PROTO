@@ -2,7 +2,7 @@
 # hunter_weaver.py
 # ============================================================================
 # PURPOSE:
-#   Authors the wide, six-limbed Weaver instead of reusing the legacy werewolf.
+#   Authors the wide, eight-limbed Weaver instead of reusing the legacy werewolf.
 #   A flattened carapace and pale joints disclose its overhead skitter without
 #   eyes or a face. Its warned attack drops the shell before rearing to release.
 # ARCHITECTURAL ROLE:
@@ -24,6 +24,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_motion_common import spider_leg
 
 PALETTE = {"Carapace": (.24, .135, .085), "Ridge": (.36, .215, .125),
            "Limbs": (.16, .105, .072), "JointTips": (.76, .70, .53), "Underside": (.095, .065, .052)}
@@ -33,12 +34,13 @@ def build():
     definitions = [("Body", "Root", (0, 0, .9))]
     limbs = []
     for side, sign in (("L", -1), ("R", 1)):
-        for i, y in enumerate((-.34, .02, .34)):
+        for i, y in enumerate((-.34, -.12, .12, .34)):
             key = side + str(i)
-            reach_y = y + (i - 1) * .23
+            fan = i / 1.5 - 1
+            reach_y = y + fan * .23
             p = [(sign * .27, y, .89), (sign * .66, reach_y, 1.03),
-                 (sign * .98, reach_y + (i - 1) * .12, .50),
-                 (sign * .89, reach_y + (i - 1) * .20, .035)]
+                 (sign * .98, reach_y + fan * .12, .50),
+                 (sign * .89, reach_y + fan * .20, .035)]
             for j in range(3):
                 definitions.append((key + "Segment" + str(j), "Body" if j == 0 else key + "Segment" + str(j - 1), p[j]))
             limbs.append((key, p))
@@ -64,32 +66,61 @@ def build():
 def motion(rig, name, t):
     wave = math.sin(2 * math.pi * t)
     if name in {"walk", "run"}:
-        amount = .23 if name == "walk" else .36
+        sprint = name == 'run'
+        stride, lift = (.31, .25) if sprint else (.21, .14)
+        c.delta(rig, 'Body', (.08 if sprint else 0, .04*wave, 0),
+                (0, 0, -.22+.025*(1-math.cos(4*math.pi*t))))
+        import bpy
+        bpy.context.view_layer.update()
         for side, sign in (("L", -1), ("R", 1)):
-            for i in range(3):
-                w = wave * (-1 if (i + (sign > 0)) % 2 else 1)
+            for i, y in enumerate((-.34, -.12, .12, .34)):
                 key = side + str(i)
-                c.delta(rig, key + "Segment0", (0, sign * .12 * max(0, w), amount * w))
-                c.delta(rig, key + "Segment1", (0, -sign * .18 * max(0, w), -.10 * w))
-                c.delta(rig, key + "Segment2", (.10 * w, sign * .10 * max(0, w), 0))
-        c.delta(rig, "Body", (0, .025 * wave, 0))
+                phase = (t + .5*((i+(sign>0))%2)) % 1
+                travel = stride*(-1+4*phase) if phase<.5 else stride*(3-4*phase)
+                rise = lift*max(0,-math.sin(2*math.pi*phase))
+                tip = (sign*.89, y+(i/1.5-1)*.43, .035)
+                target = [tip[0], tip[1]+travel, .06+rise]
+                yaw = sign*(.46 if sprint else .30)*math.cos(2*math.pi*phase)
+                # Compensate the rigid cube's tilted sole, not merely its centre.
+                for _ in range(4):
+                    spider_leg(rig,key,tip,target,yaw)
+                    row = rig.pose.bones[key+'Segment2'].matrix.to_3x3() @ rig.data.bones[key+'Segment2'].matrix_local.to_3x3().inverted()
+                    target[2] = sum(abs(row[2][j])*size for j,size in enumerate((.0425,.0525,.035))) + rise + .002
     elif name == "idle":
-        c.delta(rig, "Body", (.018 * wave, 0, 0))
+        c.delta(rig, "Body", (.08 * wave, .05*wave, 0))
     elif name == "ready":
-        lift = .55 * t
+        lift = .95 * t
         for side, sign in (("L", -1), ("R", 1)):
             c.delta(rig, side + "0Segment0", (-lift, sign * .14 * t, 0))
-            c.delta(rig, side + "0Segment1", (-.23 * t, 0, 0))
-        c.delta(rig, "Body", (-.08 * t, 0, 0))
+            c.delta(rig, side + "0Segment1", (-.45 * t, 0, 0))
+        c.delta(rig, "Body", (-.18 * t, 0, 0))
     elif name == "attack":
         drop = c.envelope(t, [(0, 0), (.23, -.20), (.4, -.15), (.67, .10), (1, 0)])
-        rear = c.envelope(t, [(0, -.08), (.23, .10), (.4, -.23), (.67, -.39), (1, 0)])
+        rear = c.envelope(t, [(0, -.18), (.23, .18), (.4, -.38), (.67, -.60), (1, 0)])
         c.delta(rig, "Body", (rear, 0, 0), (0, 0, drop))
         for side in ("L", "R"):
-            c.delta(rig, side + "0Segment0", (c.envelope(t, [(0, -.55), (.4, -.12), (.67, -.75), (1, 0)]), 0, 0))
+            c.delta(rig, side + "0Segment0", (c.envelope(t, [(0, -.95), (.4, .35), (.67, -1.15), (1, 0)]), 0, 0))
     elif name == "hit":
         recoil = math.sin(math.pi * t)
-        c.delta(rig, "Body", (.18 * recoil, .20 * recoil, 0), (0, .045 * recoil, -.10 * recoil))
+        c.delta(rig, "Body", (.30 * recoil, .28 * recoil, 0), (0, .10 * recoil, -.10 * recoil))
+    if name not in {'walk','run'}:
+        import bpy
+        bpy.context.view_layer.update()
+        for side, sign in (('L',-1),('R',1)):
+            for i,y in enumerate((-.34,-.12,.12,.34)):
+                key = side+str(i)
+                tip = (sign*.89,y+(i/1.5-1)*.43,.035)
+                lift, reach = 0, 0
+                if i==0 and name=='ready':
+                    lift, reach = .60*t, -.28*t
+                elif i==0 and name=='attack':
+                    lift = c.envelope(t,[(0,.60),(.23,.12),(.4,.06),(.67,.75),(1,0)])
+                    reach = c.envelope(t,[(0,-.28),(.23,0),(.4,-.48),(.67,-.20),(1,0)])
+                target = [tip[0],tip[1]+reach,.06+lift]
+                for _ in range(4):
+                    spider_leg(rig,key,tip,target,0)
+                    rotation = rig.pose.bones[key+'Segment2'].matrix.to_3x3() @ rig.data.bones[key+'Segment2'].matrix_local.to_3x3().inverted()
+                    target[2] = sum(abs(rotation[2][j])*size for j,size in enumerate((.0425,.0525,.035)))+lift+.002
 
 
 def main():

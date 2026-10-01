@@ -8,7 +8,7 @@
 # ARCHITECTURAL ROLE:
 #   Offline art validator · no runtime layer · Hunter / PLAN-015.
 # KEY RESPONSIBILITIES:
-#   - Check dimensions, forward landmarks, six articulated legs and exact bones.
+#   - Check dimensions, forward landmarks, eight articulated legs and exact bones.
 #   - Verify skitter movement and the warned body-drop/rear attack sequence.
 #   - Write fail-closed validation evidence and imported-content hashes.
 # DEPENDENCIES:
@@ -23,6 +23,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_animation_review import validate_motion
 
 
 def main():
@@ -30,18 +31,14 @@ def main():
     try:
         expected = {"Root": None, "Body": "Root"}
         for side in ("L", "R"):
-            for i in range(3):
+            for i in range(4):
                 for j in range(3):
                     expected[side + str(i) + "Segment" + str(j)] = "Body" if j == 0 else side + str(i) + "Segment" + str(j - 1)
         v.shared(expected, (.95, 1.2), lambda a: c.center(a, "ForwardSpinner").y < -.40 and c.center(a, "RearPlate1").y > .3)
         v.sockets({"attack_origin": ("Body", (0, -.60, .84)), "head_or_top": ("Body", (0, .10, 1.035))})
         v.check("wide_flat_outline", 1.9 < v.report["width_m"] < 2.2 and abs(c.center(v, "Carapace").z - .9) < .025, {"width_m": v.report["width_m"], "body_z": c.center(v, "Carapace").z})
-        for action in ("walk", "run"):
-            c.pose(v.rig, v.clips[action], 1)
-            start = [v.rig.pose.bones[s + "Segment0"].matrix.copy() for s in ("L0", "L1", "L2", "R0", "R1", "R2")]
-            c.pose(v.rig, v.clips[action], 1 + c.CLIPS[action] / 4)
-            moved = [(a.translation - v.rig.pose.bones[s + "Segment0"].matrix.translation).length + a.to_quaternion().rotation_difference(v.rig.pose.bones[s + "Segment0"].matrix.to_quaternion()).angle for a, s in zip(start, ("L0", "L1", "L2", "R0", "R1", "R2"))]
-            v.check(action + "_six_leg_skitter", all(d > .1 for d in moved), moved)
+        v.report['motion'] = validate_motion('Weaver',v.rig,v.meshes,v.clips,
+            dict(idle=.04,walk=.30,run=.45,ready=.35,attack=.60,hit=.25),v.check)
         c.pose(v.rig, v.clips["attack"], 1)
         start = (v.rig.matrix_world @ v.rig.pose.bones["Body"].head).z
         c.pose(v.rig, v.clips["attack"], 8)
