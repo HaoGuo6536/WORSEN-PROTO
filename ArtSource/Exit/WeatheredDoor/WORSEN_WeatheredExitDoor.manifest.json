@@ -1,0 +1,36 @@
+{
+  "name": "WORSEN_WeatheredExitDoor",
+  "provenance": "Original procedural geometry and texture; no third-party assets.",
+  "aperture_metres": [
+    2,
+    3
+  ],
+  "unity_front": [
+    0,
+    0,
+    -1
+  ],
+  "unity_leaf_pivot": [
+    -1,
+    0,
+    0
+  ],
+  "objects": [
+    "DoorFrame",
+    "DoorLeaf",
+    "Threshold",
+    "EscapeSurface"
+  ],
+  "export": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "bake_space_transform": true,
+    "unity_bakeAxisConversion": false
+  },
+  "triangles": 7670,
+  "material_mapping": {
+    "Exit_EscapeSurface": "Worsen/ExitPortal",
+    "other_slots": "Universal Render Pipeline/Lit"
+  },
+  "preview": "CPU ray-shader reference in Blender, not native URP evidence"
+}
