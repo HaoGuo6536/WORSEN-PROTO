@@ -3,7 +3,8 @@
 // ============================================================================
 // PURPOSE:
 //   Verifies cursor ownership and input gates through real component lifecycles.
-//   Virtual devices exercise Input System callbacks without claiming hardware input.
+//   Virtual devices exercise Input System callbacks without claiming hardware input
+//   or depending on the Unity window or Game view having focus.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Input.
 // KEY RESPONSIBILITIES:
@@ -19,7 +20,8 @@
 //   isolated scene. Creates only temporary objects/devices, scopes the gameplay map
 //   to those devices, pairs events, and restores cursor state after every test.
 //   Focus signals are synthetic; actual focus and rendered Results clicks remain
-//   integration checks. No assets or global Input System settings are modified.
+//   integration checks. An unsaved settings clone bypasses Input System focus rules;
+//   setup failure and teardown restore the original object. No assets are modified.
 // ============================================================================
 using System;
 using System.Collections;
@@ -45,6 +47,8 @@ namespace Worsen.Tests.Input
         private InputActionMap _gameplay;
         private Keyboard _keyboard;
         private Mouse _mouse;
+        private InputSettings _previousInputSettings;
+        private InputSettings _temporaryInputSettings;
         private CursorLockMode _previousLock;
         private bool _previousVisible;
         private bool _cursorSnapshotTaken;
@@ -55,47 +59,83 @@ namespace Worsen.Tests.Input
         {
             yield return new EnterPlayMode();
             Assert.That(InputManager.Instance, Is.Null, "Requires the Test Framework isolated scene.");
-            _previousLock = Cursor.lockState;
-            _previousVisible = Cursor.visible;
-            _cursorSnapshotTaken = true;
-            _lastFrame = default;
-            // A hidden, unlocked cursor makes restoration distinct from the UI state.
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = false;
-            _keyboard = InputSystem.AddDevice<Keyboard>();
-            _mouse = InputSystem.AddDevice<Mouse>();
-            _root = new GameObject("Input cursor lifecycle test");
-            _root.SetActive(false);
-            _manager = _root.AddComponent<InputManager>();
-            _driver = _root.GetComponent<PlayerInputDriver>();
-            _config = ScriptableObject.CreateInstance<InputDriverConfig>();
-            var serialized = new SerializedObject(_driver);
-            serialized.FindProperty("_config").objectReferenceValue = _config;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            _root.SetActive(true);
-            Assert.That(_manager.Initialize(), Is.SameAs(_manager));
-            _gameplay = (InputActionMap)typeof(PlayerInputDriver)
-                .GetField("_actions", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_driver);
-            _gameplay.devices = new InputDevice[] { _keyboard, _mouse };
-            _driver.SendMessage("OnApplicationFocus", true);
-            _manager.FramePublished += CaptureFrame;
+            _previousInputSettings = InputSystem.settings;
+            try
+            {
+                // Clone after Play Mode entry, before adding devices, so only test input
+                // ignores editor routing and application focus; retain all other settings.
+                _temporaryInputSettings = UnityEngine.Object.Instantiate(_previousInputSettings);
+                _temporaryInputSettings.hideFlags = HideFlags.HideAndDontSave;
+                _temporaryInputSettings.editorInputBehaviorInPlayMode =
+                    InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+                _temporaryInputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                InputSystem.settings = _temporaryInputSettings;
+                _previousLock = Cursor.lockState;
+                _previousVisible = Cursor.visible;
+                _cursorSnapshotTaken = true;
+                _lastFrame = default;
+                // A hidden, unlocked cursor makes restoration distinct from the UI state.
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = false;
+                _keyboard = InputSystem.AddDevice<Keyboard>();
+                _mouse = InputSystem.AddDevice<Mouse>();
+                _root = new GameObject("Input cursor lifecycle test");
+                _root.SetActive(false);
+                _manager = _root.AddComponent<InputManager>();
+                _driver = _root.GetComponent<PlayerInputDriver>();
+                _config = ScriptableObject.CreateInstance<InputDriverConfig>();
+                var serialized = new SerializedObject(_driver);
+                serialized.FindProperty("_config").objectReferenceValue = _config;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                _root.SetActive(true);
+                Assert.That(_manager.Initialize(), Is.SameAs(_manager));
+                _gameplay = (InputActionMap)typeof(PlayerInputDriver)
+                    .GetField("_actions", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_driver);
+                _gameplay.devices = new InputDevice[] { _keyboard, _mouse };
+                _driver.SendMessage("OnApplicationFocus", true);
+                _manager.FramePublished += CaptureFrame;
+            }
+            catch
+            {
+                // A failed UnitySetUp may prevent the normal teardown from running.
+                RestoreInputSettings();
+                throw;
+            }
         }
 
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            if (_manager != null) _manager.FramePublished -= CaptureFrame;
-            if (_root != null) UnityEngine.Object.DestroyImmediate(_root);
-            if (_config != null) UnityEngine.Object.DestroyImmediate(_config);
-            if (_keyboard != null && _keyboard.added) InputSystem.RemoveDevice(_keyboard);
-            if (_mouse != null && _mouse.added) InputSystem.RemoveDevice(_mouse);
-            if (_cursorSnapshotTaken)
+            try
             {
-                Cursor.lockState = _previousLock;
-                Cursor.visible = _previousVisible;
-                _cursorSnapshotTaken = false;
+                if (_manager != null) _manager.FramePublished -= CaptureFrame;
+                if (_root != null) UnityEngine.Object.DestroyImmediate(_root);
+                if (_config != null) UnityEngine.Object.DestroyImmediate(_config);
+                if (_keyboard != null && _keyboard.added) InputSystem.RemoveDevice(_keyboard);
+                if (_mouse != null && _mouse.added) InputSystem.RemoveDevice(_mouse);
+                if (_cursorSnapshotTaken)
+                {
+                    Cursor.lockState = _previousLock;
+                    Cursor.visible = _previousVisible;
+                    _cursorSnapshotTaken = false;
+                }
             }
+            finally { RestoreInputSettings(); }
             if (Application.isPlaying) yield return new ExitPlayMode();
+        }
+
+        private void RestoreInputSettings()
+        {
+            if (_previousInputSettings != null)
+            {
+                InputSystem.settings = _previousInputSettings;
+                _previousInputSettings = null;
+            }
+            if (_temporaryInputSettings != null)
+            {
+                UnityEngine.Object.DestroyImmediate(_temporaryInputSettings);
+                _temporaryInputSettings = null;
+            }
         }
 
         [Test]
