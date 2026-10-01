@@ -10,14 +10,14 @@
 // KEY RESPONSIBILITIES:
 //   - Tune landing contact tolerance and legal step height independently of traversal rules.
 //   - Name the hunter-body layer excluded from movement queries and contacts during grace.
-//   - Implement only the Player responsibility named by this script.
-//   - Keep game rules, passive state, and engine interactions in separate roles.
+//   - Tune yaw-only shoulder anchors and eased, speed-scaled walking arm swing.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
 // USAGE NOTES:
 //   Used only by PlayerDriver and its owned PlayerLimbStandIn. Distances are metres.
-//   FootOffset is relative to the slide eye height; its default keeps the feet in the lower view.
+//   HandOffset retains its serialized name but now locates the shoulder pivot.
+//   Provisional relaxed defaults are migrated once by PlayerPrefabGenerator.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using UnityEngine;
@@ -27,6 +27,11 @@ namespace Worsen.Domain.Player
     [CreateAssetMenu(menuName = "Worsen/Player/Mover Driver Config")]
     public sealed class PlayerMoverDriverConfig : ScriptableObject
     {
+        public static readonly Vector3 DefaultShoulderOffset = new Vector3(0.24f, -0.22f, 0.08f);
+        public const float DefaultArmSwingDegrees = 6f;
+        public const float DefaultArmSwingReferenceSpeed = 4f;
+        public const float DefaultArmSwingFrequency = 1.3f;
+        public const float DefaultArmSwingEaseSeconds = 0.2f;
         [SerializeField] private float _height = 1.8f;
         [SerializeField] private float _radius = 0.3f;
         [SerializeField] private float _slideHeightRatio = 0.5f;
@@ -45,7 +50,13 @@ namespace Worsen.Domain.Player
         [SerializeField] private LayerMask _collisionMask = ~0;
         [SerializeField] private string _hunterBodyLayer = "HunterBody";
         [SerializeField] private bool _interpolateVisuals = true;
-        [SerializeField] private Vector3 _handOffset = new Vector3(0.32f, -0.25f, 0.5f);
+        [Tooltip("Shoulder pivot relative to the eye in body-yaw space; X is mirrored.")]
+        [SerializeField] private Vector3 _handOffset = DefaultShoulderOffset;
+        [SerializeField, Range(0f, 8f)] private float _armSwingDegrees = DefaultArmSwingDegrees;
+        [SerializeField] private float _armSwingReferenceSpeed = DefaultArmSwingReferenceSpeed;
+        [SerializeField] private float _armSwingFrequency = DefaultArmSwingFrequency;
+        [SerializeField] private float _armSwingEaseSeconds = DefaultArmSwingEaseSeconds;
+        [SerializeField, HideInInspector] private int _relaxedArmsVersion = 0;
         [SerializeField] private Vector3 _footOffset = new Vector3(0.2f, -0.25f, 0.5f);
 
         public float Height => _height;
@@ -67,6 +78,11 @@ namespace Worsen.Domain.Player
         public string HunterBodyLayer => _hunterBodyLayer;
         public bool InterpolateVisuals => _interpolateVisuals;
         public Vector3 HandOffset => _handOffset;
+        public float ArmSwingDegrees => _armSwingDegrees;
+        public float ArmSwingReferenceSpeed => _armSwingReferenceSpeed;
+        public float ArmSwingFrequency => _armSwingFrequency;
+        public float ArmSwingEaseSeconds => _armSwingEaseSeconds;
+        public int RelaxedArmsVersion => _relaxedArmsVersion;
         public Vector3 FootOffset => _footOffset;
     }
 }
