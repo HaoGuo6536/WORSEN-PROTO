@@ -2,12 +2,13 @@
 // ShrineDriverConfig.cs
 // ============================================================================
 // PURPOSE:
-//   Tunes the temporary code-built shrine silhouettes without touching game rules.
-//   These shapes identify the kind and spent state until authored art is supplied.
-//   Serialized primitive recipes allow the owner to replace provisional forms and palettes.
+//   Selects authored static shrine models without touching game rules.
+//   Missing references retain the code-built silhouettes so partial art cannot hide a shrine.
+//   Serialized primitive recipes also supply kind colours for authored emissive accents.
 // ARCHITECTURAL ROLE:
 //   DriverConfig (§7d) · Domain · Shrine.
 // KEY RESPONSIBILITIES:
+//   - Supply optional model references for all eight kinds, in authored metre scale.
 //   - Supply the common pedestal and eight distinct primitive recipes and accent colors.
 //   - Tune overall size, body colors and active/spent emission strength.
 // DEPENDENCIES:
@@ -16,6 +17,7 @@
 //   No runtime writes; ShrineDriver owns every generated object and material.
 //   Recipe positions and full dimensions are normalized against Size, with the floor at y=0.
 //   Cylinder dimensions describe its full height, not Unity's two-unit primitive scale.
+//   Models have exactly M_ShrineBody and M_ShrineAccent slots; Size affects fallback only.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -32,12 +34,38 @@ namespace Worsen.Domain.Shrine
         [SerializeField, Min(0f)] private float _accentEmission = 0.65f;
         [SerializeField, Range(0f, 1f)] private float _spentAccentMultiplier = 0.12f;
         [SerializeField] private Silhouettes _silhouettes = new Silhouettes();
+        [SerializeField] private GameObject _chanceModel = null;
+        [SerializeField] private GameObject _bargainModel = null;
+        [SerializeField] private GameObject _pacificationModel = null;
+        [SerializeField] private GameObject _wickModel = null;
+        [SerializeField] private GameObject _passageModel = null;
+        [SerializeField] private GameObject _protectionModel = null;
+        [SerializeField] private GameObject _echoModel = null;
+        [SerializeField] private GameObject _purgatoryModel = null;
+        public const string BodyMaterialName = "M_ShrineBody";
+        public const string AccentMaterialName = "M_ShrineAccent";
         public Vector3 Size => _size;
         public Color Color => _color;
         public Color SpentColor => _spentColor;
         public float AccentEmission => _accentEmission;
         public float SpentAccentMultiplier => _spentAccentMultiplier;
         public Silhouettes Shapes => _silhouettes;
+
+        public GameObject GetModel(ShrineKind kind)
+        {
+            switch (kind)
+            {
+                case ShrineKind.Chance: return _chanceModel;
+                case ShrineKind.Bargain: return _bargainModel;
+                case ShrineKind.Pacification: return _pacificationModel;
+                case ShrineKind.Wick: return _wickModel;
+                case ShrineKind.Passage: return _passageModel;
+                case ShrineKind.Protection: return _protectionModel;
+                case ShrineKind.Echo: return _echoModel;
+                case ShrineKind.Purgatory: return _purgatoryModel;
+                default: throw new ArgumentOutOfRangeException(nameof(kind));
+            }
+        }
 
         [Serializable]
         public struct Part

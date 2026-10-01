@@ -2,14 +2,15 @@
 // ShrineDriver.cs
 // ============================================================================
 // PURPOSE:
-//   Creates nonblocking placeholder world objects for the Manager's placements.
-//   Distinct primitive silhouettes and small emissive accents identify each shrine without text.
+//   Creates nonblocking authored models for the Manager's placements, or primitive fallbacks.
+//   Distinct silhouettes and small emissive accents identify each shrine without text.
 //   Spent shrines retain their shape but grey their body and dim their private accent.
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Shrine.
 // KEY RESPONSIBILITIES:
-//   - Apply configured primitive recipes supplied through the pure Presenter.
-//   - Build and destroy owned roots, primitive children and private materials.
+//   - Select configured models or apply fallback recipes through the pure Presenter.
+//   - Build and destroy owned roots, static model/primitive children and private materials.
+//   - Reject active prefab behaviours and disable every cloned collider before activation.
 //   - Apply active and spent palettes without changing shared assets or lighting.
 // DEPENDENCIES:
 //   - Own DriverConfig, Presenter and DriverState, plus Core placements; no gameplay reads.
@@ -17,6 +18,8 @@
 //   Scene-owned, no global side effects. Primitive colliders are disabled immediately.
 //   Activation uses committed pose envelopes in the Controller, not physics callbacks.
 //   No lights or GI contribution are created; emission is surface-only. Clear is idempotent.
+//   Models must contain only Transform/MeshFilter/MeshRenderer/Collider components and
+//   the two named material slots. Malformed configured art fails closed, not silently hidden.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -45,20 +48,12 @@ namespace Worsen.Domain.Shrine
                     catch { Release(root); throw; }
                     root.transform.SetParent(transform, false);
                     root.transform.position = placement.Site.Position;
-                    var pedestal = CreatePart(root, config.Shapes.Pedestal, "Pedestal");
-                    var body = CreateMaterial(pedestal.GetComponent<Renderer>().sharedMaterial, config.Color, Color.black);
-                    var accent = CreateMaterial(pedestal.GetComponent<Renderer>().sharedMaterial,
-                        shape.AccentColor, ShrineDriverPresenter.Emission(shape.AccentColor, config.AccentEmission, 1f));
-                    pedestal.GetComponent<Renderer>().sharedMaterial = body;
-                    state.Bodies.Add(placement.Id, body);
-                    state.Accents.Add(placement.Id, accent);
+                    root.SetActive(false);
+                    var model = config.GetModel(placement.Kind);
+                    if (model != null) BuildModel(root, model, placement.Id, shape.AccentColor);
+                    else BuildFallback(root, placement.Id, shape);
                     state.AccentColors.Add(placement.Id, shape.AccentColor);
-                    for (int i = 0; i < shape.Parts.Count; i++)
-                    {
-                        var part = shape.Parts[i];
-                        var child = CreatePart(root, part, "Part " + i);
-                        child.GetComponent<Renderer>().sharedMaterial = part.Accent ? accent : body;
-                    }
+                    root.SetActive(true);
                 }
             }
             catch { Clear(); throw; }
@@ -96,12 +91,61 @@ namespace Worsen.Domain.Shrine
             }
             catch { Release(child); throw; }
         }
+        private void BuildFallback(GameObject root, int id, ShrineDriverConfig.Silhouette shape)
+        {
+            var pedestal = CreatePart(root, config.Shapes.Pedestal, "Pedestal");
+            var template = pedestal.GetComponent<Renderer>().sharedMaterial;
+            var body = CreateMaterial(template, config.Color, Color.black);
+            var accent = CreateMaterial(template, shape.AccentColor,
+                ShrineDriverPresenter.Emission(shape.AccentColor, config.AccentEmission, 1f));
+            pedestal.GetComponent<Renderer>().sharedMaterial = body;
+            state.Bodies.Add(id, body); state.Accents.Add(id, accent);
+            for (int i = 0; i < shape.Parts.Count; i++)
+            {
+                var part = shape.Parts[i];
+                var child = CreatePart(root, part, "Part " + i);
+                child.GetComponent<Renderer>().sharedMaterial = part.Accent ? accent : body;
+            }
+        }
+        private void BuildModel(GameObject root, GameObject model, int id, Color color)
+        {
+            // Validate BEFORE Instantiate: even an inactive clone must not carry user scripts.
+            foreach (var component in model.GetComponentsInChildren<Component>(true))
+                if (!(component is Transform) && !(component is MeshFilter) &&
+                    !(component is MeshRenderer) && !(component is Collider))
+                    throw new InvalidOperationException("Shrine models must be static mesh-only hierarchies: " + model.name);
+            Material bodyTemplate = null, accentTemplate = null;
+            foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
+                foreach (var material in renderer.sharedMaterials)
+                {
+                    if (material != null && material.name == ShrineDriverConfig.BodyMaterialName) bodyTemplate = material;
+                    else if (material != null && material.name == ShrineDriverConfig.AccentMaterialName) accentTemplate = material;
+                    else throw new InvalidOperationException("Shrine model has an unnamed or unsupported material slot: " + model.name);
+                }
+            if (bodyTemplate == null || accentTemplate == null)
+                throw new InvalidOperationException("Shrine model requires body and emissive accent material slots: " + model.name);
+            var body = CreateMaterial(bodyTemplate, bodyTemplate.color, Color.black);
+            var accent = CreateMaterial(accentTemplate, color,
+                ShrineDriverPresenter.Emission(color, config.AccentEmission, 1f));
+            state.Bodies.Add(id, body); state.Accents.Add(id, accent);
+            var instance = Instantiate(model, root.transform, false);
+            instance.name = "Model";
+            foreach (var collider in instance.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+            foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                for (int i = 0; i < materials.Length; i++)
+                    materials[i] = materials[i].name == ShrineDriverConfig.AccentMaterialName ? accent : body;
+                renderer.sharedMaterials = materials;
+            }
+            instance.SetActive(true);
+        }
         private Material CreateMaterial(Material template, Color color, Color emission)
         {
             var material = new Material(template);
             state.Materials.Add(material);
             if (!material.HasProperty("_EmissionColor"))
-                throw new InvalidOperationException("Shrine primitive material must support _EmissionColor.");
+                throw new InvalidOperationException("Shrine material must support _EmissionColor.");
             material.color = color;
             material.EnableKeyword("_EMISSION");
             material.SetColor("_EmissionColor", emission);
