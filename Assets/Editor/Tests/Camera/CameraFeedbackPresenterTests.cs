@@ -13,6 +13,7 @@
 //   - Verify hunter timing and fixed-camera hand framing, precedence and reset.
 //   - Cover once-per-tick look input, bounded view angles and exact timing endpoints.
 //   - Exercise effect composition, comfort settings, death and reset isolation.
+//   - Verify death takes over the rendered pose without retaining interpolation history.
 //
 // DEPENDENCIES:
 //   - Core contracts; Camera presentation math; NUnit and editor config serialization.
@@ -48,6 +49,28 @@ namespace Worsen.Tests.Camera
 
         [TearDown]
         public void TearDown() => Object.DestroyImmediate(_config);
+
+        [Test]
+        public void DeathTakesOverRenderedPoseAndDiscardsPendingMovementAndHeight()
+        {
+            _presenter.SetMovement(_state, _config, Sample(1), 1f, .02f);
+            var next = new PlayerMovementSample(default, 2, Vector3.right * 3f, Vector3.zero,
+                new Vector3(3f, 1.6f, 3f), 30f, Vector2.zero, false, MovementState.Vault, 0f);
+            _presenter.SetMovement(_state, _config, next, 1.02f, .02f);
+            _presenter.Tick(_state, _config, 0f, 1f, 1.025f);
+            Vector3 rendered = _state.Position;
+            Assert.That(rendered.x, Is.EqualTo(2.25f).Within(.00001f));
+            _presenter.PlayDeathSnap(_state, _config, Vector3.forward * 10f);
+            Assert.That(_state.CatchStartPosition, Is.EqualTo(rendered));
+            Assert.That(_state.MovementStepDuration, Is.Zero);
+            Assert.That(_state.VaultActive || _state.VaultCompleting, Is.False);
+            _presenter.Tick(_state, _config, 0f, 1f, 100f);
+            Assert.That(_state.Position, Is.EqualTo(rendered));
+            _presenter.Reset(_state);
+            _presenter.SetMovement(_state, _config, next, 2f, .02f);
+            _presenter.Tick(_state, _config, 0f, 1f, 2f);
+            Assert.That(_state.Position, Is.EqualTo(next.EyePosition));
+        }
 
         [Test]
         public void HorizontalLensIsStableAcrossAspectRatios()

@@ -8,6 +8,7 @@
 //   Editor tool (§10) · test suite (§11) · Camera.
 // KEY RESPONSIBILITIES:
 //   - Verify cancellation, severity, duration, comfort overrides and relay handlers.
+//   - Verify render interpolation across progress, cancellation and completion boundaries.
 // DEPENDENCIES:
 //   - Core, Camera presentation, CameraOrchestrator, NUnit and reflection test injection.
 // USAGE NOTES:
@@ -42,6 +43,38 @@ namespace Worsen.Tests.Camera
         private void Progress(long tick, float progress, bool active) => CameraTraversalPresenter.SetProgress(
             _state, _config, new EntityId(1), tick, TraversalKind.Vault, progress, active);
         private void Tick(float dt) => _presenter.Tick(_state, _config, dt, 1f);
+
+        [Test]
+        public void TimedProgressInterpolatesHeightAndCompletionDoesNotDropTheLastPair()
+        {
+            CameraTraversalPresenter.SetProgress(_state, _config, new EntityId(1), 1,
+                TraversalKind.Vault, .65f, true, 1f, .02f);
+            _presenter.Tick(_state, _config, 0f, 1f, 1.01f);
+            Assert.That(_state.Position.y, Is.EqualTo(1.04f).Within(.00001f));
+            CameraTraversalPresenter.SetProgress(_state, _config, new EntityId(1), 2,
+                TraversalKind.Vault, 1f, false, 1.02f, .02f);
+            _presenter.Tick(_state, _config, 0f, 1f, 1.02f);
+            Assert.That(_state.Position.y, Is.EqualTo(1.08f).Within(.00001f));
+            _presenter.Tick(_state, _config, 0f, 1f, 1.03f);
+            Assert.That(_state.Position.y, Is.EqualTo(1.04f).Within(.00001f));
+            _presenter.Tick(_state, _config, 0f, 1f, 1.05f);
+            Assert.That(_state.Position.y, Is.EqualTo(1f).Within(.00001f));
+            Assert.That(_state.VaultActive || _state.VaultCompleting, Is.False);
+        }
+
+        [Test]
+        public void TimedCancellationRecoversFromDisplayedNotFutureHeight()
+        {
+            CameraTraversalPresenter.SetProgress(_state, _config, new EntityId(1), 1,
+                TraversalKind.Vault, .65f, true, 1f, .02f);
+            _presenter.Tick(_state, _config, 0f, 1f, 1.01f);
+            float displayed = _state.Position.y;
+            Progress(2, .7f, false);
+            _presenter.Tick(_state, _config, 0f, 1f, 1.02f);
+            Assert.That(_state.Position.y, Is.EqualTo(displayed).Within(.00001f));
+            Tick(_config.VaultReturnSeconds);
+            Assert.That(_state.Position.y, Is.EqualTo(1f).Within(.00001f));
+        }
 
         [Test] public void VaultFollowsProgressNotTimeAndMouseLookStaysLive()
         {

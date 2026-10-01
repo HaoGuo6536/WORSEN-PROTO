@@ -22,6 +22,7 @@
 // USAGE NOTES:
 //   - Scene-owned by CameraManager; owns its rig and dedicated output camera's brain.
 //   - LateUpdate advances presentation time only; it never ticks gameplay.
+//   - Injects fixed sample time and render time for one-step position/height interpolation.
 //   - Manual brain update runs after pose assignment, avoiding script-order dependence.
 //   - ConfigureForSetup is an editor wiring entry point; Initialize starts runtime work.
 //   - No global time or render settings are changed.
@@ -112,7 +113,7 @@ namespace Worsen.Presentation.Camera
 
         public void SetMovement(PlayerMovementSample sample)
         {
-            if (_state != null) _presenter.SetMovement(_state, _config, sample);
+            if (_state != null) _presenter.SetMovement(_state, _config, sample, Time.fixedTime, Time.fixedDeltaTime);
         }
 
         public void SetLookBack(bool held)
@@ -144,7 +145,8 @@ namespace Worsen.Presentation.Camera
         }
 
         public void SetTraversalProgress(EntityId id, long tick, TraversalKind kind, float progress, bool active)
-        { if (_state != null) CameraTraversalPresenter.SetProgress(_state, _config, id, tick, kind, progress, active); }
+        { if (_state != null) CameraTraversalPresenter.SetProgress(_state, _config, id, tick, kind, progress, active,
+            Time.fixedTime, Time.fixedDeltaTime); }
 
         public void PlayStumble(EntityId id, long tick, float seconds)
         { if (_state != null) CameraTraversalPresenter.Stumble(_state, id, tick, seconds); }
@@ -238,7 +240,7 @@ namespace Worsen.Presentation.Camera
         {
             if (_state == null || !_state.HasMovement) return;
             bool holdStarted = _state.CatchHoldStarted, holdEnded = _state.CatchHoldEnded;
-            _presenter.Tick(_state, _config, _state.DeathSnapped ? Time.unscaledDeltaTime : Time.deltaTime, _outputCamera.aspect);
+            _presenter.Tick(_state, _config, _state.DeathSnapped ? Time.unscaledDeltaTime : Time.deltaTime, _outputCamera.aspect, Time.time);
             _rig.transform.SetPositionAndRotation(_state.Position, _state.Rotation);
             _rig.Lens.FieldOfView = _state.VerticalFieldOfView;
             _listener.Gain = _state.DeathSnapped || !_state.PunchEnabled ? 0f : _config.PunchIntensity * _config.ShakeIntensity;

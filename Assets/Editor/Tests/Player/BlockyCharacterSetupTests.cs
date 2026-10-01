@@ -94,6 +94,10 @@ namespace Worsen.Tests.Player
                 for (int rebuild = 0; rebuild < 2; rebuild++)
                 {
                     PlayerLimbStandIn limbs = PlayerPrefabGenerator.RebuildLimbs(visuals, model);
+                    var shown = new SerializedObject(limbs);
+                    Assert.That(shown.FindProperty("_showHands").boolValue, Is.EqualTo(PlayerPrefabGenerator.ShowFirstPersonArms), "Arms follow the owner's visibility switch.");
+                    shown.FindProperty("_showHands").boolValue = true; // exercise the opt-in placement path
+                    shown.ApplyModifiedPropertiesWithoutUndo();
                     Assert.That(visuals.transform.childCount, Is.EqualTo(4));
                     Assert.That(visuals.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length, Is.EqualTo(2));
                     Assert.That(visuals.GetComponentsInChildren<Collider>(true), Is.Empty);
@@ -102,7 +106,7 @@ namespace Worsen.Tests.Player
                     foreach (float yaw in new[] { 0f, 180f })
                     {
                         camera.transform.SetPositionAndRotation(new Vector3(4f, 1.6f, 7f), Quaternion.Euler(pitch, yaw, 6f));
-                        limbs.Apply(MovementState.Ground, 1.6f, new Vector3(.32f, -.25f, .5f), Vector3.zero);
+                        limbs.Apply(MovementState.Ground, 1.6f, new Vector3(.24f, -.22f, .08f), Vector3.zero);
                         callback.Invoke(limbs, new object[] { default(UnityEngine.Rendering.ScriptableRenderContext), camera });
                         foreach (SkinnedMeshRenderer renderer in visuals.GetComponentsInChildren<SkinnedMeshRenderer>())
                         {
@@ -111,9 +115,11 @@ namespace Worsen.Tests.Player
                             foreach (Vector3 vertex in baked.vertices)
                                 Assert.That(camera.transform.InverseTransformPoint(renderer.transform.TransformPoint(vertex)).z,
                                     Is.GreaterThan(camera.nearClipPlane));
-                            Vector3 root = camera.WorldToViewportPoint(renderer.transform.parent.position);
-                            Assert.That(root.y, Is.InRange(0f, .5f));
-                            Assert.That(root.x, renderer.name == "LeftArm" ? Is.InRange(0f, .5f) : Is.InRange(.5f, 1f));
+                            // Relaxed arms hang from shoulder pivots anchored to the body's heading, not the head:
+                            // the pivot sits below the eye, on its own side of the yaw-only frame.
+                            Vector3 pivot = Quaternion.Inverse(Quaternion.Euler(0f, yaw, 0f)) * (renderer.transform.parent.position - camera.transform.position);
+                            Assert.That(pivot.y, Is.LessThan(0f));
+                            Assert.That(pivot.x, renderer.name == "LeftArm" ? Is.LessThan(0f) : Is.GreaterThan(0f));
                         }
                         Assert.That(visuals.transform.Find("Left Foot").gameObject.activeSelf, Is.False);
                         Assert.That(visuals.transform.Find("Right Foot").gameObject.activeSelf, Is.False);

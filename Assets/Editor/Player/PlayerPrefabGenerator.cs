@@ -3,14 +3,16 @@
 // ============================================================================
 // PURPOSE:
 //   Rebuilds the Player prefab and mirrored archetype/config wiring without replacing tuning values.
-//   Generated blocky arms replace the optional capsule hands when their FBX exists.
+//   Generated blocky arms replace the optional capsule hands when their FBX exists; they are
+//   hidden by default in first person (owner, 2026-09-30; ShowFirstPersonArms).
 //   Missing art retains hidden capsules; rebuilding replaces limb children instead
 //   of accumulating meshes, bones or colliders.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Player.
 // KEY RESPONSIBILITIES:
 //   - Preserve existing Player tuning and rebuild idempotent limb references.
-//   - Split the imported Hold rest pose into independent skinned arm roots.
+//   - Split the relaxed rest pose into independent shoulder-pivoted skinned arms.
+//   - Migrate relaxed arm defaults once, retaining later designer tuning.
 // DEPENDENCIES:
 //   - Common SetupKit owns checked serialized wiring and asset-folder creation.
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
@@ -43,6 +45,7 @@ namespace Worsen.Editor.Player
                 throw new InvalidOperationException("Player assets require an idle Edit Mode editor.");
             PlayerProfile profile = EnsureAsset<PlayerProfile>(ProfilePath);
             PlayerMoverDriverConfig config = EnsureAsset<PlayerMoverDriverConfig>(ConfigPath);
+            ConfigureRelaxedArms(config);
             GameObject arms = BlockyCharacterSetup.LoadArmsIfPresent();
             EnsureFolder("Assets/Prefabs/Player");
             bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null;
@@ -80,6 +83,10 @@ namespace Worsen.Editor.Player
             }
         }
 
+        // Owner decision (2026-09-30): hide the player character in first person. The relaxed arms stay
+        // wired and tested; set this true (or tick PlayerLimbStandIn._showHands) to show them again.
+        public const bool ShowFirstPersonArms = false;
+
         public static PlayerLimbStandIn RebuildLimbs(GameObject visuals, GameObject arms)
         {
             foreach (Transform child in visuals.transform.Cast<Transform>().ToArray())
@@ -95,8 +102,8 @@ namespace Worsen.Editor.Player
             else
             {
                 // Keep the exported skin; no BakeMesh/static approximation. The player
-                // uses the authored Hold rest pose, not an Animator that could overwrite
-                // camera placement. Original Hold/Sway clip paths remain on the source FBX.
+                // uses the relaxed rest pose, not an Animator that could overwrite
+                // shoulder placement. Unused Hold/Sway takes remain for importer compatibility.
                 GameObject model = UnityEngine.Object.Instantiate(arms, visuals.transform, false);
                 model.name = "Blocky Arms";
                 foreach (Animator animator in model.GetComponentsInChildren<Animator>(true))
@@ -112,7 +119,7 @@ namespace Worsen.Editor.Player
             Wire(limbs, "_leftFoot", Limb(visuals.transform, "Left Foot", new Vector3(0.14f, 0.14f, 0.3f)));
             Wire(limbs, "_rightFoot", Limb(visuals.transform, "Right Foot", new Vector3(0.14f, 0.14f, 0.3f)));
             var serialized = new SerializedObject(limbs);
-            serialized.FindProperty("_showHands").boolValue = arms != null;
+            serialized.FindProperty("_showHands").boolValue = arms != null && ShowFirstPersonArms;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             return limbs;
         }
@@ -121,12 +128,11 @@ namespace Worsen.Editor.Player
         {
             Transform[] bones = model.GetComponentsInChildren<Transform>(true);
             Transform shoulder = bones.Single(t => t.name == side + "Shoulder");
-            Transform hand = bones.Single(t => t.name == side + "Hand");
             SkinnedMeshRenderer renderer = model.GetComponentsInChildren<SkinnedMeshRenderer>(true)
                 .Single(r => r.name == side + "Arm");
             GameObject root = new GameObject(side + " Hand");
             root.transform.SetParent(parent, false);
-            root.transform.position = hand.position;
+            root.transform.position = shoulder.position;
             shoulder.SetParent(root.transform, true);
             renderer.transform.SetParent(root.transform, true);
             // FBX can include zero-weight foreign bones. Keep those slots valid after
@@ -137,6 +143,20 @@ namespace Worsen.Editor.Player
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             root.SetActive(false);
             return root;
+        }
+
+        public static void ConfigureRelaxedArms(PlayerMoverDriverConfig config)
+        {
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (config.RelaxedArmsVersion >= 1) return;
+            using var serialized = new SerializedObject(config);
+            serialized.FindProperty("_handOffset").vector3Value = PlayerMoverDriverConfig.DefaultShoulderOffset;
+            serialized.FindProperty("_armSwingDegrees").floatValue = PlayerMoverDriverConfig.DefaultArmSwingDegrees;
+            serialized.FindProperty("_armSwingReferenceSpeed").floatValue = PlayerMoverDriverConfig.DefaultArmSwingReferenceSpeed;
+            serialized.FindProperty("_armSwingFrequency").floatValue = PlayerMoverDriverConfig.DefaultArmSwingFrequency;
+            serialized.FindProperty("_armSwingEaseSeconds").floatValue = PlayerMoverDriverConfig.DefaultArmSwingEaseSeconds;
+            serialized.FindProperty("_relaxedArmsVersion").intValue = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
