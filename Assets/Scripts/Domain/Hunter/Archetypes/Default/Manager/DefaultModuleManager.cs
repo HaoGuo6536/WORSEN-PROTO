@@ -13,10 +13,11 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, HunterManager owns tick and teardown.
 //   No subscriptions, independent state, time source or random draws.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 namespace Worsen.Domain.Hunter.Archetypes.Default
 {
-    public sealed class DefaultModuleManager : HunterArchetypeManager
+    public sealed class DefaultModuleManager : HunterArchetypeManager, Worsen.Core.IEntityHandle
     {
         public static void Register(HunterArchetypeFactory factory)
             => factory.RegisterDefault<DefaultModuleManager>((profile, random) => new DefaultHunterController());

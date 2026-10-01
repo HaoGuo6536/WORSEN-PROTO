@@ -16,6 +16,7 @@
 //   No scene, asset, navigation, Unity clock setting or Library mutation occurs.
 //   The fixture claims the canonical Run identity without persistent initialization,
 //   and explicitly restores it and resets actor registries on teardown.
+//   Hunter rule ticks precede Director delivery, matching Run's committed tick order.
 // ============================================================================
 using System;
 using System.Collections;
@@ -175,7 +176,12 @@ namespace Worsen.Tests.Run
             Assert.That(Heard(hunters[0]).Count, Is.EqualTo(1), "No simultaneous direct hearing path.");
             typeof(HunterBehaviorState).GetProperty("IsActive").SetValue(hunters[2].ReadOnlyState, false);
             int deliveries = 0; director.OnNoiseHintIssued += (_, noise) => { Assert.That(noise, Is.EqualTo(directedTrap)); deliveries++; };
-            director.Tick(.02f, 1); director.Tick(.02f, 2);
+            foreach (var hunter in hunters.Take(2))
+                ((HunterController)Get(hunter, "_controller")).Tick(default, .02f, 1);
+            director.Tick(.02f, 1);
+            foreach (var hunter in hunters.Take(2))
+                ((HunterController)Get(hunter, "_controller")).Tick(default, .02f, 2);
+            director.Tick(.02f, 2);
             Assert.That(ds.Noises, Is.Empty); Assert.That(deliveries, Is.EqualTo(2));
             for (int i = 0; i < hunters.Count; i++) Assert.That(Heard(hunters[i]).Count, Is.EqualTo(i < 2 ? 2 : 0));
         }

@@ -14,6 +14,8 @@
 // USAGE NOTES:
 //   Coordinator-only Edit Mode tests; reflection injects state and publisher facts.
 //   No persistent scene, asset, navigation, singleton initialization or clock mutation.
+//   Pair non-ExecuteAlways Run lifecycle callbacks explicitly in Edit Mode; Level
+//   remains active so its public mutation gate is exercised rather than bypassed.
 // ============================================================================
 using System;
 using System.Collections;
@@ -60,6 +62,7 @@ namespace Worsen.Tests.Run
             var clock = new RunSessionController(state, new System.Random(7)); clock.StartScene(SceneKey.HorrorRun);
             Set(run, "state", state); Set(run, "controller", clock); run.gameObject.SetActive(true);
             level = Component<LevelManager>();
+            level.gameObject.SetActive(true);
             level.InitializeGenerated(LevelGraphUtility.Build(new[] {
                 new LevelRoom(1, Vector3.zero, Vector3.one * 20f),
                 new LevelRoom(2, Vector3.right * 20f, Vector3.one * 20f) },
@@ -109,8 +112,8 @@ namespace Worsen.Tests.Run
             }
             Emit(); Assert.That(facts, Is.EqualTo(8)); Assert.That(motion.WebSpeedMultiplier, Is.EqualTo(.75f));
             run.SetPaused(true); Emit(); Assert.That(facts, Is.EqualTo(8)); run.SetPaused(false);
-            run.gameObject.SetActive(false); Emit(); Assert.That(facts, Is.EqualTo(8));
-            run.gameObject.SetActive(true); Emit(); Assert.That(facts, Is.EqualTo(16));
+            run.gameObject.SetActive(false); Call(run, "OnDisable"); Emit(); Assert.That(facts, Is.EqualTo(8));
+            run.gameObject.SetActive(true); Call(run, "OnEnable"); Emit(); Assert.That(facts, Is.EqualTo(16));
             run.DetachGameplay(); Emit(); Assert.That(facts, Is.EqualTo(16));
             foreach (string name in new[] { "OnArchetypeFact", "OnHabit", "OnMutation", "OnWebHit", "OnWeaverFact" })
                 Assert.That((Get(h, name) as Delegate)?.GetInvocationList().Length ?? 0, Is.Zero, name);
@@ -336,10 +339,11 @@ namespace Worsen.Tests.Run
             var output = channel.GetType().GetEvent(relay); output.AddEventHandler(channel, observer);
             run.BindGameplay(null, null, null); run.BindAdditionalHunter(hunter);
             Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
-            run.SetPaused(true); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
-            run.SetPaused(false); run.gameObject.SetActive(false);
+            run.SetPaused(true); Assert.That(run.IsPaused, Is.True);
+            Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay + " while paused");
+            run.SetPaused(false); run.gameObject.SetActive(false); Call(run, "OnDisable");
             Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(1), relay);
-            run.gameObject.SetActive(true); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
+            run.gameObject.SetActive(true); Call(run, "OnEnable"); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
             run.DetachGameplay(); Publish(hunter, publisher, default(T)); Assert.That(count, Is.EqualTo(2), relay);
             Assert.That((Get(hunter, publisher) as Delegate)?.GetInvocationList().Length ?? 0, Is.Zero, publisher);
             output.RemoveEventHandler(channel, observer);

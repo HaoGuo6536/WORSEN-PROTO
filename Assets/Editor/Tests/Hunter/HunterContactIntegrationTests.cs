@@ -13,9 +13,11 @@
 //   - Hunter Manager/Driver, Core values, Player fixtures, Unity Physics and NUnit.
 // USAGE NOTES:
 //   Requires coordinator Unity execution; never counted as a headless pure pass.
+//   Pair non-ExecuteAlways lifecycle methods explicitly in Edit Mode.
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using Worsen.Core;
@@ -46,8 +48,11 @@ namespace Worsen.Tests.Hunter
                 manager = root.AddComponent<HunterManager>();
                 manager.Initialize(profile, new EntityContext(new EntityId(-1), new System.Random(3)),
                     new PlayerBehaviorState { Id = handle.Id, Health = 100, Position = target.transform.position }, new EchoControllerTests.World());
+                Call(manager, "OnDisable"); Call(manager, "OnEnable");
                 manager.OnLungeHit += hits.Add;
                 var driver = root.GetComponent<HunterDriver>(); Physics.SyncTransforms();
+                var contact = (Delegate)typeof(HunterDriver).GetField("OnLungeContact", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(driver);
+                Assert.That(contact.GetInvocationList().Length, Is.EqualTo(1), "The real Manager contact handler must be paired.");
                 collider.excludeLayers = 1 << root.layer;
                 driver.ProbeBodyContact(); Assert.That(hits, Is.Empty);
                 collider.excludeLayers = 0;
@@ -59,11 +64,13 @@ namespace Worsen.Tests.Hunter
             }
             finally
             {
-                if (manager != null) manager.OnLungeHit -= hits.Add;
+                if (manager != null) { manager.OnLungeHit -= hits.Add; Call(manager, "OnDisable"); }
                 Object.DestroyImmediate(root); Object.DestroyImmediate(target);
                 Object.DestroyImmediate(profile); Object.DestroyImmediate(rules); Object.DestroyImmediate(motor);
             }
         }
+        private static void Call(object target, string method) => target.GetType().GetMethod(method,
+            BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, null);
         [TestCase(false)] [TestCase(true)]
         public void OnlyMannequinPublishesOneDistinctCatchPerLife(bool mannequin)
         {

@@ -16,13 +16,14 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, root owns tick and teardown.
 //   No subscriptions or independent state. Controller owns charge admission.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Ram
 {
-    public sealed class RamModuleManager : HunterArchetypeManager
+    public sealed class RamModuleManager : HunterArchetypeManager, IEntityHandle
     {
         private RamController Controller => (RamController)Rules;
         public static void Register(HunterArchetypeFactory factory)

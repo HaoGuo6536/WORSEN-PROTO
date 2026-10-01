@@ -15,11 +15,12 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, root owns tick and teardown.
 //   No subscriptions, independent state or engine operations.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Herald
 {
-    public sealed class HeraldModuleManager : HunterArchetypeManager
+    public sealed class HeraldModuleManager : HunterArchetypeManager, IEntityHandle
     {
         private HeraldController Controller => (HeraldController)Rules;
         public static void Register(HunterArchetypeFactory factory)
