@@ -11,6 +11,7 @@
 //   - Validate kit identity, dimensions and complete per-theme catalogue coverage.
 //   - Check connected footprints, boundary sockets and gameplay anchor density.
 //   - Reject overlapping walls and incomplete straight or curved enclosures.
+//   - Admit only collision-bearing low vaults with opposite supported landing endpoints.
 // DEPENDENCIES:
 //   - Own definitions and coordinate utility only; no file or engine access.
 // USAGE NOTES:
@@ -23,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Domain.Procedural
 {
@@ -46,6 +48,10 @@ namespace Worsen.Domain.Procedural
                     piece.File != char.ToUpperInvariant(catalogue.Theme[0]) + catalogue.Theme.Substring(1) + "_" + piece.Id + ".fbx")
                     Fail("Invalid kit piece " + piece.Id);
                 if (Wall(piece) && piece.Size.y != height) Fail("Wall piece has the wrong theme height: " + piece.Id);
+                if (piece.TraversalKind != TraversalSurfaceKind.None &&
+                    (piece.TraversalKind != TraversalSurfaceKind.Vault || piece.Kind != "prop" || !piece.Collision ||
+                    piece.Size.y < .35f || piece.Size.y > 1.2f || piece.Size.x < 1f || piece.Size.z < .3f || piece.Size.z > .6f))
+                    Fail("Invalid vault kit metadata: " + piece.Id);
             }
             if (catalogue.Templates == null || catalogue.Templates.Length < 10 || catalogue.Templates.Length > 256 ||
                 catalogue.Templates.Any(t => t == null || !Identifier(t.Id)) ||
@@ -120,6 +126,21 @@ namespace Worsen.Domain.Procedural
                     !ProceduralTemplateUtility.Finite(placement.Position) || !ProceduralTemplateUtility.Finite(placement.RotY))
                     Fail(room.Id + ": unknown piece or nonfinite placement.");
                 piece = kit[placement.Id];
+                if (placement.TraversalKind != piece.TraversalKind ||
+                    placement.HasEndpoints != (placement.TraversalKind == TraversalSurfaceKind.Vault))
+                    Fail(room.Id + ": inconsistent vault traversal metadata.");
+                if (placement.TraversalKind == TraversalSurfaceKind.Vault)
+                {
+                    if (!piece.Collision || !placement.Collision || placement.Position.y != 0f ||
+                        !ProceduralTemplateUtility.Finite(placement.EndpointA) || !ProceduralTemplateUtility.Finite(placement.EndpointB) ||
+                        !ProceduralTemplateUtility.Inside(room, placement.EndpointA, .3f) ||
+                        !ProceduralTemplateUtility.Inside(room, placement.EndpointB, .3f)) Fail(room.Id + ": invalid vault landing.");
+                    var a = YawPoint(placement.EndpointA - placement.Position, -placement.RotY);
+                    var b = YawPoint(placement.EndpointB - placement.Position, -placement.RotY);
+                    if (Math.Abs(a.y) > .001f || Math.Abs(b.y) > .001f || Math.Abs(a.x) > .001f || Math.Abs(b.x) > .001f ||
+                        a.z * b.z >= 0f || Math.Abs(a.z) < piece.Size.z * .5f + .5f ||
+                        Math.Abs(b.z) < piece.Size.z * .5f + .5f) Fail(room.Id + ": vault endpoints must straddle the depth faces.");
+                }
                 if (Wall(piece) && placement.Position.y != 0f) Fail(room.Id + ": wall pivot must be at floor level.");
                 if ((piece.Kind == "wall" || piece.Kind == "door" || piece.Kind == "window") &&
                     !new[] { 0f, 90f, 180f, 270f }.Contains(placement.RotY)) Fail(room.Id + ": wall rotation is not a quarter turn.");

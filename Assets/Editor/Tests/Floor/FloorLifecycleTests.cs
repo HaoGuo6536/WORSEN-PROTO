@@ -75,9 +75,8 @@ namespace Worsen.Tests.Floor
                 Assert.That(fixture.Manager.ReadOnlyState.CakeCount, Is.EqualTo(1));
                 Assert.That(fixture.Manager.ReadOnlyState.ExitState, Is.EqualTo(ExitState.Open));
                 Assert.That(cake.gameObject.activeSelf, Is.False);
-                Assert.That(fixture.Driver.OwnedPickupCount, Is.EqualTo(2));
-                var golden = fixture.Root.GetComponentsInChildren<CakePickup>(true).Single(pickup => pickup.Kind == PickupKind.GoldenCake);
-                Assert.That(golden.gameObject.activeSelf, Is.True);
+                Assert.That(fixture.Driver.OwnedPickupCount, Is.EqualTo(1));
+                Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true).Any(pickup => pickup.Kind == PickupKind.GoldenCake), Is.False);
                 var exit = fixture.Root.GetComponentInChildren<FloorExitVolume>(true);
                 InvokeTrigger(exit, "OnTriggerEnter", fixture.ContactCollider);
                 InvokeTrigger(exit, "OnTriggerEnter", fixture.ContactCollider);

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Parse kit and room manifests without repairing malformed source tokens.
 //   - Publish validated snapshots into the selected content asset.
+//   - Reject malformed traversal metadata and preserve room-local vault endpoints.
 // DEPENDENCIES:
 //   - Domain.Procedural, bounded local JSON reader and UnityEditor.
 // USAGE NOTES:
@@ -24,6 +25,7 @@ using JToken = Worsen.Editor.Procedural.ProceduralManifestJsonSetup.Value;
 using UnityEditor;
 using UnityEngine;
 using Worsen.Domain.Procedural;
+using Worsen.Core;
 
 namespace Worsen.Editor.Procedural
 {
@@ -44,7 +46,8 @@ namespace Worsen.Editor.Procedural
             {
                 Theme = Text(rooms, "theme"), Module = Number(rooms["module"]), WallHeight = Number(kit["wallHeight"]),
                 Kit = Array(kit["pieces"]).Select(p => new ProceduralKitPiece
-                { Id = Text(p, "id"), File = Text(p, "file"), Kind = Text(p, "kind"), Size = Point(p["size"]) }).ToArray(),
+                { Id = Text(p, "id"), File = Text(p, "file"), Kind = Text(p, "kind"), Size = Point(p["size"]),
+                    TraversalKind = Traversal(p), Collision = Collision(p) }).ToArray(),
                 Templates = Array(rooms["templates"]).Select(t => new ProceduralRoomTemplate
                 {
                     Id = Text(t, "id"), Kind = Text(t, "kind"), Shape = Text(t, "shape"), SizeClass = Text(t, "sizeClass"),
@@ -65,8 +68,30 @@ namespace Worsen.Editor.Procedural
             ProceduralTemplateValidationUtility.Validate(result);
             return result;
         }
-        private static ProceduralTemplatePiece Placement(JToken value) => new ProceduralTemplatePiece
-        { Id = Text(value, "id"), Position = Point(value["pos"]), RotY = Number(value["rotY"]) };
+        private static ProceduralTemplatePiece Placement(JToken value)
+        {
+            var traversal = Traversal(value);
+            bool endpoints = value["endpointA"] != null || value["endpointB"] != null;
+            if ((traversal == TraversalSurfaceKind.Vault) != endpoints)
+                throw new ArgumentException("Vault placements require paired endpoints; untagged placements cannot carry them.");
+            return new ProceduralTemplatePiece { Id = Text(value, "id"), Position = Point(value["pos"]), RotY = Number(value["rotY"]),
+                TraversalKind = traversal, Collision = Collision(value), HasEndpoints = endpoints,
+                EndpointA = endpoints ? Point(value["endpointA"]) : default, EndpointB = endpoints ? Point(value["endpointB"]) : default };
+        }
+        private static TraversalSurfaceKind Traversal(JToken value)
+        {
+            if (value["traversal"] == null) return TraversalSurfaceKind.None;
+            if (Text(value, "traversal") != "vault") throw new ArgumentException("Unknown traversal kind.");
+            return TraversalSurfaceKind.Vault;
+        }
+        private static bool Collision(JToken value)
+        {
+            var token = value["collision"];
+            if (token == null && value["traversal"] == null) return true;
+            if (token == null || token.IsString || (token.Text != "true" && token.Text != "false"))
+                throw new ArgumentException("Expected collision boolean.");
+            return token.Text == "true";
+        }
         private static Vector3[] Points(JToken value) => value == null ? System.Array.Empty<Vector3>() : Array(value).Select(Point).ToArray();
         private static Vector3 Point(JToken value)
         { var a = Array(value); if (a.Count != 3) throw new ArgumentException("Expected three coordinates."); return new Vector3(Number(a[0]), Number(a[1]), Number(a[2])); }

@@ -11,6 +11,7 @@
 //   - Check real manifest spans, boundary centres and rotated socket widths.
 //   - Check authored frames, leaves, decals and Castle compound collision.
 //   - Check hub and navigation clearance against the same command roles.
+//   - Preserve all 62 authored vault tags, endpoints and unique surface identities.
 // DEPENDENCIES:
 //   - NUnit, Core, Domain.Procedural and the production editor manifest parser.
 // USAGE NOTES:
@@ -285,6 +286,56 @@ namespace Worsen.Tests.Procedural
                     Assert.That(room.OpenDoors.Any(i => ProceduralTemplateUtility.Point(room,
                         ProceduralTemplateUtility.Door(room.Template.Doors[i]), Vector2.zero) == door.Center), Is.True);
             }
+        }
+
+        [Test]
+        public void EveryAuthoredVaultBecomesOneCollisionBearingVaultBlockAtEveryRoomTurn()
+        {
+            int authored = 0;
+            foreach (string theme in new[] { "Castle", "Hospital", "School", "Basement" })
+            {
+                var catalogue = Read(theme);
+                var raw = ProceduralManifestJsonSetup.Parse(File.ReadAllText(RoomPath(theme)))["templates"].Items;
+                for (int t = 0; t < raw.Count; t++)
+                {
+                    var template = catalogue.Templates[t];
+                    var indices = Enumerable.Range(0, raw[t]["pieces"].Items.Count)
+                        .Where(i => raw[t]["pieces"][i]["traversal"]?.Text == "vault").ToArray();
+                    authored += indices.Length;
+                    for (int turn = 0; turn < 4; turn++)
+                    {
+                        var room = new ProceduralTemplateRoom { RoomId = t + 1, Template = template, Turns = turn,
+                            Offset = new Vector2Int(7, -5), SubcellOffset = Vector2Int.one };
+                        var blocks = Build(catalogue, room);
+                        var vaults = blocks.Where(b => b.TraversalKind == TraversalSurfaceKind.Vault).ToArray();
+                        Assert.That(vaults.Length, Is.EqualTo(indices.Length), theme + "/" + template.Id);
+                        Assert.That(vaults.Select(b => b.SurfaceId).Distinct().Count(), Is.EqualTo(vaults.Length));
+                        foreach (int i in indices)
+                        {
+                            var piece = template.Pieces[i]; var kit = catalogue.Kit.Single(k => k.Id == piece.Id);
+                            Assert.That(piece.TraversalKind, Is.EqualTo(TraversalSurfaceKind.Vault));
+                            Assert.That(kit.TraversalKind, Is.EqualTo(TraversalSurfaceKind.Vault));
+                            var block = vaults.Single(b => b.PiecePosition == ProceduralTemplateUtility.Point(room, piece.Position, Vector2.zero));
+                            Assert.That(block.HasCollision, Is.True); Assert.That(block.SurfaceId, Is.Not.Zero);
+                            Assert.That(block.EndpointA, Is.EqualTo(ProceduralTemplateUtility.Point(room, piece.EndpointA, Vector2.zero)));
+                            Assert.That(block.EndpointB, Is.EqualTo(ProceduralTemplateUtility.Point(room, piece.EndpointB, Vector2.zero)));
+                        }
+                        Assert.That(blocks.Where(b => b.TraversalKind == TraversalSurfaceKind.None).All(b => b.SurfaceId == 0), Is.True);
+                    }
+                }
+            }
+            Assert.That(authored, Is.EqualTo(62));
+        }
+
+        [TestCase("\"traversal\": \"vault\"", "\"traversal\": \"ladder\"")]
+        [TestCase("\"collision\": true", "\"collision\": false")]
+        [TestCase("\"endpointA\"", "\"missingEndpointA\"")]
+        public void MalformedVaultMetadataFailsClosed(string before, string after)
+        {
+            string kit = File.ReadAllText("Assets/Art/Environment/Castle/Kit/CastleKit.manifest.json");
+            string rooms = File.ReadAllText(RoomPath("Castle"));
+            Assert.That(rooms, Does.Contain(before));
+            Assert.Throws<ArgumentException>(() => ProceduralRoomManifestSetup.Parse(kit, rooms.Replace(before, after)));
         }
 
         private static ProceduralLayout Navigation(ProceduralTemplateRoom room, Vector3 point)

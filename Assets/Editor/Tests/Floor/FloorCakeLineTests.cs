@@ -2,15 +2,14 @@
 // FloorCakeLineTests.cs
 // ============================================================================
 // PURPOSE:
-//   Locks in the 2026-09-30 owner decision that every surviving normal cake gates
-//   escape. Gold/collapse pacing remains separate, and losses never rewrite the
-//   generated totals shown to the player.
+//   Locks in the owner decision that every cake gates escape and collapse.
+//   Long collection phases cannot destroy objectives or rewrite remaining totals.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Verify full placement, all-remaining exit gating and collapse removal.
-//   - Verify white guidance remains on normal cakes after gold reveal.
-//   - Preserve trap exclusion, fixed counters, Greedy Door and Blind Faith suppression.
+//   - Verify full placement, all-remaining exit gating and delayed collapse.
+//   - Verify white guidance remains on cakes until the exit opens.
+//   - Preserve trap exclusion, counters and Blind Faith suppression.
 // DEPENDENCIES:
 //   - NUnit, Core, Floor and the existing pure cake fixture.
 // USAGE NOTES:
@@ -46,24 +45,25 @@ namespace Worsen.Tests.Floor
                 Assert.That(f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _), Is.True);
                 Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
             }
-            Assert.That(f.State.CollapseStarted, Is.True, "Legacy gold/collapse threshold is not the exit threshold.");
+            Assert.That(f.State.CollapseStarted, Is.False);
             Assert.That(f.Controller.Collect(new EntityId(1), anchors.Last().Id, PickupKind.Cake, 2, out _), Is.True);
             Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
             Assert.That(f.State.CakeCount, Is.EqualTo(18));
+            Assert.That(f.State.CollapseStarted, Is.True);
         }
 
         [Test]
-        public void CollapseRemovesOnlyUncollectableRequirementsAndKeepsTotalsFixed()
+        public void PartialCollectionCannotLoseCakesAndKeepsTotalsFixed()
         {
             var f = FloorCakeRulesTests.Start(round: 1);
             var initial = f.Controller.Snapshot();
-            // Selection stays first in the active view so the legacy gold trigger is reproducible.
             foreach (var a in f.State.ActiveCakeAnchors.Take(6).ToArray()) f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _);
-            Assert.That(f.State.CollapseStarted, Is.True); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
+            Assert.That(f.State.CollapseStarted, Is.False); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
             f.Controller.Tick(10000f, 2);
             var losses = f.Controller.DrainCakeLosses();
-            Assert.That(losses.Count(l => l.Kind == PickupKind.Cake), Is.GreaterThan(0));
-            Assert.That(f.State.ActiveCakeAnchors.All(a => a.RoomId == f.Graph.ExitRoomId), Is.True);
+            Assert.That(losses, Is.Empty);
+            Assert.That(f.State.ActiveCakeAnchors.Count, Is.EqualTo(12));
+            Assert.That(f.State.RoomPhases.Values.All(p => p == RoomPhase.Open), Is.True);
             Assert.That(f.State.RequiredCakeCount, Is.EqualTo(f.State.CakeCount + f.State.ActiveCakeAnchors.Count));
             FloorCakeRulesTests.CollectRequired(f);
             Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
@@ -73,27 +73,29 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void LastUncollectedRoomCollapseOpensExitWithoutAnotherPickup()
+        public void WaitingCannotReplaceLastPickupOrPublishExitGuidance()
         {
             var f = FloorCakeRulesTests.Start(round: 1);
             int total = f.Controller.Snapshot().TotalCakes;
             var trigger = f.State.ActiveCakeAnchors.Take(6).ToArray();
             foreach (var a in trigger.Concat(f.State.ActiveCakeAnchors.Where(a => a.RoomId == f.Graph.ExitRoomId)).Distinct().ToArray())
                 Assert.That(f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _), Is.True);
-            Assert.That(f.State.CollapseStarted, Is.True); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
+            Assert.That(f.State.CollapseStarted, Is.False); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
             Assert.That(f.State.ActiveCakeAnchors, Is.Not.Empty);
             f.Controller.Tick(10000f, 2);
-            Assert.That(f.State.ActiveCakeAnchors, Is.Empty);
-            Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
-            Assert.That(f.State.RequiredCakeCount, Is.EqualTo(f.State.CakeCount));
+            Assert.That(f.State.ActiveCakeAnchors, Is.Not.Empty);
+            Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
+            Assert.That(f.State.RequiredCakeCount, Is.GreaterThan(f.State.CakeCount));
             Assert.That(f.Controller.Snapshot().TotalCakes, Is.EqualTo(total));
+            Assert.That(f.Controller.SelectCue(new[] { new FloorPathCandidate(0, 2f, Vector3.left) }).HasCue, Is.False);
+            FloorCakeRulesTests.CollectRequired(f);
             f.Controller.SelectCue(new[] { new FloorPathCandidate(0, 2f, Vector3.left) });
             Assert.That(f.Controller.TryWhiteGuidance(false, out var target), Is.True);
             Assert.That(target.AnchorId, Is.Zero);
         }
 
         [Test]
-        public void WhiteArrowChoosesNearestRemainingCakeDuringCollapseThenExit()
+        public void WhiteArrowChoosesNearestRemainingCakeThenExit()
         {
             var f = FloorCakeRulesTests.Start(round: 1);
             foreach (var a in f.State.ActiveCakeAnchors.Take(6).ToArray()) f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _);
@@ -108,11 +110,11 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void BlindFaithCreditsGoldEarlyButCannotSkipRemainingPhysicalCakes()
+        public void BlindFaithCannotSkipRemainingPhysicalCakesOrStartCollapseEarly()
         {
             var f = FloorCakeRulesTests.Start(round: 1, hooks: new FloorCakeHooks(blindFaith: true));
             foreach (var a in f.State.ActiveCakeAnchors.Take(3).ToArray()) f.Controller.Collect(new EntityId(1), a.Id, PickupKind.Cake, 1, out _);
-            Assert.That(f.State.CollapseStarted, Is.True); Assert.That(f.State.CakeCount, Is.EqualTo(3));
+            Assert.That(f.State.CollapseStarted, Is.False); Assert.That(f.State.CakeCount, Is.EqualTo(3));
             Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
             Assert.That(f.Controller.TryWhiteGuidance(false, out _), Is.False);
             FloorCakeRulesTests.CollectRequired(f); Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));

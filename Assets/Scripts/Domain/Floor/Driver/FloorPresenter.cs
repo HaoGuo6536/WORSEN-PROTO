@@ -4,14 +4,14 @@
 // PURPOSE:
 //   Computes navigation path lengths, horizontal guidance and warning intensity without engine queries.
 //   Guidance uses the sampled path origin so airborne players do not point at their
-//   own mesh projection. Failed refreshes hold target-local history before using
-//   a straight line when that target has no usable history.
+//   own mesh projection. Failed refreshes invalidate guidance immediately; a
+//   straight line through walls is never substituted for a verified route.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Skip nearby horizontal corners and normalize the next useful direction.
-//   - Record per-target fallback or held guidance in the supplied DriverState.
-//   - Preserve complete path lengths; failed guidance paths rank after all complete paths.
+//   - Skip nearby or passed corners and normalize the next useful direction.
+//   - Invalidate target-local history on failed queries, with zero stale-refresh grace.
+//   - Preserve complete path lengths and reject incomplete guidance.
 // DEPENDENCIES:
 //   - Floor path candidates and DriverState; UnityEngine value types for pure math.
 //   - No other system, live engine object, Session or Presentation dependency.
@@ -47,9 +47,21 @@ namespace Worsen.Domain.Floor
         {
             if (corners == null || corners.Count == 0) return Vector3.zero;
             float threshold = Mathf.Max(0f, skipDistance);
-            foreach (var corner in corners)
+            int segment = 0;
+            float nearest = float.PositiveInfinity;
+            // Project onto the polyline, not onto a stale first corner behind a
+            // crossed doorway. Equal projections keep the earliest segment.
+            for (int i = 0; i + 1 < corners.Count; i++)
             {
-                var delta = corner - sampledOrigin;
+                var a = corners[i]; a.y = sampledOrigin.y;
+                var delta = corners[i + 1] - a; delta.y = 0f;
+                float t = delta.sqrMagnitude > 0f ? Mathf.Clamp01(Vector3.Dot(sampledOrigin - a, delta) / delta.sqrMagnitude) : 0f;
+                float distance = (sampledOrigin - a - delta * t).sqrMagnitude;
+                if (distance < nearest) { nearest = distance; segment = i; }
+            }
+            for (int i = segment + 1; i < corners.Count; i++)
+            {
+                var delta = corners[i] - sampledOrigin;
                 delta.y = 0f;
                 if (delta.magnitude > threshold) return HorizontalDirection(delta);
             }
@@ -64,28 +76,9 @@ namespace Worsen.Domain.Floor
             float length = PathLength(corners);
             bool complete = !float.IsNaN(length) && !float.IsInfinity(length);
             var direction = complete ? FirstDirection(sampledOrigin, corners, skipDistance) : Vector3.zero;
-            if (direction.sqrMagnitude == 0f)
-            {
-                if (state.LastGoodDirections.TryGetValue(anchorId, out var previous))
-                {
-                    direction = HorizontalDirection(previous);
-                    if (direction.sqrMagnitude > 0f) state.HeldDirections.Add(anchorId);
-                }
-                if (direction.sqrMagnitude == 0f)
-                {
-                    direction = HorizontalDirection(target - playerOrigin);
-                    if (direction.sqrMagnitude > 0f) state.FallbackDirections.Add(anchorId);
-                }
-            }
-            // An initial straight-line direction is usable target-local history, but
-            // a later failed refresh must never replace it or a successful route.
-            if (direction.sqrMagnitude > 0f && !state.HeldDirections.Contains(anchorId))
+            if (complete && direction.sqrMagnitude > 0f)
                 state.LastGoodDirections[anchorId] = direction;
-            // SelectCue rejects infinite lengths. Failed paths need an estimate to
-            // publish fallback/held guidance, but they rank after every complete path:
-            // a straight line is never longer than a real path, so an unreachable target
-            // must not outrank a reachable one.
-            if (!complete) length = FallbackRankOffset + (target - playerOrigin).magnitude;
+            else state.LastGoodDirections.Remove(anchorId);
             if (direction.sqrMagnitude == 0f || float.IsNaN(length) || float.IsInfinity(length))
                 length = float.PositiveInfinity;
             return new FloorPathCandidate(anchorId, length, direction);

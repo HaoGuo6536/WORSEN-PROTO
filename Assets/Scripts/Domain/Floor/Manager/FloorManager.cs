@@ -9,7 +9,7 @@
 //   Manager (§1) · Domain · Floor (Service system).
 // KEY RESPONSIBILITIES:
 //   - Own Floor logic/driver lifetimes and forward generation hooks and pocket activation.
-//   - Spawn ordinary, bonus and optional rewards through the shared pickup lifecycle.
+//   - Spawn ordinary cakes and Passage-only gold through the shared pickup lifecycle.
 //   - Publish counters and curse-gated Mimic guidance without granting fake pickup credit.
 //   - Route staged collapse, traps, hands, hearing and boundary contacts upward.
 //   - Resolve open-exit contacts with paired subscriptions; locked doors never end a floor.
@@ -17,7 +17,8 @@
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
-//   Legacy count/density overrides tune gold/collapse only; every live cake gates exit.
+//   Every registered cake gates the exit and collapse; no collapse-time gold is spawned.
+//   Room crossings refresh routes without clearing retained target identities.
 //   Scene-owned. Level and Player views are injected before ticking; Session is the sole tick owner. Floor never mutates Player health: hand facts let Session apply ordinary damage; death is confirmed only after a lethal hand hit.
 //   No persistent singleton or competing simulation tick is created.
 //   OnExitReached is the sole escape fact, admitted only after normal opening.
@@ -98,10 +99,7 @@ namespace Worsen.Domain.Floor
 
         public bool SolvePuzzle(int puzzleId, int roomId, int anchorId)
         {
-            if (_controller == null || !_controller.SolvePuzzle(puzzleId, roomId, anchorId, out var reward)) return false;
-            _driver.SpawnGoldenCakes(new[] { reward });
-            RefreshCue();
-            return true;
+            return _controller != null && _controller.SolvePuzzle(puzzleId, roomId, anchorId, out _);
         }
         public void SetHandLook(string look) => _driver?.SetHandLook(look);
         public void SetActiveEffects(IReadOnlyActiveEffects effects)
@@ -140,10 +138,8 @@ namespace Worsen.Domain.Floor
             if (_state.Ended) return;
             bool guidanceExpired = _guidance?.Tick(dt) ?? false;
             var before = _state.ExitState;
-            bool collapsing = _state.CollapseStarted;
             PublishRoomTransitions(_controller.Tick(dt, tick));
             if (!ReferenceEquals(owner, _controller)) return;
-            if (!collapsing && _state.CollapseStarted) _driver.SpawnGoldenCakes(_state.GoldenAnchors);
             if (before != _state.ExitState)
             {
                 _driver.OpenExit(Array.Empty<LevelAnchor>());
@@ -164,6 +160,7 @@ namespace Worsen.Domain.Floor
             if (!ReferenceEquals(owner, _controller)) return;
             float previousProgress = _driver.OpeningProgress(_state.ExitState == ExitState.Open);
             _driver.TickWarnings((float)_state.CollapseElapsed);
+            _controller.RefreshCueForRoomChange();
             if (_controller.ConsumeCueDue() || guidanceExpired) RefreshCue();
             else if (_driver.OpeningProgress(_state.ExitState == ExitState.Open) != previousProgress)
                 OnDisplayChanged?.Invoke(Snapshot());
@@ -177,7 +174,7 @@ namespace Worsen.Domain.Floor
             bool collapsing = _state.CollapseStarted;
             if (!_controller.Collect(playerId, anchorId, kind, _state.Tick, out var fact, out var noise)) return;
             _driver.RemovePickup(anchorId, kind);
-            if (!collapsing && _state.CollapseStarted) _driver.SpawnGoldenCakes(_state.GoldenAnchors);
+
             OnPickupNoise?.Invoke(noise);
             if (!ReferenceEquals(owner, _controller)) return;
             OnPickupCollected?.Invoke(fact);
@@ -354,9 +351,9 @@ namespace Worsen.Domain.Floor
             var display = owner.SelectCue(paths, _driver.OpeningProgress(_state.ExitState == ExitState.Open));
             GuidanceTarget? goldenTarget = null;
             bool fallback = _driver.IsDirectionFallback(_state.CueAnchorId) || _driver.IsDirectionHeld(_state.CueAnchorId);
-            if (player != null && owner.TryGoldenTarget(player.Position, out var golden))
+            if (player != null && owner.TryGoldenTarget(paths, out var golden))
             {
-                var path = _driver.QueryPath(golden.Id, player.Position, golden.Position);
+                var path = paths.Find(p => p.AnchorId == golden.Id);
                 if (!float.IsNaN(path.Length) && !float.IsInfinity(path.Length))
                     goldenTarget = new GuidanceTarget(GuidanceKind.GoldenSense, path.Direction, golden.Position, golden.Id,
                         isFallback: _driver.IsDirectionFallback(golden.Id) || _driver.IsDirectionHeld(golden.Id));

@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Carry serializable theme, kit, room, anchor and piece data.
 //   - Record placed template origins and the door sockets actually opened.
+//   - Preserve explicit traversal kinds, collision and room-local paired endpoints.
 // DEPENDENCIES:
 //   - Unity value types and System serialization only.
 // USAGE NOTES:
@@ -20,6 +21,7 @@
 // ============================================================================
 using System;
 using UnityEngine;
+using Worsen.Core;
 
 namespace Worsen.Domain.Procedural
 {
@@ -38,6 +40,8 @@ namespace Worsen.Domain.Procedural
     {
         public string Id, File, Kind;
         public Vector3 Size;
+        public TraversalSurfaceKind TraversalKind;
+        public bool Collision = true;
     }
 
     [Serializable]
@@ -68,6 +72,10 @@ namespace Worsen.Domain.Procedural
         public string Id;
         public Vector3 Position;
         public float RotY;
+        public TraversalSurfaceKind TraversalKind;
+        public bool Collision = true;
+        public bool HasEndpoints;
+        public Vector3 EndpointA, EndpointB;
     }
 
     public sealed class ProceduralTemplateRoom

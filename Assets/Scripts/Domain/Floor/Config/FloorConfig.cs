@@ -8,18 +8,19 @@
 // ARCHITECTURAL ROLE:
 //   Config (§4) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Scale collapse durations by a provisional 0.75 for Faster Collapse (not hand timers).
-//   - Tune optional trap replacement, audible tells and the Greedy Door threshold.
-//   - Tune the legacy gold/collapse subset and shared pickup loudness.
-//   - Tune the simulation-time delay before an explicitly activated pocket starts its warning.
-//   - Tune outward hand throws, boundary springs, accelerating warnings and opt-in collapse speed.
+//   - Tune logarithmic floor scheduling around the seven-room first level.
+//   - Tune optional trap replacement and audible tells.
+//   - Retain legacy selection fields for trap protection, not gold or exit quotas.
+//   - Tune route-target hysteresis and the split of the fixed ten-second room progression.
+//   - Tune outward hand throws, boundary springs and accelerating warnings.
 // DEPENDENCIES:
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
 //   Mirrored asset: ScriptableObjects/Domain/Floor/FloorConfig. Runtime getters only.
-//   Owner playtest 2026-09-30: every surviving cake gates exit. Density and required-
-//   count fields now control gold reveal/collapse pacing only, never line thinning.
+//   Owner pass 2: collection finishes before collapse; base floor is 60 seconds,
+//   each room is 10 seconds. Legacy speed/shuffle/quota getters remain for callers
+//   but no longer override the exact collapse contract.
 //   No persistent singleton or competing simulation tick is created.
 // ============================================================================
 using UnityEngine;
@@ -29,6 +30,22 @@ namespace Worsen.Domain.Floor
     [CreateAssetMenu(menuName = "Worsen/Floor/Floor Config")]
     public sealed class FloorConfig : ScriptableObject
     {
+        public const float RoomCollapseSeconds = 10f;
+        public const float FirstLevelCollapseSeconds = 60f;
+        [SerializeField, Min(2)] private int _collapseReferenceRooms = 7;
+        [SerializeField, Range(0.01f, 1f)] private float _collapseLogGrowth = 0.5f;
+        [SerializeField, Range(0.1f, 0.8f)] private float _collapseTelegraphShare = 0.4f;
+        [SerializeField, Range(0.1f, 0.8f)] private float _collapseTearingShare = 0.2f;
+        [SerializeField, Min(0f)] private float _cueSwitchMargin = 2f;
+        [SerializeField, Range(0f, 1f)] private float _cueSwitchFraction = 0.2f;
+        public int CollapseReferenceRooms => _collapseReferenceRooms >= 2 ? _collapseReferenceRooms : 7;
+        public float CollapseLogGrowth => _collapseLogGrowth > 0f && _collapseLogGrowth <= 1f ? _collapseLogGrowth : 0.5f;
+        public float CollapseTelegraphSeconds => RoomCollapseSeconds * (_collapseTelegraphShare > 0f && _collapseTelegraphShare <= 0.8f ? _collapseTelegraphShare : 0.4f);
+        public float CollapseTearingSeconds => Mathf.Min(RoomCollapseSeconds - CollapseTelegraphSeconds - 0.1f,
+            RoomCollapseSeconds * (_collapseTearingShare > 0f && _collapseTearingShare <= 0.8f ? _collapseTearingShare : 0.2f));
+        public float CollapseEncroachingSeconds => RoomCollapseSeconds - CollapseTelegraphSeconds - CollapseTearingSeconds;
+        public float CueSwitchMargin => _cueSwitchMargin > 0f && !float.IsInfinity(_cueSwitchMargin) ? _cueSwitchMargin : 2f;
+        public float CueSwitchFraction => _cueSwitchFraction > 0f && _cueSwitchFraction <= 1f ? _cueSwitchFraction : 0.2f;
         [SerializeField, Min(1)] private int _requiredCakeCount = 10;
         [SerializeField, Min(1)] private int _trapStartRound = 3;
         [SerializeField, Range(0f, 1f)] private float _optionalTrapShare = 0.33333334f;
