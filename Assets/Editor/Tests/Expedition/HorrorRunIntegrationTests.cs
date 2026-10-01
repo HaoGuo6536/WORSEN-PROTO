@@ -311,7 +311,7 @@ namespace Worsen.Tests.Expedition
             var path = new NavMeshPath();
             Assert.That(NavMesh.CalculatePath(start.position, exit.position, NavMesh.AllAreas, path), Is.True);
             Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete), "Generated spawn and exit must have native walking connectivity.");
-            AssertCentralExitHub(procedural.Graph);
+            AssertCentralExitHub(procedural.Graph, procedural.PlayerSpawnPosition, procedural.Doors);
             if (shop)
             {
                 Assert.That(HunterRegistry.Items, Is.Empty);
@@ -332,30 +332,65 @@ namespace Worsen.Tests.Expedition
             }
         }
 
-        private static void AssertCentralExitHub(LevelGraph graph)
+        private static void AssertCentralExitHub(LevelGraph graph, Vector3 playerSpawn, IReadOnlyList<ProceduralDoorPlan> doors)
         {
             var hub = graph.Rooms.Single(room => room.Id == graph.ExitRoomId);
-            Assert.That(new Vector2(graph.ExitPosition.x, graph.ExitPosition.z),
-                Is.EqualTo(new Vector2(hub.Center.x, hub.Center.z)), "Exit must sit in the hub centre.");
+            // SPEC-004 §2.2 "Reveals, not spawns": player starts in the central
+            // exit ROOM. PLAN-026 §2's four-door hub is the starting implementation,
+            // not an acceptance requirement; §1/§5 preserve walking reachability.
+            // The owner sets a minimum of two entrances, not four cardinal sides.
+            Assert.That(hub.Pocket, Is.False, "The exit hub cannot be an optional pocket.");
+            Assert.That(hub.ContainsXZ(graph.ExitPosition), Is.True, "Exit must be on the hub's actual footprint.");
+            Assert.That(hub.ContainsXZ(playerSpawn), Is.True, "Player must start in the central exit room.");
             var connections = graph.Edges.Where(edge => edge.FromRoomId == hub.Id || edge.ToRoomId == hub.Id).ToArray();
-            Assert.That(connections.Length, Is.EqualTo(4), "The central exit hub needs four walking entrances.");
-            Assert.That(connections.All(edge => edge.Bidirectional && edge.Access == TraversalAccess.All), Is.True);
-            var directions = new HashSet<Vector2Int>();
-            Assert.That(NavMesh.SamplePosition(graph.ExitPosition, out var destination, 1f, NavMesh.AllAreas), Is.True);
+            Assert.That(connections.Length, Is.GreaterThanOrEqualTo(2), "The exit hub needs at least two walking entrances.");
+            Assert.That(connections.All(edge => edge.Bidirectional && edge.Access == TraversalAccess.All), Is.True,
+                "Every hub edge must allow both actors in both directions.");
+            const int walkingArea = 1; // Walkable only: no player/partition-ignoring shortcuts.
+            Assert.That(NavMesh.SamplePosition(graph.ExitPosition, out var destination, 1f, walkingArea), Is.True,
+                "Exit position must sample onto ordinary walkable NavMesh.");
+            Assert.That(hub.ContainsXZ(destination.position), Is.True, "Exit sample must stay inside the hub.");
             foreach (var edge in connections)
             {
                 int neighborId = edge.FromRoomId == hub.Id ? edge.ToRoomId : edge.FromRoomId;
                 var neighbor = graph.Rooms.Single(room => room.Id == neighborId);
-                var delta = neighbor.Center - hub.Center;
-                directions.Add(Mathf.Abs(delta.x) > Mathf.Abs(delta.z)
-                    ? new Vector2Int(delta.x > 0f ? 1 : -1, 0) : new Vector2Int(0, delta.z > 0f ? 1 : -1));
-                var ground = new Vector3(neighbor.Center.x, graph.ExitPosition.y, neighbor.Center.z);
-                Assert.That(NavMesh.SamplePosition(ground, out var origin, 2f, NavMesh.AllAreas), Is.True);
+                // Never enlarge the radius around an empty AABB centre: that can
+                // silently sample a different room across a gap. Probe actual cells.
+                var candidates = graph.Anchors.Where(a => a.RoomId == neighborId).Select(a => a.Position)
+                    .Concat(neighbor.Cells.SelectMany(cell =>
+                        Enumerable.Range(0, Mathf.Max(1, Mathf.FloorToInt(cell.size.x / 2f))).SelectMany(x =>
+                        Enumerable.Range(0, Mathf.Max(1, Mathf.FloorToInt(cell.size.z / 2f))).Select(z =>
+                            new Vector3(cell.min.x + 1f + x * 2f, cell.min.y, cell.min.z + 1f + z * 2f)))))
+                    .OrderBy(p => (p - neighbor.Center).sqrMagnitude);
+                bool sampled = false;
+                NavMeshHit origin = default;
+                foreach (var point in candidates)
+                    if (NavMesh.SamplePosition(point, out origin, .5f, walkingArea) && neighbor.ContainsXZ(origin.position))
+                    { sampled = true; break; }
+                Assert.That(sampled, Is.True, "No supported walking point in hub neighbour " + neighborId);
                 var path = new NavMeshPath();
-                Assert.That(NavMesh.CalculatePath(origin.position, destination.position, NavMesh.AllAreas, path), Is.True);
-                Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete), "Every hub neighbor needs native walking access to the exit.");
+                Assert.That(NavMesh.CalculatePath(origin.position, destination.position, walkingArea, path), Is.True,
+                    "Could not calculate hub neighbour " + neighborId + " path to exit.");
+                Assert.That(path.status, Is.EqualTo(NavMeshPathStatus.PathComplete),
+                    "Hub neighbour " + neighborId + " needs native walking access to the exit.");
+                var portals = doors.Where(d => (d.FromRoomId == edge.FromRoomId && d.ToRoomId == edge.ToRoomId) ||
+                    (d.ToRoomId == edge.FromRoomId && d.FromRoomId == edge.ToRoomId)).ToArray();
+                Assert.That(portals, Is.Not.Empty, "Hub edge must have a physical doorway.");
+                foreach (var door in portals)
+                {
+                    Assert.That(door.IsOptional, Is.False, "Hub doorway cannot require traversal.");
+                    var across = door.AlongX ? Vector3.forward : Vector3.right;
+                    Assert.That(NavMesh.SamplePosition(door.Center - across, out var sideA, .5f, walkingArea), Is.True,
+                        "Hub door to " + neighborId + " lacks its first walking approach.");
+                    Assert.That(NavMesh.SamplePosition(door.Center + across, out var sideB, .5f, walkingArea), Is.True,
+                        "Hub door to " + neighborId + " lacks its second walking approach.");
+                    Assert.That((hub.ContainsXZ(sideA.position) && neighbor.ContainsXZ(sideB.position)) ||
+                        (neighbor.ContainsXZ(sideA.position) && hub.ContainsXZ(sideB.position)), Is.True,
+                        "Door samples must lie on opposite sides in the two connected rooms.");
+                    Assert.That(NavMesh.Raycast(sideA.position, sideB.position, out _, walkingArea), Is.False,
+                        "Hub doorway to " + neighborId + " is blocked; an alternate path is not sufficient.");
+                }
             }
-            Assert.That(directions.Count, Is.EqualTo(4), "Entrances must reach all four sides of the hub.");
         }
 
         private static void AssertActiveRoster(ProgressionEffects effects)
