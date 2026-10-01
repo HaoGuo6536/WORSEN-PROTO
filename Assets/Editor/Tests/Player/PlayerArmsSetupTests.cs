@@ -80,6 +80,10 @@ namespace Worsen.Tests.Player
                 for (int rebuild = 0; rebuild < 2; rebuild++)
                 {
                     PlayerLimbStandIn limbs = PlayerPrefabGenerator.RebuildLimbs(visuals, model);
+                    var shown = new SerializedObject(limbs);
+                    Assert.That(shown.FindProperty("_showHands").boolValue, Is.EqualTo(PlayerPrefabGenerator.ShowFirstPersonArms), "Arms follow the owner's visibility switch.");
+                    shown.FindProperty("_showHands").boolValue = true; // exercise the opt-in placement path
+                    shown.ApplyModifiedPropertiesWithoutUndo();
                     Assert.That(visuals.transform.childCount, Is.EqualTo(4));
                     Assert.That(visuals.GetComponentsInChildren<Animator>(true), Is.Empty);
                     Assert.That(visuals.GetComponentsInChildren<Collider>(true), Is.Empty);

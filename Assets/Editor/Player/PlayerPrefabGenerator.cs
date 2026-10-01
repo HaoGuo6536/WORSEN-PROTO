@@ -3,7 +3,8 @@
 // ============================================================================
 // PURPOSE:
 //   Rebuilds the Player prefab and mirrored archetype/config wiring without replacing tuning values.
-//   Generated blocky arms replace the optional capsule hands when their FBX exists.
+//   Generated blocky arms replace the optional capsule hands when their FBX exists; they are
+//   hidden by default in first person (owner, 2026-09-30; ShowFirstPersonArms).
 //   Missing art retains hidden capsules; rebuilding replaces limb children instead
 //   of accumulating meshes, bones or colliders.
 // ARCHITECTURAL ROLE:
@@ -82,6 +83,10 @@ namespace Worsen.Editor.Player
             }
         }
 
+        // Owner decision (2026-09-30): hide the player character in first person. The relaxed arms stay
+        // wired and tested; set this true (or tick PlayerLimbStandIn._showHands) to show them again.
+        public const bool ShowFirstPersonArms = false;
+
         public static PlayerLimbStandIn RebuildLimbs(GameObject visuals, GameObject arms)
         {
             foreach (Transform child in visuals.transform.Cast<Transform>().ToArray())
@@ -114,7 +119,7 @@ namespace Worsen.Editor.Player
             Wire(limbs, "_leftFoot", Limb(visuals.transform, "Left Foot", new Vector3(0.14f, 0.14f, 0.3f)));
             Wire(limbs, "_rightFoot", Limb(visuals.transform, "Right Foot", new Vector3(0.14f, 0.14f, 0.3f)));
             var serialized = new SerializedObject(limbs);
-            serialized.FindProperty("_showHands").boolValue = arms != null;
+            serialized.FindProperty("_showHands").boolValue = arms != null && ShowFirstPersonArms;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             return limbs;
         }
