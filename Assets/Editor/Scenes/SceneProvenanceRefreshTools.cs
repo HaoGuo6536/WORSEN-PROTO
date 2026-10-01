@@ -299,7 +299,13 @@ namespace Worsen.Editor.Scenes
         {
             string temporary = Path.Combine(output, Guid.NewGuid().ToString("N") + ".replacement.tmp");
             File.WriteAllBytes(temporary, bytes);
-            File.Replace(temporary, destination, null);
+            // Another process (antivirus, indexer, IDE) can hold the scene briefly; batch 20 failed setup on
+            // "Unable to remove the file to be replaced". Retry a short, bounded time before failing.
+            for (int attempt = 1; ; attempt++)
+            {
+                try { File.Replace(temporary, destination, null); return; }
+                catch (IOException) when (attempt < 10) { System.Threading.Thread.Sleep(250); }
+            }
         }
 
         private static void RollBack(IEnumerable<Target> targets, string output)
