@@ -16,12 +16,13 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, root owns tick and teardown.
 //   No subscriptions or independent state; HunterDriver owns sub-driver lifetime.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Stare
 {
-    public sealed class StareModuleManager : HunterArchetypeManager
+    public sealed class StareModuleManager : HunterArchetypeManager, IEntityHandle
     {
         private StareController Controller => (StareController)Rules;
         public static void Register(HunterArchetypeFactory factory)

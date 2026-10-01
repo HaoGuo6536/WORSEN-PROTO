@@ -57,7 +57,11 @@ namespace Worsen.Tests.Hunter
         }
         [TestCaseSource(nameof(Registrations))]
         public void EveryConfigResolvesToItsModule(Type config, Type module, Type rules)
-        { Assert.That(HunterArchetypeFactory.BuiltIn.ModuleType(config), Is.EqualTo(module)); }
+        {
+            Assert.That(HunterArchetypeFactory.BuiltIn.ModuleType(config), Is.EqualTo(module));
+            Assert.That(typeof(Worsen.Core.IEntityHandle).IsAssignableFrom(module), Is.True,
+                "Every entity facet must expose its root's identity, including inherited implementations.");
+        }
         [TestCaseSource(nameof(Registrations))]
         public void EveryConfigCreatesFreshRulesAndReusesItsComponent(Type config, Type module, Type rules)
         {

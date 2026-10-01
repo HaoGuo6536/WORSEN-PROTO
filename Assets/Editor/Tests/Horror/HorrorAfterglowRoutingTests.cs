@@ -2,17 +2,17 @@
 // HorrorAfterglowRoutingTests.cs
 // ============================================================================
 // PURPOSE:
-//   Verifies authoritative room windows route only broken lights into Afterglow.
+//   Verifies authoritative room windows route only extinguished lights into Afterglow.
+//   Fixtures use Level's relightable Inactive value and valid room placements.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§11 tests) · Editor · Horror.
 // KEY RESPONSIBILITIES:
 //   - Preserve room identity/duration and remove visuals on relight or removal.
-//   - Exercise the optional Run event adapter without inventing gameplay safety.
+//   - Exercise the typed Run event channel without inventing gameplay safety.
 // DEPENDENCIES:
 //   Core, Level, Run, Horror, Orchestrator, Lumen and NUnit.
 // USAGE NOTES:
-//   Native Edit Mode; Run event publication is tested when routing2-core is integrated.
-//   On the wave-one base the absent contract is explicitly tested as a safe no-op.
+//   Native Edit Mode; the typed Run channel must exist and pair exactly once.
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -44,9 +44,9 @@ namespace Worsen.Tests.Horror
             var glow = Make<HorrorAfterglowDriver>(owners); var route = Make<HorrorOrchestrator>(owners);
             try
             {
-                var broken = new InteractableState(42, InteractableKind.Light, 7, Vector3.one, InteractableStateValue.Broken);
+                var broken = new InteractableState(42, InteractableKind.Light, 7, Vector3.one, InteractableStateValue.Inactive);
                 var lit = new InteractableState(43, InteractableKind.Light, 7, Vector3.right, InteractableStateValue.Lit);
-                var elsewhere = new InteractableState(44, InteractableKind.Light, 8, Vector3.left, InteractableStateValue.Broken);
+                var elsewhere = new InteractableState(44, InteractableKind.Light, 8, Vector3.right * 20f, InteractableStateValue.Inactive);
                 var graph = new LevelGraph(new[] { new LevelRoom(7, Vector3.zero, Vector3.one * 12f),
                     new LevelRoom(8, Vector3.right * 20f, Vector3.one * 12f) }, Array.Empty<LevelEdge>(), Array.Empty<LevelAnchor>(), 8, Vector3.right * 20f);
                 level.InitializeGenerated(graph, new[] { broken, lit, elsewhere });
@@ -55,13 +55,9 @@ namespace Worsen.Tests.Horror
                 Set(horror, "_driver", driver); Set(driver, "_state", new HorrorDriverState { OwnerEnabled = true }); Set(driver, "_afterglow", glow);
                 Set(route, "_run", run); Set(route, "_level", level); Set(route, "_horror", horror);
                 Call(route, "PairAfterglow", true);
-                var channel = typeof(RunHunterFactRelayController).GetEvent("AfterglowWindowPublished");
-                if (channel != null)
-                {
-                    var receiver = Get<Delegate>(run.HunterFacts, "AfterglowWindowPublished");
-                    Assert.That(receiver.GetInvocationList().Length, Is.EqualTo(1)); receiver.DynamicInvoke(7, 3f);
-                }
-                else Call(route, "OnAfterglowWindow", 7, 3f);
+                var receiver = Get<Delegate>(run.HunterFacts, "AfterglowWindowPublished");
+                Assert.That(receiver, Is.Not.Null);
+                Assert.That(receiver.GetInvocationList().Length, Is.EqualTo(1)); receiver.DynamicInvoke(7, 3f);
                 var state = Get<HorrorAfterglowDriverState>(glow, "state");
                 Assert.That(state.Lights.Keys, Is.EquivalentTo(new[] { 42 }));
                 Assert.That(state.Lights[42].Remaining, Is.EqualTo(3f));
@@ -72,7 +68,7 @@ namespace Worsen.Tests.Horror
                 Call(route, "OnAfterglowWindow", 7, 1f); Call(route, "OnLightChanged", broken, default(InteractableState));
                 Assert.That(state.Lights, Is.Empty);
                 Call(route, "PairAfterglow", false);
-                if (channel != null) Assert.That(Get<Delegate>(run.HunterFacts, "AfterglowWindowPublished"), Is.Null);
+                Assert.That(Get<Delegate>(run.HunterFacts, "AfterglowWindowPublished"), Is.Null);
             }
             finally
             {

@@ -117,6 +117,9 @@ namespace Worsen.Tests.Procedural
         {
             Set("_origin", new Vector2(10000f, 10000f));
             if (noSpace) Set("_shrineSiteClearance", 10000f);
+            // Only the native admission case builds materials. Pure layout cases need no shaders.
+            UnityEngine.Object.DestroyImmediate(_driver);
+            _driver = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<ProceduralDriverConfig>();
             var owner = new GameObject("Shrine producer admission test");
             try
             {
