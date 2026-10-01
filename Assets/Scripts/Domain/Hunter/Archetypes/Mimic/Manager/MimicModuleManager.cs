@@ -9,7 +9,7 @@
 //   Manager (§1), Entity system facet · Domain · Hunter Mimic.
 // KEY RESPONSIBILITIES:
 //   - Register rules and route pose touch probes and normal-bearing hits.
-//   - Publish pose/bite facts after contacts, motion, catch and teardown.
+//   - Publish pose/bite facts and expose the bite animation while its hold is active.
 // DEPENDENCIES:
 //   - Local Mimic rules/config, parent Hunter contracts/driver and Core facts.
 // USAGE NOTES:
@@ -28,6 +28,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Mimic
         public static void Register(HunterArchetypeFactory factory)
             => factory.Register<MimicConfig, MimicModuleManager>((config, profile, random) => new MimicController(config, random));
         public override bool HandlesContact => true;
+        public override HunterAnimationPhase AnimationPhase => Controller.Holding ? HunterAnimationPhase.Attack : HunterAnimationPhase.None;
         public override void AfterContact() => PublishFacts();
         public override bool TryContact(EntityId target, Vector3 normal, out HunterHit hit)
         {

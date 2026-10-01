@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Register and configure per-life Weaver rules and shared sweep presentation.
 //   - Resolve projectile contacts and sequence probes, launches and ceiling commands.
-//   - Publish nest and hit facts at their original tick boundaries.
+//   - Publish nest/hit facts and request warning/release animation at those boundaries.
 // DEPENDENCIES:
 //   - Local Weaver rules/config, parent Hunter contracts/driver and Core identities.
 // USAGE NOTES:
@@ -30,6 +30,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Weaver
                 new WeaverController(new WeaverBehaviorState(), config, profile, random));
         protected override void Configure() => Driver.ConfigureWeaver(Config.DriverConfig);
         public override bool Hold => Controller.Hold;
+        public override HunterAnimationPhase AnimationPhase => Controller.Warning ? HunterAnimationPhase.Ready : HunterAnimationPhase.None;
         public override bool PrepareTick(float dt, long tick)
         {
             if (tick <= Controller.LastTick) return false;
@@ -46,8 +47,13 @@ namespace Worsen.Domain.Hunter.Archetypes.Weaver
         {
             if (result.HoldPosition || result.Phase != HunterLungePhase.None || Shared.CatchActive || Shared.PursuitSuppressed) Controller.SuspendAttack();
             Driver.SetWeaverCeiling(Controller.CeilingHeight, Controller.Ceiling && result.Phase == HunterLungePhase.None && !Shared.CatchActive);
-            if (Controller.Fire) Controller.CommitLaunch(Driver.LaunchWeb(Controller.WarnedOrigin, Controller.WarnedTarget,
-                Controller.WarnedRadius, Config.ProjectileSpeed, Config.ShotRange, Controller.Serial + 1));
+            if (Controller.Fire)
+            {
+                bool launched = Driver.LaunchWeb(Controller.WarnedOrigin, Controller.WarnedTarget,
+                    Controller.WarnedRadius, Config.ProjectileSpeed, Config.ShotRange, Controller.Serial + 1);
+                Controller.CommitLaunch(launched);
+                if (launched) Driver.TriggerAnimation(HunterAnimationPhase.Attack);
+            }
         }
         public override void AfterPose(HunterTickResult result)
         {

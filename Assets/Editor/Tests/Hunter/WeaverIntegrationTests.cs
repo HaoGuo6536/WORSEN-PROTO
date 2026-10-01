@@ -9,7 +9,7 @@
 //   Editor tool (§10) · test suite (§11) · Domain · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Verify engine probes cannot approve clipped webs and masks gate link crossing.
-//   - Verify Manager publication, placeholder restoration and idempotent Resources wiring.
+//   - Verify inverted visual/capsule contact agreement, restoration and Resources wiring.
 // DEPENDENCIES:
 //   - Hunter runtime/editor tools, Core, Player state, UnityEditor/navigation and NUnit.
 // USAGE NOTES:
@@ -121,13 +121,33 @@ namespace Worsen.Tests.Hunter
             _driver.ConfigureWeaver(_config); // Recapture the supplied prefab child.
             _driver.SetWeaverCeiling(_origin.y + 5f, true);
             Assert.That(_root.GetComponent<CapsuleCollider>().center.y, Is.EqualTo(.9f + 3.05f).Within(.001f));
-            Assert.That(visual.transform.localPosition.y, Is.EqualTo(4.05f).Within(.001f));
+            Assert.That(visual.transform.localPosition.y, Is.EqualTo(3.85f).Within(.001f));
+            Assert.That(Vector3.Dot(visual.transform.up, Vector3.down), Is.GreaterThan(.999f));
             Assert.That(_driver.Position, Is.EqualTo(_origin), "Navigation remains on the floor.");
             _driver.SetWeaverCeiling(_origin.y + 5f, false);
             Assert.That(visual.transform.localPosition.y, Is.EqualTo(1f));
+            Assert.That(Quaternion.Angle(visual.transform.localRotation, Quaternion.identity), Is.LessThan(.001f));
             _driver.SetWeaverCeiling(_origin.y + 5f, true); _driver.Teardown();
             Assert.That(_root.GetComponent<CapsuleCollider>().center.y, Is.EqualTo(.9f));
             Assert.That(visual.transform.localPosition.y, Is.EqualTo(1f));
+            Assert.That(Quaternion.Angle(visual.transform.localRotation, Quaternion.identity), Is.LessThan(.001f));
+        }
+        [Test] public void CeilingBodyContactsDoNotHitAPlayerUnderItsEmptyFloorProxy()
+        {
+            Collider target = Box("Ceiling contact target", _origin + Vector3.up, Vector3.one * .5f).GetComponent<Collider>();
+            _driver.SetTargetFilter(other => other == target);
+            int contacts = 0; Action<Collider> contact = other => contacts++;
+            _driver.OnLungeContact += contact;
+            try
+            {
+                _driver.SetWeaverCeiling(_origin.y + 5f, true);
+                _driver.ProbeBodyContact(); Assert.That(contacts, Is.Zero);
+                target.transform.position = _root.GetComponent<CapsuleCollider>().bounds.center; Physics.SyncTransforms();
+                _driver.ProbeBodyContact(); Assert.That(contacts, Is.EqualTo(1));
+                target.transform.position = _origin + Vector3.up; _driver.SetWeaverCeiling(_origin.y + 5f, false);
+                _driver.ProbeBodyContact(); Assert.That(contacts, Is.EqualTo(2));
+            }
+            finally { _driver.OnLungeContact -= contact; }
         }
         [Test] public void OnlyAreaThreeLinkCanCrossPartitionAndOrdinaryMaskCannotUseIt()
         {

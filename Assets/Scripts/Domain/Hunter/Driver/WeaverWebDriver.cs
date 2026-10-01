@@ -10,7 +10,7 @@
 //   Sub-driver (§7e), owned by HunterDriver · Domain · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Recheck the full warned sweep at launch; never use a visibility ray as proof.
-//   - Permit a kinematic partition crossing only on a verified area-3-only segment.
+//   - Invert ceiling bodies about their capsule center and verify partition crossings.
 //   - Return raw contacts synchronously for immediate Manager identity resolution.
 //   - Reuse pooled physics buffers, growing and retrying saturated queries before consumption.
 //   - Leave other Hunters' bodies out of shot, web and body-clearance probes.
@@ -45,6 +45,7 @@ namespace Worsen.Domain.Hunter
         private readonly HunterBodyPresenter _bodies = new HunterBodyPresenter();
         public bool IsReady => _state != null;
         public float ShotHeight => _config.ShotHeight;
+        public float BodyOffset => _state?.Offset ?? 0f;
         private int Mask => _state.CollisionMask;
         public void Initialize(WeaverDriverConfig config, HunterMotorDriverConfig motor)
         {
@@ -58,7 +59,7 @@ namespace Worsen.Domain.Hunter
             _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.CapsuleCenter = _state.Capsule.center;
             foreach (Transform child in transform)
-            { _state.Children.Add(child); _state.ChildPositions.Add(child.localPosition); }
+            { _state.Children.Add(child); _state.ChildPositions.Add(child.localPosition); _state.ChildRotations.Add(child.localRotation); }
         }
         private bool Own(Collider collider) => collider.transform.IsChildOf(transform);
         public bool ClearSweep(Vector3 origin, Vector3 target, float radius, Func<Collider, bool> isTarget)
@@ -103,11 +104,26 @@ namespace Worsen.Domain.Hunter
             if (_state == null) return;
             float bodyTop = (_state.CapsuleCenter.y + _state.Capsule.height * .5f) * Mathf.Abs(transform.lossyScale.y);
             float offset = _presenter.CeilingOffset(transform.position.y, ceilingHeight, bodyTop, _config.CeilingClearance, !ceiling);
-            Vector3 localOffset = transform.InverseTransformVector(Vector3.up * offset);
+            _state.Offset = offset;
+            ApplyBodyPose();
+            Physics.SyncTransforms();
+        }
+        public void ApplyBodyPose()
+        {
+            if (_state == null) return;
+            bool hanging = _state.Offset > 0f;
+            Vector3 localOffset = transform.InverseTransformVector(Vector3.up * _state.Offset);
+            Quaternion rotation = _presenter.CeilingRotation(hanging);
             _state.Capsule.center = _state.CapsuleCenter + localOffset;
             for (int i = 0; i < _state.Children.Count; i++)
-                if (_state.Children[i] != null) _state.Children[i].localPosition = _state.ChildPositions[i] + localOffset;
-            _state.Offset = offset; Physics.SyncTransforms();
+                if (_state.Children[i] != null)
+                {
+                    // Restore the authored values exactly on drop, without pivot
+                    // subtraction/addition rounding accumulating across reuse.
+                    _state.Children[i].localPosition = hanging ?
+                        _presenter.CeilingPosition(_state.ChildPositions[i], _state.CapsuleCenter, localOffset, rotation) : _state.ChildPositions[i];
+                    _state.Children[i].localRotation = hanging ? rotation * _state.ChildRotations[i] : _state.ChildRotations[i];
+                }
         }
         public bool Launch(Vector3 origin, Vector3 target, float radius, float speed, float range, int serial, Func<Collider, bool> isTarget)
         {
@@ -235,7 +251,8 @@ namespace Worsen.Domain.Hunter
             if (_state == null) return;
             if (_state.Capsule != null) _state.Capsule.center = _state.CapsuleCenter;
             for (int i = 0; i < _state.Children.Count; i++)
-                if (_state.Children[i] != null) _state.Children[i].localPosition = _state.ChildPositions[i];
+                if (_state.Children[i] != null)
+                { _state.Children[i].localPosition = _state.ChildPositions[i]; _state.Children[i].localRotation = _state.ChildRotations[i]; }
             ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
             ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
             _state.QueryHits = null; _state.QueryOverlaps = null;
