@@ -1,3 +1,16 @@
+# ============================================================================
+# Gate.ps1
+# ============================================================================
+# PURPOSE: Judge candidate test evidence against quarantines and the last promoted
+#   baseline. Preserve unexecuted failures so selective runs cannot erase debt.
+# ARCHITECTURAL ROLE: Integration tooling; pure verdict policy, no runtime layer.
+# KEY RESPONSIBILITIES:
+#   - Evaluate new failures and the cumulative blocking-failure ratchet.
+#   - Merge observed test statuses while carrying forward unobserved history.
+#   - Read/write promotion evidence and compare generated setup snapshots.
+# DEPENDENCIES: PowerShell JSON/filesystem APIs; gate result and ledger schemas.
+# USAGE NOTES: Dot-source; only actual Passed results clear a known failure.
+# ============================================================================
 # Gate verdict for integration candidates (dot-source). Pure functions over test summaries.
 #
 # Rules (fail closed):
@@ -33,7 +46,7 @@ function Get-LastPromoted([string]$ledger) {
 }
 
 function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (Get-Date)) {
-    $reasons = @()
+    $reasons = @($results.issues | Where-Object { $_ })
     if (-not $results -or $results.total -le 0) {
         return [pscustomobject]@{ pass = $false; reasons = @('no test results or zero tests'); blocking = @(); quarantined = @(); new = @() }
     }
@@ -42,11 +55,49 @@ function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (G
         if (@($quarantine | Where-Object { Test-QuarantineMatch $_ $f $today }).Count -gt 0) { $quarantined += $f.name } else { $blocking += $f.name }
     }
     $baseNames = if ($baseline) { @($baseline.failed_names) } else { @() }
-    $new = @($blocking | Where-Object { $baseNames -notcontains $_ })
+    $new = @($blocking | Where-Object { $baseNames -cnotcontains $_ })
     $baseBlocking = if ($baseline) { [int]$baseline.blocking_count } else { 0 }
     if ($new.Count -gt 0) { $reasons += "$($new.Count) new failing test(s)" }
-    if ($blocking.Count -gt $baseBlocking) { $reasons += "blocking failures $($blocking.Count) exceed baseline $baseBlocking" }
+    # Modern baselines retain unobserved failures. Only executed passes can pay down
+    # the ratchet; skipping or omitting a formerly failing test does not fix it.
+    $ratchetCount = $blocking.Count
+    if ($results.cases -and $baseline) {
+        $next = Merge-TestBaseline $results $quarantine $baseline $today
+        $ratchetCount = $next.blocking_count
+    }
+    if ($results.scope -eq 'selected' -and $null -eq $baseline.test_statuses) {
+        $reasons += 'selected runs require a migrated leaf-status baseline (run full first)'
+    }
+    if ($results.scope -eq 'selected' -and (-not $results.cases -or @($results.cases).Count -ne $results.total)) { $reasons += 'selected run lacks leaf status evidence' }
+    if ($ratchetCount -gt $baseBlocking) { $reasons += "blocking failures $ratchetCount exceed baseline $baseBlocking" }
     return [pscustomobject]@{ pass = ($reasons.Count -eq 0); reasons = $reasons; blocking = $blocking; quarantined = $quarantined; new = $new }
+}
+
+function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today = (Get-Date)) {
+    $states = [System.Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+    foreach ($state in @($baseline.test_statuses)) { if ($state) { $states[$state.name] = $state } }
+    # Legacy ledgers recorded failures only. Seed them conservatively; the first
+    # new gate is forced full so current results supply categories and statuses.
+    foreach ($name in @($baseline.failed_names)) {
+        if ($name -and -not $states.ContainsKey($name)) {
+            $states[$name] = [pscustomobject]@{ name = $name; result = 'Failed'; categories = @(); blocking = $true }
+        }
+    }
+    foreach ($case in @($results.cases)) {
+        if (-not $case) { continue }
+        # Skipped/inconclusive observations do not replace a known executed status.
+        # Their current status remains in run evidence, not the baseline ratchet.
+        if ($case.result -notin @('Passed', 'Failed') -and $states.ContainsKey($case.name)) { continue }
+        $isBlocking = $case.result -eq 'Failed' -and @($quarantine | Where-Object { Test-QuarantineMatch $_ $case $today }).Count -eq 0
+        $states[$case.name] = [pscustomobject]@{ name = $case.name; result = $case.result; categories = @($case.categories); blocking = $isBlocking }
+    }
+    $values = @($states.Values | Sort-Object name)
+    [pscustomobject]@{
+        test_statuses = $values
+        failed_names = @($values | Where-Object { $_.result -eq 'Failed' } | ForEach-Object { $_.name })
+        blocking_count = @($values | Where-Object { $_.blocking }).Count
+        quarantined_count = @($values | Where-Object { $_.result -eq 'Failed' -and -not $_.blocking }).Count
+    }
 }
 
 function Add-LedgerEntry([string]$ledger, [hashtable]$entry) {
