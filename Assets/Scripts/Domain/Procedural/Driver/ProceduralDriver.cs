@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Procedural.
 // KEY RESPONSIBILITIES:
-//   - Build kit visuals with primitive collision/fallback and owned collapse fragments.
+//   - Build per-room biome kit visuals, primitive fallback and owned collapse fragments.
 //   - Finalize walking cake lines against collision, then admit navigation and pockets.
 //   - Own interactables, puzzles and routed state changes without sibling calls.
 //   - Admit shrine sites and Passage apertures, tiles and future reward counts.
@@ -117,9 +117,19 @@ namespace Worsen.Domain.Procedural
                     themed?.Ceiling ?? driverConfig.CeilingColor, driverConfig, themed?.Smoothness);
                 _state.Config = driverConfig; _state.PassageMaterial = floor;
                 _state.Catalogue = config.RoomCatalogue; _state.ThemeId = layout.ThemeId;
+                var palettes = new Dictionary<string, (Material wall, Material floor, Material ceiling)> { [layout.ThemeId] = (wall, floor, ceiling) };
+                foreach (var theme in layout.RoomThemes.Values.Where(t => t != null).GroupBy(t => t.Id).Select(g => g.First()))
+                    if (!palettes.ContainsKey(theme.Id)) palettes.Add(theme.Id, (
+                        MaterialOrFallback(theme.InheritMaterials ? driverConfig.WallMaterial : null, theme.Wall, driverConfig, theme.Smoothness),
+                        MaterialOrFallback(theme.InheritMaterials ? driverConfig.FloorMaterial : null, theme.Floor, driverConfig, theme.Smoothness),
+                        MaterialOrFallback(theme.InheritMaterials ? driverConfig.CeilingMaterial : null, theme.Ceiling, driverConfig, theme.Smoothness)));
                 foreach (var block in blocks)
-                    CreateBlock(block, block.Kind == ProceduralSurfaceKind.Floor ? floor :
-                        block.Kind == ProceduralSurfaceKind.Ceiling ? ceiling : wall, driverConfig.GeometryLayer);
+                {
+                    string id = ProceduralBiomeUtility.Theme(layout, block.RoomId)?.Id ?? layout.ThemeId;
+                    var palette = palettes[id];
+                    CreateBlock(block, block.Kind == ProceduralSurfaceKind.Floor ? palette.floor :
+                        block.Kind == ProceduralSurfaceKind.Ceiling ? palette.ceiling : palette.wall, driverConfig.GeometryLayer, id);
+                }
                 _state.TraversalMarkers = new ProceduralRoutePresenter().DescribeMarkers(blocks);
                 foreach (var plan in layout.Interactables)
                 {
@@ -225,7 +235,7 @@ namespace Worsen.Domain.Procedural
             foreach (var puzzle in _state.Puzzles) puzzle.CompleteVault(surfaceId, succeeded);
         }
 
-        private void CreateBlock(ProceduralBlock block, Material material, int layer)
+        private void CreateBlock(ProceduralBlock block, Material material, int layer, string themeId)
         {
             var item = GameObject.CreatePrimitive(PrimitiveType.Cube);
             item.name = "Room " + block.RoomId + " " + block.Kind;
@@ -237,7 +247,7 @@ namespace Worsen.Domain.Procedural
             item.transform.localScale = new Vector3(block.Size.x, block.Size.y == 0f && !block.HasCollision ? .001f : block.Size.y, block.Size.z);
             var renderer = item.GetComponent<Renderer>();
             renderer.sharedMaterial = material; renderer.enabled = block.HasRenderer;
-            var prefab = block.PieceId == null ? null : _state.Catalogue?.Piece(_state.ThemeId, block.PieceId);
+            var prefab = block.PieceId == null ? null : _state.Catalogue?.Piece(themeId, block.PieceId);
             if (block.Role == ProceduralBlockRole.KitVisual) renderer.enabled = false;
             if (block.Role == ProceduralBlockRole.KitCollision) renderer.enabled = prefab == null;
             if (prefab != null && block.HasRenderer && block.Role != ProceduralBlockRole.KitCollision)
@@ -433,6 +443,8 @@ namespace Worsen.Domain.Procedural
                 layout.Graph.Rooms.Single(room => room.Id == site.RoomId).ContainsXZ(end.position) &&
                 NavMesh.CalculatePath(start.position, end.position, filter, path) && path.status == NavMeshPathStatus.PathComplete &&
                 NavMesh.CalculatePath(end.position, start.position, filter, path) && path.status == NavMeshPathStatus.PathComplete).ToArray());
+            if (layout.UsesTemplates && layout.ShrineSites.Count != layout.TemplateRooms.Count(r => r.Template.Kind == "shrine"))
+                throw new InvalidOperationException("A designated shrine socket failed native navigation admission.");
         }
 
         private static void ValidateShortcutDetours(IReadOnlyList<ProceduralBlock> blocks, ProceduralDriverConfig config)

@@ -51,6 +51,8 @@ namespace Worsen.Domain.Procedural
         public IReadOnlyList<Vector3> HunterSpawnPositions => _state.Layout?.HunterSpawnPositions ?? Array.Empty<Vector3>();
         public int ValidatedHunterSpawnCapacity => IsReady ? _state.Layout.ValidatedHunterSpawnCapacity : 0;
         public int FuturePassageGoldenAnchorCount => IsReady ? _state.Layout.FuturePassageGoldenAnchorCount : 0;
+        public bool RoomHasAuthoredFurniture(int roomId) => IsReady && _state.Layout.TemplateRooms.Any(room => room.RoomId == roomId);
+        public string RoomThemeId(int roomId) => IsReady ? ProceduralBiomeUtility.Theme(_state.Layout, roomId)?.Id ?? _state.Layout.ThemeId : string.Empty;
         public IReadOnlyList<Vector3> RoomLightSockets(int roomId)
             => !IsReady ? null : _state.Layout.Interactables
                 .Where(p => p.State.RoomId == roomId && p.State.Kind == InteractableKind.Light).Select(p => p.State.Position).ToArray();
@@ -99,7 +101,7 @@ namespace Worsen.Domain.Procedural
             return true;
         }
 
-        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1)
+        public void Initialize(ProceduralConfig config, ProceduralDriverConfig driverConfig, int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1, int shrineRoomCount = 0)
         {
             Teardown();
             if (config != null) _config = config;
@@ -115,7 +117,7 @@ namespace Worsen.Domain.Procedural
                 try
                 {
                     var layout = _controller.Generate(_state.AttemptSeed, roundIndex, merchantRefuge, optionalWindowMultiplier, themeSeed ?? runSeed,
-                        requiredHunterCount, _state.OrganicFallbackReason);
+                        requiredHunterCount, _state.OrganicFallbackReason, shrineRoomCount);
                     _driver.Build(layout, _config, _driverConfig, IsPuzzleActor);
                     generation.Succeed(layout.Manifest + layout.InteractableManifest, layout.TemplateFallbackReason);
                     _controller.Admit();
@@ -142,11 +144,16 @@ namespace Worsen.Domain.Procedural
             ThemePublished?.Invoke(ready.ThemeId, ready.Theme?.LightSource ?? "torch", ready.Theme?.SoundZone ?? "castle-stone",
                 ready.Theme?.FogLook ?? "black-mist", ready.Theme?.HandLook ?? "shadow-hands");
             foreach (var room in ready.Modules)
-                RoomThemePublished?.Invoke(room.RoomId, ready.ThemeId, ready.Theme?.Families[(int)room.Kind] ?? room.Kind.ToString());
+            {
+                var theme = ProceduralBiomeUtility.Theme(ready, room.RoomId);
+                var template = ready.TemplateRooms.FirstOrDefault(r => r.RoomId == room.RoomId);
+                RoomThemePublished?.Invoke(room.RoomId, theme?.Id ?? ready.ThemeId, template?.Template.Id ?? theme?.Families[(int)room.Kind] ?? room.Kind.ToString());
+            }
             foreach (var freeze in ready.FreezeRooms)
                 ThresholdFreezePublished?.Invoke(freeze.RoomId, freeze.BehindRoomId, freeze.AnchorId, ready.Doors[freeze.DoorIndex].Center, freeze.Hunter);
-            foreach (var puzzle in ready.Puzzles)
-                OptionalPuzzleRewardPublished?.Invoke(puzzle.Id, puzzle.Reward.Id, puzzle.Reward.Position);
+            // Retain the subscription surface for compatibility, but never publish
+            // puzzle anchors into Floor's golden-cake reward registration path.
+            _ = OptionalPuzzleRewardPublished;
         }
 
         public bool ValidateHunterSpawn(Vector3 position, out string reason)

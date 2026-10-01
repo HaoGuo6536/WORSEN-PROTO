@@ -33,7 +33,7 @@ namespace Worsen.Domain.Procedural
             var owners = new Dictionary<Vector2Int, int>();
             foreach (var room in layout.TemplateRooms)
                 foreach (var cell in ProceduralTemplateUtility.OccupiedCells(room)) owners.Add(cell, room.RoomId);
-            var kit = layout.TemplateCatalogue.Kit.ToDictionary(p => p.Id);
+            var kits = layout.TemplateRooms.ToDictionary(r => r.RoomId, r => (r.Catalogue ?? layout.TemplateCatalogue).Kit.ToDictionary(p => p.Id));
             var seams = new List<(int a, int b, bool alongX, float plane, float low)>();
             foreach (var pair in owners.OrderBy(p => p.Key.x).ThenBy(p => p.Key.y))
             foreach (var direction in new[] { Vector2Int.right, Vector2Int.up })
@@ -68,7 +68,7 @@ namespace Worsen.Domain.Procedural
                 foreach (var block in result)
                 {
                     bool straight = block.Kind == ProceduralSurfaceKind.Wall && (block.RoomId == a || block.RoomId == b) &&
-                        (block.PieceId == null || kit.TryGetValue(block.PieceId, out var piece) &&
+                        (block.PieceId == null || kits[block.RoomId].TryGetValue(block.PieceId, out var piece) &&
                          (piece.Kind == "wall" || piece.Kind == "door" || piece.Kind == "window") && piece.Id != "wall_round_tangent_r4");
                     var tangent = block.Rotation * Vector3.right;
                     if (!straight || Math.Abs(tangent[axis]) < .999f ||

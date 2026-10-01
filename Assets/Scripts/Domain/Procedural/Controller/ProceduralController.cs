@@ -49,7 +49,7 @@ namespace Worsen.Domain.Procedural
         public static int LayoutSeed(int runSeed, int roundIndex) => unchecked((runSeed * 397) ^ (roundIndex * 7919));
 
         public ProceduralLayout Generate(int runSeed, int roundIndex, bool merchantRefuge = false, float optionalWindowMultiplier = 1f, int? themeSeed = null, int requiredHunterCount = 1,
-            string organicFallbackReason = null)
+            string organicFallbackReason = null, int shrineRoomCount = 0)
         {
             Reset();
             ValidateConfig(roundIndex);
@@ -59,7 +59,7 @@ namespace Worsen.Domain.Procedural
             var selectedTheme = ProceduralThemeUtility.Select(_config.Themes, roundIndex, new System.Random(themeSeed ?? runSeed));
             string templateFailure = organicFallbackReason;
             if (string.IsNullOrEmpty(organicFallbackReason) && new ProceduralTemplateController(_config, new System.Random(LayoutSeed(runSeed, roundIndex)))
-                .TryGenerate(runSeed, roundIndex, selectedTheme, merchantRefuge, requiredHunterCount, out var templateLayout, out templateFailure))
+                .TryGenerate(runSeed, roundIndex, selectedTheme, merchantRefuge, requiredHunterCount, out var templateLayout, out templateFailure, themeSeed, shrineRoomCount))
             {
                 _state.Layout = templateLayout; // Preserve template identity even if a subsequent pure check fails.
                 ProceduralFreezeUtility.Apply(templateLayout, _config);

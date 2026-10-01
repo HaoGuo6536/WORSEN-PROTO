@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Route door approaches and room spines through supported, agent-clear ground.
 //   - Compress routes into straight runs and sample deterministic pickup identities.
-//   - Reserve exit, doorway and traversal staging space without bridging gaps.
+//   - Reserve exit, doorway, authored interaction and traversal space without bridging gaps.
 //   - Publish line representatives for bounded native admission and manifest counts.
 //   - Rebind threshold-freeze identity to a real line cake in the same room.
 // DEPENDENCIES:
@@ -230,6 +230,21 @@ namespace Worsen.Domain.Procedural
 
         private static bool Reserved(ProceduralLayout layout, int roomId, Vector3 point, ProceduralConfig config, float radius, float height)
         {
+            var template = layout.TemplateRooms.FirstOrDefault(r => r.RoomId == roomId);
+            if (template != null)
+            {
+                foreach (var reservation in template.Template.ReservedAreas)
+                {
+                    var bounds = ProceduralFurnishedUtility.Reservation(template, reservation, layout.Origin);
+                    if (point.x >= bounds.min.x - radius && point.x <= bounds.max.x + radius &&
+                        point.z >= bounds.min.z - radius && point.z <= bounds.max.z + radius && point.y < bounds.max.y) return true;
+                }
+                foreach (var socket in template.Template.ShrineSockets)
+                {
+                    var delta = point - ProceduralTemplateUtility.Point(template, socket.Position, layout.Origin); delta.y = 0f;
+                    if (delta.sqrMagnitude < config.ShrineSiteClearance * config.ShrineSiteClearance) return true;
+                }
+            }
             float clearance = Math.Max(config.TemplateExitCakeClearance, radius * 2f);
             var exitDelta = point - layout.Graph.ExitPosition; exitDelta.y = 0f;
             if (roomId == layout.Graph.ExitRoomId && Math.Abs(point.y - layout.Graph.ExitPosition.y) < 3.21f && exitDelta.sqrMagnitude < clearance * clearance) return true;

@@ -267,16 +267,18 @@ namespace Worsen.Tests.Procedural
             var hallway = catalogue.Templates.First(t => t.Kind == "hallway" && t.Doors.All(d => d.Span == 2));
             var config = (ProceduralConfig)FormatterServices.GetUninitializedObject(typeof(ProceduralConfig));
             var attach = typeof(ProceduralTemplateController).GetMethod("Attach", BindingFlags.NonPublic | BindingFlags.Instance);
+            var data = (ProceduralRoomCatalogueData)FormatterServices.GetUninitializedObject(typeof(ProceduralRoomCatalogueData));
+            Field(data, "_catalogues", new[] { catalogue }); Field(config, "_roomCatalogue", data);
             for (int turn = 0; turn < 4; turn++)
             {
                 var controller = new ProceduralTemplateController(config, new System.Random(13 + turn));
-                var hub = new ProceduralTemplateRoom { RoomId = 1, Template = hubTemplate, Turns = turn };
+                var hub = new ProceduralTemplateRoom { RoomId = 1, Template = hubTemplate, Catalogue = catalogue, Turns = turn };
                 var placed = new System.Collections.Generic.List<ProceduralTemplateRoom> { hub };
                 var occupied = new System.Collections.Generic.HashSet<Vector2Int>(ProceduralTemplateUtility.OccupiedCells(hub));
                 var doors = new System.Collections.Generic.List<ProceduralDoorPlan>();
                 for (int attempt = 0; attempt < 2048 && placed.Count < 2; attempt++)
                     attach.Invoke(controller, new object[] { hallway, 0, 0, placed, occupied,
-                        new System.Collections.Generic.HashSet<Vector2Int>(), doors, new System.Collections.Generic.List<ProceduralGapSite>() });
+                        new System.Collections.Generic.HashSet<Vector2Int>(), doors, new System.Collections.Generic.List<ProceduralGapSite>(), 0, null });
                 Assert.That(placed.Count, Is.EqualTo(2), theme + " turn=" + turn);
                 Assert.That(placed[1].SubcellOffset, Is.Not.EqualTo(Vector2Int.zero));
                 var cells = placed.SelectMany(ProceduralTemplateUtility.OccupiedCells).ToArray();

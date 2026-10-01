@@ -102,7 +102,7 @@ namespace Worsen.Tests.Procedural
                 var pivot = new Vector3(8f, 0f, 12f); var rotation = Quaternion.Euler(0f, 90f, 0f);
                 var block = new ProceduralBlock(1, ProceduralSurfaceKind.Wall, pivot + Vector3.up * 3.5f, new Vector3(2f, 7f, .5f), rotation: rotation,
                     pieceId: "wall_2m", piecePosition: pivot);
-                typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0 });
+                typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0, null });
                 var item = state.Fragments[1].Single();
                 Assert.That(item.GetComponent<Collider>().enabled, Is.True);
                 Assert.That(item.GetComponent<Renderer>().enabled, Is.EqualTo(!available));
@@ -137,7 +137,7 @@ namespace Worsen.Tests.Procedural
             try
             {
                 foreach (var block in commands)
-                    typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0 });
+                    typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0, null });
                 var parts = state.Fragments[1];
                 Assert.That(parts.Sum(p => p.transform.childCount), Is.EqualTo(available ? 1 : 0));
                 Assert.That(parts[0].GetComponent<Renderer>().enabled, Is.False);
@@ -171,7 +171,7 @@ namespace Worsen.Tests.Procedural
             {
                 var block = new ProceduralBlock(1, ProceduralSurfaceKind.Wall, Vector3.up * .01f, new Vector3(2f, 0f, 2f),
                     role: ProceduralBlockRole.VisualOnly, pieceId: "decal");
-                typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0 });
+                typeof(ProceduralDriver).GetMethod("CreateBlock", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(driver, new object[] { block, null, 0, null });
                 var item = state.Fragments[1].Single(); var visual = item.transform.GetChild(0);
                 Assert.That(item.GetComponent<Collider>(), Is.Null);
                 Assert.That((visual.lossyScale - Vector3.one).magnitude, Is.LessThan(.001f));
