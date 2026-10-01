@@ -122,9 +122,13 @@ namespace Worsen.Tests.Player
         public void IndependentColliderUnderTheSameMarkerStillBlocksAndCannotCatchUpAfterRemoval()
         {
             // Same parent deliberately catches accidental hierarchy-wide filtering.
-            var blocker = Box("Other collider", new Vector3(2.3f, 2.1f, 0f), new Vector3(1f, .2f, 2f));
+            // Center above takeoff so the rising capsule hits the flat underside.
+            // At x=2.3 the pass-two rise hits the vertical side first: obstruction
+            // is correct there, but Ceiling (normal.y < -0.5) is not guaranteed.
+            var blocker = Box("Other collider", new Vector3(1.4f, 2.1f, 0f), new Vector3(1f, .2f, 2f));
             blocker.transform.SetParent(vault.transform, true);
             Physics.SyncTransforms();
+            Assert.That(State.ProbedTraversalCollider, Is.SameAs(vault), "Only the waist obstacle was admitted.");
             bool stopped = false;
             Vector3 stoppedAt = Vector3.zero;
             for (int tick = 1; tick <= 14; tick++)
@@ -133,7 +137,7 @@ namespace Worsen.Tests.Player
                 if (!stopped && State.TraversalObstructed)
                 {
                     stopped = true; stoppedAt = moved.Position;
-                    Assert.That(moved.Ceiling, Is.True);
+                    Assert.That(moved.Ceiling, Is.True, "The blocker underside must stop the rising capsule.");
                     Object.DestroyImmediate(blocker.gameObject); Physics.SyncTransforms();
                 }
                 else if (stopped)
