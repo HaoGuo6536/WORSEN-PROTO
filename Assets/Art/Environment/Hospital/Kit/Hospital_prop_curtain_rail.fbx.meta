@@ -3,7 +3,17 @@ guid: 100a8bc3fa3554f47bc186629261de3a
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_curtain
+    second: {fileID: 2100000, guid: d713adbc372994e42a84f9d158fb6f48, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_stainless
+    second: {fileID: 2100000, guid: a7c6517b674e9c244af9852556208c91, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

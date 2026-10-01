@@ -3,7 +3,12 @@ guid: f3a38f98799f63b48a219aebdc518ee3
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: castle_stone_dark
+    second: {fileID: 2100000, guid: d2fe6c5fef64b5240b96199531bbec85, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

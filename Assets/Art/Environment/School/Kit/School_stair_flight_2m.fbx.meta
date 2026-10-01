@@ -3,7 +3,17 @@ guid: 35f063d698cc4644996b4e3be92760b5
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_lino
+    second: {fileID: 2100000, guid: 90a2e363460eeb74c93a1b9b2e6d976a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_mustard
+    second: {fileID: 2100000, guid: acb4de58e4876af4ea30133169a75e55, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

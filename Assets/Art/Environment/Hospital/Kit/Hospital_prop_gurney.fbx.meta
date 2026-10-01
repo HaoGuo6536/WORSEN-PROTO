@@ -3,7 +3,22 @@ guid: 4e14fe8789c6f504a9d1da05ece61196
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_linen
+    second: {fileID: 2100000, guid: d9e890e3527b9f142bc94b03969565c7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_rubber
+    second: {fileID: 2100000, guid: 0c9acd5cfa310f0469d19c2e0ed566df, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_stainless
+    second: {fileID: 2100000, guid: a7c6517b674e9c244af9852556208c91, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

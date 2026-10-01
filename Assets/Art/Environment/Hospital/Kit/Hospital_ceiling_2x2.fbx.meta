@@ -3,7 +3,22 @@ guid: 52673e53072794b4d9cdc2f22087990e
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_acoustic
+    second: {fileID: 2100000, guid: aa9a14e015055a54eaee0ae631fcfae1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_grout
+    second: {fileID: 2100000, guid: aa17b222a4f8cc74482059910a2efa5c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_stainless
+    second: {fileID: 2100000, guid: a7c6517b674e9c244af9852556208c91, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

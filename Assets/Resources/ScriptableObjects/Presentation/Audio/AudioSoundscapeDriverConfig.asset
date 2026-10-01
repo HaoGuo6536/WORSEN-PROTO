@@ -1273,6 +1273,7 @@ MonoBehaviour:
   _rosterClipPriority: 60
   _rosterPitchVariation: 0.03
   _rosterGainVariation: 0.02
+  _rosterMaximumDistance: 32
   _earPlugsDurationMultiplier: 0.5
   _mirrorSkinDurationMultiplier: 0.5
   _hearingReferenceMeters: 2
@@ -1336,7 +1337,7 @@ MonoBehaviour:
   _exteriorAmbience: {fileID: 8300000, guid: 9528e5e45c00e994ab56d0054dbf2488, type: 3}
   _effectsGroup: {fileID: 892772678358457422, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
   _musicGroup: {fileID: 4619527254337218085, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
-  _ambienceGroup: {fileID: 892772678358457422, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
+  _ambienceGroup: {fileID: -1351889155304143044, guid: e725ab1946ad1ec48a9d8710122deecf, type: 2}
   _torchAudibleDistance: 16
   _accentMinimumSeconds: 7
   _accentMaximumSeconds: 15

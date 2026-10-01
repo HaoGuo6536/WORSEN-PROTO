@@ -3,7 +3,17 @@ guid: eeecced3f20964e4e8073ec10d68fc7b
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_paint
+    second: {fileID: 2100000, guid: 4d961591e168908428dd15dfd441263f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_stainless
+    second: {fileID: 2100000, guid: a7c6517b674e9c244af9852556208c91, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

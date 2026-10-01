@@ -3,7 +3,22 @@ guid: 0eb348947d95bb44fb504dc709e0322b
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_door_enamel
+    second: {fileID: 2100000, guid: 218e885f92ac54a40b4a8fa2c407762c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_glass
+    second: {fileID: 2100000, guid: 67758d58456a2f64485c0b927a3d1896, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: hospital_stainless
+    second: {fileID: 2100000, guid: a7c6517b674e9c244af9852556208c91, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

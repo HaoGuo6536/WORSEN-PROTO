@@ -3,7 +3,22 @@ guid: ab6468bc2459aa34f87248d47d669a28
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_lino
+    second: {fileID: 2100000, guid: 90a2e363460eeb74c93a1b9b2e6d976a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_rubber
+    second: {fileID: 2100000, guid: c929bd1c5584d644d96f9effa0a08d3b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: school_scuff
+    second: {fileID: 2100000, guid: 0b38aca8f4f887749864fd5170e70ed0, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
