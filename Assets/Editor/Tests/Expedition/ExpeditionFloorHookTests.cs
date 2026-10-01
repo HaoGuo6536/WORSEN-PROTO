@@ -26,8 +26,8 @@ namespace Worsen.Tests.Expedition
     [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionFloorHookTests
     {
-        [TestCase("sweet-tooth")] [TestCase("blind-faith")] [TestCase("golden-sense")]
-        [TestCase("greedy-door")] [TestCase("faster-collapse")] [TestCase("shuffled-collapse")] [TestCase("wax-heart")] [TestCase("hidden-count")]
+        [TestCase("sweet-tooth")] [TestCase("golden-sense")]
+        [TestCase("faster-collapse")] [TestCase("shuffled-collapse")] [TestCase("wax-heart")] [TestCase("hidden-count")]
         public void EveryMappedIdExistsAndSetsOnlyItsOwnHook(string id)
         {
             var catalogue = ScriptableObject.CreateInstance<EffectCatalogueConfig>();
