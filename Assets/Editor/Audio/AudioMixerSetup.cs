@@ -8,6 +8,7 @@
 //   Editor tool (§10) · Audio.
 // KEY RESPONSIBILITIES:
 //   - Preserve existing groups/parameters and reject conflicting parameter names.
+//   - Initialize absent mixer views and repair an invalid current-view index.
 //   - Wire the soundscape config; its Driver assigns every owned source on initialization.
 // DEPENDENCIES:
 //   - UnityEditor, Unity audio and Presentation Audio configs.
@@ -49,6 +50,7 @@ namespace Worsen.Editor.Audio
             if (existing != null && !type.IsInstanceOfType(existing)) throw new InvalidOperationException("Mixer path is occupied by another asset.");
             var mixer = existing as AudioMixer ?? (AudioMixer)Method(type, "CreateMixerControllerAtPath").Invoke(null, new object[] { path });
             var master = (AudioMixerGroup)Property(type, "masterGroup").GetValue(mixer);
+            EnsureCurrentView(mixer);
             var music = Group(mixer, master, "Music"); var effects = Group(mixer, master, "Effects");
             Expose(mixer, master, "MasterVolume"); Expose(mixer, music, "MusicVolume"); Expose(mixer, effects, "EffectsVolume");
             var serialized = new SerializedObject(config);
@@ -64,6 +66,30 @@ namespace Worsen.Editor.Audio
             EditorUtility.SetDirty(mixer); EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssetIfDirty(mixer); AssetDatabase.SaveAssetIfDirty(config);
             return mixer;
+        }
+        private static void EnsureCurrentView(AudioMixer mixer)
+        {
+            // CreateMixerControllerAtPath creates groups/snapshots, not the editor's view.
+            // AddGroupToCurrentView requires views[currentViewIndex] to already exist.
+            var property = Property(mixer.GetType(), "views");
+            var views = (Array)property.GetValue(mixer);
+            var index = Property(mixer.GetType(), "currentViewIndex");
+            if (views == null || views.Length == 0)
+            {
+                Type element = property.PropertyType.GetElementType();
+                object view = Activator.CreateInstance(element);
+                var guidsField = element.GetField("guids", Flags) ?? throw new MissingFieldException(element.FullName, "guids");
+                var nameField = element.GetField("name", Flags) ?? throw new MissingFieldException(element.FullName, "name");
+                var groups = mixer.FindMatchingGroups("");
+                var guids = Array.CreateInstance(guidsField.FieldType.GetElementType(), groups.Length);
+                for (int i = 0; i < groups.Length; i++)
+                    guids.SetValue(Property(groups[i].GetType(), "groupID").GetValue(groups[i]), i);
+                guidsField.SetValue(view, guids); nameField.SetValue(view, "View");
+                views = Array.CreateInstance(element, 1); views.SetValue(view, 0);
+                property.SetValue(mixer, views); index.SetValue(mixer, 0);
+            }
+            else if ((int)index.GetValue(mixer) < 0 || (int)index.GetValue(mixer) >= views.Length)
+                index.SetValue(mixer, 0);
         }
         private static AudioMixerGroup Group(AudioMixer mixer, AudioMixerGroup master, string name)
         {

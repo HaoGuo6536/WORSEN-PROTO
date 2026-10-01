@@ -39,7 +39,7 @@ namespace Worsen.Tests.Horror
                 string before = JsonUtility.ToJson(profile);
                 driver.Initialize(config);
                 driver.SetEffects(new ActiveEffects(new[] { new ActiveEffect(new EffectId("afterglow"), EffectKind.Upgrade, 1) }));
-                var light = new InteractableState(1, InteractableKind.Light, 1, Vector3.one, InteractableStateValue.Broken);
+                var light = new InteractableState(1, InteractableKind.Light, 1, Vector3.one, InteractableStateValue.Inactive);
                 driver.Observe(light, 3f);
                 var output = owner.GetComponentInChildren<LumenEffectPlayer>(true);
                 Assert.That(output, Is.Not.Null); Assert.That(output.enabled, Is.False);

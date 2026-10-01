@@ -8,6 +8,7 @@
 // KEY RESPONSIBILITIES:
 //   - Retain existing features and one shader-bound hunter-only Glimpse subasset.
 //   - Bind both soundscape mixer groups and preserve title-first test-scene ordering.
+//   - Repair missing mixer views without replacing groups or valid authored views.
 // DEPENDENCIES:
 //   Editor setup, Presentation Audio, UnityEditor, NUnit; URP via serialized seams.
 // USAGE NOTES:
@@ -15,6 +16,7 @@
 // ============================================================================
 using System;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -67,6 +69,7 @@ namespace Worsen.Tests.Scenes
             try
             {
                 var mixer = AudioMixerSetup.Configure(path, config);
+                AssertCurrentView(mixer, 3);
                 var data = new SerializedObject(config);
                 var effects = data.FindProperty("_effectsGroup").objectReferenceValue;
                 var music = data.FindProperty("_musicGroup").objectReferenceValue;
@@ -76,8 +79,57 @@ namespace Worsen.Tests.Scenes
                 Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer)); data.Update();
                 Assert.That(data.FindProperty("_effectsGroup").objectReferenceValue, Is.SameAs(effects));
                 Assert.That(data.FindProperty("_musicGroup").objectReferenceValue, Is.SameAs(music));
+                AssertCurrentView(mixer, 3);
             }
             finally { UnityEngine.Object.DestroyImmediate(config); AssetDatabase.DeleteAsset(path); }
+        }
+        [TestCase(false)] [TestCase(true)]
+        public void MixerSetupRepairsMissingOrInvalidViewWithoutReplacingGroups(bool missingView)
+        {
+            string path = AssetDatabase.GenerateUniqueAssetPath("Assets/Editor/Tests/Scenes/TemporaryRoutingView.mixer");
+            var config = ScriptableObject.CreateInstance<AudioSoundscapeDriverConfig>();
+            try
+            {
+                var mixer = AudioMixerSetup.Configure(path, config);
+                string guid = AssetDatabase.AssetPathToGUID(path);
+                var groups = mixer.FindMatchingGroups("").Select(group => group.GetInstanceID()).OrderBy(id => id).ToArray();
+                var viewsProperty = MixerProperty(mixer, "views");
+                var views = (Array)viewsProperty.GetValue(mixer);
+                object authored = views.GetValue(0);
+                authored.GetType().GetField("name").SetValue(authored, "Authored view");
+                views.SetValue(authored, 0); viewsProperty.SetValue(mixer, views);
+                if (missingView) viewsProperty.SetValue(mixer, Array.CreateInstance(views.GetType().GetElementType(), 0));
+                else MixerProperty(mixer, "currentViewIndex").SetValue(mixer, views.Length);
+                Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
+                AssertCurrentView(mixer, 3);
+                Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(guid));
+                Assert.That(mixer.FindMatchingGroups("").Select(group => group.GetInstanceID()).OrderBy(id => id), Is.EqualTo(groups));
+                if (!missingView)
+                {
+                    var repaired = (Array)viewsProperty.GetValue(mixer);
+                    Assert.That(repaired.Length, Is.EqualTo(views.Length));
+                    var retained = repaired.GetValue(0);
+                    Assert.That(retained.GetType().GetField("name").GetValue(retained), Is.EqualTo("Authored view"));
+                    Assert.That((Array)retained.GetType().GetField("guids").GetValue(retained),
+                        Is.EqualTo((Array)authored.GetType().GetField("guids").GetValue(authored)),
+                        "Repair must not overwrite an authored view's group identities.");
+                }
+                Assert.That(AudioMixerSetup.Configure(path, config), Is.SameAs(mixer));
+                AssertCurrentView(mixer, 3);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(config); AssetDatabase.DeleteAsset(path); }
+        }
+        private static PropertyInfo MixerProperty(UnityEngine.Audio.AudioMixer mixer, string name)
+            => mixer.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        private static void AssertCurrentView(UnityEngine.Audio.AudioMixer mixer, int groupCount)
+        {
+            var views = (Array)MixerProperty(mixer, "views").GetValue(mixer);
+            int index = (int)MixerProperty(mixer, "currentViewIndex").GetValue(mixer);
+            Assert.That(index, Is.InRange(0, views.Length - 1));
+            var view = views.GetValue(index);
+            var guids = (Array)view.GetType().GetField("guids").GetValue(view);
+            Assert.That(guids.Length, Is.EqualTo(groupCount));
+            Assert.That(guids.Cast<object>().Distinct().Count(), Is.EqualTo(groupCount));
         }
         [Test] public void DuplicateTitleEntriesCollapseWithoutDroppingOrEnablingTestScenes()
         {

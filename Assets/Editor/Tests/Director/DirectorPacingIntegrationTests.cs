@@ -33,6 +33,8 @@
 //   the relief predicate with heat held eligible. Neither trial completes a floor or
 //   supplies participant/no-wandering acceptance. Capture is interrupted at a declared
 //   cutoff; sidecar observations, not capture-complete status, delimit the population.
+//   Flatten trial iterators at the test boundary: the Edit Mode runner must finish
+//   both scene trials before teardown exits Play Mode. Never re-enter between trials.
 // ============================================================================
 using System;
 using System.Collections;
@@ -76,22 +78,14 @@ namespace Worsen.Tests.Director
         public IEnumerator PhysicalLossReliefAndExitCadenceRepeatAtTheSameSeed()
         {
             yield return new EnterPlayMode();
-            yield return ExerciseRepeatedCadence();
-        }
-
-        [UnityTest, Timeout(300000)]
-        public IEnumerator HistoricalHintReachesActualProximityWithEveryGapRetained()
-        {
-            yield return new EnterPlayMode();
-            yield return ExerciseTrial(TrialKind.Travel, new TrialReport());
-        }
-
-        private static IEnumerator ExerciseRepeatedCadence()
-        {
             var first = new TrialReport();
             var second = new TrialReport();
-            yield return ExerciseTrial(TrialKind.Cadence, first);
-            yield return ExerciseTrial(TrialKind.Cadence, second);
+            var firstTrial = ExerciseTrial(TrialKind.Cadence, first);
+            try { while (firstTrial.MoveNext()) yield return firstTrial.Current; }
+            finally { (firstTrial as IDisposable)?.Dispose(); }
+            var secondTrial = ExerciseTrial(TrialKind.Cadence, second);
+            try { while (secondTrial.MoveNext()) yield return secondTrial.Current; }
+            finally { (secondTrial as IDisposable)?.Dispose(); }
             Assert.That(second.seed, Is.EqualTo(first.seed));
             Assert.That(second.sourceRevision, Is.EqualTo(first.sourceRevision));
             Assert.That(second.captureConfigHash, Is.EqualTo(first.captureConfigHash));
@@ -109,8 +103,18 @@ namespace Worsen.Tests.Director
                 first.reportPath + " ; " + second.reportPath + ". These are contained sensor/cadence trials, not floor-travel acceptance.");
         }
 
+        [UnityTest, Timeout(300000)]
+        public IEnumerator HistoricalHintReachesActualProximityWithEveryGapRetained()
+        {
+            yield return new EnterPlayMode();
+            var trial = ExerciseTrial(TrialKind.Travel, new TrialReport());
+            try { while (trial.MoveNext()) yield return trial.Current; }
+            finally { (trial as IDisposable)?.Dispose(); }
+        }
+
         private static IEnumerator ExerciseTrial(TrialKind kind, TrialReport report)
         {
+            Assert.That(Application.isPlaying, Is.True, "A Director trial must run before Play Mode teardown.");
             bool previousBackground = Application.runInBackground;
             var trial = new Trial(kind, report);
             try

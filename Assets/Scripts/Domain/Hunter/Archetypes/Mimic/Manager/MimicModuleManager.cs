@@ -15,13 +15,14 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, root owns tick and teardown.
 //   No subscriptions or independent state. Teardown clears the Controller's life data.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
 using EntityId = Worsen.Core.EntityId;
 namespace Worsen.Domain.Hunter.Archetypes.Mimic
 {
-    public sealed class MimicModuleManager : HunterArchetypeManager
+    public sealed class MimicModuleManager : HunterArchetypeManager, IEntityHandle
     {
         private MimicController Controller => (MimicController)Rules;
         public static void Register(HunterArchetypeFactory factory)

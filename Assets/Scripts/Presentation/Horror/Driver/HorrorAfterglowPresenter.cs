@@ -2,18 +2,19 @@
 // HorrorAfterglowPresenter.cs
 // ============================================================================
 // PURPOSE:
-//   Presents an authoritative Afterglow safety window as a fading broken light.
+//   Presents an authoritative Afterglow safety window as a fading extinguished light.
 //   Gameplay supplies the accepted duration; this calculator never freezes hunters.
 // ARCHITECTURAL ROLE:
 //   Presenter (§7b) · Presentation · Horror.
 // KEY RESPONSIBILITIES:
-//   - Admit exact upgrade identities and finite broken-light observations.
+//   - Admit exact upgrade identities and finite extinguished-light observations.
 //   - Advance independent, bounded light envelopes with injected time.
 // DEPENDENCIES:
 //   Core effect/interactable contracts and pure Unity value math.
 // USAGE NOTES:
 //   Repeated observations cannot extend a window. Relighting removes its record.
 //   Safety duration and room-wide Mannequin gating belong to Domain/Session.
+//   Level represents an extinguished, relightable light as Inactive, not Broken.
 // ============================================================================
 using UnityEngine;
 using Worsen.Core;
@@ -24,7 +25,7 @@ namespace Worsen.Presentation.Horror
         public static bool Observe(HorrorAfterglowDriverState state, IReadOnlyActiveEffects effects, InteractableState light, float seconds)
         {
             if (light.Id <= 0 || light.Kind != InteractableKind.Light) return false;
-            if (effects?.Has(new EffectId("afterglow")) != true || light.Value != InteractableStateValue.Broken
+            if (effects?.Has(new EffectId("afterglow")) != true || light.Value != InteractableStateValue.Inactive
                 || !Finite(seconds) || seconds <= 0f || !Finite(light.Position.x) || !Finite(light.Position.y) || !Finite(light.Position.z))
                 return state.Lights.Remove(light.Id);
             if (state.Lights.TryGetValue(light.Id, out var existing))

@@ -15,11 +15,12 @@
 // USAGE NOTES:
 //   Scene-owned; factory creates the facet, root owns tick and teardown.
 //   No subscriptions, independent state or engine calls.
+//   IEntityHandle uses the root identity inherited through HunterArchetypeManager.
 // ============================================================================
 using Worsen.Core;
 namespace Worsen.Domain.Hunter.Archetypes.Mannequin
 {
-    public sealed class MannequinModuleManager : HunterArchetypeManager
+    public sealed class MannequinModuleManager : HunterArchetypeManager, IEntityHandle
     {
         private MannequinController Controller => (MannequinController)Rules;
         public static void Register(HunterArchetypeFactory factory)
