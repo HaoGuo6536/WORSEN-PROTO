@@ -4,13 +4,14 @@
 # PURPOSE:
 #   Re-imports Mimic and independently appends the original cake for comparison.
 #   It proves the closed exterior and palette UVs survived export, checks that
-#   added mouth geometry stays inside the disguise, and samples the actual bite.
+#   mouth geometry stays inside the disguise, bounds the added piping/tell, and
+#   samples the actual bite without relaxing any motion threshold.
 # ARCHITECTURAL ROLE:
 #   Offline art validator · no runtime layer · Hunter / PLAN-015.
 # KEY RESPONSIBILITIES:
 #   - Validate the two-bone rigid FBX and all six correctly ranged actions.
 #   - Compare closed cake bounds, exterior surface samples and UV correspondence.
-#   - Verify concealed teeth, stationary loops, jaw contact and palette provenance.
+#   - Verify concealed rest teeth, in-place jaw cycles, bite and palette provenance.
 #   - Write failure evidence and content hashes without modifying the cake source.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils; hunter_creature_common; own cake source read-only.
@@ -29,6 +30,7 @@ from mathutils.bvhtree import BVHTree
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_animation_review import validate_motion
 
 
 def surface(objects):
@@ -120,7 +122,23 @@ def main():
                 {"reference_pairs": len(cake_uv), "mimic_pairs": len(uv), "max_pair_error": correspondence_error})
         # Teeth and gum are tested against the closed original cake, not merely
         # against its axis-aligned box (which would accept protruding wedge teeth).
-        hidden = [o for o in v.meshes if o not in exterior]
+        detail = [o for o in v.meshes if o.name.startswith(('Frosting_', 'JamTell'))]
+        hidden = [o for o in v.meshes if o not in exterior and o not in detail]
+        detail_error = max(cake_tree.find_nearest(o.matrix_world @ p.co)[3] for o in detail for p in o.data.vertices)
+        v.check('piping_and_jam_tell', len(detail)==22 and detail_error<.025,
+                {'objects':len(detail),'max_surface_distance_m':detail_error})
+        tell_offsets = {}
+        for obj in detail:
+            if not obj.name.startswith('JamTell'):
+                continue
+            offsets = []
+            for vertex in obj.data.vertices:
+                point = obj.matrix_world @ vertex.co
+                nearest, normal, _, _ = cake_tree.find_nearest(point)
+                offsets.append((point-nearest).dot(normal))
+            tell_offsets[obj.name] = [min(offsets), max(offsets)]
+        v.check('jam_tell_exposed_not_buried', len(tell_offsets)==2 and
+                all(.001<high<.008 for low,high in tell_offsets.values()), tell_offsets)
         solids = component_trees(reference)
         outside = []
         for obj in hidden:
@@ -130,13 +148,9 @@ def main():
                 if distance > 1e-6 and not any(enclosed(solid, p) for solid in solids):
                     outside.append([obj.name, vertex.index, list(p)])
         v.check("teeth_and_mouth_concealed", not outside, outside)
-        for name in ("idle", "walk", "run"):
-            errors = []
-            for f in range(1, c.CLIPS[name] + 2):
-                c.pose(v.rig, v.clips[name], f)
-                errors.append(max((a - b).length for a, b in zip(c.points(v.meshes), c.points(v.meshes, True))))
-            v.check(name + "_closed_still", max(errors) < 1e-6, max(errors))
-        c.pose(v.rig, v.clips["attack"], 1)
+        v.report['motion'] = validate_motion('Mimic',v.rig,v.meshes,v.clips,
+            dict(idle=.004,walk=.08,run=.14,ready=.07,attack=.20,hit=.15),v.check)
+        c.pose(v.rig, v.clips["idle"], 1)
         rest = v.rig.pose.bones["Jaw"].matrix.to_quaternion()
         c.pose(v.rig, v.clips["attack"], 9)
         open_angle = rest.rotation_difference(v.rig.pose.bones["Jaw"].matrix.to_quaternion()).angle

@@ -11,7 +11,7 @@
 #   - Construct rigid primitive skins and metre-scale skeletons.
 #   - Bake six named actions and export the manifest/FBX/source contract.
 #   - Render neutral Workbench evidence and true-scale lineups.
-#   - Measure re-imported content, validate shared invariants and hash semantics.
+#   - Measure re-imported motion, 3–8k triangle/2–4 material budgets and semantics.
 # DEPENDENCIES:
 #   Blender 5.2 bpy/mathutils and Python standard library; no runtime systems.
 # USAGE NOTES:
@@ -384,7 +384,8 @@ class Validation:
         self.check("bone_count_and_hierarchy", actual == expected_bones, actual)
         self.check("root_at_origin", (rig.matrix_world @ rig.data.bones["Root"].head_local).length < 1e-5 and actual["Root"] is None, list(rig.data.bones["Root"].head_local))
         self.check("height_ground", height_range[0] <= height <= height_range[1] and abs(box[2][0]) < 1e-5, box)
-        self.check("triangles", 0 < tris <= 4000, tris)
+        from validate_hunter_detail_contract import measure_budget
+        measure_budget(self.meshes, self.check)
         self.check("facing_minus_y", facing(self), "geometric front/back landmarks after FBX re-import")
         errors, geometry = [], []
         for o in self.meshes:
@@ -429,6 +430,7 @@ class Validation:
             samples[name] = [rounded(sample) for sample in matrices]
         clear_pose(rig)
         materials = [material_row(mat) for mat in sorted(set(mat for o in self.meshes for mat in o.data.materials), key=lambda x: x.name)]
+
         self.check("material_names", all(x["name"].startswith("M_Hunter" + self.name + "_") for x in materials), [x["name"] for x in materials])
         if self.name != "Mimic":
             self.check("no_textures", all(not x.get("textures") for x in materials), materials)

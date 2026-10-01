@@ -9,7 +9,7 @@
 #   Offline art validator · no runtime layer · Hunter / PLAN-015.
 # KEY RESPONSIBILITIES:
 #   - Check the 1.2m asymmetric clock, rear key and exact rigid skeleton.
-#   - Verify every take contains a swinging pendulum and the attack swings an arm.
+#   - Require visible takes, swinging pendulum, alternating grounded feet and loops.
 #   - Report shared contract checks and reproducible imported semantic hashes.
 # DEPENDENCIES:
 #   Blender 5.2 and hunter_creature_common; generated art and manifests only.
@@ -23,6 +23,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hunter_creature_common as c
+from hunter_animation_review import validate_motion
 
 
 def main():
@@ -45,6 +46,8 @@ def main():
             pendulum[name] = swing
             v.check(name + "_pendulum", swing > .25, swing)
         v.signature["pendulum_motion"] = pendulum
+        v.report['motion'] = validate_motion('Ticking',v.rig,v.meshes,v.clips,
+            dict(idle=.04,walk=.20,run=.35,ready=.25,attack=.60,hit=.15),v.check)
         c.pose(v.rig, v.clips["attack"], 1)
         initial = v.rig.pose.bones["LongArm"].matrix.to_quaternion()
         c.pose(v.rig, v.clips["attack"], 13)

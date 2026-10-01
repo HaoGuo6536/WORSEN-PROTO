@@ -3,8 +3,8 @@
   "hunter": "Mannequin",
   "fps": 30,
   "height_m": 1.85,
-  "width_m": 0.8,
-  "triangles": 2308,
+  "width_m": 0.814506,
+  "triangles": 7556,
   "bones": [
     {
       "name": "Root",
