@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Input.
 // KEY RESPONSIBILITIES:
-//   - Check readiness, end/restart, focus, owner/component disable and teardown.
+//   - Check lifecycle gates and prove settings restoration across Play Mode exit.
 //   - Protect canonical-service cursor ownership and live/playback transitions.
 //   - Verify independent UI click actions survive the gameplay gate closing.
 //   - Verify C produces slide/crouch while Left Ctrl no longer does.
@@ -20,8 +20,10 @@
 //   isolated scene. Creates only temporary objects/devices, scopes the gameplay map
 //   to those devices, pairs events, and restores cursor state after every test.
 //   Focus signals are synthetic; actual focus and rendered Results clicks remain
-//   integration checks. An unsaved settings clone bypasses Input System focus rules;
-//   setup failure and teardown restore the original object. No assets are modified.
+//   integration checks. Focus overrides exist only inside synchronous calls, never
+//   across a yield. SessionState retains the pre-entry identity/policies across
+//   reloads; teardown checks before/after exit and again after the whole fixture.
+//   No assets are modified; projects without a settings asset use Unity's default object.
 // ============================================================================
 using System;
 using System.Collections;
@@ -47,8 +49,7 @@ namespace Worsen.Tests.Input
         private InputActionMap _gameplay;
         private Keyboard _keyboard;
         private Mouse _mouse;
-        private InputSettings _previousInputSettings;
-        private InputSettings _temporaryInputSettings;
+        private const string SettingsSnapshotKey = "Worsen.PlayerInputDriverTests.InputSettings";
         private CursorLockMode _previousLock;
         private bool _previousVisible;
         private bool _cursorSnapshotTaken;
@@ -57,19 +58,12 @@ namespace Worsen.Tests.Input
         [UnitySetUp]
         public IEnumerator SetUp()
         {
+            CaptureProjectInputSettings();
             yield return new EnterPlayMode();
+            AssertProjectInputSettings("after EnterPlayMode/domain reload");
             Assert.That(InputManager.Instance, Is.Null, "Requires the Test Framework isolated scene.");
-            _previousInputSettings = InputSystem.settings;
             try
             {
-                // Clone after Play Mode entry, before adding devices, so only test input
-                // ignores editor routing and application focus; retain all other settings.
-                _temporaryInputSettings = UnityEngine.Object.Instantiate(_previousInputSettings);
-                _temporaryInputSettings.hideFlags = HideFlags.HideAndDontSave;
-                _temporaryInputSettings.editorInputBehaviorInPlayMode =
-                    InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
-                _temporaryInputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
-                InputSystem.settings = _temporaryInputSettings;
                 _previousLock = Cursor.lockState;
                 _previousVisible = Cursor.visible;
                 _cursorSnapshotTaken = true;
@@ -77,8 +71,11 @@ namespace Worsen.Tests.Input
                 // A hidden, unlocked cursor makes restoration distinct from the UI state.
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = false;
-                _keyboard = InputSystem.AddDevice<Keyboard>();
-                _mouse = InputSystem.AddDevice<Mouse>();
+                FocusIndependentInputScope.Run(() =>
+                {
+                    _keyboard = InputSystem.AddDevice<Keyboard>();
+                    _mouse = InputSystem.AddDevice<Mouse>();
+                });
                 _root = new GameObject("Input cursor lifecycle test");
                 _root.SetActive(false);
                 _manager = _root.AddComponent<InputManager>();
@@ -98,13 +95,22 @@ namespace Worsen.Tests.Input
             catch
             {
                 // A failed UnitySetUp may prevent the normal teardown from running.
-                RestoreInputSettings();
+                CleanupFixture();
                 throw;
             }
+            AssertProjectInputSettings("completed setup, before yielding to test");
         }
 
         [UnityTearDown]
         public IEnumerator TearDown()
+        {
+            CleanupFixture();
+            AssertProjectInputSettings("teardown before ExitPlayMode");
+            if (Application.isPlaying) yield return new ExitPlayMode();
+            AssertProjectInputSettings("teardown after ExitPlayMode/domain reload");
+        }
+
+        private void CleanupFixture()
         {
             try
             {
@@ -120,22 +126,93 @@ namespace Worsen.Tests.Input
                     _cursorSnapshotTaken = false;
                 }
             }
-            finally { RestoreInputSettings(); }
-            if (Application.isPlaying) yield return new ExitPlayMode();
+            finally { AssertProjectInputSettings("after fixture cleanup"); }
         }
 
-        private void RestoreInputSettings()
+        private static void CaptureProjectInputSettings()
         {
-            if (_previousInputSettings != null)
+            Assert.That(Application.isPlaying, Is.False, "Capture the project object before Play Mode entry.");
+            if (SessionState.GetString(SettingsSnapshotKey, "").Length > 0)
             {
-                InputSystem.settings = _previousInputSettings;
-                _previousInputSettings = null;
+                AssertProjectInputSettings("before the next test enters Play Mode");
+                return;
             }
-            if (_temporaryInputSettings != null)
+            InputSettings current = InputSystem.settings;
+            if (EditorBuildSettings.TryGetConfigObject("com.unity.input.settings", out InputSettings asset))
+                Assert.That(current, Is.SameAs(asset), "A previous fixture left a settings override installed.");
+            else
             {
-                UnityEngine.Object.DestroyImmediate(_temporaryInputSettings);
-                _temporaryInputSettings = null;
+                // This checkout has project-wide actions but no saved InputSettings asset.
+                InputSettings defaults = ScriptableObject.CreateInstance<InputSettings>();
+                try
+                {
+                    Assert.That(current.backgroundBehavior, Is.EqualTo(defaults.backgroundBehavior));
+                    Assert.That(current.editorInputBehaviorInPlayMode, Is.EqualTo(defaults.editorInputBehaviorInPlayMode));
+                }
+                finally { UnityEngine.Object.DestroyImmediate(defaults); }
             }
+            SessionState.SetString(SettingsSnapshotKey, SettingsIdentityAndPolicy(current));
+        }
+
+        private static string SettingsIdentityAndPolicy(InputSettings settings) =>
+            settings.GetEntityId() + ";" + settings.backgroundBehavior + ";" + settings.editorInputBehaviorInPlayMode;
+
+        private static void AssertProjectInputSettings(string phase)
+        {
+            string expected = SessionState.GetString(SettingsSnapshotKey, "");
+            Assert.That(expected, Is.Not.Empty, "Missing pre-Play Mode settings snapshot: " + phase);
+            string actual = SettingsIdentityAndPolicy(InputSystem.settings);
+            Assert.That(actual, Is.EqualTo(expected), phase + ": original settings object and focus policies must survive.");
+            TestContext.Progress.WriteLine("Input settings " + phase + ": " + actual);
+        }
+
+        [OneTimeTearDown]
+        public void AfterFixtureProjectInputSettingsAreUnchanged()
+        {
+            try
+            {
+                Assert.That(Application.isPlaying, Is.False);
+                AssertProjectInputSettings("after PlayerInputDriverTests finished");
+            }
+            finally { SessionState.EraseString(SettingsSnapshotKey); }
+        }
+
+        [UnityTest]
+        public IEnumerator AfterFixtureTeardownAndPlayModeExitRestoresProjectInputSettings()
+        {
+            _manager.SetInputEnabled(true);
+            PushKeys(Key.W);
+            _manager.PublishFrame();
+            Assert.That(_lastFrame.Move, Is.EqualTo(Vector2.up), "Exercise the focus-independent path first.");
+            CleanupFixture();
+            // Exit must be yielded directly: Unity cannot restore nested iterators
+            // across a domain reload. No fixture fields are read after this point.
+            yield return new ExitPlayMode();
+            Assert.That(Application.isPlaying, Is.False);
+            AssertProjectInputSettings("post-lifecycle regression");
+        }
+
+        [Test]
+        public void FocusOverrideRestoresOriginalObjectAndPoliciesWhenWorkThrows()
+        {
+            InputSettings original = InputSystem.settings;
+            InputSettings clone = null;
+            string before = JsonUtility.ToJson(original);
+            bool previousBackground = Application.runInBackground;
+            Assert.Throws<InvalidOperationException>(() => FocusIndependentInputScope.Run(() =>
+            {
+                clone = InputSystem.settings;
+                Assert.That(clone, Is.Not.SameAs(original));
+                Assert.That(clone.backgroundBehavior, Is.EqualTo(InputSettings.BackgroundBehavior.IgnoreFocus));
+                Assert.That(clone.editorInputBehaviorInPlayMode,
+                    Is.EqualTo(InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView));
+                throw new InvalidOperationException("Deliberate synchronous input failure.");
+            }));
+            Assert.That(InputSystem.settings, Is.SameAs(original));
+            Assert.That(JsonUtility.ToJson(original), Is.EqualTo(before));
+            Assert.That(clone == null, Is.True, "Destroy the unsaved clone even when input work fails.");
+            Assert.That(Application.runInBackground, Is.EqualTo(previousBackground));
+            AssertProjectInputSettings("after throwing input work");
         }
 
         [Test]
@@ -310,8 +387,12 @@ namespace Worsen.Tests.Input
                     ui.Enable();
                     _manager.SetInputEnabled(true);
                     _manager.SetInputEnabled(false);
-                    InputSystem.QueueStateEvent(_mouse, new MouseState().WithButton(MouseButton.Left));
-                    InputSystem.Update();
+                    FocusIndependentInputScope.Run(() =>
+                    {
+                        InputSystem.QueueStateEvent(_mouse, new MouseState().WithButton(MouseButton.Left));
+                        InputSystem.Update();
+                    });
+                    AssertProjectInputSettings("after UI input update");
                     AssertCursor(false);
                     Assert.That(ui.enabled, Is.True);
                     Assert.That(clicks, Is.EqualTo(1));
@@ -324,8 +405,12 @@ namespace Worsen.Tests.Input
 
         private void PushKeys(params Key[] keys)
         {
-            InputSystem.QueueStateEvent(_keyboard, new KeyboardState(keys));
-            InputSystem.Update();
+            FocusIndependentInputScope.Run(() =>
+            {
+                InputSystem.QueueStateEvent(_keyboard, new KeyboardState(keys));
+                InputSystem.Update();
+            });
+            AssertProjectInputSettings("after keyboard input update");
         }
 
         private void CaptureFrame(InputFrame frame) => _lastFrame = frame;
