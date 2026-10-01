@@ -17,7 +17,8 @@
 //   - Common SetupKit creates asset folders while retaining existing identities.
 //   - UnityEditor asset APIs and Domain.Procedural definitions/presenters.
 // USAGE NOTES:
-//   Called only by the explicit content setup in an idle coordinated editor.
+//   Build owns importer writes in the explicit idle coordinated content setup.
+//   Material adoption only loads prepared textures; it never repairs importers.
 //   Material/prefab assets are written only in Unity. Generated PNGs and per-slot
 //   scale metadata come from tools/textures/generate_theme_textures.py. Texture
 //   provenance tags record source and generated-state hashes. Only unchanged
@@ -85,6 +86,7 @@ namespace Worsen.Editor.Procedural
                                     material.name.Any(c => !char.IsLetterOrDigit(c) && c != '_'))
                                     throw new InvalidOperationException("Invalid theme material slot in " + path);
                                 string materialPath = folder + "/Materials/" + material.name + ".mat";
+                                if (!textured.Contains(materialPath)) PrepareSlotTextures(theme, material.name);
                                 var mapped = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
                                 if (mapped == null)
                                 {
@@ -230,6 +232,16 @@ namespace Worsen.Editor.Procedural
                         references[property.objectReferenceInstanceIDValue] = ReferenceId(property.objectReferenceValue);
                 string json = Regex.Replace(EditorJsonUtility.ToJson(copy), "\"instanceID\"\\s*:\\s*(-?[0-9]+)", match =>
                     "\"assetId\":\"" + references[int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)] + "\"");
+                // Unity can serialize an unsaved texture reference as null. A
+                // non-null map must never hash like deliberate artist removal.
+                // Persistent references retain the existing durable hash format;
+                // transient references are meaningful only for this object lifetime.
+                foreach (string name in material.GetTexturePropertyNames())
+                {
+                    Texture texture = material.GetTexture(name);
+                    if (texture != null && !EditorUtility.IsPersistent(texture))
+                        json += "\ntransient-map:" + name + ":" + texture.GetInstanceID().ToString(CultureInfo.InvariantCulture);
+                }
                 return Hash(json);
             }
             finally { UnityEngine.Object.DestroyImmediate(copy); }
@@ -394,10 +406,10 @@ namespace Worsen.Editor.Procedural
                 Debug.LogWarning("Preserving edited kit material; texture adoption not applied: " + slot);
                 return false;
             }
-            var albedo = ImportTexture(albedoPath, false, true);
-            var normal = ImportTexture(normalPath, true, false);
-            var smoothness = ImportTexture(smoothnessPath, false, false);
             if (adopted) return false; // Preserve artist edits to maps, tint, UVs and shader settings.
+            var albedo = LoadPreparedTexture(albedoPath, false, true);
+            var normal = LoadPreparedTexture(normalPath, true, false);
+            var smoothness = LoadPreparedTexture(smoothnessPath, false, false);
             material.SetTexture("_BaseMap", albedo);
             material.SetTexture("_BumpMap", normal);
             material.SetTexture("_MetallicGlossMap", smoothness);
@@ -439,6 +451,35 @@ namespace Worsen.Editor.Procedural
             => Math.Abs(a.r - b.r) < .002f && Math.Abs(a.g - b.g) < .002f &&
                Math.Abs(a.b - b.b) < .002f && Math.Abs(a.a - b.a) < .002f;
 
+        private static void PrepareSlotTextures(string theme, string slot)
+        {
+            string[] paths = { TexturePath(theme, slot, "Albedo"), TexturePath(theme, slot, "Normal"),
+                TexturePath(theme, slot, "Smoothness"), "Assets/Art/Textures/" + theme + "/" + slot + ".json" };
+            if (paths.Any(path => !File.Exists(path))) return;
+            var recipe = JsonUtility.FromJson<TextureRecipe>(File.ReadAllText(paths[3]));
+            if (recipe == null || !ColorUtility.TryParseHtmlString(recipe.paletteSrgb, out _))
+                throw new InvalidOperationException("Invalid kit texture recipe: " + paths[3]);
+            TextureScale(recipe.metresPerTile);
+            // Prepare even when a generated material is current or artist-edited.
+            // Import settings are the setup's responsibility, not a lazy side effect.
+            for (int i = 0; i < 3; i++) ImportTexture(paths[i], i == 1, i == 0);
+        }
+
+        private static Texture2D LoadPreparedTexture(string path, bool normal, bool srgb)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null || TextureImportNeedsUpdate(importer, normal, srgb))
+                throw new InvalidOperationException("Kit texture importer is not prepared; run ProceduralContentSetup before material adoption: " + path);
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path)
+                ?? throw new InvalidOperationException("Texture import failed: " + path);
+        }
+
+        private static bool TextureImportNeedsUpdate(TextureImporter importer, bool normal, bool srgb)
+            => importer.textureType != (normal ? TextureImporterType.NormalMap : TextureImporterType.Default) || importer.sRGBTexture != srgb ||
+                importer.wrapModeU != TextureWrapMode.Repeat || importer.wrapModeV != TextureWrapMode.Repeat ||
+                !importer.mipmapEnabled || importer.alphaSource != TextureImporterAlphaSource.FromInput ||
+                importer.alphaIsTransparency || importer.convertToNormalmap || importer.flipGreenChannel;
+
         private static Texture2D ImportTexture(string path, bool normal, bool srgb)
         {
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -449,10 +490,7 @@ namespace Worsen.Editor.Procedural
             }
             if (importer == null) throw new InvalidOperationException("Expected texture importer: " + path);
             var type = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
-            bool changed = importer.textureType != type || importer.sRGBTexture != srgb ||
-                importer.wrapModeU != TextureWrapMode.Repeat || importer.wrapModeV != TextureWrapMode.Repeat ||
-                !importer.mipmapEnabled || importer.alphaSource != TextureImporterAlphaSource.FromInput ||
-                importer.alphaIsTransparency || importer.convertToNormalmap || importer.flipGreenChannel;
+            bool changed = TextureImportNeedsUpdate(importer, normal, srgb);
             if (changed)
             {
                 importer.textureType = type; importer.sRGBTexture = srgb;

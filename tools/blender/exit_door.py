@@ -13,7 +13,9 @@
 #   blender --background --factory-startup --python-exit-code 1 --python <this>
 #   Unity contract: aperture 2x3 m; DoorLeaf origin (-1,0,0), extends toward +X;
 #   EscapeSurface XY at Z=.11 faces -Z; opening is local Y=+100 degrees.
-#   Blender coordinates are (Unity X, -Unity Z, Unity Y). Studio and escape preview
+#   Blender coordinates are (-Unity X, -Unity Z, Unity Y): Unity reflects FBX X.
+#   The canonical +Y swing is Blender -Z rotation, not a Blender round-trip guess.
+#   Studio and escape preview
 #   nodes are not Unity shader evidence. Runtime materials need editor remapping.
 # ============================================================================
 import json
@@ -68,7 +70,7 @@ def paint_texture(mat):
 
 
 def cube(name, center, size, mat, bevel=.012):
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(center[0], -center[2], center[1]))
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(-center[0], -center[2], center[1]))
     obj = bpy.context.object
     obj.name = name
     obj.dimensions = (size[0], size[2], size[1])
@@ -128,14 +130,15 @@ def build():
         leaf_parts.append(cube('Keyhole', (.82, 1.24, face*.111), (.026, .04, .008), edge, .002))
     for y in (.45, 1.5, 2.55):
         leaf_parts.append(cube('Hinge strap', (-.89, y, -.09), (.19, .11, .04), brass))
-    leaf = join(leaf_parts, 'DoorLeaf', (-1, 0, 0))
+    leaf = join(leaf_parts, 'DoorLeaf', (1, 0, 0))
     threshold = cube('Threshold', (0, .02, 0), (2.32, .04, .40), stone, .01)
     # A single quad, normal +Y in Blender => -Z in Unity. Origin stays zero.
     mesh = bpy.data.meshes.new('EscapeAperture')
-    mesh.from_pydata([(-1, -.11, .04), (-1, -.11, 3), (1, -.11, 3), (1, -.11, .04)], [], [(0, 1, 2, 3)])
+    mesh.from_pydata([(1, -.11, .04), (1, -.11, 3), (-1, -.11, 3), (-1, -.11, .04)], [], [(3, 2, 1, 0)])
     mesh.uv_layers.new(name='UVMap')
-    for loop, uv in zip(mesh.uv_layers.active.data, ((0, 0), (0, 1), (1, 1), (1, 0))):
-        loop.uv = uv
+    uvs = ((0, 0), (0, 1), (1, 1), (1, 0))
+    for loop in mesh.loops:
+        mesh.uv_layers.active.data[loop.index].uv = uvs[loop.vertex_index]
     portal = bpy.data.objects.new('EscapeSurface', mesh)
     bpy.context.collection.objects.link(portal)
     portal.data.materials.append(material('Exit_EscapeSurface', (1, .65, .3)))
@@ -157,7 +160,7 @@ def preview_escape(portal, eye):
     image = bpy.data.images.new('ReviewEscape', 256, 384)
     sun_dir = Vector((.22, .12, 1)).normalized()
     values = []
-    eye_u = Vector((eye[0], eye[2], -eye[1]))
+    eye_u = Vector((-eye[0], eye[2], -eye[1]))
     for y in range(384):
         for x in range(256):
             ray = (Vector((-1+2*x/255, .04+2.96*y/383, .11))-eye_u).normalized()
@@ -203,10 +206,10 @@ def render_review(objects):
     images = []
     for index, progress in enumerate((0, .25, .5, .75, 1, 1)):
         behind = index == 5
-        eye = (4.4, -7, 2.8) if behind else (-1.1, 7.8, 1.8)
+        eye = (-4.4, -7, 2.8) if behind else (1.1, 7.8, 1.8)
         camera.location = eye
         camera.rotation_euler = (Vector((0, 0, 1.55))-camera.location).to_track_quat('-Z', 'Y').to_euler()
-        leaf.rotation_euler.z = math.radians(100 * progress*progress*(3-2*progress))
+        leaf.rotation_euler.z = math.radians(-100 * progress*progress*(3-2*progress))
         portal.hide_render = progress == 0 or behind
         if not portal.hide_render:
             preview_escape(portal, eye)
@@ -246,6 +249,7 @@ def main():
         bake_space_transform=True, bake_anim=False, path_mode='STRIP', use_mesh_modifiers=True)
     manifest = dict(name=NAME, provenance='Original procedural geometry and texture; no third-party assets.',
         aperture_metres=[2, 3], unity_front=[0, 0, -1], unity_leaf_pivot=[-1, 0, 0],
+        blender_leaf_pivot=[1, 0, 0], unity_from_blender=['-X', 'Z', '-Y'], unity_opening_y_degrees=100,
         objects=[obj.name for obj in objects], export=dict(axis_forward='-Z', axis_up='Y', bake_space_transform=True,
         unity_bakeAxisConversion=False), triangles=sum(len(p.vertices)-2 for obj in objects for p in obj.data.polygons),
         material_mapping={'Exit_EscapeSurface': 'Worsen/ExitPortal', 'other_slots': 'Universal Render Pipeline/Lit'},

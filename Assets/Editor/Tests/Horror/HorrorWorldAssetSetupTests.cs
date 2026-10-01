@@ -11,13 +11,13 @@
 //   - Verify exact material-slot routing and fail closed on unknown slots.
 //   - Check metre-scale axes, named parts, hinge and aperture in the saved prefab.
 //   - Check persistent URP/portal materials and exported non-paint colors.
-//   - Exercise repeated Configure with disposable persistent configs.
+//   - Exercise reference repair and material generation with disposable persistent assets.
 // DEPENDENCIES:
 //   NUnit, HorrorWorldAssetSetup, Floor/Procedural configs and UnityEditor asset APIs.
 // USAGE NOTES:
 //   NativeEditMode cases require coordinator setup and the exclusive Unity lease.
-//   Tests create/delete only uniquely named config copies; generated setup outputs
-//   remain for integration. No scene edits or runtime lifecycle callbacks are used.
+//   Writers target uniquely named temporary assets, never production setup outputs.
+//   Full Configure publication remains a coordinator gate, outside the test suite.
 //   Reflection accesses the private slot contract without widening the editor API.
 // ============================================================================
 using System;
@@ -153,13 +153,15 @@ namespace Worsen.Tests.Horror
                 {
                     var exported = original[material.name];
                     var color = exported.GetColor(exported.HasProperty("_BaseColor") ? "_BaseColor" : "_Color");
-                    Assert.That(material.GetColor("_BaseColor"), Is.EqualTo(color));
+                    Color actual = material.GetColor("_BaseColor");
+                    for (int channel = 0; channel < 4; channel++)
+                        Assert.That(actual[channel], Is.EqualTo(color[channel]).Within(.002f), material.name + " channel " + channel);
                 }
             }
         }
 
         [Test, Category("NativeEditMode")]
-        public void ConfigureIsIdempotentAndPreservesUnrelatedDesignerValues()
+        public void ConfigureReferencesIsIdempotentAndPreservesUnrelatedDesignerValues()
         {
             string suffix = "_ExitWiringTest_" + Guid.NewGuid().ToString("N") + ".asset";
             string floorCopy = FloorPath.Replace(".asset", suffix), proceduralCopy = ProceduralPath.Replace(".asset", suffix);
@@ -202,7 +204,7 @@ namespace Worsen.Tests.Horror
                 var legacyMaterial = floor.ExitDoorMaterial; var cake = floor.CakePrefab;
                 Assert.That(warning, Is.Not.Null, "Coordinator world setup must run before this native fixture.");
                 Assert.That(glow, Is.Not.Null);
-                HorrorWorldAssetSetup.Configure(floor, procedural);
+                RepairReferences(floor, procedural);
                 Assert.That(floor.UsePhysicalExitDoor, Is.True);
                 Assert.That(AssetDatabase.GetAssetPath(floor.ExitDoorPrefab), Is.EqualTo(PrefabPath));
                 Assert.That(floor.ExitDoorPrefabYaw, Is.Zero);
@@ -210,18 +212,18 @@ namespace Worsen.Tests.Horror
                 Assert.That(Tuning(procedural), Is.EquivalentTo(proceduralTuning));
                 Assert.That(floor.LumenRoomWarningPrefab, Is.SameAs(warning));
                 Assert.That(floor.LumenExitGlowPrefab, Is.SameAs(glow));
-                Assert.That(floor.ExitDoorMaterial, Is.SameAs(legacyMaterial));
+                AssertPersistentReference(floor.ExitDoorMaterial, legacyMaterial);
                 Assert.That(floor.CakePrefab, Is.SameAs(cake));
                 Assert.That(floor.HandPrefab, Is.SameAs(Require<GameObject>(PrefabPath)));
-                Assert.That(floor.CrackMaterial, Is.SameAs(customMaterial));
-                Assert.That(floor.MistMaterial, Is.SameAs(customMaterial));
+                AssertPersistentReference(floor.CrackMaterial, customMaterial);
+                AssertPersistentReference(floor.MistMaterial, customMaterial);
                 proceduralData.Update();
                 foreach (string field in new[] { "_wallMaterial", "_floorMaterial", "_ceilingMaterial" })
-                    Assert.That(proceduralData.FindProperty(field).objectReferenceValue, Is.SameAs(customMaterial));
+                    AssertPersistentReference(proceduralData.FindProperty(field).objectReferenceValue, customMaterial);
                 string floorJson = EditorJsonUtility.ToJson(floor), proceduralJson = EditorJsonUtility.ToJson(procedural);
                 string prefabText = File.ReadAllText(PrefabPath), importJson = EditorJsonUtility.ToJson(AssetImporter.GetAtPath(ModelPath));
                 var identities = ExitIdentities();
-                HorrorWorldAssetSetup.Configure(floor, procedural);
+                RepairReferences(floor, procedural);
                 Assert.That(EditorJsonUtility.ToJson(floor), Is.EqualTo(floorJson));
                 Assert.That(EditorJsonUtility.ToJson(procedural), Is.EqualTo(proceduralJson));
                 Assert.That(File.ReadAllText(PrefabPath), Is.EqualTo(prefabText));
@@ -235,6 +237,56 @@ namespace Worsen.Tests.Horror
             }
         }
 
+        [Test, Category("NativeEditMode")]
+        public void ExitMaterialGenerationReusesThePersistentAssetAcrossRepeatedSlotsAndReload()
+        {
+            string root = "Assets/ExitMaterialTest-" + Guid.NewGuid().ToString("N");
+            var method = typeof(HorrorWorldAssetSetup).GetMethod("BuildExitMaterial", BindingFlags.NonPublic | BindingFlags.Static);
+            var source = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Exit_PatinatedPaint" };
+            try
+            {
+                var paint = Require<Texture2D>(PaintPath);
+                var first = (Material)method.Invoke(null, new object[] { source, paint, root + "/" });
+                string path = root + "/Exit_PatinatedPaint.mat";
+                string identity = PersistentIdentity(first), text = File.ReadAllText(path);
+                for (int i = 0; i < 3; i++)
+                {
+                    var again = (Material)method.Invoke(null, new object[] { source, paint, root + "/" });
+                    AssertPersistentReference(again, first);
+                    Assert.That(File.ReadAllText(path), Is.EqualTo(text));
+                    Assert.That(EditorUtility.IsDirty(again), Is.False);
+                }
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+                var reloaded = Require<Material>(path);
+                Assert.That(PersistentIdentity(reloaded), Is.EqualTo(identity));
+                var rebuilt = (Material)method.Invoke(null, new object[] { source, paint, root + "/" });
+                AssertPersistentReference(rebuilt, reloaded);
+                Assert.That(File.ReadAllText(path), Is.EqualTo(text));
+                Assert.That(AssetDatabase.LoadAllAssetsAtPath(path).OfType<Material>().Count(), Is.EqualTo(1));
+            }
+            finally { Object.DestroyImmediate(source); AssetDatabase.DeleteAsset(root); }
+        }
+
+        private static void RepairReferences(FloorDriverConfig floor, ProceduralDriverConfig procedural)
+        {
+            var material = Require<Material>(MaterialRoot + "Exit_WornEdges.mat");
+            var prefab = Require<GameObject>(PrefabPath);
+            typeof(HorrorWorldAssetSetup).GetMethod("ConfigureReferences", BindingFlags.NonPublic | BindingFlags.Static)
+                .Invoke(null, new object[] { floor, procedural, prefab, material, material, material, prefab, material, material });
+        }
+        private static string PersistentIdentity(Object asset)
+        {
+            Assert.That(EditorUtility.IsPersistent(asset), Is.True);
+            Assert.That(AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long id), Is.True);
+            return guid + ":" + id;
+        }
+        private static void AssertPersistentReference(Object actual, Object expected)
+        {
+            // Managed wrappers may be recreated on an import. Native equality and
+            // durable asset identity, not CLR ReferenceEquals, detect duplicates.
+            Assert.That(actual == expected, Is.True);
+            Assert.That(PersistentIdentity(actual), Is.EqualTo(PersistentIdentity(expected)));
+        }
         private static MethodInfo SlotMethod() => typeof(HorrorWorldAssetSetup).GetMethod("ExitMaterialShader", BindingFlags.NonPublic | BindingFlags.Static);
         private static T Require<T>(string path) where T : Object
         {

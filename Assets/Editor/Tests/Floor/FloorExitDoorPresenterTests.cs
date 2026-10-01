@@ -93,11 +93,24 @@ namespace Worsen.Tests.Floor
             Assert.That(_presenter.ObserveCrossing(state, new Vector3(0f, 1f, .6f), _size, distance), Is.False);
             Assert.That(state.EntrySide, Is.Zero);
         }
-        [TestCase(.9f, 1f)] [TestCase(-.9f, 1f)] [TestCase(0f, 3f)] [TestCase(0f, -.1f)]
+        [TestCase(.9f, 1f)] [TestCase(-.9f, 1f)] [TestCase(1f, 1f)] [TestCase(-1f, 1f)]
+        [TestCase(0f, 3f)] [TestCase(0f, -.1f)]
         public void JambAndVerticalBoundaryCannotComplete(float x, float y)
         {
             var state = new FloorExitCrossingDriverState { EntrySide = -1 };
             Assert.That(_presenter.ObserveCrossing(state, new Vector3(x, y, .6f), _size, .35f), Is.False);
+            Assert.That(state.EntrySide, Is.Zero);
+        }
+        [TestCase(2f, .899f, true)] [TestCase(2f, .9f, false)]
+        [TestCase(4f, 1.899f, true)] [TestCase(4f, 1.9f, false)]
+        public void AuthoredApertureAndItsScaledCentreInsetAgree(float width, float x, bool completes)
+        {
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                var state = new FloorExitCrossingDriverState { EntrySide = -1 };
+                Assert.That(_presenter.ObserveCrossing(state, new Vector3(sign * x, 1f, .6f),
+                    new Vector3(width, 3f, 2f), .35f), Is.EqualTo(completes));
+            }
         }
         [Test] public void EasedSwingIsMonotonicWithSlowEndpoints()
         {

@@ -65,7 +65,12 @@ namespace Worsen.Domain.Floor
                 !Finite(passageSize.x) || !Finite(passageSize.y) || !Finite(passageSize.z) ||
                 !Finite(distance) || distance <= 0f || passageSize.x <= 0.2f || passageSize.y <= 0f || passageSize.z <= 0f)
             { state.EntrySide = 0; return false; }
-            bool within = Mathf.Abs(localPosition.x) < passageSize.x * 0.5f - 0.1f &&
+            // ExitSize is the clear authored aperture (2 m before scaling), not
+            // the 2.4 m outer frame. Keep the existing 0.1 m centre inset. Round
+            // the boundary to Single explicitly: Mono may otherwise compare a
+            // float position against an extended-precision subtraction, admitting .9f.
+            float halfWidth = Convert.ToSingle((double)passageSize.x * 0.5d - 0.1d);
+            bool within = Mathf.Abs(localPosition.x) < halfWidth &&
                 localPosition.y >= 0f && localPosition.y < passageSize.y &&
                 Mathf.Abs(localPosition.z) <= Mathf.Max(passageSize.z * 0.5f, distance + 0.3f);
             if (!within) { state.EntrySide = 0; return false; }

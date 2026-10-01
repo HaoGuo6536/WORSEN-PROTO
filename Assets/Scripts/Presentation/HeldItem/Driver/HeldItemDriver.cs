@@ -9,7 +9,7 @@
 //   Driver (§7a) · Presentation · HeldItem.
 // KEY RESPONSIBILITIES:
 //   - Build collider-free primitive view models and apply the computed local pose.
-//   - Sample render delta time and forward selection and suppression to the Presenter.
+//   - Apply injected render delta time and forward selection and suppression to the Presenter.
 //   - Pair generated objects and materials with explicit teardown and disable hiding.
 // DEPENDENCIES:
 //   Core inventory snapshots and own HeldItem presentation stack only.
@@ -55,10 +55,11 @@ namespace Worsen.Presentation.HeldItem
             _presenter.SetSuppressed(_state, suppressed);
             if (suppressed && _model != null) _model.gameObject.SetActive(false);
         }
-        private void LateUpdate()
+        private void LateUpdate() => Tick(Time.deltaTime);
+        public void Tick(float deltaTime)
         {
             if (_state == null || _config == null || _view == null || _body == null) return;
-            _presenter.Tick(_state, Time.deltaTime, _config.TransitionSeconds, _config.SwayPeriod);
+            _presenter.Tick(_state, deltaTime, _config.TransitionSeconds, _config.SwayPeriod);
             if (_builtId != _state.DisplayedId) Rebuild();
             if (_model == null) return;
             _model.gameObject.SetActive(!_state.Suppressed && _state.Raise > 0f);
@@ -79,7 +80,7 @@ namespace Worsen.Presentation.HeldItem
                 piece.name = _builtId + " part";
                 piece.layer = 2; // Built-in Ignore Raycast; no project layer mutation.
                 var collider = piece.GetComponent<Collider>();
-                if (collider != null) { collider.enabled = false; Destroy(collider); }
+                if (collider != null) { collider.enabled = false; DestroyOwned(collider); }
                 piece.transform.SetParent(_model, false);
                 piece.transform.localPosition = part.Position;
                 piece.transform.localScale = part.Scale;
@@ -93,17 +94,26 @@ namespace Worsen.Presentation.HeldItem
         }
         private void ClearModel()
         {
-            if (_model != null) { _model.gameObject.SetActive(false); Destroy(_model.gameObject); }
+            if (_model != null)
+            {
+                _model.gameObject.SetActive(false);
+                // Release the camera hierarchy immediately, even when Play Mode
+                // defers native destruction until the end of this frame.
+                _model.SetParent(null, false);
+                DestroyOwned(_model.gameObject);
+            }
             _model = null; _builtId = "";
         }
         public void Teardown()
         {
             ClearModel();
-            if (_body != null) Destroy(_body);
-            if (_detail != null) Destroy(_detail);
+            if (_body != null) DestroyOwned(_body);
+            if (_detail != null) DestroyOwned(_detail);
             _body = _detail = null; _view = null; _config = null; _state = null;
         }
         private void OnDisable() { if (_model != null) _model.gameObject.SetActive(false); }
+        private static void DestroyOwned(Object value)
+        { if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); }
         private void OnDestroy() => Teardown();
     }
 }

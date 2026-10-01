@@ -15,6 +15,17 @@
     0,
     0
   ],
+  "blender_leaf_pivot": [
+    1,
+    0,
+    0
+  ],
+  "unity_from_blender": [
+    "-X",
+    "Z",
+    "-Y"
+  ],
+  "unity_opening_y_degrees": 100,
   "objects": [
     "DoorFrame",
     "DoorLeaf",

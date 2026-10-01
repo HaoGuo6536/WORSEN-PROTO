@@ -16,13 +16,18 @@
 //   - NUnit, UnityEditor serialization, URP Lit and Editor.Procedural setup.
 // USAGE NOTES:
 //   NativeUnity Edit Mode checks for the coordinator; no focus or Play Mode.
-//   Temporary objects are destroyed in finally. Adoption imports existing maps.
+//   Temporary objects/assets are destroyed in finally. Adoption only reads prepared
+//   production maps; importer repair is tested on a uniquely named texture copy.
 // ============================================================================
+using System;
+using System.IO;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 using Worsen.Editor.Procedural;
+using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Art
 {
@@ -115,18 +120,24 @@ namespace Worsen.Tests.Art
         }
 
         [TestCase("tint")] [TestCase("map-removal")] [TestCase("emission")]
+        [TestCase("emission-map-removal")] [TestCase("map-replacement")]
         [TestCase("uv")] [TestCase("smoothness")] [TestCase("metallic")]
         [TestCase("culling")] [TestCase("keyword")] [TestCase("tag")]
         public void ArtistEditsSurviveAChangedSource(string edit)
         {
-            var source = NewMaterial(); var output = NewMaterial(); var map = Pixel(Color.red);
+            var source = NewMaterial(); var output = NewMaterial(); var map = Pixel(Color.red); var replacement = Pixel(Color.red);
             try
             {
                 source.SetTexture("_BaseMap", map);
+                source.SetTexture("_EmissionMap", map);
                 MissingSet();
                 Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot, true), Is.True);
+                Assert.That(output.GetTexture("_BaseMap"), Is.SameAs(map));
+                Assert.That(output.GetTexture("_EmissionMap"), Is.SameAs(map));
                 if (edit == "tint") output.color = Color.magenta;
                 if (edit == "map-removal") output.SetTexture("_BaseMap", null);
+                if (edit == "emission-map-removal") output.SetTexture("_EmissionMap", null);
+                if (edit == "map-replacement") output.SetTexture("_BaseMap", replacement);
                 if (edit == "emission") output.SetColor("_EmissionColor", Color.green);
                 if (edit == "uv") output.SetTextureScale("_BaseMap", new Vector2(3f, 4f));
                 if (edit == "smoothness") output.SetFloat("_Smoothness", .81f);
@@ -140,7 +151,80 @@ namespace Worsen.Tests.Art
                 Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot), Is.False);
                 Assert.That(EditorJsonUtility.ToJson(output), Is.EqualTo(before));
             }
-            finally { Object.DestroyImmediate(source); Object.DestroyImmediate(output); Object.DestroyImmediate(map); }
+            finally { Object.DestroyImmediate(source); Object.DestroyImmediate(output); Object.DestroyImmediate(map); Object.DestroyImmediate(replacement); }
+        }
+
+        [TestCase("_BaseMap")] [TestCase("_EmissionMap")]
+        public void PersistentMapRemovalSurvivesReloadAndChangedSource(string property)
+        {
+            string root = "Assets/KitMaterialTest-" + Guid.NewGuid().ToString("N");
+            var source = NewMaterial(); var output = NewMaterial(); var map = Pixel(Color.red);
+            try
+            {
+                Assert.That(AssetDatabase.CreateFolder("Assets", Path.GetFileName(root)), Is.Not.Empty);
+                AssetDatabase.CreateAsset(map, root + "/Map.asset");
+                source.SetTexture(property, map);
+                MissingSet();
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot, true), Is.True);
+                Assert.That(output.GetTexture(property), Is.EqualTo(map));
+                string path = root + "/Material.mat";
+                output.name = "Material";
+                // Stamp after assigning the persistent asset name, as the builder does.
+                MissingSet();
+                ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot, true);
+                AssetDatabase.CreateAsset(output, path); AssetDatabase.SaveAssetIfDirty(output);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+                output = AssetDatabase.LoadAssetAtPath<Material>(path);
+                Assert.That(output.GetTexture(property), Is.EqualTo(map));
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot), Is.False);
+                output.SetTexture(property, null); EditorUtility.SetDirty(output); AssetDatabase.SaveAssetIfDirty(output);
+                string before = File.ReadAllText(path);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+                output = AssetDatabase.LoadAssetAtPath<Material>(path);
+                Assert.That(output.GetTexture(property), Is.Null);
+                source.SetColor("_BaseColor", Color.blue);
+                LogAssert.Expect(LogType.Warning, "Preserving edited or unrecognised kit material: " + Slot);
+                Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", Slot), Is.False);
+                Assert.That(output.GetTexture(property), Is.Null);
+                Assert.That(File.ReadAllText(path), Is.EqualTo(before));
+            }
+            finally
+            {
+                Object.DestroyImmediate(source);
+                if (output != null && !EditorUtility.IsPersistent(output)) Object.DestroyImmediate(output);
+                if (map != null && !EditorUtility.IsPersistent(map)) Object.DestroyImmediate(map);
+                AssetDatabase.DeleteAsset(root);
+            }
+        }
+
+        [Test, Timeout(300000)]
+        public void ImporterPreparationIsExplicitAndReadOnlyLoadingCannotRepairIt()
+        {
+            string root = "Assets/KitImporterTest-" + Guid.NewGuid().ToString("N");
+            string path = root + "/Normal.png";
+            var flags = BindingFlags.NonPublic | BindingFlags.Static;
+            var load = typeof(ProceduralKitAssetSetup).GetMethod("LoadPreparedTexture", flags);
+            var prepare = typeof(ProceduralKitAssetSetup).GetMethod("ImportTexture", flags);
+            try
+            {
+                Assert.That(AssetDatabase.CreateFolder("Assets", Path.GetFileName(root)), Is.Not.Empty);
+                File.Copy(ProceduralKitAssetSetup.TexturePath("Castle", "castle_stone", "Normal"), path);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.textureType = TextureImporterType.Default; importer.sRGBTexture = true; importer.SaveAndReimport();
+                string unprepared = File.ReadAllText(path + ".meta");
+                var error = Assert.Throws<TargetInvocationException>(() => load.Invoke(null, new object[] { path, true, false }));
+                Assert.That(error.InnerException, Is.TypeOf<InvalidOperationException>());
+                Assert.That(File.ReadAllText(path + ".meta"), Is.EqualTo(unprepared));
+                prepare.Invoke(null, new object[] { path, true, false });
+                importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                Assert.That(importer.textureType, Is.EqualTo(TextureImporterType.NormalMap)); Assert.That(importer.sRGBTexture, Is.False);
+                string prepared = File.ReadAllText(path + ".meta");
+                Assert.That(load.Invoke(null, new object[] { path, true, false }), Is.Not.Null);
+                prepare.Invoke(null, new object[] { path, true, false });
+                Assert.That(File.ReadAllText(path + ".meta"), Is.EqualTo(prepared));
+            }
+            finally { AssetDatabase.DeleteAsset(root); }
         }
 
         [Test]
@@ -164,8 +248,11 @@ namespace Worsen.Tests.Art
         public void CompleteGeneratedSetOverridesPreprocessedBaseButKeepsEmission()
         {
             var source = NewMaterial(); var output = NewMaterial(); var map = Pixel(Color.red);
+            string[] suffixes = { "Albedo", "Normal", "Smoothness" };
+            string[] importPaths = Array.ConvertAll(suffixes, suffix => ProceduralKitAssetSetup.TexturePath("Castle", "castle_stone", suffix) + ".meta");
             try
             {
+                string[] importMetadata = Array.ConvertAll(importPaths, File.ReadAllText);
                 source.SetTexture("_BaseMap", map); source.SetTexture("_EmissionMap", map);
                 source.SetColor("_EmissionColor", new Color(2f, 1f, .5f)); source.EnableKeyword("_EMISSION");
                 Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", "castle_stone", true), Is.True);
@@ -191,6 +278,8 @@ namespace Worsen.Tests.Art
                 LogAssert.Expect(LogType.Warning, "Preserving edited or unrecognised kit material: castle_stone");
                 Assert.That(ProceduralKitAssetSetup.RebuildSlotMaterial(output, source, "Castle", "castle_stone"), Is.False);
                 Assert.That(EditorJsonUtility.ToJson(output), Is.EqualTo(before));
+                for (int i = 0; i < importPaths.Length; i++)
+                    Assert.That(File.ReadAllText(importPaths[i]), Is.EqualTo(importMetadata[i]), "Material tests must not rewrite project importers.");
             }
             finally { Object.DestroyImmediate(source); Object.DestroyImmediate(output); Object.DestroyImmediate(map); }
         }

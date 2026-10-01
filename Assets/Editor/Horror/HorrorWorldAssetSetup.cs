@@ -24,6 +24,7 @@
 //   assigned Lumen references are preserved. Exit materials retain the portal shader.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -104,6 +105,17 @@ namespace Worsen.Editor.Horror
             mistMaterial.SetTexture("_BaseMap", BuildMistFalloff()); Save(mistMaterial);
             GameObject hand = BuildHandPrefab(sourceHand, handMaterial);
 
+            ConfigureReferences(floor, procedural, door, wall, stone, ceiling, hand, crackMaterial, mistMaterial);
+        }
+
+        // Separate publication from reference repair so native tests can exercise
+        // wiring with disposable persistent assets without rebuilding the project.
+        private static void ConfigureReferences(FloorDriverConfig floor, ProceduralDriverConfig procedural,
+            GameObject door, Material wall, Material stone, Material ceiling,
+            GameObject hand, Material crackMaterial, Material mistMaterial)
+        {
+            var floorData = new SerializedObject(floor);
+            var proceduralData = new SerializedObject(procedural);
             Property(floorData, "_usePhysicalExitDoor").boolValue = true;
             if (floor.LumenRoomWarningPrefab == null)
                 Property(floorData, "_lumenRoomWarningPrefab").objectReferenceValue = HorrorLumenStyleSetup.EnsureRoomWarning();
@@ -200,9 +212,15 @@ namespace Worsen.Editor.Horror
             }
             Texture2D paint = RequireAsset<Texture2D>(ExitPaintPath);
             RequireShader("Worsen/ExitPortal"); RequireShader("Universal Render Pipeline/Lit");
+            var slots = new Dictionary<string, Material>(StringComparer.Ordinal);
             foreach (Renderer renderer in imported.GetComponentsInChildren<Renderer>(true))
                 foreach (Material material in renderer.sharedMaterials)
+                {
                     ExitMaterialShader(material != null ? material.name : null);
+                    if (!slots.ContainsKey(material.name)) slots.Add(material.name, material);
+                }
+            var mapped = new Dictionary<string, Material>(StringComparer.Ordinal);
+            foreach (var slot in slots) mapped.Add(slot.Key, BuildExitMaterial(slot.Value, paint, ExitMaterials));
             LoadOwned<GameObject>(DoorLeafPath);
             EnsureParent(DoorLeafPath);
             GameObject leaf = Object.Instantiate(imported);
@@ -217,7 +235,7 @@ namespace Worsen.Editor.Horror
                 foreach (Renderer renderer in leaf.GetComponentsInChildren<Renderer>(true))
                 {
                     Material[] materials = renderer.sharedMaterials;
-                    for (int i = 0; i < materials.Length; i++) materials[i] = BuildExitMaterial(materials[i], paint);
+                    for (int i = 0; i < materials.Length; i++) materials[i] = mapped[materials[i].name];
                     renderer.sharedMaterials = materials;
                     if (renderer.name == "EscapeSurface")
                     { renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false; renderer.enabled = false; }
@@ -242,32 +260,38 @@ namespace Worsen.Editor.Horror
             }
         }
 
-        private static Material BuildExitMaterial(Material source, Texture2D paint)
+        private static Material BuildExitMaterial(Material source, Texture2D paint, string materialRoot)
         {
             Shader shader = RequireShader(ExitMaterialShader(source.name));
-            string path = ExitMaterials + source.name + ".mat";
+            string path = materialRoot + source.name + ".mat";
             Material material = LoadOwned<Material>(path);
             if (material == null)
-            { EnsureParent(path); material = new Material(shader); AssetDatabase.CreateAsset(material, path); }
-            material.shader = shader; material.name = source.name; material.enableInstancing = true;
-            if (source.name != "Exit_EscapeSurface")
+            { EnsureParent(path); material = new Material(shader) { name = source.name }; AssetDatabase.CreateAsset(material, path); }
+            var desired = source.name == "Exit_EscapeSurface" ? new Material(material) : new Material(shader);
+            try
             {
-                // Reset Lit state, but retain the persistent identity. The portal keeps
-                // its authored sky properties rather than overwriting designer tuning.
-                var template = new Material(shader);
-                try { material.CopyPropertiesFromMaterial(template); }
-                finally { Object.DestroyImmediate(template); }
-                bool painted = source.name == "Exit_PatinatedPaint";
-                Color color = source.HasProperty("_BaseColor") ? source.GetColor("_BaseColor") :
-                    source.HasProperty("_Color") ? source.GetColor("_Color") :
-                    throw new InvalidOperationException("Imported exit material has no exported color: " + source.name);
-                material.SetColor("_BaseColor", painted ? Color.white : color);
-                material.SetTexture("_BaseMap", painted ? paint : null);
-                material.SetFloat("_Smoothness", 0.22f);
-                material.SetFloat("_Metallic", source.name == "Exit_OldBrass" ? 0.65f : 0f);
-                material.enableInstancing = true;
+                desired.shader = shader; desired.name = source.name; desired.enableInstancing = true;
+                if (source.name != "Exit_EscapeSurface")
+                {
+                    bool painted = source.name == "Exit_PatinatedPaint";
+                    Color color = source.HasProperty("_BaseColor") ? source.GetColor("_BaseColor") :
+                        source.HasProperty("_Color") ? source.GetColor("_Color") :
+                        throw new InvalidOperationException("Imported exit material has no exported color: " + source.name);
+                    desired.SetColor("_BaseColor", painted ? Color.white : color);
+                    desired.SetTexture("_BaseMap", painted ? paint : null);
+                    desired.SetFloat("_Smoothness", 0.22f);
+                    desired.SetFloat("_Metallic", source.name == "Exit_OldBrass" ? 0.65f : 0f);
+                }
+                // Do not repeatedly dirty/save one persistent slot for every renderer.
+                if (EditorJsonUtility.ToJson(material) != EditorJsonUtility.ToJson(desired))
+                {
+                    material.shader = shader; material.name = source.name;
+                    material.CopyPropertiesFromMaterial(desired); material.enableInstancing = true;
+                    Save(material);
+                }
+                return material;
             }
-            Save(material); return material;
+            finally { Object.DestroyImmediate(desired); }
         }
 
         private static GameObject RequireHandModel()

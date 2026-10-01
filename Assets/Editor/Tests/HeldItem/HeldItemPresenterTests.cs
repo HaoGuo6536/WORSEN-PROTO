@@ -74,6 +74,17 @@ namespace Worsen.Tests.HeldItem
             Assert.That(s.Raise, Is.EqualTo(.5f).Within(.0001f)); Assert.That(s.DisplayedId, Is.EqualTo("glass-vial"));
         }
         [Test]
+        public void ExhaustedSlotLowersForTheConfiguredDurationBeforeClearing()
+        {
+            var p = new HeldItemPresenter(); var s = new HeldItemDriverState();
+            p.SetSelection(s, Slots(0)); p.Tick(s, .16f, .16f, 2.4f);
+            p.SetSelection(s, Slots(0, 0));
+            p.Tick(s, .08f, .16f, 2.4f);
+            Assert.That(s.DisplayedId, Is.EqualTo("gauze")); Assert.That(s.Raise, Is.EqualTo(.5f).Within(.0001f));
+            p.Tick(s, .08f, .16f, 2.4f);
+            Assert.That(s.DisplayedId, Is.Empty); Assert.That(s.DisplayedSlot, Is.EqualTo(-1)); Assert.That(s.Raise, Is.Zero);
+        }
+        [Test]
         public void TransitionIsFramePartitionIndependentAndSwayStaysSmall()
         {
             var p = new HeldItemPresenter(); var a = new HeldItemDriverState(); var b = new HeldItemDriverState();
