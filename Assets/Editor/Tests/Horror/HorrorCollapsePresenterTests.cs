@@ -7,7 +7,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Presentation · Horror.
 // KEY RESPONSIBILITIES:
-//   - Assert phase weighting, duplicate/unknown/exit rejection and monotonic outputs.
+//   - Assert phase weighting, duplicate/unknown/exit rejection and a real haze gradient.
 //   - Check injected smoothing, multiplicative darkness and new-floor reset.
 // DEPENDENCIES:
 //   NUnit, Core room values and Horror's pure presenters/config/state.
@@ -51,19 +51,19 @@ namespace Worsen.Tests.Horror
             // Explicit opt-in preserves the smoothing/composition regression coverage;
             // the owner-approved defaults are tested separately below.
             var tuning = new SerializedObject(_config);
-            tuning.FindProperty("_collapsedFogNearMeters").floatValue = 10f;
+            tuning.FindProperty("_collapsedFogNearMeters").floatValue = 4f;
             tuning.FindProperty("_collapsedTorchCountMultiplier").floatValue = .4f;
             tuning.ApplyModifiedPropertiesWithoutUndo();
             var effects = new ActiveEffects(new[] { new ActiveEffect(new EffectId("darker-floors"), EffectKind.Curse, 1) });
             new HorrorPresenter().SetActiveEffects(_state, _config, effects);
             float darker = _state.TorchCountMultiplier;
             Assert.That(darker, Is.LessThan(1f));
-            Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.EqualTo(24f));
+            Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.EqualTo(6f));
             Observe(1, RoomPhase.Closed); Observe(2, RoomPhase.Closed);
             Assert.That(HorrorCollapsePresenter.Tick(_state, _config, float.NaN), Is.False);
             Assert.That(HorrorCollapsePresenter.Tick(_state, _config, -1f), Is.False);
             Assert.That(HorrorCollapsePresenter.Tick(_state, _config, 0f), Is.False);
-            float near = 24f, torches = darker;
+            float near = 6f, torches = darker;
             for (int i = 0; i < 8; i++)
             {
                 HorrorCollapsePresenter.Tick(_state, _config, .25f);
@@ -73,25 +73,27 @@ namespace Worsen.Tests.Horror
                 Assert.That(nextTorches, Is.LessThanOrEqualTo(torches));
                 near = nextNear; torches = nextTorches;
             }
-            Assert.That(near, Is.EqualTo(10f)); Assert.That(torches, Is.EqualTo(darker * .4f).Within(.0001f));
+            Assert.That(near, Is.EqualTo(4f)); Assert.That(torches, Is.EqualTo(darker * .4f).Within(.0001f));
             var settings = _config.Settings; settings.FogNearMeters = near;
             new HorrorPresenter().CalculateAtmosphere(_state, settings, 100f);
-            Assert.That(_state.FogCurveStart, Is.EqualTo(.1f * _config.DarkerFogDistanceMultiplier).Within(.0001f));
+            Assert.That(_state.FogCurveStart, Is.EqualTo(.04f * _config.DarkerFogDistanceMultiplier).Within(.0001f));
             HorrorCollapsePresenter.BeginFloor(_state, new[] { Room(7), Room(8) }, 8);
             Observe(1, RoomPhase.Closed);
             Assert.That(_state.CollapseFraction, Is.Zero); Assert.That(_state.SmoothedCollapseFraction, Is.Zero);
-            Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.EqualTo(24f));
+            Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.EqualTo(6f));
             Assert.That(HorrorCollapsePresenter.TorchMultiplier(_state, _config), Is.EqualTo(darker));
             new HorrorPresenter().ResetRound(_state);
             Assert.That(_state.CollapseRooms, Is.Empty); Assert.That(_state.HasCollapseFloor, Is.False);
         }
-        [Test] public void DefaultCollapseDoesNotMoveFogCloserOrRemoveTorches()
+        [Test] public void DefaultCollapseShortensHazeSlightlyWithoutBlackWallOrTorchRemoval()
         {
             Observe(1, RoomPhase.Closed); Observe(2, RoomPhase.Closed);
             for (int i = 0; i < 8; i++)
             {
                 HorrorCollapsePresenter.Tick(_state, _config, .25f);
-                Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.EqualTo(24f));
+                Assert.That(HorrorCollapsePresenter.FogNear(_state, _config), Is.InRange(4f, 6f));
+                Assert.That(_config.Settings.FogFarMeters, Is.EqualTo(30f));
+                Assert.That(_config.FogColor.r, Is.GreaterThan(0f));
                 Assert.That(HorrorCollapsePresenter.TorchMultiplier(_state, _config), Is.EqualTo(1f));
             }
             Assert.That(_state.SmoothedCollapseFraction, Is.EqualTo(1f));

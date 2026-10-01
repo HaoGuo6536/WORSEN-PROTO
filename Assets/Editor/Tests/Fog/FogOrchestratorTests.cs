@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Orchestrator · Fog.
 // KEY RESPONSIBILITIES:
-//   - Verify room/graph assembly, progress routing, reset and paired subscriptions.
+//   - Verify monotonic phase consumption, new-floor reset and paired subscriptions.
 // DEPENDENCIES:
 //   - Core, Domain Floor/Level, Session Expedition, Fog and FogOrchestrator; NUnit.
 // USAGE NOTES:
@@ -56,8 +56,12 @@ namespace Worsen.Tests.Fog
         [Test] public void RoutesProgressAndNewFloorResetsReusedRoomIds()
         {
             Assemble(1);
-            Publish(_floor, "OnRoomDestruction", new RoomDestructionSample(1, default, .6f));
-            Assert.That(_fog.RoomCount, Is.EqualTo(1)); Assert.That(_fog.RoomProgress(1), Is.EqualTo(.6f));
+            Publish(_floor, "OnRoomDestruction", new RoomDestructionSample(1, RoomPhase.Encroaching, .5f));
+            Assert.That(_fog.RoomCount, Is.EqualTo(1)); Assert.That(_fog.RoomProgress(1), Is.EqualTo(.56f).Within(.0001f));
+            Publish(_floor, "OnRoomDestruction", new RoomDestructionSample(1, RoomPhase.Tearing, .5f));
+            Assert.That(_fog.RoomProgress(1), Is.EqualTo(.56f).Within(.0001f), "Stale phase facts cannot undo consumption.");
+            Publish(_floor, "OnRoomDestruction", new RoomDestructionSample(1, RoomPhase.Closed, 0f));
+            Assert.That(_fog.RoomProgress(1), Is.EqualTo(1f));
             Assemble(1); Assert.That(_fog.RoomProgress(1), Is.Zero);
             Assemble(5);
             Publish(_floor, "OnRoomDestruction", new RoomDestructionSample(1, default, 1f));

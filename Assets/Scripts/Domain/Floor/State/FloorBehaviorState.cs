@@ -8,8 +8,8 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Domain · Floor.
 // KEY RESPONSIBILITIES:
-//   - Retain generation totals, bonus placements and monotonic pickup identities.
-//   - Separate optional puzzle/Passage rewards from exit-quota accounting.
+//   - Hold physical cake counters and live totals independently of trap selection.
+//   - Track Passage-only gold and all registered collection objectives.
 //   - Hold seeded collapse schedules, pocket activation and hand contact state.
 //   - Retain traps, losses, guidance and floor-scoped hooks.
 //   - Retain terminal outcome state until reset.
@@ -39,6 +39,8 @@ namespace Worsen.Domain.Floor
         internal readonly List<LevelAnchor> BonusGoldenAnchors = new List<LevelAnchor>();
         internal int TotalCakes;
         internal int TotalGoldenCakes;
+        internal int CollapseCakeTarget;
+        internal int CollapseCakeCredit;
         public int OptionalGoldenCakeCount { get; internal set; }
         internal IReadOnlyActiveEffects ActiveEffects;
         internal readonly Dictionary<EntityId, BlinderTrapPolicyFact> BlinderPolicies = new Dictionary<EntityId, BlinderTrapPolicyFact>();
@@ -50,6 +52,9 @@ namespace Worsen.Domain.Floor
         internal double TrapTickElapsed;
         internal double Elapsed;
         internal int CueAnchorId = -1;
+        internal int GoldenCueAnchorId = -1;
+        internal int CueRoomId;
+        internal EntityId CuePlayerId;
         public bool CollapseStarted { get; internal set; }
         public IReadOnlyList<FloorTrapSpawn> Traps { get; }
         internal readonly Dictionary<int, PickupKind> RemainingRewards = new Dictionary<int, PickupKind>();

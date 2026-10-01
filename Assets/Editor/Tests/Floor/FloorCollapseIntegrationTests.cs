@@ -11,7 +11,7 @@
 // KEY RESPONSIBILITIES:
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
-//   - Verify footprint trigger/hand placement and Low Profile release through the Manager.
+//   - Verify Closed seals, cue emission, footprint placement and Low Profile release.
 // DEPENDENCIES:
 //   - Core shared floor facts and Unity value types; no higher-layer dependency.
 // USAGE NOTES:
@@ -39,47 +39,49 @@ namespace Worsen.Tests.Floor
     public sealed class FloorCollapseIntegrationTests
     {
         [Test]
-        public void StagesUsePooledHandsAndMistWithoutClosureWallsOrInstantOccupantDeath()
+        public void StagesUsePooledFrontAndEnableClosedSealsWithoutInstantOccupantDeath()
         {
             using (var fixture = new Fixture())
             {
                 fixture.Open();
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
                 int count = fixture.Root.GetComponentsInChildren<Transform>(true).Length;
-                fixture.Manager.Tick(6f, 1);
+                var cues = new List<CueId>(); fixture.Driver.CollapseCue += (cue, position) => cues.Add(cue);
+                fixture.Manager.Tick(4f, 1);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Tearing));
                 Assert.That(fixture.Player.Health, Is.EqualTo(100f));
                 fixture.Manager.Tick(2f, 2);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Encroaching));
-                fixture.Manager.Tick(6f, 3);
+                fixture.Manager.Tick(4f, 3);
                 Assert.That(room.Phase, Is.EqualTo(RoomPhase.Closed));
                 Assert.That(fixture.Player.Health, Is.EqualTo(100f), "A large stage tick cannot skip hand warning and grace.");
                 Assert.That(fixture.Root.GetComponentsInChildren<NavMeshObstacle>(true), Is.Empty);
-                Assert.That(fixture.Root.GetComponentsInChildren<Transform>(true).Any(t => t.name.Contains("Closure Door Blocker")), Is.False);
+                Assert.That(room.GetComponentsInChildren<BoxCollider>(true).Count(c => c.name == "Closed fog seal" && c.enabled && !c.isTrigger), Is.EqualTo(4));
+                Assert.That(cues, Is.EqualTo(new[] { CueId.RoomTear, CueId.MistAdvance, CueId.RoomConsumed }));
                 Assert.That(fixture.Root.GetComponentsInChildren<Transform>(true).Length, Is.EqualTo(count));
             }
         }
         [Test]
-        public void GoldenCakesRemainUntilClosureThenPublishTheirLoss()
+        public void CompletedCollectionNeverRespawnsGoldOrPublishesCakeLoss()
         {
             using (var fixture = new Fixture())
             {
                 fixture.Open(); fixture.Manager.Tick(6.5f, 1);
-                Assert.That(fixture.Driver.PickupAvailable(101), Is.True);
-                Assert.That(fixture.Driver.PickupAvailable(102), Is.True);
+                Assert.That(fixture.Driver.PickupAvailable(101), Is.False);
+                Assert.That(fixture.Driver.PickupAvailable(102), Is.False);
                 var losses = new List<int>();
                 fixture.Manager.OnCakeLost += (anchor, roomId, kind, tick) => losses.Add(anchor);
                 fixture.Manager.Tick(3.5f, 2);
-                Assert.That(fixture.Driver.PickupAvailable(102), Is.True, "Hands reach but only snatch on completion.");
-                Assert.That(fixture.Driver.PickupAvailable(101), Is.True);
+                Assert.That(fixture.Driver.PickupAvailable(102), Is.False);
+                Assert.That(fixture.Driver.PickupAvailable(101), Is.False);
                 fixture.Manager.Collect(fixture.Player.Id, 101, PickupKind.GoldenCake);
-                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.EqualTo(1));
+                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.Zero);
                 fixture.Manager.Tick(4f, 3);
                 fixture.Manager.Collect(fixture.Player.Id, 102, PickupKind.GoldenCake);
-                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.EqualTo(1));
-                Assert.That(losses, Is.EqualTo(new[] { 102 }));
+                Assert.That(fixture.Manager.ReadOnlyState.GoldenCakeCount, Is.Zero);
+                Assert.That(losses, Is.Empty);
                 Assert.That(fixture.Root.GetComponentsInChildren<CakePickup>(true)
-                    .Single(value => value.AnchorId == 102 && value.Kind == PickupKind.GoldenCake).gameObject.activeSelf, Is.False);
+                    .Any(value => value.Kind == PickupKind.GoldenCake), Is.False);
             }
         }
         [Test]
@@ -87,12 +89,13 @@ namespace Worsen.Tests.Floor
         {
             using (var fixture = new Fixture())
             {
-                fixture.Open(); fixture.Manager.Tick(8f, 1);
+                fixture.Open(); fixture.Manager.Tick(10f, 1);
                 var room = fixture.Root.GetComponentInChildren<RoomCollapseVolume>();
                 Assert.That(room.GetComponent<BoxCollider>().isTrigger, Is.True);
                 Assert.That(room.GetComponent<BoxCollider>().enabled, Is.True);
                 fixture.Move(fixture.Origin + Vector3.right * 6.25f);
                 var facts = new List<CollapseHandEventKind>(); int deaths = 0;
+                var cues = new List<CueId>(); fixture.Driver.CollapseCue += (cue, point) => cues.Add(cue);
                 int noises = 0;
                 fixture.Manager.OnHandNoise += noise => { noises++; Assert.That(noise.Loudness, Is.GreaterThan(0f)); };
                 fixture.Manager.OnCollapseHand += fact =>
@@ -110,12 +113,13 @@ namespace Worsen.Tests.Floor
                 fixture.Manager.Tick(0.7f, 3);
                 fixture.Manager.Tick(1.4f, 4);
                 CollectionAssert.AreEqual(new[]{CollapseHandEventKind.Warning,CollapseHandEventKind.Grabbed,CollapseHandEventKind.Hit},facts);
+                Assert.That(cues, Is.EqualTo(new[] { CueId.GrabWarning, CueId.GrabStart, CueId.GrabHit }));
                 Assert.That(fixture.Player.Health, Is.EqualTo(75f)); Assert.That(deaths, Is.Zero);
                 Assert.That(noises, Is.EqualTo(1));
                 Assert.That(fixture.Manager.ReadOnlyState.RoomHandPhases[1], Is.EqualTo(FloorHandPhase.Cooldown));
                 Assert.That(fixture.Manager.ReadOnlyState.RoomPhases[2], Is.EqualTo(RoomPhase.Open));
                 fixture.Player.Health = 25f;
-                fixture.Manager.Tick(2f, 5); fixture.Manager.Tick(0f, 6);
+                fixture.Manager.Tick(2.4f, 5); fixture.Manager.Tick(0f, 6);
                 fixture.Manager.Tick(0.7f, 7); fixture.Manager.Tick(1.4f, 8);
                 Assert.That(facts.Last(), Is.EqualTo(CollapseHandEventKind.Consumed));
                 Assert.That(deaths, Is.EqualTo(1));
@@ -170,7 +174,7 @@ namespace Worsen.Tests.Floor
         {
             using (var fixture = new Fixture())
             {
-                fixture.Open(); fixture.Manager.Tick(8f, 1);
+                fixture.Open(); fixture.Manager.Tick(10f, 1);
                 fixture.Move(fixture.Origin + Vector3.right * 5.8f);
                 var facts = new List<CollapseHandFact>();
                 fixture.Manager.OnCollapseHand += facts.Add;
@@ -251,7 +255,7 @@ namespace Worsen.Tests.Floor
                     new[]{new LevelEdge(1,1,2,true)},new[]{new LevelAnchor(101,1,CakeAnchorType.Flow,Origin),new LevelAnchor(102,1,CakeAnchorType.Flow,Origin+Vector3.right*4.4f)},2,Origin+Vector3.right*12f);
                 Root.SetActive(true); Manager.Initialize(_config,new LevelView(graph),new[]{Player},new System.Random(3));
             }
-            public void Move(Vector3 position) { Player.Position = position; Actor.transform.position = position; }
+            public void Move(Vector3 position) { Player.Position = position; Actor.transform.position = position; Physics.SyncTransforms(); }
             public void Open()
             { Manager.Collect(Player.Id,101,PickupKind.Cake);Manager.Collect(Player.Id,102,PickupKind.Cake);Move(Origin+Vector3.right*12f); }
             public void Dispose()

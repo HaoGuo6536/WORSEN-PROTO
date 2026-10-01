@@ -8,6 +8,7 @@
 // KEY RESPONSIBILITIES:
 //   - Check both the active curse and Mimic facts are required for white misdirection.
 //   - Check time expiry, reward counters and reinitialization through the real Manager.
+//   - Own isolated navigation rather than depending on forbidden straight-line fallback.
 // DEPENDENCIES:
 //   NUnit, UnityEngine, Core, Floor and the existing Floor cake fixture.
 // USAGE NOTES:
@@ -19,6 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.AI;
 using Worsen.Core;
 using Worsen.Domain.Floor;
 using Worsen.Domain.Level;
@@ -38,6 +40,7 @@ namespace Worsen.Tests.Floor
             var driver = root.AddComponent<FloorDriver>(); FloorCakeRulesTests.Set(driver, "_config", visual);
             var manager = root.AddComponent<FloorManager>();
             var player = new FloorCakeRulesTests.Player(); var hunter = new EntityId(901);
+            using var navigation = new FloorGuidanceTestNavigation();
             IReadOnlyList<GuidanceTarget> targets = null;
             manager.OnGuidanceChanged += value => targets = value;
             try
@@ -69,5 +72,23 @@ namespace Worsen.Tests.Floor
         private sealed class Level : IReadOnlyLevelState
         { public bool IsReady => true; public LevelGraph Graph => FloorCakeRulesTests.Graph(); }
 
+    }
+
+    internal sealed class FloorGuidanceTestNavigation : IDisposable
+    {
+        private readonly NavMeshData data;
+        private NavMeshDataInstance instance;
+        public FloorGuidanceTestNavigation()
+        {
+            var settings = NavMesh.GetSettingsByIndex(0); settings.minRegionArea = 0f;
+            data = NavMeshBuilder.BuildNavMeshData(settings, new List<NavMeshBuildSource> {
+                new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box,
+                    transform = Matrix4x4.TRS(new Vector3(40f, -.15f, 0f), Quaternion.identity, Vector3.one),
+                    size = new Vector3(72f, .3f, 12f), area = 0 } },
+                new Bounds(new Vector3(40f, 0f, 0f), new Vector3(76f, 8f, 16f)), Vector3.zero, Quaternion.identity);
+            Assert.That(data, Is.Not.Null);
+            instance = NavMesh.AddNavMeshData(data);
+        }
+        public void Dispose() { if (instance.valid) instance.Remove(); if (data != null) Object.DestroyImmediate(data); }
     }
 }

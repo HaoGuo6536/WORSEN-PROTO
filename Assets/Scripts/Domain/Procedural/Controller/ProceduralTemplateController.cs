@@ -122,6 +122,7 @@ namespace Worsen.Domain.Procedural
                     throw new InvalidOperationException("Exit template lacks clear player and exit sockets.");
                 var spawn = ProceduralTemplateUtility.Point(first, localSpawn, _config.Origin) + Vector3.up * _config.SpawnHeight;
                 var exitPosition = ProceduralTemplateUtility.Point(first, localExit, _config.Origin);
+                double facing = Math.Atan2(exitPosition.x - spawn.x, exitPosition.z - spawn.z) * .5d;
                 var graph = LevelGraphUtility.Build(rooms, doors.Select((d, i) => new LevelEdge(1001 + i, d.FromRoomId, d.ToRoomId, true)).ToArray(), anchors, 1, exitPosition);
                 var candidate = new ProceduralLayout
                 {
@@ -129,7 +130,8 @@ namespace Worsen.Domain.Procedural
                     TemplateRooms = placed.AsReadOnly(), Graph = graph, CellSize = 1f, Origin = _config.Origin,
                     Cells = occupied.OrderBy(c => c.x).ThenBy(c => c.y).ToArray(), GapCells = gaps.OrderBy(c => c.x).ThenBy(c => c.y).ToArray(),
                     GapSites = sites.AsReadOnly(), PocketAnchors = optional.AsReadOnly(), Doors = doors.AsReadOnly(), Modules = modules.AsReadOnly(),
-                    PlayerSpawnPosition = spawn, PlayerSpawnRotation = Quaternion.LookRotation(new Vector3(exitPosition.x - spawn.x, 0f, exitPosition.z - spawn.z))
+                    // Horizontal yaw is managed math, so seeded layout tests need no native engine.
+                    PlayerSpawnPosition = spawn, PlayerSpawnRotation = new Quaternion(0f, (float)Math.Sin(facing), 0f, (float)Math.Cos(facing))
                 };
                 candidate.HunterSpawnPositions = ProceduralSpawnUtility.Select(candidate, _config, hunters.Distinct().ToArray(), out int minimum, out string report);
                 candidate.MinimumHunterSpawnRooms = minimum; candidate.SpawnValidationReport = report;

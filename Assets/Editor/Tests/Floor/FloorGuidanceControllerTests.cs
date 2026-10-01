@@ -170,20 +170,20 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void MimicGuidancePreservesHandsOptionalRewardCreditAndGreedyDoor()
+        public void MimicGuidanceCannotMintPuzzleGoldOrDelayCompletedExit()
         {
             var f = FloorCakeRulesTests.Start(hooks: new FloorCakeHooks(greedyDoor: true, goldenSense: true));
             var c = Controller(true); Window(c);
             var initial = f.Controller.Snapshot(); var anchors = f.State.ActiveCakeAnchors.ToArray();
             Assert.That(f.Controller.RegisterPuzzleReward(99, 99, new Vector3(60f, 0f, 0f)), Is.True);
-            Assert.That(f.Controller.SolvePuzzle(99, 6, 99, out _), Is.True);
-            Assert.That(f.Controller.Collect(Player, 99, PickupKind.GoldenCake, 1, out _), Is.True);
+            Assert.That(f.Controller.SolvePuzzle(99, 6, 99, out _), Is.False);
+            Assert.That(f.Controller.Collect(Player, 99, PickupKind.GoldenCake, 1, out _), Is.False);
             Assert.That(f.Controller.Collect(Player, Hunter.Value, PickupKind.Cake, 1, out _), Is.False);
             Assert.That(f.State.ActiveCakeAnchors, Is.EqualTo(anchors)); Assert.That(f.State.CakeCount, Is.Zero);
             FloorCakeRulesTests.CollectRequired(f);
             f.Controller.SelectCue(new[] { new FloorPathCandidate(0, 2f, Vector3.back) });
             Assert.That(c.Apply(f.Controller.GuidanceTargets(false, Gold), Player, Vector3.zero)[0].EntityId, Is.EqualTo(Hunter));
-            Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Locked));
+            Assert.That(f.State.ExitState, Is.EqualTo(ExitState.Open));
             Assert.That(f.Controller.Snapshot().TotalGoldenCakes, Is.EqualTo(initial.TotalGoldenCakes));
             var hands = new FloorHandController(new FloorHandBehaviorState(), FloorCakeRulesTests.Config());
             var probe = new FloorHandProbe(1, 7, Vector3.zero, .5f, true, Vector3.back);
@@ -193,11 +193,11 @@ namespace Worsen.Tests.Floor
             Assert.That(grab.Kind, Is.EqualTo(CollapseHandEventKind.Grabbed));
             Assert.That(hands.Tick(Player, true, probe, 1.4f, 3, out var hit), Is.True);
             Assert.That(hit.Kind, Is.EqualTo(CollapseHandEventKind.Hit)); Assert.That(hit.Damage, Is.EqualTo(25f));
-            Assert.That(f.State.GoldenCakeCount, Is.EqualTo(1));
+            Assert.That(f.State.GoldenCakeCount, Is.Zero);
         }
 
         [Test]
-        public void PocketClosureRemovesOnlyUncollectedOptionalGoldOnceAndPreservesExit()
+        public void PocketCannotCloseUntilItsRegisteredGoldIsCollected()
         {
             var config = FloorCakeRulesTests.Config();
             var graph = LevelGraphUtility.Build(new[] {
@@ -216,14 +216,20 @@ namespace Worsen.Tests.Floor
             Assert.That(state.CakeCount, Is.Zero); Assert.That(state.ExitState, Is.EqualTo(ExitState.Locked));
             Assert.That(floor.ActivatePocket(2), Is.True);
             var facts = floor.Tick(100f, 2);
-            Assert.That(facts.Select(f => f.Phase), Is.EqualTo(new[] { RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed }));
+            Assert.That(facts, Is.Empty);
             var losses = floor.DrainCakeLosses();
-            Assert.That(losses.Count, Is.EqualTo(1)); Assert.That(losses[0].AnchorId, Is.EqualTo(998));
-            Assert.That(losses[0].Kind, Is.EqualTo(PickupKind.GoldenCake));
+            Assert.That(losses, Is.Empty);
+            Assert.That(floor.Collect(Player, 101, PickupKind.Cake, 3, out _), Is.True);
+            Assert.That(state.CollapseStarted, Is.False);
             Assert.That(floor.Tick(100f, 3), Is.Empty); Assert.That(floor.DrainCakeLosses(), Is.Empty);
+            Assert.That(floor.Collect(Player, 998, PickupKind.GoldenCake, 3, out _), Is.True);
+            Assert.That(state.CollapseStarted, Is.True);
+            Assert.That(state.ExitState, Is.EqualTo(ExitState.Open));
+            Assert.That(floor.Tick(100f, 4).Where(f => f.RoomId == 2).Select(f => f.Phase), Is.EqualTo(new[] {
+                RoomPhase.Telegraph, RoomPhase.Tearing, RoomPhase.Encroaching, RoomPhase.Closed }));
             Assert.That(floor.RegisterPassageReward(new LevelAnchor(997, 2, CakeAnchorType.Risk, new Vector3(20f, 0f, 0f))), Is.False);
             Assert.That(floor.Collect(Player, 998, PickupKind.GoldenCake, 3, out _), Is.False);
-            Assert.That(state.GoldenCakeCount, Is.EqualTo(1)); Assert.That(state.RoomPhases[3], Is.EqualTo(RoomPhase.Open));
+            Assert.That(state.GoldenCakeCount, Is.EqualTo(2)); Assert.That(state.RoomPhases[3], Is.EqualTo(RoomPhase.Open));
         }
 
         [Test]

@@ -12,7 +12,7 @@
 // KEY RESPONSIBILITIES:
 //   - Apply unshaken world-space flashlight authority and short-lived visible light traces.
 //   - Create native Lumen 2 fake spotlight/fill effects without Unity Light components.
-//   - Fill the vendor cone's close-range blind zone without enlarging static wall clearance.
+//   - Keep a cool ambient/near-fill floor when every lamp and the flashlight is off.
 //   - Apply imported dither fog to a private profile and restore global lighting symmetrically.
 //   - Reuse complete pooled obstruction queries with no allocating overflow fallback.
 //
@@ -195,8 +195,8 @@ namespace Worsen.Presentation.Horror
             }
             // A shallow falloff retains nearby wall detail even at the conservative clipped radius.
             // Switching off keeps only a dim navigation floor; no cone/range gameplay facts change.
-            Draw(_state.NearFill, clearance, _config.NearFillIntensity *
-                (_state.FlashlightEnabled ? 1f : Mathf.Clamp01(_config.NearFillOffMultiplier)), _state.AtmosphereCaptured);
+            Draw(_state.NearFill, clearance, HorrorVisibilityPresenter.Fill(_config.NearFillIntensity,
+                _config.NearFillOffMultiplier, _state.FlashlightEnabled, _config.MinimumFillIntensity), _state.AtmosphereCaptured);
         }
 
         private float BeamRange(Transform source, float requested)
@@ -261,7 +261,10 @@ namespace Worsen.Presentation.Horror
                 _fog = _state.RuntimeFogProfile.Add<DitherFogVolume>(true);
             _fog.active = true;
             _fog.intensity.Override(1f);
-            _fog.fogOpacity.Override(1f);
+            _fog.fogOpacity.Override(_config.FogOpacity);
+            _fog.ditheringMode.Override(DitheringModes.Bayer8x8);
+            _fog.ditherScale.Override(_config.DitherScale);
+            _fog.adaptiveDithering.Override(false);
             _fog.fogColorMode.Override(FogColorModes.Solid);
             _fog.fogColor.Override(_config.FogColor);
             _fog.curvedFog.Override(false);
@@ -299,6 +302,7 @@ namespace Worsen.Presentation.Horror
                 _volume.enabled = true;
             }
             _state.AtmosphereCaptured = true;
+            RefreshFlashlight();
         }
 
         private void CaptureDaylight(Light daylight)

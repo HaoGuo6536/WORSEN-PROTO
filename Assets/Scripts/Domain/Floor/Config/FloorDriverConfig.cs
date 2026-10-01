@@ -11,7 +11,7 @@
 //   - Tune nameless cakes, candle flicker, layered glow and placeholder trap ticks.
 //   - Reference cake, exit and native Lumen art without a real-light fallback.
 //   - Tune bounded hand flailing and player-directed strain independently of gameplay.
-//   - Tune cracks and warning pulses; retain legacy mist references for setup compatibility.
+//   - Tune cracks, warning pulses and the readable room-local consuming front.
 //   - Expose the horizontal guidance corner skip distance for designer tuning.
 // DEPENDENCIES:
 //   - UnityEngine serialized values and prefab/material references only.
@@ -21,8 +21,8 @@
 //   Physical exit is opt-in so authored legacy floor fixtures retain their trigger behavior.
 //   Guidance skip distance is provisional and measured horizontally in metres.
 //   No persistent singleton or competing simulation tick is created.
-//   Legacy mist references remain validated for existing setup contracts; Presentation/Fog
-//   now draws doorway haze. ClosedColor and WarningMistPulseFloor no longer colour fog.
+//   MistMaterial/MistShader draw the room-local front. Presentation/Fog supplies
+//   an additional exact doorway face; ClosedColor remains the hand colour only.
 // ============================================================================
 using UnityEngine;
 
@@ -83,6 +83,8 @@ namespace Worsen.Domain.Floor
         [SerializeField] private GameObject _handPrefab;
         [SerializeField] private Material _crackMaterial;
         [SerializeField] private Material _mistMaterial;
+        [SerializeField] private Color _consumingFogColor = new Color(.42f, .49f, .54f, .86f);
+        public Color ConsumingFogColor => _consumingFogColor;
         [SerializeField, Range(3, 6)] private int _handGridWidth = 5;
         [SerializeField, Range(0.05f, 0.8f)] private float _portalInset = 0.25f;
         [SerializeField, Range(0.1f, 3f)] private float _handVisualScale = 1f;

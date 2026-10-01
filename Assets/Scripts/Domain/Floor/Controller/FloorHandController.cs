@@ -9,7 +9,7 @@
 //   Controller (§2) · Domain · Floor.
 // KEY RESPONSIBILITIES:
 //   - Consume the floor's Wax Heart before any per-player Wax Ward, never both.
-//   - Keep collapse presentation aligned with the staged gameplay hazard.
+//   - Measure escape from the live fog front, never from the warning's start point.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Break one grab per armed Wax Ward and publish room phases without mutating Player.
 //   - Reject protected contacts and release warnings/grabs from the Player read-only effect view.
@@ -34,8 +34,9 @@ namespace Worsen.Domain.Floor
     {
         private readonly FloorHandBehaviorState _state;
         private readonly FloorConfig _config;
-        public FloorHandController(FloorHandBehaviorState state, FloorConfig config)
-        { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config)); }
+        private readonly FloorCollapseHazardConfig _hazard;
+        public FloorHandController(FloorHandBehaviorState state, FloorConfig config, FloorCollapseHazardConfig hazard = null)
+        { _state = state ?? throw new ArgumentNullException(nameof(state)); _config = config ?? throw new ArgumentNullException(nameof(config)); _hazard = hazard; }
 
         public bool Target(EntityId player, out int room, out int hand)
         {
@@ -60,7 +61,9 @@ namespace Worsen.Domain.Floor
             if (contact.Phase == FloorHandPhase.Cooldown)
             {
                 contact.Elapsed += dt;
-                if (contact.Elapsed >= _config.HandCooldown) { contact.Elapsed = 0f; contact.Phase = FloorHandPhase.Idle; }
+                float interval = ReferenceEquals(_hazard, null) ? FloorCollapseHazardConfig.DefaultDamageInterval : _hazard.DamageInterval;
+                float cooldown = Mathf.Max(_config.HandCooldown, interval - _config.HandWarningDuration - _config.HandEscapeGrace);
+                if (contact.Elapsed >= cooldown) { contact.Elapsed = 0f; contact.Phase = FloorHandPhase.Idle; }
                 return false;
             }
             bool finite = !float.IsNaN(probe.Distance) && !float.IsInfinity(probe.Distance) && probe.Distance >= 0f;
@@ -74,10 +77,10 @@ namespace Worsen.Domain.Floor
                 contact.Phase = FloorHandPhase.Warning; contact.Elapsed = 0f;
                 fact = Fact(contact, player, CollapseHandEventKind.Warning, tick); return true;
             }
-            bool same = reachable && probe.RoomId == contact.RoomId && probe.HandId == contact.HandId;
+            bool same = reachable && probe.RoomId == contact.RoomId;
             float escape = contact.Phase == FloorHandPhase.Grabbed ? _config.HandEscapeDistance : _config.HandReach;
-            float distance = probe.PlayerPosition.HasValue ? Vector3.Distance(contact.GrabOrigin, probe.PlayerPosition.Value) : probe.Distance;
-            if (!same || distance > escape) return Release(contact, player, tick, CollapseHandEventKind.Escaped, out fact);
+            if (!same || probe.Distance > escape) return Release(contact, player, tick, CollapseHandEventKind.Escaped, out fact);
+            contact.Position = probe.Position; contact.Outward = probe.Outward; contact.HandId = probe.HandId;
             contact.Elapsed += dt;
             if (contact.Phase == FloorHandPhase.Warning && contact.Elapsed >= _config.HandWarningDuration)
             {
@@ -121,6 +124,11 @@ namespace Worsen.Domain.Floor
             return probe.Outward.normalized * (_config.BoundaryContactAcceleration +
                 _config.BoundarySpringAcceleration * Mathf.Max(0f, probe.Penetration));
         }
+        // Velocity, not acceleration: the Manager must publish this on contact entry
+        // (and re-entry), separately from the legacy continuous boundary spring.
+        public Vector3 BoundaryImpulse(FloorHandProbe probe) => FloorCollapseFrontUtility.Bounce(probe,
+            ReferenceEquals(_hazard, null) ? FloorCollapseHazardConfig.DefaultContactDistance : _hazard.ContactDistance,
+            ReferenceEquals(_hazard, null) ? FloorCollapseHazardConfig.DefaultBounceSpeed : _hazard.BounceSpeed);
         public void CopyRoomPhases(IDictionary<int, FloorHandPhase> rooms)
         {
             foreach (int room in rooms.Keys.ToArray()) rooms[room] = FloorHandPhase.Idle;
