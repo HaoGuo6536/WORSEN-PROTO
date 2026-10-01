@@ -18,6 +18,7 @@
 // USAGE NOTES:
 //   Used only by PlayerDriver and its owned PlayerLimbStandIn. Distances are metres.
 //   FootOffset is relative to the slide eye height; its default keeps the feet in the lower view.
+//   Traversal portions are fallbacks when no usable collider through-span is available.
 //   No other Domain system or Presentation system is referenced.
 // ============================================================================
 using UnityEngine;
@@ -40,7 +41,9 @@ namespace Worsen.Domain.Player
         [SerializeField] private float _vaultProbeDistance = 1.15f;
         [SerializeField] private float _eyeHeight = 1.6f;
         [SerializeField] private float _traversalLift = 0.08f;
+        [Tooltip("Fallback rise completion when collider through-span geometry is unavailable.")]
         [SerializeField] private float _traversalRisePortion = 0.25f;
+        [Tooltip("Fallback descent start when collider through-span geometry is unavailable.")]
         [SerializeField] private float _traversalTraverseEnd = 0.95f;
         [SerializeField] private LayerMask _collisionMask = ~0;
         [SerializeField] private string _hunterBodyLayer = "HunterBody";

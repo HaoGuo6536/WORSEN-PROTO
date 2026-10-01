@@ -12,7 +12,7 @@
 //   - Distinguish overlap sentinels from real sweep contacts and retain slope-tangent motion.
 //   - Decide support, wall-slide redirection and untagged ledge admission from supplied geometry.
 //   - Remove only the hunter layer during grace and decide the once-per-session missing-layer warning.
-//   - Select valid opposite endpoints and evaluate constant horizontal travel with C1 vertical easing.
+//   - Select opposite endpoints and geometry-timed arcs with eased joins to the apex hold.
 // DEPENDENCIES:
 //   - Worsen.Core contracts and the owning Worsen.Domain.Player system only.
 //   - Editor scripts additionally use UnityEditor; tests additionally use NUnit.
@@ -152,24 +152,60 @@ namespace Worsen.Domain.Player
             return new Vector3(horizontal.x, displacement.y, horizontal.z);
         }
 
+        public void TraversalPhases(Vector3 from, Vector3 to, Bounds? obstacle, float radius, float skin,
+            float fallbackRise, float fallbackEnd, out float risePortion, out float traverseEnd)
+        {
+            risePortion = Mathf.Clamp(fallbackRise, 0.01f, 0.98f);
+            traverseEnd = Mathf.Clamp(fallbackEnd, risePortion + 0.01f, 0.99f);
+            if (!obstacle.HasValue || !Finite(from) || !Finite(to) || !Finite(radius) || !Finite(skin)
+                || radius <= 0f || skin < 0f || skin >= radius) return;
+            Bounds bounds = obstacle.Value;
+            if (!Finite(bounds.center) || !Finite(bounds.extents) || bounds.extents.x < 0f
+                || bounds.extents.y < 0f || bounds.extents.z < 0f) return;
+            Vector3 path = new Vector3(to.x - from.x, 0f, to.z - from.z);
+            float length = path.magnitude;
+            if (!Finite(length) || length <= 0.000001f) return;
+            Vector3 direction = path / length;
+            float center = Vector3.Dot(bounds.center - from, direction);
+            // Project the enclosing world bounds, not its diagonal or the approach heading.
+            // This is conservative for rotated/non-box colliders and works in either direction.
+            float extent = Mathf.Abs(direction.x) * bounds.extents.x + Mathf.Abs(direction.z) * bounds.extents.z;
+            // The front reaches the near face's skin band; the back clears the far face
+            // plus skin. Using the inset query radius on entry leaves a finite rise even
+            // at the closest clear (full radius + skin) start, without a takeoff teleport.
+            float near = (center - extent - radius + skin) / length;
+            float far = (center + extent + radius + skin) / length;
+            // No usable through-span (e.g. a mantle landing on top) keeps authored fallbacks.
+            if (!Finite(near) || !Finite(far) || extent <= 0f || near <= 0f || far >= 1f || near >= far) return;
+            risePortion = near;
+            traverseEnd = far;
+        }
+
         public Vector3 TraversalPosition(Vector3 from, Vector3 to, float progress, float obstacleHeight, float lift, float risePortion, float traverseEnd)
         {
             progress = Mathf.Clamp01(progress);
+            if (progress <= 0f) return from;
+            if (progress >= 1f) return to;
             // Horizontal travel uses the complete lock while the vertical envelope provides clearance.
             Vector3 position = Vector3.Lerp(from, to, progress);
             float top = Mathf.Max(from.y + Mathf.Max(0f, obstacleHeight), to.y) + Mathf.Max(0f, lift);
-            risePortion = Mathf.Clamp(risePortion, 0.01f, 0.98f);
-            traverseEnd = Mathf.Clamp(traverseEnd, risePortion + 0.01f, 0.99f);
+            // Numerical guards only: do not stretch a short geometry-derived rise or
+            // start falling before a deep obstacle has cleared the capsule's back.
+            risePortion = Mathf.Clamp(risePortion, 0.000001f, 0.999998f);
+            traverseEnd = Mathf.Clamp(traverseEnd, risePortion, 0.999999f);
             if (progress < risePortion)
-                position.y = Mathf.Lerp(from.y, top, Ease(progress / risePortion));
+            {
+                float t = progress / risePortion;
+                position.y = Mathf.Lerp(from.y, top, 1f - (1f - t) * (1f - t));
+            }
             else if (progress < traverseEnd)
                 position.y = top;
             else
-                position.y = Mathf.Lerp(top, to.y, Ease((progress - traverseEnd) / (1f - traverseEnd)));
+            {
+                float t = (progress - traverseEnd) / (1f - traverseEnd);
+                position.y = Mathf.Lerp(top, to.y, t * t);
+            }
             return position;
         }
-
-        // Zero vertical velocity at each phase boundary; derivative is bounded by 1.5 per phase.
-        private static float Ease(float t) => t * t * (3f - 2f * t);
     }
 }

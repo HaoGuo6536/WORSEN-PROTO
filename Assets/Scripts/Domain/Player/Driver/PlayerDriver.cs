@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Driver (§7a) · Domain · Player.
 // KEY RESPONSIBILITIES:
-//   - Probe world support, traversal endpoints, ledges and capsule clearance.
+//   - Probe support, endpoints, ledges and clearance; capture per-vault obstacle phases.
 //   - Resolve swept movement and interpolation, excluding only the admitted obstacle during its arc.
 //   - Filter hunter bodies from all queries and capsule contacts during collision grace.
 //   - Restore an explicit pose and capsule posture without interpolation on revival.
@@ -204,10 +204,14 @@ namespace Worsen.Domain.Player
                 _state.TraversalActive = true;
                 _state.TraversalObstructed = false;
                 _state.TraversalCollider = to == _state.ProbedTraversalTarget ? _state.ProbedTraversalCollider : null;
+                _presenter.TraversalPhases(from, to,
+                    _state.TraversalCollider != null ? _state.TraversalCollider.bounds : (Bounds?)null,
+                    _config.Radius, _config.SkinWidth, _config.TraversalRisePortion, _config.TraversalTraverseEnd,
+                    out _state.TraversalRisePortion, out _state.TraversalTraverseEnd);
             }
             Vector3 before = _state.Position;
             Vector3 target = _presenter.TraversalPosition(from, to, progress, obstacleHeight, _config.TraversalLift,
-                _config.TraversalRisePortion, _config.TraversalTraverseEnd) + steeringOffset;
+                _state.TraversalRisePortion, _state.TraversalTraverseEnd) + steeringOffset;
             // Admission checks distance/duration against the speed budget. Clamping an
             // absolute target here accumulates debt, then releases it as a catch-up jump.
             // Landing admission and the actual landing sweep still reject other geometry.
@@ -287,6 +291,7 @@ namespace Worsen.Domain.Player
         {
             _state.TraversalActive = _state.TraversalObstructed = false;
             _state.TraversalCollider = _state.IgnoredTraversalCollider = _state.ProbedTraversalCollider = null;
+            _state.TraversalRisePortion = _state.TraversalTraverseEnd = 0f;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

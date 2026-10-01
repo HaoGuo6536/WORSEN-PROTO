@@ -3,13 +3,14 @@
 // ============================================================================
 // PURPOSE:
 //   Tests traversal collision isolation against actual temporary Unity colliders.
-//   The admitted waist obstacle may intersect the scripted arc, but a second
+//   The admitted waist obstacle determines the arc phases, while a second
 //   collider must still stop it and must never produce a delayed catch-up jump.
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · test suite (§11) · Player integration.
 // KEY RESPONSIBILITIES:
 //   - Compare clear traversal, independent blockers and blocked landing admission.
 //   - Require collider isolation to end on ordinary movement, teleport and teardown.
+//   - Verify admitted geometry is latched per vault and missing geometry uses fallbacks.
 // DEPENDENCIES:
 //   PlayerDriver, LevelMarker, Core contracts, NUnit, UnityEditor and Unity physics.
 // USAGE NOTES:
@@ -68,17 +69,53 @@ namespace Worsen.Tests.Player
         public void ClearArcFollowsEveryCommandWithoutClampingOrObstacleDepenetration()
         {
             var presenter = new PlayerMoverPresenter();
+            presenter.TraversalPhases(start, target, vault.bounds, config.Radius, config.SkinWidth,
+                config.TraversalRisePortion, config.TraversalTraverseEnd, out float rise, out float end);
             for (int tick = 1; tick <= 15; tick++)
             {
                 float progress = tick / 15f;
                 var actual = Step(progress);
                 Vector3 expected = presenter.TraversalPosition(start, target, progress, 1f,
-                    config.TraversalLift, config.TraversalRisePortion, config.TraversalTraverseEnd);
+                    config.TraversalLift, rise, end);
                 Assert.That(Vector3.Distance(actual.Position, expected), Is.LessThan(.002f), "tick=" + tick);
             }
             AssertCleared();
             Assert.That(Vector3.Distance(driver.Position, target), Is.LessThan(.002f));
             Assert.That(Physics.GetIgnoreCollision(actor.GetComponent<CapsuleCollider>(), vault), Is.False);
+        }
+
+        [Test]
+        public void ArcPhasesAreCapturedOnceAndRecomputedAfterTeleport()
+        {
+            Step(.1f);
+            float rise = State.TraversalRisePortion, end = State.TraversalTraverseEnd;
+            Assert.That(rise, Is.Not.EqualTo(config.TraversalRisePortion));
+            Assert.That(end, Is.LessThan(config.TraversalTraverseEnd));
+            vault.size = new Vector3(.2f, 1f, 2f); Physics.SyncTransforms();
+            Step(.2f);
+            Assert.That(State.TraversalRisePortion, Is.EqualTo(rise));
+            Assert.That(State.TraversalTraverseEnd, Is.EqualTo(end));
+            driver.Teleport(start, 90f); Physics.SyncTransforms();
+            Assert.That(State.TraversalRisePortion, Is.Zero);
+            Assert.That(State.TraversalTraverseEnd, Is.Zero);
+            Assert.That(driver.Probe().VaultCandidate, Is.True);
+            Step(.1f);
+            Assert.That(State.TraversalRisePortion, Is.GreaterThan(rise));
+            Assert.That(State.TraversalTraverseEnd, Is.LessThan(end));
+        }
+
+        [Test]
+        public void TraversalWithoutAnAdmittedColliderUsesFallbackPhases()
+        {
+            driver.Teleport(start, 90f); // Clears the admitted probe; do not probe again.
+            Object.DestroyImmediate(vault.gameObject); Physics.SyncTransforms();
+            Vector3 actual = Step(.1f).Position;
+            Assert.That(State.TraversalCollider, Is.Null);
+            Assert.That(State.TraversalRisePortion, Is.EqualTo(config.TraversalRisePortion));
+            Assert.That(State.TraversalTraverseEnd, Is.EqualTo(config.TraversalTraverseEnd));
+            Vector3 expected = new PlayerMoverPresenter().TraversalPosition(start, target, .1f, 1f,
+                config.TraversalLift, config.TraversalRisePortion, config.TraversalTraverseEnd);
+            Assert.That(Vector3.Distance(actual, expected), Is.LessThan(.002f));
         }
 
         [Test]
