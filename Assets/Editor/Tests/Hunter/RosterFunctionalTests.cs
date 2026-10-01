@@ -9,7 +9,7 @@
 //   Editor tool (§10), test suite (§11) · Editor · Hunter.
 // KEY RESPONSIBILITIES:
 //   - Exercise all ten production profiles without substitute rules or tuning edits.
-//   - Assert rule-specific motion, counterplay and physical contact facts.
+//   - Assert rule-specific motion, counterplay, frozen silence and physical contact facts.
 //   - Write per-archetype metrics and always explicitly release native ownership.
 // DEPENDENCIES:
 //   - Hunter configs, Core facts, scripted native arena and NUnit.
@@ -49,31 +49,39 @@ namespace Worsen.Tests.Hunter
         private static float Planar(Vector3 a, Vector3 b) => Vector3.ProjectOnPlane(a - b, Vector3.up).magnitude;
         private static void Frozen(RosterFunctionalArena a, float seconds)
         {
-            Vector3 held = a.Driver.Position; int hits = a.Metrics.Hits.Count;
+            Vector3 held = a.Driver.Position; int hits = a.Metrics.Hits.Count, feedback = a.Metrics.Feedback.Count;
             a.For(seconds, () => Assert.That(Vector3.Distance(a.Driver.Position, held), Is.LessThan(.002f)));
-            Assert.That(Vector3.Distance(a.Driver.Position, held), Is.LessThan(.002f), "Observation/light hold leaked motion.");
-            Assert.That(a.Metrics.Hits.Count, Is.EqualTo(hits), "Observation/light hold leaked damage.");
+            Assert.That(Vector3.Distance(a.Driver.Position, held), Is.LessThan(.002f), "Observation/shrine hold leaked motion on its first or subsequent tick.");
+            Assert.That(a.Driver.Velocity.sqrMagnitude, Is.LessThan(.000001f), "Frozen motor retained movement velocity.");
+            Assert.That(a.Metrics.Hits.Count, Is.EqualTo(hits), "Observation/shrine hold leaked damage.");
+            Assert.That(a.Metrics.Feedback.Count, Is.EqualTo(feedback), "Frozen Mannequin emitted movement/attack audio feedback.");
         }
 
         [Test]
-        public void Mannequin_DarkUnseenAdvances_SeenLightAndWickFreeze_ThenContacts()
+        public void Mannequin_LitAndDarkUnseenAdvance_SeenAndWickFreezeSilently_ThenContacts()
         {
             Run("Mannequin", new Vector3(0, 0, -12), new Vector3(0, 0, -2), a => {
                 Assert.That(a.Profile.ArchetypeRules, Is.TypeOf<MannequinConfig>());
-                a.SetLit(true); Frozen(a, .5f);
-                a.SetLit(false); a.ViewRotation = Quaternion.Euler(0, 180, 0); Frozen(a, .5f);
-                a.ViewRotation = Quaternion.identity;
-                Vector3 before = a.Driver.Position;
-                a.Until(() => Planar(a.Driver.Position, before) > .5f, 3f, "Dark unseen Mannequin never advanced.");
-                a.ViewRotation = Quaternion.LookRotation(a.Driver.Position - a.Player.Position);
-                a.Step(); Frozen(a, .5f);
-                a.ViewRotation = Quaternion.identity; a.Hunter.SetWickActive(true); a.Step(); Frozen(a, .5f);
-                a.Hunter.SetWickActive(false); a.SetLit(true); a.Step(); Frozen(a, .5f);
-                a.SetLit(false);
+                foreach (bool lit in new[] { true, false })
+                {
+                    a.SetLit(lit); a.ViewRotation = Quaternion.identity;
+                    float distance = Planar(a.Driver.Position, a.Player.Position);
+                    a.Until(() => Planar(a.Driver.Position, a.Player.Position) < distance - .5f, 3f,
+                        (lit ? "Lit" : "Dark") + " unseen Mannequin never advanced toward the player.");
+                    a.ViewRotation = Quaternion.LookRotation(a.Driver.Position + Vector3.up * ((MannequinConfig)a.Profile.ArchetypeRules).ObservationHeight -
+                        (a.Player.Position + Vector3.up * 1.5f));
+                    // Capture the pre-observation pose: no unasserted transition tick.
+                    Frozen(a, .5f);
+                    a.ViewRotation = Quaternion.identity; a.Hunter.SetWickActive(true); Frozen(a, .5f);
+                    a.Hunter.SetWickActive(false);
+                }
+                a.SetLit(true);
                 a.Until(() => a.Metrics.Hits.Count > 0, 8f, "Unseen Mannequin could move but never delivered a native contact hit.");
                 Assert.That(a.Metrics.BodyContacts, Is.GreaterThan(0));
                 Assert.That(a.Metrics.Hits[0].Damage, Is.EqualTo(a.Profile.LungeDamage));
                 Assert.That(a.Metrics.Mannequin.Any(f => f.Kind == MannequinFactKind.SilentSoundSet), Is.True);
+                Assert.That(a.Metrics.Mannequin.All(f => f.Kind == MannequinFactKind.SilentSoundSet), Is.True,
+                    "Mannequin must never emit room-light overrides or lamp budgets.");
                 Assert.That(a.Metrics.Feedback, Is.Empty, "Ordinary Mannequin movement/attacks are silent.");
             });
         }
