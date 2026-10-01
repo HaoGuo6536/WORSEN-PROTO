@@ -1,0 +1,16 @@
+id: no-coalesce-unity-component
+language: csharp
+severity: error
+message: "A missing component is a fake-null UnityEngine.Object in the Editor; ?? only sees real nulls, so the fallback never runs. Compare with != null first (§10, §13b)."
+files:
+  - "Assets/**/*.cs"
+rule:
+  kind: binary_expression
+  all:
+    - has:
+        field: left
+        kind: invocation_expression
+        regex: '^[\w.]*GetComponent(InChildren|InParent)?<[\w.]+>\(\)$'
+    - has:
+        field: operator
+        regex: '^\?\?$'

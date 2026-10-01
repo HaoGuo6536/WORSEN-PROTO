@@ -572,6 +572,7 @@ The layer graph in §9 is encoded as asmdef references (§12). A Domain script t
 | `static-event-has-reset` | files declaring `static event` | no `[RuntimeInitializeOnLoadMethod]` in the same file | §9 |
 | `subscribe-in-onenable-only` | `**/*.cs` | `+=` on an event inside `Awake`/`Start` | §9 |
 | `menu-under-project-root` | `Assets/Editor/**` | `[MenuItem("...")]` not starting with `Worsen/` | §10 |
+| `no-coalesce-unity-component` | `Assets/**` | `GetComponent*<T>() ?? …`: in the Editor a missing component is a fake-null object that `??` keeps, so the fallback (usually `AddComponent`) never runs. Added 2026-10-01 after batch 28 setup failed this way; compare with `!= null` first. | §10 |
 
 Three rules in full, as the template for the rest:
 
