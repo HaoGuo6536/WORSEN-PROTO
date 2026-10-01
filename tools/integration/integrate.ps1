@@ -40,16 +40,20 @@ $out = Join-Path $main "Logs\AgentValidation\integration\$Label-$stamp"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 function Log($m) { $line = "[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $m; $line; Add-Content -LiteralPath (Join-Path $out 'integration.log') -Value $line }
 # Setup or tests can still write tracked files after the gate's meta commit (batch 26r: kit material
-# remaps and normal-map importer types). A dirty tracked file blocks `checkout main` and strands the open
-# checkout on the candidate, so record the drift as a patch and stash it (recoverable) before switching.
+# remaps and normal-map importer types). Only a dirty tracked file that also differs between the candidate
+# and main blocks `checkout main`; stash exactly those (recoverable) and record a patch. Everything else,
+# such as the owner's working-copy setup state and the evidence ledgers, is carried across untouched.
 function Save-CandidateDrift {
-    $dirty = @(Invoke-Git $main -c core.quotepath=off status --porcelain --untracked-files=no)
+    $dirty = @(Invoke-Git $main -c core.quotepath=off diff --name-only HEAD)
     if ($dirty.Count -eq 0) { return }
-    $patch = Join-Path $out 'post-commit-drift.patch'
-    Invoke-Git $main diff --binary "--output=$patch" | Out-Null
-    $dirty | Set-Content -LiteralPath (Join-Path $out 'post-commit-drift-status.txt') -Encoding UTF8
-    Invoke-Git $main stash push -q -m "$Label post-commit drift ($($dirty.Count) files; patch in $out)" | Out-Null
-    Log "Post-commit drift: $($dirty.Count) tracked file(s) changed after the meta commit; stashed, patch $patch"
+    $differs = @(Invoke-Git $main -c core.quotepath=off diff --name-only HEAD main)
+    $blocking = @($dirty | Where-Object { $differs -contains $_ })
+    if ($blocking.Count -eq 0) { return }
+    $list = Join-Path $out 'post-commit-drift-status.txt'
+    $blocking | Set-Content -LiteralPath $list -Encoding ASCII
+    Invoke-Git $main diff --binary "--output=$(Join-Path $out 'post-commit-drift.patch')" HEAD | Out-Null
+    Invoke-Git $main stash push -q -m "$Label post-commit drift ($($blocking.Count) blocking files; patch in $out)" "--pathspec-from-file=$list" | Out-Null
+    Log "Post-commit drift: $($blocking.Count) dirty tracked file(s) differ from main; stashed, list $list"
 }
 $entry = [ordered]@{ label = $Label; started = (Get-Date).ToString('o'); branches = $Branches; plan = $Plan; promoted = $false; pushed = $false; evidence = $out }
 
