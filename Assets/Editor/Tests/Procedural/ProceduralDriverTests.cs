@@ -15,6 +15,7 @@
 // DEPENDENCIES:
 //   - Domain.Procedural, Core, NUnit, UnityEditor configuration and UnityEngine.AI.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Requires the repository Unity testing lease. Removes only this fixture's
 //   objects/data; never clears global navigation or another owner's scene.
 // ============================================================================
@@ -31,6 +32,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Procedural
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProceduralDriverTests
     {
         private ProceduralConfig _config;
@@ -44,7 +46,7 @@ namespace Worsen.Tests.Procedural
         public void SetUp()
         {
             _config = ScriptableObject.CreateInstance<ProceduralConfig>();
-            _driverConfig = ScriptableObject.CreateInstance<ProceduralDriverConfig>();
+            _driverConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<ProceduralDriverConfig>();
             var serialized = new SerializedObject(_config);
             serialized.FindProperty("_castleModules").boolValue = false;
             serialized.FindProperty("_initialRoomCount").intValue = 5;
@@ -334,7 +336,7 @@ namespace Worsen.Tests.Procedural
             settings.FindProperty("_castleModules").boolValue = true;
             settings.FindProperty("_initialRoomCount").intValue = 7;
             settings.ApplyModifiedPropertiesWithoutUndo();
-            var pickupConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+            var pickupConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
             try
             {
                 _manager.Initialize(_config, _driverConfig, seed, round);

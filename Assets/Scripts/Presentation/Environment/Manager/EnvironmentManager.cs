@@ -7,13 +7,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Presentation · Environment (Service system).
 // KEY RESPONSIBILITIES:
-//   - Receive floor/room theme tags before building dressing, retaining exact light sockets.
-//   - Forward the active-effects torch-count multiplier without changing Level light state.
-//   - Own and initialize the EnvironmentDriver, forwarding scene lifecycle and pushed facts.
-//   - Route room batches, threshold chalk and localized flame dimming into the own Driver.
-//   - Expose exit-frame facts, default-off lamp hooks and fog/rim output for later routing.
-//   - Forward Level light snapshots without introducing a Domain assembly reference.
-//   - Forward footprint cells without flattening them to room bounding rectangles.
+//   - Receive theme tags, authored light sockets and curved boundaries before dressing.
+//   - Own the Driver lifecycle and forward primitive/Core facts without Domain references.
+//   - Route room batches, threshold chalk and local dimming into the owned Driver.
+//   - Expose exit-frame, lamp, fog and rim commands for upward routing.
+//   - Preserve Level light state, footprint cells and effect-density budgets.
 // DEPENDENCIES:
 //   - Own presentation stack and Core GeneratedRoomSample/InteractableState; remaining public data is primitive.
 // USAGE NOTES:
@@ -46,17 +44,19 @@ namespace Worsen.Presentation.Environment
         public void BeginFloor() { if (_driver != null) _driver.BeginFloor(); }
         public void SetTheme(string theme, string lightSource) => _driver?.SetTheme(theme, lightSource);
         public void SetRoomTheme(int room, string theme, string family) => _driver?.SetRoomTheme(room, theme, family);
-        public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms)
+        public void SetRooms(IReadOnlyList<GeneratedRoomSample> rooms,
+            System.Func<int, IReadOnlyList<Vector3>> boundary = null, System.Func<int, IReadOnlyList<Vector3>> lightSockets = null)
         {
             if (_driver == null) return;
             _driver.BeginFloor(clearTheme: false);
             if (rooms == null) return;
             foreach (GeneratedRoomSample room in rooms)
-                _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters, cells: room.Cells);
+                _driver.AddRoom(room.RoomId, room.Bounds, room.OpenSky, room.Refuge, room.PortalCenters, cells: room.Cells,
+                    boundary: boundary?.Invoke(room.RoomId), lightSockets: lightSockets?.Invoke(room.RoomId));
         }
         public void AddRoom(int id, Bounds bounds, bool openSky, bool refuge, Vector3[] portalCenters, Bounds[] reserved = null,
-            IReadOnlyList<Bounds> cells = null)
-        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved, cells); }
+            IReadOnlyList<Bounds> cells = null, IReadOnlyList<Vector3> boundary = null, IReadOnlyList<Vector3> lightSockets = null)
+        { if (_driver != null) _driver.AddRoom(id, bounds, openSky, refuge, portalCenters, reserved, cells, boundary, lightSockets); }
         public Vector3[] GetTorchPositions(int roomId)
         { return _driver != null ? _driver.GetTorchPositions(roomId) : new Vector3[0]; }
         public void SetObserver(Vector3 position) { if (_driver != null) _driver.SetObserver(position); }

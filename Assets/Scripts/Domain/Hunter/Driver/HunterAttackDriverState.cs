@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
 //   - Keep per-life state separate from shared configuration and foreign systems.
+//   - Retain pooled query buffers, the configured mask and missing-shader error latch.
 // DEPENDENCIES:
 //   - Hunter-owned contracts and Core values; Manager/Controller receive Player and Level views.
 //   - Engine operations remain in Drivers; tests use UnityEditor and NUnit fixtures.
@@ -42,6 +43,10 @@ namespace Worsen.Domain.Hunter
         public bool Split;
         public float SpikeSeconds;
         public Material FallbackMaterial;
+        public bool MissingFallbackShaderReported;
+        public RaycastHit[] QueryHits;
+        public Collider[] QueryOverlaps;
+        public int CollisionMask;
     }
     public sealed class HunterProjectileDriverState
     {

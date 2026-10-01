@@ -11,6 +11,7 @@
 //   - Create missing folders and the one Director config asset.
 //   - Reuse existing assets without replacing their tuning.
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Domain Director configuration and UnityEditor asset APIs.
 // USAGE NOTES:
 //   Editor-only. Caller must own the Unity lease; this tool does not save scenes.
@@ -39,13 +40,7 @@ namespace Worsen.Editor.Director
                 throw new InvalidOperationException("Stop Play Mode before generating Director assets.");
             var existing = AssetDatabase.LoadAssetAtPath<DirectorConfig>(ConfigPath);
             if (existing != null) return existing;
-            var folder = "Assets";
-            foreach (var part in new[] { "Resources", "ScriptableObjects", "Domain", "Director" })
-            {
-                var next = folder + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(folder, part);
-                folder = next;
-            }
+            Worsen.Editor.Common.SetupKit.EnsureParent(ConfigPath);
             var config = ScriptableObject.CreateInstance<DirectorConfig>();
             AssetDatabase.CreateAsset(config, ConfigPath);
             return config;

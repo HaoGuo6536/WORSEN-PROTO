@@ -10,10 +10,9 @@
 // KEY RESPONSIBILITIES:
 //   - Cycle physical slots, spend uses and release capacity only on the final use.
 //   - Multiply new Golden Cake yield before rounding; carry fractions without re-multiplying them.
-//   - Filter and sample offers without replacement using an injected visit random stream.
-//   - Quote scaled prices, scarce rerolls and explicit unavailability reasons.
-//   - Reserve full-inventory purchases, then replace exactly one slot on confirmation.
-//   - Calculate economy rewards without touching foreign systems or engine objects.
+//   - Draw gated offers and enforce run-long Extra Life purchase history.
+//   - Quote scaled/discounted prices, scarce rerolls and economy rewards.
+//   - Reserve full-inventory purchases and replace exactly one slot on confirmation.
 // DEPENDENCIES:
 //   - Parent Progression catalogue/utility, own state/rules and Core effect/slot values.
 // USAGE NOTES:
@@ -34,22 +33,28 @@ namespace Worsen.Session.Progression.Shop
         private readonly ShopRules rules;
         private readonly EffectCatalogueConfig catalogue;
         private readonly System.Random random;
+        private readonly float nothingPriceMultiplier;
         public bool HasPending => !string.IsNullOrEmpty(state.PendingOfferId);
         public EffectCatalogueEntry Pending => EffectCatalogueUtility.Find(catalogue, state.PendingOfferId);
         public ShopRules Rules => rules;
 
-        public ShopController(ShopBehaviorState state, ShopRules rules, EffectCatalogueConfig catalogue, System.Random random)
+        public ShopController(ShopBehaviorState state, ShopRules rules, EffectCatalogueConfig catalogue, System.Random random,
+            float nothingPriceMultiplier = ProgressionConfig.DefaultNothingShopPriceMultiplier)
         {
             this.state = state ?? throw new ArgumentNullException(nameof(state));
             this.rules = rules ?? throw new ArgumentNullException(nameof(rules));
             this.catalogue = catalogue;
             this.random = random ?? throw new ArgumentNullException(nameof(random));
+            if (!float.IsFinite(nothingPriceMultiplier) || nothingPriceMultiplier < 0f || nothingPriceMultiplier > 1f)
+                throw new ArgumentOutOfRangeException(nameof(nothingPriceMultiplier));
+            this.nothingPriceMultiplier = nothingPriceMultiplier;
             ValidateRules();
         }
 
         public void Reset()
         {
             state.Inventory.Clear(); state.Offers.Clear(); state.Sold.Clear();
+            state.ExtraLifePurchased = false;
             state.RemainingUses.Clear(); state.SelectedSlot = 0;
             state.PendingOfferId = null; state.BargainNextVisit = state.BargainThisVisit = false;
             state.RerollsUsed = state.FreeRerollsUsed = state.PaidRerolls = state.Round = 0; state.GoldenRemainder = 0;
@@ -76,7 +81,8 @@ namespace Worsen.Session.Progression.Shop
         }
 
         private bool Eligible(EffectCatalogueEntry entry, IReadOnlyActiveEffects active) =>
-            !(entry.Kind == EffectKind.Upgrade && entry.Price >= rules.ExpensivePrice && state.Round < rules.ExpensiveUnlockRound)
+            !(entry.Id == "extra-life" && state.ExtraLifePurchased)
+            && !(entry.Kind == EffectKind.Upgrade && entry.Price >= rules.ExpensivePrice && state.Round < rules.ExpensiveUnlockRound)
             && EffectCatalogueUtility.Eligible(entry, state.Round, active);
 
         private void Draw(IReadOnlyActiveEffects active)
@@ -109,6 +115,7 @@ namespace Worsen.Session.Progression.Shop
         private int DiscountedPrice(decimal price, IReadOnlyActiveEffects active) =>
             (int)Math.Min(int.MaxValue, Math.Ceiling(price *
                 (state.BargainThisVisit ? 1m - (decimal)rules.BargainDiscount : 1m) *
+                (active.Has(new EffectId("nothing")) ? (decimal)nothingPriceMultiplier : 1m) *
                 Math.Max(0m, 1m - (decimal)rules.LoyaltyDiscount * Stacks(active, "loyalty-card"))));
 
         public IReadOnlyList<ProgressionOffer> Offers(int wallet, IReadOnlyActiveEffects active)
@@ -116,6 +123,7 @@ namespace Worsen.Session.Progression.Shop
             var result = new List<ProgressionOffer>();
             foreach (string id in state.Offers)
             {
+                if (id == "extra-life" && state.ExtraLifePurchased) continue;
                 var entry = EffectCatalogueUtility.Find(catalogue, id);
                 string reason = Unavailable(entry, wallet, active);
                 bool sold = state.Sold.Contains(id);
@@ -167,6 +175,7 @@ namespace Worsen.Session.Progression.Shop
             }
             walletAfter = (int)Math.Min(int.MaxValue, (long)wallet - price + refund);
             state.Sold.Add(id); state.PendingOfferId = null;
+            if (id == "extra-life") state.ExtraLifePurchased = true;
             if (id == "bargain-hunter") state.BargainNextVisit = true;
             return true;
         }
@@ -264,8 +273,13 @@ namespace Worsen.Session.Progression.Shop
         public int SelectionRerolls(IReadOnlyActiveEffects active) =>
             (int)Math.Min(int.MaxValue, (long)Stacks(active, "lucky-reroll") * rules.LuckyRerolls);
 
-        public int BailDebit(int wallet, float fraction, IReadOnlyActiveEffects active) =>
-            (int)Math.Floor(wallet * (decimal)fraction * (Stacks(active, "bail-bond") > 0 ? (decimal)rules.BailPenaltyMultiplier : 1m));
+        // Exit-only inventory loss; already activated effects (such as a ward) persist.
+        public void ClearConsumables()
+        {
+            state.Inventory.Clear(); state.RemainingUses.Clear();
+            state.SelectedSlot = 0; state.PendingOfferId = null;
+        }
+
 
         public int Interest(int wallet, IReadOnlyActiveEffects active) => Stacks(active, "interest") == 0 ? 0 :
             (int)Math.Min(int.MaxValue - wallet, Math.Min(rules.InterestCap, Math.Floor(wallet * (decimal)rules.InterestFraction)));
@@ -274,6 +288,7 @@ namespace Worsen.Session.Progression.Shop
         {
             if (!float.IsFinite(shrineMultiplier) || shrineMultiplier < 1f || shrineMultiplier > 2f) { credit = 0; return false; }
             decimal yield = ((decimal)baseValue + (decimal)Stacks(active, "golden-touch") * rules.GoldenTouchBonus)
+                * (Stacks(active, "gilded-greed") > 0 ? (decimal)rules.GildedGreedMultiplier : 1m)
                 * (1m + (decimal)rules.BusinessYieldPerStack * Stacks(active, "business-license"))
                 * (decimal)shrineMultiplier + state.GoldenRemainder;
             if (Math.Floor(yield) > int.MaxValue - wallet) { credit = 0; return false; }
@@ -297,7 +312,9 @@ namespace Worsen.Session.Progression.Shop
                 rules.GoldenTouchBonus < 0 || rules.InterestCap < 0 || rules.ExtraPedestals < 0 ||
                 float.IsNaN(rules.RoundPriceGrowth) || float.IsInfinity(rules.RoundPriceGrowth) || rules.RoundPriceGrowth < 0)
                 throw new ArgumentException("Invalid shop counts or round pricing.");
-            foreach (float value in new[] { rules.BargainDiscount, rules.LoyaltyDiscount, rules.BailPenaltyMultiplier,
+            if (!float.IsFinite(rules.GildedGreedMultiplier) || rules.GildedGreedMultiplier < 1f)
+                throw new ArgumentException("Invalid Gilded Greed multiplier.");
+            foreach (float value in new[] { rules.BargainDiscount, rules.LoyaltyDiscount,
                 rules.InterestFraction, rules.RefundFraction, rules.BusinessYieldPerStack })
                 if (float.IsNaN(value) || value < 0 || value > 1) throw new ArgumentException("Invalid shop economy fraction.");
         }

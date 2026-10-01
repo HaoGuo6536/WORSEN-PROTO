@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   BehaviorState (§3) · Session · HorrorEffects.
 // KEY RESPONSIBILITIES:
-//   - Store flight sweeps, oil contacts, door deadlines and pending revival identity.
+//   - Store flight sweeps, origin-marked noise, contacts, deadlines and revival identity.
 // DEPENDENCIES:
 //   - Core immutable identities/facts and Unity value types only.
 // USAGE NOTES:
@@ -35,6 +35,6 @@ namespace Worsen.Session.HorrorEffects
         internal readonly List<HunterStunFact> Stuns = new List<HunterStunFact>();
         internal readonly List<HunterSlipFact> Slips = new List<HunterSlipFact>();
         internal readonly List<DoorJamFact> DoorFacts = new List<DoorJamFact>();
-        internal readonly List<NoiseEvent> Noises = new List<NoiseEvent>();
+        internal readonly List<HorrorNoiseFact> Noises = new List<HorrorNoiseFact>();
     }
 }

@@ -9,18 +9,19 @@
 //   BehaviorState (§3) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
 //   - Retain data only; controller decisions and Manager publication stay outside.
+//   - Expose scalar observations through IReadOnlyBlinderState, never mutable queues.
 // DEPENDENCIES:
-//   - Hunter context, existing sweep values and Core facts.
+//   - Parent Hunter context and shared sweep definitions, plus Core facts.
 // USAGE NOTES:
 //   Owned by one BlinderController; no events or engine operations.
 // ============================================================================
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Weaver;
+
 namespace Worsen.Domain.Hunter.Archetypes.Blinder
 {
-    public sealed class BlinderBehaviorState
+    public sealed class BlinderBehaviorState : IReadOnlyBlinderState
     {
         public HunterArchetypeContext Context;
         public IReadOnlyActiveEffects Effects;
@@ -36,5 +37,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Blinder
         public readonly Queue<BlinderSoundFact> Sounds = new Queue<BlinderSoundFact>();
         public readonly Queue<BlinderTrapPolicyFact> Policies = new Queue<BlinderTrapPolicyFact>();
         public readonly Queue<BlinderThrowFact> Throws = new Queue<BlinderThrowFact>();
+        BlinderAction IReadOnlyBlinderState.Action => Action;
+        long IReadOnlyBlinderState.LastTick => LastTick;
+        bool IReadOnlyBlinderState.Warning => Warning;
+        bool IReadOnlyBlinderState.Fire => Fire;
     }
 }

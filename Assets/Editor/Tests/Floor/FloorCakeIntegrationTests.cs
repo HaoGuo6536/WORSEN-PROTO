@@ -8,10 +8,11 @@
 //   Editor tool (§11 tests) · Editor · Floor.
 // KEY RESPONSIBILITIES:
 //   - Verify guidance during a confirmed chase, trap contacts/noise and delayed exits.
-//   - Verify named tiers, candle light/flicker, layered glow and unchanged triggers.
+//   - Verify nameless tiers, candle light/flicker, layered glow and unchanged triggers.
 // DEPENDENCIES:
 //   NUnit, UnityEngine, Core, Floor, read-only Level/Hunter and pure Chase rules.
 // USAGE NOTES:
+//   ShaderReferenceTestSetup explicitly binds shaders for transient generated visuals.
 //   Unity Edit Mode only; temporary objects are destroyed without saving assets.
 //   Contact callbacks are invoked explicitly; physical collision/rendering needs live QA.
 // ============================================================================
@@ -31,6 +32,7 @@ using Object = UnityEngine.Object;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class FloorCakeIntegrationTests
     {
         [Test]
@@ -119,7 +121,7 @@ namespace Worsen.Tests.Floor
         }
 
         [Test]
-        public void BuiltCakeHasNameTiersLightDeterministicFlickerAndOriginalCollider()
+        public void BuiltCakeHasNoNameButKeepsTiersLightDeterministicFlickerAndOriginalCollider()
         {
             using (var f = new Fixture())
             {
@@ -131,7 +133,9 @@ namespace Worsen.Tests.Floor
                 Assert.That(cake.GetComponentsInChildren<Collider>(), Has.Length.EqualTo(1));
                 Assert.That(cake.transform.Find("Baked Cake/Lower Tier"), Is.Not.Null);
                 Assert.That(cake.transform.Find("Baked Cake/Frosting Rim"), Is.Not.Null);
-                Assert.That(cake.GetComponentInChildren<TextMesh>().text, Is.EqualTo("ADA"));
+                Assert.That(cake.GetComponentInChildren<TextMesh>(), Is.Null);
+                Assert.That(typeof(FloorDriverConfig).GetProperty("PipedName"), Is.Null);
+                Assert.That(typeof(FloorDriverConfig).GetField("_pipedName", BindingFlags.Instance | BindingFlags.NonPublic), Is.Null);
                 Assert.That(cake.GetComponentsInChildren<FloorLumenGlow>(), Has.Length.EqualTo(3));
                 var light = cake.GetComponentInChildren<Light>(); Assert.That(light.type, Is.EqualTo(LightType.Point));
                 f.Driver.TickCakeVisuals(0.03f); float intensity = light.intensity;
@@ -153,7 +157,7 @@ namespace Worsen.Tests.Floor
         {
             public readonly GameObject Root = new GameObject("Cake integration fixture");
             public readonly FloorConfig Config = ScriptableObject.CreateInstance<FloorConfig>();
-            public readonly FloorDriverConfig VisualConfig = ScriptableObject.CreateInstance<FloorDriverConfig>();
+            public readonly FloorDriverConfig VisualConfig = Worsen.Tests.Core.ShaderReferenceTestSetup.Create<FloorDriverConfig>();
             public readonly FloorManager Manager;
             public readonly FloorDriver Driver;
             public Fixture()

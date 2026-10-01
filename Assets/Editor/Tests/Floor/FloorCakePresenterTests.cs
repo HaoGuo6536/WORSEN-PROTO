@@ -19,6 +19,7 @@ using Worsen.Domain.Floor;
 
 namespace Worsen.Tests.Floor
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class FloorCakePresenterTests
     {
         [Test]

@@ -8,9 +8,9 @@
 //   Controller (§2) · Domain · Hunter Skip.
 // KEY RESPONSIBILITIES:
 //   - Reset per floor, deduplicate deliveries and apply capped catalogue hooks.
-//   - Keep ordinary motion slow and prevent shared chase/lunge feedback.
+//   - Keep motion slow and silent while allowing normal shared hits on body contact.
 // DEPENDENCIES:
-//   - Own state/config, Hunter profile, Default/dormancy seam and injected Core views.
+//   - Own state/config, Hunter profile, parent neutral/dormancy seam and injected Core views.
 // USAGE NOTES:
 //   Session supplies committed uses, not overlap occupancy or guessed room changes.
 //   Seeded randomness selects among equally well-used routes in stable id order.
@@ -20,11 +20,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
-using Worsen.Domain.Hunter.Archetypes.Default;
-using Worsen.Domain.Hunter.Archetypes.Ticking;
+
 namespace Worsen.Domain.Hunter.Archetypes.Skip
 {
-    public sealed class SkipController : DefaultHunterController, IHunterDormancyRules
+    public sealed class SkipController : HunterArchetypeController, IHunterDormancyRules, IHunterContactRules
     {
         public static readonly EffectId ShorterCooldown = new EffectId("skip-shorter-cooldown");
         public static readonly EffectId QuickerLearner = new EffectId("skip-quicker-learner");
@@ -38,18 +37,20 @@ namespace Worsen.Domain.Hunter.Archetypes.Skip
         { _config = config ?? throw new ArgumentNullException(nameof(config)); _profile = profile ?? throw new ArgumentNullException(nameof(profile));
             _random = random ?? throw new ArgumentNullException(nameof(random)); }
         public bool Dormant => true;
+        public bool ContactReady => _state.ContactRecovery <= 0f;
+        public void CommitContact() { _state.ContactRecovery = Mathf.Max(.15f, _profile.LungeRecoverySeconds); }
         public override bool OwnsPursuit => true;
         public int Threshold => Mathf.Max(1, _config.UsesRequired - Stacks(QuickerLearner));
         public float Cooldown => _config.CooldownSeconds * Mathf.Pow(_config.ShorterCooldownMultiplier, Stacks(ShorterCooldown));
         private int Stacks(EffectId id) => Mathf.Clamp(_state.Context.Effects?.Stacks(id) ?? 0, 0, 3);
         public int Uses(int routeId) => _state.Counts.TryGetValue(routeId, out int count) ? count : 0;
         public override void Reset(HunterArchetypeContext context)
-        { _state.Context = context; _state.Floor = -1; _state.LastTick = -1; _state.Elapsed = 0f;
+        { _state.Context = context; _state.Floor = -1; _state.LastTick = -1; _state.Elapsed = _state.ContactRecovery = 0f;
             _state.Pending = false; _state.Candidate = _state.WalkRoute = default; _state.Counts.Clear(); _state.Routes.Clear(); _state.Facts.Clear(); }
         public bool BeginFloor(long floor)
         {
             if (floor < 0 || floor <= _state.Floor) return false;
-            _state.Floor = floor; _state.Elapsed = 0f; _state.Pending = false; _state.Candidate = _state.WalkRoute = default;
+            _state.Floor = floor; _state.Elapsed = _state.ContactRecovery = 0f; _state.Pending = false; _state.Candidate = _state.WalkRoute = default;
             _state.LastTick = -1;
             _state.Counts.Clear(); _state.Routes.Clear(); _state.Facts.Clear(); return true;
         }
@@ -68,6 +69,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Skip
         {
             if (!(context.DeltaTime > 0f) || float.IsInfinity(context.DeltaTime) || context.Tick <= _state.LastTick) return;
             _state.Context = context; _state.LastTick = context.Tick; _state.Pending = false;
+            _state.ContactRecovery = Mathf.Max(0f, _state.ContactRecovery - context.DeltaTime);
             _state.Elapsed = Mathf.Min(_config.CooldownSeconds, _state.Elapsed + context.DeltaTime);
             if (_state.Elapsed < Cooldown || !context.CanReplay || !context.Player.IsAlive || !context.Hunter.IsActive) return;
             var choices = new List<int>(); int best = Threshold;

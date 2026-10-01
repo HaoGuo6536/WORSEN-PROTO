@@ -21,6 +21,7 @@ using Worsen.Core;
 using Worsen.Domain.Hunter;
 namespace Worsen.Tests.Hunter
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HunterNavigationUtilityTests
     {
         private static LevelGraph Graph() => new LevelGraph(new[] {

@@ -15,6 +15,7 @@
 //   - Leave scene saving, imports and test lease admission to the caller.
 //
 // DEPENDENCIES:
+//   - Common SetupKit creates asset folders while retaining existing identities.
 //   - Worsen.Presentation.PostFX config type; UnityEditor asset APIs.
 //
 // USAGE NOTES:
@@ -47,13 +48,7 @@ namespace Worsen.Editor.PostFX
                 throw new InvalidOperationException("Stop Play Mode before generating PostFX assets.");
             var existing = AssetDatabase.LoadAssetAtPath<PostFXDriverConfig>(ConfigPath);
             if (existing != null) return existing;
-            var folder = "Assets";
-            foreach (var part in new[] { "Resources", "ScriptableObjects", "Presentation", "PostFX" })
-            {
-                var next = folder + "/" + part;
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(folder, part);
-                folder = next;
-            }
+            Worsen.Editor.Common.SetupKit.EnsureParent(ConfigPath);
             var config = ScriptableObject.CreateInstance<PostFXDriverConfig>();
             AssetDatabase.CreateAsset(config, ConfigPath);
             return config;

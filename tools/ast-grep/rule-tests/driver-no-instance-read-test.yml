@@ -1,0 +1,5 @@
+id: driver-no-instance-read
+valid:
+  - 'class Driver { void Tick() { owner.Apply(value); } }'
+invalid:
+  - 'class Driver { void Tick() { var state = RunManager.Instance; } }'

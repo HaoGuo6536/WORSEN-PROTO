@@ -19,6 +19,7 @@ using Worsen.Core;
 using Worsen.Presentation.ProgressionUI;
 namespace Worsen.Tests.ProgressionUI
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ProgressionBargainPresenterTests
     {
         private static ProgressionSnapshot Snapshot(int revision, bool pending, ProgressionPhase phase = ProgressionPhase.Shop)

@@ -1,0 +1,264 @@
+{
+  "schema_version": 1,
+  "hunter": "Stare",
+  "fps": 30,
+  "height_m": 2.3,
+  "width_m": 0.671562,
+  "triangles": 588,
+  "bones": [
+    {
+      "name": "Root",
+      "parent": null,
+      "head_m": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Hips",
+      "parent": "Root",
+      "head_m": [
+        0,
+        0,
+        1.127
+      ]
+    },
+    {
+      "name": "Chest",
+      "parent": "Hips",
+      "head_m": [
+        0.12100000000000001,
+        0,
+        1.6099999999999999
+      ]
+    },
+    {
+      "name": "Head",
+      "parent": "Chest",
+      "head_m": [
+        0.22,
+        0,
+        2.001
+      ]
+    },
+    {
+      "name": "LeftArm",
+      "parent": "Chest",
+      "head_m": [
+        0.348,
+        0,
+        1.882
+      ]
+    },
+    {
+      "name": "LeftForearm",
+      "parent": "LeftArm",
+      "head_m": [
+        0.383,
+        0,
+        1.24
+      ]
+    },
+    {
+      "name": "LeftHand",
+      "parent": "LeftForearm",
+      "head_m": [
+        0.418,
+        -0.015,
+        0.598
+      ]
+    },
+    {
+      "name": "LeftThigh",
+      "parent": "Hips",
+      "head_m": [
+        0.105,
+        0,
+        1.127
+      ]
+    },
+    {
+      "name": "LeftShin",
+      "parent": "LeftThigh",
+      "head_m": [
+        0.105,
+        0,
+        0.621
+      ]
+    },
+    {
+      "name": "LeftFoot",
+      "parent": "LeftShin",
+      "head_m": [
+        0.105,
+        0,
+        0.1
+      ]
+    },
+    {
+      "name": "RightArm",
+      "parent": "Chest",
+      "head_m": [
+        -0.06199999999999997,
+        0,
+        1.752
+      ]
+    },
+    {
+      "name": "RightForearm",
+      "parent": "RightArm",
+      "head_m": [
+        -0.09699999999999998,
+        0,
+        1.3359999999999999
+      ]
+    },
+    {
+      "name": "RightHand",
+      "parent": "RightForearm",
+      "head_m": [
+        -0.13199999999999998,
+        -0.015,
+        0.9199999999999999
+      ]
+    },
+    {
+      "name": "RightThigh",
+      "parent": "Hips",
+      "head_m": [
+        -0.105,
+        0,
+        1.127
+      ]
+    },
+    {
+      "name": "RightShin",
+      "parent": "RightThigh",
+      "head_m": [
+        -0.105,
+        0,
+        0.621
+      ]
+    },
+    {
+      "name": "RightFoot",
+      "parent": "RightShin",
+      "head_m": [
+        -0.105,
+        0,
+        0.1
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "idle",
+      "frames": [
+        0,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "frames": [
+        0,
+        60
+      ],
+      "loop": true
+    },
+    {
+      "name": "run",
+      "frames": [
+        0,
+        24
+      ],
+      "loop": true
+    },
+    {
+      "name": "ready",
+      "frames": [
+        0,
+        24
+      ],
+      "loop": false
+    },
+    {
+      "name": "attack",
+      "frames": [
+        0,
+        40
+      ],
+      "loop": false,
+      "contact_frame": 16
+    },
+    {
+      "name": "hit",
+      "frames": [
+        0,
+        20
+      ],
+      "loop": false
+    }
+  ],
+  "materials": [
+    {
+      "name": "M_HunterStare_Cloth",
+      "base_color_srgb": [
+        0.075,
+        0.09,
+        0.115,
+        1
+      ],
+      "emission_color_srgb": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "emission_strength": 0
+    },
+    {
+      "name": "M_HunterStare_CoolRim",
+      "base_color_srgb": [
+        0.15,
+        0.2,
+        0.25,
+        1
+      ],
+      "emission_color_srgb": [
+        0.24,
+        0.34,
+        0.43,
+        1
+      ],
+      "emission_strength": 0.12
+    }
+  ],
+  "coordinate_system": "Blender Z-up, forward -Y, metres",
+  "socket_space": "bone-local Blender rest axes, metres; convert with FBX bone basis in Unity",
+  "unity_import": {
+    "bakeAxisConversion": false,
+    "rig": "Generic",
+    "root_motion": false
+  },
+  "sockets": {
+    "attack_origin": {
+      "bone": "LeftHand",
+      "local_offset": [
+        0,
+        0,
+        0.1
+      ]
+    },
+    "head_or_top": {
+      "bone": "Head",
+      "local_offset": [
+        0,
+        0.1,
+        0
+      ]
+    }
+  }
+}

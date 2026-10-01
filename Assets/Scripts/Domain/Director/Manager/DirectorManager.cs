@@ -8,12 +8,11 @@
 // ARCHITECTURAL ROLE:
 //   Manager (§1) · Domain · Director (Service system).
 // KEY RESPONSIBILITIES:
-//   - Deliver explicit Loud Keys facts floor-wide once, bypassing the ordinary acoustic queue.
+//   - Gate ordinary and floor-wide hearing on explicit approved gameplay provenance.
 //   - Inject typed dependencies and snapshot registered entities for pure rules.
 //   - Deliver hints downward through HunterRegistry and publish Core facts upward.
-//   - Clear all scene-owned history during explicit teardown.
-//   - Commit initialization atomically and stop stale publication after callbacks.
-//   - Route room hints, environmental noises and requested retreats to Hunter owners.
+//   - Clear scene history, initialize atomically and stop stale publication after callbacks.
+//   - Route room hints, admitted noises and requested retreats to Hunter owners.
 // DEPENDENCIES:
 //   - Player Registry and read-only state for committed pose and health.
 //   - Hunter Registry and read-only pose/target state; calls HunterManager.ReceiveHint.
@@ -54,9 +53,10 @@ namespace Worsen.Domain.Director
         public event Action<EntityId, NoiseEvent> OnNoiseHintIssued;
         public void SetLevelView(IReadOnlyLevelState level) { _controller?.SetLevelView(level); }
         public void SetClosedDoors(IReadOnlyDictionary<int, bool> doors) { _controller?.SetClosedDoors(doors); }
-        public void HearNoise(NoiseEvent noise) { _controller?.HearNoise(noise); }
+        public void HearNoise(NoiseEvent noise) { if (HunterHearingUtility.Allows(noise)) _controller?.HearNoise(noise); }
         public void HearFloorWideNoise(NoiseEvent noise)
         {
+            if (!HunterHearingUtility.Allows(noise)) return;
             foreach (var hunter in HunterRegistry.Items)
                 if (hunter != null && hunter.isActiveAndEnabled && hunter.HearFloorWideNoise(noise))
                     OnNoiseHintIssued?.Invoke(hunter.Id, noise);
@@ -83,7 +83,8 @@ namespace Worsen.Domain.Director
                 var view = manager.ReadOnlyState;
                 players.Add(new DirectorPlayerSample(view.Id, view.Position, view.Velocity, view.IsAlive,
                     _chase.HasActiveChase && _chase.PlayerId == view.Id));
-                if (view.RecentNoises != null) foreach (var noise in view.RecentNoises) owner.HearNoise(noise);
+                if (view.RecentNoises != null) foreach (var noise in view.RecentNoises)
+                    if (HunterHearingUtility.Allows(noise) && noise.SourceKind != NoiseSourceKind.Heartbeat) owner.HearNoise(noise);
             }
             var hunters = new List<DirectorHunterSample>();
             foreach (var manager in HunterRegistry.Items)
@@ -119,7 +120,7 @@ namespace Worsen.Domain.Director
             foreach (var noise in result.Noises)
             {
                 if (!ReferenceEquals(owner, _controller)) return;
-                if (!HunterRegistry.TryGet(noise.Hunter, out var hunter)) continue;
+                if (!HunterHearingUtility.Allows(noise.Noise) || !HunterRegistry.TryGet(noise.Hunter, out var hunter)) continue;
                 hunter.HearNoise(noise.Noise); OnNoiseHintIssued?.Invoke(noise.Hunter, noise.Noise);
             }
             foreach (var intrusion in result.Intrusions)

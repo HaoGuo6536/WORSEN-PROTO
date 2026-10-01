@@ -42,6 +42,7 @@ using DistantLands.Lumen;
 
 namespace Worsen.Tests.Horror
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class HorrorAtmosphereDriverTests
     {
         private Scene _previousScene;

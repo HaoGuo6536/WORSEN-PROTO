@@ -8,9 +8,10 @@
 // ARCHITECTURAL ROLE:
 //   Editor tool (§10) · Editor · Floor.
 // KEY RESPONSIBILITIES:
-//   - Implement the Floor responsibility named by this file.
+//   - Build Floor assets and serialize surface/mist shader references for player builds.
 //   - Keep rules, passive state and engine operations in their owning roles.
 // DEPENDENCIES:
+//   - Common SetupKit owns checked serialized wiring and asset-folder creation.
 //   - Core floor and level contracts; Floor owns all mutable data in this file.
 //   - Floor reads injected Level and Player views; no Session or Presentation dependency.
 // USAGE NOTES:
@@ -39,6 +40,7 @@ namespace Worsen.Editor.Floor
             RequireEditor();
             var config = EnsureAsset<FloorConfig>(ConfigPath);
             var driverConfig = EnsureAsset<FloorDriverConfig>(DriverConfigPath);
+            ConfigureShaders(driverConfig);
             EnsureFolder("Assets/Prefabs/Floor");
             bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null;
             var root = exists ? PrefabUtility.LoadPrefabContents(PrefabPath) : new GameObject("Floor");
@@ -77,6 +79,16 @@ namespace Worsen.Editor.Floor
             return root.GetComponent<FloorManager>();
         }
 
+        public static void ConfigureShaders(FloorDriverConfig config)
+        {
+            RequireEditor();
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (config.SurfaceShader == null) Wire(config, "_surfaceShader", Shader.Find("Universal Render Pipeline/Lit")
+                ?? throw new InvalidOperationException("Floor setup requires URP Lit."));
+            if (config.MistShader == null) Wire(config, "_mistShader", Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                ?? throw new InvalidOperationException("Floor setup requires URP Particles Unlit."));
+        }
+
         private static T EnsureAsset<T>(string path) where T : ScriptableObject
         {
             var asset = AssetDatabase.LoadAssetAtPath<T>(path);
@@ -85,22 +97,9 @@ namespace Worsen.Editor.Floor
             asset = ScriptableObject.CreateInstance<T>(); AssetDatabase.CreateAsset(asset, path); return asset;
         }
         private static void EnsureFolder(string path)
-        {
-            var parts = path.Split('/'); string current = parts[0];
-            for (int index = 1; index < parts.Length; index++)
-            {
-                string next = current + "/" + parts[index];
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[index]);
-                current = next;
-            }
-        }
+            => Worsen.Editor.Common.SetupKit.EnsureFolder(path);
         private static void Wire(UnityEngine.Object target, string name, UnityEngine.Object value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(name);
-            if (property == null) throw new InvalidOperationException("Missing Floor serialized field: " + name);
-            property.objectReferenceValue = value; serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
+            => Worsen.Editor.Common.SetupKit.Wire(target, name, value);
         private static void RequireEditor()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)

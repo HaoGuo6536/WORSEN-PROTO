@@ -20,6 +20,7 @@ using Worsen.Presentation.Input;
 
 namespace Worsen.Tests.Input
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class InputRecordingPresenterTests
     {
         private InputReplayDriverState Capture()

@@ -9,7 +9,7 @@
 // KEY RESPONSIBILITIES:
 //   - Prevent a pending escape from bypassing already queued lethal contact.
 //   - Let the first hit's grace expire before expecting a second hit to kill.
-//   - Supply the unified escape route's explicit non-bail flag.
+//   - Use the normal escape fact; the retired early-bail flag is no longer an input.
 //   - Close completed capture before announcing Results and input shutdown.
 // DEPENDENCIES:
 //   - Run Session, Player Factory, reproducible Player assets and Unity Test Framework.
@@ -32,6 +32,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Run
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard, Timeout(300000)]
     public sealed class RunTerminalOrderingTests
     {
         [UnityTest]
@@ -71,7 +72,7 @@ namespace Worsen.Tests.Run
                 while (run.Tick < graceEnd) Invoke(run, "FixedUpdate");
                 long beforeTerminal = run.Tick;
                 Invoke(run, "HandleExitOpened", beforeTerminal);
-                Invoke(run, "HandleExitReached", new ExitReachedFact(id, beforeTerminal), false);
+                Invoke(run, "HandleExitReached", new ExitReachedFact(id, beforeTerminal));
                 Invoke(run, "QueueHit", new HunterHit(new EntityId(-1), id, 50, beforeTerminal, Vector3.right));
                 Invoke(run, "FixedUpdate");
                 Assert.That(run.Phase, Is.EqualTo(RunPhase.Ended));

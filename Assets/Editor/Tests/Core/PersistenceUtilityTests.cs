@@ -20,6 +20,7 @@ using Worsen.Core;
 
 namespace Worsen.Tests.Core
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PersistenceUtilityTests
     {
         private static PlayerSettingsRecord Fallback() => new PlayerSettingsRecord(1, 1f, false, 90f, true, true, true, 1f, 0.5f, 0.75f);

@@ -14,6 +14,7 @@
 //   - Cover bounded proximity, fractional injury and independent intrusion/blur expiry.
 //   - Verify look-back release edges, comfort toggles and reset isolation.
 //   - Assert constant degradation, budget-denied subtle intrusion and timed blindness.
+//   - Verify transient hits and critical health feed tape without replacing existing effects.
 //
 // DEPENDENCIES:
 //   - PostFX presentation math, NUnit and editor config serialization only.
@@ -31,6 +32,7 @@ using Worsen.Presentation.PostFX;
 
 namespace Worsen.Tests.PostFX
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PostFXPresenterTests
     {
         private PostFXDriverConfig _config;
@@ -251,6 +253,26 @@ namespace Worsen.Tests.PostFX
             _presenter.SetInjury(_state, 0f, 100f);
             _presenter.Tick(_state, _config, 0f);
             Assert.That(_state.Blackout, Is.Zero, "Hunter catches remain visible too.");
+        }
+
+        [Test]
+        public void HitTapeRelaxesWhileCriticalHealthPersistsAndResetRearmsIt()
+        {
+            _presenter.SetInjury(_state, 50f, 100f);
+            _presenter.Tick(_state, _config, _config.TapeRiseSeconds);
+            Assert.That(_state.Frame.Tape.x, Is.GreaterThan(0f));
+            _presenter.Tick(_state, _config, _config.TapeHitSeconds);
+            _presenter.Tick(_state, _config, _config.TapeRelaxSeconds);
+            Assert.That(_state.Frame.Tape.x, Is.Zero);
+            Assert.That(_state.Vignette, Is.EqualTo(_config.FrameVignette + .5f * _config.InjuryVignette));
+            _presenter.SetInjury(_state, 25f, 100f);
+            _presenter.Tick(_state, _config, 5f);
+            _presenter.Tick(_state, _config, 5f);
+            Assert.That(_state.Frame.Degradation, Is.EqualTo(.75f));
+            _presenter.Reset(_state);
+            _presenter.Tick(_state, _config, 0f);
+            Assert.That(_state.Frame.HitWeight + _state.Frame.Degradation, Is.Zero);
+            Assert.That(_state.Frame.Lens.x, Is.EqualTo(_config.CamcorderCorners));
         }
 
         [Test]

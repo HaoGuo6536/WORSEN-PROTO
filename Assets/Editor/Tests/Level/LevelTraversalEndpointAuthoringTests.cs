@@ -30,6 +30,7 @@ using Worsen.Editor.Level;
 
 namespace Worsen.Tests.Level
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class LevelTraversalEndpointAuthoringTests
     {
         private GameObject root;

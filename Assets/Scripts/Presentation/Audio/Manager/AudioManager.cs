@@ -13,13 +13,11 @@
 //   Owns AudioDriver and forwards Core facts into its presentation stack.
 //
 // KEY RESPONSIBILITIES:
-//   - Forward level acoustics, active effects, grace, exit and committed shop facts.
-//   - Forward runtime category preferences and authoritative pause to the owned Driver.
-//   - Forward catch identity to the Driver's per-run sting admission, guarded by owner readiness.
+//   - Forward roster/tell, acoustic, movement, progression and sensory facts to AudioDriver.
+//   - Forward settings, pause, injury and aggregate proximity without gameplay rules.
+//   - Forward confirmed catch identity to guarded per-run sting admission.
 //   - Establish exactly one persistent Audio service and retire duplicate roots.
-//   - Forward cue, movement, fractional injury and proximity commands without gameplay rules.
-//   - Pair owner enable/disable and teardown with the owned Driver lifetime.
-//   - Forward aggregate live proximity and the explicit expedition contact-retention boundary.
+//   - Pair owner lifecycle and floor/run resets with the owned Driver lifetime.
 //
 // DEPENDENCIES:
 //   - Core CueId and MovementState; Audio system's own Driver and DriverConfig.
@@ -82,12 +80,31 @@ namespace Worsen.Presentation.Audio
         public void ObserveMovement(PlayerMovementSample sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveMovement(sample); }
         public void ObserveTraversal(PlayerTraversalFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveTraversal(fact); }
         public void ObserveHunterFeedback(HunterFeedbackEvent fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHunterFeedback(fact); }
+        public void ObserveArchetype(HunterArchetypeFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveArchetype(fact); }
+        public void ObserveWeaver(WeaverFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveWeaver(fact); }
+        public void ObserveTicking(TickingSoundFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveTicking(fact); }
+        public void ObserveHerald(HeraldScreamFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHerald(fact); }
+        public void ObserveHeraldBreath(HeraldBreathFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHeraldBreath(fact); }
+        public void ObserveHeraldDeafen(HeraldDeafenFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHeraldDeafen(fact); }
+        public void ObserveBlinder(BlinderSoundFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveBlinder(fact); }
+        public void ObserveBlinderHit(BlinderHitFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveBlinderHit(fact); }
+        public void ObserveRam(RamFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveRam(fact); }
+        public void ObserveMimic(MimicFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveMimic(fact); }
+        public void ObserveStare(StareFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveStare(fact); }
+        public void ObserveMannequin(MannequinFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveMannequin(fact); }
+        public void ObserveHabit(HunterHabitFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHabit(fact); }
+        public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick) { if (_initialized && isActiveAndEnabled) _driver.ObserveDeliberation(hunter, position, tick); }
+        public void ObserveProgressionEvent(ProgressionEventFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgressionEvent(fact); }
+        public void ObserveHit(HunterHit fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHit(fact); }
+        public void SetTheme(string zone) { if (_initialized) _driver.SetTheme(zone); }
+        public void SetRoomTheme(int room, string theme, string family) { if (_initialized) _driver.SetRoomTheme(room, theme, family); }
+        public void ClearSenses() { if (_initialized) _driver.ClearSenses(); }
         public void ObservePickup(PickupCollectedFact fact, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObservePickup(fact, position); }
         public void ObserveHand(CollapseHandFact fact) { if (_initialized && isActiveAndEnabled) _driver.ObserveHand(fact); }
         public void ObserveRoom(RoomDestructionSample sample, Vector3 position) { if (_initialized && isActiveAndEnabled) _driver.ObserveRoom(sample, position); }
         public void ObserveHealth(EntityId id, float health, float maximum) { if (_initialized && isActiveAndEnabled) _driver.ObserveHealth(id, health, maximum); }
         public void ObserveProgression(ProgressionSnapshot sample) { if (_initialized && isActiveAndEnabled) _driver.ObserveProgression(sample); }
-        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, string operation) { if (_initialized) _driver.ObserveTransaction(previous, current, operation); }
+        public void ObserveTransaction(ProgressionSnapshot previous, ProgressionSnapshot current, ProgressionOperation operation) { if (_initialized) _driver.ObserveTransaction(previous, current, operation); }
         public void ObserveExit(FloorDisplaySnapshot sample, Vector3 position) { if (_initialized) _driver.ObserveExit(sample, position); }
         public void SetWorld(LevelGraph graph, System.Collections.Generic.IReadOnlyDictionary<int, bool> doors) { if (_initialized) _driver.SetWorld(graph, doors); }
         public void SetActiveEffects(IReadOnlyActiveEffects effects) { if (_initialized) _driver.SetActiveEffects(effects); }
@@ -110,7 +127,7 @@ namespace Worsen.Presentation.Audio
         public void SetFootstepGain(float gain) { if (_initialized) _driver.SetFootstepGain(gain); }
         public void StopEmitter(int emitter) { if (_initialized) _driver.StopEmitter(emitter); }
         public void SetEmitterOcclusion(int emitter, float amount) { if (_initialized) _driver.SetEmitterOcclusion(emitter, amount); }
-        public void ResetRun(bool preserveMusicContact = false) { if (_initialized) _driver.ResetRun(preserveMusicContact); }
+        public void ResetRun(bool preserveMusicContact = false, bool preserveZones = false) { if (_initialized) _driver.ResetRun(preserveMusicContact, preserveZones); }
 
         private void OnEnable() { if (_initialized) _driver.SetOwnerEnabled(true); }
         private void OnDisable() { if (_initialized && _driver != null) _driver.SetOwnerEnabled(false); }

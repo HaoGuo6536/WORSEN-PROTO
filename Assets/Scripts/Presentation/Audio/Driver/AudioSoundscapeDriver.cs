@@ -11,17 +11,11 @@
 //   Sub-driver (§7e), owned by AudioDriver · Presentation · Audio.
 //
 // KEY RESPONSIBILITIES:
-//   - Apply runtime music/effects gains to all pooled, scheduled and ambience sources.
-//   - Stop active enemy voices on player death and reject late enemy feedback while preserving the player's death cue.
-//   - Enforce category limits, timed mix hooks, protected tells and rare false positives.
-//   - Own a bounded source pool, attenuation filters and five non-diegetic bed/music layers.
-//   - Schedule Run 1 into Run 2 without frame-boundary gaps; cancel pending playback on end/reset.
-//   - Refresh spatial loop position/gain without restarting its clip or changing pitch.
-//   - Apply the pure soundscape Presenter and clear playback on disable or reset.
-//   - Supply the seeded cosmetic random source to music loss-episode decisions.
-//   - Stop gameplay loops immediately on death while preserving ambience and one-shots.
-//   - Release each stopped emitter's clip and loop state as well as its voice lease.
-//   - Replace aggregate chase snapshots so obsolete hunters cannot retain music belief.
+//   - Apply roster cues, exact tells, zone filters and confirmed hand versus hunter death cues.
+//   - Enforce category budgets and spatial attenuation through the pure presentation stack.
+//   - Own pooled sources and scheduled adaptive music, releasing playback on reset/teardown.
+//   - Apply runtime gains, pause and living-state guards without altering configs.
+//   - Replace chase snapshots and supply seeded cosmetic timing to music decisions.
 //
 // DEPENDENCIES:
 //   - Core cue identities and value data; own Audio presentation stack only.
@@ -58,6 +52,8 @@ namespace Worsen.Presentation.Audio
         private AudioLowPassFilter[] _runFilters;
         private AudioWorldMixPresenter _worldPresenter;
         private readonly AudioCueCataloguePresenter _catalogue = new AudioCueCataloguePresenter();
+        private readonly AudioRosterPresenter _rosterPresenter = new AudioRosterPresenter();
+        private readonly AudioRosterDriverState _roster = new AudioRosterDriverState();
         private bool _ownsConfig;
         private GameObject _root;
         private readonly Dictionary<CueId, AudioSoundDefinition> _banks = new Dictionary<CueId, AudioSoundDefinition>();
@@ -139,6 +135,11 @@ namespace Worsen.Presentation.Audio
             }
             if (!_state.Alive && (_presenter.IsEnemyCue(cue) || bank.Loop && !bank.Ambience)) return false;
             if (!_presenter.TryPlay(_state, bank, emitter, durations, gain, out AudioPlaybackSample request, _config.TimingJitterSeconds)) return false;
+            ApplyPlayback(bank, request, position, presentationOnly);
+            return true;
+        }
+        private void ApplyPlayback(AudioSoundDefinition bank, AudioPlaybackSample request, Vector3 position, bool presentationOnly = false)
+        {
             AudioSource source = _voices[request.Voice]; source.transform.position = position;
             _state.Voices[request.Voice].Position = position;
             _state.Voices[request.Voice].PresentationOnly = presentationOnly;
@@ -146,7 +147,7 @@ namespace Worsen.Presentation.Audio
             if (request.ReuseLoop)
             {
                 ApplyVoiceGain(request.Voice);
-                return true;
+                return;
             }
             source.Stop(); source.clip = bank.Clips[request.Clip]; source.loop = bank.Loop;
             source.spatialBlend = bank.Spatial ? 1f : 0f; source.dopplerLevel = 0f;
@@ -158,8 +159,111 @@ namespace Worsen.Presentation.Audio
             source.outputAudioMixerGroup = bank.Ambience ? _config.AmbienceGroup : _config.EffectsGroup;
             ApplyVoiceGain(request.Voice);
             if (request.Delay > 0f) source.PlayScheduled(AudioSettings.dspTime + request.Delay); else source.Play();
+        }
+        public void ObserveArchetype(HunterArchetypeFact fact)
+        { if (RosterReady && _rosterPresenter.Archetype(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveWeaver(WeaverFact fact)
+        { if (RosterReady && _rosterPresenter.Weaver(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveTicking(TickingSoundFact fact)
+        { if (RosterReady && _rosterPresenter.Ticking(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveHerald(HeraldScreamFact fact)
+        { if (RosterReady && _rosterPresenter.Herald(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveHeraldBreath(HeraldBreathFact fact)
+        { if (RosterReady && _rosterPresenter.HeraldBreath(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveHeraldDeafen(HeraldDeafenFact fact)
+        { if (RosterReady && _rosterPresenter.AcceptHeraldDeafen(_roster, fact)) { _worldPresenter.HeraldDeafen(_state.WorldMix, fact, _config.EarPlugsDurationMultiplier); ApplyGains(); } }
+        public void ObserveBlinder(BlinderSoundFact fact)
+        { if (RosterReady && _rosterPresenter.Blinder(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveBlinderHit(BlinderHitFact fact)
+        { if (RosterReady && _rosterPresenter.AcceptBlinderHit(_roster, fact)) { _worldPresenter.BlinderHit(_state.WorldMix, fact, _config.MirrorSkinDurationMultiplier); ApplyGains(); } }
+        public void ObserveRam(RamFact fact)
+        { if (RosterReady && _rosterPresenter.Ram(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveMimic(MimicFact fact)
+        { if (RosterReady && _rosterPresenter.Mimic(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveStare(StareFact fact)
+        { if (RosterReady && _rosterPresenter.Stare(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveMannequin(MannequinFact fact)
+        { if (RosterReady) _rosterPresenter.Mannequin(_roster, fact); }
+        public void ObserveHabit(HunterHabitFact fact)
+        { if (RosterReady && _rosterPresenter.Habit(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveDeliberation(EntityId hunter, Vector3 position, long tick)
+        { if (RosterReady && _rosterPresenter.Deliberation(_roster, hunter, position, tick, out var command)) PlayRoster(command); }
+        public void ObserveHunter(HunterFeedbackEvent fact)
+        { if (RosterReady && _rosterPresenter.Feedback(_roster, fact, out var command)) PlayRoster(command); }
+        public void ObserveProgressionEvent(ProgressionEventFact fact)
+        { if (_state != null) { _rosterPresenter.Mutation(_roster, fact); FlushTells(); } }
+        public void ObserveHit(HunterHit fact) { _roster.LastAttacker = fact.Hunter; }
+        public bool PlayDeath(bool handDeath = false)
+        {
+            if (handDeath || !_roster.LastAttacker.IsValid) return PlayLocal(CueId.Death);
+            string key = _roster.Archetypes.TryGetValue(_roster.LastAttacker, out var archetype) ? archetype : "hunter";
+            return PlayRoster(new AudioRosterCommand { Hunter = _roster.LastAttacker, Id = key + ".death", Slot = HunterCueSlot.DeathSting, Gain = 1f, Pitch = 1f, Exact = true });
+        }
+        private bool RosterReady => _state != null && _state.Alive && !_state.Paused && _state.OwnerEnabled && isActiveAndEnabled;
+        private void FlushTells()
+        {
+            if (!RosterReady || !_state.InRun) return;
+            foreach (var voice in _state.Voices)
+                if (voice.Remaining > 0f && voice.Emitter == 0 && voice.Catalogue.Category == CueCategory.Hunter &&
+                    voice.Catalogue.Slot == (int)HunterCueSlot.Presence) return;
+            while (_roster.PendingTells.Count > 0)
+            {
+                var command = _roster.PendingTells[0];
+                bool played = PlayRoster(command);
+                if (!played && !_roster.Missing.Contains(command.Id)) return; // Retry budget pressure, not missing assets.
+                _roster.PendingTells.RemoveAt(0);
+                if (played) return;
+            }
+        }
+        private bool PlayRoster(AudioRosterCommand command)
+        {
+            if (_state == null || _state.Paused || !_state.OwnerEnabled || !isActiveAndEnabled) return false;
+            if (command.Stop)
+            {
+                for (int i = 0; i < _state.Voices.Length; i++)
+                    if (_state.Voices[i].Emitter == command.Hunter.Value && _state.Voices[i].Catalogue.Category == CueCategory.Hunter) StopVoice(i);
+                return true;
+            }
+            var binding = _rosterPresenter.Binding(_config, command.Id);
+            AudioSoundDefinition bank = default;
+            if (!binding.HasValue || binding.Value.Clip == null && (binding.Value.Placeholder || !_banks.TryGetValue(_catalogue.Canonical(binding.Value.Bank), out bank)))
+            {
+                if (_roster.Missing.Add(command.Id)) Debug.LogWarning("Roster cue '" + command.Id + "' has no clip; silent placeholder.", this);
+                return false;
+            }
+            if (binding.Value.Clip != null)
+            {
+                var clips = new AudioClip[1 + (binding.Value.Alternates?.Length ?? 0)]; clips[0] = binding.Value.Clip;
+                if (binding.Value.Alternates != null) System.Array.Copy(binding.Value.Alternates, 0, clips, 1, binding.Value.Alternates.Length);
+                bank = new AudioSoundDefinition { Cue = binding.Value.Bank, Clips = clips,
+                    Gain = binding.Value.OverrideGain ? binding.Value.Gain : _config.RosterClipGain,
+                    Priority = _config.RosterClipPriority, PitchMinimum = 1f - _config.RosterPitchVariation,
+                    PitchMaximum = 1f + _config.RosterPitchVariation, GainVariation = _config.RosterGainVariation };
+            }
+            bool local = !command.Hunter.IsValid || command.Slot == HunterCueSlot.DeathSting;
+            bool protect = command.Slot == HunterCueSlot.Presence || command.Slot == HunterCueSlot.AttackTiming;
+            var entry = new AudioCueCatalogueEntry(CueCategory.Hunter, (int)command.Slot,
+                local ? (NoiseSourceKind?)null : NoiseSourceKind.Other, protect, command.Exact);
+            bank.Loop = false; bank.Spatial = !local;
+            if (command.Exact) { bank.PitchMinimum = bank.PitchMaximum = command.Pitch; bank.GainVariation = 0f; bank.Cooldown = 0f; }
+            var durations = new float[bank.Clips != null ? bank.Clips.Length : 0];
+            for (int i = 0; i < durations.Length; i++) durations[i] = bank.Clips[i] != null ? bank.Clips[i].length : 0f;
+            if (!System.Array.Exists(durations, duration => duration > 0f))
+            {
+                if (_roster.Missing.Add(command.Id)) Debug.LogWarning("Roster cue '" + command.Id + "' has no playable clip; silent placeholder.", this);
+                return false;
+            }
+            if (!_presenter.TryPlay(_state, bank, command.Hunter.Value, durations, command.Gain, out var request,
+                _config.TimingJitterSeconds, entry, command.Exact)) return false;
+            if (command.Interval > 0f) _state.Voices[request.Voice].Remaining = Mathf.Min(_state.Voices[request.Voice].Remaining, command.Interval);
+            ApplyPlayback(bank, request, local ? _state.ListenerPosition : command.Position);
             return true;
         }
+        public void SetTheme(string zone) { _rosterPresenter.Theme(_roster, zone); if (_state != null) ApplyGains(); }
+        public void SetRoomTheme(int room, string theme, string family)
+        { if (_config != null) { _rosterPresenter.RoomTheme(_roster, _config, room, theme, family); if (_state != null) ApplyGains(); } }
+        public void ClearSenses()
+        { if (_state != null) { _state.WorldMix.DeafenedRemaining = _state.WorldMix.MuffledRemaining = 0f; ApplyGains(); } }
         public bool PlayLocal(CueId cue) => _state != null && Play(cue, _state.ListenerPosition, 1f, 0);
         public CueId ResolveFootstep(Vector3 position)
         {
@@ -174,6 +278,7 @@ namespace Worsen.Presentation.Audio
         {
             if (_state == null) return;
             _state.InRun = inRun;
+            FlushTells();
             for (int i = 0; i < _state.Voices.Length; i++)
                 if (_state.Voices[i].Remaining > 0f && (_state.Voices[i].Catalogue.Category == CueCategory.Interface) == inRun) StopVoice(i);
         }
@@ -210,7 +315,8 @@ namespace Worsen.Presentation.Audio
             _music = new AudioChaseMusicDriverState { ImpactPitch = _config.ImpactMinimumPitch };
             for (int i = 0; i < 3; i++) _layers[i].volume = 0f;
             for (int i = 0; i < _state.Voices.Length; i++)
-                if (_presenter.IsEnemyCue((CueId)_state.Voices[i].Cue) ||
+                if (_state.Voices[i].Catalogue.Category == CueCategory.Hunter && _state.Voices[i].Catalogue.Slot != (int)HunterCueSlot.DeathSting ||
+                    _presenter.IsEnemyCue((CueId)_state.Voices[i].Cue) ||
                     _state.Voices[i].Loop && _banks.TryGetValue((CueId)_state.Voices[i].Cue, out AudioSoundDefinition bank) && !bank.Ambience)
                     StopVoice(i);
         }
@@ -272,11 +378,13 @@ namespace Worsen.Presentation.Audio
             var voice = _state.Voices[i];
             _voices[i].volume = voice.Remaining <= 0f ? 0f : _state.VoiceGains[i] * EffectsSourceGain * _config.EffectsGain *
                 _worldPresenter.Gain(_state.WorldMix, voice.Catalogue, voice.Position, _config);
-            _filters[i].cutoffFrequency = _worldPresenter.Cutoff(_state.WorldMix, voice.Catalogue.Protected, _config);
+            float zone = _rosterPresenter.ZoneCutoff(_roster, _config, _worldPresenter.Room(_state.WorldMix.Graph, _state.ListenerPosition));
+            _filters[i].cutoffFrequency = voice.Catalogue.Protected ? 22000f : Mathf.Min(zone, _worldPresenter.Cutoff(_state.WorldMix, false, _config));
         }
-        public void ResetRun(bool preserveMusicContact = false)
+        public void ResetRun(bool preserveMusicContact = false, bool preserveZones = false)
         {
             if (_state == null) return;
+            _rosterPresenter.Reset(_roster, preserveMusicContact, preserveZones);
             StopSources();
             var prior = _state.WorldMix;
             _state.WorldMix = new AudioWorldMixDriverState { FalsePositiveDue = preserveMusicContact ? prior.FalsePositiveDue : -1f,
@@ -300,6 +408,7 @@ namespace Worsen.Presentation.Audio
                 Play(falsePositive.Cue, falsePositive.Position, falsePositive.Gain, falsePositive.Emitter, true);
             for (int i = 0; i < _state.Voices.Length; i++)
                 if (_state.Voices[i].Remaining <= 0f || _state.WorldMix.InChase && _state.Voices[i].PresentationOnly) StopVoice(i);
+            FlushTells();
             ApplyGains();
         }
         private AudioSource CreateSource(string label, bool loop, AudioClip clip, AudioMixerGroup group)
@@ -347,6 +456,7 @@ namespace Worsen.Presentation.Audio
             if (_root != null) { if (Application.isPlaying) Destroy(_root); else DestroyImmediate(_root); }
             if (_ownsConfig && _config != null) { if (Application.isPlaying) Destroy(_config); else DestroyImmediate(_config); }
             _ownsConfig = false;
+            _rosterPresenter.Reset(_roster, false);
             _root = null; _worldPresenter = null; _voices = null; _filters = null; _layers = null; _state = null; _config = null; _presenter = null;
             _banks.Clear(); _durations.Clear();
             _runSources = null; _music = null; _musicPresenter = null;

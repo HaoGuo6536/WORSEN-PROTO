@@ -8,12 +8,13 @@
 // ARCHITECTURAL ROLE:
 //   Orchestrator (§6) · Orchestrator · Telemetry target.
 // KEY RESPONSIBILITIES:
+//   - Supply Expedition fallback evidence to generation-failure observations without new event streams.
 //   - Record Horror micro-event outcomes with current Run tick/seed; explicitly release scene bindings.
 //   - Forward Core payloads and pair event subscriptions with component lifetime.
 //   - Route accepted progression transactions and generation requests without retaining snapshots.
 //   - Translate Hunter-local stalls into Core observations with the current Run seed.
 // DEPENDENCIES:
-//   - Session.Run/Progression and Presentation.Telemetry/Horror; Core payloads downstream.
+//   - Session.Run/Progression/Expedition and Presentation.Telemetry/Horror; Core payloads downstream.
 //   - Domain.Hunter registry and stall facts are translated at this top-layer boundary.
 // USAGE NOTES:
 //   Persistent on TelemetryManager's root. Setup provides serialized references before activation.
@@ -28,6 +29,7 @@ using Worsen.Core;
 using Worsen.Domain.Hunter;
 using Worsen.Session.Progression;
 using Worsen.Session.Run;
+using Worsen.Session.Expedition;
 using Worsen.Presentation.Telemetry;
 using Worsen.Presentation.Horror;
 
@@ -93,8 +95,10 @@ namespace Worsen.Orchestrator
         { _telemetry.BeginSession(metadata); OnEnable(); }
         private void OnCaptureEnded(long tick, bool complete)
         { _telemetry.EndSession(tick, complete); OnEnable(); }
-        private void OnProgression(ProgressionSnapshot before, ProgressionSnapshot after, string operation, string choiceId)
-            => _telemetry.RecordProgression(before, after, operation, choiceId, _run.Tick);
+        private void OnProgression(ProgressionSnapshot before, ProgressionSnapshot after, ProgressionOperation operation, string choiceId)
+            => _telemetry.RecordProgression(before, after, operation, choiceId, _run.Tick,
+                ExpeditionSessionManager.Instance != null ? ExpeditionSessionManager.Instance.UsedFallback : (bool?)null,
+                ExpeditionSessionManager.Instance != null ? ExpeditionSessionManager.Instance.LayoutManifest : null);
         private void OnGeneration(ProgressionGenerationRequest request) => _telemetry.RecordGeneration(request, _run.Tick);
         private void OnStall(HunterStallFact fact)
             => _telemetry.RecordObservation(TranslateStall(fact,

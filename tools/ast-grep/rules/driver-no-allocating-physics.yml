@@ -1,0 +1,13 @@
+id: driver-no-allocating-physics
+language: csharp
+severity: error
+message: "Driver physics queries must reuse sized NonAlloc buffers in DriverState, retry on saturation, and sort in place (SPEC-001 §7)."
+files:
+  - "Assets/Scripts/**/Driver/**/*.cs"
+rule:
+  any:
+    - pattern: Physics.$METHOD($$$ARGS)
+    - pattern: UnityEngine.Physics.$METHOD($$$ARGS)
+constraints:
+  METHOD:
+    regex: '^(RaycastAll|SphereCastAll|CapsuleCastAll|BoxCastAll|OverlapSphere|OverlapBox|OverlapCapsule)$'

@@ -14,6 +14,7 @@
 //   - Create native Lumen 2 fake spotlight/fill effects without Unity Light components.
 //   - Fill the vendor cone's close-range blind zone without enlarging static wall clearance.
 //   - Apply imported dither fog to a private profile and restore global lighting symmetrically.
+//   - Reuse complete pooled obstruction queries with no allocating overflow fallback.
 //
 // DEPENDENCIES:
 //   - Lumen 2, Unity rendering/physics and FronkonGames.Weird.DitherFog wrapped here.
@@ -28,6 +29,7 @@
 //
 // ============================================================================
 
+using System.Buffers;
 using UnityEngine;
 using Worsen.Core;
 using UnityEngine.Rendering;
@@ -55,6 +57,8 @@ namespace Worsen.Presentation.Horror
             _volume = fogVolume;
             _daylights = daylights;
             _state = new HorrorAtmosphereDriverState();
+            _state.BeamHits = ArrayPool<RaycastHit>.Shared.Rent(32);
+            _state.NearColliders = ArrayPool<Collider>.Shared.Rent(32);
             _state.LightRoot = new GameObject("Flashlight rig");
             _state.LightRoot.SetActive(false);
             _state.LightRoot.transform.SetParent(_camera.transform, false);
@@ -182,10 +186,8 @@ namespace Worsen.Presentation.Horror
             float clearance = _config.NearFillRange;
             if (Application.isPlaying && _state.AtmosphereCaptured)
             {
+                int count = NearQuery(_state.NearFill.transform.position, clearance);
                 Collider[] colliders = _state.NearColliders;
-                int count = Physics.OverlapSphereNonAlloc(_state.NearFill.transform.position, clearance, colliders, ~0, QueryTriggerInteraction.Ignore);
-                if (count == colliders.Length)
-                { colliders = Physics.OverlapSphere(_state.NearFill.transform.position, clearance, ~0, QueryTriggerInteraction.Ignore); count = colliders.Length; }
                 for (int index = 0; index < count; index++)
                     if (colliders[index].attachedRigidbody == null)
                         clearance = Mathf.Min(clearance, Vector3.Distance(_state.NearFill.transform.position, colliders[index].ClosestPoint(_state.NearFill.transform.position)) + .08f);
@@ -200,14 +202,32 @@ namespace Worsen.Presentation.Horror
         {
             if (!Application.isPlaying || !_state.AtmosphereCaptured) return requested;
             float nearest = requested;
+            int count = BeamQuery(source.position, source.forward, Mathf.Max(.01f, requested));
             RaycastHit[] hits = _state.BeamHits;
-            int count = Physics.RaycastNonAlloc(source.position, source.forward, hits, Mathf.Max(.01f, requested), ~0, QueryTriggerInteraction.Ignore);
-            // A full buffer cannot establish nearest-hit completeness; preserve correctness on overflow.
-            if (count == hits.Length)
-            { hits = Physics.RaycastAll(source.position, source.forward, Mathf.Max(.01f, requested), ~0, QueryTriggerInteraction.Ignore); count = hits.Length; }
             for (int index = 0; index < count; index++)
                 if (hits[index].collider.attachedRigidbody == null) nearest = Mathf.Min(nearest, hits[index].distance);
             return _lumen.ObstructedRange(requested, nearest);
+        }
+        private int NearQuery(Vector3 origin, float radius)
+        {
+            int count;
+            while ((count = Physics.OverlapSphereNonAlloc(origin, radius, _state.NearColliders, ~0, QueryTriggerInteraction.Ignore)) == _state.NearColliders.Length)
+                GrowQuery(ref _state.NearColliders);
+            return count;
+        }
+        private int BeamQuery(Vector3 origin, Vector3 direction, float distance)
+        {
+            int count;
+            while ((count = Physics.RaycastNonAlloc(origin, direction, _state.BeamHits, distance, ~0, QueryTriggerInteraction.Ignore)) == _state.BeamHits.Length)
+                GrowQuery(ref _state.BeamHits);
+            return count;
+        }
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            T[] larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true); buffer = larger;
+            Debug.LogWarning($"Horror atmosphere physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
         }
 
         private void Draw(LumenEffectPlayer player, float radius, float brightness, bool visible)
@@ -328,6 +348,9 @@ namespace Worsen.Presentation.Horror
                 foreach (VolumeComponent component in _state.RuntimeFogProfile.components) DestroyOwned(component);
                 DestroyOwned(_state.RuntimeFogProfile);
             }
+            ArrayPool<RaycastHit>.Shared.Return(_state.BeamHits, true);
+            ArrayPool<Collider>.Shared.Return(_state.NearColliders, true);
+            _state.BeamHits = null; _state.NearColliders = null;
             _state = null;
             _config = null;
             _camera = null;

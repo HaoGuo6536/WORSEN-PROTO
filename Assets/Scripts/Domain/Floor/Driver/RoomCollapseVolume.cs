@@ -8,8 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Sub-driver (§7e), owned by FloorDriver Â· Domain Â· Floor.
 // KEY RESPONSIBILITIES:
-//   - Apply FloorHandPresenter look scaling only to disabled-collider hand art.
-//   - Route warning phase and pulse changes to a native Lumen fake-light effect.
+//   - Apply cosmetic hand scaling and route warning pulses to the native Lumen effect.
 //   - Keep collapse presentation aligned with the staged gameplay hazard.
 //   - Preserve one escape opportunity and exactly one hit per committed grab.
 //   - Reconcile overlap contacts before each Floor tick, including stationary actors on activation.
@@ -21,8 +20,11 @@
 //   No persistent singleton, global settings, or independent update loop.
 //   Visual colliders stay disabled. The dedicated trigger includes the room interior
 //   so penetrating or spawning inside a consumed room cannot evade its boundary.
+//   Pooled query buffers grow on saturation, retry without truncation and return on destroy.
+//   Fallback mist uses the config's serialized shader, never a runtime name lookup.
 // ============================================================================
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
@@ -35,6 +37,7 @@ namespace Worsen.Domain.Floor
         private readonly RoomCollapseDriverState _state = new RoomCollapseDriverState();
         private readonly RoomCollapsePresenter _presenter = new RoomCollapsePresenter();
         private FloorDriverConfig _config;
+        private bool _missingShaderReported;
         public int RoomId => _state.RoomId;
         public RoomPhase Phase => _state.Phase;
         public int HandCount => _state.Hands.Count;
@@ -44,7 +47,15 @@ namespace Worsen.Domain.Floor
         public void Configure(LevelRoom room, FloorDriverConfig config, Material darkMaterial, FloorLumenGlow warning,
             Func<Collider, EntityId> resolveIdentity = null, float boundaryReach = 0f, int minimumHands = 0)
         {
+            if (config == null || (config.MistMaterial == null && config.MistShader == null))
+            {
+                const string error = "FloorDriverConfig requires MistMaterial or MistShader. Rebuild Floor assets.";
+                if (!_missingShaderReported) { _missingShaderReported = true; Debug.LogError(error, this); }
+                throw new InvalidOperationException(error);
+            }
             _config = config; _state.Bounds = room.Bounds; _state.Room = room; _state.RoomId = room.Id; _state.Warning = warning;
+            if (_state.QueryHits == null) _state.QueryHits = ArrayPool<RaycastHit>.Shared.Rent(64);
+            if (_state.QueryOverlaps == null) _state.QueryOverlaps = ArrayPool<Collider>.Shared.Rent(64);
             _state.ResolveIdentity = resolveIdentity; _state.BoundaryReach = boundaryReach;
             _state.Phase = RoomPhase.Open; warning.SetVisible(false);
             int width = config.HandGridWidth;
@@ -157,9 +168,13 @@ namespace Worsen.Domain.Floor
             {
                 Vector3 from = playerPosition + Vector3.up * 0.6f;
                 Vector3 delta = probe.Position + Vector3.up * 0.6f - from;
-                foreach (var hit in Physics.RaycastAll(from, delta.normalized, delta.magnitude, ~0, QueryTriggerInteraction.Ignore))
+                int count = RayHits(from, delta.normalized, delta.magnitude);
+                for (int i = 0; i < count; i++)
+                {
+                    var hit = _state.QueryHits[i];
                     if (!hit.collider.transform.IsChildOf(transform) &&
                         (!playerId.IsValid || (_state.ResolveIdentity?.Invoke(hit.collider) ?? EntityId.None) != playerId)) return default;
+                }
             }
             return probe;
         }
@@ -174,8 +189,11 @@ namespace Worsen.Domain.Floor
                 if (!boundary.enabled) continue;
                 var bounds = boundary.bounds;
                 if (_state.Room.Cells.Count > 1) bounds.Expand(new Vector3(_state.BoundaryReach * 2f, 0f, _state.BoundaryReach * 2f));
-                foreach (var other in Physics.OverlapBox(bounds.center, bounds.extents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
-                    Observe(other);
+                int count;
+                while ((count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, _state.QueryOverlaps,
+                    Quaternion.identity, ~0, QueryTriggerInteraction.Ignore)) == _state.QueryOverlaps.Length)
+                    GrowQuery(ref _state.QueryOverlaps);
+                for (int i = 0; i < count; i++) Observe(_state.QueryOverlaps[i]);
             }
         }
         private void Observe(Collider other)
@@ -191,10 +209,32 @@ namespace Worsen.Domain.Floor
         private float SurfaceHeight(Vector3 point, Bounds bounds)
         {
             float floor = bounds.min.y;
-            foreach (var hit in Physics.RaycastAll(new Vector3(point.x, bounds.max.y - 0.05f, point.z), Vector3.down, bounds.size.y, ~0, QueryTriggerInteraction.Ignore))
+            int count = RayHits(new Vector3(point.x, bounds.max.y - 0.05f, point.z), Vector3.down, bounds.size.y);
+            for (int i = 0; i < count; i++)
+            {
+                var hit = _state.QueryHits[i];
                 if (hit.normal.y > 0.65f && hit.collider.attachedRigidbody == null && !hit.collider.transform.IsChildOf(transform))
                     floor = Mathf.Max(floor, hit.point.y);
+            }
             return floor + 0.015f;
+        }
+
+        private int RayHits(Vector3 origin, Vector3 direction, float distance)
+        {
+            int count;
+            while ((count = Physics.RaycastNonAlloc(origin, direction, _state.QueryHits, distance,
+                ~0, QueryTriggerInteraction.Ignore)) == _state.QueryHits.Length)
+                GrowQuery(ref _state.QueryHits);
+            return count;
+        }
+
+        private void GrowQuery<T>(ref T[] buffer)
+        {
+            int previous = buffer.Length;
+            var larger = ArrayPool<T>.Shared.Rent(checked(previous * 2));
+            ArrayPool<T>.Shared.Return(buffer, true);
+            buffer = larger;
+            Debug.LogWarning($"Floor physics query buffer saturated; grew from {previous} to {buffer.Length} and retrying.", this);
         }
 
         private GameObject BuildHand(Material material)
@@ -243,7 +283,7 @@ namespace Worsen.Domain.Floor
         }
         private Material MakeFogMaterial()
         {
-            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
+            var shader = _config.MistShader;
             var material = new Material(shader); _state.OwnedMaterials.Add(material);
             var texture = new Texture2D(32, 32, TextureFormat.RGBA32, false) { name = "Collapse soft fog falloff" };
             var pixels = new Color[1024];
@@ -279,6 +319,9 @@ namespace Worsen.Domain.Floor
         }
         private void OnDestroy()
         {
+            if (_state.QueryHits != null) ArrayPool<RaycastHit>.Shared.Return(_state.QueryHits, true);
+            if (_state.QueryOverlaps != null) ArrayPool<Collider>.Shared.Return(_state.QueryOverlaps, true);
+            _state.QueryHits = null; _state.QueryOverlaps = null;
             foreach (var resource in _state.OwnedResources) Release(resource);
             foreach (var material in _state.OwnedMaterials) Release(material);
         }

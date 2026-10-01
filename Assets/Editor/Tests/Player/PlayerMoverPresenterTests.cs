@@ -28,6 +28,7 @@ using Worsen.Domain.Player;
 
 namespace Worsen.Tests.Player
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class PlayerMoverPresenterTests
     {
         private readonly PlayerMoverPresenter _presenter = new PlayerMoverPresenter();

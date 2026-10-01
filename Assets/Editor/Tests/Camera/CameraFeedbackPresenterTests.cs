@@ -10,7 +10,7 @@
 //   Editor tool (§10) · test suite (§11) · Presentation · Camera.
 //
 // KEY RESPONSIBILITIES:
-//   - Verify catch approach, stable hold timing, hand targeting, precedence and reset.
+//   - Verify hunter timing and fixed-camera hand framing, precedence and reset.
 //   - Cover once-per-tick look input, bounded view angles and exact timing endpoints.
 //   - Exercise effect composition, comfort settings, death and reset isolation.
 //
@@ -31,6 +31,7 @@ using Worsen.Presentation.Camera;
 
 namespace Worsen.Tests.Camera
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class CameraFeedbackPresenterTests
     {
         private CameraDriverConfig _config;
@@ -246,7 +247,7 @@ namespace Worsen.Tests.Camera
         }
 
         [Test]
-        public void HandCatchUsesExactGrabPointAndWinsOverFollowingDeathAndMovement()
+        public void HandCatchFacesGrabPointWithoutMovingCameraAndWinsOverFollowingDeathAndMovement()
         {
             _presenter.SetMovement(_state, _config, Sample(1));
             _presenter.Tick(_state, _config, 0f, 1f);
@@ -255,9 +256,10 @@ namespace Worsen.Tests.Camera
             _presenter.PlayConsumed(_state, _config, grab);
             _presenter.PlayDeathSnap(_state, _config, start + Vector3.right * 10f);
             _presenter.SetMovement(_state, _config, Sample(2, look: new Vector2(90f, 90f)));
-            _presenter.Tick(_state, _config, _config.CatchApproachSeconds, 1f);
+            _presenter.Tick(_state, _config, _config.HandApproachSeconds, 1f);
             Assert.That(_state.Consumed, Is.True);
-            Assert.That(Vector3.Distance(_state.Position, grab), Is.EqualTo(_config.CatchDistance).Within(0.0001f));
+            Assert.That(_state.Position, Is.EqualTo(start));
+            Assert.That(_state.HandDistance, Is.EqualTo(_config.HandReachDistance).Within(0.0001f));
             Assert.That(Vector3.Angle(_state.Rotation * Vector3.forward, grab - _state.Position), Is.LessThan(0.01f));
             var end = _state.Position;
             _presenter.PlayConsumed(_state, _config, start + Vector3.right * 10f);
@@ -373,15 +375,15 @@ namespace Worsen.Tests.Camera
         public void ZeroCatchDurationsStillPublishStartBeforeEnd()
         {
             var serialized = new SerializedObject(_config);
-            serialized.FindProperty("_catchApproachSeconds").floatValue = 0f;
-            serialized.FindProperty("_catchHoldSeconds").floatValue = 0f;
+            serialized.FindProperty("_handApproachSeconds").floatValue = 0f;
+            serialized.FindProperty("_handGrabSeconds").floatValue = 0f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _presenter.SetMovement(_state, _config, Sample(1));
             _presenter.PlayConsumed(_state, _config, _state.EyePosition);
             _presenter.Tick(_state, _config, 0f, 1f);
             Assert.That(_state.CatchHoldStarted, Is.True);
             Assert.That(_state.CatchHoldEnded, Is.False);
-            Assert.That(Vector3.Distance(_state.Position, _state.EyePosition), Is.EqualTo(_config.CatchDistance).Within(0.0001f));
+            Assert.That(_state.Position, Is.EqualTo(_state.EyePosition));
             _presenter.Tick(_state, _config, 0f, 1f);
             Assert.That(_state.CatchHoldEnded, Is.True);
         }

@@ -12,6 +12,7 @@
 //   - Wire clip Playables, physical attack drivers and clear ranged telegraph materials.
 //   - Preserve imported assets, root collision and stable generated asset GUIDs.
 //   - Wire occasional attack vocals with a restrained Goblin probability.
+//   - Expose the same visual-child and Playables wiring for the selectable roster.
 // DEPENDENCIES:
 //   - Hunter runtime types and existing HunterPrefabGenerator; UnityEditor/UnityEngine.
 // USAGE NOTES:
@@ -150,6 +151,31 @@ namespace Worsen.Editor.Hunter
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
 
+        // Visual-only reuse: the caller loads a copy of the proven motor prefab.
+        // Never run EnsureAssets/ConfigureProfile here: those would rewrite collision/tuning.
+        internal static GameObject ReplaceRosterVisual(GameObject root, GameObject source, Avatar avatar,
+            float height, HunterAnimationDriverConfig config, AnimationClip[] clips, HunterAttackDriverConfig attacks)
+        {
+            Transform previous = root.transform.Find("Imported Creature");
+            if (previous != null) UnityEngine.Object.DestroyImmediate(previous.gameObject);
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+            GameObject creature = EnsureCreature(root, new RosterEntry { Key = root.name, Source = source, Height = height });
+            Animator animator = creature.GetComponentInChildren<Animator>(true);
+            animator.avatar = avatar; animator.applyRootMotion = false;
+            animator.runtimeAnimatorController = null; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            ConfigureAnimation(config, clips);
+            HunterAnimationDriver animation = GetOrAdd<HunterAnimationDriver>(creature);
+            HunterAttackDriver attack = GetOrAdd<HunterAttackDriver>(root);
+            Wire(animation, "_animator", animator); Wire(animation, "_config", config);
+            Wire(attack, "_config", attacks);
+            HunterDriver driver = root.GetComponent<HunterDriver>();
+            Wire(driver, "_animation", animation); Wire(driver, "_attacks", attack);
+            Wire(driver, "_capsule", root.GetComponent<CapsuleCollider>());
+            Wire(driver, "_body", root.GetComponent<Rigidbody>());
+            Wire(root.GetComponent<HunterManager>(), "_driver", driver);
+            return creature;
+        }
+
         private static GameObject EnsureCreature(GameObject root, RosterEntry entry)
         {
             Transform found = root.transform.Find("Imported Creature");
@@ -201,6 +227,7 @@ namespace Worsen.Editor.Hunter
         {
             var serialized = new SerializedObject(config);
             Required(serialized, "_warningMaterial").objectReferenceValue = warning;
+            Required(serialized, "_fallbackShader").objectReferenceValue = spell.shader;
             Required(serialized, "_projectileMaterial").objectReferenceValue = spell;
             Required(serialized, "_spikeMaterial").objectReferenceValue = thorn;
             Required(serialized, "_projectilePrefab").objectReferenceValue = bolt;

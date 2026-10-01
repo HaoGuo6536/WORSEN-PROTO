@@ -27,6 +27,7 @@ using EntityId = Worsen.Core.EntityId;
 
 namespace Worsen.Tests.Expedition
 {
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class ExpeditionSessionControllerTests
     {
         private ExpeditionSessionBehaviorState _state;
@@ -50,6 +51,16 @@ namespace Worsen.Tests.Expedition
             var spawns = _controller.HunterSpawns("fallback", new[] { Vector3.zero, Vector3.one });
             Assert.That(spawns[0].ArchetypeKey, Is.EqualTo("hexer"));
             Assert.That(spawns[1].ArchetypeKey, Is.EqualTo("thorncaller"));
+        }
+
+        [TestCase(false, 5)] [TestCase(true, 0)]
+        public void GenerationCapacityIncludesRetainedRosterAndNothingExtras(bool shop, int expected)
+        {
+            _controller.Queue(Request(shop: shop, threats: 2)); _controller.Begin(1);
+            Assert.That(_controller.RequiredHunterCount(3), Is.EqualTo(expected));
+            Assert.DoesNotThrow(() => _controller.RequireHunterCapacity(3, expected));
+            Assert.Throws<InvalidOperationException>(() => _controller.RequireHunterCapacity(3, expected - 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _controller.RequiredHunterCount(-1));
         }
 
         [Test]
@@ -169,7 +180,8 @@ namespace Worsen.Tests.Expedition
             Assert.That(limited.Count, Is.EqualTo(1));
             Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(1));
             _controller.RecordPlayer(new EntityId(1)); _controller.RecordHunter(new EntityId(-1));
-            Assert.DoesNotThrow(_controller.Ready);
+            Assert.Throws<InvalidOperationException>(_controller.Ready);
+            _controller.Fail("safe spawn shortfall");
             _controller.Queue(Request(2, threats: 2)); _controller.ReleaseActors(); _controller.Begin(2);
             var spawns = _controller.HunterSpawns("Hunter", new[] { Vector3.zero, Vector3.one, Vector3.up });
             Assert.That(spawns.Count, Is.EqualTo(2));
@@ -245,7 +257,7 @@ namespace Worsen.Tests.Expedition
             Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(1));
             Assert.That(_controller.HunterSpawns("fallback", null), Is.Empty);
             Assert.That(_state.HunterSpawnShortfall, Is.EqualTo(3));
-            _controller.RecordPlayer(new EntityId(1)); Assert.DoesNotThrow(_controller.Ready);
+            _controller.RecordPlayer(new EntityId(1)); Assert.Throws<InvalidOperationException>(_controller.Ready);
         }
 
         [Test]

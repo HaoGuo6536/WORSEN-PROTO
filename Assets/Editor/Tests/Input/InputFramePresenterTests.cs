@@ -32,6 +32,7 @@ using Worsen.Presentation.Input;
 namespace Worsen.Tests.Input
 {
     [TestFixture]
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class InputFramePresenterTests
     {
         private InputDriverState _state;

@@ -11,16 +11,11 @@
 // ARCHITECTURAL ROLE:
 //   Content SO (section 4b) - Domain - Hunter.
 // KEY RESPONSIBILITIES:
-//   - Preserve observable sensing, committed attacks and explicit ownership boundaries.
-//   - Keep per-life state separate from shared configuration and foreign systems.
-//   - Configure walk speed, chase-relative stalk speed and the player's reveal cone.
-//   - Supply deliberation, utility, prediction, missed-lunge and shared hearing tuning.
-//   - Author habit entries, a tell-only mutation pool and bounded emergence preferences.
-//   - Require credible Stalk clues and allow bounded walk travel before search-leg expiry.
-//   - Bound ordinary chase lead separately from loop intercepts; commit predictions for the action window.
-//   - Select an optional archetype rules config and per-profile motor override.
-//   - Expose a provisional depth gate for roster admission, not runtime despawning.
-//   - Expose a provisional selection depth gate; Session owns gate enforcement.
+//   - Author one hunter's shared tuning, separate from per-life state and foreign systems, preserving observable sensing and committed attacks.
+//   - Configure movement: walk speed, chase-relative stalk speed, the reveal cone, and door-break and Wick sight approach tuning.
+//   - Supply decision tuning: deliberation, utility, prediction, missed lunge, chase lead versus loop intercepts, Stalk clues and search-leg budgets.
+//   - Author habits, a tell-only mutation pool, emergence preferences, and the optional archetype rules config and per-profile motor override.
+//   - Expose provisional roster and selection depth gates for admission only; Session enforces them and never despawns by depth.
 // DEPENDENCIES:
 //   - Hunter-local enums, Core hearing settings and UnityEngine asset authoring types.
 //   - No foreign system state or runtime engine operations.
@@ -44,6 +39,10 @@ namespace Worsen.Domain.Hunter
         [SerializeField] private HunterMotorDriverConfig _motorOverride = null;
         public HunterArchetypeConfig ArchetypeRules => _archetypeRules;
         public HunterMotorDriverConfig MotorOverride => _motorOverride;
+        [SerializeField, Min(1f)] private float _wickSightMultiplier = 1.3f;
+        [SerializeField, Min(0.1f)] private float _doorBreakReach = 1.5f;
+        public float WickSightMultiplier => Mathf.Max(1f, _wickSightMultiplier);
+        public float DoorBreakReach => Mathf.Max(0.1f, _doorBreakReach);
         [Header("Habits and hidden mutations")]
         [SerializeField] private HunterHabitData[] _habits = {
             new HunterHabitData(HunterHabitKind.ThresholdPause),

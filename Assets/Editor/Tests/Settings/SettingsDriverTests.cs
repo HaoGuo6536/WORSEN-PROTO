@@ -31,6 +31,7 @@ namespace Worsen.Tests.Settings
         { if (FailWrites) throw new IOException("Injected disk failure"); Files[name] = json; }
         protected override void LogWarning(string message) => Warnings.Add(message);
     }
+    [Worsen.Tests.Infrastructure.FixtureTimeGuard]
     public sealed class SettingsDriverTests
     {
         private GameObject _owner;

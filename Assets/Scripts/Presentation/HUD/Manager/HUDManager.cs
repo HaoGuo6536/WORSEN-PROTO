@@ -11,12 +11,10 @@
 //   Manager (§1) · Presentation · HUD (Service system).
 //
 // KEY RESPONSIBILITIES:
-//   - Forward the immutable selected-consumable snapshot without querying Progression.
-//   - Expose typed guidance and a fallible, display-only phantom cake command.
 //   - Resolve owned references, initialize once, and pair enable/disable lifecycle.
-//   - Forward cake/golden counts, world direction, occupied slots and chase facts.
-//   - Reset transient chase presentation at an explicitly routed new-run boundary.
-//   - Forward explicitly routed camera orientation to the objective compass.
+//   - Forward fixed-total counters, floor hiding and chase/reset facts.
+//   - Forward shield and immutable inventory snapshots without querying gameplay.
+//   - Forward guidance/camera orientation and expose fallible phantom presentation.
 //
 // DEPENDENCIES:
 //   - Worsen.Core ExitState/GuidanceTarget; no Domain, Session or sibling Presentation systems.
@@ -52,6 +50,9 @@ namespace Worsen.Presentation.HUD
         }
 
         public void SetCount(int collected, int total) { if (_driver != null) _driver.SetCount(collected, total); }
+        public void SetFloorCounters(FloorDisplaySnapshot display) { if (_driver != null) _driver.SetFloorCounters(display); }
+        public void SetThreat(TickingGuidanceFact fact) { if (_driver != null) _driver.SetThreat(fact); }
+        public void SetShield(float shield) { if (_driver != null) _driver.SetShield(shield); }
         public void SetGuidance(IReadOnlyList<GuidanceTarget> targets) { if (_driver != null) _driver.SetGuidance(targets); }
         public bool TryShowPhantomCake(float seconds) => isActiveAndEnabled && _initialized && _driver != null && _driver.TryShowPhantomCake(seconds);
         public void SetGoldenCount(int count) { if (_driver != null) _driver.SetGoldenCount(count); }
