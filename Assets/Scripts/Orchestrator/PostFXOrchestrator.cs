@@ -10,7 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Pair HorrorEffects cleanse/revival facts with targeted blindness and catch-latch clearing.
 //   - Pair Run grace, Blinder/Blind trap and Progression effects; restore effects after capture resets.
-//   - Forward confirmed consumption before terminal presentation; preserve ordinary injury.
+//   - Forward confirmed consumption, ordinary injury and the injected Audio heartbeat envelope.
 //   - Restore the Environment-approved hunter rim after capture resets (default off).
 //   - Share Horror's single startle admission with the Director intrusion's visual strength.
 // DEPENDENCIES:
@@ -20,6 +20,8 @@
 //   - CameraManager supplies a configured consumption duration only during Configure.
 //   - HorrorManager supplies the whole-run clock unless Configure injects a test clock.
 //   - EnvironmentManager supplies the configured look-back rim strength, never gameplay visibility.
+//   - The scene supplies Audio's envelope getter once its Manager exposes it; no second oscillator.
+//   - LateUpdate samples after Audio Update but before the default-order PostFXDriver applies its volume.
 // USAGE NOTES:
 //   Scene-owned; release subscriptions before the scene volume is destroyed. Setup provides serialized references before activation.
 //   Initialize Camera before Configure to synchronize its configured duration.
@@ -47,6 +49,7 @@ using Worsen.Presentation.Environment;
 
 namespace Worsen.Orchestrator
 {
+    [DefaultExecutionOrder(-100)]
     public sealed class PostFXOrchestrator : MonoBehaviour
     {
         [SerializeField] private RunSessionManager _run;
@@ -56,15 +59,17 @@ namespace Worsen.Orchestrator
         private HorrorEffectsManager _effects;
         private EnvironmentManager _environment;
         private Func<double> _runSeconds;
+        private Func<float> _heartbeatEnvelope;
         [SerializeField, Range(0.1f, 2f)] private float _consumptionSeconds = 0.9f;
         public void Configure(RunSessionManager run, PostFXManager postFX, CameraManager camera = null,
             HorrorManager horror = null, Func<double> runSeconds = null, ProgressionSessionManager progression = null,
-            HorrorEffectsManager effects = null, EnvironmentManager environment = null)
+            HorrorEffectsManager effects = null, EnvironmentManager environment = null, Func<float> heartbeatEnvelope = null)
         {
             OnDisable(); _run = run; _postFX = postFX; _horror = horror; _runSeconds = runSeconds;
             _progression = progression;
             _effects = effects;
             _environment = environment;
+            _heartbeatEnvelope = heartbeatEnvelope;
             if (camera != null) _consumptionSeconds = camera.ConsumptionSeconds;
             if (isActiveAndEnabled) OnEnable();
         }
@@ -93,6 +98,7 @@ namespace Worsen.Orchestrator
         }
         private void OnDisable()
         {
+            if (_postFX != null) _postFX.SetHeartbeatEnvelope(0f);
             if (_effects != null)
             { _effects.SensesCleansed -= OnSensesCleansed; _effects.PlayerRevived -= OnPlayerRevived; }
             if (_progression != null) _progression.EffectsSnapshotChanged -= OnEffectsSnapshot;
@@ -109,6 +115,8 @@ namespace Worsen.Orchestrator
             _run.HunterFacts.BlinderHitPublished -= OnBlinderHit;
         }
         private void OnDestroy() => OnDisable();
+        private void LateUpdate()
+        { if (_postFX != null) _postFX.SetHeartbeatEnvelope(_heartbeatEnvelope?.Invoke() ?? 0f); }
         private void OnEffectsSnapshot(ProgressionSnapshot snapshot, IReadOnlyActiveEffects effects) => OnActiveEffectsChanged(effects);
         private void OnTrapSprung(FloorTrapSprungFact fact)
         { if (fact.Kind == FloorTrapKind.Blind) OnBlindTrap(_postFX.BlindTrapSeconds); }

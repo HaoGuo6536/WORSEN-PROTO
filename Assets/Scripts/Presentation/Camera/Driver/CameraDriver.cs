@@ -11,7 +11,7 @@
 //
 // KEY RESPONSIBILITIES:
 //   - Forward traversal and comfort inputs to pure visual math without moving gameplay authority.
-//   - Bind the output camera and rebuild missing owned rig components.
+//   - Bind and expose the output camera/catch status; rebuild missing owned rig components.
 //   - Apply pose/lens before manually advancing the brain and the owned hand close-up.
 //   - Advance catches with injected unscaled time and publish timing edges after applying visuals.
 //   - Generate detection impulses and release only owned runtime objects.
@@ -59,6 +59,8 @@ namespace Worsen.Presentation.Camera
         public event Action<EntityId> CatchHoldEnded;
 
         public Quaternion AimRotation => _state != null ? _presenter.AimRotation(_state) : Quaternion.identity;
+        public UnityEngine.Camera OutputCamera => _outputCamera;
+        public bool IsDeathPresentationActive => _state != null && _state.DeathSnapped;
         public float ConsumptionSeconds => _config != null ? _presenter.ConsumptionSeconds(_config) : 0f;
         public Vector3 AimPosition => _state == null ? Vector3.zero : _state.DeathSnapped ? _state.Position : _state.EyePosition;
 

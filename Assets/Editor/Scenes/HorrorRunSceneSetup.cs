@@ -9,7 +9,7 @@
 //   Editor tool (§10) · Editor · Scenes deterministic horror setup.
 // KEY RESPONSIBILITIES:
 //   - Build the ten-profile expansion roster while preserving matching authored tuning.
-//   - Restore fog, Results, title/preferences and presentation routes idempotently.
+//   - Restore fog, held-item, Results, title/preferences and presentation routes idempotently.
 //   - Wire world services, diagnostics, spatial sound, Lumen and physical exit/collapse.
 //   - Promote the title-capable scene while retaining explicit test-scene order and flags.
 //   - Preserve unrelated loaded scenes and deterministic asset identities.
@@ -42,6 +42,7 @@ using Worsen.Domain.Director;
 using Worsen.Presentation.Input;
 using Worsen.Presentation.DebugOverlay;
 using Worsen.Presentation.Horror;
+using Worsen.Presentation.HeldItem;
 using Worsen.Presentation.Fog;
 using Worsen.Editor.Fog;
 using Worsen.Presentation.ProgressionUI;
@@ -225,6 +226,29 @@ namespace Worsen.Editor.Scenes
         private static void WireMissing(UnityEngine.Object owner, string field, UnityEngine.Object value)
         { if (Referenced<UnityEngine.Object>(owner, field) == null) Wire(owner, field, value); }
 
+        public static void RestoreHeldItem(HorrorRunSceneRoot root)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            var config = Referenced<HeldItemDriverConfig>(root, "_heldItemConfig") ??
+                Ensure<HeldItemDriverConfig>(ConfigRoot + "Presentation/HeldItem/HeldItemDriverConfig.asset");
+            if (config.Shader == null)
+                Wire(config, "_shader", Shader.Find("Universal Render Pipeline/Unlit") ??
+                    throw new InvalidOperationException("Held item setup requires URP Unlit."));
+            AssetDatabase.SaveAssetIfDirty(config);
+            var heldItem = Referenced<HeldItemManager>(root, "_heldItem");
+            if (heldItem == null)
+            {
+                heldItem = Add<HeldItemManager>("Held Item Service");
+                heldItem.transform.SetParent(root.transform, false);
+            }
+            WireMissing(heldItem, "_config", config);
+            WireMissing(root, "_heldItem", heldItem);
+            WireMissing(root, "_heldItemConfig", config);
+            WireMissing(root, "_heldItemRoute", heldItem.GetComponent<HeldItemOrchestrator>() ??
+                heldItem.gameObject.AddComponent<HeldItemOrchestrator>());
+        }
+
         public static void RestoreHunterRoster(HorrorRunSceneRoot root)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
@@ -292,6 +316,7 @@ namespace Worsen.Editor.Scenes
             camera.gameObject.AddComponent<AudioListener>();
             var data = camera.gameObject.AddComponent<UniversalAdditionalCameraData>(); data.renderPostProcessing = true;
             var cameraManager = Worsen.Editor.Camera.CameraRigSetup.Create(root.transform, camera);
+            RestoreHeldItem(root);
             var postFX = Worsen.Editor.PostFX.PostFXSetup.Create(root.transform);
             Wire(root, "_camera", cameraManager); Wire(root, "_postFX", postFX);
             Route<CameraOrchestrator>(cameraManager.gameObject, run, "_camera", cameraManager);

@@ -14,7 +14,7 @@
 // KEY RESPONSIBILITIES:
 //   - Own the canonical seeded run, timing, randomness, synchronous input, pause and ordered fixed ticks.
 //   - Bind gameplay services and pair typed fact-channel inputs with enable/disable.
-//   - Sequence committed snapshots and retain legacy facts required by external consumers.
+//   - Publish committed health/shield/floor snapshots for late listeners and retain legacy facts.
 //   - Reject protected hit candidates before damage; publish committed combat, pickup, shrine and collapse facts.
 //   - Resolve terminal, pending-death/revival and escape outcomes; close capture before terminal notification.
 //
@@ -112,6 +112,12 @@ namespace Worsen.Session.Run
         public event Action<ChaseFact> ChaseEnded;
         public event Action<ChaseFact> ChasePhaseChanged;
         public event Action<EntityId, float, float> HealthChanged;
+        public void PublishHealthSnapshot()
+        {
+            foreach (PlayerManager player in players)
+                if (player != null && player.ReadOnlyState != null)
+                    HealthChanged?.Invoke(player.Id, player.ReadOnlyState.Health, player.ReadOnlyState.MaxHealth);
+        }
         public void PublishShieldSnapshot()
         {
             foreach (PlayerManager player in players)

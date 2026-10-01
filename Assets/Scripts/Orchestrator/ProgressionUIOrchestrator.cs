@@ -10,11 +10,11 @@
 // KEY RESPONSIBILITIES:
 //   - Suppress the legacy terminal shelter when HorrorRun delegates outcomes to Results.
 //   - Arm every death's terminal gate before RunEnded can publish its terminal snapshot.
-//   - Route display snapshots and UI decisions through paired subscriptions.
+//   - Route display snapshots, actual modal visibility and UI decisions to their owners.
 //   - Route Bargains, rerolls and replacements to Progression; Continue walks away for free.
 //   - Supply a fresh externally generated seed for normal UI restarts, retaining fixed-seed replay.
 // DEPENDENCIES:
-//   - Session Progression/Run, Presentation ProgressionUI and Core payloads.
+//   - Session Progression/Run, Presentation ProgressionUI/HUD and Core payloads.
 //   - CameraManager supplies the authoritative catch-completed event.
 // USAGE NOTES:
 //   Scene-owned. Configure reconnects canonical persistent services after scene
@@ -22,6 +22,8 @@
 //   Call Configure after Camera.Initialize. Optional Run/Camera arguments preserve
 //   legacy scene callers. PlayerDied is synchronous before RunEnded;
 //   UI owns the event gate and unscaled fallback, cleared on restart/disable.
+//   Inject the UI owner's actual visibility getter; never infer it from progression
+//   phase because catch gates and explicit Hide can differ from that phase.
 // ============================================================================
 using UnityEngine;
 using System;
@@ -31,6 +33,7 @@ using Worsen.Session.Progression;
 using Worsen.Presentation.ProgressionUI;
 using Worsen.Session.Run;
 using Worsen.Presentation.Camera;
+using Worsen.Presentation.HUD;
 namespace Worsen.Orchestrator
 {
     public sealed class ProgressionUIOrchestrator : MonoBehaviour
@@ -41,13 +44,17 @@ namespace Worsen.Orchestrator
         private CameraManager _camera;
         private Func<int> _nextRunSeed;
         private bool _terminalResults;
+        private HUDManager _hud;
+        private Func<bool> _modalVisible;
         public void Configure(ProgressionSessionManager progression, ProgressionUIManager ui,
-            RunSessionManager run = null, CameraManager camera = null, Func<int> nextRunSeed = null, bool terminalResults = false)
+            RunSessionManager run = null, CameraManager camera = null, Func<int> nextRunSeed = null, bool terminalResults = false,
+            HUDManager hud = null, Func<bool> modalVisible = null)
         {
             OnDisable(); _progression = progression; _ui = ui; _run = run;
             _nextRunSeed = nextRunSeed;
             _terminalResults = terminalResults;
             _camera = camera;
+            _hud = hud; _modalVisible = modalVisible;
             if (isActiveAndEnabled) OnEnable();
         }
         private void OnEnable()
@@ -67,9 +74,11 @@ namespace Worsen.Orchestrator
             _ui.CancelReplacementRequested += OnCancelReplacement;
             _ui.ContinueRequested += OnContinue;
             _ui.RestartRequested += OnRestart;
+            RefreshModalVisibility();
         }
         private void OnDisable()
         {
+            if (_hud != null) _hud.SetModalOpen(false);
             if (_progression != null)
             {
                 _progression.SnapshotChanged -= OnSnapshot;
@@ -94,7 +103,12 @@ namespace Worsen.Orchestrator
 
             if (_terminalResults && value.Phase == ProgressionPhase.Ended) _ui.Hide();
             else _ui.SetSnapshot(value);
+            RefreshModalVisibility();
         }
+
+        private void LateUpdate() => RefreshModalVisibility();
+        private void RefreshModalVisibility()
+        { if (_hud != null) _hud.SetModalOpen(_ui != null && _ui.isActiveAndEnabled && (_modalVisible?.Invoke() ?? false)); }
 
         private void OnDeath(EntityId player, Vector3 position) => _ui.PrepareCatch(player);
         private void OnCatchEnded(EntityId player) => _ui.EndCatch(player);

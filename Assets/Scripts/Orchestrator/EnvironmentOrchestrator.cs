@@ -11,7 +11,7 @@
 //   - Forward Expedition theme and room-family facts before RoomsReady constructs dressing.
 //   - Pair Horror lighting hooks and resynchronize torch density/Wick after floor dressing resets.
 //   - Pair floor, movement and visual-effect subscriptions with scene lifetime.
-//   - Route authored boundaries/sockets and synchronize dressing with light/destruction facts.
+//   - Route authored boundaries/sockets/furniture ownership and synchronize light/destruction facts.
 //   - Publish the exit frame after room dressing exists and forward continuous opening progress.
 // DEPENDENCIES:
 //   Session Expedition/Run (including FloorFacts)/HorrorEffects; Presentation Environment/Horror; Core values.
@@ -21,6 +21,7 @@
 //   Environment owns objects and lighting budgets.
 //   FloorDisplayChanged carries continuous opening progress; Environment owns ray intensity math.
 // ============================================================================
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
@@ -44,10 +45,11 @@ namespace Worsen.Orchestrator
         private FloorDriverConfig _floorVisuals;
         private HorrorManager _horror;
         private ProceduralManager _procedural;
+        private Func<int, bool> _authoredFurniture;
         public void Configure(RunSessionManager run, ExpeditionSessionManager expedition, HorrorEffectsManager effects,
             EnvironmentManager environment, LevelManager level = null, FloorDriverConfig floorVisuals = null, HorrorManager horror = null,
-            ProceduralManager procedural = null)
-        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; _horror=horror; _procedural=procedural; if (isActiveAndEnabled) OnEnable(); }
+            ProceduralManager procedural = null, Func<int, bool> authoredFurniture = null)
+        { OnDisable(); _run=run; _expedition=expedition; _effects=effects; _environment=environment; _level=level; _floorVisuals=floorVisuals; _horror=horror; _procedural=procedural; _authoredFurniture=authoredFurniture; if (isActiveAndEnabled) OnEnable(); }
         private void OnEnable()
         {
             OnDisable();
@@ -79,7 +81,7 @@ namespace Worsen.Orchestrator
         private void OnRooms(IReadOnlyList<GeneratedRoomSample> rooms)
         {
             _environment.SetRooms(rooms, _procedural != null ? _procedural.RoomBoundary : null,
-                _procedural != null ? _procedural.RoomLightSockets : null);
+                _procedural != null ? _procedural.RoomLightSockets : null, _authoredFurniture);
             SynchronizeLighting();
             if (_level != null && rooms != null)
                 foreach (var room in rooms) BindLights(room.RoomId);

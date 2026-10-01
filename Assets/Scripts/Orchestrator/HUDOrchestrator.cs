@@ -8,7 +8,7 @@
 //   Orchestrator (§6) · Orchestrator · HUD target.
 // KEY RESPONSIBILITIES:
 //   - Route fixed-total counters and floor visibility through Run, including late binding.
-//   - Route independent guidance, shield and unshaken camera aim to HUD.
+//   - Route independent guidance, health, shield and unshaken camera aim to HUD.
 //   - Route Progression inventory/selection to HUD and Run telemetry.
 //   - Pair subscriptions with teardown and reset presentation at floor capture.
 //   - Forward chase facts without computing gameplay or presentation rules.
@@ -51,6 +51,8 @@ namespace Worsen.Orchestrator
             _run.FloorFacts.GuidanceChanged += OnGuidance;
             _run.HunterFacts.TickingGuidancePublished += OnThreat;
             _run.PlayerFacts.ShieldChanged += OnShield;
+            _run.HealthChanged += OnHealth;
+            _run.PublishHealthSnapshot();
             _run.PublishShieldSnapshot();
             _run.PlayerMovementPublished += OnMovement;
             BindProgression();
@@ -66,6 +68,7 @@ namespace Worsen.Orchestrator
             _run.FloorFacts.GuidanceChanged -= OnGuidance;
             _run.HunterFacts.TickingGuidancePublished -= OnThreat;
             _run.PlayerFacts.ShieldChanged -= OnShield;
+            _run.HealthChanged -= OnHealth;
             if (_hud != null) { _hud.ResetRunView(); _hud.SetGuidance(null); }
             _run.PlayerMovementPublished -= OnMovement;
             if (_progression != null) _progression.ConsumablesChanged -= OnSlots;
@@ -83,6 +86,7 @@ namespace Worsen.Orchestrator
         private void OnGuidance(IReadOnlyList<GuidanceTarget> targets) => _hud.SetGuidance(targets);
         private void OnThreat(TickingGuidanceFact fact) => _hud.SetThreat(fact);
         private void OnShield(Worsen.Core.EntityId player, float shield) => _hud.SetShield(shield);
+        private void OnHealth(Worsen.Core.EntityId player, float current, float maximum) => _hud.SetHealth(current, maximum);
         private void BindProgression()
         {
             if (_progression != null) return;
