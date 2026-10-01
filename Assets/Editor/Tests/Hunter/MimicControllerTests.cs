@@ -112,6 +112,26 @@ namespace Worsen.Tests.Hunter
             Assert.That(_mimic.BiteSeconds, Is.EqualTo(1.2f * Mathf.Pow(1.25f, 3)).Within(.0001f));
             Assert.That(_config.BiteSeconds, Is.EqualTo(1.2f));
         }
+        [TestCase(.249, true)] [TestCase(.25, false)] [TestCase(.9, false)]
+        public void GoldenDisguiseUsesQuarterChanceAndNeverReposesAfterBite(double roll, bool golden)
+        {
+            _mimic = new MimicController(_config, new FixedRoll(roll)); _mimic.Reset(Context(0));
+            _effects = new ActiveEffects(new[] { new ActiveEffect(MimicController.GoldenMimic, EffectKind.Curse, 1) });
+            Advance(.1f); var pose = Facts().Find(f => f.Kind == MimicFactKind.Pose);
+            Assert.That(pose.Golden, Is.EqualTo(golden)); Assert.That(pose.WhiteArrowEligible, Is.False);
+            Assert.That(_mimic.Touch(_player.Id, out _), Is.True); Facts();
+            _effects = new ActiveEffects(new[] { new ActiveEffect(MimicController.MoreMimics, EffectKind.Curse, 99) });
+            Advance(10); var facts = Facts();
+            Assert.That(facts.Exists(f => f.Kind == MimicFactKind.Pose), Is.False);
+            Assert.That(facts.Find(f => f.Kind == MimicFactKind.Population).ExtraCount, Is.EqualTo(3));
+            Assert.That(_mimic.Touch(_player.Id, out _), Is.False);
+        }
+        private sealed class FixedRoll : System.Random
+        {
+            private readonly double value;
+            public FixedRoll(double value) { this.value = value; }
+            public override double NextDouble() => value;
+        }
         [Test] public void TeardownReleasesHoldOnceAndResetRestoresFreshLife()
         {
             Advance(.1f); _mimic.Touch(_player.Id, out _); Facts(); _mimic.Teardown();

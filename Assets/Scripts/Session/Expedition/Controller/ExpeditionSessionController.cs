@@ -8,7 +8,7 @@
 // ARCHITECTURAL ROLE:
 //   Controller (§2) · Session · Expedition.
 // KEY RESPONSIBILITIES:
-//   - Preserve retained hunters, append Nothing extras and allocate duplicate indices.
+//   - Preserve retained hunters, allocate duplicates and reserve separate false-cake Mimic sites.
 //   - Reject stale/fallback/incomplete admission and retain diagnostic shortfalls.
 //   - Buffer challenge, movement, traversal and room-crossing facts without engine queries.
 //   - Preserve shields/mutations, time Wick and count physical golden pickups.
@@ -90,7 +90,7 @@ namespace Worsen.Session.Expedition
         }
 
         public IReadOnlyList<SpawnRequest> HunterSpawns(string archetype, IReadOnlyList<Vector3> positions,
-            Func<Vector3, bool> validate = null, IReadOnlyList<string> extraHunters = null)
+            Func<Vector3, bool> validate = null, IReadOnlyList<string> extraHunters = null, IReadOnlyList<Vector3> mimicSites = null)
         {
             RequireGenerating();
             int requested = _state.Request.IsShop ? 0 : _state.Request.Effects.ActiveThreatBudget;
@@ -102,16 +102,36 @@ namespace Worsen.Session.Expedition
             var valid = new List<Vector3>();
             if (positions != null) foreach (var position in positions)
                 if ((validate == null || validate(position)) && !valid.Contains(position)) valid.Add(position);
-            int count = Math.Min(requested, valid.Count);
-            var requests = new SpawnRequest[count];
-            for (int index = 0; index < count; index++)
+            var requests = new List<SpawnRequest>();
+            int ordinary = 0, mimic = 0;
+            var usedMimicSites = new HashSet<Vector3>();
+            for (int index = 0; index < requested; index++)
             {
                 string selected = index >= retained ? extraHunters[index - retained] :
                     _state.Request.Effects.ActiveThreatIds == null ? archetype : _state.Request.Effects.ActiveThreatIds[index];
-                requests[index] = HunterSpawn(selected, valid[index]);
+                if (selected == "mimic")
+                {
+                    while (mimicSites != null && mimic < mimicSites.Count && usedMimicSites.Contains(mimicSites[mimic])) mimic++;
+                    if (mimicSites == null || mimic >= mimicSites.Count) continue;
+                    var site = mimicSites[mimic++]; usedMimicSites.Add(site);
+                    requests.Add(HunterSpawn(selected, site));
+                }
+                else if (ordinary < valid.Count) requests.Add(HunterSpawn(selected, valid[ordinary++]));
             }
-            _state.HunterSpawnShortfall = requested - count;
+            _state.HunterSpawnShortfall = requested - requests.Count;
             return requests;
+        }
+
+        public int MissingMimics(int extraCount, IReadOnlyList<string> extraHunters = null)
+        {
+            if (_state.Phase != ExpeditionAssemblyPhase.Ready || _state.Request.IsShop) return 0;
+            int baseline = 0;
+            if (_state.Request.Effects.ActiveThreatIds != null)
+                foreach (var key in _state.Request.Effects.ActiveThreatIds) if (key == "mimic") baseline++;
+            if (extraHunters != null) foreach (var key in extraHunters) if (key == "mimic") baseline++;
+            if (baseline == 0) return 0;
+            _state.NextDuplicate.TryGetValue("mimic", out int spawned);
+            return Math.Max(0, baseline + Mathf.Clamp(extraCount, 0, 3) - spawned);
         }
 
         public SpawnRequest HunterSpawn(string archetype, Vector3 position)

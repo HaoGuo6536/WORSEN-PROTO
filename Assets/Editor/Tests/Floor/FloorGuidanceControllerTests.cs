@@ -91,6 +91,25 @@ namespace Worsen.Tests.Floor
             Assert.That(c.Tick(0f), Is.False);
         }
 
+        [Test] public void PopulationIsAbsoluteCappedAndSurvivesSpentPoseWithoutGuidingAtIt()
+        {
+            var c = Controller(true);
+            c.SetActiveEffects(new ActiveEffects(new[] {
+                new ActiveEffect(FloorGuidanceController.FaithlessArrow, EffectKind.Curse, 1),
+                new ActiveEffect(new EffectId("mimic-more-mimics"), EffectKind.Curse, 99) }));
+            Window(c);
+            Assert.That(c.ReceiveMimic(new MimicFact(Hunter, Player, MimicFactKind.Population, 1, Vector3.forward * 4, extraCount: 99)), Is.True);
+            Assert.That(c.ExtraMimicCount, Is.EqualTo(3));
+            c.ReceiveMimic(new MimicFact(Hunter, Player, MimicFactKind.PoseRemoved, 2, Vector3.forward * 4, extraCount: 3));
+            Assert.That(c.ExtraMimicCount, Is.EqualTo(3));
+            Assert.That(c.Apply(Normal, Player, Vector3.zero), Is.SameAs(Normal));
+            Assert.That(c.ReceiveMimic(Fact(MimicFactKind.FaithlessWindow, 3)), Is.False);
+            c.ReceiveMimic(new MimicFact(Hunter, Player, MimicFactKind.Population, 4, Vector3.forward * 4, extraCount: 2));
+            Assert.That(c.ExtraMimicCount, Is.EqualTo(2));
+            c.SetActiveEffects(null); Assert.That(c.ExtraMimicCount, Is.Zero);
+            c.Reset(); Assert.That(c.ExtraMimicCount, Is.Zero);
+        }
+
         [Test]
         public void RemovingCurseImmediatelyRestoresTruthAndReaddingDoesNotReviveWindow()
         {

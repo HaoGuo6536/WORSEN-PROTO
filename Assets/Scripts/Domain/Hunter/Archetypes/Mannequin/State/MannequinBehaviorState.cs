@@ -8,6 +8,7 @@
 //   BehaviorState (§3) · Domain · Hunter archetype rules.
 // KEY RESPONSIBILITIES:
 //   - Retain injected observation, tick identity, catch admission and silence facts.
+//   - Retain the last committed pose and moving flag for edge-triggered movement facts.
 // DEPENDENCIES:
 //   - Core observations and System collections only.
 // USAGE NOTES:
@@ -15,6 +16,7 @@
 // ============================================================================
 using System.Collections.Generic;
 using Worsen.Core;
+using UnityEngine;
 namespace Worsen.Domain.Hunter.Archetypes.Mannequin
 {
     public sealed class MannequinBehaviorState
@@ -22,6 +24,9 @@ namespace Worsen.Domain.Hunter.Archetypes.Mannequin
         internal HunterPlayerView View;
         internal bool Clear, Wick, Hold = true;
         internal bool CatchPublished;
+        internal bool Moving;
+        internal Vector3 CommittedPosition;
+        internal long MotionTick = -1;
         internal float Speed = 1f;
         internal long LastTick = -1;
         internal readonly Queue<MannequinFact> Facts = new Queue<MannequinFact>();

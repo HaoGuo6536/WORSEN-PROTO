@@ -10,6 +10,7 @@
 // KEY RESPONSIBILITIES:
 //   - Slow the tick tell, wake at zero and suppress attacks while wound.
 //   - Keep one timed key, publish ThreatArrow guidance and catalogue curse facts.
+//   - Admit complete, available navigation evidence anew every tick, including room crossings.
 // DEPENDENCIES:
 //   - Parent Hunter neutral rules/definitions, injected Player/Level/Floor views, Core effects and facts.
 // USAGE NOTES:
@@ -18,6 +19,7 @@
 //   Hunting remains enabled after shared sight loss, until a key winds the spring.
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Worsen.Core;
 
@@ -52,6 +54,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             _state.Context = context; _state.Now = 0; _state.LastTick = -1; _state.Charge = 1;
             _state.NextTickAt = _config.FullTickInterval; _state.NextKeyAt = _config.KeySeconds;
             _state.HalfWound = false; _state.HasKey = false; _state.KeySerial = 0;
+            _state.GuidanceTick = -1; _state.GuidanceDirection = Vector3.zero;
             _state.FollowProbed = false; _state.HasFollowTarget = false;
             _state.Sounds.Clear(); _state.Noises.Clear();
             _state.FollowAngle = ((float)_random.NextDouble() * 2f - 1f) * _config.BehindArcDegrees;
@@ -129,6 +132,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
             if (!KeyDue || !reachable || float.IsNaN(distance) || distance < range.x || distance > range.y ||
                 !Available(_state.Context.Player.Position, position)) return false;
             _state.HasKey = true; _state.KeyPosition = position; _state.KeySerial++;
+            _state.GuidanceTick = -1;
             Emit(TickingSound.KeyAppeared, position); return true;
         }
         public void DeferPlacement() { if (!HasKey) _state.NextKeyAt = _state.Now + _config.PlacementRetrySeconds; }
@@ -148,9 +152,21 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
                 _state.Context.Tick, NoiseSourceKind.Other));
             return true;
         }
+        public bool GuidanceValid => HasKey && _state.GuidanceTick == _state.Context.Tick &&
+            _state.GuidanceDirection.sqrMagnitude > 0f;
+        public void SetGuidancePath(IReadOnlyList<Vector3> completeCorners, Vector3 direction)
+        {
+            _state.GuidanceTick = -1; _state.GuidanceDirection = Vector3.zero;
+            if (!HasKey || completeCorners == null || completeCorners.Count < 2 ||
+                !Finite(direction) || direction.sqrMagnitude <= 0f) return;
+            for (int i = 0; i < completeCorners.Count; i++)
+                if (!Finite(completeCorners[i]) || !Available(completeCorners[i], completeCorners[Math.Max(0, i - 1)])) return;
+            _state.GuidanceDirection = direction; _state.GuidanceTick = _state.Context.Tick;
+        }
         public GuidanceTarget Guidance => new GuidanceTarget(GuidanceKind.ThreatArrow,
-            HasKey ? (_state.KeyPosition - _state.Context.Player.Position).normalized : Vector3.zero,
-            _state.KeyPosition, entityId: _state.Context.Hunter.Id, isFallback: true);
+            GuidanceValid ? _state.GuidanceDirection : Vector3.zero,
+            _state.KeyPosition, entityId: _state.Context.Hunter.Id);
+        private static bool Finite(Vector3 value) => !float.IsNaN(value.sqrMagnitude) && !float.IsInfinity(value.sqrMagnitude);
         private bool Available(Vector3 start, Vector3 end)
         {
             if (_state.Context.UnavailableRooms != null)

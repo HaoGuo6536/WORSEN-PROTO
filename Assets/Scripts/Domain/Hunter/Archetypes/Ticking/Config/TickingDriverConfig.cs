@@ -8,6 +8,7 @@
 //   DriverConfig (§7d) · Domain · Hunter Ticking.
 // KEY RESPONSIBILITIES:
 //   - Keep key prefab, navigation tolerances and sound-set identifiers designer-owned.
+//   - Supply the same corner lookahead default as cake guidance.
 // DEPENDENCIES:
 //   - UnityEngine asset and value types; local sound identifiers only.
 // USAGE NOTES:
@@ -26,6 +27,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
         [SerializeField, Min(.01f)] private float _clearanceRadius = .3f;
         [SerializeField, Min(.01f)] private float _clearanceHeight = .8f;
         [SerializeField, Min(.01f)] private float _contactRadius = .65f;
+        [SerializeField, Min(0f)] private float _directionCornerSkipDistance = 1f;
         [SerializeField] private LayerMask _obstacleMask = ~0;
         [SerializeField] private string[] _soundIds = { "ticking.tick", "ticking.winding", "ticking.stop", "ticking.wake", "ticking.key-appeared" };
         public GameObject KeyPrefab => _keyPrefab;
@@ -34,6 +36,7 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
         public float ClearanceRadius => Mathf.Max(.01f, _clearanceRadius);
         public float ClearanceHeight => Mathf.Max(ClearanceRadius, _clearanceHeight);
         public float ContactRadius => Mathf.Max(.01f, _contactRadius);
+        public float DirectionCornerSkipDistance => Mathf.Max(0f, _directionCornerSkipDistance);
         public int ObstacleMask => _obstacleMask;
         public System.Collections.Generic.IReadOnlyList<string> SoundIds => _soundIds;
     }

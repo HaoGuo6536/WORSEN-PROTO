@@ -9,7 +9,7 @@
 //   Manager (§1, §8b) · Session · Expedition (Session system).
 // KEY RESPONSIBILITIES:
 //   - Own generation/admission and paired scene-service bindings with diagnostic failures.
-//   - Spawn every retained hunter plus seeded Nothing extras and restore run mutations.
+//   - Spawn retained/Nothing hunters and capped Mimic populations at false cake sites; restore mutations.
 //   - Snapshot configured effects, rewards, theme and freeze facts into floor assembly.
 //   - Route world/view, Skip routes, break/light work, puzzles and shrine facts through owned services.
 //   - Route terminal outcomes to Progression and defer reassembly until cleanup completes.
@@ -302,26 +302,9 @@ namespace Worsen.Session.Expedition
             player.RestoreShield(_controller.CarriedShield);
             _controller.AdmitShieldTransfer();
 
-            var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
-                position => _procedural.ValidateHunterSpawn(position, out _), extras);
-            if (_state.HunterSpawnShortfall > 0)
-                throw new InvalidOperationException("hunter-spawn-capacity-shortfall: required=" +
-                    (spawns.Count + _state.HunterSpawnShortfall) + ", admitted=" + spawns.Count +
-                    ", shortfall=" + _state.HunterSpawnShortfall + ", nothingExtras=" + extras.Count +
-                    ". Procedural must supply safe capacity for the full retained roster plus Nothing stacks.");
             if (_hunterRoster != null && _hunterRoster.Length > 0)
                 _hunterFactory.Configure(_hunterRoster, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
             else _hunterFactory.Configure(_hunterProfile, _run.RandomSource, player.ReadOnlyState, _level.ReadOnlyState);
-            foreach (var spawn in spawns)
-            {
-                EntityId id = _hunterFactory.Spawn(spawn);
-                _controller.RecordHunter(id);
-                if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Generated hunter failed to register.");
-                hunter.ApplyRunSpeedMultiplier(request.Effects.HunterSpeedMultiplier);
-                hunter.SetTraits(request.Effects.Traits);
-                BindHunterWorld(hunter);
-                RestoreMutations(hunter);
-            }
 
             if (request.IsShop) _run.BindGameplay(null, null, null);
             else
@@ -335,6 +318,14 @@ namespace Worsen.Session.Expedition
                     preferredAnchors: _state.FreezeAnchors, earlyCollapseRooms: _state.FreezeBehindRooms, handLook: _state.HandLook,
                     optionalGoldenCakeCount: checked(_state.PuzzleRewards.Count + _procedural.FuturePassageGoldenAnchorCount));
                 _floor.SetActiveEffects(activeEffects);
+                // Floor's path boundary must exist before false cake sites are admitted.
+                var spawns = _controller.HunterSpawns(_hunterProfile.ArchetypeKey, _procedural.HunterSpawnPositions,
+                    position => _procedural.ValidateHunterSpawn(position, out _), extras, MimicSites());
+                if (_state.HunterSpawnShortfall > 0)
+                    throw new InvalidOperationException("hunter-spawn-capacity-shortfall: required=" +
+                        (spawns.Count + _state.HunterSpawnShortfall) + ", admitted=" + spawns.Count +
+                        ", shortfall=" + _state.HunterSpawnShortfall + ". Mimics require distinct reachable false cake sites.");
+                foreach (var spawn in spawns) SpawnPlacedHunter(spawn, false);
                 foreach (var id in _state.Hunters)
                     if (HunterRegistry.TryGet(id, out var actor) && actor.TryGetBlinderTrapPolicy(out var policy)) _floor.ReceiveBlinderTrapPolicy(policy);
                 foreach (var reward in _state.PuzzleRewards)
@@ -368,6 +359,47 @@ namespace Worsen.Session.Expedition
             _level.InteractableChanged += HandleInteractable;
             _run.BeforeTick += RouteClosedDoors;
             _worldBound = true;
+        }
+
+        private IReadOnlyList<Vector3> MimicSites()
+        {
+            var occupied = new List<Vector3>();
+            foreach (var id in _state.Hunters)
+                if (HunterRegistry.TryGet(id, out var hunter)) occupied.Add(hunter.ReadOnlyState.Position);
+            return ExpeditionMimicUtility.Sites(_level.ReadOnlyState.Graph, _procedural.PlayerSpawnPosition,
+                _proceduralConfig.RouteCakeSpacing, occupied, _floor.ReadOnlyState.RoomPhases, _floor.MimicPathLength);
+        }
+
+        private HunterManager SpawnPlacedHunter(SpawnRequest spawn, bool additional)
+        {
+            EntityId id = _hunterFactory.Spawn(spawn);
+            _controller.RecordHunter(id);
+            if (!HunterRegistry.TryGet(id, out var hunter)) throw new InvalidOperationException("Generated hunter failed to register.");
+            hunter.ApplyRunSpeedMultiplier(_state.Request.Effects.HunterSpeedMultiplier);
+            hunter.SetTraits(_state.Request.Effects.Traits); BindHunterWorld(hunter); RestoreMutations(hunter);
+            if (additional)
+            {
+                foreach (var phase in _floor.ReadOnlyState.RoomPhases)
+                    hunter.SetRoomPhase(new RoomPhaseChangedFact(phase.Key, phase.Value, _run.Tick));
+                _run.BindAdditionalHunter(hunter);
+            }
+            return hunter;
+        }
+
+        private void SpawnMimicPopulation()
+        {
+            if (!_controller.AcceptsGameplay(_state.Player) || _floor.ExtraMimicCount == 0) return;
+            var roster = new List<string>();
+            if (_hunterRoster != null && _hunterRoster.Length > 0)
+            { foreach (var profile in _hunterRoster) if (profile != null) roster.Add(profile.ArchetypeKey); }
+            else roster.Add(_hunterProfile.ArchetypeKey);
+            var extras = ExpeditionFloorEffectUtility.ExtraHunters(_progression.EffectsSnapshot.ActiveEffects,
+                roster, _progression.Snapshot.Seed, _state.Request.Round);
+            int missing = _controller.MissingMimics(_floor.ExtraMimicCount, extras);
+            if (missing == 0) return;
+            var sites = MimicSites();
+            if (sites.Count < missing) throw new InvalidOperationException("mimic-false-site-capacity-shortfall: " + missing);
+            for (int i = 0; i < missing; i++) SpawnPlacedHunter(_controller.HunterSpawn("mimic", sites[i]), true);
         }
 
         private void UnbindWorld()
@@ -520,6 +552,10 @@ namespace Worsen.Session.Expedition
         }
         private void HandleTick(InputFrame frame, float dt, long tick)
         {
+            // Population is absolute, and reconciliation runs after the HunterRegistry
+            // tick enumeration: duplicate Mimic facts must never recursively spawn.
+            try { SpawnMimicPopulation(); }
+            catch (Exception exception) { FailAssembly(GenerationId, exception); return; }
             if (_controller.TryTickPuzzles(dt, tick, out var movement)) _procedural?.TickPuzzles(movement, dt);
             _effects?.Tick(frame, dt, tick);
             if (_controller.TickWick(dt, tick)) RestoreWick();
@@ -615,9 +651,9 @@ namespace Worsen.Session.Expedition
             HunterProfile profile = _hunterProfile != null && _hunterProfile.ArchetypeKey == key ? _hunterProfile : null;
             if (_hunterRoster != null) foreach (var entry in _hunterRoster) if (entry != null && entry.ArchetypeKey == key) profile = entry;
             if (profile == null) { Unresolved(fact, "purgatory-profile-unavailable:" + key); return; }
-            foreach (var position in _procedural.HunterSpawnPositions)
+            foreach (var position in key == "mimic" ? MimicSites() : _procedural.HunterSpawnPositions)
             {
-                if (!_procedural.ValidateHunterSpawn(position, out _) || !LateSpawnRoomAvailable(position, player.ReadOnlyState.Position) ||
+                if (key != "mimic" && !_procedural.ValidateHunterSpawn(position, out _) || !LateSpawnRoomAvailable(position, player.ReadOnlyState.Position) ||
                     !_spawnDriver.Validate(position, player.ReadOnlyState.Position, _spawnConfig,
                         profile.MotorOverride != null ? profile.MotorOverride.NavigationAreaMask : 1)) continue;
                 EntityId id = _hunterFactory.Spawn(_controller.HunterSpawn(key, position));

@@ -8,6 +8,7 @@
 //   BehaviorState (§3) · Domain · Hunter archetype state.
 // KEY RESPONSIBILITIES:
 //   - Hold injected context, monotonic timers and consumable key identity.
+//   - Keep only the current tick's verified key bearing; never retain a failed route.
 // DEPENDENCIES:
 //   - Hunter context, local sound facts, Core noise and UnityEngine values.
 // USAGE NOTES:
@@ -30,6 +31,8 @@ namespace Worsen.Domain.Hunter.Archetypes.Ticking
         internal bool HalfWound, HasKey;
         internal int KeySerial;
         internal Vector3 KeyPosition;
+        internal Vector3 GuidanceDirection;
+        internal long GuidanceTick = -1;
         internal readonly Queue<TickingSoundFact> Sounds = new Queue<TickingSoundFact>();
         internal readonly Queue<NoiseEvent> Noises = new Queue<NoiseEvent>();
     }

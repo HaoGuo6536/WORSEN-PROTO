@@ -12,8 +12,8 @@
 // DEPENDENCIES:
 //   - Own state/config, parent neutral/dormancy seam and injected Core world/effect views.
 // USAGE NOTES:
-//   Explicit time and seeded randomness only. Floor owns fake-cake rendering and
-//   exclusion; Session pairs BiteStarted with accepted damage before Player holds.
+//   Explicit time and seeded randomness only. The owned Driver renders the disguise;
+//   Floor excludes it. Session pairs BiteStarted with accepted damage before Player holds.
 //   More Mimics is an absolute extra-count fact, not recursive per-entity spawning.
 // ============================================================================
 using System;
@@ -55,13 +55,19 @@ namespace Worsen.Domain.Hunter.Archetypes.Mimic
             if (!context.Hunter.IsActive || !context.Player.IsAlive) { Teardown(); return; }
             if (Holding)
             { _state.Hold = Mathf.Max(0f, _state.Hold - context.DeltaTime); if (!Holding) Emit(MimicFactKind.BiteEnded); }
-            if (_state.Spent) return;
+            int count = Stacks(MoreMimics);
+            bool populationChanged = !_state.PopulationPublished || count != _state.ExtraCount;
+            _state.ExtraCount = count;
+            if (_state.Spent)
+            {
+                if (populationChanged) { _state.PopulationPublished = true; Emit(MimicFactKind.Population); }
+                return;
+            }
             bool golden = Stacks(GoldenMimic) > 0 && _state.GoldenRoll < _config.GoldenChance;
             if (!_state.Posed || golden != _state.Golden)
             { _state.Golden = golden; _state.Posed = true; Emit(MimicFactKind.Pose); }
-            int count = Stacks(MoreMimics);
-            if (!_state.PopulationPublished || count != _state.ExtraCount)
-            { _state.ExtraCount = count; _state.PopulationPublished = true; Emit(MimicFactKind.Population); }
+            if (populationChanged)
+            { _state.PopulationPublished = true; Emit(MimicFactKind.Population); }
             if (!FaithlessEnabled) { _state.FaithlessElapsed = 0f; return; }
             _state.FaithlessElapsed += context.DeltaTime;
             if (_state.FaithlessElapsed >= _config.FaithlessInterval)
