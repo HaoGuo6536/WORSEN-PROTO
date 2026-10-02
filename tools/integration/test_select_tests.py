@@ -166,6 +166,10 @@ class SelectorTests(unittest.TestCase):
             ('Assets/Art/Hunter/walk.fbx.meta', 'Hunter'),
             ('Assets/Art/Shrine.mat', None),
             ('Assets/Art/Shrine/icon.png', 'Shrine'),
+            ('Assets/Art/Horror/Collapse/WORSEN_SpectralHand_LOD.fbx', 'Floor'),
+            ('Assets/Art/Horror.meta', 'Horror'),
+            ('Assets/Art/Exit/WeatheredDoor/door.fbx.meta', 'Floor'),
+            ('Assets/Art/Player/BlockyCharacter/BlockyCharacter.fbx', 'Player'),
             ('Assets/Resources/ScriptableObjects/Domain/Procedural/catalogue.asset', 'Procedural'),
             ('Assets/Resources/ScriptableObjects/Session/Run/config.asset.meta', 'Run'),
             ('Assets/Scripts/Orchestrator/HUDOrchestrator.cs', 'HUD')):

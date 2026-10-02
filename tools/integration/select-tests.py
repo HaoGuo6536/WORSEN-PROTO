@@ -227,6 +227,10 @@ def select(changed, current, previous=None):
             continue
         asset_owner = next((owner for prefix, owner in (
             ('Assets/Art/Environment', 'Procedural'), ('Assets/Art/Hunter', 'Hunter'),
+            # Collapse hands and the cake pickup are Floor content; the Suzume door is Floor's exit;
+            # other horror art is wired by the Horror setup; the player model is Player content.
+            ('Assets/Art/Horror/Collapse', 'Floor'), ('Assets/Art/Horror/Cake', 'Floor'), ('Assets/Art/Exit', 'Floor'),
+            ('Assets/Art/Horror', 'Horror'), ('Assets/Art/Player', 'Player'),
             ('Assets/Art/Shrine', 'Shrine')) if path == prefix or path.startswith(prefix + '/')), None)
         if path.startswith('Assets/Resources/ScriptableObjects/'):
             asset_owner = system(path)
