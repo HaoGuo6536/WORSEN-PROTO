@@ -14,13 +14,33 @@ function Invoke-Native([string]$exe) {
     try { $o = & $exe @a 2>&1 | ForEach-Object { "$_" }; $script:NativeExit = $LASTEXITCODE } finally { $ErrorActionPreference = $prev }
     return $o
 }
+function Remove-StaleIndexLock([string]$dir) {
+    $lock = (Invoke-Native git.exe -C $dir rev-parse --git-path index.lock | Select-Object -Last 1)
+    if (-not [System.IO.Path]::IsPathRooted($lock)) { $lock = Join-Path $dir $lock }
+    $item = Get-Item -LiteralPath $lock -ErrorAction SilentlyContinue
+    if (-not $item -or $item.Length -ne 0) { return }
+    $age = ((Get-Date) - $item.LastWriteTime).TotalSeconds
+    if ($age -lt 120) { Start-Sleep -Seconds ([int][Math]::Ceiling(120 - $age)) }
+    $item = Get-Item -LiteralPath $lock -ErrorAction SilentlyContinue
+    if (-not $item -or $item.Length -ne 0) { return }
+    for ($check = 0; $check -lt 3; $check++) {
+        if (Get-Process -Name git -ErrorAction SilentlyContinue) { return }
+        Start-Sleep -Seconds 2
+    }
+    Remove-Item -LiteralPath $lock -Force
+    Write-Warning "Removed stale empty index.lock ($($item.LastWriteTime.ToString('HH:mm:ss'))) with no git process running: $lock"
+}
+
 function Invoke-Git([string]$dir) {
     # Another client (an IDE's background `git status`) can hold index.lock briefly; wait it out.
-    # A lock that outlives the retries is reported, never deleted here (README: lock recovery).
+    # Batches 35-36: a git process that dies during Unity setup leaves an EMPTY index.lock behind.
+    # After the retries, remove the lock only when it is empty, older than two minutes and no git
+    # process is running for three consecutive checks; anything else is still reported.
     $a = $args
-    for ($attempt = 1; $attempt -le 7; $attempt++) {
+    for ($attempt = 1; $attempt -le 8; $attempt++) {
         $o = Invoke-Native git.exe -C $dir @a
         if ($script:NativeExit -eq 0 -or ($o -join ' ') -notmatch 'index\.lock') { break }
+        if ($attempt -eq 7) { Remove-StaleIndexLock $dir }
         Start-Sleep -Seconds 5
     }
     if ($script:NativeExit -ne 0) { throw "git $($a -join ' ') failed ($($script:NativeExit)): $($o -join ' | ')" }
