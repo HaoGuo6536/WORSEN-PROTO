@@ -171,6 +171,10 @@ def select(changed, current, previous=None):
                 by_file[path] = fixtures(path, text)
             except ValueError as error:
                 widen(str(error))
+    # Exhaustive seed/variant sweeps (*SweepTests) are an on-demand tier, not gate coverage: they took
+    # 16 of 37 native minutes in batch 36 and a 480-case sweep took 45 minutes in batch 39 (owner,
+    # 2026-10-02: cut down on tests). Run them with run-tests.ps1 -Fixtures when needed. They are
+    # filtered from the result (selection, full scope and inventory), not from file mapping.
     inventory = sorted({name for names in by_file.values() for name in names})
     fixture_types = {name.rsplit('.', 1)[-1] for name in inventory}
     for path, text in current.items():
@@ -308,6 +312,8 @@ def select(changed, current, previous=None):
         widen('no fixture inventory')
     if full:
         reasons = {name: {'full-suite fallback (see full_reasons)'} for name in inventory}
+    reasons = {name: why for name, why in reasons.items() if not name.endswith('SweepTests')}
+    inventory = [name for name in inventory if not name.endswith('SweepTests')]
     return {'schema_version': 1, 'scope': 'full' if full else 'selected',
             'fixtures': sorted(reasons),
             'fixture_reasons': {n: sorted(reasons[n]) for n in sorted(reasons)},

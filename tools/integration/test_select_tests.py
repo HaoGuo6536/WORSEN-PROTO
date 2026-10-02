@@ -180,7 +180,7 @@ class SelectorTests(unittest.TestCase):
                     continue
                 self.assertEqual('selected', result['scope'])
                 expected = {n for p, t in self.sources.items() if p.startswith(SELECTOR.TESTS + owner + '/')
-                            for n in SELECTOR.fixtures(p, t)}
+                            for n in SELECTOR.fixtures(p, t) if not n.endswith('SweepTests')}
                 self.assertTrue(expected and expected <= set(result['fixtures']))
                 self.assertEqual(result['fixtures'], self.choose(path.removesuffix('.meta'))['fixtures'])
         self.assertEqual('full', self.choose('Assets/Resources/ScriptableObjects/Domain/Unknown/config.asset')['scope'])

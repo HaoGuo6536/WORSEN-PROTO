@@ -7,7 +7,7 @@
 # KEY RESPONSIBILITIES:
 #   - Fail closed on selector errors, missing baseline or a due full-suite run.
 #   - Reuse complete full runs, including rejected candidates, with provenance.
-#   - Count native gate attempts for the periodic safety net.
+#   - Count promotions since the reused full run for the periodic safety net.
 #   - Persist fixture reasons and construct a safely quoted runner invocation.
 # DEPENDENCIES: select-tests.py, Gate.ps1, TestResults.ps1, Python, Git, gate ledger.
 # USAGE NOTES: Dot-source with Common/Gate/TestResults. 'selected' cannot override full policy.
@@ -22,12 +22,14 @@ function Resolve-TestSelection($selection, [string]$requested, $entries, [int]$i
     if ($requested -eq 'full') { $reasons += 'explicit -TestScope full' }
     $ordinal = $gates.Count + 1
     if (-not $testedBaseline) { $reasons += 'bootstrap/migrate complete full-run baseline' }
+    # The safety net counts PROMOTIONS since the reused full run, not attempts: rejected gates are
+    # fix iterations, and counting them forced a full suite every few hours (owner, 2026-10-02).
     $sinceFull = @()
     foreach ($gate in $gates) {
         if ($testedBaseline -and $gate.test_run_id -ceq $testedBaseline.run_id) { $sinceFull = @() }
-        else { $sinceFull += [pscustomobject]@{ label = $gate.label; candidate = $gate.candidate_final } }
+        elseif ($gate.promoted) { $sinceFull += [pscustomobject]@{ label = $gate.label; candidate = $gate.candidate_final } }
     }
-    if ($ordinal % $interval -eq 0 -or $sinceFull.Count -ge ($interval - 1)) { $reasons += "periodic full suite: native gate $ordinal, interval $interval" }
+    if ($sinceFull.Count -ge $interval) { $reasons += "periodic full suite: $($sinceFull.Count) promotions since the last full run, interval $interval" }
     $scope = if ($reasons.Count -gt 0) { 'full' } else { 'selected' }
     $fixtures = @($selection.fixtures)
     $fixtureReasons = $selection.fixture_reasons

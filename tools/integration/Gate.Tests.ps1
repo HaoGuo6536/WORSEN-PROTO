@@ -120,11 +120,14 @@ $tested = [pscustomobject]@{ run_id = 'run1'; test_statuses = @((Case 'A.x' 'Fai
 Check 'complete rejected full baseline enables selection' ((Resolve-TestSelection $selection 'auto' $gates 5 $tested).scope -eq 'selected')
 $gates += [pscustomobject]@{ label = 'b4'; promoted = $false; test_run_id = 'run4'; test_scope = 'selected'; candidate_final = 'hash4' }
 $policy = Resolve-TestSelection $selection 'selected' $gates 5 $tested
-Check 'fifth native gate forces full despite no promotions' ($policy.scope -eq 'full' -and $policy.gate_number -eq 5 -and $policy.gates_since_full.Count -eq 3)
+Check 'rejected native attempts never force a periodic full suite' ($policy.scope -eq 'selected' -and $policy.gate_number -eq 5 -and $policy.gates_since_full.Count -eq 0)
 $gates += [pscustomobject]@{ label = 'failed-precheck'; promoted = $false }
 Check 'offline-only failures do not consume native intervals' ((Resolve-TestSelection $selection 'auto' $gates 5 $tested).gate_number -eq 5)
 $gates += [pscustomobject]@{ label = 'failed-full'; test_run_id = 'run5'; test_scope = 'full'; promoted = $false }
-Check 'incomplete due full does not reset safety net' ((Resolve-TestSelection $selection 'auto' $gates 5 $tested).scope -eq 'full')
+Check 'an incomplete full run does not reset the promotion count' ((Resolve-TestSelection $selection 'auto' $gates 5 $tested).scope -eq 'selected')
+$promoted = @($gates) + @(1..5 | ForEach-Object { [pscustomobject]@{ label = "p$_"; promoted = $true; test_run_id = "prun$_"; test_scope = 'selected'; candidate_final = "phash$_" } })
+$policy = Resolve-TestSelection $selection 'auto' $promoted 5 $tested
+Check 'five promotions since the reused full run force a full suite' ($policy.scope -eq 'full' -and $policy.gates_since_full.Count -eq 5)
 Check 'explicit full is honored' ((Resolve-TestSelection $selection 'full' @($gates[0]) 5 $tested).scope -eq 'full')
 Check 'missing ledger starts full' ((Resolve-TestSelection $selection 'auto' @()).scope -eq 'full')
 $selection.scope = 'full'; $selection.full_reasons = @('asmdef')

@@ -22,7 +22,7 @@
 
 ## Selective native tests
 
-The offline pure tier runs all its tests on every candidate except exhaustive `*SweepTests` fixtures, which run only in full native suites (owner, 2026-10-01). The native Edit Mode tier is selective; a selected run also drops `*SweepTests` fixtures, whose representative seeds stay in the ordinary fixtures. `-TestScope auto` is the default. `selected` requests selection but **cannot override** any full-suite requirement. Force a full run with:
+The offline pure tier and every native gate (selected and full) exclude exhaustive `*SweepTests` fixtures: the selector drops them from its inventory, so they are neither required nor carried in baselines (owner, 2026-10-02: a 480-case sweep took 45 of a full run's minutes). Run a sweep on demand with `run-tests.ps1 -Fixtures`. Representative seeds stay in the ordinary fixtures.
 
 ```powershell
 ./tools/integration/integrate.ps1 -Branches @('wt/example') -Label batchN -TestScope full
@@ -48,7 +48,7 @@ Selection includes:
 
 Full runs are mandatory:
 
-- Every fifth **native gate attempt** (`-FullSuiteEvery 5`, unchanged provisional default), and whenever four native attempts have accumulated since the reusable complete full run. Rejected completed runs count and can reset the latter counter; incomplete full attempts cannot reset it. Offline-only precheck failures do not consume native intervals. Legacy entries with test totals or `fail-no-results` count too. `gate_number` is authoritative; `promotion_number` is retained only as promotion metadata, not selection policy.
+- After `-FullSuiteEvery` (default 5) **promotions** since the reused complete full run. Rejected attempts are fix iterations and do not count (owner, 2026-10-02).
 - On `-TestScope full`, or whenever the selector says `full`.
 - For asmdef/asmref/DLL/compiler-response changes, `Packages/`, `ProjectSettings/`, test Infrastructure, `FixtureTimeSetUp`, non-injected runner files or changed runner implementation, vendor-reference content, and unclassified paths. Gate and offline tooling (`tools/integration/`, `tools/offline-compile/`) never runs inside Unity, so it adds no native fixtures; its own pytest, PowerShell and pure-harness checks cover it. Arbitrary art/tool paths outside the explicit mappings still force full.
 - When fixture discovery is ambiguous (including inherited, generic or nested fixtures), mandatory smoke is missing, source/ref reading fails, or selector execution fails.
