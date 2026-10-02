@@ -85,12 +85,20 @@ function Get-FixtureName([string]$name) {
 
 function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today = (Get-Date), $inventory = $null) {
     $states = [System.Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+    # Selection runs whole fixtures: a leaf of a fixture executed now that is absent from the fresh
+    # results was renamed or deleted, so it is not carried forward (batch 37). Leaves observed as
+    # skipped or inconclusive keep the rules below.
+    $freshFixtures = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $freshNames = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($case in @($results.cases)) { if ($case) { [void]$freshNames.Add($case.name); [void]$freshFixtures.Add($(if ($case.fixture) { $case.fixture } else { Get-FixtureName $case.name })) } }
     foreach ($state in @($baseline.test_statuses)) {
+        if ($state -and -not $freshNames.Contains($state.name) -and $freshFixtures.Contains($(if ($state.fixture) { $state.fixture } else { Get-FixtureName $state.name }))) { continue }
         if ($state) { $states[$state.name] = [pscustomobject]@{ name = $state.name; result = $state.result; fixture = $state.fixture; categories = @($state.categories); blocking = $state.blocking } }
     }
     # Legacy ledgers recorded failures only. Seed them conservatively; the first
     # new gate is forced full so current results supply categories and statuses.
     foreach ($name in @($baseline.failed_names)) {
+        if ($name -and -not $freshNames.Contains($name) -and $freshFixtures.Contains((Get-FixtureName $name))) { continue }
         if ($name -and -not $states.ContainsKey($name)) {
             $states[$name] = [pscustomobject]@{ name = $name; result = 'Failed'; categories = @(); blocking = $true }
         }

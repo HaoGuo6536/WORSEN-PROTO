@@ -87,6 +87,12 @@ $r = Result @((Case 'A.x' 'Inconclusive'))
 Check 'inconclusive retry cannot clear a failure' ((Merge-TestBaseline $r @() $base $today).failed_names.Count -eq 2)
 $r = Result @((Case 'C.z' 'Skipped'))
 Check 'skipped retry preserves a known passing status too' ((Merge-TestBaseline $r @() $base $today).test_statuses[2].result -eq 'Passed')
+# Batch 37: a fixture that ran now defines its leaves; its renamed or deleted old leaves are dropped,
+# while fixtures that did not run keep their recorded failures.
+$renamedBase = [pscustomobject]@{ failed_names = @('A.old', 'B.y'); blocking_count = 2
+    test_statuses = @((Case 'A.old' 'Failed' $true), (Case 'B.y' 'Failed' $true)) }
+$next = Merge-TestBaseline (Result @((Case 'A.new' 'Passed'))) @() $renamedBase $today
+Check 'rerun fixture drops its renamed leaves but keeps other fixtures' failures' ($next.failed_names.Count -eq 1 -and $next.failed_names -contains 'B.y' -and -not ($next.test_statuses.name -contains 'A.old'))
 $r = Result @((Case 'A.x' 'Failed'))
 Check 'known partial failure passes without counting omitted tests as run' ((Get-GateVerdict $r @() $base $today).pass)
 $r = Result @((Case 'C.z' 'Failed'))
