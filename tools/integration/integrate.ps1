@@ -167,7 +167,8 @@ try {
     #  - untracked files the candidate adds with identical bytes, or a .meta with the same GUID
     #    (Unity generated them locally; an earlier gate commit tracks them);
     #  - filter artifacts (raw blob under an LFS rule, raw bytes == HEAD blob) that the candidate
-    #    changes or deletes. Anything else still aborts the checkout.
+    #    changes or deletes;
+    #  - dirty tracked files the candidate changes are stashed with a patch (below). Anything else aborts.
     $touched = @{}
     foreach ($p in @(Invoke-Git $main -c core.quotepath=off diff --name-only $mainHead $candidate)) { $touched[$p] = $true }
     $added = @(Invoke-Git $main -c core.quotepath=off diff --name-only --diff-filter=A $mainHead $candidate)
@@ -189,6 +190,17 @@ try {
         $raw = (Invoke-Git $main hash-object --no-filters -- $f) | Select-Object -Last 1
         $blob = (Invoke-Git $main rev-parse "HEAD:$f") | Select-Object -Last 1
         if ($raw -eq $blob) { Remove-Item -LiteralPath (Join-Path $main $f) -Force; Log "Filter artifact the candidate replaces, removed before checkout: $f" }
+    }
+    # Earlier gates leave setup output (configs, catalogues, importer metas) dirty on main. When the candidate
+    # also changes such a file the checkout refuses (batch 35). Setup regenerates it on the candidate, so stash
+    # exactly those files with a recorded patch; the stash is recoverable and nothing else is touched.
+    $preBlocking = @(Invoke-Git $main -c core.quotepath=off diff --name-only HEAD | Where-Object { $touched.ContainsKey($_) -and -not $_.StartsWith('evidence/') })
+    if ($preBlocking.Count -gt 0) {
+        $preList = Join-Path $out 'pre-checkout-drift-status.txt'
+        $preBlocking | Set-Content -LiteralPath $preList -Encoding ASCII
+        Invoke-Git $main diff --binary "--output=$(Join-Path $out 'pre-checkout-drift.patch')" HEAD -- @preBlocking | Out-Null
+        Invoke-Git $main stash push -q -m "$Label pre-checkout drift ($($preBlocking.Count) files the candidate changes; patch in $out)" "--pathspec-from-file=$preList" | Out-Null
+        Log "Pre-checkout drift: $($preBlocking.Count) dirty tracked file(s) the candidate changes; stashed, list $preList"
     }
     Invoke-Git $main checkout -q --detach $candidate | Out-Null
     $onCandidate = $true
