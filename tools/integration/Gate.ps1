@@ -2,7 +2,7 @@
 # Gate.ps1
 # ============================================================================
 # PURPOSE: Judge candidate test evidence against quarantines and the last promoted
-#   baseline. Preserve unexecuted failures so selective runs cannot erase debt.
+#   baseline. Compose tested-candidate coverage without forgiving its failures.
 # ARCHITECTURAL ROLE: Integration tooling; pure verdict policy, no runtime layer.
 # KEY RESPONSIBILITIES:
 #   - Evaluate new failures and the cumulative blocking-failure ratchet.
@@ -45,13 +45,15 @@ function Get-LastPromoted([string]$ledger) {
     return $last
 }
 
-function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (Get-Date)) {
+function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (Get-Date), $testedBaseline = $null) {
     $reasons = @($results.issues | Where-Object { $_ })
     if (-not $results -or $results.total -le 0) {
         return [pscustomobject]@{ pass = $false; reasons = @('no test results or zero tests'); blocking = @(); quarantined = @(); new = @() }
     }
+    $effective = $results
+    if ($testedBaseline) { $effective = Merge-TestedResults $results $quarantine $testedBaseline $today }
     $quarantined = @(); $blocking = @()
-    foreach ($f in @($results.failures)) {
+    foreach ($f in @($effective.failures)) {
         if (@($quarantine | Where-Object { Test-QuarantineMatch $_ $f $today }).Count -gt 0) { $quarantined += $f.name } else { $blocking += $f.name }
     }
     $baseNames = if ($baseline) { @($baseline.failed_names) } else { @() }
@@ -62,20 +64,23 @@ function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (G
     # the ratchet; skipping or omitting a formerly failing test does not fix it.
     $ratchetCount = $blocking.Count
     if ($results.cases -and $baseline) {
-        $next = Merge-TestBaseline $results $quarantine $baseline $today
+        $next = Merge-TestBaseline $effective $quarantine $baseline $today
         $ratchetCount = $next.blocking_count
     }
-    if ($results.scope -eq 'selected' -and $null -eq $baseline.test_statuses) {
+    if ($results.scope -eq 'selected' -and -not $testedBaseline -and $null -eq $baseline.test_statuses) {
         $reasons += 'selected runs require a migrated leaf-status baseline (run full first)'
     }
     if ($results.scope -eq 'selected' -and (-not $results.cases -or @($results.cases).Count -ne $results.total)) { $reasons += 'selected run lacks leaf status evidence' }
     if ($ratchetCount -gt $baseBlocking) { $reasons += "blocking failures $ratchetCount exceed baseline $baseBlocking" }
+    if ($testedBaseline -and $blocking.Count -gt 0) { $reasons += "$($blocking.Count) non-quarantined tested-candidate failure(s) remain" }
     return [pscustomobject]@{ pass = ($reasons.Count -eq 0); reasons = $reasons; blocking = $blocking; quarantined = $quarantined; new = $new }
 }
 
 function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today = (Get-Date)) {
     $states = [System.Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
-    foreach ($state in @($baseline.test_statuses)) { if ($state) { $states[$state.name] = $state } }
+    foreach ($state in @($baseline.test_statuses)) {
+        if ($state) { $states[$state.name] = [pscustomobject]@{ name = $state.name; result = $state.result; fixture = $state.fixture; categories = @($state.categories); blocking = $state.blocking } }
+    }
     # Legacy ledgers recorded failures only. Seed them conservatively; the first
     # new gate is forced full so current results supply categories and statuses.
     foreach ($name in @($baseline.failed_names)) {
@@ -87,17 +92,33 @@ function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today =
         if (-not $case) { continue }
         # Skipped/inconclusive observations do not replace a known executed status.
         # Their current status remains in run evidence, not the baseline ratchet.
-        if ($case.result -notin @('Passed', 'Failed') -and $states.ContainsKey($case.name)) { continue }
+        if ($case.result -notin @('Passed', 'Failed') -and $states.ContainsKey($case.name)) {
+            if (-not $states[$case.name].fixture -and $case.fixture) { $states[$case.name] | Add-Member -Force -NotePropertyName fixture -NotePropertyValue $case.fixture }
+            continue
+        }
         $isBlocking = $case.result -eq 'Failed' -and @($quarantine | Where-Object { Test-QuarantineMatch $_ $case $today }).Count -eq 0
-        $states[$case.name] = [pscustomobject]@{ name = $case.name; result = $case.result; categories = @($case.categories); blocking = $isBlocking }
+        $states[$case.name] = [pscustomobject]@{ name = $case.name; result = $case.result; fixture = $case.fixture; categories = @($case.categories); blocking = $isBlocking }
     }
     $values = @($states.Values | Sort-Object name)
+    # Quarantines are live policy, not a permanently banked exemption.
+    foreach ($state in $values) {
+        $isBlocking = $state.result -eq 'Failed' -and @($quarantine | Where-Object { Test-QuarantineMatch $_ $state $today }).Count -eq 0
+        $state | Add-Member -Force -NotePropertyName blocking -NotePropertyValue $isBlocking
+    }
     [pscustomobject]@{
         test_statuses = $values
         failed_names = @($values | Where-Object { $_.result -eq 'Failed' } | ForEach-Object { $_.name })
         blocking_count = @($values | Where-Object { $_.blocking }).Count
         quarantined_count = @($values | Where-Object { $_.result -eq 'Failed' -and -not $_.blocking }).Count
     }
+}
+
+function Merge-TestedResults($results, $quarantine, $testedBaseline, [datetime]$today = (Get-Date)) {
+    # Keep the native summary untouched: composed coverage is not fresh execution.
+    $merged = Merge-TestBaseline $results $quarantine $testedBaseline $today
+    [pscustomobject]@{ cases = @($merged.test_statuses); total = $merged.test_statuses.Count
+        failures = @($merged.test_statuses | Where-Object { $_.result -eq 'Failed' })
+        issues = @($results.issues); scope = $results.scope }
 }
 
 function Add-LedgerEntry([string]$ledger, [hashtable]$entry) {

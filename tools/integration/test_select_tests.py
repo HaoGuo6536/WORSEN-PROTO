@@ -16,6 +16,8 @@ import importlib.util
 import json
 import subprocess
 import unittest
+from unittest.mock import patch
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -67,7 +69,7 @@ class SelectorTests(unittest.TestCase):
         for path in ('Assets/Editor/Worsen.Editor.asmdef', 'Packages/manifest.json',
                      'ProjectSettings/TagManager.asset', 'Assets/Editor/Tests/FixtureTimeSetUp.cs',
                      'Assets/Editor/Tests/Infrastructure/FixtureTimeGuardAttribute.cs',
-                     'Assets/Editor/Testing/NativeTestRunnerSetup.cs', 'tools/offline-compile/Compile-Staged.ps1',
+                     'Assets/Editor/Testing/OtherRunner.cs',
                      'Assets/Synaptic AI Pro/Editor/TestRunner/NexusTestRunnerService.cs',
                      'Assets/Scripts/Domain/VendorReferences.cs', 'VENDOR.md'):
             with self.subTest(path=path):
@@ -148,6 +150,83 @@ class SelectorTests(unittest.TestCase):
         self.assertEqual('selected', self.choose('Assets/Scenes/HorrorRun.unity.meta')['scope'])
         for path in ('../outside.cs', 'Assets/Missing.cs', 'Assets\\Scenes\\HorrorRun.unity', 'unknown.bin'):
             self.assertEqual('full', self.choose(path)['scope'])
+
+    def test_gate_injection_is_exact_and_implementation_changes_still_widen(self):
+        path = 'Assets/Editor/Testing/NativeTestRunnerSetup.cs'
+        result = self.choose(path, path + '.meta')
+        self.assertEqual('selected', result['scope'])
+        self.assertEqual(set(SELECTOR.SMOKE), set(result['fixtures']))
+        self.assertEqual([path, path + '.meta'], result['ignored_gate_files'])
+        self.assertEqual('full', SELECTOR.select([path], {**self.sources, path: 'new'}, {path: 'old'})['scope'])
+        self.assertEqual('full', self.choose('Assets/Editor/Testing/OtherRunner.cs.meta')['scope'])
+
+    def test_art_configs_orchestrators_and_metas_map_to_systems(self):
+        for path, owner in (
+            ('Assets/Art/Environment/kit.fbx', 'Procedural'),
+            ('Assets/Art/Hunter/walk.fbx.meta', 'Hunter'),
+            ('Assets/Art/Shrine.mat', None),
+            ('Assets/Art/Shrine/icon.png', 'Shrine'),
+            ('Assets/Resources/ScriptableObjects/Domain/Procedural/catalogue.asset', 'Procedural'),
+            ('Assets/Resources/ScriptableObjects/Session/Run/config.asset.meta', 'Run'),
+            ('Assets/Scripts/Orchestrator/HUDOrchestrator.cs', 'HUD')):
+            with self.subTest(path=path):
+                result = self.choose(path)
+                if owner is None:
+                    self.assertEqual('full', result['scope'])
+                    continue
+                self.assertEqual('selected', result['scope'])
+                expected = {n for p, t in self.sources.items() if p.startswith(SELECTOR.TESTS + owner + '/')
+                            for n in SELECTOR.fixtures(p, t)}
+                self.assertTrue(expected and expected <= set(result['fixtures']))
+                self.assertEqual(result['fixtures'], self.choose(path.removesuffix('.meta'))['fixtures'])
+        self.assertEqual('full', self.choose('Assets/Resources/ScriptableObjects/Domain/Unknown/config.asset')['scope'])
+
+    def test_non_unity_paths_only_add_mandatory_smoke(self):
+        for path in ('ArtSource/A/model.blend', 'tools/blender/tool.py', 'PLANNING/index.json',
+                     'evidence/gate-ledger.jsonl', 'Assets/Art/notes.md', 'tools/integration/README.md',
+                     'tools/integration/Gate.ps1', 'tools/offline-compile/Compile-Staged.ps1'):
+            with self.subTest(path=path):
+                self.assertEqual(set(SELECTOR.SMOKE), set(self.choose(path)['fixtures']))
+
+    def test_tested_candidate_self_ancestor_unrelated_and_missing(self):
+        main = SELECTOR.git(ROOT, 'rev-parse', 'main').decode().strip()
+        candidate = SELECTOR.git(ROOT, 'rev-parse', 'adc1efd').decode().strip()
+        for tested in ('adc1efd', 'adc1efd^'):
+            base, target, reused, _ = SELECTOR.comparison_base(ROOT, 'main', candidate, tested)
+            self.assertTrue(reused)
+            self.assertEqual(candidate, target)
+            self.assertEqual(SELECTOR.git(ROOT, 'rev-parse', tested).decode().strip(), base)
+        for tested in ('not-a-ref', 'main'):
+            base, _, reused, _ = SELECTOR.comparison_base(ROOT, 'main', candidate, tested)
+            self.assertFalse(reused)
+            self.assertEqual(main, base)
+
+    def test_equal_tree_without_ancestry_is_accepted_but_changed_tree_is_not(self):
+        # Mock Git responses; never create commits/refs even for test setup.
+        def git_response(root, *args):
+            if args[-1].endswith('^{tree}'):
+                return b'tree\n'
+            return args[-1].removesuffix('^{commit}').encode()
+        with patch.object(SELECTOR, 'git', side_effect=git_response), patch.object(SELECTOR.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1)):
+            self.assertEqual(('c0', 'c1', True, 'identical complete Git trees'), SELECTOR.comparison_base(ROOT, 'main', 'c1', 'c0'))
+
+    def test_environment_system_uses_existing_castle_environment_coverage(self):
+        for path in ('Assets/Resources/ScriptableObjects/Presentation/Environment/EnvironmentDriverConfig.asset',
+                     'Assets/Scripts/Orchestrator/EnvironmentOrchestrator.cs'):
+            result = self.choose(path)
+            self.assertEqual('selected', result['scope'])
+            self.assertIn('Worsen.Tests.CastleEnvironment.EnvironmentThemeConsumerTests', result['fixtures'])
+
+    def test_cli_unions_setup_drift_with_candidate_diff(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'changes.json'
+            path.write_text('["Assets/Art/Hunter/walk.fbx.meta"]', encoding='utf-8')
+            result = json.loads(subprocess.check_output(['python', str(Path(__file__).with_name('select-tests.py')),
+                                '--root', str(ROOT), '--base', 'main', '--candidate', 'HEAD',
+                                '--tested-candidate', 'HEAD', '--extra-changes', str(path)]))
+        self.assertTrue(result['baseline_reused'])
+        self.assertEqual('selected', result['scope'])
+        self.assertTrue(any(name.startswith('Worsen.Tests.Hunter.') for name in result['fixtures']))
 
     def test_all_selected_fixtures_have_reasons_and_output_is_deterministic(self):
         changes = ['Assets/Scenes/HorrorRun.unity', 'README.md']

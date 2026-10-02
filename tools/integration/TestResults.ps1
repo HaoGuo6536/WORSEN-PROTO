@@ -7,6 +7,7 @@
 # KEY RESPONSIBILITIES:
 #   - Preserve every leaf status, fixture identity and inherited category.
 #   - Validate aggregate counts and expose suite-only failures/cancelled runs.
+#   - Validate stored full-run summaries before accepting reusable coverage.
 # DEPENDENCIES: PowerShell and System.Xml; no Unity or network calls.
 # USAGE NOTES: Dot-source. Malformed XML throws; incomplete evidence fails closed.
 # ============================================================================
@@ -41,6 +42,9 @@ function Read-TestSummary([string]$path) {
     # A fixture ignored at fixture or parameterized-method level is emitted as a skipped suite with no leaf
     # cases (HorrorRunFogWiringTests, batch 31b); record it so coverage treats it as present and skipped.
     $ignoredFixtures = @($doc.SelectNodes("//test-suite[@type='TestFixture' and @result='Skipped']") | ForEach-Object { $_.GetAttribute('fullname') })
+    foreach ($suite in $doc.SelectNodes('//test-suite')) {
+        if ($suite.GetAttribute('label') -in @('Cancelled', 'Canceled', 'NotRun')) { $issues += ('cancelled/not-run suite: ' + $suite.GetAttribute('fullname')) }
+    }
     foreach ($suite in $doc.SelectNodes("//test-suite[@result='Failed']")) {
         if ($suite.SelectNodes(".//test-case[@result='Failed']").Count -eq 0) { $issues += ('suite-only failure: ' + $suite.GetAttribute('fullname')) }
     }
@@ -75,5 +79,22 @@ function Get-CoverageIssues($results, [string[]]$fixtures) {
         # skipped, not passed. Missing fixtures are different: the filter omitted them.
         if ($matched.Count -eq 0 -and @($results.ignoredFixtures) -cnotcontains $fixture) { $issues += "fixture absent from results: $fixture" }
     }
+    return $issues
+}
+
+function Get-CompleteEvidenceIssues($results, [string[]]$fixtures) {
+    $issues = @(Get-CoverageIssues $results $fixtures)
+    if (-not $fixtures -or $fixtures.Count -eq 0) { $issues += 'missing full fixture inventory' }
+    if ($results.result -notin @('Passed', 'Failed')) { $issues += 'unfinished full run' }
+    $names = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($case in @($results.cases)) {
+        if (-not $case.name -or -not $case.fixture -or -not $names.Add($case.name)) { $issues += 'unnamed/duplicate leaf or missing fixture' }
+        if ($case.result -notin @('Passed', 'Failed', 'Skipped', 'Inconclusive')) { $issues += 'unfinished leaf' }
+    }
+    foreach ($status in @('Passed', 'Failed', 'Skipped', 'Inconclusive')) {
+        $key = $status.ToLowerInvariant()
+        if ($null -eq $results.$key -or @($results.cases | Where-Object { $_.result -eq $status }).Count -ne $results.$key) { $issues += "stored aggregate mismatch: $key" }
+    }
+    if (($results.result -eq 'Passed' -and $results.failed -ne 0) -or ($results.result -eq 'Failed' -and $results.failed -eq 0)) { $issues += 'stored root result mismatch' }
     return $issues
 }

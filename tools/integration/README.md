@@ -16,9 +16,9 @@
 | `probe.ps1` | Read-only one-line C# probe. |
 | `Common.ps1` | Lease, Synaptic bridge, editor state and console helpers. |
 | `select-tests.py` / `test_select_tests.py` | Offline, fail-closed fixture selection from Git snapshots or a changed-path list; standard-library unit tests. |
-| `TestSelection.ps1` / `TestResults.ps1` | Promotion safety-net policy, native request construction, NUnit leaf/coverage normalization. |
+| `TestSelection.ps1` / `TestResults.ps1` | Tested-candidate baseline, native-gate safety net, native requests and NUnit leaf/coverage validation. |
 | `Assets/Editor/Testing/NativeTestRunnerSetup.cs` | One asynchronous native TestRunnerApi run, using checked reflection without new assembly references or vendor changes. |
-| `selection-history.py` / `selection-history.json` | Reproducible batch20–24 historical selection evidence. |
+| `selection-history.py` / `selection-history.json` | Historical selection evidence; `--run-directory` previews a recorded full run using its fixture durations. |
 
 ## Selective native tests
 
@@ -28,35 +28,44 @@ The offline pure tier runs all its tests on every candidate except exhaustive `*
 ./tools/integration/integrate.ps1 -Branches @('wt/example') -Label batchN -TestScope full
 ```
 
-The selector reads the **final committed candidate**, after setup output and generated metadata have been committed, against `base_main`. It does not use the current working tree when refs are supplied. For deleted/renamed types it scans both snapshots. No GitNexus result, partial or otherwise, narrows selection.
+The selector reads the **final committed candidate**, after setup output and generated metadata have been committed. The gate finds the latest **complete full native run** in ledger order, whether promoted or rejected, and compares its candidate C0 with the new candidate C1. It records the baseline label, run ID, immutable candidate hash, result source and comparison rule in selection/ledger evidence. Selected composites and cumulative `test_statuses` alone are never proof of a complete full run.
+
+Reuse requires `git merge-base --is-ancestor C0 C1` to succeed (self qualifies), or **exact equality of the complete Git tree IDs**. This is deliberately stricter than heuristic patch containment: a rebuilt/cherry-picked sibling with even one differing file does not qualify merely because it looks similar. No files are excluded from the equality proof. Unavailable refs or incompatible candidates fall back to `diff(base_main, C1)` and require a full run because there is no valid coverage baseline. Fix forward from `cand/<label>` to retain ancestry.
+
+The baseline must have successful compile/setup, a resolvable fixture inventory, executed leaves, consistent counts/statuses, no coverage/suite-only/cancellation issues and every discovered fixture present (explicit ignores remain skipped). New entries retain raw `full_native_results`, separately from cumulative statuses. Legacy entries can bootstrap from their exact `request-<run_id>.json`, matching `native-<run_id>/complete.json` and `result-native.xml`; missing or mismatched evidence is rejected, with the reason reported. An older complete full run may be used when newer evidence is incomplete, but the chosen candidate must still pass the ancestry/equality rule.
+
+Git snapshots, not the current working tree, supply source and type declarations. Deleted/renamed types are scanned in both snapshots. No GitNexus result narrows selection. The exact gate-injected allowlist is `Assets/Editor/Testing/NativeTestRunnerSetup.cs` and its `.meta`; their presence alone does not force full. A runner implementation change between two available versions still forces full. Other testing files, assembly definitions and tooling are not exempt; any future injected path needs an explicit reviewed allowlist/test update.
 
 Selection includes:
 
 - Fixtures declared in changed test files (not merely the file's basename), plus consumers of shared test helpers to a fixed point. Nested helpers are represented by their enclosing type so private names like `Fixture` do not select unrelated systems.
 - All fixtures for changed production systems, by folder and namespace convention.
+- `Assets/Art/Environment/**` maps to Procedural, `Assets/Art/Hunter/**` to Hunter, and `Assets/Art/Shrine/**` to Shrine. Mirrored `Assets/Resources/ScriptableObjects/<Layer>/<System>/**` selects that system plus existing serialized-wiring coverage. The existing Environment system uses the `CastleEnvironment` fixture folder/namespace alias.
+- `Assets/Scripts/Orchestrator/<X>Orchestrator.cs` selects X plus wiring/integration coverage. `.meta` follows its asset, including mapped asset folders. A mapped system with no discoverable fixtures still forces full.
 - Tests containing declared type identifiers, including reflection strings, plus **one production/editor consumer hop**. This is lexical dependency analysis, not proof of complete semantic reachability; collisions over-select. Comments are not references.
 - Integration, routing, wiring, setup and scene fixtures (including all Expedition, Run, Scenes, HorrorRun and SceneFlow fixtures) for Orchestrator, Session, Core definitions, setup code, scenes, prefabs and Resources changes, or their directly affected wiring consumers.
 - Three always-included, no-Play-Mode-entry smoke fixtures: `Worsen.Tests.Architecture.ArchitectureConformanceTests`, `Worsen.Tests.Infrastructure.FixtureTimeSetUpTests`, and `Worsen.Tests.Run.RunFactRelayWiringTests`. The last is a one-test native Manager/channel integration smoke, not a full gameplay playtest.
 
 Full runs are mandatory:
 
-- Every fifth **successful promotion** (`-FullSuiteEvery 5`, provisional), and whenever four promotions have accumulated since a recorded full run. Failed attempts do not advance the counter; a failed due-full gate remains due.
+- Every fifth **native gate attempt** (`-FullSuiteEvery 5`, unchanged provisional default), and whenever four native attempts have accumulated since the reusable complete full run. Rejected completed runs count and can reset the latter counter; incomplete full attempts cannot reset it. Offline-only precheck failures do not consume native intervals. Legacy entries with test totals or `fail-no-results` count too. `gate_number` is authoritative; `promotion_number` is retained only as promotion metadata, not selection policy.
 - On `-TestScope full`, or whenever the selector says `full`.
-- For asmdef/asmref/DLL/compiler-response changes, `Packages/`, `ProjectSettings/`, test Infrastructure, `FixtureTimeSetUp`, the native runner, integration/offline-test tooling, vendor-reference content, and unclassified paths. Shaders and arbitrary art/tool changes currently fall back to full rather than claiming a dependency mapping.
+- For asmdef/asmref/DLL/compiler-response changes, `Packages/`, `ProjectSettings/`, test Infrastructure, `FixtureTimeSetUp`, non-injected runner files or changed runner implementation, vendor-reference content, and unclassified paths. Gate and offline tooling (`tools/integration/`, `tools/offline-compile/`) never runs inside Unity, so it adds no native fixtures; its own pytest, PowerShell and pure-harness checks cover it. Arbitrary art/tool paths outside the explicit mappings still force full.
 - When fixture discovery is ambiguous (including inherited, generic or nested fixtures), mandatory smoke is missing, source/ref reading fails, or selector execution fails.
-- On first use or a legacy ledger without leaf statuses, to migrate the baseline safely.
-- No longer for executed setup alone (owner, 2026-10-01): the files setup rewrote (setup drift) are passed back through the selector with `--changed-files` and their fixtures are added; full is used only when that selection says full or fails. A source-only setup change still uses the selector's widened integration selection.
+- Without a complete, compatible full-run baseline. A failed full run is coverage, not permission to forgive failures.
+- Not for executed setup alone: the gate stores generated-output SHA256 snapshots immediately before native tests, compares C0's snapshot with C1's, and unions changed/added/deleted paths with the Git diff through `--extra-changes`. Legacy runs have only drift paths, so both runs' drift paths are conservatively unioned, never subtracted because names match. Missing legacy drift files when the ledger says setup ran reject that baseline. This can select more fixtures until a new full run records hashes; it does not justify pretending parity. Source-only setup changes still widen wiring coverage.
 
-Documentation-only paths outside Assets are explicitly classified; other unknown paths are not silently ignored. Large mixed batches can legitimately select the full suite.
+`ArtSource/**`, `tools/blender/**`, `PLANNING/**`, `evidence/**` and `.md` documentation do not add Unity fixtures; mandatory smoke still runs. The existing `VENDOR.md` environment exception remains fail-closed. Other unknown paths are not silently ignored. Large mixed batches can legitimately select the full suite.
 
 Offline preview (no Unity, no lease):
 
 ```text
 python tools/integration/select-tests.py --base main --candidate wt/example
+python tools/integration/select-tests.py --base main --candidate wt/example --tested-candidate cand/batch34 --extra-changes setup-paths.json
 python tools/integration/select-tests.py --changed-files changes.json --output selection.json
 ```
 
-`changes.json` is a JSON array of exact repository-relative POSIX paths; a UTF-8 newline-separated list is also accepted. Deleted paths without an available base widen to full. JSON includes `scope`, `fixtures`, `fixture_reasons`, `full_reasons`, `all_fixtures`, inventory count and changed paths. A `full` scope means unfiltered Edit Mode execution, not "run only the listed discoverable fixtures."
+`changes.json` is a JSON array of exact repository-relative POSIX paths; a UTF-8 newline-separated list is also accepted. Deleted paths without an available base widen to full. JSON includes `scope`, `fixtures`, `fixture_reasons`, `full_reasons`, `all_fixtures`, inventory count, changed paths and ignored gate paths. The raw Python CLI checks Git compatibility but does not validate ledger results or apply the periodic policy; `Get-CandidateTestSelection` does both. A `full` scope means unfiltered Edit Mode execution, not "run only the listed discoverable fixtures."
 
 Standalone fixture lists use the same native runner:
 
@@ -91,22 +100,46 @@ An ambiguous start error or timeout retains the checkout and lease. Do not retry
 
 `cand/batch22` and `cand/batch24` do not exist in this checkout's refs; their uniquely named gate commits were used explicitly, not fabricated refs. The checked-in ledger ends at batch13. Bases were reconstructed from the first non-merge parent before each contiguous worker merge train; full hashes, fallback provenance and all reasons are in the JSON. Batches20–22 include assembly/test-infrastructure changes and many unmapped assets; batches23–24 include an unmapped shader. No selection saving is claimed for these broad candidates. A narrower real test-only change (`adc1efd`) selects 10 current fixtures, including its shared helper consumers and smoke. Actual native timing savings remain unmeasured; the report's optional estimate is only a uniform-fixture-cost proxy against the owner's 15–25 minute full-suite range, not a benchmark.
 
+### Batch34 recorded-data preview
+
+Read-only input: `Logs/AgentValidation/integration/batch34-20261001-202418` in the main checkout. Candidate `587d25c926cc0e3cb2cbd74689fc8142fa424a51` (`cand/batch34`), native run `882004a4432c41f19d38bd500bebf921`. Its original decision was full: 442 fixtures, 1,232 reasons. The new loader accepts all 4,339 recorded leaves, including 62 failures and 4 skipped cases, without requiring promotion.
+
+For a hypothetical change to `Assets/Scripts/Domain/Floor/Controller/FloorController.cs`, using the recorded candidate source (no new implementation is fabricated):
+
+| Comparison/setup evidence | Required fixtures after selected-only sweep exclusion | Estimated native minutes |
+|---|---:|---:|
+| C0 against itself, setup hash parity assumed | 3/442 | 0.09–10.92 |
+| C0 plus Floor change, setup hash parity assumed | 59/442 | 3.96–14.79 |
+| C0 against itself, actual legacy drift paths retained | 215/442 | 12.73–23.56 |
+| C0 plus Floor change, actual legacy drift paths retained | 247/442 | 12.90–23.73 |
+
+The legacy rows are the defensible bootstrap preview: batch34 has 189 drift paths, not between-run hashes. The hash-parity rows are conditional, not an assertion that old unrecorded setup output was identical. The actual policy preview from the current ledger is native gate 26, selected (no periodic widening); an infrastructure change such as installing this tooling or a due interval still requires full.
+
+Timing is the sum of selected NUnit **fixture** durations, not uniform fixture cost. All fixture durations total 2,300.110 s; the first-to-last leaf span is 2,950 s (49.17 min). Each upper estimate conservatively adds all 649.890 s of unattributed full-run time, not a confidence bound. The NUnit root reports only 8.279 s after reload, so it is explicitly not used as full-run elapsed time. Estimates exclude offline/import/setup work and are not a new Unity benchmark.
+
+Reproduce (output stays in the worker checkout):
+
+```text
+python tools/integration/selection-history.py --run-directory "C:/Users/Hao Guo/Documents/UnityProjects/WORSEN-PROTO/Logs/AgentValidation/integration/batch34-20261001-202418" --output Logs/AgentValidation/gate-select-batch34-preview.json
+```
+
 Offline self-tests:
 
 ```text
-python -m unittest discover -s tools/integration -p test_*.py -v
+python -m pytest tools/integration/test_select_tests.py
 powershell -NoProfile -File tools/integration/Gate.Tests.ps1
 ```
 
 ## Verdict
 
 - A failure matched by a live quarantine entry does not block.
+- With a tested-candidate baseline, fresh leaves override its recorded leaves; every unobserved leaf retains C0's status and fixture/category identity. Skipped/inconclusive observations cannot erase an executed failure. **Every remaining non-quarantined C0 failure blocks**, including unselected failures; accepting coverage from a rejected run does not grant a new failure budget. Current quarantine expiry applies to inherited failures as well.
 - Any other failure is **blocking**. A blocking failure that the last promoted ledger entry did not have is **new**, and one new failure fails the gate.
 - The cumulative blocking count may not exceed the last promoted count (a ratchet: it can only fall). Omitted, skipped or inconclusive tests preserve their last known executed status. Only an explicit `Passed` result clears a prior failure; even full runs do not silently retire deleted/renamed failures. Legacy failure-only history is conservatively retained where the migration full run cannot resolve it; those unresolved entries may require owner review.
 - Missing results, zero tests, a Unity compile failure or a setup failure fail the gate.
 - Setup drift is evidence, not a verdict. `setup-drift.json` lists the generated files (`.asset`, `.prefab`, `.unity`, `.mat`, `.mixer`, `.controller`, `.anim`, `.wav`, `.meta` under `Assets/Resources`, `Prefabs`, `Scenes` and `Settings`) that the setup steps changed, added or removed. A refactor that claims identical setup output should show none.
 
-Every run appends one line to [evidence/gate-ledger.jsonl](../../evidence/gate-ledger.jsonl): base, candidate, compile, lint, setup, observed test totals, scope, requested fixtures/reasons, actual fixture names, run identity, coverage issues, verdict, promotion and push. `run_failed_names`/`run_blocking_count`/`run_quarantined_count` describe only this run. `test_statuses`, `failed_names`, `blocking_count` and `quarantined_count` carry the cumulative baseline. Only promoted entries become the next baseline. Unrun quarantine entries are not reclassified on expiry; if they fail on a later run, expiry applies then. `test-selection.json` retains the decision next to native evidence. A promoted full run records `full_suite_coverage`: itself plus the promotions accumulated since the last recorded full run. That means the cumulative resulting tree was tested, not that historical hashes were replayed.
+Every run appends one line to [evidence/gate-ledger.jsonl](../../evidence/gate-ledger.jsonl): base, candidate, compile, lint, setup, observed test totals, scope, requested fixtures/reasons, actual fixture names, run identity, coverage issues, verdict, promotion and push. `run_failed_names`/`run_blocking_count`/`run_quarantined_count` and native totals describe only fresh execution. `test_statuses`, `failed_names`, `blocking_count` and `quarantined_count` carry the composed cumulative history. Only promoted entries set the promotion ratchet; any validated compatible complete full run may supply selection coverage. `full_native_results` contains raw full-run leaves, not a selected composite. Setup hashes/drift paths and `tested_baseline_label`/`tested_baseline_run_id`/`tested_baseline_candidate` preserve provenance. Quarantines are reevaluated under current policy, including expiry. `test-selection.json` retains the decision next to native evidence. A promoted full run records `full_suite_coverage`: itself plus gate attempts accumulated since its reusable full baseline. That means the resulting tree was tested, not that historical hashes were replayed.
 
 ## Operating rules
 

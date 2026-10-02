@@ -239,30 +239,16 @@ try {
     }
     $entry.candidate_final = $candidate
 
-    # Select from the FINAL tree, including setup outputs and generated metadata.
-    $selection = Get-CandidateTestSelection $main $mainHead $candidate $ledger $TestScope $FullSuiteEvery (Join-Path $out 'test-selection.json')
-    # Setup can rewrite generated assets that Git does not show as candidate changes. Rather than forcing the
-    # full suite on every gate (owner, 2026-10-01: test selectively), feed the files setup actually rewrote
-    # (setup drift) back through the selector and add what it selects; it still answers 'full' when unsure.
-    if (($SetupSteps.Count + $SetupSnippets.Count -gt 0) -and $selection.scope -ne 'full') {
-        $driftPaths = @(@($drift.changed) + @($drift.added) + @($drift.removed) | Where-Object { $_ } | ForEach-Object { $_.Replace('', '/') } | Sort-Object -Unique)
-        if ($driftPaths.Count -gt 0) {
-            $driftList = Join-Path $out 'setup-drift-paths.json'
-            ConvertTo-Json -InputObject @($driftPaths) | Set-Content -LiteralPath $driftList -Encoding UTF8
-            $raw = Invoke-Native python (Join-Path $PSScriptRoot 'select-tests.py') --root $main --changed-files $driftList
-            $extra = $null; if ($script:NativeExit -eq 0) { try { $extra = ($raw -join "`n") | ConvertFrom-Json } catch { } }
-            if (-not $extra -or $extra.scope -eq 'full') {
-                $why = if ($extra) { @($extra.full_reasons) -join '; ' } else { 'drift selector failed' }
-                $selection.scope = 'full'; $selection.full_reasons = @($selection.full_reasons) + "setup drift requires full: $why"
-                if ($selection.all_fixtures.Count -gt 0) { $selection.fixtures = $selection.all_fixtures }
-            } else {
-                foreach ($fixture in @($extra.fixtures)) {
-                    if (@($selection.fixtures) -notcontains $fixture) { $selection.fixtures = @($selection.fixtures) + $fixture }
-                    $selection.fixture_reasons | Add-Member -Force -NotePropertyName $fixture -NotePropertyValue @("setup drift ($($driftPaths.Count) generated files)")
-                }
-            }
-        }
+    # Select against the latest complete full candidate, with between-run setup
+    # hashes (legacy runs conservatively union their recorded drift paths).
+    $setupSnapshot = Get-GeneratedSnapshot $main
+    $driftPaths = @()
+    if ($SetupSteps.Count + $SetupSnippets.Count -gt 0) {
+        $driftPaths = @(@($drift.changed) + @($drift.added) + @($drift.removed) | Where-Object { $_ } | ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
     }
+    $entry.setup_snapshot = $setupSnapshot
+    $entry.setup_drift_paths = $driftPaths
+    $selection = Get-CandidateTestSelection $main $mainHead $candidate $ledger $TestScope $FullSuiteEvery (Join-Path $out 'test-selection.json') $setupSnapshot $driftPaths
     if ($selection.scope -eq 'selected') {
         # Exhaustive sweeps run only in full suites; the representative seeds stay in the ordinary fixtures.
         $selection.fixtures = @($selection.fixtures | Where-Object { $_ -notmatch 'SweepTests$' })
@@ -273,6 +259,9 @@ try {
     $entry.promotion_number = $selection.promotion_number
     $request = New-NativeTestRequest $out $selection.scope $selection.fixtures
     $entry.test_run_id = $request.id
+    $entry.tested_baseline_label = $selection.tested_baseline.label
+    $entry.tested_baseline_run_id = $selection.tested_baseline.run_id
+    $entry.tested_baseline_candidate = $selection.tested_baseline.candidate
 
     Assert-UnityLease $token
     # Unity's SceneView repaint throws NullReferenceException during Play Mode tests in a fresh
@@ -320,12 +309,19 @@ try {
     $results.issues = @(Get-CoverageIssues $results $selection.fixtures)
     $baseline = Get-LastPromoted $ledger
     $quarantine = Get-Quarantine $quarantineFile
-    $verdict = Get-GateVerdict $results $quarantine $baseline
-    $nextBaseline = Merge-TestBaseline $results $quarantine $baseline
+    $testedBaseline = $selection.tested_baseline
+    $verdict = Get-GateVerdict $results $quarantine $baseline -testedBaseline $testedBaseline
+    $effective = if ($testedBaseline) { Merge-TestedResults $results $quarantine $testedBaseline } else { $results }
+    $nextBaseline = Merge-TestBaseline $effective $quarantine $baseline
+    if ($selection.scope -eq 'full' -and @(Get-CompleteEvidenceIssues $results $selection.all_fixtures).Count -eq 0) {
+        # Raw leaves only, separate from cumulative ratchet and selected composites.
+        $entry.full_native_results = $results
+    }
     $entry.tests = [ordered]@{ total = $results.total; passed = $results.passed; failed = $results.failed; skipped = $results.skipped }
     $entry.run_failed_names = @($results.failures | ForEach-Object { $_.name })
-    $entry.run_blocking_count = $verdict.blocking.Count
-    $entry.run_quarantined_count = $verdict.quarantined.Count
+    $freshBaseline = Merge-TestBaseline $results $quarantine $null
+    $entry.run_blocking_count = $freshBaseline.blocking_count
+    $entry.run_quarantined_count = $freshBaseline.quarantined_count
     $entry.result_fixtures = @($results.cases.fixture | Sort-Object -Unique)
     $entry.executed_fixtures = @($results.cases | Where-Object { $_.result -in @('Passed', 'Failed') } | ForEach-Object { $_.fixture } | Sort-Object -Unique)
     $entry.coverage_issues = @($results.issues)
@@ -345,7 +341,7 @@ try {
         Invoke-Git $main checkout -q main | Out-Null
         $onCandidate = $false; $entry.promoted = $true
         if ($selection.scope -eq 'full') {
-            $entry.full_suite_coverage = @($selection.promotions_since_full) + @([pscustomobject]@{ label = $Label; candidate = $candidate })
+            $entry.full_suite_coverage = @($selection.gates_since_full) + @([pscustomobject]@{ label = $Label; candidate = $candidate })
         }
         Log "PROMOTED: main $mainHead -> $candidate"
     } else {
