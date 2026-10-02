@@ -92,7 +92,7 @@ Check 'skipped retry preserves a known passing status too' ((Merge-TestBaseline 
 $renamedBase = [pscustomobject]@{ failed_names = @('A.old', 'B.y'); blocking_count = 2
     test_statuses = @((Case 'A.old' 'Failed' $true), (Case 'B.y' 'Failed' $true)) }
 $next = Merge-TestBaseline (Result @((Case 'A.new' 'Passed'))) @() $renamedBase $today
-Check 'rerun fixture drops its renamed leaves but keeps other fixtures' failures' ($next.failed_names.Count -eq 1 -and $next.failed_names -contains 'B.y' -and -not ($next.test_statuses.name -contains 'A.old'))
+Check 'rerun fixture drops its renamed leaves but keeps failures of other fixtures' ($next.failed_names.Count -eq 1 -and $next.failed_names -contains 'B.y' -and -not ($next.test_statuses.name -contains 'A.old'))
 $r = Result @((Case 'A.x' 'Failed'))
 Check 'known partial failure passes without counting omitted tests as run' ((Get-GateVerdict $r @() $base $today).pass)
 $r = Result @((Case 'C.z' 'Failed'))
