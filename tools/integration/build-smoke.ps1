@@ -40,6 +40,11 @@ try {
     # Nothing was queued and the editor was idle a moment ago: the lease can be released.
     if ($output -like 'EX *') { $safe = $true; throw "Build queue failed: $output" }
     "Build queued: $output"
+    # QueueBuild schedules the build on EditorApplication.delayCall, which never fires while the editor is
+    # unfocused and throttled (2026-10-01: the queued build sat idle). Run the pending callbacks now; the
+    # build may outlive the bridge's 30 s reply, and completed.json below remains the evidence.
+    try { 'Pending editor callbacks: ' + (Invoke-UnityCsharp 'var d = UnityEditor.EditorApplication.delayCall; int n = d == null ? 0 : d.GetInvocationList().Length; UnityEditor.EditorApplication.delayCall = null; if (d != null) { d.Invoke(); } return "ran " + n;' 60) }
+    catch { "Pending editor callbacks: reply lost while the build runs ($($_.Exception.Message))" }
     $done = Join-Path $output 'completed.json'
     $deadline = (Get-Date).AddMinutes($BuildTimeoutMinutes); $beat = Get-Date
     while (-not (Test-Path -LiteralPath $done) -and (Get-Date) -lt $deadline) {
