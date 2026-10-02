@@ -165,7 +165,8 @@ try {
     if ($branch -ne 'main') { throw "Open checkout is on '$branch', expected main." }
     # Clear only what the checkout would refuse but cannot lose information (batch 17 stopped here):
     #  - untracked files the candidate adds with identical bytes, or a .meta with the same GUID
-    #    (Unity generated them locally; an earlier gate commit tracks them);
+    #    (Unity generated them locally; an earlier gate commit tracks them); other untracked files the
+    #    candidate adds are moved aside under the evidence folder;
     #  - filter artifacts (raw blob under an LFS rule, raw bytes == HEAD blob) that the candidate
     #    changes or deletes;
     #  - dirty tracked files the candidate changes are stashed with a patch (below). Anything else aborts.
@@ -182,6 +183,14 @@ try {
             $same = $theirs -and $theirs -eq $mine
         }
         if ($same) { Remove-Item -LiteralPath $local -Force; Log "Untracked local copy matches the candidate, removed before checkout: $p" }
+        else {
+            # A stale generated copy (for example an older FBX export): keep it recoverable under the gate's
+            # evidence folder instead of aborting. Its untracked .meta stays, so the asset GUID is preserved.
+            $aside = Join-Path (Join-Path $out 'pre-checkout-untracked') $p
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $aside) | Out-Null
+            Move-Item -LiteralPath $local -Destination $aside -Force
+            Log "Untracked local file differs from the candidate's, moved aside to ${aside}: $p"
+        }
     }
     foreach ($line in @(Invoke-Git $main -c core.quotepath=off status --porcelain --untracked-files=no)) {
         if ($line -notmatch '^ M (.+)$') { continue }
