@@ -167,7 +167,7 @@ class SelectorTests(unittest.TestCase):
             ('Assets/Art/Shrine.mat', None),
             ('Assets/Art/Shrine/icon.png', 'Shrine'),
             ('Assets/Art/Horror/Collapse/WORSEN_SpectralHand_LOD.fbx', 'Floor'),
-            ('Assets/Art/Horror.meta', 'Horror'),
+            ('Assets/Art/Horror/Materials/glow.mat', 'Horror'),
             ('Assets/Art/Exit/WeatheredDoor/door.fbx.meta', 'Floor'),
             ('Assets/Art/Player/BlockyCharacter/BlockyCharacter.fbx', 'Player'),
             ('Assets/Resources/ScriptableObjects/Domain/Procedural/catalogue.asset', 'Procedural'),
@@ -188,7 +188,8 @@ class SelectorTests(unittest.TestCase):
     def test_non_unity_paths_only_add_mandatory_smoke(self):
         for path in ('ArtSource/A/model.blend', 'tools/blender/tool.py', 'PLANNING/index.json',
                      'evidence/gate-ledger.jsonl', 'Assets/Art/notes.md', 'tools/integration/README.md',
-                     'tools/integration/Gate.ps1', 'tools/offline-compile/Compile-Staged.ps1'):
+                     'tools/integration/Gate.ps1', 'tools/offline-compile/Compile-Staged.ps1',
+                     'Assets/Prefabs.meta', 'Assets/Prefabs/Horror/Collapse.meta'):
             with self.subTest(path=path):
                 self.assertEqual(set(SELECTOR.SMOKE), set(self.choose(path)['fixtures']))
 

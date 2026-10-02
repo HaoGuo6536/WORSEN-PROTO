@@ -330,10 +330,13 @@ try {
     $results.issues = @(Get-CoverageIssues $results $selection.fixtures)
     $baseline = Get-LastPromoted $ledger
     $quarantine = Get-Quarantine $quarantineFile
-    $testedBaseline = $selection.tested_baseline
-    $verdict = Get-GateVerdict $results $quarantine $baseline -testedBaseline $testedBaseline
-    $effective = if ($testedBaseline) { Merge-TestedResults $results $quarantine $testedBaseline } else { $results }
-    $nextBaseline = Merge-TestBaseline $effective $quarantine $baseline
+    # A full run is complete fresh coverage: never compose an older run into it (batch 36).
+    $testedBaseline = if ($selection.scope -eq 'full') { $null } else { $selection.tested_baseline }
+    $inventory = @($selection.all_fixtures | Where-Object { $_ })
+    if ($inventory.Count -eq 0) { $inventory = $null }
+    $verdict = Get-GateVerdict $results $quarantine $baseline -testedBaseline $testedBaseline -inventory $inventory
+    $effective = if ($testedBaseline) { Merge-TestedResults $results $quarantine $testedBaseline (Get-Date) $inventory } else { $results }
+    $nextBaseline = Merge-TestBaseline $effective $quarantine $baseline (Get-Date) $inventory
     if ($selection.scope -eq 'full' -and @(Get-CompleteEvidenceIssues $results $selection.all_fixtures).Count -eq 0) {
         # Raw leaves only, separate from cumulative ratchet and selected composites.
         $entry.full_native_results = $results

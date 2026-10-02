@@ -45,13 +45,13 @@ function Get-LastPromoted([string]$ledger) {
     return $last
 }
 
-function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (Get-Date), $testedBaseline = $null) {
+function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (Get-Date), $testedBaseline = $null, $inventory = $null) {
     $reasons = @($results.issues | Where-Object { $_ })
     if (-not $results -or $results.total -le 0) {
         return [pscustomobject]@{ pass = $false; reasons = @('no test results or zero tests'); blocking = @(); quarantined = @(); new = @() }
     }
     $effective = $results
-    if ($testedBaseline) { $effective = Merge-TestedResults $results $quarantine $testedBaseline $today }
+    if ($testedBaseline) { $effective = Merge-TestedResults $results $quarantine $testedBaseline $today $inventory }
     $quarantined = @(); $blocking = @()
     foreach ($f in @($effective.failures)) {
         if (@($quarantine | Where-Object { Test-QuarantineMatch $_ $f $today }).Count -gt 0) { $quarantined += $f.name } else { $blocking += $f.name }
@@ -64,7 +64,7 @@ function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (G
     # the ratchet; skipping or omitting a formerly failing test does not fix it.
     $ratchetCount = $blocking.Count
     if ($results.cases -and $baseline) {
-        $next = Merge-TestBaseline $effective $quarantine $baseline $today
+        $next = Merge-TestBaseline $effective $quarantine $baseline $today $inventory
         $ratchetCount = $next.blocking_count
     }
     if ($results.scope -eq 'selected' -and -not $testedBaseline -and $null -eq $baseline.test_statuses) {
@@ -76,7 +76,14 @@ function Get-GateVerdict($results, $quarantine, $baseline, [datetime]$today = (G
     return [pscustomobject]@{ pass = ($reasons.Count -eq 0); reasons = $reasons; blocking = $blocking; quarantined = $quarantined; new = $new }
 }
 
-function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today = (Get-Date)) {
+function Get-FixtureName([string]$name) {
+    # Worsen.Tests.System.Fixture.Method(args) -> Worsen.Tests.System.Fixture
+    $bare = ($name -split '\(', 2)[0]
+    $dot = $bare.LastIndexOf('.')
+    if ($dot -gt 0) { $bare.Substring(0, $dot) } else { $bare }
+}
+
+function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today = (Get-Date), $inventory = $null) {
     $states = [System.Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
     foreach ($state in @($baseline.test_statuses)) {
         if ($state) { $states[$state.name] = [pscustomobject]@{ name = $state.name; result = $state.result; fixture = $state.fixture; categories = @($state.categories); blocking = $state.blocking } }
@@ -100,6 +107,12 @@ function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today =
         $states[$case.name] = [pscustomobject]@{ name = $case.name; result = $case.result; fixture = $case.fixture; categories = @($case.categories); blocking = $isBlocking }
     }
     $values = @($states.Values | Sort-Object name)
+    # A test whose fixture no longer exists in the candidate cannot be paid down by any run;
+    # carrying it would block every later gate (batch 36: deleted legacy generator fixtures).
+    if ($inventory) {
+        $known = [System.Collections.Generic.HashSet[string]]::new([string[]]@($inventory), [StringComparer]::Ordinal)
+        $values = @($values | Where-Object { $known.Contains($(if ($_.fixture) { $_.fixture } else { Get-FixtureName $_.name })) })
+    }
     # Quarantines are live policy, not a permanently banked exemption.
     foreach ($state in $values) {
         $isBlocking = $state.result -eq 'Failed' -and @($quarantine | Where-Object { Test-QuarantineMatch $_ $state $today }).Count -eq 0
@@ -113,9 +126,9 @@ function Merge-TestBaseline($results, $quarantine, $baseline, [datetime]$today =
     }
 }
 
-function Merge-TestedResults($results, $quarantine, $testedBaseline, [datetime]$today = (Get-Date)) {
+function Merge-TestedResults($results, $quarantine, $testedBaseline, [datetime]$today = (Get-Date), $inventory = $null) {
     # Keep the native summary untouched: composed coverage is not fresh execution.
-    $merged = Merge-TestBaseline $results $quarantine $testedBaseline $today
+    $merged = Merge-TestBaseline $results $quarantine $testedBaseline $today $inventory
     [pscustomobject]@{ cases = @($merged.test_statuses); total = $merged.test_statuses.Count
         failures = @($merged.test_statuses | Where-Object { $_.result -eq 'Failed' })
         issues = @($results.issues); scope = $results.scope }

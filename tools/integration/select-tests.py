@@ -207,6 +207,10 @@ def select(changed, current, previous=None):
             widen('invalid repository-relative path: ' + original)
             continue
         path = original[:-5] if original.endswith('.meta') else original
+        # A folder's .meta (no extension on its final segment) only records the folder GUID;
+        # it changes no behaviour, so it adds no native fixtures (batch 36: Assets/Prefabs.meta).
+        if original.endswith('.meta') and path.startswith('Assets/') and '.' not in path.rsplit('/', 1)[-1]:
+            continue
         if original in GATE_INJECTED:
             if path in current and path in previous and current[path] != previous[path]:
                 widen('gate runner implementation changed: ' + original)
